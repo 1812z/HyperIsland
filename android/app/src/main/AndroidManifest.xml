@@ -44,9 +44,7 @@
         <meta-data
             android:name="xposedminversion"
             android:value="82" />
-        <meta-data
-            android:name="xposedscope"
-            android:value="com.android.providers.downloads" />
+        <!-- 移除xposedscope限制，全局Hook以找出下载通知来源 -->
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
