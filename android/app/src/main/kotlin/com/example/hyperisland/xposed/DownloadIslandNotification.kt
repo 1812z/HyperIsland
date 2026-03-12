@@ -56,13 +56,16 @@ object DownloadIslandNotification {
                                 pic = downloadIconKey
                             }
                             textInfo {
-                                this.title = if (isComplete) "下载完成" else "下载中$progress%"
+                                this.title = if (isComplete) "下载完成" else "下载中"
                             }
                         }
-                        imageTextInfoRight {
-                            type = 3
+                        progressTextInfo {
                             textInfo {
                                 this.title = fileName
+                                narrowFont = true
+                            }
+                            progressInfo {
+                                this.progress = progress
                             }
                         }
                     }
