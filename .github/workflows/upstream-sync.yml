@@ -1,0 +1,36 @@
+name: Sync Upstream
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'  # 每 30 分钟检查一次
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Sync upstream
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git remote add upstream https://github.com/1812z/HyperIsland.git || git remote set-url upstream https://github.com/1812z/HyperIsland.git
+          git fetch upstream main
+
+          # 检查是否有新提交
+          UPSTREAM_HEAD=$(git rev-parse upstream/main)
+          LOCAL_HEAD=$(git rev-parse origin/main)
+
+          if [ "$UPSTREAM_HEAD" != "$LOCAL_HEAD" ]; then
+            git merge upstream/main -m "Sync upstream: $(git log -1 --pretty=%B upstream/main)"
+            git push origin main
+            echo "✓ Synced from upstream"
+          else
+            echo "✓ Already up to date"
+          fi
+
