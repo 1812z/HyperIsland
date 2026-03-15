@@ -1,0 +1,88 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      # 读取当前版本，与上一次提交对比，检测是否变更
+      - name: Detect version change
+        id: version
+        run: |
+          CURRENT=$(grep '^version:' pubspec.yaml | awk '{print $2}')
+          PREVIOUS=$(git show HEAD~1:pubspec.yaml 2>/dev/null | grep '^version:' | awk '{print $2}' || echo "")
+          VERSION_NAME=$(echo "$CURRENT" | cut -d'+' -f1)
+          VERSION_CODE=$(echo "$CURRENT" | cut -d'+' -f2)
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "version_code=$VERSION_CODE"  >> $GITHUB_OUTPUT
+
+          if [ "$CURRENT" != "$PREVIOUS" ] && [ -n "$CURRENT" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "::notice::Version changed: $PREVIOUS → $CURRENT, will release."
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "::notice::No version change ($CURRENT), build only."
+          fi
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Setup release signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/app/keystore.jks
+          printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=keystore.jks\n' \
+            "$STORE_PASSWORD" "$KEY_PASSWORD" "$KEY_ALIAS" \
+            > android/key.properties
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build release APK
+        run: |
+          flutter build apk --release \
+            --build-name="${{ steps.version.outputs.version_name }}" \
+            --build-number="${{ steps.version.outputs.version_code }}"
+
+      # ── 仅在版本变更时发布 ────────────────────────────────────────────────
+
+      - name: Rename APK
+        if: steps.version.outputs.changed == 'true'
+        run: |
+          cp build/app/outputs/flutter-apk/app-release.apk \
+            "HyperIsland-v${{ steps.version.outputs.version_name }}.apk"
+
+      - name: Create GitHub Release
+        if: steps.version.outputs.changed == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version_name }}
+          name: HyperIsland v${{ steps.version.outputs.version_name }}
+          body: |
+            ## HyperIsland v${{ steps.version.outputs.version_name }}
+
+            - versionCode: `${{ steps.version.outputs.version_code }}`
+          files: HyperIsland-v${{ steps.version.outputs.version_name }}.apk
+          draft: false
+          prerelease: false
