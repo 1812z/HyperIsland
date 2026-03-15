@@ -5,10 +5,14 @@ class AppChannelsPage extends StatefulWidget {
   final AppInfo app;
   final WhitelistController controller;
 
+  /// 应用总开关状态：false 时渠道页全部显示为强制关闭的灰色状态。
+  final bool appEnabled;
+
   const AppChannelsPage({
     super.key,
     required this.app,
     required this.controller,
+    required this.appEnabled,
   });
 
   @override
@@ -18,6 +22,8 @@ class AppChannelsPage extends StatefulWidget {
 class _AppChannelsPageState extends State<AppChannelsPage> {
   List<ChannelInfo>? _channels;
   Set<String> _enabledChannels = {};
+  Map<String, String> _channelTemplates = {};
+  Map<String, String> _templateLabels = {};   // id → 显示名称，从原生侧加载
   bool _loading = true;
 
   @override
@@ -27,31 +33,44 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
   }
 
   Future<void> _load() async {
-    final channels =
-        await widget.controller.getChannels(widget.app.packageName);
-    final enabled =
-        await widget.controller.getEnabledChannels(widget.app.packageName);
+    final pkg = widget.app.packageName;
+    final results = await Future.wait([
+      widget.controller.getChannels(pkg),
+      widget.controller.getEnabledChannels(pkg),
+      widget.controller.getTemplates(),
+    ]);
+    final channels      = results[0] as List<ChannelInfo>;
+    final enabled       = results[1] as Set<String>;
+    final templateLabels = results[2] as Map<String, String>;
+    final channelTemplates = await widget.controller.getChannelTemplates(
+      pkg,
+      channels.map((c) => c.id).toList(),
+    );
     if (mounted) {
       setState(() {
-        _channels = channels;
+        _channels        = channels;
         _enabledChannels = enabled;
-        _loading = false;
+        _channelTemplates = channelTemplates;
+        _templateLabels  = templateLabels;
+        _loading         = false;
       });
     }
   }
 
-  bool _isEnabled(String channelId) =>
-      _enabledChannels.isEmpty || _enabledChannels.contains(channelId);
+  /// 渠道是否生效：应用总开关关闭时强制返回 false。
+  bool _isEnabled(String channelId) {
+    if (!widget.appEnabled) return false;
+    return _enabledChannels.isEmpty || _enabledChannels.contains(channelId);
+  }
 
   Future<void> _toggle(String channelId, bool value) async {
+    if (!widget.appEnabled) return;
     final all = _channels ?? [];
     Set<String> newSet;
 
     if (_enabledChannels.isEmpty) {
-      // 当前"全部生效"，关闭某个渠道 → 保存其余所有渠道
       if (!value) {
-        newSet =
-            all.map((c) => c.id).where((id) => id != channelId).toSet();
+        newSet = all.map((c) => c.id).where((id) => id != channelId).toSet();
       } else {
         return;
       }
@@ -62,13 +81,18 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
       } else {
         newSet.remove(channelId);
       }
-      // 全部重新勾选 → 重置为空（全部生效）
       if (all.isNotEmpty && newSet.length == all.length) newSet = {};
     }
 
     setState(() => _enabledChannels = newSet);
-    await widget.controller.setEnabledChannels(
-        widget.app.packageName, newSet);
+    await widget.controller.setEnabledChannels(widget.app.packageName, newSet);
+  }
+
+  Future<void> _setTemplate(String channelId, String template) async {
+    setState(
+        () => _channelTemplates = {..._channelTemplates, channelId: template});
+    await widget.controller.setChannelTemplate(
+        widget.app.packageName, channelId, template);
   }
 
   String _importanceLabel(int importance) => switch (importance) {
@@ -84,7 +108,7 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final channels = _channels ?? [];
-    final allEnabled = _enabledChannels.isEmpty;
+    final allEnabled = widget.appEnabled && _enabledChannels.isEmpty;
 
     return Scaffold(
       backgroundColor: cs.surface,
@@ -115,6 +139,37 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
               ],
             ),
           ),
+
+          // 应用总开关关闭时的提示横幅
+          if (!widget.appEnabled)
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              sliver: SliverToBoxAdapter(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: cs.errorContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.block,
+                          size: 18, color: cs.onErrorContainer),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '应用总开关已关闭，以下渠道设置均不生效',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: cs.onErrorContainer),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
           if (_loading)
             const SliverFillRemaining(
               child: Center(child: CircularProgressIndicator()),
@@ -147,9 +202,11 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               sliver: SliverToBoxAdapter(
                 child: Text(
-                  allEnabled
-                      ? '对全部 ${channels.length} 个渠道生效'
-                      : '已选 ${_enabledChannels.length} / ${channels.length} 个渠道',
+                  widget.appEnabled
+                      ? (allEnabled
+                          ? '对全部 ${channels.length} 个渠道生效'
+                          : '已选 ${_enabledChannels.length} / ${channels.length} 个渠道')
+                      : '全部 ${channels.length} 个渠道（已停用）',
                   style: Theme.of(context)
                       .textTheme
                       .bodyMedium
@@ -165,82 +222,21 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                     final ch = channels[index];
                     final isFirst = index == 0;
                     final isLast = index == channels.length - 1;
-                    final radius = BorderRadius.vertical(
-                      top: isFirst ? const Radius.circular(16) : Radius.zero,
-                      bottom:
-                          isLast ? const Radius.circular(16) : Radius.zero,
-                    );
-                    final enabled = _isEnabled(ch.id);
+                    final channelEnabled = _isEnabled(ch.id);
+                    final template = _channelTemplates[ch.id] ??
+                        kTemplateGenericProgress;
 
-                    return Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Material(
-                          color: cs.surfaceContainerHighest,
-                          borderRadius: radius,
-                          child: InkWell(
-                            borderRadius: radius,
-                            onTap: () => _toggle(ch.id, !enabled),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 12),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(ch.name,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodyLarge),
-                                        if (ch.description.isNotEmpty) ...[
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            ch.description,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodySmall
-                                                ?.copyWith(
-                                                    color:
-                                                        cs.onSurfaceVariant),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ],
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          '重要性：${_importanceLabel(ch.importance)}  ·  ${ch.id}',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodySmall
-                                              ?.copyWith(
-                                                  color: cs.onSurfaceVariant
-                                                      .withValues(alpha: 0.7)),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Switch(
-                                      value: enabled,
-                                      onChanged: (v) => _toggle(ch.id, v)),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        if (!isLast)
-                          Divider(
-                            height: 1,
-                            thickness: 1,
-                            indent: 16,
-                            color:
-                                cs.outlineVariant.withValues(alpha: 0.4),
-                          ),
-                      ],
+                    return _ChannelTile(
+                      channel: ch,
+                      channelEnabled: channelEnabled,
+                      appEnabled: widget.appEnabled,
+                      template: template,
+                      templateLabels: _templateLabels,
+                      importanceLabel: _importanceLabel(ch.importance),
+                      isFirst: isFirst,
+                      isLast: isLast,
+                      onToggle: (v) => _toggle(ch.id, v),
+                      onTemplateChanged: (t) => _setTemplate(ch.id, t),
                     );
                   },
                   childCount: channels.length,
@@ -250,6 +246,224 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
           ],
         ],
       ),
+    );
+  }
+}
+
+// ── 渠道列表项 ──────────────────────────────────────────────────────────────
+
+class _ChannelTile extends StatelessWidget {
+  const _ChannelTile({
+    required this.channel,
+    required this.channelEnabled,
+    required this.appEnabled,
+    required this.template,
+    required this.templateLabels,
+    required this.importanceLabel,
+    required this.isFirst,
+    required this.isLast,
+    required this.onToggle,
+    required this.onTemplateChanged,
+  });
+
+  final ChannelInfo channel;
+  final bool channelEnabled;
+  final bool appEnabled;
+  final String template;
+  final Map<String, String> templateLabels;
+  final String importanceLabel;
+  final bool isFirst;
+  final bool isLast;
+  final ValueChanged<bool> onToggle;
+  final ValueChanged<String> onTemplateChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final radius = BorderRadius.vertical(
+      top: isFirst ? const Radius.circular(16) : Radius.zero,
+      bottom: isLast ? const Radius.circular(16) : Radius.zero,
+    );
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Material(
+          color: cs.surfaceContainerHighest,
+          borderRadius: radius,
+          child: InkWell(
+            borderRadius: radius,
+            // 应用关闭时点击整行也不触发切换
+            onTap: appEnabled ? () => onToggle(!channelEnabled) : null,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 主行：名称 + 开关
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              channel.name,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyLarge
+                                  ?.copyWith(
+                                    color: appEnabled
+                                        ? null
+                                        : cs.onSurface
+                                            .withValues(alpha: 0.38),
+                                  ),
+                            ),
+                            if (channel.description.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                channel.description,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(
+                                      color: appEnabled
+                                          ? cs.onSurfaceVariant
+                                          : cs.onSurface
+                                              .withValues(alpha: 0.28),
+                                    ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                            const SizedBox(height: 2),
+                            Text(
+                              '重要性：$importanceLabel  ·  ${channel.id}',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(
+                                    color: appEnabled
+                                        ? cs.onSurfaceVariant
+                                            .withValues(alpha: 0.7)
+                                        : cs.onSurface
+                                            .withValues(alpha: 0.22),
+                                  ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      Switch(
+                        value: channelEnabled,
+                        // 应用关闭时禁用开关
+                        onChanged: appEnabled ? onToggle : null,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  // 模板选择行：应用总开关关闭或该渠道关闭时均不可操作
+                  _TemplateRow(
+                    template: template,
+                    templateLabels: templateLabels,
+                    enabled: appEnabled && channelEnabled,
+                    onChanged: onTemplateChanged,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (!isLast)
+          Divider(
+            height: 1,
+            thickness: 1,
+            indent: 16,
+            color: cs.outlineVariant.withValues(alpha: 0.4),
+          ),
+      ],
+    );
+  }
+}
+
+// ── 模板选择器 ────────────────────────────────────────────────────────────────
+
+class _TemplateRow extends StatelessWidget {
+  const _TemplateRow({
+    required this.template,
+    required this.templateLabels,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final String template;
+  final Map<String, String> templateLabels;
+  final bool enabled;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final labelColor =
+        enabled ? cs.onSurfaceVariant : cs.onSurface.withValues(alpha: 0.38);
+
+    return Row(
+      children: [
+        Text(
+          '模板：',
+          style: Theme.of(context)
+              .textTheme
+              .bodySmall
+              ?.copyWith(color: labelColor),
+        ),
+        const SizedBox(width: 2),
+        PopupMenuButton<String>(
+          enabled: enabled,
+          initialValue: template,
+          onSelected: onChanged,
+          itemBuilder: (_) => templateLabels.entries
+              .map((e) => PopupMenuItem(
+                    value: e.key,
+                    child: Text(e.value),
+                  ))
+              .toList(),
+          child: Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: enabled
+                    ? cs.outline.withValues(alpha: 0.55)
+                    : cs.outline.withValues(alpha: 0.2),
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  templateLabels[template] ?? template,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: enabled
+                            ? cs.onSurfaceVariant
+                            : cs.onSurface.withValues(alpha: 0.38),
+                        fontWeight: FontWeight.w500,
+                      ),
+                ),
+                Icon(
+                  Icons.arrow_drop_down,
+                  size: 16,
+                  color: enabled
+                      ? cs.onSurfaceVariant
+                      : cs.onSurface.withValues(alpha: 0.38),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -6,6 +6,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 const _channel = MethodChannel('com.example.hyperisland/test');
 const kPrefGenericWhitelist = 'pref_generic_whitelist';
 
+/// 可用的灵动岛通知模板标识符。
+const kTemplateGenericProgress = 'generic_progress';
+const kTemplateDownload = 'download';
+
 class AppInfo {
   final String packageName;
   final String appName;
@@ -43,13 +47,22 @@ class WhitelistController extends ChangeNotifier {
   }
 
   List<AppInfo> get filteredApps {
-    if (_searchQuery.isEmpty) return _allApps;
     final q = _searchQuery.toLowerCase();
-    return _allApps
-        .where((a) =>
-            a.appName.toLowerCase().contains(q) ||
-            a.packageName.toLowerCase().contains(q))
-        .toList();
+    final list = q.isEmpty
+        ? List<AppInfo>.from(_allApps)
+        : _allApps
+            .where((a) =>
+                a.appName.toLowerCase().contains(q) ||
+                a.packageName.toLowerCase().contains(q))
+            .toList();
+    // 已启用的应用排在最前，组内按字母序。
+    list.sort((a, b) {
+      final aOn = enabledPackages.contains(a.packageName);
+      final bOn = enabledPackages.contains(b.packageName);
+      if (aOn != bOn) return aOn ? -1 : 1;
+      return a.appName.compareTo(b.appName);
+    });
+    return list;
   }
 
   Future<void> _load() async {
@@ -132,5 +145,40 @@ class WhitelistController extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
         'pref_channels_$packageName', channelIds.join(','));
+  }
+
+  /// 从原生侧读取所有可用模板，返回 id → 显示名称 的映射。
+  Future<Map<String, String>> getTemplates() async {
+    try {
+      final rawList =
+          await _channel.invokeMethod<List<dynamic>>('getTemplates') ?? [];
+      return Map.fromEntries(rawList.map((raw) {
+        final map = Map<String, dynamic>.from(raw as Map);
+        return MapEntry(map['id'] as String, map['name'] as String);
+      }));
+    } catch (e) {
+      debugPrint('getTemplates error: $e');
+      return {kTemplateGenericProgress: '通用进度条'};
+    }
+  }
+
+  /// 批量读取指定包内各渠道的模板设置，返回 channelId → template 映射。
+  Future<Map<String, String>> getChannelTemplates(
+      String packageName, List<String> channelIds) async {
+    final prefs = await SharedPreferences.getInstance();
+    return Map.fromEntries(channelIds.map((id) {
+      final template =
+          prefs.getString('pref_channel_template_${packageName}_$id') ??
+              kTemplateGenericProgress;
+      return MapEntry(id, template);
+    }));
+  }
+
+  /// 保存指定渠道的模板设置。
+  Future<void> setChannelTemplate(
+      String packageName, String channelId, String template) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+        'pref_channel_template_${packageName}_$channelId', template);
   }
 }

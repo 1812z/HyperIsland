@@ -32,8 +32,10 @@ class SettingsProvider : ContentProvider() {
         val flutterKey = "flutter.$segment"
         val cursor = MatrixCursor(arrayOf("value"))
 
-        // 字符串类型的 key（白名单、渠道列表等），直接返回字符串值
-        if (segment == "pref_generic_whitelist" || segment.startsWith("pref_channels_")) {
+        // 字符串类型的 key（白名单、渠道列表、渠道模板等），直接返回字符串值
+        if (segment == "pref_generic_whitelist" ||
+            segment.startsWith("pref_channels_") ||
+            segment.startsWith("pref_channel_template_")) {
             cursor.newRow().add(prefs.getString(flutterKey, "") ?: "")
             return cursor
         }

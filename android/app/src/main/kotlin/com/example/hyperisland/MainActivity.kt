@@ -14,6 +14,7 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodCall
+import com.example.hyperisland.xposed.registeredTemplates
 import java.io.ByteArrayOutputStream
 
 class MainActivity : FlutterActivity() {
@@ -82,6 +83,10 @@ class MainActivity : FlutterActivity() {
                         pendingCall = call
                         requestNotificationPermission()
                     }
+                }
+
+                "getTemplates" -> {
+                    result.success(registeredTemplates)
                 }
 
                 "getInstalledApps" -> {

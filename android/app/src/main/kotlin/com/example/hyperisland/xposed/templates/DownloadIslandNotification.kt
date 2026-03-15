@@ -1,6 +1,7 @@
-package com.example.hyperisland.xposed
+package com.example.hyperisland.xposed.templates
 
 import android.app.Notification
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
@@ -8,13 +9,14 @@ import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.drawable.Icon
 import android.os.Bundle
-import android.content.Context
+import com.example.hyperisland.xposed.InProcessController
 import com.xzakota.hyper.notification.focus.FocusNotification
 import de.robv.android.xposed.XposedBridge
 
 /**
- * 下载灵动岛通知构建器
- * 使用 FocusNotification.buildV3 DSL 构建小米超级岛通知
+ * 下载灵动岛通知构建器。
+ * 专为 MIUI DownloadManager 系统下载设计，按钮硬编码暂停/恢复/取消，
+ * 通过 [InProcessController] 直接操作下载任务。
  */
 object DownloadIslandNotification {
 
@@ -31,16 +33,16 @@ object DownloadIslandNotification {
         downloadId: Long,
         packageName: String,
         isPaused: Boolean = false,
-        appIcon: Icon? = null
+        appIcon: Icon? = null,
     ) {
         try {
-            val isComplete = progress >= 100
+            val isComplete  = progress >= 100
             val isMultiFile = Regex("""\d+个文件""").containsMatchIn(title + text + fileName)
-            val combined = title + text
-            val isWaiting = !isComplete &&
-                            (combined.contains("等待") || combined.contains("准备中") ||
-                             combined.contains("队列") || combined.contains("pending", ignoreCase = true) ||
-                             combined.contains("queued", ignoreCase = true))
+            val combined    = title + text
+            val isWaiting   = !isComplete &&
+                              (combined.contains("等待") || combined.contains("准备中") ||
+                               combined.contains("队列") || combined.contains("pending", ignoreCase = true) ||
+                               combined.contains("queued", ignoreCase = true))
 
             val displayTitle = when {
                 isComplete -> "下载完成"
@@ -48,7 +50,7 @@ object DownloadIslandNotification {
                 isWaiting  -> "等待中"
                 else       -> if (progress >= 0) "下载中 $progress%" else "下载中"
             }
-            val displayContent = fileName.ifEmpty { text }
+            val displayContent   = fileName.ifEmpty { text }
             val islandStateTitle = when {
                 isComplete -> "下载完成"
                 isPaused   -> "已暂停"
@@ -61,11 +63,9 @@ object DownloadIslandNotification {
                 isPaused || isWaiting -> 0xFFFF9800.toInt()  // 橙
                 else                  -> 0xFF2196F3.toInt()  // 蓝
             }
-            val iconType = IconType.DOWNLOADING
-            val fallbackIcon = createDownloadIcon(context, tintColor, iconType)
+            val fallbackIcon = createDownloadIcon(context, tintColor, IconType.DOWNLOADING)
             val downloadIcon = appIcon ?: fallbackIcon
 
-            // 主按钮：暂停中→恢复，下载中→暂停
             val primaryIntent = when {
                 isPaused && isMultiFile -> InProcessController.resumeAllIntent(context)
                 isPaused               -> InProcessController.resumeIntent(context, downloadId)
@@ -80,7 +80,7 @@ object DownloadIslandNotification {
                 isMultiFile            -> "全部暂停"
                 else                   -> "暂停"
             }
-            val cancelLabel  = if (isMultiFile) "全部取消" else "取消"
+            val cancelLabel    = if (isMultiFile) "全部取消" else "取消"
             val primaryIconRes = if (isPaused) android.R.drawable.ic_media_play
                                  else          android.R.drawable.ic_media_pause
 
@@ -88,10 +88,9 @@ object DownloadIslandNotification {
                 val downloadIconKey = createPicture("key_download_icon", downloadIcon)
 
                 islandFirstFloat = false
-                enableFloat = false
-                updatable = !isComplete  // 完成时不再等待后续更新，岛展示后自动消退
+                enableFloat      = false
+                updatable        = !isComplete
 
-                // 小米岛 摘要态
                 island {
                     islandProperty = 1
                     bigIslandArea {
@@ -99,7 +98,7 @@ object DownloadIslandNotification {
                             type = 1
                             picInfo {
                                 type = 1
-                                pic = downloadIconKey
+                                pic  = downloadIconKey
                             }
                             textInfo {
                                 this.title = islandStateTitle
@@ -120,40 +119,38 @@ object DownloadIslandNotification {
                     smallIslandArea {
                         picInfo {
                             type = 1
-                            pic = downloadIconKey
+                            pic  = downloadIconKey
                         }
                     }
                 }
 
-                // 焦点通知 展开态
                 iconTextInfo {
                     this.title = displayTitle
-                    content = displayContent
+                    content    = displayContent
                     animIconInfo {
                         type = 0
-                        src = downloadIconKey
+                        src  = downloadIconKey
                     }
                 }
 
-                // 操作按钮（完成/等待中时不显示）
                 if (!isComplete && !isWaiting) {
                     textButton {
                         addActionInfo {
                             val primaryAction = Notification.Action.Builder(
                                 Icon.createWithResource(context, primaryIconRes),
                                 primaryLabel,
-                                primaryIntent
+                                primaryIntent,
                             ).build()
-                            action = createAction("action_primary", primaryAction)
+                            action      = createAction("action_primary", primaryAction)
                             actionTitle = primaryLabel
                         }
                         addActionInfo {
                             val cancelAction = Notification.Action.Builder(
                                 Icon.createWithResource(context, android.R.drawable.ic_delete),
                                 cancelLabel,
-                                cancelPendingIntent
+                                cancelPendingIntent,
                             ).build()
-                            action = createAction("action_cancel", cancelAction)
+                            action      = createAction("action_cancel", cancelAction)
                             actionTitle = cancelLabel
                         }
                     }
@@ -162,7 +159,7 @@ object DownloadIslandNotification {
 
             extras.putAll(islandExtras)
 
-            // AOD 息屏显示：合并进已有的 miui.focus.param
+            // AOD 息屏显示
             val aodTitle = when {
                 isComplete -> "下载完成"
                 isPaused   -> "已暂停 $progress%"
@@ -173,53 +170,55 @@ object DownloadIslandNotification {
             if (existingParam != null) {
                 try {
                     val json = org.json.JSONObject(existingParam)
-                    val pv2 = json.optJSONObject("param_v2") ?: org.json.JSONObject()
+                    val pv2  = json.optJSONObject("param_v2") ?: org.json.JSONObject()
                     pv2.put("aodTitle", aodTitle)
                     json.put("param_v2", pv2)
                     extras.putString("miui.focus.param", json.toString())
                 } catch (_: Exception) {}
             }
 
-            val stateTag = when { isComplete -> "done"; isPaused -> "paused"; isWaiting -> "waiting"; else -> "${progress}%" }
-            XposedBridge.log("HyperIsland: Island injected — $fileName ($stateTag)")
+            val stateTag = when {
+                isComplete -> "done"
+                isPaused   -> "paused"
+                isWaiting  -> "waiting"
+                else       -> "${progress}%"
+            }
+            XposedBridge.log("HyperIsland[Download]: Island injected — $fileName ($stateTag)")
 
         } catch (e: Exception) {
-            XposedBridge.log("HyperIsland: Island injection error: ${e.message}")
+            XposedBridge.log("HyperIsland[Download]: Island injection error: ${e.message}")
         }
     }
 
-    // 下载图标矢量图
     private fun createDownloadIcon(context: Context, color: Int, iconType: IconType): Icon {
         val density = context.resources.displayMetrics.density
-        val size = (48 * density + 0.5f).toInt()
-        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bmp)
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        val size    = (48 * density + 0.5f).toInt()
+        val bmp     = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas  = Canvas(bmp)
+        val paint   = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             this.color = color
-            style = Paint.Style.FILL
+            style      = Paint.Style.FILL
         }
-        val s = size / 24f
+        val s    = size / 24f
         val path = Path()
         when (iconType) {
             IconType.DOWNLOADING -> {
-                // Material "download" arrow
                 path.moveTo(19 * s, 9 * s)
                 path.lineTo(15 * s, 9 * s)
                 path.lineTo(15 * s, 3 * s)
-                path.lineTo(9 * s, 3 * s)
-                path.lineTo(9 * s, 9 * s)
-                path.lineTo(5 * s, 9 * s)
+                path.lineTo(9  * s, 3 * s)
+                path.lineTo(9  * s, 9 * s)
+                path.lineTo(5  * s, 9 * s)
                 path.lineTo(12 * s, 16 * s)
                 path.close()
                 canvas.drawPath(path, paint)
-                // 底部弧线（60° 圆弧，托盘状）
                 val arcPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    this.color = color
-                    style = Paint.Style.STROKE
+                    this.color  = color
+                    style       = Paint.Style.STROKE
                     strokeWidth = 2 * s
-                    strokeCap = Paint.Cap.ROUND
+                    strokeCap   = Paint.Cap.ROUND
                 }
-                val r = 14f * s
+                val r  = 14f * s
                 val cx = 12f * s
                 val cy = (19f - 14f * Math.cos(Math.toRadians(30.0)).toFloat()) * s
                 canvas.drawArc(RectF(cx - r, cy - r, cx + r, cy + r), 60f, 60f, false, arcPaint)
@@ -227,5 +226,4 @@ object DownloadIslandNotification {
         }
         return Icon.createWithBitmap(bmp)
     }
-
 }

@@ -2,6 +2,7 @@ package com.example.hyperisland.xposed
 
 import android.app.Notification
 import android.service.notification.StatusBarNotification
+import com.example.hyperisland.xposed.templates.GenericProgressIslandNotification
 import de.robv.android.xposed.IXposedHookLoadPackage
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
@@ -30,6 +31,34 @@ class GenericProgressHook : IXposedHookLoadPackage {
         // 白名单缓存：首次调用时从 SettingsProvider 加载，SystemUI 重启后自动刷新。
         // 用户修改白名单后需重启 SystemUI 生效（与其他设置项行为一致）。
         @Volatile private var cachedWhitelist: Map<String, Set<String>>? = null
+
+        // 渠道模板缓存：key 为 "packageName/channelId"，首次遇到时懒加载。
+        private val cachedTemplates = mutableMapOf<String, String>()
+
+        /** 读取指定渠道的模板设置，结果会懒缓存，SystemUI 重启后刷新。 */
+        fun loadChannelTemplate(
+            context: android.content.Context,
+            pkg: String,
+            channelId: String
+        ): String {
+            val cacheKey = "$pkg/$channelId"
+            cachedTemplates[cacheKey]?.let { return it }
+            return try {
+                val key = "pref_channel_template_${pkg}_$channelId"
+                val uri = android.net.Uri.parse(
+                    "content://com.example.hyperisland.settings/$key"
+                )
+                val template = context.contentResolver
+                    .query(uri, null, null, null, null)
+                    ?.use { if (it.moveToFirst()) it.getString(0).takeIf { s -> s.isNotBlank() } else null }
+                    ?: GenericProgressIslandNotification.id
+                cachedTemplates[cacheKey] = template
+                template
+            } catch (e: Exception) {
+                XposedBridge.log("HyperIsland[Generic]: loadChannelTemplate failed: ${e.message}")
+                GenericProgressIslandNotification.id
+            }
+        }
 
         private fun loadWhitelist(context: android.content.Context): Map<String, Set<String>> {
             cachedWhitelist?.let { return it }
@@ -130,23 +159,33 @@ class GenericProgressHook : IXposedHookLoadPackage {
 
             val actions: List<Notification.Action> = notif.actions?.take(2) ?: emptyList()
 
-            XposedBridge.log(
-                "HyperIsland[Generic]: $pkg/$channelId | $title | $progressPercent% | buttons=${actions.size}"
-            )
+            val template = loadChannelTemplate(context, pkg, channelId)
 
             val notifIcon = if (InProcessController.useHookAppIconEnabled)
                 InProcessController.getAppIcon(context, pkg) ?: notif.smallIcon
             else
                 notif.smallIcon
 
-            GenericProgressIslandNotification.inject(
-                context   = context,
-                extras    = extras,
-                title     = title,
-                subtitle  = subtitle,
-                progress  = progressPercent,
-                actions   = actions,
-                notifIcon = notifIcon
+            val largeIcon = extractLargeIcon(extras)
+
+            XposedBridge.log(
+                "HyperIsland[Generic]: $pkg/$channelId | $title | $progressPercent% | template=$template | buttons=${actions.size} | largeIcon=${largeIcon != null}"
+            )
+
+            TemplateRegistry.dispatch(
+                templateId = template,
+                context    = context,
+                extras     = extras,
+                data       = NotifData(
+                    pkg       = pkg,
+                    channelId = channelId,
+                    title     = title,
+                    subtitle  = subtitle,
+                    progress  = progressPercent,
+                    actions   = actions,
+                    notifIcon = notifIcon,
+                    largeIcon = largeIcon,
+                ),
             )
 
             extras.putBoolean("hyperisland_generic_processed", true)
@@ -154,6 +193,29 @@ class GenericProgressHook : IXposedHookLoadPackage {
         } catch (e: Throwable) {
             XposedBridge.log("HyperIsland[Generic]: handleSbn error: ${e.message}")
         }
+    }
+
+    /**
+     * 从通知 extras 提取 largeIcon（头像、封面、应用大图标等）。
+     * Android 7+ 的 EXTRA_LARGE_ICON 可能是 Icon 或 Bitmap，兼容两种形式。
+     */
+    private fun extractLargeIcon(extras: android.os.Bundle): android.graphics.drawable.Icon? {
+        return try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                // Android 6+：尝试直接取 Icon 类型
+                @Suppress("DEPRECATION")
+                val icon = extras.getParcelable<android.graphics.drawable.Icon>(
+                    android.app.Notification.EXTRA_LARGE_ICON
+                )
+                if (icon != null) return icon
+            }
+            // 兜底：Bitmap 类型（旧版通知）
+            @Suppress("DEPRECATION")
+            val bitmap = extras.getParcelable<android.graphics.Bitmap>(
+                android.app.Notification.EXTRA_LARGE_ICON
+            )
+            if (bitmap != null) android.graphics.drawable.Icon.createWithBitmap(bitmap) else null
+        } catch (_: Exception) { null }
     }
 
     private fun getContext(lpparam: XC_LoadPackage.LoadPackageParam): android.content.Context? {

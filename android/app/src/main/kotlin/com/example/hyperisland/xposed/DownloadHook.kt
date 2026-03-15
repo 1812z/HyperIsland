@@ -3,6 +3,7 @@ package com.example.hyperisland.xposed
 import android.app.Notification
 import android.graphics.drawable.Icon
 import android.os.Bundle
+import com.example.hyperisland.xposed.templates.DownloadIslandNotification
 import de.robv.android.xposed.IXposedHookLoadPackage
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge

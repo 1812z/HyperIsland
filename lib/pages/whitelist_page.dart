@@ -114,6 +114,8 @@ class _WhitelistPageState extends State<WhitelistPage> {
                         builder: (_) => AppChannelsPage(
                           app: apps[index],
                           controller: _ctrl,
+                          appEnabled: _ctrl.enabledPackages
+                              .contains(apps[index].packageName),
                         ),
                       ),
                     ),
