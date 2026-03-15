@@ -33,7 +33,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _showRestartDialog() async {
     bool restartSystemUI = true;
-    bool restartDownloadManager = false;
+    bool restartDownloadManager = true;
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -85,8 +85,7 @@ class _HomePageState extends State<HomePage> {
       final commands = <String>[];
       if (restartSystemUI) commands.add('killall com.android.systemui');
       if (restartDownloadManager) {
-        commands.add('killall com.android.providers.downloads');
-        commands.add('killall com.xiaomi.android.app.downloadmanager');
+        commands.add('am force-stop com.android.providers.downloads');
       }
       await _channel.invokeMethod('restartProcesses', {'commands': commands});
     } on PlatformException catch (e) {

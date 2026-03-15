@@ -73,7 +73,7 @@ class _SettingsPageState extends State<SettingsPage> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
-                  const SectionLabel('下载行为'),
+                  const SectionLabel('下载管理器行为'),
                   const SizedBox(height: 8),
                   Card(
                     elevation: 0,
@@ -92,7 +92,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  const SectionLabel('通知外观'),
+                  const SectionLabel('下载管理器外观'),
                   const SizedBox(height: 8),
                   Card(
                     elevation: 0,
@@ -103,7 +103,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 4),
                       title: const Text('使用应用图标'),
-                      subtitle: const Text('将通知图标强制替换为被 Hook 应用的图标'),
+                      subtitle: const Text('下载管理器通知使用应用图标'),
                       value: _ctrl.useHookAppIcon,
                       onChanged: _onUseHookAppIconChanged,
                       shape: RoundedRectangleBorder(

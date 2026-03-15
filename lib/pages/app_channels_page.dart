@@ -24,6 +24,7 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
   Set<String> _enabledChannels = {};
   Map<String, String> _channelTemplates = {};
   Map<String, String> _templateLabels = {};   // id → 显示名称，从原生侧加载
+  Map<String, Map<String, String>> _channelExtras = {};  // channelId → extra settings
   bool _loading = true;
 
   @override
@@ -42,17 +43,17 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
     final channels      = results[0] as List<ChannelInfo>;
     final enabled       = results[1] as Set<String>;
     final templateLabels = results[2] as Map<String, String>;
-    final channelTemplates = await widget.controller.getChannelTemplates(
-      pkg,
-      channels.map((c) => c.id).toList(),
-    );
+    final channelIds = channels.map((c) => c.id).toList();
+    final channelTemplates = await widget.controller.getChannelTemplates(pkg, channelIds);
+    final channelExtras    = await widget.controller.getChannelExtraSettings(pkg, channelIds);
     if (mounted) {
       setState(() {
-        _channels        = channels;
-        _enabledChannels = enabled;
+        _channels         = channels;
+        _enabledChannels  = enabled;
         _channelTemplates = channelTemplates;
-        _templateLabels  = templateLabels;
-        _loading         = false;
+        _templateLabels   = templateLabels;
+        _channelExtras    = channelExtras;
+        _loading          = false;
       });
     }
   }
@@ -93,6 +94,35 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
         () => _channelTemplates = {..._channelTemplates, channelId: template});
     await widget.controller.setChannelTemplate(
         widget.app.packageName, channelId, template);
+  }
+
+  void _updateExtra(String channelId, String key, String value) {
+    setState(() {
+      _channelExtras = {
+        ..._channelExtras,
+        channelId: {...?_channelExtras[channelId], key: value},
+      };
+    });
+  }
+
+  Future<void> _setIconMode(String channelId, String value) async {
+    _updateExtra(channelId, 'icon', value);
+    await widget.controller.setChannelIconMode(widget.app.packageName, channelId, value);
+  }
+
+  Future<void> _setFocusNotif(String channelId, String value) async {
+    _updateExtra(channelId, 'focus', value);
+    await widget.controller.setChannelFocusNotif(widget.app.packageName, channelId, value);
+  }
+
+  Future<void> _setFirstFloat(String channelId, String value) async {
+    _updateExtra(channelId, 'first_float', value);
+    await widget.controller.setChannelFirstFloat(widget.app.packageName, channelId, value);
+  }
+
+  Future<void> _setEnableFloat(String channelId, String value) async {
+    _updateExtra(channelId, 'enable_float', value);
+    await widget.controller.setChannelEnableFloat(widget.app.packageName, channelId, value);
   }
 
   String _importanceLabel(int importance) => switch (importance) {
@@ -223,8 +253,8 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                     final isFirst = index == 0;
                     final isLast = index == channels.length - 1;
                     final channelEnabled = _isEnabled(ch.id);
-                    final template = _channelTemplates[ch.id] ??
-                        kTemplateGenericProgress;
+                    final template = _channelTemplates[ch.id] ?? kTemplateGenericProgress;
+                    final extras = _channelExtras[ch.id] ?? {};
 
                     return _ChannelTile(
                       channel: ch,
@@ -235,8 +265,16 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                       importanceLabel: _importanceLabel(ch.importance),
                       isFirst: isFirst,
                       isLast: isLast,
+                      iconMode: extras['icon'] ?? kIconModeAuto,
+                      focusNotif: extras['focus'] ?? kTriOptDefault,
+                      firstFloat: extras['first_float'] ?? kTriOptDefault,
+                      enableFloat: extras['enable_float'] ?? kTriOptDefault,
                       onToggle: (v) => _toggle(ch.id, v),
                       onTemplateChanged: (t) => _setTemplate(ch.id, t),
+                      onIconModeChanged: (v) => _setIconMode(ch.id, v),
+                      onFocusNotifChanged: (v) => _setFocusNotif(ch.id, v),
+                      onFirstFloatChanged: (v) => _setFirstFloat(ch.id, v),
+                      onEnableFloatChanged: (v) => _setEnableFloat(ch.id, v),
                     );
                   },
                   childCount: channels.length,
@@ -262,8 +300,16 @@ class _ChannelTile extends StatelessWidget {
     required this.importanceLabel,
     required this.isFirst,
     required this.isLast,
+    required this.iconMode,
+    required this.focusNotif,
+    required this.firstFloat,
+    required this.enableFloat,
     required this.onToggle,
     required this.onTemplateChanged,
+    required this.onIconModeChanged,
+    required this.onFocusNotifChanged,
+    required this.onFirstFloatChanged,
+    required this.onEnableFloatChanged,
   });
 
   final ChannelInfo channel;
@@ -274,8 +320,16 @@ class _ChannelTile extends StatelessWidget {
   final String importanceLabel;
   final bool isFirst;
   final bool isLast;
+  final String iconMode;
+  final String focusNotif;
+  final String firstFloat;
+  final String enableFloat;
   final ValueChanged<bool> onToggle;
   final ValueChanged<String> onTemplateChanged;
+  final ValueChanged<String> onIconModeChanged;
+  final ValueChanged<String> onFocusNotifChanged;
+  final ValueChanged<String> onFirstFloatChanged;
+  final ValueChanged<String> onEnableFloatChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -371,6 +425,72 @@ class _ChannelTile extends StatelessWidget {
                     enabled: appEnabled && channelEnabled,
                     onChanged: onTemplateChanged,
                   ),
+                  const SizedBox(height: 4),
+                  // 图标 + 焦点通知
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _OptionRow(
+                          label: '图标',
+                          value: iconMode,
+                          options: const {
+                            kIconModeAuto: '自动',
+                            kIconModeNotifSmall: '通知小图标',
+                            kIconModeNotifLarge: '通知大图标',
+                            kIconModeAppIcon: '应用图标',
+                          },
+                          enabled: appEnabled && channelEnabled,
+                          onChanged: onIconModeChanged,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _OptionRow(
+                          label: '焦点通知',
+                          value: focusNotif,
+                          options: const {
+                            kTriOptDefault: '默认',
+                            kTriOptOff: '关闭',
+                          },
+                          enabled: appEnabled && channelEnabled,
+                          onChanged: onFocusNotifChanged,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  // 初次展开 + 更新展开
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _OptionRow(
+                          label: '初次展开',
+                          value: firstFloat,
+                          options: const {
+                            kTriOptDefault: '默认',
+                            kTriOptOn: '开启',
+                            kTriOptOff: '关闭',
+                          },
+                          enabled: appEnabled && channelEnabled,
+                          onChanged: onFirstFloatChanged,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _OptionRow(
+                          label: '更新展开',
+                          value: enableFloat,
+                          options: const {
+                            kTriOptDefault: '默认',
+                            kTriOptOn: '开启',
+                            kTriOptOff: '关闭',
+                          },
+                          enabled: appEnabled && channelEnabled,
+                          onChanged: onEnableFloatChanged,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -383,6 +503,85 @@ class _ChannelTile extends StatelessWidget {
             indent: 16,
             color: cs.outlineVariant.withValues(alpha: 0.4),
           ),
+      ],
+    );
+  }
+}
+
+// ── 通用选项选择器 ────────────────────────────────────────────────────────────
+
+class _OptionRow extends StatelessWidget {
+  const _OptionRow({
+    required this.label,
+    required this.value,
+    required this.options,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final String label;
+  final String value;
+  final Map<String, String> options;
+  final bool enabled;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final labelColor =
+        enabled ? cs.onSurfaceVariant : cs.onSurface.withValues(alpha: 0.38);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '$label：',
+          style: Theme.of(context)
+              .textTheme
+              .bodySmall
+              ?.copyWith(color: labelColor),
+        ),
+        const SizedBox(width: 2),
+        PopupMenuButton<String>(
+          enabled: enabled,
+          initialValue: value,
+          onSelected: onChanged,
+          itemBuilder: (_) => options.entries
+              .map((e) => PopupMenuItem(value: e.key, child: Text(e.value)))
+              .toList(),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: enabled
+                    ? cs.outline.withValues(alpha: 0.55)
+                    : cs.outline.withValues(alpha: 0.2),
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  options[value] ?? value,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: enabled
+                            ? cs.onSurfaceVariant
+                            : cs.onSurface.withValues(alpha: 0.38),
+                        fontWeight: FontWeight.w500,
+                      ),
+                ),
+                Icon(
+                  Icons.arrow_drop_down,
+                  size: 16,
+                  color: enabled
+                      ? cs.onSurfaceVariant
+                      : cs.onSurface.withValues(alpha: 0.38),
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }

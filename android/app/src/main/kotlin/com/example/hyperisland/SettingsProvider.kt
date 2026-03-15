@@ -35,7 +35,11 @@ class SettingsProvider : ContentProvider() {
         // 字符串类型的 key（白名单、渠道列表、渠道模板等），直接返回字符串值
         if (segment == "pref_generic_whitelist" ||
             segment.startsWith("pref_channels_") ||
-            segment.startsWith("pref_channel_template_")) {
+            segment.startsWith("pref_channel_template_") ||
+            segment.startsWith("pref_channel_icon_") ||
+            segment.startsWith("pref_channel_focus_") ||
+            segment.startsWith("pref_channel_first_float_") ||
+            segment.startsWith("pref_channel_enable_float_")) {
             cursor.newRow().add(prefs.getString(flutterKey, "") ?: "")
             return cursor
         }

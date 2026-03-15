@@ -52,6 +52,7 @@ object InProcessController {
 
     /** 从 ContentProvider 加载的设置，在 ensureRegistered 时初始化 */
     @Volatile private var resumeNotificationEnabled = true
+    /** 仅用于 DownloadHook：是否将下载管理器通知图标替换为应用图标。 */
     @Volatile var useHookAppIconEnabled = true
 
     /** 下载通知快照，供暂停后重建覆盖通知 */
@@ -77,7 +78,7 @@ object InProcessController {
     /** 从 ContentProvider 加载所有设置，进程首次初始化时调用一次 */
     private fun loadSettings(context: Context) {
         resumeNotificationEnabled = readBooleanSetting(context, "pref_resume_notification", true)
-        useHookAppIconEnabled = readBooleanSetting(context, "pref_use_hook_app_icon", true)
+        useHookAppIconEnabled     = readBooleanSetting(context, "pref_use_hook_app_icon", true)
         XposedBridge.log("HyperIsland: settings loaded — resumeNotification=$resumeNotificationEnabled useHookAppIcon=$useHookAppIconEnabled")
     }
 
@@ -406,7 +407,7 @@ object InProcessController {
             val extras = extrasField?.get(notif) as? Bundle ?: return
 
             val pausedTitle = if (snapshot.isMultiFile) "${snapshot.fileName} 已暂停" else "已暂停"
-            val appIcon = if (useHookAppIconEnabled) getAppIcon(context, snapshot.packageName) else null
+            val appIcon = getAppIcon(context, snapshot.packageName)
             DownloadIslandNotification.inject(
                 context, extras, pausedTitle, snapshot.fileName,
                 snapshot.progress, "", snapshot.fileName,

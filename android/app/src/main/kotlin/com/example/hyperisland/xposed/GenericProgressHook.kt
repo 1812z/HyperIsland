@@ -35,9 +35,36 @@ class GenericProgressHook : IXposedHookLoadPackage {
         // 渠道模板缓存：key 为 "packageName/channelId"，首次遇到时懒加载。
         private val cachedTemplates = mutableMapOf<String, String>()
 
+        // 渠道级额外设置缓存，key 带前缀以区分不同设置项。
+        private val cachedChannelSettings = mutableMapOf<String, String>()
+
         // 进度缓存：key 为 "packageName#notifId"，记录每条通知最后一次已知进度（0-100）。
         // 用于通知进度条消失后（暂停/等待）回显上次进度。
         private val lastProgressCache = mutableMapOf<String, Int>()
+
+        /** 通用字符串设置懒加载，带缓存。 */
+        private fun loadChannelStringSetting(
+            context: android.content.Context,
+            cacheKey: String,
+            prefKey: String,
+            default: String
+        ): String {
+            cachedChannelSettings[cacheKey]?.let { return it }
+            return try {
+                val uri = android.net.Uri.parse(
+                    "content://com.example.hyperisland.settings/$prefKey"
+                )
+                val value = context.contentResolver
+                    .query(uri, null, null, null, null)
+                    ?.use { if (it.moveToFirst()) it.getString(0).takeIf { s -> s.isNotBlank() } else null }
+                    ?: default
+                cachedChannelSettings[cacheKey] = value
+                value
+            } catch (e: Exception) {
+                XposedBridge.log("HyperIsland[Generic]: loadChannelStringSetting($prefKey) failed: ${e.message}")
+                default
+            }
+        }
 
         /** 读取指定渠道的模板设置，结果会懒缓存，SystemUI 重启后刷新。 */
         fun loadChannelTemplate(
@@ -175,12 +202,25 @@ class GenericProgressHook : IXposedHookLoadPackage {
 
             val template = loadChannelTemplate(context, pkg, channelId)
 
-            val notifIcon = if (InProcessController.useHookAppIconEnabled)
-                InProcessController.getAppIcon(context, pkg) ?: notif.smallIcon
-            else
-                notif.smallIcon
+            val appIconRaw = InProcessController.getAppIcon(context, pkg)
+            val largeIcon  = extractLargeIcon(extras)
 
-            val largeIcon = extractLargeIcon(extras)
+            val iconMode = loadChannelStringSetting(
+                context, "icon:$pkg/$channelId",
+                "pref_channel_icon_${pkg}_$channelId", "auto"
+            )
+            val focusNotif = loadChannelStringSetting(
+                context, "focus:$pkg/$channelId",
+                "pref_channel_focus_${pkg}_$channelId", "default"
+            )
+            val firstFloat = loadChannelStringSetting(
+                context, "first_float:$pkg/$channelId",
+                "pref_channel_first_float_${pkg}_$channelId", "default"
+            )
+            val enableFloatMode = loadChannelStringSetting(
+                context, "efloat:$pkg/$channelId",
+                "pref_channel_enable_float_${pkg}_$channelId", "default"
+            )
 
             XposedBridge.log(
                 "HyperIsland[Generic]: $pkg/$channelId | $title | $progressPercent% | template=$template | buttons=${actions.size} | largeIcon=${largeIcon != null}"
@@ -191,14 +231,19 @@ class GenericProgressHook : IXposedHookLoadPackage {
                 context    = context,
                 extras     = extras,
                 data       = NotifData(
-                    pkg       = pkg,
-                    channelId = channelId,
-                    title     = title,
-                    subtitle  = subtitle,
-                    progress  = progressPercent,
-                    actions   = actions,
-                    notifIcon = notifIcon,
-                    largeIcon = largeIcon,
+                    pkg             = pkg,
+                    channelId       = channelId,
+                    title           = title,
+                    subtitle        = subtitle,
+                    progress        = progressPercent,
+                    actions         = actions,
+                    notifIcon       = notif.smallIcon,
+                    largeIcon       = largeIcon,
+                    appIconRaw      = appIconRaw,
+                    iconMode        = iconMode,
+                    focusNotif      = focusNotif,
+                    firstFloat      = firstFloat,
+                    enableFloatMode = enableFloatMode,
                 ),
             )
 

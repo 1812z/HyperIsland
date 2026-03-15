@@ -33,8 +33,19 @@ data class NotifData(
     val subtitle: String,
     val progress: Int,
     val actions: List<Notification.Action>,
-    /** 通知小图标（来自 smallIcon 或应用图标）。 */
+    /** 通知小图标（smallIcon）。 */
     val notifIcon: Icon?,
-    /** 通知大图标（头像、封面、应用图标等），通常比 notifIcon 更具辨识度。 */
+    /** 通知大图标（头像、封面等）。 */
     val largeIcon: Icon?,
+    /** 应用图标（来自 PackageManager）。 */
+    val appIconRaw: Icon? = null,
+    // ── 渠道级覆盖设置 ────────────────────────────────────────────────────────
+    /** 图标来源："auto" / "notif_small" / "notif_large" / "app_icon" */
+    val iconMode: String = "auto",
+    /** 焦点通知（island 块）："default" / "off" */
+    val focusNotif: String = "default",
+    /** 初次自动展开 islandFirstFloat："default" / "on" / "off" */
+    val firstFloat: String = "default",
+    /** 更新时自动展开 enableFloat："default" / "on" / "off" */
+    val enableFloatMode: String = "default",
 )

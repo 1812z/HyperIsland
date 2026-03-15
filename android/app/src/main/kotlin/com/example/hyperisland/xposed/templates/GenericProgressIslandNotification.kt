@@ -23,14 +23,19 @@ object GenericProgressIslandNotification : IslandTemplate {
     override val displayName = TEMPLATE_NAME
 
     override fun inject(context: Context, extras: Bundle, data: NotifData) = inject(
-        context   = context,
-        extras    = extras,
-        title     = data.title,
-        subtitle  = data.subtitle,
-        progress  = data.progress,
-        actions   = data.actions,
-        // 小图标优先
-        displayIcon = data.notifIcon ?: data.largeIcon,
+        context         = context,
+        extras          = extras,
+        title           = data.title,
+        subtitle        = data.subtitle,
+        progress        = data.progress,
+        actions         = data.actions,
+        notifIcon       = data.notifIcon,
+        largeIcon       = data.largeIcon,
+        appIconRaw      = data.appIconRaw,
+        iconMode        = data.iconMode,
+        focusNotif      = data.focusNotif,
+        firstFloat      = data.firstFloat,
+        enableFloatMode = data.enableFloatMode,
     )
 
     /**
@@ -93,8 +98,13 @@ object GenericProgressIslandNotification : IslandTemplate {
         subtitle: String,
         progress: Int,
         actions: List<Notification.Action>,
-        /** 已由调用方解析优先级（largeIcon ?: notifIcon），此处直接使用。 */
-        displayIcon: Icon?,
+        notifIcon: Icon?,
+        largeIcon: Icon?,
+        appIconRaw: Icon?,
+        iconMode: String,
+        focusNotif: String,
+        firstFloat: String,
+        enableFloatMode: String,
     ) {
         try {
             val combined   = "$title $subtitle"
@@ -127,21 +137,30 @@ object GenericProgressIslandNotification : IslandTemplate {
             val iconRes   = if (isComplete) android.R.drawable.stat_sys_download_done
                             else            android.R.drawable.stat_sys_download
             val tintColor = when {
-                isComplete          -> 0xFF4CAF50.toInt()  // 绿
+                isComplete            -> 0xFF4CAF50.toInt()  // 绿
                 isPaused || isWaiting -> 0xFFFF9800.toInt()  // 橙
-                else                -> 0xFF2196F3.toInt()  // 蓝
+                else                  -> 0xFF2196F3.toInt()  // 蓝
             }
             val fallbackIcon = Icon.createWithResource(context, iconRes).apply { setTint(tintColor) }
-            val displayIcon  = displayIcon ?: fallbackIcon
+            val displayIcon  = when (iconMode) {
+                "notif_small" -> notifIcon ?: fallbackIcon
+                "notif_large" -> largeIcon ?: notifIcon ?: fallbackIcon
+                "app_icon"    -> appIconRaw ?: fallbackIcon
+                else          -> notifIcon ?: largeIcon ?: fallbackIcon  // auto
+            }
+
+            val resolvedFirstFloat  = when (firstFloat)      { "on" -> true; "off" -> false; else -> false }
+            val resolvedEnableFloat = when (enableFloatMode)  { "on" -> true; "off" -> false; else -> false }
+            val showIsland          = focusNotif != "off"
 
             val islandExtras = FocusNotification.buildV3 {
                 val iconKey = createPicture("key_generic_progress_icon", displayIcon)
 
-                islandFirstFloat = false
-                enableFloat      = false
+                islandFirstFloat = resolvedFirstFloat
+                enableFloat      = resolvedEnableFloat
                 updatable        = !isComplete && !isPaused
 
-                island {
+                if (showIsland) island {
                     islandProperty = 1
                     bigIslandArea {
                         imageTextInfoLeft {
