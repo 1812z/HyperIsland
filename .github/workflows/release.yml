@@ -3,6 +3,7 @@ name: Build & Release
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 jobs:
   build:
@@ -50,7 +51,7 @@ jobs:
 
       - name: Build APK
         run: |
-          flutter build apk \
+          flutter build apk --release \
             --build-name="${{ steps.version.outputs.version_name }}" \
             --build-number="${{ steps.version.outputs.version_code }}"
 
