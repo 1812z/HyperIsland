@@ -67,7 +67,7 @@ object NotificationIslandNotification : IslandTemplate {
                 "notif_small" -> notifIcon ?: fallbackIcon
                 "notif_large" -> largeIcon ?: notifIcon ?: fallbackIcon
                 "app_icon"    -> appIconRaw ?: fallbackIcon
-                else          -> notifIcon ?: largeIcon ?: fallbackIcon  // auto
+                else          -> largeIcon ?: notifIcon ?: fallbackIcon  // auto
             }.toRounded(context)
             // 焦点图标（iconTextInfo）
             val focusDisplayIcon = when (focusIconMode) {
