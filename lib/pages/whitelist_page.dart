@@ -148,9 +148,7 @@ class _WhitelistPageState extends State<WhitelistPage> {
                     app: apps[index],
                     enabled:
                         _ctrl.enabledPackages.contains(apps[index].packageName),
-                    onChanged: apps[index].isSystem
-                        ? null
-                        : (v) => _ctrl.setEnabled(apps[index].packageName, v),
+                    onChanged: (v) => _ctrl.setEnabled(apps[index].packageName, v),
                     onTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(
