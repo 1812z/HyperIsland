@@ -59,6 +59,7 @@ object NotificationIslandNotification : IslandTemplate {
         isOngoing: Boolean,
     ) {
         try {
+            val fallbackIcon = Icon.createWithResource(context, android.R.drawable.ic_dialog_info)
             val displayIcon  = when (iconMode) {
                 "notif_small" -> notifIcon ?: fallbackIcon
                 "notif_large" -> largeIcon ?: notifIcon ?: fallbackIcon
