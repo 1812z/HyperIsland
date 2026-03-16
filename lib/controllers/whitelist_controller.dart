@@ -67,7 +67,7 @@ class WhitelistController extends ChangeNotifier {
     final q = _searchQuery.toLowerCase();
     final source = showSystemApps
         ? _sortedApps
-        : _sortedApps.where((a) => !a.isSystem).toList();
+        : _sortedApps.where((a) => !a.isSystem || enabledPackages.contains(a.packageName)).toList();
     if (q.isEmpty) return source is List<AppInfo> ? source : source.toList();
     return source
         .where((a) =>
@@ -104,8 +104,8 @@ class WhitelistController extends ChangeNotifier {
       // 加载完成后按「已启用优先，组内字母序」排序，后续切换开关不重新排序。
       _sortedApps = List<AppInfo>.from(_allApps)
         ..sort((a, b) {
-          final aOn = enabledPackages.contains(a.packageName) && !a.isSystem;
-          final bOn = enabledPackages.contains(b.packageName) && !b.isSystem;
+          final aOn = enabledPackages.contains(a.packageName);
+          final bOn = enabledPackages.contains(b.packageName);
           if (aOn != bOn) return aOn ? -1 : 1;
           return a.appName.compareTo(b.appName);
         });
