@@ -11,7 +11,7 @@ const kTemplateGenericProgress    = 'generic_progress';
 const kTemplateNotificationIsland = 'notification_island';
 const kTemplateDownload           = 'download';
 
-// 图标模式选项
+// 图标模式选项（图标样式 & 焦点图标共用）
 const kIconModeAuto       = 'auto';
 const kIconModeNotifSmall = 'notif_small';
 const kIconModeNotifLarge = 'notif_large';
@@ -224,12 +224,13 @@ class WhitelistController extends ChangeNotifier {
 
   // ── 渠道级额外设置（图标、焦点通知、初次展开、更新展开）────────────────────
 
-  /// 批量读取各渠道的额外设置，返回 channelId → {icon, focus, first_float, enable_float}。
+  /// 批量读取各渠道的额外设置，返回 channelId → {icon, focus_icon, focus, first_float, enable_float, timeout}。
   Future<Map<String, Map<String, String>>> getChannelExtraSettings(
       String packageName, List<String> channelIds) async {
     final prefs = await SharedPreferences.getInstance();
     return Map.fromEntries(channelIds.map((id) => MapEntry(id, {
           'icon': prefs.getString('pref_channel_icon_${packageName}_$id') ?? kIconModeAuto,
+          'focus_icon': prefs.getString('pref_channel_focus_icon_${packageName}_$id') ?? kIconModeAuto,
           'focus': prefs.getString('pref_channel_focus_${packageName}_$id') ?? kTriOptDefault,
           'first_float': prefs.getString('pref_channel_first_float_${packageName}_$id') ?? kTriOptDefault,
           'enable_float': prefs.getString('pref_channel_enable_float_${packageName}_$id') ?? kTriOptDefault,
@@ -241,6 +242,12 @@ class WhitelistController extends ChangeNotifier {
       String packageName, String channelId, String value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('pref_channel_icon_${packageName}_$channelId', value);
+  }
+
+  Future<void> setChannelFocusIconMode(
+      String packageName, String channelId, String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('pref_channel_focus_icon_${packageName}_$channelId', value);
   }
 
   Future<void> setChannelFocusNotif(

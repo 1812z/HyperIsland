@@ -10,12 +10,14 @@ class ChannelSettingsDialog extends StatefulWidget {
     required this.template,
     required this.templateLabels,
     required this.iconMode,
+    required this.focusIconMode,
     required this.focusNotif,
     required this.firstFloat,
     required this.enableFloat,
     required this.islandTimeout,
     required this.onTemplateChanged,
     required this.onIconModeChanged,
+    required this.onFocusIconModeChanged,
     required this.onFocusNotifChanged,
     required this.onFirstFloatChanged,
     required this.onEnableFloatChanged,
@@ -26,12 +28,14 @@ class ChannelSettingsDialog extends StatefulWidget {
   final String template;
   final Map<String, String> templateLabels;
   final String iconMode;
+  final String focusIconMode;
   final String focusNotif;
   final String firstFloat;
   final String enableFloat;
   final String islandTimeout;
   final ValueChanged<String> onTemplateChanged;
   final ValueChanged<String> onIconModeChanged;
+  final ValueChanged<String> onFocusIconModeChanged;
   final ValueChanged<String> onFocusNotifChanged;
   final ValueChanged<String> onFirstFloatChanged;
   final ValueChanged<String> onEnableFloatChanged;
@@ -44,6 +48,7 @@ class ChannelSettingsDialog extends StatefulWidget {
 class _ChannelSettingsDialogState extends State<ChannelSettingsDialog> {
   late String _template;
   late String _iconMode;
+  late String _focusIconMode;
   late String _focusNotif;
   late String _firstFloat;
   late String _enableFloat;
@@ -63,6 +68,7 @@ class _ChannelSettingsDialogState extends State<ChannelSettingsDialog> {
     super.initState();
     _template      = widget.template;
     _iconMode      = widget.iconMode;
+    _focusIconMode = widget.focusIconMode;
     _focusNotif    = widget.focusNotif;
     _firstFloat    = widget.firstFloat;
     _enableFloat   = widget.enableFloat;
@@ -122,7 +128,7 @@ class _ChannelSettingsDialogState extends State<ChannelSettingsDialog> {
 
             // 图标样式
             _SettingRow(
-              label: '图标样式',
+              label: '超级岛图标',
               child: _DropdownField<String>(
                 value: _iconMode,
                 items: const [
@@ -135,6 +141,26 @@ class _ChannelSettingsDialogState extends State<ChannelSettingsDialog> {
                   if (v == null) return;
                   setState(() => _iconMode = v);
                   widget.onIconModeChanged(v);
+                },
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // 焦点图标
+            _SettingRow(
+              label: '焦点图标',
+              child: _DropdownField<String>(
+                value: _focusIconMode,
+                items: const [
+                  DropdownMenuItem(value: kIconModeAuto,       child: Text('自动')),
+                  DropdownMenuItem(value: kIconModeNotifSmall, child: Text('通知小图标')),
+                  DropdownMenuItem(value: kIconModeNotifLarge, child: Text('通知大图标')),
+                  DropdownMenuItem(value: kIconModeAppIcon,    child: Text('应用图标')),
+                ],
+                onChanged: (v) {
+                  if (v == null) return;
+                  setState(() => _focusIconMode = v);
+                  widget.onFocusIconModeChanged(v);
                 },
               ),
             ),

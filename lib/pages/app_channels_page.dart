@@ -142,6 +142,11 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
     await widget.controller.setChannelIconMode(widget.app.packageName, channelId, value);
   }
 
+  Future<void> _setFocusIconMode(String channelId, String value) async {
+    _updateExtra(channelId, 'focus_icon', value);
+    await widget.controller.setChannelFocusIconMode(widget.app.packageName, channelId, value);
+  }
+
   Future<void> _setFocusNotif(String channelId, String value) async {
     _updateExtra(channelId, 'focus', value);
     await widget.controller.setChannelFocusNotif(widget.app.packageName, channelId, value);
@@ -303,6 +308,7 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                       isFirst: isFirst,
                       isLast: isLast,
                       iconMode: extras['icon'] ?? kIconModeAuto,
+                      focusIconMode: extras['focus_icon'] ?? kIconModeAuto,
                       focusNotif: extras['focus'] ?? kTriOptDefault,
                       firstFloat: extras['first_float'] ?? kTriOptDefault,
                       enableFloat: extras['enable_float'] ?? kTriOptDefault,
@@ -310,6 +316,7 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                       onToggle: (v) => _toggle(ch.id, v),
                       onTemplateChanged: (t) => _setTemplate(ch.id, t),
                       onIconModeChanged: (v) => _setIconMode(ch.id, v),
+                      onFocusIconModeChanged: (v) => _setFocusIconMode(ch.id, v),
                       onFocusNotifChanged: (v) => _setFocusNotif(ch.id, v),
                       onFirstFloatChanged: (v) => _setFirstFloat(ch.id, v),
                       onEnableFloatChanged: (v) => _setEnableFloat(ch.id, v),
@@ -340,6 +347,7 @@ class _ChannelTile extends StatelessWidget {
     required this.isFirst,
     required this.isLast,
     required this.iconMode,
+    required this.focusIconMode,
     required this.focusNotif,
     required this.firstFloat,
     required this.enableFloat,
@@ -347,6 +355,7 @@ class _ChannelTile extends StatelessWidget {
     required this.onToggle,
     required this.onTemplateChanged,
     required this.onIconModeChanged,
+    required this.onFocusIconModeChanged,
     required this.onFocusNotifChanged,
     required this.onFirstFloatChanged,
     required this.onEnableFloatChanged,
@@ -362,6 +371,7 @@ class _ChannelTile extends StatelessWidget {
   final bool isFirst;
   final bool isLast;
   final String iconMode;
+  final String focusIconMode;
   final String focusNotif;
   final String firstFloat;
   final String enableFloat;
@@ -369,6 +379,7 @@ class _ChannelTile extends StatelessWidget {
   final ValueChanged<bool> onToggle;
   final ValueChanged<String> onTemplateChanged;
   final ValueChanged<String> onIconModeChanged;
+  final ValueChanged<String> onFocusIconModeChanged;
   final ValueChanged<String> onFocusNotifChanged;
   final ValueChanged<String> onFirstFloatChanged;
   final ValueChanged<String> onEnableFloatChanged;
@@ -382,12 +393,14 @@ class _ChannelTile extends StatelessWidget {
         template: template,
         templateLabels: templateLabels,
         iconMode: iconMode,
+        focusIconMode: focusIconMode,
         focusNotif: focusNotif,
         firstFloat: firstFloat,
         enableFloat: enableFloat,
         islandTimeout: islandTimeout,
         onTemplateChanged: onTemplateChanged,
         onIconModeChanged: onIconModeChanged,
+        onFocusIconModeChanged: onFocusIconModeChanged,
         onFocusNotifChanged: onFocusNotifChanged,
         onFirstFloatChanged: onFirstFloatChanged,
         onEnableFloatChanged: onEnableFloatChanged,
@@ -460,7 +473,7 @@ class _ChannelTile extends StatelessWidget {
                   IconButton(
                     icon: Icon(
                       Icons.settings_outlined,
-                      size: 20,
+                      size: 22,
                       color: appEnabled && channelEnabled
                           ? cs.onSurfaceVariant
                           : cs.onSurface.withValues(alpha: 0.28),

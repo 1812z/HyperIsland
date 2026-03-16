@@ -34,6 +34,7 @@ object GenericProgressIslandNotification : IslandTemplate {
         largeIcon       = data.largeIcon,
         appIconRaw      = data.appIconRaw,
         iconMode        = data.iconMode,
+        focusIconMode   = data.focusIconMode,
         focusNotif      = data.focusNotif,
         firstFloat      = data.firstFloat,
         enableFloatMode = data.enableFloatMode,
@@ -104,6 +105,7 @@ object GenericProgressIslandNotification : IslandTemplate {
         largeIcon: Icon?,
         appIconRaw: Icon?,
         iconMode: String,
+        focusIconMode: String,
         focusNotif: String,
         firstFloat: String,
         enableFloatMode: String,
@@ -145,7 +147,15 @@ object GenericProgressIslandNotification : IslandTemplate {
                 else                  -> 0xFF2196F3.toInt()  // 蓝
             }
             val fallbackIcon = Icon.createWithResource(context, iconRes).apply { setTint(tintColor) }
+            // 超级岛区域图标（bigIslandArea / smallIslandArea）
             val displayIcon  = when (iconMode) {
+                "notif_small" -> notifIcon ?: fallbackIcon
+                "notif_large" -> largeIcon ?: notifIcon ?: fallbackIcon
+                "app_icon"    -> appIconRaw ?: fallbackIcon
+                else          -> notifIcon ?: largeIcon ?: fallbackIcon  // auto
+            }.toRounded(context)
+            // 焦点图标（iconTextInfo）
+            val focusDisplayIcon = when (focusIconMode) {
                 "notif_small" -> notifIcon ?: fallbackIcon
                 "notif_large" -> largeIcon ?: notifIcon ?: fallbackIcon
                 "app_icon"    -> appIconRaw ?: fallbackIcon
@@ -157,7 +167,8 @@ object GenericProgressIslandNotification : IslandTemplate {
             val focusNotificaiton          = focusNotif != "off"
 
             val islandExtras = FocusNotification.buildV3 {
-                val iconKey = createPicture("key_generic_progress_icon", displayIcon)
+                val islandIconKey = createPicture("key_generic_progress_icon", displayIcon)
+                val focusIconKey  = createPicture("key_generic_focus_icon", focusDisplayIcon)
 
                 islandFirstFloat   = resolvedFirstFloat
                 enableFloat        = resolvedEnableFloat
@@ -172,7 +183,7 @@ object GenericProgressIslandNotification : IslandTemplate {
                             type = 1
                             picInfo {
                                 type = 1
-                                pic = iconKey
+                                pic = islandIconKey
                             }
                             textInfo {
                                 this.title = stateLabel
@@ -203,7 +214,7 @@ object GenericProgressIslandNotification : IslandTemplate {
 //                        {
                             picInfo {
                                 type = 1
-                                pic  = iconKey
+                                pic  = islandIconKey
                             }
 //                            if (!isComplete && !isPaused && !isWaiting) {
 //                                progressInfo {
@@ -220,7 +231,7 @@ object GenericProgressIslandNotification : IslandTemplate {
                     content    = displayContent
                     animIconInfo {
                         type = 0
-                        src  = iconKey
+                        src  = focusIconKey
                     }
                 }
 

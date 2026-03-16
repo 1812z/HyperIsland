@@ -35,6 +35,7 @@ object NotificationIslandNotification : IslandTemplate {
         largeIcon       = data.largeIcon,
         appIconRaw      = data.appIconRaw,
         iconMode        = data.iconMode,
+        focusIconMode   = data.focusIconMode,
         focusNotif      = data.focusNotif,
         firstFloat      = data.firstFloat,
         enableFloatMode = data.enableFloatMode,
@@ -52,6 +53,7 @@ object NotificationIslandNotification : IslandTemplate {
         largeIcon: Icon?,
         appIconRaw: Icon?,
         iconMode: String?,
+        focusIconMode: String?,
         focusNotif: String,
         firstFloat: String,
         enableFloatMode: String,
@@ -60,7 +62,15 @@ object NotificationIslandNotification : IslandTemplate {
     ) {
         try {
             val fallbackIcon = Icon.createWithResource(context, android.R.drawable.ic_dialog_info)
+            // 超级岛区域图标（bigIslandArea / smallIslandArea）
             val displayIcon  = when (iconMode) {
+                "notif_small" -> notifIcon ?: fallbackIcon
+                "notif_large" -> largeIcon ?: notifIcon ?: fallbackIcon
+                "app_icon"    -> appIconRaw ?: fallbackIcon
+                else          -> largeIcon ?: notifIcon ?: fallbackIcon  // auto
+            }.toRounded(context)
+            // 焦点图标（iconTextInfo）
+            val focusDisplayIcon = when (focusIconMode) {
                 "notif_small" -> notifIcon ?: fallbackIcon
                 "notif_large" -> largeIcon ?: notifIcon ?: fallbackIcon
                 "app_icon"    -> appIconRaw ?: fallbackIcon
@@ -76,7 +86,8 @@ object NotificationIslandNotification : IslandTemplate {
             val focusNotificaiton = focusNotif != "off"
 
             val islandExtras = FocusNotification.buildV3 {
-                val iconKey = createPicture("key_notification_island_icon", displayIcon)
+                val islandIconKey = createPicture("key_notification_island_icon", displayIcon)
+                val focusIconKey  = createPicture("key_notification_focus_icon", focusDisplayIcon)
 
                 if (focusNotificaiton) {
                     islandFirstFloat = (firstFloat == "on")
@@ -93,7 +104,7 @@ object NotificationIslandNotification : IslandTemplate {
                             type = 1
                             picInfo {
                                 type = 1
-                                pic  = iconKey
+                                pic  = islandIconKey
                             }
                             textInfo {
                                 this.title = leftText
@@ -110,7 +121,7 @@ object NotificationIslandNotification : IslandTemplate {
                     smallIslandArea {
                         picInfo {
                             type = 1
-                            pic  = iconKey
+                            pic  = islandIconKey
                         }
                     }
                 }
@@ -120,7 +131,7 @@ object NotificationIslandNotification : IslandTemplate {
                     content    = displayContent
                     animIconInfo {
                         type = 0
-                        src  = iconKey
+                        src  = focusIconKey
                     }
                 }
 

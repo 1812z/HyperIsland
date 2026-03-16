@@ -243,6 +243,10 @@ class GenericProgressHook : IXposedHookLoadPackage {
                 "pref_channel_timeout_${pkg}_$channelId", "5"
             )
             val islandTimeout = islandTimeoutStr.toIntOrNull() ?: 5
+            val focusIconMode = loadChannelStringSetting(
+                context, "focus_icon:$pkg/$channelId",
+                "pref_channel_focus_icon_${pkg}_$channelId", "auto"
+            )
 
             XposedBridge.log(
                 "HyperIsland[Generic]: $pkg/$channelId | $title | $progressPercent% | template=$template | buttons=${actions.size} | largeIcon=${largeIcon != null}"
@@ -263,6 +267,7 @@ class GenericProgressHook : IXposedHookLoadPackage {
                     largeIcon       = largeIcon,
                     appIconRaw      = appIconRaw,
                     iconMode        = iconMode,
+                    focusIconMode   = focusIconMode,
                     focusNotif      = focusNotif,
                     firstFloat      = firstFloat,
                     enableFloatMode = enableFloatMode,

@@ -84,8 +84,10 @@ data class NotifData(
     /** 应用图标（来自 PackageManager）。 */
     val appIconRaw: Icon? = null,
     // ── 渠道级覆盖设置 ────────────────────────────────────────────────────────
-    /** 图标来源："auto" / "notif_small" / "notif_large" / "app_icon" */
+    /** 超级岛区域图标来源（bigIslandArea / smallIslandArea）："auto" / "notif_small" / "notif_large" / "app_icon" */
     val iconMode: String = "auto",
+    /** 焦点图标来源（iconTextInfo）："auto" / "notif_small" / "notif_large" / "app_icon" */
+    val focusIconMode: String = "auto",
     /** 焦点通知（island 块）："default" / "off" */
     val focusNotif: String = "default",
     /** 初次自动展开 islandFirstFloat："default" / "on" / "off" */
