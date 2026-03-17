@@ -197,8 +197,10 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
 
     final result = await BatchChannelSettingsSheet.show(
       context,
-      totalChannels: channels.length,
-      enabledChannels: enabledCount,
+      scope: SingleAppScope(
+        totalChannels: channels.length,
+        enabledChannels: enabledCount,
+      ),
       templateLabels: _templateLabels,
     );
     if (result == null || !mounted) return;

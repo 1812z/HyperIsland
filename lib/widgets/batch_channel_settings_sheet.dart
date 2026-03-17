@@ -1,8 +1,35 @@
 import 'package:flutter/material.dart';
 import '../controllers/whitelist_controller.dart';
 
+// ── 应用范围（sealed class）─────────────────────────────────────────────────
+
+/// 批量操作的目标范围。
+sealed class BatchScope {
+  const BatchScope();
+}
+
+/// 单应用模式：对当前应用内的渠道批量操作，可选仅已启用渠道。
+class SingleAppScope extends BatchScope {
+  const SingleAppScope({
+    required this.totalChannels,
+    required this.enabledChannels,
+  });
+
+  final int totalChannels;
+  final int enabledChannels;
+}
+
+/// 全局模式：对所有已启用应用的全部渠道批量操作，不需要范围切换。
+class GlobalScope extends BatchScope {
+  const GlobalScope({required this.subtitle});
+
+  final String subtitle;
+}
+
+// ── 返回值 ───────────────────────────────────────────────────────────────────
+
 /// 批量应用渠道配置的结果。
-/// [settings] 中 null 表示该项不更改；[onlyEnabled] 表示仅应用到已启用渠道。
+/// [settings] 中 null 表示该项不更改；[onlyEnabled] 仅在 [SingleAppScope] 下有意义。
 class BatchApplyResult {
   final Map<String, String?> settings;
   final bool onlyEnabled;
@@ -13,35 +40,26 @@ class BatchApplyResult {
   });
 }
 
+// ── 主体组件 ─────────────────────────────────────────────────────────────────
+
 /// 批量设置渠道配置底部弹窗。
 ///
 /// 通过静态方法 [show] 打开，返回用户确认的 [BatchApplyResult]（取消时返回 null）。
-///
-/// - [subtitle]：覆盖默认副标题文本，用于全局批量等场景。
-/// - [showScopeToggle]：是否显示"仅应用到已启用渠道"切换项，全局模式下可关闭。
+/// [scope] 决定显示模式：[SingleAppScope] 带渠道范围切换，[GlobalScope] 仅显示固定副标题。
 class BatchChannelSettingsSheet extends StatefulWidget {
   const BatchChannelSettingsSheet({
     super.key,
-    this.totalChannels = 0,
-    this.enabledChannels = 0,
+    required this.scope,
     required this.templateLabels,
-    this.subtitle,
-    this.showScopeToggle = true,
   });
 
-  final int totalChannels;
-  final int enabledChannels;
+  final BatchScope scope;
   final Map<String, String> templateLabels;
-  final String? subtitle;
-  final bool showScopeToggle;
 
   static Future<BatchApplyResult?> show(
     BuildContext context, {
-    int totalChannels = 0,
-    int enabledChannels = 0,
+    required BatchScope scope,
     required Map<String, String> templateLabels,
-    String? subtitle,
-    bool showScopeToggle = true,
   }) {
     return showModalBottomSheet<BatchApplyResult>(
       context: context,
@@ -51,11 +69,8 @@ class BatchChannelSettingsSheet extends StatefulWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (_) => BatchChannelSettingsSheet(
-        totalChannels: totalChannels,
-        enabledChannels: enabledChannels,
+        scope: scope,
         templateLabels: templateLabels,
-        subtitle: subtitle,
-        showScopeToggle: showScopeToggle,
       ),
     );
   }
@@ -75,6 +90,8 @@ class _BatchChannelSettingsSheetState
   String? _firstFloat;
   String? _enableFloat;
   String? _islandTimeout;
+
+  // 仅 SingleAppScope 下使用
   bool _onlyEnabled = false;
 
   static const _timeoutOptions = [3, 5, 10, 30, 60, 300, 1800, 3600];
@@ -88,8 +105,16 @@ class _BatchChannelSettingsSheetState
       _enableFloat != null ||
       _islandTimeout != null;
 
-  int get _targetCount =>
-      _onlyEnabled ? widget.enabledChannels : widget.totalChannels;
+  String _subtitle() => switch (widget.scope) {
+        SingleAppScope(
+          :final totalChannels,
+          :final enabledChannels,
+        ) =>
+          _onlyEnabled
+              ? '将应用到已启用的 $enabledChannels 个渠道'
+              : '将应用到全部 $totalChannels 个渠道',
+        GlobalScope(:final subtitle) => subtitle,
+      };
 
   void _submit() {
     Navigator.pop(
@@ -104,7 +129,10 @@ class _BatchChannelSettingsSheetState
           'enable_float': _enableFloat,
           'timeout':      _islandTimeout,
         },
-        onlyEnabled: _onlyEnabled,
+        onlyEnabled: switch (widget.scope) {
+          SingleAppScope() => _onlyEnabled,
+          GlobalScope()    => false,
+        },
       ),
     );
   }
@@ -140,7 +168,7 @@ class _BatchChannelSettingsSheetState
                 Text('批量设置渠道配置', style: text.titleLarge),
                 const SizedBox(height: 2),
                 Text(
-                  widget.subtitle ?? '将应用到 $_targetCount 个渠道',
+                  _subtitle(),
                   style: text.bodySmall?.copyWith(color: cs.onSurfaceVariant),
                 ),
               ],
@@ -156,13 +184,16 @@ class _BatchChannelSettingsSheetState
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // 仅应用到已启用渠道 开关（全局模式下隐藏）
-                  if (widget.showScopeToggle) ...[
+                  // 范围切换卡片（仅 SingleAppScope）
+                  if (widget.scope case SingleAppScope(
+                    :final totalChannels,
+                    :final enabledChannels,
+                  )) ...[
                     _ScopeToggleCard(
-                      totalChannels: widget.totalChannels,
-                      enabledChannels: widget.enabledChannels,
+                      totalChannels: totalChannels,
+                      enabledChannels: enabledChannels,
                       value: _onlyEnabled,
-                      onChanged: widget.enabledChannels > 0
+                      onChanged: enabledChannels > 0
                           ? (v) => setState(() => _onlyEnabled = v)
                           : null,
                     ),
@@ -323,16 +354,16 @@ class _ScopeToggleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs   = Theme.of(context).colorScheme;
-    final text = Theme.of(context).textTheme;
-    final enabled = onChanged != null;
+    final cs     = Theme.of(context).colorScheme;
+    final text   = Theme.of(context).textTheme;
+    final active = onChanged != null;
 
     return Material(
       color: cs.surfaceContainerHighest,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: enabled ? () => onChanged!(!value) : null,
+        onTap: active ? () => onChanged!(!value) : null,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
@@ -344,14 +375,14 @@ class _ScopeToggleCard extends StatelessWidget {
                     Text(
                       '仅应用到已启用渠道',
                       style: text.bodyMedium?.copyWith(
-                        color: enabled ? null : cs.onSurface.withValues(alpha: 0.38),
+                        color: active ? null : cs.onSurface.withValues(alpha: 0.38),
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '已启用 $enabledChannels / $totalChannels 个渠道',
                       style: text.bodySmall?.copyWith(
-                        color: enabled
+                        color: active
                             ? cs.onSurfaceVariant
                             : cs.onSurface.withValues(alpha: 0.28),
                       ),

@@ -53,9 +53,10 @@ class _WhitelistPageState extends State<WhitelistPage> {
 
     final result = await BatchChannelSettingsSheet.show(
       context,
+      scope: GlobalScope(
+        subtitle: '将应用到全部 $enabledCount 个已启用应用的所有渠道',
+      ),
       templateLabels: templateLabels,
-      subtitle: '将应用到全部 $enabledCount 个已启用应用的所有渠道',
-      showScopeToggle: false,
     );
     if (result == null || !mounted) return;
 
