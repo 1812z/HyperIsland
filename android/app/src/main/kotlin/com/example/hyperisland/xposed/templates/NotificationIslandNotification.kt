@@ -5,6 +5,8 @@ import android.content.Context
 import android.graphics.drawable.Icon
 import android.os.Build
 import android.os.Bundle
+import com.example.hyperisland.xposed.IslandDispatcher
+import com.example.hyperisland.xposed.IslandRequest
 import com.example.hyperisland.xposed.IslandTemplate
 import com.example.hyperisland.xposed.NotifData
 import com.example.hyperisland.xposed.toRounded
@@ -32,23 +34,70 @@ object NotificationIslandNotification : IslandTemplate {
     override val id          = TEMPLATE_ID
     override val displayName = TEMPLATE_NAME
 
-    override fun inject(context: Context, extras: Bundle, data: NotifData) = inject(
-        context         = context,
-        extras          = extras,
-        title           = data.title,
-        subtitle        = data.subtitle,
-        actions         = data.actions,
-        notifIcon       = data.notifIcon,
-        largeIcon       = data.largeIcon,
-        appIconRaw      = data.appIconRaw,
-        iconMode        = data.iconMode,
-        focusIconMode   = data.focusIconMode,
-        focusNotif      = data.focusNotif,
-        firstFloat      = data.firstFloat,
-        enableFloatMode = data.enableFloatMode,
-        timeoutSecs     = data.islandTimeout,
-        isOngoing       = data.isOngoing,
-    )
+    override fun inject(context: Context, extras: Bundle, data: NotifData) {
+        if (data.focusNotif == "off") {
+            // 不处理通知 extras，原始通知直接通过；
+            // 但仍通过 IslandDispatcher 直接触发超级岛展示。
+            injectViaDispatcher(context, data)
+            return
+        }
+        inject(
+            context         = context,
+            extras          = extras,
+            title           = data.title,
+            subtitle        = data.subtitle,
+            actions         = data.actions,
+            notifIcon       = data.notifIcon,
+            largeIcon       = data.largeIcon,
+            appIconRaw      = data.appIconRaw,
+            iconMode        = data.iconMode,
+            focusIconMode   = data.focusIconMode,
+            focusNotif      = data.focusNotif,
+            firstFloat      = data.firstFloat,
+            enableFloatMode = data.enableFloatMode,
+            timeoutSecs     = data.islandTimeout,
+            isOngoing       = data.isOngoing,
+        )
+    }
+
+    /**
+     * focusNotif == "off" 时使用：不修改原始通知，
+     * 直接通过 IslandDispatcher 以 SystemUI 身份发出超级岛。
+     * iconMode 与 timeoutSecs 依然对此岛生效。
+     */
+    private fun injectViaDispatcher(context: Context, data: NotifData) {
+        try {
+            val fallbackIcon = Icon.createWithResource(context, android.R.drawable.ic_dialog_info)
+            val displayIcon = when (data.iconMode) {
+                "notif_small" -> data.notifIcon ?: fallbackIcon
+                "notif_large" -> data.largeIcon ?: data.notifIcon ?: fallbackIcon
+                "app_icon"    -> data.appIconRaw ?: fallbackIcon
+                else          -> data.largeIcon ?: data.notifIcon ?: fallbackIcon  // auto
+            }.toRounded(context)
+
+            val resolvedFirstFloat  = data.firstFloat      == "on"
+            val resolvedEnableFloat = data.enableFloatMode == "on"
+
+            IslandDispatcher.post(
+                context,
+                IslandRequest(
+                    title            = data.title,
+                    content          = data.subtitle.ifEmpty { data.title },
+                    icon             = displayIcon,
+                    timeoutSecs      = data.islandTimeout,
+                    firstFloat       = resolvedFirstFloat,
+                    enableFloat      = resolvedEnableFloat,
+                    showNotification = false,
+                ),
+            )
+
+            XposedBridge.log(
+                "HyperIsland[NotifIsland]: Dispatcher island — ${data.title} | iconMode=${data.iconMode} | timeout=${data.islandTimeout}"
+            )
+        } catch (e: Exception) {
+            XposedBridge.log("HyperIsland[NotifIsland]: Dispatcher island error: ${e.message}")
+        }
+    }
 
     private fun inject(
         context: Context,
@@ -145,7 +194,9 @@ object NotificationIslandNotification : IslandTemplate {
             // HyperOS 从 extras 顶层查找 action，将嵌套 bundle 展开
             flattenActionsToExtras(resourceBundle, extras)
             // 修正 textButton 字段名：新库输出 "actionIntent"，HyperOS V3 协议只认 "action"
-            extras.putString("miui.focus.param", fixTextButtonJson(builder.buildJsonParam()))
+            val jsonParam = fixTextButtonJson(builder.buildJsonParam())
+                .let { if (!isOngoing) injectUpdatable(it, false) else it }
+            extras.putString("miui.focus.param", jsonParam)
 
             XposedBridge.log(
                 "HyperIsland[NotifIsland]: Island injected — $title | left=$leftText | right=$rightContent | buttons=${actions.size} | isOngoing=${isOngoing}"
@@ -154,6 +205,16 @@ object NotificationIslandNotification : IslandTemplate {
         } catch (e: Exception) {
             XposedBridge.log("HyperIsland[NotifIsland]: Island injection error: ${e.message}")
         }
+    }
+
+    /** 将 param_v2.updatable 注入为指定值（库默认 true，不可一键清除）。*/
+    private fun injectUpdatable(jsonParam: String, updatable: Boolean): String {
+        return try {
+            val json = org.json.JSONObject(jsonParam)
+            val pv2  = json.optJSONObject("param_v2") ?: return jsonParam
+            pv2.put("updatable", updatable)
+            json.toString()
+        } catch (_: Exception) { jsonParam }
     }
 
     /**
