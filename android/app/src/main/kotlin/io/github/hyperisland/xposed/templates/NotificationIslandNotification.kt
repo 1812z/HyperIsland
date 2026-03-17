@@ -140,8 +140,6 @@ object NotificationIslandNotification : IslandTemplate {
 
             // "default" 与 "on" 均允许展开（与 IslandRequest 默认值 true 保持一致）；
             // 只有用户明确设为 "off" 时才禁止展开。
-            // 若 firstFloat=false 且 enableFloat=false，HyperOS 不会初始化焦点通知，
-            // 导致状态栏图标消失，因此"默认"应等同于允许。
             val resolvedFirstFloat  = firstFloat      != "off"
             val resolvedEnableFloat = enableFloatMode != "off"
             val showNotification    = focusNotif != "off"
