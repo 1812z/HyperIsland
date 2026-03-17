@@ -1,6 +1,10 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../controllers/home_controller.dart';
 import '../widgets/section_label.dart';
 
@@ -27,7 +31,95 @@ class _HomePageState extends State<HomePage> {
     });
     PackageInfo.fromPlatform().then((info) {
       if (mounted) setState(() => _version = 'v${info.version}');
+      _checkUpdate(info.version);
     });
+  }
+
+  Future<void> _checkUpdate(String currentVersion) async {
+    try {
+      final resp = await http
+          .get(
+            Uri.parse(
+                'https://api.github.com/repos/1812z/HyperIsland/releases/latest'),
+            headers: {'Accept': 'application/vnd.github+json'},
+          )
+          .timeout(const Duration(seconds: 10));
+      if (resp.statusCode != 200) return;
+      final data = jsonDecode(resp.body) as Map<String, dynamic>;
+      final tagName = (data['tag_name'] as String?)?.replaceFirst('v', '') ?? '';
+      if (tagName.isEmpty) return;
+      if (_isNewerVersion(tagName, currentVersion)) {
+        final releaseUrl = data['html_url'] as String? ?? '';
+        final changelog = data['body'] as String? ?? '';
+        if (mounted) _showUpdateDialog(tagName, releaseUrl, changelog);
+      }
+    } catch (_) {
+      // 网络错误静默忽略
+    }
+  }
+
+  bool _isNewerVersion(String remote, String current) {
+    final r = remote.split('.').map(int.tryParse).toList();
+    final c = current.split('.').map(int.tryParse).toList();
+    for (var i = 0; i < 3; i++) {
+      final rv = i < r.length ? (r[i] ?? 0) : 0;
+      final cv = i < c.length ? (c[i] ?? 0) : 0;
+      if (rv > cv) return true;
+      if (rv < cv) return false;
+    }
+    return false;
+  }
+
+  void _showUpdateDialog(String newVersion, String releaseUrl, String changelog) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('发现新版本'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('当前版本：$_version'),
+            Text('最新版本：v$newVersion'),
+            if (changelog.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              const Divider(),
+              const SizedBox(height: 4),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 240),
+                child: Markdown(
+                  data: changelog,
+                  shrinkWrap: true,
+                  padding: EdgeInsets.zero,
+                  styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(ctx))
+                      .copyWith(p: Theme.of(ctx).textTheme.bodySmall),
+                  onTapLink: (_, href, __) {
+                    if (href != null) {
+                      launchUrl(Uri.parse(href),
+                          mode: LaunchMode.externalApplication);
+                    }
+                  },
+                ),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('稍后再说'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              launchUrl(Uri.parse(releaseUrl),
+                  mode: LaunchMode.externalApplication);
+            },
+            child: const Text('前往更新'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
