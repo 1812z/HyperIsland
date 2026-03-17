@@ -75,8 +75,8 @@ object NotificationIslandNotification : IslandTemplate {
                 else          -> data.largeIcon ?: data.notifIcon ?: fallbackIcon  // auto
             }.toRounded(context)
 
-            val resolvedFirstFloat  = data.firstFloat      == "on"
-            val resolvedEnableFloat = data.enableFloatMode == "on"
+            val resolvedFirstFloat  = data.firstFloat      != "off"
+            val resolvedEnableFloat = data.enableFloatMode != "off"
 
             IslandDispatcher.post(
                 context,
@@ -138,8 +138,12 @@ object NotificationIslandNotification : IslandTemplate {
             val rightContent   = subtitle.ifEmpty { title }
             val displayContent = subtitle.ifEmpty { title }
 
-            val resolvedFirstFloat  = firstFloat      == "on"
-            val resolvedEnableFloat = enableFloatMode == "on"
+            // "default" 与 "on" 均允许展开（与 IslandRequest 默认值 true 保持一致）；
+            // 只有用户明确设为 "off" 时才禁止展开。
+            // 若 firstFloat=false 且 enableFloat=false，HyperOS 不会初始化焦点通知，
+            // 导致状态栏图标消失，因此"默认"应等同于允许。
+            val resolvedFirstFloat  = firstFloat      != "off"
+            val resolvedEnableFloat = enableFloatMode != "off"
             val showNotification    = focusNotif != "off"
 
             val builder = HyperIslandNotification.Builder(context, "notif_island", title)
