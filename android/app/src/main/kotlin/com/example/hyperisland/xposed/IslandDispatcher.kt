@@ -147,6 +147,13 @@ object IslandDispatcher {
                 ),
             )
 
+            // highlightColor / dismissIsland 必须通过 setParamIsland 设置，
+            // 不传 bigIslandArea / smallIslandArea 以免覆盖上方已设好的布局
+            islandBuilder.setParamIsland(
+                highlightColor = request.highlightColor,
+                dismissIsland  = request.dismissIsland,
+            )
+
             val resourceBundle = islandBuilder.buildResourceBundle()
 
             val notif = Notification.Builder(context, CHANNEL_ID)
@@ -159,10 +166,7 @@ object IslandDispatcher {
             notif.extras.putAll(resourceBundle)
             flattenActionsToExtras(resourceBundle, notif.extras)
 
-            // 构建最终 JSON，依次应用：button 修正 → highlightColor / dismissIsland 注入
-            val jsonParam = islandBuilder.buildJsonParam()
-                .let { fixTextButtonJson(it) }
-                .let { applyExtraParams(it, request.highlightColor, request.dismissIsland) }
+            val jsonParam = fixTextButtonJson(islandBuilder.buildJsonParam())
             notif.extras.putString("miui.focus.param", jsonParam)
 
             // 先取消同 ID 的旧通知，让 HyperOS 视为全新通知并触发岛动画
@@ -209,25 +213,6 @@ object IslandDispatcher {
 
     private fun fallbackIcon(context: Context): Icon =
         Icon.createWithResource(context, android.R.drawable.sym_def_app_icon)
-
-    /**
-     * 将 [highlightColor] 和 [dismissIsland] 注入 param_v2 JSON。
-     * 这两个字段直接写入 HyperOS 协议层，不依赖 hyperisland_kit 的 Builder API。
-     */
-    private fun applyExtraParams(
-        jsonParam: String,
-        highlightColor: String?,
-        dismissIsland: Boolean,
-    ): String {
-        if (highlightColor == null && !dismissIsland) return jsonParam
-        return try {
-            val json = org.json.JSONObject(jsonParam)
-            val pv2  = json.optJSONObject("param_v2") ?: return jsonParam
-            highlightColor?.let { pv2.put("highlightColor", it) }
-            if (dismissIsland) pv2.put("dismissIsland", true)
-            json.toString()
-        } catch (_: Exception) { jsonParam }
-    }
 
     /** 修正新库输出的 textButton JSON，将 "actionIntent" 字段替换为协议所需的 "action"。*/
     private fun fixTextButtonJson(jsonParam: String): String {
