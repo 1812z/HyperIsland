@@ -154,6 +154,7 @@ object IslandDispatcher {
                 .setContentTitle(request.title)
                 .setContentText(request.content)
                 .setAutoCancel(true)
+                .apply { request.contentIntent?.let { setContentIntent(it) } }
                 .build()
 
             notif.extras.putAll(resourceBundle)

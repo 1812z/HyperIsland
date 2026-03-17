@@ -273,6 +273,7 @@ class GenericProgressHook : IXposedHookLoadPackage {
                     enableFloatMode = enableFloatMode,
                     islandTimeout   = islandTimeout,
                     isOngoing       = (notif.flags and Notification.FLAG_ONGOING_EVENT) != 0,
+                    contentIntent   = notif.contentIntent,
                 ),
             )
 

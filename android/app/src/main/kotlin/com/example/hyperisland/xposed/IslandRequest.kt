@@ -49,6 +49,11 @@ data class IslandRequest(
      * 常用于主动收起进行中的岛通知。
      */
     val dismissIsland: Boolean = false,
+    /**
+     * 点击通知时触发的 PendingIntent，对应原通知的 contentIntent。
+     * 代发焦点通知时传入，使点击行为与原通知一致。
+     */
+    val contentIntent: android.app.PendingIntent? = null,
 ) {
     fun toBundle(): Bundle = Bundle().apply {
         putString(KEY_TITLE,          title)
@@ -61,19 +66,21 @@ data class IslandRequest(
         putBoolean(KEY_SHOW_NOTIF,    showNotification)
         putString(KEY_HIGHLIGHT,      highlightColor)
         putBoolean(KEY_DISMISS,       dismissIsland)
+        putParcelable(KEY_CONTENT_INTENT, contentIntent)
     }
 
     companion object {
-        private const val KEY_TITLE       = "title"
-        private const val KEY_CONTENT     = "content"
-        private const val KEY_ICON        = "icon"
-        private const val KEY_NOTIF_ID    = "notifId"
-        private const val KEY_TIMEOUT     = "timeoutSecs"
-        private const val KEY_FIRST_FLOAT = "firstFloat"
-        private const val KEY_ENABLE_FLOAT = "enableFloat"
-        private const val KEY_SHOW_NOTIF  = "showNotification"
-        private const val KEY_HIGHLIGHT   = "highlightColor"
-        private const val KEY_DISMISS     = "dismissIsland"
+        private const val KEY_TITLE          = "title"
+        private const val KEY_CONTENT        = "content"
+        private const val KEY_ICON           = "icon"
+        private const val KEY_NOTIF_ID       = "notifId"
+        private const val KEY_TIMEOUT        = "timeoutSecs"
+        private const val KEY_FIRST_FLOAT    = "firstFloat"
+        private const val KEY_ENABLE_FLOAT   = "enableFloat"
+        private const val KEY_SHOW_NOTIF     = "showNotification"
+        private const val KEY_HIGHLIGHT      = "highlightColor"
+        private const val KEY_DISMISS        = "dismissIsland"
+        private const val KEY_CONTENT_INTENT = "contentIntent"
 
         fun fromBundle(b: Bundle) = IslandRequest(
             title            = b.getString(KEY_TITLE, ""),
@@ -86,6 +93,7 @@ data class IslandRequest(
             showNotification = b.getBoolean(KEY_SHOW_NOTIF, true),
             highlightColor   = b.getString(KEY_HIGHLIGHT),
             dismissIsland    = b.getBoolean(KEY_DISMISS, false),
+            contentIntent    = pendingIntentFromBundle(b),
         )
 
         private fun iconFromBundle(b: Bundle): Icon? =
@@ -93,6 +101,12 @@ data class IslandRequest(
                 b.getParcelable(KEY_ICON, Icon::class.java)
             else
                 @Suppress("DEPRECATION") b.getParcelable(KEY_ICON)
+
+        private fun pendingIntentFromBundle(b: Bundle): android.app.PendingIntent? =
+            if (Build.VERSION.SDK_INT >= 33)
+                b.getParcelable(KEY_CONTENT_INTENT, android.app.PendingIntent::class.java)
+            else
+                @Suppress("DEPRECATION") b.getParcelable(KEY_CONTENT_INTENT)
 
         fun fromIntent(intent: Intent) = fromBundle(intent.extras ?: Bundle())
     }

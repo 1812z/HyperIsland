@@ -88,6 +88,7 @@ object NotificationIslandNotification : IslandTemplate {
                     firstFloat       = resolvedFirstFloat,
                     enableFloat      = resolvedEnableFloat,
                     showNotification = false,
+                    contentIntent    = data.contentIntent,
                 ),
             )
 

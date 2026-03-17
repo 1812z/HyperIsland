@@ -98,4 +98,6 @@ data class NotifData(
     val islandTimeout: Int = 5,
     /** 是否为实时（持续）通知，对应 Notification.FLAG_ONGOING_EVENT */
     val isOngoing: Boolean = false,
+    /** 原通知的点击动作，用于代发通知时还原点击行为。 */
+    val contentIntent: android.app.PendingIntent? = null,
 )
