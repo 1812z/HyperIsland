@@ -292,4 +292,60 @@ class WhitelistController extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('pref_channel_timeout_${packageName}_$channelId', value);
   }
+
+  /// 批量应用渠道配置到指定渠道列表。
+  /// [settings] 中 null 值的 key 表示不更改该项。
+  Future<void> batchApplyChannelSettings(
+      String packageName,
+      List<String> channelIds,
+      Map<String, String?> settings) async {
+    if (channelIds.isEmpty || settings.values.every((v) => v == null)) return;
+    final prefs = await SharedPreferences.getInstance();
+    const keyMap = {
+      'template':     'pref_channel_template',
+      'icon':         'pref_channel_icon',
+      'focus_icon':   'pref_channel_focus_icon',
+      'focus':        'pref_channel_focus',
+      'first_float':  'pref_channel_first_float',
+      'enable_float': 'pref_channel_enable_float',
+      'timeout':      'pref_channel_timeout',
+    };
+    final futures = <Future<bool>>[];
+    for (final id in channelIds) {
+      keyMap.forEach((settingKey, prefPrefix) {
+        final value = settings[settingKey];
+        if (value != null) {
+          futures.add(prefs.setString('${prefPrefix}_${packageName}_$id', value));
+        }
+      });
+    }
+    await Future.wait(futures);
+  }
+
+  /// 对全部已启用应用的所有渠道批量应用配置。
+  ///
+  /// 逐包获取渠道列表（需要 ROOT），跳过无法读取的包。
+  /// [onProgress] 每处理一个包后回调，参数为已处理数量与总数。
+  Future<void> batchApplyToAllEnabledApps(
+    Map<String, String?> settings, {
+    void Function(int done, int total)? onProgress,
+  }) async {
+    if (enabledPackages.isEmpty || settings.values.every((v) => v == null)) return;
+    final pkgList = enabledPackages.toList();
+    final total   = pkgList.length;
+
+    for (var i = 0; i < total; i++) {
+      final pkg = pkgList[i];
+      try {
+        final channels = await getChannels(pkg);
+        final ids = channels.map((c) => c.id).toList();
+        if (ids.isNotEmpty) {
+          await batchApplyChannelSettings(pkg, ids, settings);
+        }
+      } catch (_) {
+        // ROOT 不足或其他原因无法读取时跳过该应用
+      }
+      onProgress?.call(i + 1, total);
+    }
+  }
 }

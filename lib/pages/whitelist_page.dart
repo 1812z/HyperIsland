@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../controllers/whitelist_controller.dart';
+import '../widgets/batch_channel_settings_sheet.dart';
 import 'app_channels_page.dart';
 
 class WhitelistPage extends StatefulWidget {
@@ -37,6 +38,51 @@ class _WhitelistPageState extends State<WhitelistPage> {
     super.dispose();
   }
 
+  /// 全局批量配置：对所有已启用应用的全部渠道应用配置。
+  Future<void> _batchApplyAll() async {
+    final enabledCount = _ctrl.enabledPackages.length;
+    if (enabledCount == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('尚未启用任何应用')),
+      );
+      return;
+    }
+
+    final templateLabels = await _ctrl.getTemplates();
+    if (!mounted) return;
+
+    final result = await BatchChannelSettingsSheet.show(
+      context,
+      templateLabels: templateLabels,
+      subtitle: '将应用到全部 $enabledCount 个已启用应用的所有渠道',
+      showScopeToggle: false,
+    );
+    if (result == null || !mounted) return;
+
+    final doneNotifier = ValueNotifier(0);
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _GlobalBatchProgressDialog(
+        total: enabledCount,
+        doneNotifier: doneNotifier,
+      ),
+    );
+
+    await _ctrl.batchApplyToAllEnabledApps(
+      result.settings,
+      onProgress: (done, _) => doneNotifier.value = done,
+    );
+
+    doneNotifier.dispose();
+    if (mounted) Navigator.pop(context);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('已批量应用到 $enabledCount 个应用')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -67,6 +113,8 @@ class _WhitelistPageState extends State<WhitelistPage> {
                       await _ctrl.enableAll();
                     case 'disable_all':
                       await _ctrl.disableAll();
+                    case 'batch_all':
+                      await _batchApplyAll();
                   }
                 },
                 itemBuilder: (_) => [
@@ -88,6 +136,11 @@ class _WhitelistPageState extends State<WhitelistPage> {
                   const PopupMenuItem<String>(
                     value: 'disable_all',
                     child: Text('一键关闭全部'),
+                  ),
+                  const PopupMenuDivider(),
+                  const PopupMenuItem<String>(
+                    value: 'batch_all',
+                    child: Text('批量设置全部应用渠道'),
                   ),
                 ],
               ),
@@ -274,6 +327,55 @@ class _AppTile extends StatelessWidget {
             color: cs.outlineVariant.withValues(alpha: 0.4),
           ),
       ],
+    );
+  }
+}
+
+// ── 全局批量进度对话框 ────────────────────────────────────────────────────────
+
+class _GlobalBatchProgressDialog extends StatelessWidget {
+  const _GlobalBatchProgressDialog({
+    required this.total,
+    required this.doneNotifier,
+  });
+
+  final int total;
+  final ValueNotifier<int> doneNotifier;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs   = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+
+    return PopScope(
+      canPop: false,
+      child: AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        content: ValueListenableBuilder<int>(
+          valueListenable: doneNotifier,
+          builder: (_, done, __) {
+            final progress = total > 0 ? done / total : 0.0;
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('正在应用配置…', style: text.titleMedium),
+                const SizedBox(height: 16),
+                LinearProgressIndicator(
+                  value: progress,
+                  borderRadius: BorderRadius.circular(4),
+                  backgroundColor: cs.surfaceContainerHighest,
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  '$done / $total 个应用',
+                  style: text.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
     );
   }
 }
