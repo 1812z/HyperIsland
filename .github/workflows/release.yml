@@ -93,7 +93,7 @@ jobs:
       # 第六步：缓存 Gradle
       # 缓存 Gradle 依赖和构建缓存，加快编译速度
       - name: Cache Gradle
-        uses: gradle/gradle-build-action@v4
+        uses: gradle/actions/setup-gradle@v4
 
       # 第七步：安装 Flutter 依赖
       # 执行 flutter pub get 下载 pubspec.yaml 中定义的所有依赖包
