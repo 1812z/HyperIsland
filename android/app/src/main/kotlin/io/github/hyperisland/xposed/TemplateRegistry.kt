@@ -21,9 +21,9 @@ object TemplateRegistry {
         NotificationIslandNotification,
     ).associateBy { it.id }
 
-    /** 返回所有已注册模板的元数据，与 [registeredTemplates] 来源相同。 */
-    fun getAll(): List<Map<String, String>> =
-        registry.values.map { mapOf("id" to it.id, "name" to it.displayName) }
+    /** 返回所有已注册模板的元数据，名称根据设备语言本地化。 */
+    fun getAll(context: android.content.Context): List<Map<String, String>> =
+        registry.values.map { mapOf("id" to it.id, "name" to it.getDisplayName(context)) }
 
     fun dispatch(
         templateId: String,

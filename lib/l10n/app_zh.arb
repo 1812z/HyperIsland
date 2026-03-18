@@ -1,0 +1,248 @@
+{
+  "@@locale": "zh",
+
+  "navHome": "主页",
+  "navApps": "应用",
+  "navSettings": "设置",
+
+  "cancel": "取消",
+  "confirm": "确认",
+  "ok": "确定",
+  "apply": "应用",
+  "noChange": "不更改",
+
+  "newVersionFound": "发现新版本",
+  "currentVersion": "当前版本：{version}",
+  "@currentVersion": {
+    "placeholders": {
+      "version": { "type": "String" }
+    }
+  },
+  "latestVersion": "最新版本：{version}",
+  "@latestVersion": {
+    "placeholders": {
+      "version": { "type": "String" }
+    }
+  },
+  "later": "稍后再说",
+  "goUpdate": "前往更新",
+  "sponsorSupport": "赞助支持",
+  "sponsorAuthor": "赞助作者",
+  "restartScope": "重启作用域",
+  "systemUI": "系统界面",
+  "downloadManager": "下载管理器",
+  "notificationTest": "通知测试",
+  "sendTestNotification": "发送测试通知",
+  "notes": "注意事项",
+  "detectingModuleStatus": "正在检测模块状态...",
+  "moduleStatus": "模块状态",
+  "activated": "已激活",
+  "notActivated": "未激活",
+  "enableInLSPosed": "请在 LSPosed 中启用本模块",
+  "restartFailed": "重启失败：{message}",
+  "@restartFailed": {
+    "placeholders": {
+      "message": { "type": "String" }
+    }
+  },
+  "note1": "1.此页面仅用于测试是否支持超级岛，并不代表实际效果",
+  "note2": "2.请在 HyperCeiler 中关闭系统界面和小米服务框架的焦点通知白名单",
+  "note3": "3.LSPosed 管理器中激活后，必须重启相关作用域软件",
+  "note4": "4.支持通用适配，自行勾选合适的模板尝试",
+
+  "behaviorSection": "行为",
+  "appearanceSection": "外观",
+  "configSection": "配置",
+  "aboutSection": "关于",
+  "keepFocusNotifTitle": "下载管理器暂停后保留焦点通知",
+  "keepFocusNotifSubtitle": "显示一条通知，点击以继续下载，可能导致状态不同步",
+  "checkUpdateOnLaunchTitle": "启动时检查更新",
+  "checkUpdateOnLaunchSubtitle": "启动应用时自动检查是否有新版本",
+  "checkUpdate": "检查更新",
+  "alreadyLatest": "已是最新版本",
+  "useAppIconTitle": "使用应用图标",
+  "useAppIconSubtitle": "下载管理器通知使用应用图标",
+  "roundIconTitle": "图标圆角",
+  "roundIconSubtitle": "为通知图标添加圆角效果",
+  "themeModeTitle": "颜色模式",
+  "themeModeSystem": "跟随系统",
+  "themeModeLight": "浅色",
+  "themeModeDark": "深色",
+  "languageTitle": "语言",
+  "languageAuto": "跟随系统",
+  "languageZh": "中文",
+  "languageEn": "English",
+  "exportToFile": "导出到文件",
+  "exportToFileSubtitle": "将配置保存为 JSON 文件",
+  "exportToClipboard": "导出到剪贴板",
+  "exportToClipboardSubtitle": "将配置复制为 JSON 文本",
+  "importFromFile": "从文件导入",
+  "importFromFileSubtitle": "从 JSON 文件恢复配置",
+  "importFromClipboard": "从剪贴板导入",
+  "importFromClipboardSubtitle": "从剪贴板中的 JSON 文本恢复配置",
+  "qqGroup": "QQ 交流群",
+  "restartScopeApp": "请重启作用域应用以使设置生效",
+  "groupNumberCopied": "群号已复制到剪贴板",
+  "exportedTo": "已导出到：{path}",
+  "@exportedTo": {
+    "placeholders": {
+      "path": { "type": "String" }
+    }
+  },
+  "exportFailed": "导出失败：{error}",
+  "@exportFailed": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+  "configCopied": "配置已复制到剪贴板",
+  "importSuccess": "导入成功，共 {count} 项配置，请重启应用生效",
+  "@importSuccess": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "importFailed": "导入失败：{error}",
+  "@importFailed": {
+    "placeholders": {
+      "error": { "type": "String" }
+    }
+  },
+
+  "appAdaptation": "应用适配",
+  "selectedAppsCount": "已选 {count} 个应用",
+  "@selectedAppsCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "cancelSelection": "取消选择",
+  "deselectAll": "全不选",
+  "selectAll": "全选",
+  "batchChannelSettings": "批量设置渠道配置",
+  "selectEnabledApps": "选择已开启应用",
+  "batchEnable": "批量开启",
+  "batchDisable": "批量关闭",
+  "multiSelect": "多选",
+  "showSystemApps": "显示系统应用",
+  "refreshList": "刷新列表",
+  "enableAll": "一键开启全部",
+  "disableAll": "一键关闭全部",
+  "enabledAppsCount": "已启用 {count} 个应用的超级岛",
+  "@enabledAppsCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "enabledAppsCountWithSystem": "已启用 {count} 个应用的超级岛（含系统应用）",
+  "@enabledAppsCountWithSystem": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "searchApps": "搜索应用名或包名",
+  "noAppsFound": "没有找到已安装的应用\n请检查获取应用列表权限是否开启",
+  "noMatchingApps": "没有匹配的应用",
+  "applyToSelectedAppsChannels": "将应用到已选 {count} 个应用的已启用渠道",
+  "@applyToSelectedAppsChannels": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "applyingConfig": "正在应用配置…",
+  "progressApps": "{done} / {total} 个应用",
+  "@progressApps": {
+    "placeholders": {
+      "done": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "batchApplied": "已批量应用到 {count} 个应用",
+  "@batchApplied": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "cannotReadChannels": "无法读取通知渠道",
+  "rootRequiredMessage": "读取通知渠道需要 ROOT 权限。\n请确认已授予本应用 ROOT 权限后重试。",
+  "enableAllChannels": "启用全部渠道",
+  "noChannelsFound": "未找到通知渠道",
+  "noChannelsFoundSubtitle": "该应用尚未创建通知渠道，或无法读取",
+  "allChannelsActive": "对全部 {count} 个渠道生效",
+  "@allChannelsActive": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "selectedChannels": "已选 {selected} / {total} 个渠道",
+  "@selectedChannels": {
+    "placeholders": {
+      "selected": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "allChannelsDisabled": "全部 {count} 个渠道（已停用）",
+  "@allChannelsDisabled": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "appDisabledBanner": "应用总开关已关闭，以下渠道设置均不生效",
+  "channelImportance": "重要性：{importance}  ·  {id}",
+  "@channelImportance": {
+    "placeholders": {
+      "importance": { "type": "String" },
+      "id": { "type": "String" }
+    }
+  },
+  "channelSettings": "渠道设置",
+  "importanceNone": "无",
+  "importanceMin": "极低",
+  "importanceLow": "低",
+  "importanceDefault": "默认",
+  "importanceHigh": "高",
+  "importanceUnknown": "未知",
+  "applyToEnabledChannels": "将应用到已启用的 {count} 个渠道",
+  "@applyToEnabledChannels": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "applyToAllChannels": "将应用到全部 {count} 个渠道",
+  "@applyToAllChannels": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+
+  "template": "模板",
+  "islandIcon": "超级岛图标",
+  "focusIconLabel": "焦点图标",
+  "focusNotificationLabel": "焦点通知",
+  "firstFloatLabel": "初次展开",
+  "updateFloatLabel": "更新展开",
+  "autoDisappear": "自动消失",
+  "seconds": "秒",
+  "onlyEnabledChannels": "仅应用到已启用渠道",
+  "enabledChannelsCount": "已启用 {enabled} / {total} 个渠道",
+  "@enabledChannelsCount": {
+    "placeholders": {
+      "enabled": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "iconModeAuto": "自动",
+  "iconModeNotifSmall": "通知小图标",
+  "iconModeNotifLarge": "通知大图标",
+  "iconModeAppIcon": "应用图标",
+  "optDefault": "默认",
+  "optOn": "开启",
+  "optOff": "关闭",
+
+  "errorInvalidFormat": "配置格式无效",
+  "errorNoStorageDir": "无法获取存储目录",
+  "errorNoFileSelected": "未选择文件",
+  "errorNoFilePath": "无法获取文件路径",
+  "errorEmptyClipboard": "剪贴板为空"
+}

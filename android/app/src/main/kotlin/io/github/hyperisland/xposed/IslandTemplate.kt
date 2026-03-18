@@ -12,6 +12,16 @@ import android.graphics.drawable.Icon
 import android.os.Bundle
 
 /**
+ * 在 Xposed 进程（如 SystemUI）中，[Context] 属于宿主进程，不包含本模块的资源。
+ * 此函数通过 [Context.createPackageContext] 创建一个包含模块资源的上下文，
+ * 使 [Context.getString] 能正确按设备语言加载模块的字符串资源。
+ * 在普通 App 进程中 context 已经是模块自身，无需特殊处理，异常时直接返回 this。
+ */
+internal fun Context.moduleContext(): Context = try {
+    createPackageContext("io.github.hyperisland", Context.CONTEXT_IGNORE_SECURITY)
+} catch (_: Exception) { this }
+
+/**
  * 将 Icon 转为圆角版本。失败时原样返回。
  * @param radiusFraction 圆角半径占图标尺寸的比例，默认 0.25（25%）
  */
@@ -60,8 +70,15 @@ interface IslandTemplate {
     /** 唯一标识符，与 Flutter 侧 kTemplate* 常量对应。 */
     val id: String
 
-    /** 在 Flutter UI 中显示的模板名称。 */
+    /** 在 Flutter UI 中显示的模板名称（硬编码回退值）。 */
     val displayName: String
+
+    /**
+     * 返回当前设备语言对应的模板显示名称。
+     * 默认实现通过 [moduleContext] 加载 Android 字符串资源，子类可覆盖。
+     * 语言跟随设备 locale，无需手动指定。
+     */
+    fun getDisplayName(context: Context): String = displayName
 
     /** 将通知数据注入 extras，使其触发灵动岛展示。 */
     fun inject(context: Context, extras: Bundle, data: NotifData)

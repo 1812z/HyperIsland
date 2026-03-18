@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Welcome island -->
+    <string name="island_welcome_title">Welcome</string>
+
+    <!-- Template display names -->
+    <string name="template_download_name">Download</string>
+    <string name="template_notification_island_name">Notification Island</string>
+
+    <!-- Island state labels (GenericProgress / Download shared) -->
+    <string name="island_state_complete">Complete</string>
+    <string name="island_state_paused">Paused</string>
+    <string name="island_state_waiting">Waiting</string>
+    <string name="island_state_downloading">Downloading</string>
+
+    <!-- Download-specific titles -->
+    <string name="island_download_complete">Download complete</string>
+    <string name="island_download_paused">Paused</string>
+    <string name="island_download_waiting">Waiting</string>
+    <string name="island_downloading">Downloading</string>
+    <string name="island_downloading_progress">Downloading %d%%</string>
+    <string name="island_aod_paused_progress">Paused %d%%</string>
+    <string name="island_aod_downloading_progress">Downloading %d%%</string>
+
+    <!-- Download action buttons -->
+    <string name="island_action_resume_all">Resume all</string>
+    <string name="island_action_resume">Resume</string>
+    <string name="island_action_pause_all">Pause all</string>
+    <string name="island_action_pause">Pause</string>
+    <string name="island_action_cancel_all">Cancel all</string>
+    <string name="island_action_cancel">Cancel</string>
+</resources>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 欢迎超级岛 -->
+    <string name="island_welcome_title">欢迎使用</string>
+
+    <!-- 模板显示名称 -->
+    <string name="template_download_name">下载</string>
+    <string name="template_notification_island_name">通知超级岛</string>
+
+    <!-- 超级岛状态标签（GenericProgress / Download 通用） -->
+    <string name="island_state_complete">已完成</string>
+    <string name="island_state_paused">已暂停</string>
+    <string name="island_state_waiting">等待中</string>
+    <string name="island_state_downloading">下载中</string>
+
+    <!-- 下载专用标题 -->
+    <string name="island_download_complete">下载完成</string>
+    <string name="island_download_paused">已暂停</string>
+    <string name="island_download_waiting">等待中</string>
+    <string name="island_downloading">下载中</string>
+    <string name="island_downloading_progress">下载中 %d%%</string>
+    <string name="island_aod_paused_progress">已暂停 %d%%</string>
+    <string name="island_aod_downloading_progress">下载中 %d%%</string>
+
+    <!-- 下载操作按钮 -->
+    <string name="island_action_resume_all">全部恢复</string>
+    <string name="island_action_resume">恢复</string>
+    <string name="island_action_pause_all">全部暂停</string>
+    <string name="island_action_pause">暂停</string>
+    <string name="island_action_cancel_all">全部取消</string>
+    <string name="island_action_cancel">取消</string>
+</resources>

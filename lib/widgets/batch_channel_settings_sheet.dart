@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../controllers/whitelist_controller.dart';
+import '../l10n/app_localizations.dart';
 
 // ── 操作模式（sealed class）──────────────────────────────────────────────────
 
@@ -186,18 +187,18 @@ class _BatchChannelSettingsSheetState
       _enableFloat != null ||
       _islandTimeout != null;
 
-  String _title() => switch (widget.mode) {
+  String _title(AppLocalizations l10n) => switch (widget.mode) {
         SingleChannelMode m => m.channelName,
-        BatchChannelMode _ => '批量设置渠道配置',
+        BatchChannelMode _ => l10n.batchChannelSettings,
       };
 
-  String _subtitle() => switch (widget.mode) {
-        SingleChannelMode _ => '渠道设置',
+  String _subtitle(AppLocalizations l10n) => switch (widget.mode) {
+        SingleChannelMode _ => l10n.channelSettings,
         BatchChannelMode(scope: final s) => switch (s) {
             SingleAppScope(:final totalChannels, :final enabledChannels) =>
               _onlyEnabled
-                  ? '将应用到已启用的 $enabledChannels 个渠道'
-                  : '将应用到全部 $totalChannels 个渠道',
+                  ? l10n.applyToEnabledChannels(enabledChannels)
+                  : l10n.applyToAllChannels(totalChannels),
             GlobalScope(:final subtitle) => subtitle,
           },
       };
@@ -227,6 +228,7 @@ class _BatchChannelSettingsSheetState
   Widget build(BuildContext context) {
     final cs   = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context)!;
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
 
     return Padding(
@@ -252,14 +254,14 @@ class _BatchChannelSettingsSheetState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _title(),
+                  _title(l10n),
                   style: text.titleLarge,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  _subtitle(),
+                  _subtitle(l10n),
                   style: text.bodySmall?.copyWith(color: cs.onSurfaceVariant),
                 ),
               ],
@@ -298,7 +300,7 @@ class _BatchChannelSettingsSheetState
 
                   // 模板
                   _BatchSettingRow(
-                    label: '模板',
+                    label: l10n.template,
                     value: _template,
                     showNotChange: !_isSingle,
                     items: widget.templateLabels.entries
@@ -313,14 +315,14 @@ class _BatchChannelSettingsSheetState
 
                   // 超级岛图标
                   _BatchSettingRow(
-                    label: '超级岛图标',
+                    label: l10n.islandIcon,
                     value: _iconMode,
                     showNotChange: !_isSingle,
-                    items: const [
-                      DropdownMenuItem(value: kIconModeAuto,       child: Text('自动')),
-                      DropdownMenuItem(value: kIconModeNotifSmall, child: Text('通知小图标')),
-                      DropdownMenuItem(value: kIconModeNotifLarge, child: Text('通知大图标')),
-                      DropdownMenuItem(value: kIconModeAppIcon,    child: Text('应用图标')),
+                    items: [
+                      DropdownMenuItem(value: kIconModeAuto,       child: Text(l10n.iconModeAuto)),
+                      DropdownMenuItem(value: kIconModeNotifSmall, child: Text(l10n.iconModeNotifSmall)),
+                      DropdownMenuItem(value: kIconModeNotifLarge, child: Text(l10n.iconModeNotifLarge)),
+                      DropdownMenuItem(value: kIconModeAppIcon,    child: Text(l10n.iconModeAppIcon)),
                     ],
                     onChanged: (v) => setState(() => _iconMode = v),
                   ),
@@ -328,14 +330,14 @@ class _BatchChannelSettingsSheetState
 
                   // 焦点图标
                   _BatchSettingRow(
-                    label: '焦点图标',
+                    label: l10n.focusIconLabel,
                     value: _focusIconMode,
                     showNotChange: !_isSingle,
-                    items: const [
-                      DropdownMenuItem(value: kIconModeAuto,       child: Text('自动')),
-                      DropdownMenuItem(value: kIconModeNotifSmall, child: Text('通知小图标')),
-                      DropdownMenuItem(value: kIconModeNotifLarge, child: Text('通知大图标')),
-                      DropdownMenuItem(value: kIconModeAppIcon,    child: Text('应用图标')),
+                    items: [
+                      DropdownMenuItem(value: kIconModeAuto,       child: Text(l10n.iconModeAuto)),
+                      DropdownMenuItem(value: kIconModeNotifSmall, child: Text(l10n.iconModeNotifSmall)),
+                      DropdownMenuItem(value: kIconModeNotifLarge, child: Text(l10n.iconModeNotifLarge)),
+                      DropdownMenuItem(value: kIconModeAppIcon,    child: Text(l10n.iconModeAppIcon)),
                     ],
                     onChanged: (v) => setState(() => _focusIconMode = v),
                   ),
@@ -343,12 +345,12 @@ class _BatchChannelSettingsSheetState
 
                   // 焦点通知
                   _BatchSettingRow(
-                    label: '焦点通知',
+                    label: l10n.focusNotificationLabel,
                     value: _focusNotif,
                     showNotChange: !_isSingle,
-                    items: const [
-                      DropdownMenuItem(value: kTriOptDefault, child: Text('默认')),
-                      DropdownMenuItem(value: kTriOptOff,     child: Text('关闭')),
+                    items: [
+                      DropdownMenuItem(value: kTriOptDefault, child: Text(l10n.optDefault)),
+                      DropdownMenuItem(value: kTriOptOff,     child: Text(l10n.optOff)),
                     ],
                     onChanged: (v) => setState(() => _focusNotif = v),
                   ),
@@ -356,13 +358,13 @@ class _BatchChannelSettingsSheetState
 
                   // 初次展开
                   _BatchSettingRow(
-                    label: '初次展开',
+                    label: l10n.firstFloatLabel,
                     value: _firstFloat,
                     showNotChange: !_isSingle,
-                    items: const [
-                      DropdownMenuItem(value: kTriOptDefault, child: Text('默认')),
-                      DropdownMenuItem(value: kTriOptOn,      child: Text('开启')),
-                      DropdownMenuItem(value: kTriOptOff,     child: Text('关闭')),
+                    items: [
+                      DropdownMenuItem(value: kTriOptDefault, child: Text(l10n.optDefault)),
+                      DropdownMenuItem(value: kTriOptOn,      child: Text(l10n.optOn)),
+                      DropdownMenuItem(value: kTriOptOff,     child: Text(l10n.optOff)),
                     ],
                     onChanged: (v) => setState(() => _firstFloat = v),
                   ),
@@ -370,13 +372,13 @@ class _BatchChannelSettingsSheetState
 
                   // 更新展开
                   _BatchSettingRow(
-                    label: '更新展开',
+                    label: l10n.updateFloatLabel,
                     value: _enableFloat,
                     showNotChange: !_isSingle,
-                    items: const [
-                      DropdownMenuItem(value: kTriOptDefault, child: Text('默认')),
-                      DropdownMenuItem(value: kTriOptOn,      child: Text('开启')),
-                      DropdownMenuItem(value: kTriOptOff,     child: Text('关闭')),
+                    items: [
+                      DropdownMenuItem(value: kTriOptDefault, child: Text(l10n.optDefault)),
+                      DropdownMenuItem(value: kTriOptOn,      child: Text(l10n.optOn)),
+                      DropdownMenuItem(value: kTriOptOff,     child: Text(l10n.optOff)),
                     ],
                     onChanged: (v) => setState(() => _enableFloat = v),
                   ),
@@ -388,7 +390,7 @@ class _BatchChannelSettingsSheetState
                       SizedBox(
                         width: 76,
                         child: Text(
-                          '自动消失',
+                          l10n.autoDisappear,
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 color: cs.onSurfaceVariant,
                               ),
@@ -401,8 +403,8 @@ class _BatchChannelSettingsSheetState
                           keyboardType: TextInputType.number,
                           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                           decoration: InputDecoration(
-                            hintText: _isSingle ? null : '不更改',
-                            suffixText: _islandTimeout != null ? '秒' : null,
+                            hintText: _isSingle ? null : l10n.noChange,
+                            suffixText: _islandTimeout != null ? l10n.seconds : null,
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 14,
                               vertical: 12,
@@ -449,7 +451,7 @@ class _BatchChannelSettingsSheetState
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text('取消'),
+                    child: Text(l10n.cancel),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -461,7 +463,7 @@ class _BatchChannelSettingsSheetState
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text('应用'),
+                    child: Text(l10n.apply),
                   ),
                 ),
               ],
@@ -492,6 +494,7 @@ class _ScopeToggleCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs     = Theme.of(context).colorScheme;
     final text   = Theme.of(context).textTheme;
+    final l10n   = AppLocalizations.of(context)!;
     final active = onChanged != null;
 
     return Material(
@@ -509,14 +512,14 @@ class _ScopeToggleCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '仅应用到已启用渠道',
+                      l10n.onlyEnabledChannels,
                       style: text.bodyMedium?.copyWith(
                         color: active ? null : cs.onSurface.withValues(alpha: 0.38),
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '已启用 $enabledChannels / $totalChannels 个渠道',
+                      l10n.enabledChannelsCount(enabledChannels, totalChannels),
                       style: text.bodySmall?.copyWith(
                         color: active
                             ? cs.onSurfaceVariant
@@ -555,6 +558,7 @@ class _BatchSettingRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return Row(
       children: [
@@ -574,9 +578,9 @@ class _BatchSettingRow extends StatelessWidget {
             isExpanded: true,
             items: [
               if (showNotChange)
-                const DropdownMenuItem<String?>(
+                DropdownMenuItem<String?>(
                   value: null,
-                  child: Text('不更改'),
+                  child: Text(l10n.noChange),
                 ),
               ...items,
             ],

@@ -5,8 +5,10 @@ import android.content.Context
 import android.graphics.drawable.Icon
 import android.os.Build
 import android.os.Bundle
+import io.github.hyperisland.R
 import io.github.hyperisland.xposed.IslandTemplate
 import io.github.hyperisland.xposed.NotifData
+import io.github.hyperisland.xposed.moduleContext
 import io.github.hyperisland.xposed.toRounded
 import de.robv.android.xposed.XposedBridge
 import io.github.d4viddf.hyperisland_kit.HyperAction
@@ -26,11 +28,15 @@ import io.github.d4viddf.hyperisland_kit.models.TextInfo
 object GenericProgressIslandNotification : IslandTemplate {
 
     // const val 在调用处被编译器内联，供无 Xposed 依赖的 TemplateManifest 安全引用
-    const val TEMPLATE_ID    = "generic_progress"
-    const val TEMPLATE_NAME  = "下载"
+    const val TEMPLATE_ID   = "generic_progress"
+    const val TEMPLATE_NAME = "下载"   // 硬编码回退值（中文）
 
     override val id          = TEMPLATE_ID
     override val displayName = TEMPLATE_NAME
+
+    override fun getDisplayName(context: Context): String = try {
+        context.moduleContext().getString(R.string.template_download_name)
+    } catch (_: Exception) { TEMPLATE_NAME }
 
     override fun inject(context: Context, extras: Bundle, data: NotifData) = inject(
         context         = context,
@@ -139,11 +145,12 @@ object GenericProgressIslandNotification : IslandTemplate {
                 combined.contains("waiting",  ignoreCase = true)
             )
 
+            val mc = context.moduleContext()
             val stateLabel = when {
-                isComplete -> "已完成"
-                isPaused   -> "已暂停"
-                isWaiting  -> "等待中"
-                else       -> "下载中"
+                isComplete -> mc.getString(R.string.island_state_complete)
+                isPaused   -> mc.getString(R.string.island_state_paused)
+                isWaiting  -> mc.getString(R.string.island_state_waiting)
+                else       -> mc.getString(R.string.island_state_downloading)
             }
             val rightContent   = pickContent(title, subtitle)
             val displayContent = subtitle.ifEmpty { title }

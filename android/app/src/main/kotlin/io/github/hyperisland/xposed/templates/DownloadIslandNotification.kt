@@ -10,7 +10,9 @@ import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.drawable.Icon
 import android.os.Bundle
+import io.github.hyperisland.R
 import io.github.hyperisland.xposed.InProcessController
+import io.github.hyperisland.xposed.moduleContext
 import de.robv.android.xposed.XposedBridge
 import io.github.d4viddf.hyperisland_kit.HyperAction
 import io.github.d4viddf.hyperisland_kit.HyperIslandNotification
@@ -53,18 +55,19 @@ object DownloadIslandNotification {
                                combined.contains("队列") || combined.contains("pending", ignoreCase = true) ||
                                combined.contains("queued", ignoreCase = true))
 
+            val mc = context.moduleContext()
             val displayTitle = when {
-                isComplete -> "下载完成"
-                isPaused   -> "已暂停"
-                isWaiting  -> "等待中"
-                else       -> if (progress >= 0) "下载中 $progress%" else "下载中"
+                isComplete -> mc.getString(R.string.island_download_complete)
+                isPaused   -> mc.getString(R.string.island_download_paused)
+                isWaiting  -> mc.getString(R.string.island_download_waiting)
+                else       -> if (progress >= 0) mc.getString(R.string.island_downloading_progress, progress) else mc.getString(R.string.island_downloading)
             }
             val displayContent   = fileName.ifEmpty { text }
             val islandStateTitle = when {
-                isComplete -> "下载完成"
-                isPaused   -> "已暂停"
-                isWaiting  -> "等待中"
-                else       -> "下载中"
+                isComplete -> mc.getString(R.string.island_download_complete)
+                isPaused   -> mc.getString(R.string.island_download_paused)
+                isWaiting  -> mc.getString(R.string.island_download_waiting)
+                else       -> mc.getString(R.string.island_state_downloading)
             }
 
             val tintColor = when {
@@ -84,12 +87,12 @@ object DownloadIslandNotification {
             val cancelPendingIntent = if (isMultiFile) InProcessController.cancelAllIntent(context)
                                       else             InProcessController.cancelIntent(context, downloadId)
             val primaryLabel = when {
-                isPaused && isMultiFile -> "全部恢复"
-                isPaused               -> "恢复"
-                isMultiFile            -> "全部暂停"
-                else                   -> "暂停"
+                isPaused && isMultiFile -> mc.getString(R.string.island_action_resume_all)
+                isPaused               -> mc.getString(R.string.island_action_resume)
+                isMultiFile            -> mc.getString(R.string.island_action_pause_all)
+                else                   -> mc.getString(R.string.island_action_pause)
             }
-            val cancelLabel = if (isMultiFile) "全部取消" else "取消"
+            val cancelLabel = if (isMultiFile) mc.getString(R.string.island_action_cancel_all) else mc.getString(R.string.island_action_cancel)
 
             val builder = HyperIslandNotification.Builder(context, "download_island", fileName)
 
@@ -165,10 +168,10 @@ object DownloadIslandNotification {
 
             // AOD 息屏显示 + updatable
             val aodTitle = when {
-                isComplete -> "下载完成"
-                isPaused   -> "已暂停 $progress%"
-                isWaiting  -> "等待中"
-                else       -> if (progress >= 0) "下载中 $progress%" else "下载中"
+                isComplete -> mc.getString(R.string.island_download_complete)
+                isPaused   -> mc.getString(R.string.island_aod_paused_progress, progress)
+                isWaiting  -> mc.getString(R.string.island_download_waiting)
+                else       -> if (progress >= 0) mc.getString(R.string.island_aod_downloading_progress, progress) else mc.getString(R.string.island_downloading)
             }
             // 修正 textButton 字段名 + 注入 aodTitle/updatable
             val finalJson = try {

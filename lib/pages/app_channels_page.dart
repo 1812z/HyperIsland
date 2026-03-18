@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../controllers/whitelist_controller.dart';
+import '../l10n/app_localizations.dart';
 import '../widgets/batch_channel_settings_sheet.dart';
 
 class AppChannelsPage extends StatefulWidget {
@@ -75,15 +76,16 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
 
   void _showRootErrorDialog() {
     if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('无法读取通知渠道'),
-        content: const Text('读取通知渠道需要 ROOT 权限。\n请确认已授予本应用 ROOT 权限后重试。'),
+        title: Text(l10n.cannotReadChannels),
+        content: Text(l10n.rootRequiredMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('确定'),
+            child: Text(l10n.ok),
           ),
         ],
       ),
@@ -206,10 +208,13 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
         ? channels.map((c) => c.id).toList()
         : _enabledChannels.toList();
 
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+
     final result = await BatchChannelSettingsSheet.show(
       context,
       mode: BatchChannelMode(scope: GlobalScope(
-        subtitle: '将应用到已启用的 ${enabledIds.length} 个渠道',
+        subtitle: l10n.applyToEnabledChannels(enabledIds.length),
       )),
       templateLabels: _templateLabels,
     );
@@ -230,18 +235,19 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
     await widget.controller.setEnabledChannels(widget.app.packageName, {});
   }
 
-  String _importanceLabel(int importance) => switch (importance) {
-        0 => '无',
-        1 => '极低',
-        2 => '低',
-        3 => '默认',
-        4 || 5 => '高',
-        _ => '未知',
+  String _importanceLabel(int importance, AppLocalizations l10n) => switch (importance) {
+        0 => l10n.importanceNone,
+        1 => l10n.importanceMin,
+        2 => l10n.importanceLow,
+        3 => l10n.importanceDefault,
+        4 || 5 => l10n.importanceHigh,
+        _ => l10n.importanceUnknown,
       };
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final channels = _channels ?? [];
     final allEnabled = widget.appEnabled && _enabledChannels.isEmpty;
 
@@ -283,17 +289,20 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                       case 'enable_all': _enableAllChannels();
                     }
                   },
-                  itemBuilder: (_) => const [
-                    PopupMenuItem(
-                      value: 'batch',
-                      child: Text('批量设置渠道配置'),
-                    ),
-                    PopupMenuDivider(),
-                    PopupMenuItem(
-                      value: 'enable_all',
-                      child: Text('启用全部渠道'),
-                    ),
-                  ],
+                  itemBuilder: (ctx) {
+                    final ml = AppLocalizations.of(ctx)!;
+                    return [
+                      PopupMenuItem(
+                        value: 'batch',
+                        child: Text(ml.batchChannelSettings),
+                      ),
+                      const PopupMenuDivider(),
+                      PopupMenuItem(
+                        value: 'enable_all',
+                        child: Text(ml.enableAllChannels),
+                      ),
+                    ];
+                  },
                 ),
             ],
           ),
@@ -317,7 +326,7 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          '应用总开关已关闭，以下渠道设置均不生效',
+                          l10n.appDisabledBanner,
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: cs.onErrorContainer),
                         ),
@@ -341,11 +350,11 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                     Icon(Icons.notifications_off_outlined,
                         size: 48, color: cs.onSurfaceVariant),
                     const SizedBox(height: 12),
-                    Text('未找到通知渠道',
+                    Text(l10n.noChannelsFound,
                         style: TextStyle(color: cs.onSurfaceVariant)),
                     const SizedBox(height: 4),
                     Text(
-                      '该应用尚未创建通知渠道，或无法读取',
+                      l10n.noChannelsFoundSubtitle,
                       style: Theme.of(context)
                           .textTheme
                           .bodySmall
@@ -362,9 +371,9 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                 child: Text(
                   widget.appEnabled
                       ? (allEnabled
-                          ? '对全部 ${channels.length} 个渠道生效'
-                          : '已选 ${_enabledChannels.length} / ${channels.length} 个渠道')
-                      : '全部 ${channels.length} 个渠道（已停用）',
+                          ? l10n.allChannelsActive(channels.length)
+                          : l10n.selectedChannels(_enabledChannels.length, channels.length))
+                      : l10n.allChannelsDisabled(channels.length),
                   style: Theme.of(context)
                       .textTheme
                       .bodyMedium
@@ -390,7 +399,7 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                       appEnabled: widget.appEnabled,
                       template: template,
                       templateLabels: _templateLabels,
-                      importanceLabel: _importanceLabel(ch.importance),
+                      importanceLabel: _importanceLabel(ch.importance, l10n),
                       isFirst: isFirst,
                       isLast: isLast,
                       iconMode: extras['icon'] ?? kIconModeAuto,
@@ -474,6 +483,7 @@ class _ChannelTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final radius = BorderRadius.vertical(
       top: isFirst ? const Radius.circular(16) : Radius.zero,
       bottom: isLast ? const Radius.circular(16) : Radius.zero,
@@ -520,7 +530,7 @@ class _ChannelTile extends StatelessWidget {
                         ],
                         const SizedBox(height: 2),
                         Text(
-                          '重要性：$importanceLabel  ·  ${channel.id}',
+                          l10n.channelImportance(importanceLabel, channel.id),
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: appEnabled
                                     ? cs.onSurfaceVariant.withValues(alpha: 0.7)
@@ -543,7 +553,7 @@ class _ChannelTile extends StatelessWidget {
                     onPressed: appEnabled && channelEnabled
                         ? () => _openSettings(context)
                         : null,
-                    tooltip: '渠道设置',
+                    tooltip: l10n.channelSettings,
                   ),
                   Switch(
                     value: channelEnabled,

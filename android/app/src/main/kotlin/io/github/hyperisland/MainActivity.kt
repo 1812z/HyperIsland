@@ -10,7 +10,7 @@ import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
-import io.github.hyperisland.xposed.registeredTemplates
+import io.github.hyperisland.xposed.getRegisteredTemplates
 import java.io.ByteArrayOutputStream
 
 class MainActivity : FlutterActivity() {
@@ -28,7 +28,7 @@ class MainActivity : FlutterActivity() {
             io.github.hyperisland.xposed.IslandDispatcher.sendBroadcast(
                 this,
                 io.github.hyperisland.xposed.IslandRequest(
-                    title            = "欢迎使用",
+                    title            = getString(R.string.island_welcome_title),
                     content          = "HyperIsland",
                     icon             = icon,
                     firstFloat       = false,
@@ -50,7 +50,7 @@ class MainActivity : FlutterActivity() {
                 }
 
                 "getTemplates" -> {
-                    result.success(registeredTemplates)
+                    result.success(getRegisteredTemplates(this))
                 }
 
                 "getInstalledApps" -> {
@@ -419,7 +419,7 @@ class MainActivity : FlutterActivity() {
             io.github.hyperisland.xposed.IslandDispatcher.sendBroadcast(
                 this,
                 io.github.hyperisland.xposed.IslandRequest(
-                    title            = "欢迎使用",
+                    title            = getString(R.string.island_welcome_title),
                     content          = "HyperIsland",
                     icon             = icon,
                     firstFloat       = false,

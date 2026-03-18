@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../controllers/whitelist_controller.dart';
+import '../l10n/app_localizations.dart';
 import '../widgets/batch_channel_settings_sheet.dart';
 import 'app_channels_page.dart';
 
@@ -99,11 +100,12 @@ class _WhitelistPageState extends State<WhitelistPage> {
     final templateLabels = await _ctrl.getTemplates();
     if (!mounted) return;
 
+    final l10n = AppLocalizations.of(context)!;
     final selected = _selectedPackages.toList();
     final result = await BatchChannelSettingsSheet.show(
       context,
       mode: BatchChannelMode(scope: GlobalScope(
-        subtitle: '将应用到已选 ${selected.length} 个应用的已启用渠道',
+        subtitle: l10n.applyToSelectedAppsChannels(selected.length),
       )),
       templateLabels: templateLabels,
     );
@@ -138,7 +140,7 @@ class _WhitelistPageState extends State<WhitelistPage> {
     if (mounted) Navigator.pop(context);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('已批量应用到 ${selected.length} 个应用')),
+        SnackBar(content: Text(AppLocalizations.of(context)!.batchApplied(selected.length))),
       );
       _clearSelection();
     }
@@ -147,6 +149,7 @@ class _WhitelistPageState extends State<WhitelistPage> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
     final apps = _ctrl.filteredApps;
     final enabledCount = _ctrl.enabledPackages.length;
     final allSelected = apps.isNotEmpty &&
@@ -172,12 +175,12 @@ class _WhitelistPageState extends State<WhitelistPage> {
                 ? IconButton(
                     icon: const Icon(Icons.close),
                     onPressed: _clearSelection,
-                    tooltip: '取消选择',
+                    tooltip: l10n.cancelSelection,
                   )
                 : null,
             title: _selectionMode
-                ? Text('已选 ${_selectedPackages.length} 个应用')
-                : const Text('应用适配'),
+                ? Text(l10n.selectedAppsCount(_selectedPackages.length))
+                : Text(l10n.appAdaptation),
             actions: _selectionMode
                 ? [
                     // 全选 / 全不选
@@ -185,13 +188,13 @@ class _WhitelistPageState extends State<WhitelistPage> {
                       icon: Icon(allSelected
                           ? Icons.deselect
                           : Icons.select_all),
-                      tooltip: allSelected ? '全不选' : '全选',
+                      tooltip: allSelected ? l10n.deselectAll : l10n.selectAll,
                       onPressed: allSelected ? _deselectAll : _selectAll,
                     ),
                     // 批量设置渠道配置
                     IconButton(
                       icon: const Icon(Icons.tune),
-                      tooltip: '批量设置渠道配置',
+                      tooltip: l10n.batchChannelSettings,
                       onPressed: _selectedPackages.isNotEmpty
                           ? _batchApplySelected
                           : null,
@@ -209,30 +212,33 @@ class _WhitelistPageState extends State<WhitelistPage> {
                             await _disableSelected();
                         }
                       },
-                      itemBuilder: (_) => [
-                        PopupMenuItem(
-                          value: 'select_enabled',
-                          child: const Text('选择已开启应用'),
-                        ),
-                        const PopupMenuDivider(),
-                        PopupMenuItem(
-                          value: 'enable',
-                          enabled: _selectedPackages.isNotEmpty,
-                          child: const Text('批量开启'),
-                        ),
-                        PopupMenuItem(
-                          value: 'disable',
-                          enabled: _selectedPackages.isNotEmpty,
-                          child: const Text('批量关闭'),
-                        ),
-                      ],
+                      itemBuilder: (ctx) {
+                        final ml = AppLocalizations.of(ctx)!;
+                        return [
+                          PopupMenuItem(
+                            value: 'select_enabled',
+                            child: Text(ml.selectEnabledApps),
+                          ),
+                          const PopupMenuDivider(),
+                          PopupMenuItem(
+                            value: 'enable',
+                            enabled: _selectedPackages.isNotEmpty,
+                            child: Text(ml.batchEnable),
+                          ),
+                          PopupMenuItem(
+                            value: 'disable',
+                            enabled: _selectedPackages.isNotEmpty,
+                            child: Text(ml.batchDisable),
+                          ),
+                        ];
+                      },
                     ),
                   ]
                 : [
                     // 进入多选模式
                     IconButton(
                       icon: const Icon(Icons.checklist_outlined),
-                      tooltip: '多选',
+                      tooltip: l10n.multiSelect,
                       onPressed: _ctrl.loading ? null : _enterSelectionMode,
                     ),
                     PopupMenuButton<String>(
@@ -249,27 +255,30 @@ class _WhitelistPageState extends State<WhitelistPage> {
                             await _ctrl.disableAll();
                         }
                       },
-                      itemBuilder: (_) => [
-                        CheckedPopupMenuItem<String>(
-                          value: 'toggle_system',
-                          checked: _ctrl.showSystemApps,
-                          child: const Text('显示系统应用'),
-                        ),
-                        const PopupMenuDivider(),
-                        const PopupMenuItem<String>(
-                          value: 'refresh',
-                          child: Text('刷新列表'),
-                        ),
-                        const PopupMenuDivider(),
-                        const PopupMenuItem<String>(
-                          value: 'enable_all',
-                          child: Text('一键开启全部'),
-                        ),
-                        const PopupMenuItem<String>(
-                          value: 'disable_all',
-                          child: Text('一键关闭全部'),
-                        ),
-                      ],
+                      itemBuilder: (ctx) {
+                        final ml = AppLocalizations.of(ctx)!;
+                        return [
+                          CheckedPopupMenuItem<String>(
+                            value: 'toggle_system',
+                            checked: _ctrl.showSystemApps,
+                            child: Text(ml.showSystemApps),
+                          ),
+                          const PopupMenuDivider(),
+                          PopupMenuItem<String>(
+                            value: 'refresh',
+                            child: Text(ml.refreshList),
+                          ),
+                          const PopupMenuDivider(),
+                          PopupMenuItem<String>(
+                            value: 'enable_all',
+                            child: Text(ml.enableAll),
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'disable_all',
+                            child: Text(ml.disableAll),
+                          ),
+                        ];
+                      },
                     ),
                   ],
           ),
@@ -282,8 +291,9 @@ class _WhitelistPageState extends State<WhitelistPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '已启用 $enabledCount 个应用的超级岛'
-                    '${_ctrl.showSystemApps ? '（含系统应用）' : ''}',
+                    _ctrl.showSystemApps
+                        ? l10n.enabledAppsCountWithSystem(enabledCount)
+                        : l10n.enabledAppsCount(enabledCount),
                     style: Theme.of(context)
                         .textTheme
                         .bodyMedium
@@ -293,7 +303,7 @@ class _WhitelistPageState extends State<WhitelistPage> {
                   SearchBar(
                     controller: _searchCtrl,
                     focusNode: _searchFocus,
-                    hintText: '搜索应用名或包名',
+                    hintText: l10n.searchApps,
                     leading: const Icon(Icons.search),
                     trailing: [
                       if (_searchCtrl.text.isNotEmpty)
@@ -325,8 +335,9 @@ class _WhitelistPageState extends State<WhitelistPage> {
             SliverFillRemaining(
               child: Center(
                 child: Text(
-                  _searchCtrl.text.isEmpty ? '没有找到已安装的应用\n请检查获取应用列表权限是否开启' : '没有匹配的应用',
+                  _searchCtrl.text.isEmpty ? l10n.noAppsFound : l10n.noMatchingApps,
                   style: TextStyle(color: cs.onSurfaceVariant),
+                  textAlign: TextAlign.center,
                 ),
               ),
             )
@@ -501,6 +512,7 @@ class _GlobalBatchProgressDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs   = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return PopScope(
       canPop: false,
@@ -514,7 +526,7 @@ class _GlobalBatchProgressDialog extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('正在应用配置…', style: text.titleMedium),
+                Text(l10n.applyingConfig, style: text.titleMedium),
                 const SizedBox(height: 16),
                 LinearProgressIndicator(
                   value: progress,
@@ -523,7 +535,7 @@ class _GlobalBatchProgressDialog extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  '$done / $total 个应用',
+                  l10n.progressApps(done, total),
                   style: text.bodySmall?.copyWith(color: cs.onSurfaceVariant),
                 ),
               ],

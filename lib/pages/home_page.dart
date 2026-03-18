@@ -1,11 +1,10 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
-import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../controllers/home_controller.dart';
+import '../controllers/settings_controller.dart';
+import '../controllers/update_controller.dart';
+import '../l10n/app_localizations.dart';
 import '../widgets/section_label.dart';
 
 const _channel = MethodChannel('io.github.hyperisland/test');
@@ -31,95 +30,10 @@ class _HomePageState extends State<HomePage> {
     });
     PackageInfo.fromPlatform().then((info) {
       if (mounted) setState(() => _version = 'v${info.version}');
-      _checkUpdate(info.version);
-    });
-  }
-
-  Future<void> _checkUpdate(String currentVersion) async {
-    try {
-      final resp = await http
-          .get(
-            Uri.parse(
-                'https://api.github.com/repos/1812z/HyperIsland/releases/latest'),
-            headers: {'Accept': 'application/vnd.github+json'},
-          )
-          .timeout(const Duration(seconds: 10));
-      if (resp.statusCode != 200) return;
-      final data = jsonDecode(resp.body) as Map<String, dynamic>;
-      final tagName = (data['tag_name'] as String?)?.replaceFirst('v', '') ?? '';
-      if (tagName.isEmpty) return;
-      if (_isNewerVersion(tagName, currentVersion)) {
-        final releaseUrl = data['html_url'] as String? ?? '';
-        final changelog = data['body'] as String? ?? '';
-        if (mounted) _showUpdateDialog(tagName, releaseUrl, changelog);
+      if (SettingsController.instance.checkUpdateOnLaunch && mounted) {
+        UpdateController.checkAndShow(context, info.version);
       }
-    } catch (_) {
-      // 网络错误静默忽略
-    }
-  }
-
-  bool _isNewerVersion(String remote, String current) {
-    final r = remote.split('.').map(int.tryParse).toList();
-    final c = current.split('.').map(int.tryParse).toList();
-    for (var i = 0; i < 3; i++) {
-      final rv = i < r.length ? (r[i] ?? 0) : 0;
-      final cv = i < c.length ? (c[i] ?? 0) : 0;
-      if (rv > cv) return true;
-      if (rv < cv) return false;
-    }
-    return false;
-  }
-
-  void _showUpdateDialog(String newVersion, String releaseUrl, String changelog) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('发现新版本'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('当前版本：$_version'),
-            Text('最新版本：v$newVersion'),
-            if (changelog.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              const Divider(),
-              const SizedBox(height: 4),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 240),
-                child: Markdown(
-                  data: changelog,
-                  shrinkWrap: true,
-                  padding: EdgeInsets.zero,
-                  styleSheet: MarkdownStyleSheet.fromTheme(Theme.of(ctx))
-                      .copyWith(p: Theme.of(ctx).textTheme.bodySmall),
-                  onTapLink: (_, href, __) {
-                    if (href != null) {
-                      launchUrl(Uri.parse(href),
-                          mode: LaunchMode.externalApplication);
-                    }
-                  },
-                ),
-              ),
-            ],
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('稍后再说'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              launchUrl(Uri.parse(releaseUrl),
-                  mode: LaunchMode.externalApplication);
-            },
-            child: const Text('前往更新'),
-          ),
-        ],
-      ),
-    );
+    });
   }
 
   @override
@@ -129,6 +43,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showSponsorDialog() {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
@@ -140,11 +55,11 @@ class _HomePageState extends State<HomePage> {
               padding: const EdgeInsets.fromLTRB(16, 16, 4, 0),
               child: Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      '赞助支持',
+                      l10n.sponsorSupport,
                       style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                   ),
                   IconButton(
@@ -169,6 +84,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _showRestartDialog() async {
+    final l10n = AppLocalizations.of(context)!;
     bool restartSystemUI = true;
     bool restartDownloadManager = true;
 
@@ -176,12 +92,12 @@ class _HomePageState extends State<HomePage> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('重启作用域'),
+          title: Text(l10n.restartScope),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               CheckboxListTile(
-                title: const Text('系统界面'),
+                title: Text(l10n.systemUI),
                 subtitle: const Text('com.android.systemui'),
                 value: restartSystemUI,
                 onChanged: (v) =>
@@ -190,7 +106,7 @@ class _HomePageState extends State<HomePage> {
                 contentPadding: EdgeInsets.zero,
               ),
               CheckboxListTile(
-                title: const Text('下载管理器'),
+                title: Text(l10n.downloadManager),
                 subtitle: const Text('com.android.providers.downloads'),
                 value: restartDownloadManager,
                 onChanged: (v) =>
@@ -203,11 +119,11 @@ class _HomePageState extends State<HomePage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('取消'),
+              child: Text(l10n.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('确认'),
+              child: Text(l10n.confirm),
             ),
           ],
         ),
@@ -228,7 +144,7 @@ class _HomePageState extends State<HomePage> {
     } on PlatformException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('重启失败：${e.message}')),
+          SnackBar(content: Text(AppLocalizations.of(context)!.restartFailed(e.message ?? ''))),
         );
       }
     } finally {
@@ -239,6 +155,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: cs.surface,
@@ -263,7 +180,7 @@ class _HomePageState extends State<HomePage> {
             centerTitle: false,
             actions: [
               IconButton(
-                tooltip: '赞助作者',
+                tooltip: l10n.sponsorAuthor,
                 icon: const Icon(Icons.favorite_border),
                 onPressed: _showSponsorDialog,
               ),
@@ -277,7 +194,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                     )
                   : IconButton(
-                      tooltip: '重启作用域',
+                      tooltip: l10n.restartScope,
                       icon: const Icon(Icons.restart_alt),
                       onPressed: _showRestartDialog,
                     ),
@@ -290,12 +207,12 @@ class _HomePageState extends State<HomePage> {
                 _ModuleStatusCard(active: _ctrl.moduleActive),
                 const SizedBox(height: 16),
 
-                const SectionLabel('通知测试'),
+                SectionLabel(l10n.notificationTest),
                 const SizedBox(height: 8),
                 FilledButton.icon(
                   onPressed: _ctrl.isSending ? null : _ctrl.sendTest,
                   icon: const Icon(Icons.notifications_active_outlined),
-                  label: const Text('发送测试通知'),
+                  label: Text(l10n.sendTestNotification),
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
@@ -304,7 +221,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(height: 24),
 
-                const SectionLabel('注意事项'),
+                SectionLabel(l10n.notes),
                 const SizedBox(height: 8),
                 const _NotesCard(),
                 const SizedBox(height: 24),
@@ -326,23 +243,24 @@ class _ModuleStatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
 
     if (active == null) {
       return Card(
         elevation: 0,
         color: cs.surfaceContainerHighest,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: const Padding(
-          padding: EdgeInsets.all(20),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
           child: Row(
             children: [
-              SizedBox(
+              const SizedBox(
                 width: 24,
                 height: 24,
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
-              SizedBox(width: 16),
-              Text('正在检测模块状态...'),
+              const SizedBox(width: 16),
+              Text(l10n.detectingModuleStatus),
             ],
           ),
         ),
@@ -382,14 +300,14 @@ class _ModuleStatusCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '模块状态',
+                    l10n.moduleStatus,
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
                           color: color.withValues(alpha: 0.8),
                         ),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    isActive ? '已激活' : '未激活',
+                    isActive ? l10n.activated : l10n.notActivated,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           color: color,
                           fontWeight: FontWeight.bold,
@@ -398,7 +316,7 @@ class _ModuleStatusCard extends StatelessWidget {
                   if (!isActive) ...[
                     const SizedBox(height: 4),
                     Text(
-                      '请在 LSPosed 中启用本模块',
+                      l10n.enableInLSPosed,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: color.withValues(alpha: 0.7),
                           ),
@@ -417,16 +335,12 @@ class _ModuleStatusCard extends StatelessWidget {
 class _NotesCard extends StatelessWidget {
   const _NotesCard();
 
-  static const _items = [
-    '1.此页面仅用于测试是否支持超级岛，并不代表实际效果',
-    '2.请在 HyperCeiler 中关闭系统界面和小米服务框架的焦点通知白名单',
-    '3.LSPosed 管理器中激活后，必须重启相关作用域软件',
-    '4.支持通用适配，自行勾选合适的模板尝试',
-  ];
-
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
+    final items = [l10n.note1, l10n.note2, l10n.note3, l10n.note4];
+
     return Card(
       elevation: 0,
       color: cs.surfaceContainerHighest,
@@ -434,7 +348,7 @@ class _NotesCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
-          children: _items
+          children: items
               .map(
                 (text) => Padding(
                   padding: const EdgeInsets.symmetric(vertical: 6),

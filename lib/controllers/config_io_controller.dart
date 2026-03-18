@@ -6,6 +6,19 @@ import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+enum ConfigIOError {
+  invalidFormat,
+  noStorageDirectory,
+  noFileSelected,
+  noFilePath,
+  emptyClipboard,
+}
+
+class ConfigIOException implements Exception {
+  final ConfigIOError error;
+  const ConfigIOException(this.error);
+}
+
 class ConfigIOController {
   /// 将所有 pref_ 开头的设置序列化为 JSON 字符串。
   static Future<String> exportToJson() async {
@@ -24,9 +37,9 @@ class ConfigIOController {
   /// 从 JSON 字符串恢复所有设置，返回写入的条目数。
   static Future<int> importFromJson(String json) async {
     final dynamic decoded = jsonDecode(json);
-    if (decoded is! Map) throw const FormatException('配置格式无效');
+    if (decoded is! Map) throw const ConfigIOException(ConfigIOError.invalidFormat);
     final settings = decoded['settings'];
-    if (settings is! Map) throw const FormatException('配置格式无效');
+    if (settings is! Map) throw const ConfigIOException(ConfigIOError.invalidFormat);
     final prefs = await SharedPreferences.getInstance();
     int count = 0;
     for (final entry in settings.entries) {
@@ -50,7 +63,7 @@ class ConfigIOController {
   static Future<String> exportToFile() async {
     final json = await exportToJson();
     final dir = await getExternalStorageDirectory();
-    if (dir == null) throw Exception('无法获取存储目录');
+    if (dir == null) throw const ConfigIOException(ConfigIOError.noStorageDirectory);
     final file = File('${dir.path}/hyperisland_config.json');
     await file.writeAsString(json);
     return file.path;
@@ -71,10 +84,10 @@ class ConfigIOController {
       withReadStream: false,
     );
     if (result == null || result.files.isEmpty) {
-      throw Exception('未选择文件');
+      throw const ConfigIOException(ConfigIOError.noFileSelected);
     }
     final path = result.files.first.path;
-    if (path == null) throw Exception('无法获取文件路径');
+    if (path == null) throw const ConfigIOException(ConfigIOError.noFilePath);
     final json = await File(path).readAsString();
     return importFromJson(json);
   }
@@ -83,7 +96,7 @@ class ConfigIOController {
   static Future<int> importFromClipboard() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     if (data?.text == null || data!.text!.isEmpty) {
-      throw Exception('剪贴板为空');
+      throw const ConfigIOException(ConfigIOError.emptyClipboard);
     }
     return importFromJson(data.text!);
   }
