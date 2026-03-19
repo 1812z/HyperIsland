@@ -6,10 +6,9 @@ import android.graphics.drawable.Icon
 import android.os.Build
 import android.os.Bundle
 import io.github.hyperisland.R
-import io.github.hyperisland.xposed.IslandDispatcher
-import io.github.hyperisland.xposed.IslandRequest
 import io.github.hyperisland.xposed.IslandTemplate
 import io.github.hyperisland.xposed.NotifData
+import io.github.hyperisland.xposed.liveisland.LiveIslandSender
 import io.github.hyperisland.xposed.moduleContext
 import io.github.hyperisland.xposed.toRounded
 import de.robv.android.xposed.XposedBridge
@@ -68,44 +67,13 @@ object NotificationIslandNotification : IslandTemplate {
 
     /**
      * focusNotif == "off" 时使用：不修改原始通知，
-     * 直接通过 IslandDispatcher 以 SystemUI 身份发出超级岛。
-     * iconMode 与 timeoutSecs 依然对此岛生效。
+     * 通过 [LiveIslandSender]（方式三）发送带滚动文本和切换动画的超级岛。
+     *
+     * TODO: 测试完成后，可在此根据用户设置决定走方式二（原 IslandDispatcher 直发）
+     *       还是方式三（LiveIslandSender 带动画），届时将此注释替换为正式的分支逻辑。
      */
     private fun injectViaDispatcher(context: Context, data: NotifData) {
-        try {
-            val fallbackIcon = Icon.createWithResource(context, android.R.drawable.ic_dialog_info)
-            val displayIcon = when (data.iconMode) {
-                "notif_small" -> data.notifIcon ?: fallbackIcon
-                "notif_large" -> data.largeIcon ?: data.notifIcon ?: fallbackIcon
-                "app_icon"    -> data.appIconRaw ?: fallbackIcon
-                else          -> data.largeIcon ?: data.notifIcon ?: fallbackIcon  // auto
-            }.toRounded(context)
-
-            val resolvedFirstFloat  = data.firstFloat      == "on"
-            val resolvedEnableFloat = data.enableFloatMode == "on"
-
-            IslandDispatcher.post(
-                context,
-                IslandRequest(
-                    title            = data.title,
-                    content          = data.subtitle.ifEmpty { data.title },
-                    icon             = displayIcon,
-                    timeoutSecs      = data.islandTimeout,
-                    firstFloat       = resolvedFirstFloat,
-                    enableFloat      = resolvedEnableFloat,
-                    showNotification = false,
-                    contentIntent    = data.contentIntent,
-                    isOngoing        = data.isOngoing,
-                    actions          = data.actions.take(2),
-                ),
-            )
-
-            XposedBridge.log(
-                "HyperIsland[NotifIsland]: Dispatcher island — ${data.title} | iconMode=${data.iconMode} | timeout=${data.islandTimeout}"
-            )
-        } catch (e: Exception) {
-            XposedBridge.log("HyperIsland[NotifIsland]: Dispatcher island error: ${e.message}")
-        }
+        LiveIslandSender.send(context, data)
     }
 
     private fun inject(

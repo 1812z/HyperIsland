@@ -2,3 +2,4 @@ io.github.hyperisland.xposed.SelfHook
 io.github.hyperisland.xposed.DownloadHook
 io.github.hyperisland.xposed.GenericProgressHook
 io.github.hyperisland.xposed.IslandDispatcherHook
+io.github.hyperisland.xposed.liveisland.LiveIslandViewHook
