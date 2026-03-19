@@ -6,6 +6,8 @@
     <!-- Template display names -->
     <string name="template_download_name">Download</string>
     <string name="template_notification_island_name">Notification Island</string>
+    <string name="template_download_old_name">Download (OS2)</string>
+    <string name="template_notification_island_old_name">Notification Island (OS2)</string>
 
     <!-- Island state labels (GenericProgress / Download shared) -->
     <string name="island_state_complete">Complete</string>

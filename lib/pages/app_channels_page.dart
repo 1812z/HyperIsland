@@ -57,7 +57,10 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
     final enabled        = results[0] as Set<String>;
     final templateLabels = results[1] as Map<String, String>;
     final channelIds = channels.map((c) => c.id).toList();
-    final channelTemplates = await widget.controller.getChannelTemplates(pkg, channelIds);
+    final channelTemplates = await widget.controller.getChannelTemplates(
+      pkg, channelIds,
+      defaultTemplate: templateLabels.keys.firstOrNull ?? kTemplateNotificationIsland,
+    );
     final channelExtras    = await widget.controller.getChannelExtraSettings(pkg, channelIds);
     if (mounted) {
       setState(() {
@@ -390,7 +393,8 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                     final isFirst = index == 0;
                     final isLast = index == channels.length - 1;
                     final channelEnabled = _isEnabled(ch.id);
-                    final template = _channelTemplates[ch.id] ?? kTemplateNotificationIsland;
+                    final template = _channelTemplates[ch.id] ??
+                        _templateLabels.keys.firstOrNull ?? kTemplateNotificationIsland;
                     final extras = _channelExtras[ch.id] ?? {};
 
                     return _ChannelTile(

@@ -94,51 +94,71 @@ object DownloadIslandNotification {
             }
             val cancelLabel = if (isMultiFile) mc.getString(R.string.island_action_cancel_all) else mc.getString(R.string.island_action_cancel)
 
+            val protocol = try {
+                android.provider.Settings.System.getInt(
+                    context.contentResolver, "notification_focus_protocol", 0
+                )
+            } catch (_: Exception) { 0 }
+            val isOs2 = protocol in 1..2
+
             val builder = HyperIslandNotification.Builder(context, "download_island", fileName)
 
             builder.addPicture(HyperPicture("key_download_icon", downloadIcon))
 
-            builder.setIconTextInfo(
-                picKey  = "key_download_icon",
-                title   = displayTitle,
-                content = displayContent,
-            )
-
             builder.setIslandFirstFloat(false)
             builder.setEnableFloat(false)
 
-            // 小岛：下载中时带环形进度，其他状态仅图标
-            if (!isComplete && !isWaiting && !isPaused) {
-                builder.setSmallIslandCircularProgress("key_download_icon", progress)
+            if (isOs2) {
+                // OS2 协议：setBaseInfo，ticker 显示进度状态
+                val progressText = if (!isComplete && progress > 0) "$progress%" else ""
+                builder.setBaseInfo(
+                    type       = 1,
+                    title      = islandStateTitle,
+                    content    = displayContent,
+                    subTitle   = progressText,
+                    pictureKey = "key_download_icon",
+                )
             } else {
-                builder.setSmallIsland("key_download_icon")
-            }
+                // OS3 协议
+                builder.setIconTextInfo(
+                    picKey  = "key_download_icon",
+                    title   = displayTitle,
+                    content = displayContent,
+                )
 
-            // 大岛：下载中时左侧状态+右侧环形进度，其他状态左侧状态+右侧文本
-            if (!isComplete && !isWaiting && !isPaused) {
-                builder.setBigIslandInfo(
-                    left = ImageTextInfoLeft(
-                        type     = 1,
-                        picInfo  = PicInfo(type = 1, pic = "key_download_icon"),
-                        textInfo = TextInfo(title = islandStateTitle),
-                    ),
-                    progressText = ProgressTextInfo(
-                        progressInfo = CircularProgressInfo(progress = progress),
-                        textInfo     = TextInfo(title = fileName, narrowFont = true),
-                    ),
-                )
-            } else {
-                builder.setBigIslandInfo(
-                    left = ImageTextInfoLeft(
-                        type     = 1,
-                        picInfo  = PicInfo(type = 1, pic = "key_download_icon"),
-                        textInfo = TextInfo(title = islandStateTitle),
-                    ),
-                    right = ImageTextInfoRight(
-                        type     = 2,
-                        textInfo = TextInfo(title = fileName, narrowFont = true),
-                    ),
-                )
+                // 小岛：下载中时带环形进度，其他状态仅图标
+                if (!isComplete && !isWaiting && !isPaused) {
+                    builder.setSmallIslandCircularProgress("key_download_icon", progress)
+                } else {
+                    builder.setSmallIsland("key_download_icon")
+                }
+
+                // 大岛：下载中时左侧状态+右侧环形进度，其他状态左侧状态+右侧文本
+                if (!isComplete && !isWaiting && !isPaused) {
+                    builder.setBigIslandInfo(
+                        left = ImageTextInfoLeft(
+                            type     = 1,
+                            picInfo  = PicInfo(type = 1, pic = "key_download_icon"),
+                            textInfo = TextInfo(title = islandStateTitle),
+                        ),
+                        progressText = ProgressTextInfo(
+                            progressInfo = CircularProgressInfo(progress = progress),
+                            textInfo     = TextInfo(title = fileName, narrowFont = true),
+                        ),
+                    )
+                } else {
+                    builder.setBigIslandInfo(
+                        left = ImageTextInfoLeft(
+                            type     = 1,
+                            picInfo  = PicInfo(type = 1, pic = "key_download_icon"),
+                            textInfo = TextInfo(title = islandStateTitle),
+                        ),
+                        right = ImageTextInfoRight(
+                            type     = 2,
+                            textInfo = TextInfo(title = fileName, narrowFont = true),
+                        ),
+                    )
+                }
             }
 
             // 按钮：下载中/暂停时显示暂停/恢复 + 取消
@@ -163,8 +183,15 @@ object DownloadIslandNotification {
 
             val resourceBundle = builder.buildResourceBundle()
             extras.putAll(resourceBundle)
-            和S 从 extras 顶层查找 action，将嵌套 bundle 展开
+            // HyperOS 从 extras 顶层查找 action，将嵌套 bundle 展开
             flattenActionsToExtras(resourceBundle, extras)
+
+            // OS2：写入状态栏 ticker 文案与图标 picKey
+            if (isOs2) {
+                val progressText = if (!isComplete && progress > 0) " $progress%" else ""
+                extras.putString("ticker", "$islandStateTitle$progressText")
+                extras.putString("tickerPic", "key_download_icon")
+            }
 
             // AOD 息屏显示 + updatable
             val aodTitle = when {

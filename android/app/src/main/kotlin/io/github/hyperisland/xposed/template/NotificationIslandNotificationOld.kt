@@ -32,7 +32,7 @@ object NotificationIslandNotificationOld : IslandTemplate {
     override val displayName = TEMPLATE_NAME
 
     override fun getDisplayName(context: Context): String = try {
-        context.moduleContext().getString(R.string.template_notification_island_name) + "(OS2)"
+        context.moduleContext().getString(R.string.template_notification_island_old_name)
     } catch (_: Exception) { TEMPLATE_NAME }
 
     override fun inject(context: Context, extras: Bundle, data: NotifData) {
@@ -152,7 +152,7 @@ object NotificationIslandNotificationOld : IslandTemplate {
 
             // OS2 组件：setBaseInfo 替代 OS3 的 setBigIslandInfo / setSmallIsland / setIconTextInfo
             builder.setBaseInfo(
-                type       = 1,
+                type       = 2,
                 title      = leftText,
                 content    = rightContent,
                 subTitle   = "",

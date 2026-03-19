@@ -6,6 +6,8 @@
     <!-- 模板显示名称 -->
     <string name="template_download_name">下载</string>
     <string name="template_notification_island_name">通知超级岛</string>
+    <string name="template_download_old_name">下载(OS2)</string>
+    <string name="template_notification_island_old_name">通知超级岛(OS2)</string>
 
     <!-- 超级岛状态标签（GenericProgress / Download 通用） -->
     <string name="island_state_complete">已完成</string>

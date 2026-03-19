@@ -29,7 +29,7 @@ object GenericDownLoadIslandNotificationOld : IslandTemplate {
     override val displayName = TEMPLATE_NAME
 
     override fun getDisplayName(context: Context): String = try {
-        context.moduleContext().getString(R.string.template_download_name) + "(OS2)"
+        context.moduleContext().getString(R.string.template_download_old_name)
     } catch (_: Exception) { TEMPLATE_NAME }
 
     override fun inject(context: Context, extras: Bundle, data: NotifData) = inject(

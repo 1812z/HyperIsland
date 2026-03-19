@@ -7,9 +7,12 @@ const _channel = MethodChannel('io.github.hyperisland/test');
 const kPrefGenericWhitelist = 'pref_generic_whitelist';
 
 /// 可用的灵动岛通知模板标识符。
-const kTemplateGenericProgress    = 'generic_progress';
-const kTemplateNotificationIsland = 'notification_island';
-const kTemplateDownload           = 'download';
+const kTemplateGenericProgress        = 'generic_progress';
+const kTemplateNotificationIsland     = 'notification_island';
+const kTemplateDownload               = 'download';
+// OS2 模板
+const kTemplateGenericProgressOld     = 'generic_progress_old';
+const kTemplateNotificationIslandOld  = 'notification_island_old';
 
 // 图标模式选项（图标样式 & 焦点图标共用）
 const kIconModeAuto       = 'auto';
@@ -236,13 +239,15 @@ class WhitelistController extends ChangeNotifier {
   }
 
   /// 批量读取指定包内各渠道的模板设置，返回 channelId → template 映射。
+  /// [defaultTemplate] 为未配置渠道的回退值，调用方应传入当前 OS 对应的默认模板 ID。
   Future<Map<String, String>> getChannelTemplates(
-      String packageName, List<String> channelIds) async {
+      String packageName, List<String> channelIds,
+      {String defaultTemplate = kTemplateNotificationIsland}) async {
     final prefs = await SharedPreferences.getInstance();
     return Map.fromEntries(channelIds.map((id) {
       final template =
           prefs.getString('pref_channel_template_${packageName}_$id') ??
-              kTemplateNotificationIsland;
+              defaultTemplate;
       return MapEntry(id, template);
     }));
   }

@@ -72,6 +72,18 @@ object IslandDispatcher {
     /** 记录已发出的代理通知 ID，用于判断首次发送（触发岛动画）还是后续更新。*/
     private val postedIds = androidx.collection.ArraySet<Int>()
 
+    /**
+     * 读取 Settings.System 中的焦点通知协议版本号。
+     * OS2 返回 2，OS3 返回 3；未知时返回 0（安全降级到 OS3 逻辑）。
+     */
+    private fun focusProtocolVersion(context: Context): Int =
+        android.provider.Settings.System.getInt(
+            context.contentResolver, "notification_focus_protocol", 0
+        )
+
+    /** true = 当前系统为 HyperOS 2 或更低（使用 OS2 协议：setBaseInfo + ticker）。*/
+    private fun isOs2(context: Context): Boolean = focusProtocolVersion(context) in 1..2
+
     // ── 广播接收器（运行在 SystemUI 进程）────────────────────────────────────
 
     private val receiver = object : BroadcastReceiver() {
@@ -142,31 +154,42 @@ object IslandDispatcher {
             islandBuilder.addPicture(HyperPicture("key_island_icon", appIcon))
             islandBuilder.addPicture(HyperPicture("key_focus_icon",  appIcon))
 
-            islandBuilder.setIconTextInfo(
-                picKey  = "key_focus_icon",
-                title   = request.title,
-                content = request.content,
-            )
             islandBuilder.setIslandFirstFloat(request.firstFloat)
             islandBuilder.setEnableFloat(request.enableFloat)
             islandBuilder.setShowNotification(request.showNotification)
             islandBuilder.setIslandConfig(timeout = request.timeoutSecs)
 
-            // 小岛：仅图标
-            islandBuilder.setSmallIsland("key_island_icon")
-
-            // 大岛：左侧图标+标题，右侧内容
-            islandBuilder.setBigIslandInfo(
-                left = ImageTextInfoLeft(
-                    type     = 1,
-                    picInfo  = PicInfo(type = 1, pic = "key_island_icon"),
-                    textInfo = TextInfo(title = request.title),
-                ),
-                right = ImageTextInfoRight(
-                    type     = 2,
-                    textInfo = TextInfo(title = request.content, narrowFont = true),
-                ),
-            )
+            if (isOs2(context)) {
+                // OS2 协议：setBaseInfo 替代大岛/小岛/焦点图标三件套
+                islandBuilder.setBaseInfo(
+                    type       = 1,
+                    title      = request.title,
+                    content    = request.content,
+                    subTitle   = "",
+                    pictureKey = "key_island_icon",
+                )
+            } else {
+                // OS3 协议
+                islandBuilder.setIconTextInfo(
+                    picKey  = "key_focus_icon",
+                    title   = request.title,
+                    content = request.content,
+                )
+                // 小岛：仅图标
+                islandBuilder.setSmallIsland("key_island_icon")
+                // 大岛：左侧图标+标题，右侧内容
+                islandBuilder.setBigIslandInfo(
+                    left = ImageTextInfoLeft(
+                        type     = 1,
+                        picInfo  = PicInfo(type = 1, pic = "key_island_icon"),
+                        textInfo = TextInfo(title = request.title),
+                    ),
+                    right = ImageTextInfoRight(
+                        type     = 2,
+                        textInfo = TextInfo(title = request.content, narrowFont = true),
+                    ),
+                )
+            }
 
             // 文字按钮（最多 2 个），与 NotificationIslandNotification.inject() 保持一致
             val effectiveActions = request.actions.take(2)
@@ -198,6 +221,12 @@ object IslandDispatcher {
 
             notif.extras.putAll(resourceBundle)
             flattenActionsToExtras(resourceBundle, notif.extras)
+
+            // OS2：写入状态栏 ticker 文案与图标 picKey
+            if (isOs2(context)) {
+                notif.extras.putString("ticker", request.title)
+                notif.extras.putString("tickerPic", "key_island_icon")
+            }
 
             val jsonParam = islandBuilder.buildJsonParam()
                 .let { fixTextButtonJson(it) }
