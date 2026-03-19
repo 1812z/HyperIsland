@@ -1,5 +1,6 @@
 package io.github.hyperisland.xposed
 
+import android.app.Notification
 import android.content.Intent
 import android.graphics.drawable.Icon
 import android.os.Build
@@ -56,6 +57,11 @@ data class IslandRequest(
     val contentIntent: android.app.PendingIntent? = null,
     /** 是否为持续通知（对应原通知的 FLAG_ONGOING_EVENT），防止用户手动划掉代理通知。*/
     val isOngoing: Boolean = false,
+    /**
+     * 岛文字按钮（最多 2 个），对应原通知的 actions。
+     * 进程内直接传递；跨进程广播时通过 Bundle 序列化。
+     */
+    val actions: List<Notification.Action> = emptyList(),
 ) {
     fun toBundle(): Bundle = Bundle().apply {
         putString(KEY_TITLE,          title)
@@ -70,6 +76,7 @@ data class IslandRequest(
         putBoolean(KEY_DISMISS,       dismissIsland)
         putParcelable(KEY_CONTENT_INTENT, contentIntent)
         putBoolean(KEY_ONGOING, isOngoing)
+        if (actions.isNotEmpty()) putParcelableArray(KEY_ACTIONS, actions.toTypedArray())
     }
 
     companion object {
@@ -85,6 +92,7 @@ data class IslandRequest(
         private const val KEY_DISMISS        = "dismissIsland"
         private const val KEY_CONTENT_INTENT = "contentIntent"
         private const val KEY_ONGOING        = "isOngoing"
+        private const val KEY_ACTIONS        = "actions"
 
         fun fromBundle(b: Bundle) = IslandRequest(
             title            = b.getString(KEY_TITLE, ""),
@@ -99,6 +107,7 @@ data class IslandRequest(
             dismissIsland    = b.getBoolean(KEY_DISMISS, false),
             contentIntent    = pendingIntentFromBundle(b),
             isOngoing        = b.getBoolean(KEY_ONGOING, false),
+            actions          = actionsFromBundle(b),
         )
 
         private fun iconFromBundle(b: Bundle): Icon? =
@@ -106,6 +115,15 @@ data class IslandRequest(
                 b.getParcelable(KEY_ICON, Icon::class.java)
             else
                 @Suppress("DEPRECATION") b.getParcelable(KEY_ICON)
+
+        private fun actionsFromBundle(b: Bundle): List<Notification.Action> = try {
+            if (Build.VERSION.SDK_INT >= 33)
+                b.getParcelableArray(KEY_ACTIONS, Notification.Action::class.java)?.toList() ?: emptyList()
+            else
+                @Suppress("DEPRECATION")
+                (b.getParcelableArray(KEY_ACTIONS) as? Array<*>)
+                    ?.filterIsInstance<Notification.Action>() ?: emptyList()
+        } catch (_: Exception) { emptyList() }
 
         private fun pendingIntentFromBundle(b: Bundle): android.app.PendingIntent? =
             if (Build.VERSION.SDK_INT >= 33)

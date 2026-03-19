@@ -167,25 +167,51 @@ class GenericProgressHook : IXposedHookLoadPackage {
             XposedBridge.log("HyperIsland[Generic]: hook failed: ${e.message}")
         }
 
+        val cancelCallback = object : XC_MethodHook() {
+            override fun afterHookedMethod(param: MethodHookParam) {
+                val sbn = param.args[0] as? StatusBarNotification ?: return
+                val key = "${sbn.packageName}#${sbn.id}"
+                val proxyId = trackedForCancel.remove(key) ?: return
+                val context = getContext(lpparam) ?: return
+                IslandDispatcher.cancel(context, proxyId)
+            }
+        }
+
+        // 优先 hook 3 参数版（Android 8+ 实际调用路径）
+        var cancelHooked = false
         try {
+            val rankingMapClass = lpparam.classLoader.loadClass(
+                "android.service.notification.NotificationListenerService\$RankingMap"
+            )
             XposedHelpers.findAndHookMethod(
                 "android.service.notification.NotificationListenerService",
                 lpparam.classLoader,
                 "onNotificationRemoved",
                 StatusBarNotification::class.java,
-                object : XC_MethodHook() {
-                    override fun afterHookedMethod(param: MethodHookParam) {
-                        val sbn = param.args[0] as? StatusBarNotification ?: return
-                        val key = "${sbn.packageName}#${sbn.id}"
-                        val proxyId = trackedForCancel.remove(key) ?: return
-                        val context = getContext(lpparam) ?: return
-                        IslandDispatcher.cancel(context, proxyId)
-                    }
-                }
+                rankingMapClass,
+                Int::class.javaPrimitiveType!!,
+                cancelCallback
             )
-            XposedBridge.log("HyperIsland[Generic]: hooked onNotificationRemoved for cancel tracking")
+            cancelHooked = true
+            XposedBridge.log("HyperIsland[Generic]: hooked onNotificationRemoved(sbn, rankingMap, reason)")
         } catch (e: Throwable) {
-            XposedBridge.log("HyperIsland[Generic]: onNotificationRemoved hook failed: ${e.message}")
+            XposedBridge.log("HyperIsland[Generic]: onNotificationRemoved 3-param hook failed: ${e.message}")
+        }
+
+        // 降级到单参数版本
+        if (!cancelHooked) {
+            try {
+                XposedHelpers.findAndHookMethod(
+                    "android.service.notification.NotificationListenerService",
+                    lpparam.classLoader,
+                    "onNotificationRemoved",
+                    StatusBarNotification::class.java,
+                    cancelCallback
+                )
+                XposedBridge.log("HyperIsland[Generic]: hooked onNotificationRemoved(sbn)")
+            } catch (e: Throwable) {
+                XposedBridge.log("HyperIsland[Generic]: onNotificationRemoved 1-param hook failed: ${e.message}")
+            }
         }
     }
 

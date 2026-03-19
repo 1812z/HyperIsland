@@ -144,6 +144,7 @@ object NotificationIslandNotification : IslandTemplate {
                     showNotification = false,
                     contentIntent    = data.contentIntent,
                     isOngoing        = data.isOngoing,
+                    actions          = data.actions.take(2),
                 ),
             )
 

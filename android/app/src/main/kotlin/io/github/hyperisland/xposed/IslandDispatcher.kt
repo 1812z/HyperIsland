@@ -12,6 +12,7 @@ import android.os.Build
 import io.github.hyperisland.getAppIcon
 import android.os.Bundle
 import de.robv.android.xposed.XposedBridge
+import io.github.d4viddf.hyperisland_kit.HyperAction
 import io.github.d4viddf.hyperisland_kit.HyperIslandNotification
 import io.github.d4viddf.hyperisland_kit.HyperPicture
 import io.github.d4viddf.hyperisland_kit.models.ImageTextInfoLeft
@@ -166,6 +167,21 @@ object IslandDispatcher {
                     textInfo = TextInfo(title = request.content, narrowFont = true),
                 ),
             )
+
+            // 文字按钮（最多 2 个），与 NotificationIslandNotification.inject() 保持一致
+            val effectiveActions = request.actions.take(2)
+            if (effectiveActions.isNotEmpty()) {
+                val hyperActions = effectiveActions.mapIndexed { index, action ->
+                    HyperAction(
+                        key              = "action_dispatcher_$index",
+                        title            = action.title?.toString() ?: "",
+                        pendingIntent    = action.actionIntent,
+                        actionIntentType = 2,
+                    )
+                }
+                hyperActions.forEach { islandBuilder.addHiddenAction(it) }
+                islandBuilder.setTextButtons(*hyperActions.toTypedArray())
+            }
 
             val resourceBundle = islandBuilder.buildResourceBundle()
 
