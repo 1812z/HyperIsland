@@ -2,8 +2,10 @@ package io.github.hyperisland.xposed
 
 import android.content.Context
 import android.os.Bundle
+import io.github.hyperisland.xposed.templates.GenericDownLoadIslandNotificationOld
 import io.github.hyperisland.xposed.templates.GenericProgressIslandNotification
 import io.github.hyperisland.xposed.templates.NotificationIslandNotification
+import io.github.hyperisland.xposed.templates.NotificationIslandNotificationOld
 import de.robv.android.xposed.XposedBridge
 
 /**
@@ -19,6 +21,8 @@ object TemplateRegistry {
     private val registry: Map<String, IslandTemplate> = listOf<IslandTemplate>(
         GenericProgressIslandNotification,
         NotificationIslandNotification,
+        GenericDownLoadIslandNotificationOld,
+        NotificationIslandNotificationOld,
     ).associateBy { it.id }
 
     /** 返回所有已注册模板的元数据，名称根据设备语言本地化。 */

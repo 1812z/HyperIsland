@@ -163,7 +163,7 @@ object DownloadIslandNotification {
 
             val resourceBundle = builder.buildResourceBundle()
             extras.putAll(resourceBundle)
-            // HyperOS 从 extras 顶层查找 action，将嵌套 bundle 展开
+            和S 从 extras 顶层查找 action，将嵌套 bundle 展开
             flattenActionsToExtras(resourceBundle, extras)
 
             // AOD 息屏显示 + updatable
