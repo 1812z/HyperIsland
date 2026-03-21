@@ -65,6 +65,7 @@
   "languageAuto": "Follow system",
   "languageZh": "中文",
   "languageEn": "English",
+  "languageJa": "日本語",
   "exportToFile": "Export to file",
   "exportToFileSubtitle": "Save configuration as a JSON file",
   "exportToClipboard": "Export to clipboard",

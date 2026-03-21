@@ -80,6 +80,7 @@
   "languageAuto": "跟随系统",
   "languageZh": "中文",
   "languageEn": "English",
+  "languageJa": "日本語",
   "exportToFile": "导出到文件",
   "exportToFileSubtitle": "将配置保存为 JSON 文件",
   "exportToClipboard": "导出到剪贴板",

@@ -14,7 +14,7 @@
 [![Build](https://img.shields.io/badge/Build-Flutter-02569B?style=flat-square&logo=flutter)](https://flutter.dev)
 
 
-**[English](README_EN.md)** | 简体中文
+**[English](README_EN.md)** | **简体中文** | **[日本語](README_JA.md)**
 
 </div>
 
@@ -104,7 +104,7 @@ flutter build apk --target-platform=android-arm64
 
 ## 📄 许可证
 
-本项目基于 [LICENSE](LICENSE) 开源，欢迎 Issue 与 PR。
+本项目基于 [MIT License](LICENSE) 开源，欢迎 Issue 与 PR。
 
 <div align="center">
 

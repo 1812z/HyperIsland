@@ -153,6 +153,7 @@ class _SettingsPageState extends State<SettingsPage> {
     return switch (_ctrl.locale!.languageCode) {
       'zh' => l10n.languageZh,
       'en' => l10n.languageEn,
+      'ja' => l10n.languageJa,
       _    => _ctrl.locale!.languageCode,
     };
   }
@@ -181,6 +182,7 @@ class _SettingsPageState extends State<SettingsPage> {
           _RadioOption<Locale?>(l10n.languageAuto, null,              _ctrl.locale),
           _RadioOption<Locale?>(l10n.languageZh,   const Locale('zh'), _ctrl.locale),
           _RadioOption<Locale?>(l10n.languageEn,   const Locale('en'), _ctrl.locale),
+          _RadioOption<Locale?>(l10n.languageJa,   const Locale('ja'), _ctrl.locale),
         ],
       ),
     );
