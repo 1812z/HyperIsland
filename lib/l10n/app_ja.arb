@@ -57,6 +57,8 @@
   "useAppIconSubtitle": "ダウンロードマネージャーの通知でアプリアイコンを使用します",
   "roundIconTitle": "アイコンの角を丸める",
   "roundIconSubtitle": "通知アイコンの角を丸めます",
+  "marqueeFeatureTitle": "スクロールアイランド (実験的)",
+  "marqueeFeatureSubtitle": "長いテキストの通知を自動スクロールします",
   "themeModeTitle": "カラーモード",
   "themeModeSystem": "システムに従う",
   "themeModeLight": "ライト",

@@ -58,6 +58,16 @@ class MarqueeHook : IXposedHookLoadPackage {
             textView.scrollTo(0, 0)
         }
 
+        private fun isMarqueeEnabled(context: android.content.Context): Boolean {
+            return try {
+                val uri = android.net.Uri.parse("content://io.github.hyperisland.settings/pref_marquee_feature")
+                context.contentResolver.query(uri, null, null, null, null)
+                    ?.use { if (it.moveToFirst()) it.getInt(0) != 0 else false } ?: false
+            } catch (_: Exception) {
+                false
+            }
+        }
+
         private val observedViews = WeakHashMap<TextView, Boolean>()
 
         private fun traverseAndApplyMarquee(view: View) {
@@ -153,7 +163,9 @@ class MarqueeHook : IXposedHookLoadPackage {
                 XposedBridge.hookMethod(targetMethod, object : XC_MethodHook() {
                     override fun afterHookedMethod(param: MethodHookParam) {
                         val bigIslandView = param.result as? ViewGroup ?: return
-                        traverseAndApplyMarquee(bigIslandView)
+                        if (isMarqueeEnabled(bigIslandView.context)) {
+                            traverseAndApplyMarquee(bigIslandView)
+                        }
                     }
                 })
                 XposedBridge.log("HyperIsland[MarqueeHook]: IslandTemplateFactory hook accomplished on ${targetMethod.name}")

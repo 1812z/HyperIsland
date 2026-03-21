@@ -388,6 +388,18 @@ abstract class AppLocalizations {
   /// **'为通知图标添加圆角效果'**
   String get roundIconSubtitle;
 
+  /// No description provided for @marqueeFeatureTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'滚动岛 (实验性)'**
+  String get marqueeFeatureTitle;
+
+  /// No description provided for @marqueeFeatureSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'长文本通知（例如歌词）自动滚动显示'**
+  String get marqueeFeatureSubtitle;
+
   /// No description provided for @themeModeTitle.
   ///
   /// In zh, this message translates to:

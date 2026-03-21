@@ -57,6 +57,8 @@
   "useAppIconSubtitle": "Use app icon for Download Manager notifications",
   "roundIconTitle": "Round icon corners",
   "roundIconSubtitle": "Add rounded corners to notification icons",
+  "marqueeFeatureTitle": "Scrolling Island (Experimental)",
+  "marqueeFeatureSubtitle": "Auto scroll long text notification",
   "themeModeTitle": "Color mode",
   "themeModeSystem": "Follow system",
   "themeModeLight": "Light",
