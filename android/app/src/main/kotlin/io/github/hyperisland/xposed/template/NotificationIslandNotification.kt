@@ -219,22 +219,57 @@ object NotificationIslandNotification : IslandTemplate {
         } catch (_: Exception) { jsonParam }
     }
 
-    /**
-     * 将 textButton 数组里新库输出的 "actionIntent"+"actionIntentType"
-     * 替换为 HyperOS V3 协议所需的 "action" 字段，否则按钮点击无响应。
-     */
     private fun fixTextButtonJson(jsonParam: String): String {
         return try {
             val json = org.json.JSONObject(jsonParam)
             val pv2  = json.optJSONObject("param_v2") ?: return jsonParam
-            val btns = pv2.optJSONArray("textButton") ?: return jsonParam
-            for (i in 0 until btns.length()) {
-                val btn = btns.getJSONObject(i)
-                val key = btn.optString("actionIntent").takeIf { it.isNotEmpty() } ?: continue
-                btn.put("action", key)
-                btn.remove("actionIntent")
-                btn.remove("actionIntentType")
+            val btns = pv2.optJSONArray("textButton")
+            if (btns != null) {
+                for (i in 0 until btns.length()) {
+                    val btn = btns.getJSONObject(i)
+                    val key = btn.optString("actionIntent").takeIf { it.isNotEmpty() } ?: continue
+                    btn.put("action", key)
+                    btn.remove("actionIntent")
+                    btn.remove("actionIntentType")
+                }
             }
+
+            // 处理超长文本：将 iconTextInfo 转换为 coverInfo，使 content/subContent 上下两行显示
+            val iconTextInfo = pv2.optJSONObject("iconTextInfo")
+            if (iconTextInfo != null) {
+                val content = iconTextInfo.optString("content", "")
+                if (content.isNotEmpty()) {
+                    var visualLen = 0
+                    var splitIdx = -1
+                    for (i in content.indices) {
+                        val c = content[i]
+                        visualLen += if (c.code > 255) 2 else 1
+                        if (visualLen >= 36 && splitIdx == -1) {
+                            splitIdx = i + 1
+                        }
+                    }
+                    if (splitIdx != -1 && splitIdx < content.length) {
+                        val subContent = content.substring(splitIdx)
+                        val isUseless = subContent.all { it == '.' || it == '…' || it.isWhitespace() }
+                        if (!isUseless) {
+                            // 使用 coverInfo 组件替代 iconTextInfo，coverInfo 的次要文本1/2 是上下两行
+                            val coverInfo = org.json.JSONObject()
+                            coverInfo.put("picCover", iconTextInfo.optString("animIconInfo_src", ""))
+                            // 从 animIconInfo 中提取图标 key 作为封面
+                            val animIcon = iconTextInfo.optJSONObject("animIconInfo")
+                            if (animIcon != null) {
+                                coverInfo.put("picCover", animIcon.optString("src", ""))
+                            }
+                            coverInfo.put("title", iconTextInfo.optString("title", ""))
+                            coverInfo.put("content", content.substring(0, splitIdx))
+                            coverInfo.put("subContent", subContent)
+                            pv2.remove("iconTextInfo")
+                            pv2.put("coverInfo", coverInfo)
+                        }
+                    }
+                }
+            }
+
             json.toString()
         } catch (_: Exception) { jsonParam }
     }
