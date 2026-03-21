@@ -133,11 +133,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get aboutSection => 'アプリについて';
 
   @override
-  String get keepFocusNotifTitle => 'ダウンロードの一時停止後も通知をフォーカスする';
+  String get keepFocusNotifTitle => 'ダウンロードの一時停止後もフォーカス通知を表示';
 
   @override
   String get keepFocusNotifSubtitle =>
-      'ダウンロードを再開するための通知を表示しますが、状態の同期でズレが発生する可能性があります';
+      'ダウンロードを再開するためのフォーカス通知を表示しますが、状態の同期でズレが発生する可能性があります';
 
   @override
   String get checkUpdateOnLaunchTitle => '起動時に更新を確認する';
