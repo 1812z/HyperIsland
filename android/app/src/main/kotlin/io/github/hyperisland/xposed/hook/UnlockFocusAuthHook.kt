@@ -1,8 +1,8 @@
 package io.github.hyperisland.xposed.hook
 
+import android.app.Application
 import android.content.Context
 import android.net.Uri
-import de.robv.android.xposed.AndroidAppHelper
 import de.robv.android.xposed.IXposedHookLoadPackage
 import de.robv.android.xposed.XC_MethodHook
 import de.robv.android.xposed.XposedBridge
@@ -37,6 +37,8 @@ class UnlockFocusAuthHook : IXposedHookLoadPackage {
         private const val AUTH_SESSION_CLASS = "com.xiaomi.xms.auth.AuthSession"
     }
 
+    @Volatile private var appContext: Context? = null
+
     // ─── 开关读取 ─────────────────────────────────────────────────────────────
 
     /**
@@ -62,6 +64,18 @@ class UnlockFocusAuthHook : IXposedHookLoadPackage {
     override fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
         // 仅 Hook 小米服务框架进程
         if (lpparam.packageName != TARGET_PACKAGE) return
+
+        // 通过 Application.onCreate 捕获进程 Context
+        XposedHelpers.findAndHookMethod(
+            "android.app.Application",
+            lpparam.classLoader,
+            "onCreate",
+            object : XC_MethodHook() {
+                override fun afterHookedMethod(param: MethodHookParam) {
+                    appContext = param.thisObject as? Application
+                }
+            }
+        )
 
         hookAuthSession(lpparam.classLoader)
     }
@@ -97,7 +111,7 @@ class UnlockFocusAuthHook : IXposedHookLoadPackage {
                     val error = param.args[0] ?: return // error 为 null 说明验证已成功，无需干预
 
                     // 检查用户开关，未启用则不干预
-                    val ctx = AndroidAppHelper.currentApplication() ?: return
+                    val ctx = appContext ?: return
                     if (!isEnabled(ctx)) return
 
                     try {
