@@ -277,12 +277,18 @@ class MainActivity : FlutterActivity() {
                 }
 
                 org.xmlpull.v1.XmlPullParser.END_TAG -> if (parser.name == "package" && inTarget) {
-                    Log.d(TAG, "strict parse completed target package: $targetPkg, count=${result.size}")
-                    return StrictParseResult(
-                        channels = result,
-                        enteredTargetPackage = enteredTarget,
-                        completedTargetPackage = true,
-                    )
+                    if (result.isNotEmpty()) {
+                        Log.d(TAG, "strict parse completed target package: $targetPkg, count=${result.size}")
+                        return StrictParseResult(
+                            channels = result,
+                            enteredTargetPackage = enteredTarget,
+                            completedTargetPackage = true,
+                        )
+                    } else {
+                        // 该 package 条目无 channel（如工作空间副本），继续查找下一个同名 package
+                        Log.d(TAG, "strict parse: $targetPkg entry had no channels, continuing search")
+                        inTarget = false
+                    }
                 }
             }
             ev = parser.next()
