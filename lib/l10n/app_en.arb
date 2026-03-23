@@ -13,17 +13,7 @@
 
   "newVersionFound": "New Version Available",
   "currentVersion": "Current version: {version}",
-  "@currentVersion": {
-    "placeholders": {
-      "version": { "type": "String" }
-    }
-  },
   "latestVersion": "Latest version: {version}",
-  "@latestVersion": {
-    "placeholders": {
-      "version": { "type": "String" }
-    }
-  },
   "later": "Later",
   "goUpdate": "Update",
   "sponsorSupport": "Support the Author",
@@ -48,11 +38,6 @@
     }
   },
   "restartFailed": "Restart failed: {message}",
-  "@restartFailed": {
-    "placeholders": {
-      "message": { "type": "String" }
-    }
-  },
   "restartRootRequired": "Please check if ROOT permission has been granted to this app",
   "note1": "1. This page is only for testing Dynamic Island support, not actual effects",
   "note2": "2. Disable focus notification whitelist for System UI and MIUI Framework in HyperCeiler",
@@ -108,38 +93,13 @@
   "restartScopeApp": "Please restart the scope app for settings to take effect",
   "groupNumberCopied": "Group number copied to clipboard",
   "exportedTo": "Exported to: {path}",
-  "@exportedTo": {
-    "placeholders": {
-      "path": { "type": "String" }
-    }
-  },
   "exportFailed": "Export failed: {error}",
-  "@exportFailed": {
-    "placeholders": {
-      "error": { "type": "String" }
-    }
-  },
   "configCopied": "Configuration copied to clipboard",
   "importSuccess": "Import successful, {count} items, please restart the app",
-  "@importSuccess": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
   "importFailed": "Import failed: {error}",
-  "@importFailed": {
-    "placeholders": {
-      "error": { "type": "String" }
-    }
-  },
 
   "appAdaptation": "App Adaptation",
   "selectedAppsCount": "{count} apps selected",
-  "@selectedAppsCount": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
   "cancelSelection": "Cancel selection",
   "deselectAll": "Deselect all",
   "selectAll": "Select all",
@@ -153,40 +113,14 @@
   "enableAll": "Enable all",
   "disableAll": "Disable all",
   "enabledAppsCount": "Dynamic Island enabled for {count} apps",
-  "@enabledAppsCount": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
   "enabledAppsCountWithSystem": "Dynamic Island enabled for {count} apps (including system apps)",
-  "@enabledAppsCountWithSystem": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
   "searchApps": "Search app name or package name",
   "noAppsFound": "No installed apps found\nPlease check if app list permission is enabled",
   "noMatchingApps": "No matching apps",
   "applyToSelectedAppsChannels": "Will apply to enabled channels of {count} selected apps",
-  "@applyToSelectedAppsChannels": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
   "applyingConfig": "Applying configuration...",
   "progressApps": "{done} / {total} apps",
-  "@progressApps": {
-    "placeholders": {
-      "done": { "type": "int" },
-      "total": { "type": "int" }
-    }
-  },
   "batchApplied": "Batch applied to {count} apps",
-  "@batchApplied": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
 
   "cannotReadChannels": "Cannot Read Notification Channels",
   "rootRequiredMessage": "Reading notification channels requires ROOT permission.\nPlease confirm ROOT permission is granted and try again.",
@@ -194,32 +128,10 @@
   "noChannelsFound": "No notification channels found",
   "noChannelsFoundSubtitle": "This app has no notification channels, or they cannot be read",
   "allChannelsActive": "Active for all {count} channels",
-  "@allChannelsActive": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
   "selectedChannels": "{selected} / {total} channels selected",
-  "@selectedChannels": {
-    "placeholders": {
-      "selected": { "type": "int" },
-      "total": { "type": "int" }
-    }
-  },
   "allChannelsDisabled": "All {count} channels (disabled)",
-  "@allChannelsDisabled": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
   "appDisabledBanner": "App is disabled, the following channel settings have no effect",
   "channelImportance": "Importance: {importance}  ·  {id}",
-  "@channelImportance": {
-    "placeholders": {
-      "importance": { "type": "String" },
-      "id": { "type": "String" }
-    }
-  },
   "channelSettings": "Channel settings",
   "importanceNone": "None",
   "importanceMin": "Min",
@@ -228,17 +140,7 @@
   "importanceHigh": "High",
   "importanceUnknown": "Unknown",
   "applyToEnabledChannels": "Will apply to {count} enabled channels",
-  "@applyToEnabledChannels": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
   "applyToAllChannels": "Will apply to all {count} channels",
-  "@applyToAllChannels": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
 
   "templateDownloadName": "Download",
   "templateNotificationIslandName": "Notification Island",
@@ -254,12 +156,6 @@
   "seconds": "s",
   "onlyEnabledChannels": "Only apply to enabled channels",
   "enabledChannelsCount": "{enabled} / {total} channels enabled",
-  "@enabledChannelsCount": {
-    "placeholders": {
-      "enabled": { "type": "int" },
-      "total": { "type": "int" }
-    }
-  },
   "iconModeAuto": "Auto",
   "iconModeNotifSmall": "Small notification icon",
   "iconModeNotifLarge": "Large notification icon",
@@ -280,19 +176,11 @@
   "presetGamesSuccess": "Added {count} installed games to blacklist from preset",
   "@presetGamesSuccess": {
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "blacklistedAppsCount": "Blocked focus notifications for {count} apps",
-  "@blacklistedAppsCount": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  },
-  "blacklistedAppsCountWithSystem": "Blocked focus notifications for {count} apps (including system apps)",
-  "@blacklistedAppsCountWithSystem": {
-    "placeholders": {
-      "count": { "type": "int" }
-    }
-  }
+  "blacklistedAppsCountWithSystem": "Blocked focus notifications for {count} apps (including system apps)"
 }
