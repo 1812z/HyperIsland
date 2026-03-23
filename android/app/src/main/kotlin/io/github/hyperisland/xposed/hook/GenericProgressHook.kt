@@ -218,6 +218,9 @@ class GenericProgressHook : IXposedHookLoadPackage {
 
     private fun handleSbn(sbn: StatusBarNotification, lpparam: XC_LoadPackage.LoadPackageParam) {
         try {
+            // 提前重置，防止上一条通知的 true 值在本次提前返回时污染后续岛视图
+            MarqueeHook.pendingMarqueeEnabled = false
+
             val pkg = sbn.packageName ?: return
 
             // 先取 context，用于加载白名单
