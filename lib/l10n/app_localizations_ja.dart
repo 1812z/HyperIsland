@@ -146,7 +146,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get unlockAllFocusTitle => 'フォーカス通知のホワイトリストを削除';
 
   @override
-  String get unlockAllFocusSubtitle => 'すべてのアプリでシステム認証がない場合でもフォーカス通知を送信可能にします';
+  String get unlockAllFocusSubtitle => 'システム認証がない場合でもすべてのアプリでフォーカス通知を送信可能にします';
 
   @override
   String get unlockFocusAuthTitle => 'フォーカス通知の署名検証を削除';

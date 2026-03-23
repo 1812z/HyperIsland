@@ -51,7 +51,7 @@
   "keepFocusNotifTitle": "ダウンロードの一時停止後もフォーカス通知を表示",
   "keepFocusNotifSubtitle": "ダウンロードを再開するためのフォーカス通知を表示しますが、状態の同期でズレが発生する可能性があります",
   "unlockAllFocusTitle": "フォーカス通知のホワイトリストを削除",
-  "unlockAllFocusSubtitle": "すべてのアプリでシステム認証がない場合でもフォーカス通知を送信可能にします",
+  "unlockAllFocusSubtitle": "システム認証がない場合でもすべてのアプリでフォーカス通知を送信可能にします",
   "unlockFocusAuthTitle": "フォーカス通知の署名検証を削除",
   "unlockFocusAuthSubtitle": "署名検証のバイパスとすべてのアプリでフォーカス通知を時計/ブレスレットに送信可能な状態にします (XMSF のフックが必要です)",
   "checkUpdateOnLaunchTitle": "起動時に更新を確認する",
