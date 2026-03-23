@@ -64,12 +64,6 @@
   "roundIconSubtitle": "通知アイコンの角を丸めます",
   "marqueeChannelTitle": "Island のテキストをスクロール",
   "marqueeSpeedTitle": "スクロールの速度",
-  "themeModeTitle": "カラーモード",
-  "themeModeSystem": "システムに従う",
-  "themeModeLight": "ライト",
-  "themeModeDark": "ダーク",
-  "languageTitle": "言語",
-  "languageAuto": "システムに従う",
   "marqueeSpeedLabel": "{speed} px/s",
   "@marqueeSpeedLabel": {
     "placeholders": {
