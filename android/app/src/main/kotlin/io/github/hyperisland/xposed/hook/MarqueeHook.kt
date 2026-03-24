@@ -154,7 +154,6 @@ class MarqueeHook : IXposedHookLoadPackage {
             if (view is TextView) {
                 if (observedViews.containsKey(view)) return
                 observedViews[view] = true
-                XposedBridge.log("HyperIsland[MarqueeHook]: new TextView found, hooking listeners.")
 
                 // 视图布局尺寸变化时重新评估是否需要滚动（如旋转屏幕、窗口缩放）
                 view.addOnLayoutChangeListener { v, _, _, _, _, _, _, _, _ ->

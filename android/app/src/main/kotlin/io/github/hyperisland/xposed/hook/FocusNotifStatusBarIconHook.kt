@@ -41,6 +41,8 @@ class FocusNotifStatusBarIconHook : IXposedHookLoadPackage {
             "com.android.systemui.statusbar.phone.fragment.StatusBarVisibilityModel"
 
         @Volatile private var cachedDirectProxyActiveUntilElapsed = 0L
+        @Volatile private var activeNotificationModelHookInstalled = false
+        @Volatile private var updateStatusBarVisibilitiesHookInstalled = false
 
         @JvmStatic
         internal fun markDirectProxyPosted(timeoutSecs: Int) {
@@ -70,69 +72,65 @@ class FocusNotifStatusBarIconHook : IXposedHookLoadPackage {
     }
 
     private fun hookActiveNotificationModel(classLoader: ClassLoader) {
-        try {
-            XposedHelpers.findAndHookMethod(
-                TARGET_STORE_BUILDER_CLASS,
-                classLoader,
-                "toModel",
-                XposedHelpers.findClass(TARGET_ENTRY_CLASS, classLoader),
-                object : XC_MethodHook() {
-                    override fun afterHookedMethod(param: MethodHookParam) {
-                        val entry = param.args[0] ?: return
-                        val model = param.result ?: return
-                        val sbn = getObjectFieldOrNull(entry, "mSbn") ?: return
-                        val notification = resolveNotificationFromSbnLike(sbn) ?: return
-                        if (!isHyperIslandFocusProxy(notification.extras)) return
+        synchronized(FocusNotifStatusBarIconHook::class.java) {
+            if (activeNotificationModelHookInstalled) return
+            try {
+                XposedHelpers.findAndHookMethod(
+                    TARGET_STORE_BUILDER_CLASS,
+                    classLoader,
+                    "toModel",
+                    XposedHelpers.findClass(TARGET_ENTRY_CLASS, classLoader),
+                    object : XC_MethodHook() {
+                        override fun afterHookedMethod(param: MethodHookParam) {
+                            val entry = param.args[0] ?: return
+                            val model = param.result ?: return
+                            val sbn = getObjectFieldOrNull(entry, "mSbn") ?: return
+                            val notification = resolveNotificationFromSbnLike(sbn) ?: return
+                            if (!isHyperIslandFocusProxy(notification.extras)) return
 
-                        try {
-                            XposedHelpers.setBooleanField(model, "isFocusNotification", false)
-                            XposedBridge.log(
-                                "$TAG: forced ActiveNotificationModel.isFocusNotification=false for preserve-enabled HyperIsland proxy"
-                            )
-                        } catch (e: Throwable) {
-                            XposedBridge.log(
-                                "$TAG: failed to override ActiveNotificationModel.isFocusNotification — ${e.message}"
-                            )
+                            try {
+                                XposedHelpers.setBooleanField(model, "isFocusNotification", false)
+                            } catch (e: Throwable) {
+                                XposedBridge.log(
+                                    "$TAG: failed to override ActiveNotificationModel.isFocusNotification — ${e.message}"
+                                )
+                            }
                         }
                     }
-                }
-            )
-            XposedBridge.log("$TAG: hooked ActiveNotificationsStoreBuilder.toModel(NotificationEntry)")
-        } catch (e: Throwable) {
-            XposedBridge.log("$TAG: ActiveNotificationsStoreBuilder.toModel hook failed — ${e.message}")
+                )
+                activeNotificationModelHookInstalled = true
+                XposedBridge.log("$TAG: hooked ActiveNotificationsStoreBuilder.toModel(NotificationEntry)")
+            } catch (e: Throwable) {
+                XposedBridge.log("$TAG: ActiveNotificationsStoreBuilder.toModel hook failed — ${e.message}")
+            }
         }
     }
 
     private fun hookUpdateStatusBarVisibilities(classLoader: ClassLoader) {
-        try {
-            XposedHelpers.findAndHookMethod(
-                TARGET_FRAGMENT_CLASS,
-                classLoader,
-                "updateStatusBarVisibilities",
-                Boolean::class.javaPrimitiveType!!,
-                object : XC_MethodHook() {
-                    override fun afterHookedMethod(param: MethodHookParam) {
-                        val fragment = param.thisObject
-                        val keepIcons = isDirectProxyActive()
+        synchronized(FocusNotifStatusBarIconHook::class.java) {
+            if (updateStatusBarVisibilitiesHookInstalled) return
+            try {
+                XposedHelpers.findAndHookMethod(
+                    TARGET_FRAGMENT_CLASS,
+                    classLoader,
+                    "updateStatusBarVisibilities",
+                    Boolean::class.javaPrimitiveType!!,
+                    object : XC_MethodHook() {
+                        override fun afterHookedMethod(param: MethodHookParam) {
+                            val fragment = param.thisObject
+                            if (!isDirectProxyActive()) return
 
-                        XposedBridge.log(
-                            "$TAG: updateStatusBarVisibilities finished | keepIcons=$keepIcons"
-                        )
-
-                        if (!keepIcons) return
-
-                        forceShowNotificationIconsModel(fragment)
-                        restoreNotificationIconArea(fragment)
-                        refreshNotificationIconArea(fragment)
-                        XposedBridge.log(
-                            "$TAG: re-show notification icon area after updateStatusBarVisibilities"
-                        )
+                            forceShowNotificationIconsModel(fragment)
+                            restoreNotificationIconArea(fragment)
+                            refreshNotificationIconArea(fragment)
+                        }
                     }
-                }
-            )
-            XposedBridge.log("$TAG: hooked MiuiCollapsedStatusBarFragment.updateStatusBarVisibilities(boolean)")
-        } catch (e: Throwable) {
-            XposedBridge.log("$TAG: updateStatusBarVisibilities hook failed — ${e.message}")
+                )
+                updateStatusBarVisibilitiesHookInstalled = true
+                XposedBridge.log("$TAG: hooked MiuiCollapsedStatusBarFragment.updateStatusBarVisibilities(boolean)")
+            } catch (e: Throwable) {
+                XposedBridge.log("$TAG: updateStatusBarVisibilities hook failed — ${e.message}")
+            }
         }
     }
 
@@ -151,7 +149,6 @@ class FocusNotifStatusBarIconHook : IXposedHookLoadPackage {
                 XposedHelpers.getBooleanField(oldModel, "showNotifPromptView")
             )
             XposedHelpers.setObjectField(fragment, "mLastModifiedVisibility", newModel)
-            XposedBridge.log("$TAG: forced StatusBarVisibilityModel.showNotificationIcons=true")
         } catch (e: Throwable) {
             XposedBridge.log("$TAG: forceShowNotificationIconsModel failed — ${e.message}")
         }
@@ -161,7 +158,6 @@ class FocusNotifStatusBarIconHook : IXposedHookLoadPackage {
         if (fragment == null) return
         try {
             XposedHelpers.callMethod(fragment, "updateNotificationIconAreaAndOngoingActivityChip", false)
-            XposedBridge.log("$TAG: refreshed notification icon area")
         } catch (e: Throwable) {
             XposedBridge.log("$TAG: refreshNotificationIconArea failed — ${e.message}")
         }
