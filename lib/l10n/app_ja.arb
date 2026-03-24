@@ -188,5 +188,11 @@
     }
   },
   "blacklistedAppsCount": "{count} 個のアプリのフォーカス通知をブロックしました",
-  "blacklistedAppsCountWithSystem": "{count} 個のアプリのフォーカス通知をブロックしました (システムアプリを含む)"
+  "blacklistedAppsCountWithSystem": "{count} 個のアプリのフォーカス通知をブロックしました (システムアプリを含む)",
+
+  "firstFloatLabelSubtitle": "Islandが初めて通知を受信したときにフォーカス通知として展開するかどうか",
+  "updateFloatLabelSubtitle": "Islandの更新時に通知を展開するかどうか",
+  "marqueeChannelTitleSubtitle": "Islandで長いメッセージをスクロールするかどうか",
+  "focusNotificationLabelSubtitle": "通知をフォーカス通知に置き換える（無効時は元の通知を表示）",
+  "preserveStatusBarSmallIconLabelSubtitle": "フォーカス通知表示時にステータスバーアイコンを強制的に保持するかどうか"
 }

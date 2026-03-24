@@ -188,5 +188,11 @@
     }
   },
   "blacklistedAppsCount": "Blocked focus notifications for {count} apps",
-  "blacklistedAppsCountWithSystem": "Blocked focus notifications for {count} apps (including system apps)"
+  "blacklistedAppsCountWithSystem": "Blocked focus notifications for {count} apps (including system apps)",
+
+  "firstFloatLabelSubtitle": "Whether to expand as focus notification when Island receives notification for the first time",
+  "updateFloatLabelSubtitle": "Whether to expand notification when Island updates",
+  "marqueeChannelTitleSubtitle": "Whether to scroll long messages on Island",
+  "focusNotificationLabelSubtitle": "Replace notification with focus notification (shows original notification when disabled)",
+  "preserveStatusBarSmallIconLabelSubtitle": "Whether to force keep status bar icon when focus notification is displayed"
 }

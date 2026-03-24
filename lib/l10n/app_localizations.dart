@@ -1071,6 +1071,36 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'已拦截 {count} 个应用的焦点通知（含系统应用）'**
   String blacklistedAppsCountWithSystem(int count);
+
+  /// No description provided for @firstFloatLabelSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'超级岛初次收到通知后是否展开为焦点通知'**
+  String get firstFloatLabelSubtitle;
+
+  /// No description provided for @updateFloatLabelSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'超级岛更新后是否展开通知'**
+  String get updateFloatLabelSubtitle;
+
+  /// No description provided for @marqueeChannelTitleSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'超级岛消息过长是否滚动显示'**
+  String get marqueeChannelTitleSubtitle;
+
+  /// No description provided for @focusNotificationLabelSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'替换通知为焦点通知（关闭后显示原始通知）'**
+  String get focusNotificationLabelSubtitle;
+
+  /// No description provided for @preserveStatusBarSmallIconLabelSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'焦点通知打开时，是否强制保留状态栏小图标'**
+  String get preserveStatusBarSmallIconLabelSubtitle;
 }
 
 class _AppLocalizationsDelegate

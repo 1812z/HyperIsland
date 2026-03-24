@@ -563,4 +563,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String blacklistedAppsCountWithSystem(int count) {
     return 'Blocked focus notifications for $count apps (including system apps)';
   }
+
+  @override
+  String get firstFloatLabelSubtitle =>
+      'Whether to expand as focus notification when Island receives notification for the first time';
+
+  @override
+  String get updateFloatLabelSubtitle =>
+      'Whether to expand notification when Island updates';
+
+  @override
+  String get marqueeChannelTitleSubtitle =>
+      'Whether to scroll long messages on Island';
+
+  @override
+  String get focusNotificationLabelSubtitle =>
+      'Replace notification with focus notification (shows original notification when disabled)';
+
+  @override
+  String get preserveStatusBarSmallIconLabelSubtitle =>
+      'Whether to force keep status bar icon when focus notification is displayed';
 }

@@ -318,6 +318,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 4),
                           title: Text(l10n.firstFloatLabel),
+                          subtitle: Text(l10n.firstFloatLabelSubtitle),
                           value: _ctrl.defaultFirstFloat,
                           onChanged: _ctrl.setDefaultFirstFloat,
                           shape: const RoundedRectangleBorder(
@@ -329,6 +330,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 4),
                           title: Text(l10n.updateFloatLabel),
+                          subtitle: Text(l10n.updateFloatLabelSubtitle),
                           value: _ctrl.defaultEnableFloat,
                           onChanged: _ctrl.setDefaultEnableFloat,
                         ),
@@ -337,6 +339,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 4),
                           title: Text(l10n.marqueeChannelTitle),
+                          subtitle: Text(l10n.marqueeChannelTitleSubtitle),
                           value: _ctrl.defaultMarquee,
                           onChanged: _ctrl.setDefaultMarquee,
                         ),
@@ -345,6 +348,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 4),
                           title: Text(l10n.focusNotificationLabel),
+                          subtitle: Text(l10n.focusNotificationLabelSubtitle),
                           value: _ctrl.defaultFocusNotif,
                           onChanged: _ctrl.setDefaultFocusNotif,
                         ),
@@ -353,6 +357,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 4),
                           title: Text(l10n.preserveStatusBarSmallIconLabel),
+                          subtitle: Text(l10n.preserveStatusBarSmallIconLabelSubtitle),
                           value: _ctrl.defaultPreserveSmallIcon,
                           onChanged: _ctrl.setDefaultPreserveSmallIcon,
                           shape: const RoundedRectangleBorder(

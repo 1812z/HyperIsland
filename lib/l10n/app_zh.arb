@@ -302,5 +302,11 @@
     "placeholders": {
       "count": { "type": "int" }
     }
-  }
+  },
+
+  "firstFloatLabelSubtitle": "超级岛初次收到通知后是否展开为焦点通知",
+  "updateFloatLabelSubtitle": "超级岛更新后是否展开通知",
+  "marqueeChannelTitleSubtitle": "超级岛消息过长是否滚动显示",
+  "focusNotificationLabelSubtitle": "替换通知为焦点通知（关闭后显示原始通知）",
+  "preserveStatusBarSmallIconLabelSubtitle": "焦点通知打开时，是否强制保留状态栏小图标"
 }

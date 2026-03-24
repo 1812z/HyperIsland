@@ -548,4 +548,21 @@ class AppLocalizationsJa extends AppLocalizations {
   String blacklistedAppsCountWithSystem(int count) {
     return '$count 個のアプリのフォーカス通知をブロックしました (システムアプリを含む)';
   }
+
+  @override
+  String get firstFloatLabelSubtitle =>
+      'Islandが初めて通知を受信したときにフォーカス通知として展開するかどうか';
+
+  @override
+  String get updateFloatLabelSubtitle => 'Islandの更新時に通知を展開するかどうか';
+
+  @override
+  String get marqueeChannelTitleSubtitle => 'Islandで長いメッセージをスクロールするかどうか';
+
+  @override
+  String get focusNotificationLabelSubtitle => '通知をフォーカス通知に置き換える（無効時は元の通知を表示）';
+
+  @override
+  String get preserveStatusBarSmallIconLabelSubtitle =>
+      'フォーカス通知表示時にステータスバーアイコンを強制的に保持するかどうか';
 }

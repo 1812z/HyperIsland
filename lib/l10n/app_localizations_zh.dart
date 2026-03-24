@@ -544,4 +544,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String blacklistedAppsCountWithSystem(int count) {
     return '已拦截 $count 个应用的焦点通知（含系统应用）';
   }
+
+  @override
+  String get firstFloatLabelSubtitle => '超级岛初次收到通知后是否展开为焦点通知';
+
+  @override
+  String get updateFloatLabelSubtitle => '超级岛更新后是否展开通知';
+
+  @override
+  String get marqueeChannelTitleSubtitle => '超级岛消息过长是否滚动显示';
+
+  @override
+  String get focusNotificationLabelSubtitle => '替换通知为焦点通知（关闭后显示原始通知）';
+
+  @override
+  String get preserveStatusBarSmallIconLabelSubtitle => '焦点通知打开时，是否强制保留状态栏小图标';
 }
