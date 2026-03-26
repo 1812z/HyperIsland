@@ -71,7 +71,7 @@
       "speed": { "type": "int" }
     }
   },
-  "wrapLongTextTitle": "自動で折り返す (試験的)",
+  "wrapLongTextTitle": "自動で折り返す",
   "wrapLongTextSubtitle": "長いフォーカス通知テキストを二行に分割します",
   "themeModeTitle": "カラーモード",
   "themeModeSystem": "システムに従う",
