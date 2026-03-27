@@ -99,8 +99,9 @@ class _WhitelistPageState extends State<WhitelistPage> {
     if (_selectedPackages.isEmpty) return;
     if (!mounted) return;
 
-    final l10n           = AppLocalizations.of(context)!;
-    final templateLabels = _ctrl.getTemplates(l10n);
+    final l10n            = AppLocalizations.of(context)!;
+    final templateLabels  = _ctrl.getTemplates(l10n);
+    final rendererLabels  = _ctrl.getRenderers(l10n);
     final selected = _selectedPackages.toList();
     final result = await BatchChannelSettingsSheet.show(
       context,
@@ -108,6 +109,7 @@ class _WhitelistPageState extends State<WhitelistPage> {
         subtitle: l10n.applyToSelectedAppsChannels(selected.length),
       )),
       templateLabels: templateLabels,
+      rendererLabels: rendererLabels,
     );
     if (result == null || !mounted) return;
 

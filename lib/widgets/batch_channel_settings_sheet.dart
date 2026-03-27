@@ -16,6 +16,7 @@ class SingleChannelMode extends ChannelSettingsMode {
   const SingleChannelMode({
     required this.channelName,
     required this.template,
+    required this.renderer,
     required this.iconMode,
     required this.focusIconMode,
     required this.focusNotif,
@@ -28,6 +29,7 @@ class SingleChannelMode extends ChannelSettingsMode {
 
   final String channelName;
   final String template;
+  final String renderer;
   final String iconMode;
   final String focusIconMode;
   final String focusNotif;
@@ -95,15 +97,18 @@ class BatchChannelSettingsSheet extends StatefulWidget {
     super.key,
     required this.mode,
     required this.templateLabels,
+    required this.rendererLabels,
   });
 
   final ChannelSettingsMode mode;
   final Map<String, String> templateLabels;
+  final Map<String, String> rendererLabels;
 
   static Future<BatchApplyResult?> show(
     BuildContext context, {
     required ChannelSettingsMode mode,
     required Map<String, String> templateLabels,
+    required Map<String, String> rendererLabels,
   }) {
     return showModalBottomSheet<BatchApplyResult>(
       context: context,
@@ -115,6 +120,7 @@ class BatchChannelSettingsSheet extends StatefulWidget {
       builder: (_) => BatchChannelSettingsSheet(
         mode: mode,
         templateLabels: templateLabels,
+        rendererLabels: rendererLabels,
       ),
     );
   }
@@ -133,6 +139,7 @@ class _BatchChannelSettingsSheetState
       value ? _l10n(context).optDefaultOn : _l10n(context).optDefaultOff;
 
   String? _template;
+  String? _renderer;
   String? _iconMode;
   String? _focusIconMode;
   String? _focusNotif;
@@ -156,6 +163,7 @@ class _BatchChannelSettingsSheetState
     super.initState();
     if (widget.mode case SingleChannelMode m) {
       _template          = m.template;
+      _renderer          = m.renderer;
       _iconMode          = m.iconMode;
       _focusIconMode     = m.focusIconMode;
       _focusNotif        = m.focusNotif;
@@ -195,6 +203,7 @@ class _BatchChannelSettingsSheetState
   bool get _hasAnyChange =>
       _isSingle ||
       _template != null ||
+      _renderer != null ||
       _iconMode != null ||
       _focusIconMode != null ||
       _focusNotif != null ||
@@ -226,6 +235,7 @@ class _BatchChannelSettingsSheetState
       BatchApplyResult(
         settings: {
           'template':              _template,
+          'renderer':              _renderer,
           'icon':                  _iconMode,
           'focus_icon':            _focusIconMode,
           'focus':                 _focusNotif,
@@ -317,7 +327,7 @@ class _BatchChannelSettingsSheetState
                     const SizedBox(height: 16),
                   ],
 
-                  // ── 模板设置 ───────────────────────────────────────────
+                  // ── 模板 & 样式设置 ────────────────────────────────────
                   _SectionLabel(l10n.template),
                   const SizedBox(height: 8),
                   _BatchSettingRow(
@@ -331,6 +341,19 @@ class _BatchChannelSettingsSheetState
                             ))
                         .toList(),
                     onChanged: (v) => setState(() => _template = v),
+                  ),
+                  const SizedBox(height: 12),
+                  _BatchSettingRow(
+                    label: l10n.rendererLabel,
+                    value: _renderer,
+                    showNotChange: !_isSingle,
+                    items: widget.rendererLabels.entries
+                        .map((e) => DropdownMenuItem<String?>(
+                              value: e.key,
+                              child: Text(e.value),
+                            ))
+                        .toList(),
+                    onChanged: (v) => setState(() => _renderer = v),
                   ),
                   const SizedBox(height: 20),
 

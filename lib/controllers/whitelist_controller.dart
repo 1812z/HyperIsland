@@ -15,6 +15,10 @@ const kTemplateDownloadLite            = 'download_lite';
 const kTemplateNotificationIslandLite  = 'notification_island_lite';
 const kTemplateAiNotificationIsland    = 'ai_notification_island';
 
+/// 可用的灵动岛渲染器（样式）标识符。
+const kRendererImageTextWithButtons4     = 'image_text_with_buttons_4';
+const kRendererImageTextWithButtons4Wrap = 'image_text_with_buttons_4_wrap';
+
 // 图标模式选项（图标样式 & 焦点图标共用）
 const kIconModeAuto       = 'auto';
 const kIconModeNotifSmall = 'notif_small';
@@ -233,6 +237,12 @@ class WhitelistController extends ChangeNotifier {
     kTemplateAiNotificationIsland:   l10n.templateAiNotificationIslandName,
   };
 
+  /// 返回所有可用渲染器（样式）的 id → 显示名称 映射。
+  Map<String, String> getRenderers(AppLocalizations l10n) => {
+    kRendererImageTextWithButtons4:     l10n.rendererImageTextWithButtons4Name,
+    kRendererImageTextWithButtons4Wrap: l10n.rendererCoverInfoName,
+  };
+
   /// 批量读取指定包内各渠道的模板设置，返回 channelId → template 映射。
   Future<Map<String, String>> getChannelTemplates(
       String packageName, List<String> channelIds) async {
@@ -268,6 +278,7 @@ class WhitelistController extends ChangeNotifier {
           'enable_float': prefs.getString('pref_channel_enable_float_${packageName}_$id') ?? kTriOptDefault,
           'timeout': prefs.getString('pref_channel_timeout_${packageName}_$id') ?? '5',
           'marquee': prefs.getString('pref_channel_marquee_${packageName}_$id') ?? kTriOptDefault,
+          'renderer': prefs.getString('pref_channel_renderer_${packageName}_$id') ?? kRendererImageTextWithButtons4,
         })));
   }
 
@@ -319,6 +330,12 @@ class WhitelistController extends ChangeNotifier {
     await prefs.setString('pref_channel_marquee_${packageName}_$channelId', value);
   }
 
+  Future<void> setChannelRenderer(
+      String packageName, String channelId, String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('pref_channel_renderer_${packageName}_$channelId', value);
+  }
+
   /// 批量应用渠道配置到指定渠道列表。
   /// [settings] 中 null 值的 key 表示不更改该项。
   Future<void> batchApplyChannelSettings(
@@ -329,6 +346,7 @@ class WhitelistController extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     const keyMap = {
       'template':              'pref_channel_template',
+      'renderer':              'pref_channel_renderer',
       'icon':                  'pref_channel_icon',
       'focus_icon':            'pref_channel_focus_icon',
       'focus':                 'pref_channel_focus',

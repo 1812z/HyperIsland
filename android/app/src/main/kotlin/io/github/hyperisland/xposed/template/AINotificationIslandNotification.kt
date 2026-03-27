@@ -1,6 +1,5 @@
 package io.github.hyperisland.xposed.templates
 
-import android.app.Notification
 import android.content.Context
 import android.graphics.drawable.Icon
 import android.os.Bundle
@@ -15,8 +14,11 @@ import io.github.d4viddf.hyperisland_kit.models.TextInfo
 import io.github.hyperisland.xposed.IslandDispatcher
 import io.github.hyperisland.xposed.IslandRequest
 import io.github.hyperisland.xposed.IslandTemplate
+import io.github.hyperisland.xposed.IslandViewModel
 import io.github.hyperisland.xposed.NotifData
 import io.github.hyperisland.xposed.hook.FocusNotifStatusBarIconHook
+import io.github.hyperisland.xposed.renderer.ImageTextWithButtonsRenderer
+import io.github.hyperisland.xposed.renderer.ImageTextWithButtonsWrapRenderer
 import io.github.hyperisland.xposed.toRounded
 import org.json.JSONObject
 import java.net.HttpURLConnection
@@ -28,11 +30,9 @@ import java.util.concurrent.TimeoutException
 
 /**
  * AI 增强版通知超级岛。
- * 在接收到通知时，将通知基本信息（包名、标题、正文）发送给 AI，
- * 由 AI 生成大岛左右文本。若 AI 3 秒内未响应，回退到默认逻辑。
+ * 将通知信息发送给 AI，由 AI 生成大岛左右文本。若 3 秒内未响应，回退到默认逻辑。
  *
- * AI 响应格式：{"left": "来源", "right": "内容"}
- * 兼容 OpenAI 接口格式（支持 DeepSeek、Claude 等兼容接口）。
+ * 消息处理（AI 调用 + [process]）与渲染（[ImageTextWithButtonsRenderer]/[ImageTextWithButtonsWrapRenderer]）分离。
  */
 object AINotificationIslandNotification : IslandTemplate {
 
@@ -40,16 +40,13 @@ object AINotificationIslandNotification : IslandTemplate {
 
     override val id = TEMPLATE_ID
 
-    // 独立线程池，避免占用系统线程
     private val executor = Executors.newCachedThreadPool()
 
     override fun inject(context: Context, extras: Bundle, data: NotifData) {
         val aiConfig = loadAiConfig(context)
         val aiText = if (aiConfig.enabled && aiConfig.url.isNotEmpty()) {
             fetchAiText(aiConfig, data)
-        } else {
-            null
-        }
+        } else null
 
         val leftText  = aiText?.left  ?: data.title
         val rightText = aiText?.right ?: data.subtitle.ifEmpty { data.title }
@@ -64,28 +61,17 @@ object AINotificationIslandNotification : IslandTemplate {
             injectViaDispatcher(context, data, leftText, rightText)
             return
         }
-
-        injectIsland(
-            context         = context,
-            extras          = extras,
-            notifId         = data.notifId,
-            title           = data.title,
-            subtitle        = data.subtitle,
-            leftText        = leftText,
-            rightText       = rightText,
-            actions         = data.actions,
-            notifIcon       = data.notifIcon,
-            largeIcon       = data.largeIcon,
-            appIconRaw      = data.appIconRaw,
-            iconMode        = data.iconMode,
-            focusIconMode   = data.focusIconMode,
-            focusNotif      = data.focusNotif,
-            preserveStatusBarSmallIcon = data.preserveStatusBarSmallIcon,
-            firstFloat      = data.firstFloat,
-            enableFloatMode = data.enableFloatMode,
-            timeoutSecs     = data.islandTimeout,
-            isOngoing       = data.isOngoing,
-        )
+        try {
+            val vm = process(context, data, leftText, rightText)
+            val renderer = if (data.renderer == ImageTextWithButtonsWrapRenderer.RENDERER_ID) ImageTextWithButtonsWrapRenderer
+                           else ImageTextWithButtonsRenderer
+            renderer.render(context, extras, vm)
+            XposedBridge.log(
+                "HyperIsland[AINotifIsland]: Injected — title=${data.title} | left=$leftText | right=$rightText | notifId=${data.notifId}"
+            )
+        } catch (e: Exception) {
+            XposedBridge.log("HyperIsland[AINotifIsland]: Injection error: ${e.message}")
+        }
     }
 
     // ── AI 配置 ────────────────────────────────────────────────────────────────
@@ -138,41 +124,27 @@ object AINotificationIslandNotification : IslandTemplate {
         }
     }
 
-    /**
-     * 调用兼容 OpenAI 格式的 Chat Completions 接口。
-     * 请求中包含通知来源、标题和正文，要求 AI 返回 JSON。
-     */
     private fun callAiApi(config: AiConfig, data: NotifData): AiIslandText? {
         val requestBody = buildRequestBody(config.model, data)
-
         val conn = (URL(config.url).openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
             setRequestProperty("Content-Type", "application/json")
             setRequestProperty("Accept", "application/json")
-            if (config.apiKey.isNotEmpty()) {
-                setRequestProperty("Authorization", "Bearer ${config.apiKey}")
-            }
+            if (config.apiKey.isNotEmpty()) setRequestProperty("Authorization", "Bearer ${config.apiKey}")
             connectTimeout = 2500
             readTimeout    = 2500
             doOutput       = true
         }
-
         XposedBridge.log("HyperIsland[AINotifIsland]: POST ${config.url}")
-
         return try {
             conn.outputStream.use { it.write(requestBody.toByteArray(Charsets.UTF_8)) }
-
             val code = conn.responseCode
             if (code != HttpURLConnection.HTTP_OK) {
-                val errorBody = try {
-                    conn.errorStream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: ""
-                } catch (_: Exception) { "" }
+                val errorBody = try { conn.errorStream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: "" } catch (_: Exception) { "" }
                 XposedBridge.log("HyperIsland[AINotifIsland]: HTTP $code — $errorBody")
                 return null
             }
-
-            val responseText = conn.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
-            parseAiResponse(responseText)
+            parseAiResponse(conn.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() })
         } finally {
             conn.disconnect()
         }
@@ -195,7 +167,6 @@ object AINotificationIslandNotification : IslandTemplate {
             put(JSONObject().put("role", "system").put("content", systemPrompt))
             put(JSONObject().put("role", "user").put("content", userContent))
         }
-
         return JSONObject()
             .put("model", model.ifEmpty { "gpt-4o-mini" })
             .put("messages", messages)
@@ -206,35 +177,22 @@ object AINotificationIslandNotification : IslandTemplate {
 
     private fun parseAiResponse(responseText: String): AiIslandText? {
         return try {
-            // 从 choices[0].message.content 提取文本
             val root    = JSONObject(responseText)
             val content = root.getJSONArray("choices")
-                .getJSONObject(0)
-                .getJSONObject("message")
-                .getString("content")
-                .trim()
-
-            // 兼容 AI 可能输出 markdown 代码块包裹的情况
-            val jsonStr = content
-                .removePrefix("```json").removePrefix("```").removeSuffix("```")
-                .trim()
-
-            val result = JSONObject(jsonStr)
-            val left  = result.optString("left", "").trim()
-            val right = result.optString("right", "").trim()
-
+                .getJSONObject(0).getJSONObject("message").getString("content").trim()
+            val jsonStr = content.removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
+            val result  = JSONObject(jsonStr)
+            val left    = result.optString("left",  "").trim()
+            val right   = result.optString("right", "").trim()
             if (left.isEmpty() && right.isEmpty()) null
-            else AiIslandText(
-                left  = left.ifEmpty  { "通知" },
-                right = right.ifEmpty { "新消息" },
-            )
+            else AiIslandText(left.ifEmpty { "通知" }, right.ifEmpty { "新消息" })
         } catch (e: Exception) {
             XposedBridge.log("HyperIsland[AINotifIsland]: Failed to parse AI response: ${e.message}")
             null
         }
     }
 
-    // ── 超级岛注入（与 NotificationIslandNotification 逻辑一致） ─────────────
+    // ── Dispatcher 路径（focusNotif == "off"）────────────────────────────────
 
     private fun injectViaDispatcher(
         context: Context,
@@ -245,7 +203,6 @@ object AINotificationIslandNotification : IslandTemplate {
         try {
             val fallbackIcon = Icon.createWithResource(context, android.R.drawable.ic_dialog_info)
             val displayIcon  = resolveIcon(data, data.iconMode, fallbackIcon).toRounded(context)
-
             IslandDispatcher.post(
                 context,
                 IslandRequest(
@@ -267,193 +224,48 @@ object AINotificationIslandNotification : IslandTemplate {
         }
     }
 
-    private fun injectIsland(
+    // ── 消息处理 ──────────────────────────────────────────────────────────────
+
+    fun process(
         context: Context,
-        extras: Bundle,
-        notifId: Int,
-        title: String,
-        subtitle: String,
-        leftText: String,
-        rightText: String,
-        actions: List<Notification.Action>,
-        notifIcon: Icon?,
-        largeIcon: Icon?,
-        appIconRaw: Icon?,
-        iconMode: String?,
-        focusIconMode: String?,
-        focusNotif: String,
-        preserveStatusBarSmallIcon: String,
-        firstFloat: String,
-        enableFloatMode: String,
-        timeoutSecs: Int,
-        isOngoing: Boolean,
-    ) {
-        try {
-            val fallbackIcon     = Icon.createWithResource(context, android.R.drawable.ic_dialog_info)
-            val data             = _IconData(notifIcon, largeIcon, appIconRaw)
-            val displayIcon      = resolveIcon(data, iconMode,      fallbackIcon).toRounded(context)
-            val focusDisplayIcon = resolveIcon(data, focusIconMode, fallbackIcon).toRounded(context)
+        data: NotifData,
+        leftText: String  = data.title,
+        rightText: String = data.subtitle.ifEmpty { data.title },
+    ): IslandViewModel {
+        val fallbackIcon     = Icon.createWithResource(context, android.R.drawable.ic_dialog_info)
+        val islandIcon       = resolveIcon(data, data.iconMode,      fallbackIcon).toRounded(context)
+        val focusIcon        = resolveIcon(data, data.focusIconMode,  fallbackIcon).toRounded(context)
+        val showNotification = data.focusNotif != "off"
 
-            val resolvedFirstFloat  = firstFloat      == "on"
-            val resolvedEnableFloat = enableFloatMode == "on"
-            val showNotification    = focusNotif != "off"
-            val shouldPreserveIcon  = showNotification && preserveStatusBarSmallIcon != "off"
-
-            val builder = HyperIslandNotification.Builder(context, "notif_island", title)
-
-            builder.addPicture(HyperPicture("key_ai_island_icon",    displayIcon))
-            builder.addPicture(HyperPicture("key_ai_focus_icon", focusDisplayIcon))
-
-            builder.setIconTextInfo(
-                picKey  = "key_ai_focus_icon",
-                title   = title,
-                content = subtitle.ifEmpty { title },
-            )
-
-            builder.setIslandFirstFloat(resolvedFirstFloat)
-            builder.setEnableFloat(resolvedEnableFloat)
-            builder.setShowNotification(showNotification)
-            builder.setIslandConfig(timeout = timeoutSecs)
-
-            builder.setSmallIsland("key_ai_island_icon")
-
-            builder.setBigIslandInfo(
-                left = ImageTextInfoLeft(
-                    type     = 1,
-                    picInfo  = PicInfo(type = 1, pic = "key_ai_island_icon"),
-                    textInfo = TextInfo(title = leftText),
-                ),
-                right = ImageTextInfoRight(
-                    type     = 2,
-                    textInfo = TextInfo(title = rightText, narrowFont = true),
-                ),
-            )
-
-            val effectiveActions = actions.take(2)
-            if (effectiveActions.isNotEmpty()) {
-                val hyperActions = effectiveActions.mapIndexed { index, action ->
-                    HyperAction(
-                        key              = "action_ai_island_$index",
-                        title            = action.title ?: "",
-                        pendingIntent    = action.actionIntent,
-                        actionIntentType = 2,
-                    )
-                }
-                hyperActions.forEach { builder.addHiddenAction(it) }
-                builder.setTextButtons(*hyperActions.toTypedArray())
-            }
-
-            val resourceBundle = builder.buildResourceBundle()
-            extras.putAll(resourceBundle)
-            flattenActionsToExtras(resourceBundle, extras)
-
-            val wrapLongText = isWrapLongTextEnabled(context)
-            val jsonParam = fixTextButtonJson(builder.buildJsonParam(), wrapLongText)
-                .let { if (!isOngoing) injectUpdatable(it, false) else it }
-
-            extras.putString("miui.focus.param", jsonParam)
-            if (showNotification) extras.putBoolean("hyperisland_focus_proxy", true)
-            if (shouldPreserveIcon) {
-                extras.putBoolean("hyperisland_preserve_status_bar_small_icon", true)
-                FocusNotifStatusBarIconHook.markDirectProxyPosted(timeoutSecs)
-            }
-
-            XposedBridge.log(
-                "HyperIsland[AINotifIsland]: Injected — title=$title | left=$leftText | right=$rightText | notifId=$notifId"
-            )
-        } catch (e: Exception) {
-            XposedBridge.log("HyperIsland[AINotifIsland]: Injection error: ${e.message}")
-        }
+        return IslandViewModel(
+            templateId        = TEMPLATE_ID,
+            leftTitle         = leftText,
+            rightTitle        = rightText,
+            focusTitle        = data.title,
+            focusContent      = data.subtitle.ifEmpty { data.title },
+            islandIcon        = islandIcon,
+            focusIcon         = focusIcon,
+            circularProgress  = null,
+            showRightSide     = true,
+            actions           = data.actions,
+            updatable         = data.isOngoing,
+            showNotification  = showNotification,
+            setFocusProxy     = showNotification,
+            preserveStatusBarSmallIcon = showNotification && data.preserveStatusBarSmallIcon != "off",
+            firstFloat        = data.firstFloat == "on",
+            enableFloat       = data.enableFloatMode == "on",
+            timeoutSecs       = data.islandTimeout,
+            isOngoing         = data.isOngoing,
+        )
     }
 
-    // ── 图标解析辅助 ───────────────────────────────────────────────────────────
-
-    private data class _IconData(
-        val notifIcon: Icon?,
-        val largeIcon: Icon?,
-        val appIconRaw: Icon?,
-    )
+    // ── 图标解析 ──────────────────────────────────────────────────────────────
 
     private fun resolveIcon(data: NotifData, mode: String?, fallback: Icon): Icon =
-        resolveIcon(_IconData(data.notifIcon, data.largeIcon, data.appIconRaw), mode, fallback)
-
-    private fun resolveIcon(data: _IconData, mode: String?, fallback: Icon): Icon =
         when (mode) {
             "notif_small" -> data.notifIcon ?: fallback
             "notif_large" -> data.largeIcon ?: data.notifIcon ?: fallback
             "app_icon"    -> data.appIconRaw ?: fallback
             else          -> data.largeIcon ?: data.notifIcon ?: fallback
         }
-
-    // ── JSON / 通知工具（与 NotificationIslandNotification 保持一致） ──────────
-
-    private fun injectUpdatable(jsonParam: String, updatable: Boolean): String =
-        try {
-            val json = JSONObject(jsonParam)
-            json.optJSONObject("param_v2")?.put("updatable", updatable)
-            json.toString()
-        } catch (_: Exception) { jsonParam }
-
-    private fun fixTextButtonJson(jsonParam: String, wrapLongText: Boolean = false): String =
-        try {
-            val json = JSONObject(jsonParam)
-            val pv2  = json.optJSONObject("param_v2") ?: return jsonParam
-            val btns = pv2.optJSONArray("textButton")
-            if (btns != null) {
-                for (i in 0 until btns.length()) {
-                    val btn = btns.getJSONObject(i)
-                    val key = btn.optString("actionIntent").takeIf { it.isNotEmpty() } ?: continue
-                    btn.put("action", key)
-                    btn.remove("actionIntent")
-                    btn.remove("actionIntentType")
-                }
-            }
-            if (wrapLongText) {
-                val iconTextInfo = pv2.optJSONObject("iconTextInfo")
-                if (iconTextInfo != null) {
-                    val content = iconTextInfo.optString("content", "")
-                    if (content.isNotEmpty()) {
-                        var visualLen = 0
-                        var splitIdx  = -1
-                        for (i in content.indices) {
-                            visualLen += if (content[i].code > 255) 2 else 1
-                            if (visualLen >= 36 && splitIdx == -1) splitIdx = i + 1
-                        }
-                        if (splitIdx != -1 && splitIdx < content.length) {
-                            val subContent = content.substring(splitIdx)
-                            val isUseless  = subContent.all { it == '.' || it == '…' || it.isWhitespace() }
-                            if (!isUseless) {
-                                val coverInfo = JSONObject()
-                                val animIcon  = iconTextInfo.optJSONObject("animIconInfo")
-                                coverInfo.put("picCover", animIcon?.optString("src", "") ?: "")
-                                coverInfo.put("title",      iconTextInfo.optString("title", ""))
-                                coverInfo.put("content",    content.substring(0, splitIdx))
-                                coverInfo.put("subContent", subContent)
-                                pv2.remove("iconTextInfo")
-                                pv2.put("coverInfo", coverInfo)
-                            }
-                        }
-                    }
-                }
-            }
-            json.toString()
-        } catch (_: Exception) { jsonParam }
-
-    private fun isWrapLongTextEnabled(context: Context): Boolean =
-        try {
-            val uri = android.net.Uri.parse("content://io.github.hyperisland.settings/pref_wrap_long_text")
-            context.contentResolver.query(uri, null, null, null, null)
-                ?.use { if (it.moveToFirst()) it.getInt(0) != 0 else false } ?: false
-        } catch (_: Exception) { false }
-
-    private fun flattenActionsToExtras(resourceBundle: Bundle, extras: Bundle) {
-        val nested = resourceBundle.getBundle("miui.focus.actions") ?: return
-        for (key in nested.keySet()) {
-            val action: Notification.Action? = if (android.os.Build.VERSION.SDK_INT >= 33)
-                nested.getParcelable(key, Notification.Action::class.java)
-            else
-                @Suppress("DEPRECATION") nested.getParcelable(key)
-            if (action != null) extras.putParcelable(key, action)
-        }
-    }
 }

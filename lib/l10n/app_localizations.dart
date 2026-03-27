@@ -448,12 +448,6 @@ abstract class AppLocalizations {
   /// **'自动折行'**
   String get wrapLongTextTitle;
 
-  /// No description provided for @wrapLongTextSubtitle.
-  ///
-  /// In zh, this message translates to:
-  /// **'焦点通知长文本自动拆分为两行显示'**
-  String get wrapLongTextSubtitle;
-
   /// No description provided for @themeModeTitle.
   ///
   /// In zh, this message translates to:
@@ -891,6 +885,24 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'模板'**
   String get template;
+
+  /// No description provided for @rendererLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'样式'**
+  String get rendererLabel;
+
+  /// No description provided for @rendererImageTextWithButtons4Name.
+  ///
+  /// In zh, this message translates to:
+  /// **'新图文组件+按钮组件4'**
+  String get rendererImageTextWithButtons4Name;
+
+  /// No description provided for @rendererCoverInfoName.
+  ///
+  /// In zh, this message translates to:
+  /// **'封面组件+自动换行'**
+  String get rendererCoverInfoName;
 
   /// No description provided for @islandIcon.
   ///

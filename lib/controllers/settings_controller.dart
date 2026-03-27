@@ -6,7 +6,6 @@ const kPrefUseHookAppIcon             = 'pref_use_hook_app_icon';
 const kPrefRoundIcon                  = 'pref_round_icon';
 const kPrefMarqueeFeature             = 'pref_marquee_feature';
 const kPrefMarqueeSpeed               = 'pref_marquee_speed';
-const kPrefWrapLongText               = 'pref_wrap_long_text';
 const kPrefUnlockAllFocus             = 'pref_unlock_all_focus';
 const kPrefUnlockFocusAuth            = 'pref_unlock_focus_auth';
 const kPrefThemeMode                  = 'pref_theme_mode';
@@ -35,7 +34,6 @@ class SettingsController extends ChangeNotifier {
   bool roundIcon = true;
   bool marqueeFeature = false;
   int marqueeSpeed = 100;
-  bool wrapLongText = false;
   bool unlockAllFocus = false;
   bool unlockFocusAuth = false;
   bool checkUpdateOnLaunch = true;
@@ -59,7 +57,6 @@ class SettingsController extends ChangeNotifier {
     roundIcon                 = prefs.getBool(kPrefRoundIcon) ?? true;
     marqueeFeature        = prefs.getBool(kPrefMarqueeFeature) ?? false;
     marqueeSpeed          = (prefs.getInt(kPrefMarqueeSpeed) ?? 100).clamp(20, 500);
-    wrapLongText          = prefs.getBool(kPrefWrapLongText) ?? false;
     unlockAllFocus        = prefs.getBool(kPrefUnlockAllFocus) ?? false;
     unlockFocusAuth       = prefs.getBool(kPrefUnlockFocusAuth) ?? false;
     checkUpdateOnLaunch        = prefs.getBool(kPrefCheckUpdateOnLaunch) ?? true;
@@ -119,12 +116,6 @@ class SettingsController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setWrapLongText(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(kPrefWrapLongText, value);
-    wrapLongText = value;
-    notifyListeners();
-  }
 
   Future<void> setUnlockAllFocus(bool value) async {
     final prefs = await SharedPreferences.getInstance();

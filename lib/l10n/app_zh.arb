@@ -87,7 +87,6 @@
     }
   },
   "wrapLongTextTitle": "自动折行",
-  "wrapLongTextSubtitle": "焦点通知长文本自动拆分为两行显示",
   "themeModeTitle": "颜色模式",
   "themeModeSystem": "跟随系统",
   "themeModeLight": "浅色",
@@ -248,6 +247,9 @@
   "islandSection": "岛",
 
   "template": "模板",
+  "rendererLabel": "样式",
+  "rendererImageTextWithButtons4Name": "新图文组件+按钮组件4",
+  "rendererCoverInfoName": "封面组件+自动换行",
   "islandIcon": "超级岛图标",
   "focusIconLabel": "焦点图标",
   "focusNotificationLabel": "焦点通知",

@@ -110,4 +110,6 @@ data class NotifData(
     val isOngoing: Boolean = false,
     /** 原通知的点击动作，用于代发通知时还原点击行为。 */
     val contentIntent: android.app.PendingIntent? = null,
+    /** 渲染器（样式）标识符，对应 ImageTextWithButtonsRenderer.RENDERER_ID 等。 */
+    val renderer: String = "image_text_with_buttons_4",
 )

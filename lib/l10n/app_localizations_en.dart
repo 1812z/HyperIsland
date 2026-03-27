@@ -205,10 +205,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wrapLongTextTitle => 'Auto Wrap';
 
   @override
-  String get wrapLongTextSubtitle =>
-      'Split long focus notification text into two lines';
-
-  @override
   String get themeModeTitle => 'Color mode';
 
   @override
@@ -464,6 +460,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get template => 'Template';
+
+  @override
+  String get rendererLabel => 'Style';
+
+  @override
+  String get rendererImageTextWithButtons4Name => 'Image+Text+Buttons 4';
+
+  @override
+  String get rendererCoverInfoName => 'Cover Info+Auto Wrap';
 
   @override
   String get islandIcon => 'Island icon';

@@ -23,11 +23,18 @@ import io.github.d4viddf.hyperisland_kit.models.ImageTextInfoRight
 import io.github.d4viddf.hyperisland_kit.models.PicInfo
 import io.github.d4viddf.hyperisland_kit.models.ProgressTextInfo
 import io.github.d4viddf.hyperisland_kit.models.TextInfo
+import io.github.hyperisland.xposed.renderer.ImageTextWithButtonsWrapRenderer
+import io.github.hyperisland.xposed.renderer.fixTextButtonJson
+import io.github.hyperisland.xposed.renderer.flattenActionsToExtras
+import io.github.hyperisland.xposed.renderer.wrapLongTextJson
 
 /**
  * 下载灵动岛通知构建器。
  * 专为 MIUI DownloadManager 系统下载设计，按钮硬编码暂停/恢复/取消，
  * 通过 [InProcessController] 直接操作下载任务。
+ *
+ * 注意：此构建器由 DownloadHook 直接调用，不经过模板注册表，
+ * 因此不实现 [IslandTemplate] 接口，保持独立的参数入口。
  */
 object DownloadIslandNotification {
 
@@ -45,8 +52,10 @@ object DownloadIslandNotification {
         packageName: String,
         isPaused: Boolean = false,
         appIcon: Icon? = null,
+        channelId: String = "",
     ) {
         try {
+            val renderer = loadRendererSetting(context, packageName, channelId)
             val isComplete  = progress >= 100
             val isMultiFile = Regex("""\d+个文件""").containsMatchIn(title + text + fileName)
             val combined    = title + text
@@ -75,9 +84,9 @@ object DownloadIslandNotification {
             }
 
             val tintColor = when {
-                isComplete            -> 0xFF4CAF50.toInt()  // 绿
-                isPaused || isWaiting -> 0xFFFF9800.toInt()  // 橙
-                else                  -> 0xFF2196F3.toInt()  // 蓝
+                isComplete            -> 0xFF4CAF50.toInt()
+                isPaused || isWaiting -> 0xFFFF9800.toInt()
+                else                  -> 0xFF2196F3.toInt()
             }
             val fallbackIcon = createDownloadIcon(context, tintColor, IconType.DOWNLOADING)
             val downloadIcon = appIcon ?: fallbackIcon
@@ -96,7 +105,8 @@ object DownloadIslandNotification {
                 isMultiFile            -> mc.getString(R.string.island_action_pause_all)
                 else                   -> mc.getString(R.string.island_action_pause)
             }
-            val cancelLabel = if (isMultiFile) mc.getString(R.string.island_action_cancel_all) else mc.getString(R.string.island_action_cancel)
+            val cancelLabel = if (isMultiFile) mc.getString(R.string.island_action_cancel_all)
+                              else             mc.getString(R.string.island_action_cancel)
 
             val builder = HyperIslandNotification.Builder(context, "download_island", fileName)
 
@@ -111,14 +121,12 @@ object DownloadIslandNotification {
             builder.setIslandFirstFloat(false)
             builder.setEnableFloat(false)
 
-            // 小岛：仅在进度合法时显示环形进度，其他状态仅图标
             if (shouldShowProgress) {
                 builder.setSmallIslandCircularProgress("key_download_icon", safeProgress)
             } else {
                 builder.setSmallIsland("key_download_icon")
             }
 
-            // 大岛：仅在进度合法时显示右侧环形进度，否则退化为文本态
             if (shouldShowProgress) {
                 builder.setBigIslandInfo(
                     left = ImageTextInfoLeft(
@@ -145,9 +153,7 @@ object DownloadIslandNotification {
                 )
             }
 
-            // 按钮：下载中/暂停时显示暂停/恢复 + 取消
             if (!isComplete && !isWaiting) {
-                // 文本模式（无图标），避免 TextButtonInfo.actionIcon 指向不存在的 pic 键
                 val primaryAction = HyperAction(
                     key              = "action_primary",
                     title            = primaryLabel,
@@ -167,10 +173,8 @@ object DownloadIslandNotification {
 
             val resourceBundle = builder.buildResourceBundle()
             extras.putAll(resourceBundle)
-            // HyperOS 从 extras 顶层查找 action，将嵌套 bundle 展开
             flattenActionsToExtras(resourceBundle, extras)
 
-            // AOD 息屏显示 + updatable
             val aodTitle = when {
                 isComplete       -> mc.getString(R.string.island_download_complete)
                 isPaused         -> mc.getString(R.string.island_download_paused)
@@ -178,15 +182,15 @@ object DownloadIslandNotification {
                 hasValidProgress -> mc.getString(R.string.island_aod_downloading_progress, safeProgress)
                 else             -> mc.getString(R.string.island_downloading)
             }
-            // 修正 textButton 字段名 + 注入 aodTitle/updatable
-            val wrapLongText = isWrapLongTextEnabled(context)
             val finalJson = try {
-                val json = org.json.JSONObject(fixTextButtonJson(builder.buildJsonParam(), wrapLongText))
-                val pv2  = json.optJSONObject("param_v2") ?: org.json.JSONObject()
+                var json = fixTextButtonJson(builder.buildJsonParam())
+                if (renderer == ImageTextWithButtonsWrapRenderer.RENDERER_ID) json = wrapLongTextJson(json)
+                val obj = org.json.JSONObject(json)
+                val pv2 = obj.optJSONObject("param_v2") ?: org.json.JSONObject()
                 pv2.put("aodTitle", aodTitle)
                 pv2.put("updatable", !isComplete)
-                json.put("param_v2", pv2)
-                json.toString()
+                obj.put("param_v2", pv2)
+                obj.toString()
             } catch (_: Exception) { builder.buildJsonParam() }
             extras.putString("miui.focus.param", finalJson)
 
@@ -204,84 +208,14 @@ object DownloadIslandNotification {
         }
     }
 
-    /**
-     * 将 textButton 数组里新库输出的 "actionIntent"+"actionIntentType"
-     * 替换为 HyperOS V3 协议所需的 "action" 字段，否则按钮点击无响应。
-     */
-    private fun fixTextButtonJson(jsonParam: String, wrapLongText: Boolean = false): String {
+    private fun loadRendererSetting(context: Context, packageName: String, channelId: String): String {
         return try {
-            val json = org.json.JSONObject(jsonParam)
-            val pv2  = json.optJSONObject("param_v2") ?: return jsonParam
-            val btns = pv2.optJSONArray("textButton")
-            if (btns != null) {
-                for (i in 0 until btns.length()) {
-                    val btn = btns.getJSONObject(i)
-                    val key = btn.optString("actionIntent").takeIf { it.isNotEmpty() } ?: continue
-                    btn.put("action", key)
-                    btn.remove("actionIntent")
-                    btn.remove("actionIntentType")
-                }
-            }
-
-            // 处理超长文本：将 iconTextInfo 转换为 coverInfo，使 content/subContent 上下两行显示
-            if (wrapLongText) {
-            val iconTextInfo = pv2.optJSONObject("iconTextInfo")
-            if (iconTextInfo != null) {
-                val content = iconTextInfo.optString("content", "")
-                if (content.isNotEmpty()) {
-                    var visualLen = 0
-                    var splitIdx = -1
-                    for (i in content.indices) {
-                        val c = content[i]
-                        visualLen += if (c.code > 255) 2 else 1
-                        if (visualLen >= 36 && splitIdx == -1) {
-                            splitIdx = i + 1
-                        }
-                    }
-                    if (splitIdx != -1 && splitIdx < content.length) {
-                        val subContent = content.substring(splitIdx)
-                        val isUseless = subContent.all { it == '.' || it == '…' || it.isWhitespace() }
-                        if (!isUseless) {
-                            val coverInfo = org.json.JSONObject()
-                            val animIcon = iconTextInfo.optJSONObject("animIconInfo")
-                            if (animIcon != null) {
-                                coverInfo.put("picCover", animIcon.optString("src", ""))
-                            }
-                            coverInfo.put("title", iconTextInfo.optString("title", ""))
-                            coverInfo.put("content", content.substring(0, splitIdx))
-                            coverInfo.put("subContent", subContent)
-                            pv2.remove("iconTextInfo")
-                            pv2.put("coverInfo", coverInfo)
-                        }
-                    }
-                }
-            }
-            } // wrapLongText
-
-            json.toString()
-        } catch (_: Exception) { jsonParam }
-    }
-
-    private fun isWrapLongTextEnabled(context: Context): Boolean {
-        return try {
-            val uri = android.net.Uri.parse("content://io.github.hyperisland.settings/pref_wrap_long_text")
+            val key = "pref_channel_renderer_${packageName}_$channelId"
+            val uri = android.net.Uri.parse("content://io.github.hyperisland.settings/$key")
             context.contentResolver.query(uri, null, null, null, null)
-                ?.use { if (it.moveToFirst()) it.getInt(0) != 0 else false } ?: false
-        } catch (_: Exception) {
-            false
-        }
-    }
-
-    /** 将 buildResourceBundle() 里嵌套的 "miui.focus.actions" 展开到 extras 顶层 */
-    private fun flattenActionsToExtras(resourceBundle: Bundle, extras: Bundle) {
-        val nested = resourceBundle.getBundle("miui.focus.actions") ?: return
-        for (key in nested.keySet()) {
-            val action: Notification.Action? = if (Build.VERSION.SDK_INT >= 33)
-                nested.getParcelable(key, Notification.Action::class.java)
-            else
-                @Suppress("DEPRECATION") nested.getParcelable(key)
-            if (action != null) extras.putParcelable(key, action)
-        }
+                ?.use { if (it.moveToFirst()) it.getString(0).takeIf { s -> s.isNotBlank() } else null }
+                ?: "image_text_with_buttons_4"
+        } catch (_: Exception) { "image_text_with_buttons_4" }
     }
 
     private fun createDownloadIcon(context: Context, color: Int, iconType: IconType): Icon {

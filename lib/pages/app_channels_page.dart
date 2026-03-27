@@ -27,6 +27,7 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
   Set<String> _enabledChannels = {};
   Map<String, String> _channelTemplates = {};
   Map<String, String> _templateLabels = {};   // id → 显示名称，从原生侧加载
+  Map<String, String> _rendererLabels = {};   // id → 显示名称
   Map<String, Map<String, String>> _channelExtras = {};  // channelId → extra settings
   bool _loading = true;
 
@@ -50,8 +51,10 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
       channels = [];
     }
 
-    final enabled        = await widget.controller.getEnabledChannels(pkg);
-    final templateLabels = widget.controller.getTemplates(AppLocalizations.of(context)!);
+    final enabled         = await widget.controller.getEnabledChannels(pkg);
+    final l10nForLabels   = AppLocalizations.of(context)!;
+    final templateLabels  = widget.controller.getTemplates(l10nForLabels);
+    final rendererLabels  = widget.controller.getRenderers(l10nForLabels);
     final channelIds = channels.map((c) => c.id).toList();
     final channelTemplates = await widget.controller.getChannelTemplates(pkg, channelIds);
     final channelExtras    = await widget.controller.getChannelExtraSettings(pkg, channelIds);
@@ -61,6 +64,7 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
         _enabledChannels  = enabled;
         _channelTemplates = channelTemplates;
         _templateLabels   = templateLabels;
+        _rendererLabels   = rendererLabels;
         _channelExtras    = channelExtras;
         _loading          = false;
       });
@@ -175,8 +179,14 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
     await widget.controller.setChannelMarquee(widget.app.packageName, channelId, value);
   }
 
+  Future<void> _setRenderer(String channelId, String value) async {
+    _updateExtra(channelId, 'renderer', value);
+    await widget.controller.setChannelRenderer(widget.app.packageName, channelId, value);
+  }
+
   Future<void> _applyChannelSettings(String channelId, Map<String, String?> settings) async {
     if (settings['template'] case final t?) await _setTemplate(channelId, t);
+    if (settings['renderer'] case final v?) await _setRenderer(channelId, v);
     if (settings['icon'] case final v?) await _setIconMode(channelId, v);
     if (settings['focus_icon'] case final v?) await _setFocusIconMode(channelId, v);
     if (settings['focus'] case final v?) await _setFocusNotif(channelId, v);
@@ -225,6 +235,7 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
         subtitle: l10n.applyToEnabledChannels(enabledIds.length),
       )),
       templateLabels: _templateLabels,
+      rendererLabels: _rendererLabels,
     );
     if (result == null || !mounted) return;
 
@@ -407,6 +418,8 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                       appEnabled: widget.appEnabled,
                       template: template,
                       templateLabels: _templateLabels,
+                      renderer: extras['renderer'] ?? kRendererImageTextWithButtons4,
+                      rendererLabels: _rendererLabels,
                       importanceLabel: _importanceLabel(ch.importance, l10n),
                       isFirst: isFirst,
                       isLast: isLast,
@@ -442,6 +455,8 @@ class _ChannelTile extends StatelessWidget {
     required this.appEnabled,
     required this.template,
     required this.templateLabels,
+    required this.renderer,
+    required this.rendererLabels,
     required this.importanceLabel,
     required this.isFirst,
     required this.isLast,
@@ -462,6 +477,8 @@ class _ChannelTile extends StatelessWidget {
   final bool appEnabled;
   final String template;
   final Map<String, String> templateLabels;
+  final String renderer;
+  final Map<String, String> rendererLabels;
   final String importanceLabel;
   final bool isFirst;
   final bool isLast;
@@ -482,6 +499,7 @@ class _ChannelTile extends StatelessWidget {
       mode: SingleChannelMode(
         channelName:   channel.name,
         template:      template,
+        renderer:      renderer,
         iconMode:      iconMode,
         focusIconMode: focusIconMode,
         focusNotif:    focusNotif,
@@ -492,6 +510,7 @@ class _ChannelTile extends StatelessWidget {
         marquee:       marquee,
       ),
       templateLabels: templateLabels,
+      rendererLabels: rendererLabels,
     );
     if (result != null) onSettingsApplied(result.settings);
   }

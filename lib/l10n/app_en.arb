@@ -72,7 +72,6 @@
     }
   },
   "wrapLongTextTitle": "Auto Wrap",
-  "wrapLongTextSubtitle": "Split long focus notification text into two lines",
   "themeModeTitle": "Color mode",
   "themeModeSystem": "Follow system",
   "themeModeLight": "Light",
@@ -150,6 +149,9 @@
   "islandSection": "Island",
 
   "template": "Template",
+  "rendererLabel": "Style",
+  "rendererImageTextWithButtons4Name": "Image+Text+Buttons 4",
+  "rendererCoverInfoName": "Cover Info+Auto Wrap",
   "islandIcon": "Island icon",
   "focusIconLabel": "Focus icon",
   "focusNotificationLabel": "Focus notification",

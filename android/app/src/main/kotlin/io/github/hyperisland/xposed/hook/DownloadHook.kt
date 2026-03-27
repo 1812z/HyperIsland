@@ -123,7 +123,7 @@ class DownloadHook : IXposedHookLoadPackage {
                         InProcessController.ensureRegistered(context)
                         val appIcon = if (InProcessController.useHookAppIconEnabled)
                             context.packageManager.getAppIcon(lpparam.packageName) else null
-                        DownloadIslandNotification.inject(context, extras, title, text, progress, appName, fileName, downloadId, lpparam.packageName, appIcon = appIcon)
+                        DownloadIslandNotification.inject(context, extras, title, text, progress, appName, fileName, downloadId, lpparam.packageName, appIcon = appIcon, channelId = channelId)
                         // 不在此处设置 hyperisland_processed，让 Notify hook 继续运行设置 notif.actions
                     }
                 })
@@ -219,7 +219,7 @@ class DownloadHook : IXposedHookLoadPackage {
                 )
             }
 
-            DownloadIslandNotification.inject(context, extras, title, text, progress, appName, fileName, downloadId, lpparam.packageName, appIcon = appIcon)
+            DownloadIslandNotification.inject(context, extras, title, text, progress, appName, fileName, downloadId, lpparam.packageName, appIcon = appIcon, channelId = channelId)
             extras.putBoolean("hyperisland_processed", true)
 
             // 同步最新快照给 InProcessController，供暂停后重建覆盖通知

@@ -194,9 +194,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get wrapLongTextTitle => '自动折行';
 
   @override
-  String get wrapLongTextSubtitle => '焦点通知长文本自动拆分为两行显示';
-
-  @override
   String get themeModeTitle => '颜色模式';
 
   @override
@@ -446,6 +443,15 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get template => '模板';
+
+  @override
+  String get rendererLabel => '样式';
+
+  @override
+  String get rendererImageTextWithButtons4Name => '新图文组件+按钮组件4';
+
+  @override
+  String get rendererCoverInfoName => '封面组件+自动换行';
 
   @override
   String get islandIcon => '超级岛图标';

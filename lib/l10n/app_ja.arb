@@ -72,7 +72,6 @@
     }
   },
   "wrapLongTextTitle": "自動で折り返す",
-  "wrapLongTextSubtitle": "長いフォーカス通知テキストを二行に分割します",
   "themeModeTitle": "カラーモード",
   "themeModeSystem": "システムに従う",
   "themeModeLight": "ライト",
@@ -150,6 +149,9 @@
   "islandSection": "Island",
 
   "template": "テンプレート",
+  "rendererLabel": "スタイル",
+  "rendererImageTextWithButtons4Name": "画像+テキスト+ボタン 4",
+  "rendererCoverInfoName": "カバー情報+自動で折り返す",
   "islandIcon": "Island のアイコン",
   "focusIconLabel": "フォーカスアイコン",
   "focusNotificationLabel": "フォーカス通知",
@@ -188,7 +190,7 @@
     }
   },
   "blacklistedAppsCount": "{count} 個のアプリのフォーカス通知をブロックしました",
-  "blacklistedAppsCountWithSystem": "{count} 個のアプリのフォーカス通知をブロックしました (システムアプリを含む)"
+  "blacklistedAppsCountWithSystem": "{count} 個のアプリのフォーカス通知をブロックしました (システムアプリを含む)",
 
   "firstFloatLabelSubtitle": "Island が初めて通知を受信時にフォーカス通知として展開します",
   "updateFloatLabelSubtitle": "Island の更新時にフロート通知を展開します",

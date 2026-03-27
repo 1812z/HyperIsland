@@ -64,8 +64,7 @@ class GenericProgressHook : IXposedHookLoadPackage {
                             segment.startsWith("pref_channel_") ||
                             segment == "pref_preserve_status_bar_small_icon" ||
                             segment == "pref_marquee_speed" ||
-                            segment == "pref_round_icon" ||
-                            segment == "pref_wrap_long_text" -> {
+                            segment == "pref_round_icon"  -> {
                                 cachedChannelSettings.clear()
                                 XposedBridge.log("HyperIsland[Generic]: channel settings cache cleared for $segment")
                             }
@@ -408,6 +407,10 @@ class GenericProgressHook : IXposedHookLoadPackage {
                 loadChannelStringSetting(context, "marquee:$pkg/$channelId", "pref_channel_marquee_${pkg}_$channelId", "default")
             )
             MarqueeHook.pendingMarqueeEnabled = marqueeEnabled
+            val renderer = loadChannelStringSetting(
+                context, "renderer:$pkg/$channelId",
+                "pref_channel_renderer_${pkg}_$channelId", "image_text_with_buttons_4"
+            )
 
             XposedBridge.log(
                 "HyperIsland[Generic]: $pkg/$channelId | $title | $progressPercent% | template=$template | buttons=${actions.size} | largeIcon=${largeIcon != null} | preserveSmallIcon=$preserveStatusBarSmallIcon"
@@ -437,6 +440,7 @@ class GenericProgressHook : IXposedHookLoadPackage {
                     islandTimeout   = islandTimeout,
                     isOngoing       = isOngoing,
                     contentIntent   = notif.contentIntent,
+                    renderer        = renderer,
                 ),
             )
 
