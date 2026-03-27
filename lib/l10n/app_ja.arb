@@ -80,6 +80,7 @@
   "languageZh": "中文",
   "languageEn": "English",
   "languageJa": "日本語",
+  "languageTr": "Türkçe",
   "exportToFile": "ファイルにエクスポート",
   "exportToFileSubtitle": "構成を JSON ファイルで保存します",
   "exportToClipboard": "クリップボードにエクスポート",

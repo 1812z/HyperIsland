@@ -218,6 +218,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get languageJa => '日本語';
 
   @override
+  String get languageTr => 'Türkçe';
+
+  @override
   String get exportToFile => '导出到文件';
 
   @override

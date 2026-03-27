@@ -355,11 +355,15 @@ class BlacklistController extends ChangeNotifier {
     final q = _searchQuery.toLowerCase();
     Iterable<AppInfo> source = showSystemApps
         ? _sortedApps
-        : _sortedApps.where((a) => !a.isSystem || blacklistedPackages.contains(a.packageName));
+        : _sortedApps.where(
+            (a) => !a.isSystem || blacklistedPackages.contains(a.packageName),
+          );
     if (q.isNotEmpty) {
-      source = source.where((a) =>
-          a.appName.toLowerCase().contains(q) ||
-          a.packageName.toLowerCase().contains(q));
+      source = source.where(
+        (a) =>
+            a.appName.toLowerCase().contains(q) ||
+            a.packageName.toLowerCase().contains(q),
+      );
     }
     return source is List<AppInfo> ? source : source.toList();
   }
@@ -373,12 +377,15 @@ class BlacklistController extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       final csv = prefs.getString(kPrefAppBlacklist) ?? '';
-      blacklistedPackages =
-          csv.isEmpty ? {} : csv.split(',').where((s) => s.isNotEmpty).toSet();
-      
+      blacklistedPackages = csv.isEmpty
+          ? {}
+          : csv.split(',').where((s) => s.isNotEmpty).toSet();
+
       final rawList =
-          await _channel.invokeMethod<List<dynamic>>(
-              'getInstalledApps', {'includeSystem': true}) ?? [];
+          await _channel.invokeMethod<List<dynamic>>('getInstalledApps', {
+            'includeSystem': true,
+          }) ??
+          [];
       const _excludedPackages = {
         'com.android.providers.downloads',
         'com.xiaomi.android.app.downloadmanager',
@@ -429,14 +436,18 @@ class BlacklistController extends ChangeNotifier {
   }
 
   Future<void> enableAll() async {
-    for (final a in filteredApps) blacklistedPackages.add(a.packageName);
+    for (final a in filteredApps) {
+      blacklistedPackages.add(a.packageName);
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(kPrefAppBlacklist, blacklistedPackages.join(','));
     notifyListeners();
   }
 
   Future<void> disableAll() async {
-    for (final a in filteredApps) blacklistedPackages.remove(a.packageName);
+    for (final a in filteredApps) {
+      blacklistedPackages.remove(a.packageName);
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(kPrefAppBlacklist, blacklistedPackages.join(','));
     notifyListeners();
@@ -445,7 +456,8 @@ class BlacklistController extends ChangeNotifier {
   Future<int> applyGamePreset() async {
     int addedCount = 0;
     for (final app in _allApps) {
-      if (_gamePresets.contains(app.packageName) && !blacklistedPackages.contains(app.packageName)) {
+      if (_gamePresets.contains(app.packageName) &&
+          !blacklistedPackages.contains(app.packageName)) {
         blacklistedPackages.add(app.packageName);
         addedCount++;
       }
@@ -458,5 +470,4 @@ class BlacklistController extends ChangeNotifier {
     }
     return addedCount;
   }
-
 }

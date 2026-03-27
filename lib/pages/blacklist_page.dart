@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../controllers/blacklist_controller.dart';
-import '../l10n/app_localizations.dart';
+import '../l10n/generated/app_localizations.dart';
 
 class BlacklistPage extends StatefulWidget {
   const BlacklistPage({super.key});
@@ -59,14 +59,18 @@ class _BlacklistPageState extends State<BlacklistPage> {
                 IconButton(
                   icon: const Icon(Icons.videogame_asset),
                   tooltip: l10n.presetGamesTitle,
-                  onPressed: _ctrl.loading ? null : () async {
-                    final count = await _ctrl.applyGamePreset();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(l10n.presetGamesSuccess(count))),
-                      );
-                    }
-                  },
+                  onPressed: _ctrl.loading
+                      ? null
+                      : () async {
+                          final count = await _ctrl.applyGamePreset();
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(l10n.presetGamesSuccess(count)),
+                              ),
+                            );
+                          }
+                        },
                 ),
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.more_vert),
@@ -121,10 +125,9 @@ class _BlacklistPageState extends State<BlacklistPage> {
                       _ctrl.showSystemApps
                           ? l10n.blacklistedAppsCountWithSystem(enabledCount)
                           : l10n.blacklistedAppsCount(enabledCount),
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.copyWith(color: cs.onSurfaceVariant),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     SearchBar(
@@ -162,7 +165,9 @@ class _BlacklistPageState extends State<BlacklistPage> {
               SliverFillRemaining(
                 child: Center(
                   child: Text(
-                    _searchCtrl.text.isEmpty ? l10n.noAppsFound : l10n.noMatchingApps,
+                    _searchCtrl.text.isEmpty
+                        ? l10n.noAppsFound
+                        : l10n.noMatchingApps,
                     style: TextStyle(color: cs.onSurfaceVariant),
                     textAlign: TextAlign.center,
                   ),
@@ -172,24 +177,23 @@ class _BlacklistPageState extends State<BlacklistPage> {
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
                 sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final app = apps[index];
-                      final pkg = app.packageName;
-                      return _AppTile(
-                        app: app,
-                        enabled: _ctrl.blacklistedPackages.contains(pkg),
-                        onChanged: (v) => _ctrl.setBlacklisted(pkg, v ?? false),
-                        onTap: () {
-                          _ctrl.setBlacklisted(
-                              pkg, !_ctrl.blacklistedPackages.contains(pkg));
-                        },
-                        isFirst: index == 0,
-                        isLast: index == apps.length - 1,
-                      );
-                    },
-                    childCount: apps.length,
-                  ),
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final app = apps[index];
+                    final pkg = app.packageName;
+                    return _AppTile(
+                      app: app,
+                      enabled: _ctrl.blacklistedPackages.contains(pkg),
+                      onChanged: (v) => _ctrl.setBlacklisted(pkg, v ?? false),
+                      onTap: () {
+                        _ctrl.setBlacklisted(
+                          pkg,
+                          !_ctrl.blacklistedPackages.contains(pkg),
+                        );
+                      },
+                      isFirst: index == 0,
+                      isLast: index == apps.length - 1,
+                    );
+                  }, childCount: apps.length),
                 ),
               ),
           ],
@@ -262,9 +266,7 @@ class _AppTile extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           app.packageName,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodySmall
+                          style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: cs.onSurfaceVariant),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../l10n/app_localizations.dart';
+import '../l10n/generated/app_localizations.dart';
 import 'home_page.dart';
 import 'whitelist_page.dart';
 import 'settings_page.dart';

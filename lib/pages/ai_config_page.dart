@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../controllers/settings_controller.dart';
-import '../l10n/app_localizations.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../widgets/section_label.dart';
 
 class AiConfigPage extends StatefulWidget {
@@ -31,8 +31,8 @@ class _AiConfigPageState extends State<AiConfigPage> {
   void initState() {
     super.initState();
     _ctrl.addListener(_onCtrlChanged);
-    _urlCtrl   = TextEditingController(text: _ctrl.aiUrl);
-    _keyCtrl   = TextEditingController(text: _ctrl.aiApiKey);
+    _urlCtrl = TextEditingController(text: _ctrl.aiUrl);
+    _keyCtrl = TextEditingController(text: _ctrl.aiApiKey);
     _modelCtrl = TextEditingController(text: _ctrl.aiModel);
   }
 
@@ -60,17 +60,21 @@ class _AiConfigPageState extends State<AiConfigPage> {
   }
 
   Future<void> _test() async {
-    final url   = _urlCtrl.text.trim();
-    final key   = _keyCtrl.text.trim();
+    final url = _urlCtrl.text.trim();
+    final key = _keyCtrl.text.trim();
     final model = _modelCtrl.text.trim();
 
     if (url.isEmpty) {
-      setState(() => _testResult = _TestResult.fail(AppLocalizations.of(context)!.aiTestUrlEmpty));
+      setState(
+        () => _testResult = _TestResult.fail(
+          AppLocalizations.of(context)!.aiTestUrlEmpty,
+        ),
+      );
       return;
     }
 
     setState(() {
-      _testing    = true;
+      _testing = true;
       _testResult = null;
     });
 
@@ -78,7 +82,10 @@ class _AiConfigPageState extends State<AiConfigPage> {
       final body = jsonEncode({
         'model': model.isEmpty ? 'gpt-4o-mini' : model,
         'messages': [
-          {'role': 'user', 'content': 'Reply with exactly: {"left":"test","right":"ok"}'},
+          {
+            'role': 'user',
+            'content': 'Reply with exactly: {"left":"test","right":"ok"}',
+          },
         ],
         'max_tokens': 30,
         'temperature': 0,
@@ -98,15 +105,17 @@ class _AiConfigPageState extends State<AiConfigPage> {
 
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>;
-        final content = (json['choices'] as List?)
-            ?.firstOrNull
-            ?['message']
-            ?['content'] as String? ?? '';
+        final content =
+            (json['choices'] as List?)?.firstOrNull?['message']?['content']
+                as String? ??
+            '';
         setState(() => _testResult = _TestResult.ok(content.trim()));
       } else {
-        setState(() => _testResult = _TestResult.fail(
-          'HTTP ${response.statusCode}\n${response.body}',
-        ));
+        setState(
+          () => _testResult = _TestResult.fail(
+            'HTTP ${response.statusCode}\n${response.body}',
+          ),
+        );
       }
     } on Exception catch (e) {
       setState(() => _testResult = _TestResult.fail(e.toString()));
@@ -117,7 +126,7 @@ class _AiConfigPageState extends State<AiConfigPage> {
 
   @override
   Widget build(BuildContext context) {
-    final cs   = Theme.of(context).colorScheme;
+    final cs = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
@@ -140,12 +149,16 @@ class _AiConfigPageState extends State<AiConfigPage> {
                   elevation: 0,
                   color: cs.surfaceContainerHighest,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   child: SwitchListTile(
-                    contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     title: Text(l10n.aiEnabledTitle),
                     subtitle: Text(l10n.aiEnabledSubtitle),
                     value: _ctrl.aiEnabled,
@@ -161,7 +174,8 @@ class _AiConfigPageState extends State<AiConfigPage> {
                   elevation: 0,
                   color: cs.surfaceContainerHighest,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                     child: Column(
@@ -191,9 +205,11 @@ class _AiConfigPageState extends State<AiConfigPage> {
                             border: const OutlineInputBorder(),
                             prefixIcon: const Icon(Icons.key),
                             suffixIcon: IconButton(
-                              icon: Icon(_keyObscured
-                                  ? Icons.visibility_off
-                                  : Icons.visibility),
+                              icon: Icon(
+                                _keyObscured
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
                               onPressed: () =>
                                   setState(() => _keyObscured = !_keyObscured),
                             ),
@@ -223,7 +239,9 @@ class _AiConfigPageState extends State<AiConfigPage> {
                                     ? const SizedBox(
                                         width: 16,
                                         height: 16,
-                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
                                       )
                                     : const Icon(Icons.wifi_tethering),
                                 label: Text(l10n.aiTestButton),
@@ -255,21 +273,24 @@ class _AiConfigPageState extends State<AiConfigPage> {
                   elevation: 0,
                   color: cs.secondaryContainer,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.info_outline,
-                            color: cs.onSecondaryContainer, size: 20),
+                        Icon(
+                          Icons.info_outline,
+                          color: cs.onSecondaryContainer,
+                          size: 20,
+                        ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
                             l10n.aiConfigTips,
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: cs.onSecondaryContainer,
-                                ),
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: cs.onSecondaryContainer),
                           ),
                         ),
                       ],
@@ -303,8 +324,12 @@ class _TestResultCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final color = result.success ? cs.primaryContainer : cs.errorContainer;
-    final onColor = result.success ? cs.onPrimaryContainer : cs.onErrorContainer;
-    final icon = result.success ? Icons.check_circle_outline : Icons.error_outline;
+    final onColor = result.success
+        ? cs.onPrimaryContainer
+        : cs.onErrorContainer;
+    final icon = result.success
+        ? Icons.check_circle_outline
+        : Icons.error_outline;
 
     return Container(
       width: double.infinity,
@@ -321,10 +346,10 @@ class _TestResultCard extends StatelessWidget {
           Expanded(
             child: Text(
               result.message,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: onColor, fontFamily: 'monospace'),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: onColor,
+                fontFamily: 'monospace',
+              ),
             ),
           ),
         ],

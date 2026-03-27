@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../controllers/settings_controller.dart';
 import '../controllers/whitelist_controller.dart';
-import '../l10n/app_localizations.dart';
+import '../l10n/generated/app_localizations.dart';
 
 // ── 操作模式（sealed class）──────────────────────────────────────────────────
 
@@ -81,10 +81,7 @@ class BatchApplyResult {
   final Map<String, String?> settings;
   final bool onlyEnabled;
 
-  const BatchApplyResult({
-    required this.settings,
-    required this.onlyEnabled,
-  });
+  const BatchApplyResult({required this.settings, required this.onlyEnabled});
 }
 
 // ── 主体组件 ─────────────────────────────────────────────────────────────────
@@ -130,8 +127,7 @@ class BatchChannelSettingsSheet extends StatefulWidget {
       _BatchChannelSettingsSheetState();
 }
 
-class _BatchChannelSettingsSheetState
-    extends State<BatchChannelSettingsSheet> {
+class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
   AppLocalizations _l10n(BuildContext context) => AppLocalizations.of(context)!;
   SettingsController get _ctrl => SettingsController.instance;
 
@@ -162,16 +158,16 @@ class _BatchChannelSettingsSheetState
   void initState() {
     super.initState();
     if (widget.mode case SingleChannelMode m) {
-      _template          = m.template;
-      _renderer          = m.renderer;
-      _iconMode          = m.iconMode;
-      _focusIconMode     = m.focusIconMode;
-      _focusNotif        = m.focusNotif;
+      _template = m.template;
+      _renderer = m.renderer;
+      _iconMode = m.iconMode;
+      _focusIconMode = m.focusIconMode;
+      _focusNotif = m.focusNotif;
       _preserveSmallIcon = m.preserveSmallIcon;
-      _firstFloat        = m.firstFloat;
-      _enableFloat       = m.enableFloat;
-      _islandTimeout     = m.islandTimeout;
-      _marquee           = m.marquee;
+      _firstFloat = m.firstFloat;
+      _enableFloat = m.enableFloat;
+      _islandTimeout = m.islandTimeout;
+      _marquee = m.marquee;
       _timeoutController = TextEditingController(text: m.islandTimeout);
     } else {
       _timeoutController = TextEditingController();
@@ -214,36 +210,38 @@ class _BatchChannelSettingsSheetState
       _marquee != null;
 
   String _title(AppLocalizations l10n) => switch (widget.mode) {
-        SingleChannelMode m => m.channelName,
-        BatchChannelMode _ => l10n.batchChannelSettings,
-      };
+    SingleChannelMode m => m.channelName,
+    BatchChannelMode _ => l10n.batchChannelSettings,
+  };
 
   String _subtitle(AppLocalizations l10n) => switch (widget.mode) {
-        SingleChannelMode _ => l10n.channelSettings,
-        BatchChannelMode(scope: final s) => switch (s) {
-            SingleAppScope(:final totalChannels, :final enabledChannels) =>
-              _onlyEnabled
-                  ? l10n.applyToEnabledChannels(enabledChannels)
-                  : l10n.applyToAllChannels(totalChannels),
-            GlobalScope(:final subtitle) => subtitle,
-          },
-      };
+    SingleChannelMode _ => l10n.channelSettings,
+    BatchChannelMode(scope: final s) => switch (s) {
+      SingleAppScope(:final totalChannels, :final enabledChannels) =>
+        _onlyEnabled
+            ? l10n.applyToEnabledChannels(enabledChannels)
+            : l10n.applyToAllChannels(totalChannels),
+      GlobalScope(:final subtitle) => subtitle,
+    },
+  };
 
   void _submit() {
     Navigator.pop(
       context,
       BatchApplyResult(
         settings: {
-          'template':              _template,
-          'renderer':              _renderer,
-          'icon':                  _iconMode,
-          'focus_icon':            _focusIconMode,
-          'focus':                 _focusNotif,
-          'preserve_small_icon':   _focusNotif == kTriOptOff ? kTriOptOff : _preserveSmallIcon,
-          'first_float':           _firstFloat,
-          'enable_float':          _enableFloat,
-          'timeout':               _islandTimeout,
-          'marquee':               _marquee,
+          'template': _template,
+          'renderer': _renderer,
+          'icon': _iconMode,
+          'focus_icon': _focusIconMode,
+          'focus': _focusNotif,
+          'preserve_small_icon': _focusNotif == kTriOptOff
+              ? kTriOptOff
+              : _preserveSmallIcon,
+          'first_float': _firstFloat,
+          'enable_float': _enableFloat,
+          'timeout': _islandTimeout,
+          'marquee': _marquee,
         },
         onlyEnabled: switch (widget.mode) {
           BatchChannelMode(scope: SingleAppScope()) => _onlyEnabled,
@@ -255,7 +253,7 @@ class _BatchChannelSettingsSheetState
 
   @override
   Widget build(BuildContext context) {
-    final cs   = Theme.of(context).colorScheme;
+    final cs = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     final l10n = AppLocalizations.of(context)!;
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
@@ -335,10 +333,12 @@ class _BatchChannelSettingsSheetState
                     value: _template,
                     showNotChange: !_isSingle,
                     items: widget.templateLabels.entries
-                        .map((e) => DropdownMenuItem<String?>(
-                              value: e.key,
-                              child: Text(e.value),
-                            ))
+                        .map(
+                          (e) => DropdownMenuItem<String?>(
+                            value: e.key,
+                            child: Text(e.value),
+                          ),
+                        )
                         .toList(),
                     onChanged: (v) => setState(() => _template = v),
                   ),
@@ -348,10 +348,12 @@ class _BatchChannelSettingsSheetState
                     value: _renderer,
                     showNotChange: !_isSingle,
                     items: widget.rendererLabels.entries
-                        .map((e) => DropdownMenuItem<String?>(
-                              value: e.key,
-                              child: Text(e.value),
-                            ))
+                        .map(
+                          (e) => DropdownMenuItem<String?>(
+                            value: e.key,
+                            child: Text(e.value),
+                          ),
+                        )
                         .toList(),
                     onChanged: (v) => setState(() => _renderer = v),
                   ),
@@ -365,10 +367,22 @@ class _BatchChannelSettingsSheetState
                     value: _iconMode,
                     showNotChange: !_isSingle,
                     items: [
-                      DropdownMenuItem(value: kIconModeAuto,       child: Text(l10n.iconModeAuto)),
-                      DropdownMenuItem(value: kIconModeNotifSmall, child: Text(l10n.iconModeNotifSmall)),
-                      DropdownMenuItem(value: kIconModeNotifLarge, child: Text(l10n.iconModeNotifLarge)),
-                      DropdownMenuItem(value: kIconModeAppIcon,    child: Text(l10n.iconModeAppIcon)),
+                      DropdownMenuItem(
+                        value: kIconModeAuto,
+                        child: Text(l10n.iconModeAuto),
+                      ),
+                      DropdownMenuItem(
+                        value: kIconModeNotifSmall,
+                        child: Text(l10n.iconModeNotifSmall),
+                      ),
+                      DropdownMenuItem(
+                        value: kIconModeNotifLarge,
+                        child: Text(l10n.iconModeNotifLarge),
+                      ),
+                      DropdownMenuItem(
+                        value: kIconModeAppIcon,
+                        child: Text(l10n.iconModeAppIcon),
+                      ),
                     ],
                     onChanged: (v) => setState(() => _iconMode = v),
                   ),
@@ -378,9 +392,20 @@ class _BatchChannelSettingsSheetState
                     value: _firstFloat,
                     showNotChange: !_isSingle,
                     items: [
-                      DropdownMenuItem(value: kTriOptDefault, child: Text(_defaultLabel(context, _ctrl.defaultFirstFloat))),
-                      DropdownMenuItem(value: kTriOptOn,      child: Text(l10n.optOn)),
-                      DropdownMenuItem(value: kTriOptOff,     child: Text(l10n.optOff)),
+                      DropdownMenuItem(
+                        value: kTriOptDefault,
+                        child: Text(
+                          _defaultLabel(context, _ctrl.defaultFirstFloat),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOn,
+                        child: Text(l10n.optOn),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOff,
+                        child: Text(l10n.optOff),
+                      ),
                     ],
                     onChanged: (v) => setState(() => _firstFloat = v),
                   ),
@@ -390,9 +415,20 @@ class _BatchChannelSettingsSheetState
                     value: _enableFloat,
                     showNotChange: !_isSingle,
                     items: [
-                      DropdownMenuItem(value: kTriOptDefault, child: Text(_defaultLabel(context, _ctrl.defaultEnableFloat))),
-                      DropdownMenuItem(value: kTriOptOn,      child: Text(l10n.optOn)),
-                      DropdownMenuItem(value: kTriOptOff,     child: Text(l10n.optOff)),
+                      DropdownMenuItem(
+                        value: kTriOptDefault,
+                        child: Text(
+                          _defaultLabel(context, _ctrl.defaultEnableFloat),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOn,
+                        child: Text(l10n.optOn),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOff,
+                        child: Text(l10n.optOff),
+                      ),
                     ],
                     onChanged: (v) => setState(() => _enableFloat = v),
                   ),
@@ -402,9 +438,20 @@ class _BatchChannelSettingsSheetState
                     value: _marquee,
                     showNotChange: !_isSingle,
                     items: [
-                      DropdownMenuItem(value: kTriOptDefault, child: Text(_defaultLabel(context, _ctrl.defaultMarquee))),
-                      DropdownMenuItem(value: kTriOptOn,      child: Text(l10n.optOn)),
-                      DropdownMenuItem(value: kTriOptOff,     child: Text(l10n.optOff)),
+                      DropdownMenuItem(
+                        value: kTriOptDefault,
+                        child: Text(
+                          _defaultLabel(context, _ctrl.defaultMarquee),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOn,
+                        child: Text(l10n.optOn),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOff,
+                        child: Text(l10n.optOff),
+                      ),
                     ],
                     onChanged: (v) => setState(() => _marquee = v),
                   ),
@@ -416,9 +463,8 @@ class _BatchChannelSettingsSheetState
                         width: 76,
                         child: Text(
                           l10n.autoDisappear,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: cs.onSurfaceVariant,
-                              ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: cs.onSurfaceVariant),
                         ),
                       ),
                       Expanded(
@@ -426,10 +472,14 @@ class _BatchChannelSettingsSheetState
                           controller: _timeoutController,
                           focusNode: _timeoutFocusNode,
                           keyboardType: TextInputType.number,
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
                           decoration: InputDecoration(
                             hintText: _isSingle ? null : l10n.noChange,
-                            suffixText: _islandTimeout != null ? l10n.seconds : null,
+                            suffixText: _islandTimeout != null
+                                ? l10n.seconds
+                                : null,
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 14,
                               vertical: 12,
@@ -443,7 +493,8 @@ class _BatchChannelSettingsSheetState
                           onChanged: (v) {
                             final trimmed = v.trim();
                             final n = int.tryParse(trimmed);
-                            final valid = trimmed.isNotEmpty && n != null && n >= 1;
+                            final valid =
+                                trimmed.isNotEmpty && n != null && n >= 1;
                             setState(() {
                               // 单渠道模式：无效输入时保留上一个合法值
                               if (valid) {
@@ -467,10 +518,22 @@ class _BatchChannelSettingsSheetState
                     value: _focusIconMode,
                     showNotChange: !_isSingle,
                     items: [
-                      DropdownMenuItem(value: kIconModeAuto,       child: Text(l10n.iconModeAuto)),
-                      DropdownMenuItem(value: kIconModeNotifSmall, child: Text(l10n.iconModeNotifSmall)),
-                      DropdownMenuItem(value: kIconModeNotifLarge, child: Text(l10n.iconModeNotifLarge)),
-                      DropdownMenuItem(value: kIconModeAppIcon,    child: Text(l10n.iconModeAppIcon)),
+                      DropdownMenuItem(
+                        value: kIconModeAuto,
+                        child: Text(l10n.iconModeAuto),
+                      ),
+                      DropdownMenuItem(
+                        value: kIconModeNotifSmall,
+                        child: Text(l10n.iconModeNotifSmall),
+                      ),
+                      DropdownMenuItem(
+                        value: kIconModeNotifLarge,
+                        child: Text(l10n.iconModeNotifLarge),
+                      ),
+                      DropdownMenuItem(
+                        value: kIconModeAppIcon,
+                        child: Text(l10n.iconModeAppIcon),
+                      ),
                     ],
                     onChanged: (v) => setState(() => _focusIconMode = v),
                   ),
@@ -480,9 +543,20 @@ class _BatchChannelSettingsSheetState
                     value: _focusNotif,
                     showNotChange: !_isSingle,
                     items: [
-                      DropdownMenuItem(value: kTriOptDefault, child: Text(_defaultLabel(context, _ctrl.defaultFocusNotif))),
-                      DropdownMenuItem(value: kTriOptOn,      child: Text(l10n.optOn)),
-                      DropdownMenuItem(value: kTriOptOff,     child: Text(l10n.optOff)),
+                      DropdownMenuItem(
+                        value: kTriOptDefault,
+                        child: Text(
+                          _defaultLabel(context, _ctrl.defaultFocusNotif),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOn,
+                        child: Text(l10n.optOn),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOff,
+                        child: Text(l10n.optOff),
+                      ),
                     ],
                     onChanged: (v) => setState(() {
                       _focusNotif = v;
@@ -492,14 +566,32 @@ class _BatchChannelSettingsSheetState
                   const SizedBox(height: 12),
                   _BatchSettingRow(
                     label: l10n.preserveStatusBarSmallIconLabel,
-                    value: _focusNotif == kTriOptOff ? kTriOptOff : _preserveSmallIcon,
+                    value: _focusNotif == kTriOptOff
+                        ? kTriOptOff
+                        : _preserveSmallIcon,
                     showNotChange: !_isSingle,
                     items: [
-                      DropdownMenuItem(value: kTriOptDefault, child: Text(_defaultLabel(context, _ctrl.defaultPreserveSmallIcon))),
-                      DropdownMenuItem(value: kTriOptOn,      child: Text(l10n.optOn)),
-                      DropdownMenuItem(value: kTriOptOff,     child: Text(l10n.optOff)),
+                      DropdownMenuItem(
+                        value: kTriOptDefault,
+                        child: Text(
+                          _defaultLabel(
+                            context,
+                            _ctrl.defaultPreserveSmallIcon,
+                          ),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOn,
+                        child: Text(l10n.optOn),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOff,
+                        child: Text(l10n.optOff),
+                      ),
                     ],
-                    onChanged: _focusNotif == kTriOptOff ? null : (v) => setState(() => _preserveSmallIcon = v),
+                    onChanged: _focusNotif == kTriOptOff
+                        ? null
+                        : (v) => setState(() => _preserveSmallIcon = v),
                   ),
                   const SizedBox(height: 24),
                 ],
@@ -523,7 +615,8 @@ class _BatchChannelSettingsSheetState
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size.fromHeight(48),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     child: Text(l10n.cancel),
                   ),
@@ -535,7 +628,8 @@ class _BatchChannelSettingsSheetState
                     style: FilledButton.styleFrom(
                       minimumSize: const Size.fromHeight(48),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     child: Text(l10n.apply),
                   ),
@@ -563,9 +657,9 @@ class _SectionLabel extends StatelessWidget {
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: cs.primary,
-              fontWeight: FontWeight.w600,
-            ),
+          color: cs.primary,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -588,9 +682,9 @@ class _ScopeToggleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs     = Theme.of(context).colorScheme;
-    final text   = Theme.of(context).textTheme;
-    final l10n   = AppLocalizations.of(context)!;
+    final cs = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    final l10n = AppLocalizations.of(context)!;
     final active = onChanged != null;
 
     return Material(
@@ -610,7 +704,9 @@ class _ScopeToggleCard extends StatelessWidget {
                     Text(
                       l10n.onlyEnabledChannels,
                       style: text.bodyMedium?.copyWith(
-                        color: active ? null : cs.onSurface.withValues(alpha: 0.38),
+                        color: active
+                            ? null
+                            : cs.onSurface.withValues(alpha: 0.38),
                       ),
                     ),
                     const SizedBox(height: 2),
@@ -662,9 +758,9 @@ class _BatchSettingRow extends StatelessWidget {
           width: 76,
           child: Text(
             label,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: cs.onSurfaceVariant,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
           ),
         ),
         Expanded(
@@ -682,10 +778,13 @@ class _BatchSettingRow extends StatelessWidget {
             ],
             onChanged: onChanged,
             decoration: InputDecoration(
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              border:
-                  OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 12,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               filled: true,
               fillColor: cs.surfaceContainerHighest,
             ),

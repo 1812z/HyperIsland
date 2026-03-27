@@ -229,6 +229,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get languageJa => '日本語';
 
   @override
+  String get languageTr => 'Türkçe';
+
+  @override
   String get exportToFile => 'Export to file';
 
   @override

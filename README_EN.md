@@ -13,7 +13,7 @@
 [![HyperOS](https://img.shields.io/badge/ROM-HyperOS3-orange?style=flat-square)](https://hyperos.mi.com)
 [![Build](https://img.shields.io/badge/Build-Flutter-02569B?style=flat-square&logo=flutter)](https://flutter.dev)
 
-**English** | **[简体中文](README.md)** | **[日本語](README_JA.md)**
+**English** | **[简体中文](README.md)** | **[日本語](README_JA.md)** | **[Türkçe](README_TR.md)**
 
 </div>
 

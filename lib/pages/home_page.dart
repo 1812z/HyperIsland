@@ -4,7 +4,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../controllers/home_controller.dart';
 import '../controllers/settings_controller.dart';
 import '../controllers/update_controller.dart';
-import '../l10n/app_localizations.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../widgets/section_label.dart';
 
 const _channel = MethodChannel('io.github.hyperisland/test');
@@ -58,8 +58,10 @@ class _HomePageState extends State<HomePage> {
                   Expanded(
                     child: Text(
                       l10n.sponsorSupport,
-                      style:
-                          const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   IconButton(
@@ -70,8 +72,9 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             ClipRRect(
-              borderRadius:
-                  const BorderRadius.vertical(bottom: Radius.circular(16)),
+              borderRadius: const BorderRadius.vertical(
+                bottom: Radius.circular(16),
+              ),
               child: Image.asset(
                 'assets/images/wechat.jpg',
                 fit: BoxFit.contain,
@@ -160,9 +163,9 @@ class _HomePageState extends State<HomePage> {
         final msg = (e.code == 'ROOT_ERROR' || e.code == 'ROOT_REQUIRED')
             ? l10n.restartRootRequired
             : l10n.restartFailed(e.message ?? '');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(msg)));
       }
     } finally {
       if (mounted) setState(() => _restarting = false);
@@ -187,9 +190,9 @@ class _HomePageState extends State<HomePage> {
                 if (_version.isNotEmpty)
                   Text(
                     _version,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: cs.onSurfaceVariant,
-                        ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
                   ),
               ],
             ),
@@ -238,7 +241,8 @@ class _HomePageState extends State<HomePage> {
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -324,24 +328,24 @@ class _ModuleStatusCard extends StatelessWidget {
                   Text(
                     l10n.moduleStatus,
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: color.withValues(alpha: 0.8),
-                        ),
+                      color: color.withValues(alpha: 0.8),
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     isActive ? l10n.activated : l10n.notActivated,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: color,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      color: color,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   if (!isActive) ...[
                     const SizedBox(height: 4),
                     Text(
                       l10n.enableInLSPosed,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: color.withValues(alpha: 0.7),
-                          ),
+                        color: color.withValues(alpha: 0.7),
+                      ),
                     ),
                   ],
                 ],
@@ -389,16 +393,16 @@ class _SystemNotSupportedCard extends StatelessWidget {
                   Text(
                     l10n.systemNotSupported,
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: color,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      color: color,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     l10n.systemNotSupportedSubtitle(version),
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: color.withValues(alpha: 0.8),
-                        ),
+                      color: color.withValues(alpha: 0.8),
+                    ),
                   ),
                 ],
               ),
@@ -433,15 +437,16 @@ class _NotesCard extends StatelessWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.arrow_right,
-                          size: 20, color: cs.onSurfaceVariant),
+                      Icon(
+                        Icons.arrow_right,
+                        size: 20,
+                        color: cs.onSurfaceVariant,
+                      ),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
                           text,
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
+                          style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(color: cs.onSurfaceVariant),
                         ),
                       ),

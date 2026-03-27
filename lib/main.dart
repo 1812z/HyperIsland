@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'controllers/settings_controller.dart';
-import 'l10n/app_localizations.dart';
+import 'l10n/generated/app_localizations.dart';
 import 'pages/main_page.dart';
 
 void main() {

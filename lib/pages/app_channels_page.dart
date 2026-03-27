@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../controllers/whitelist_controller.dart';
-import '../l10n/app_localizations.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../widgets/batch_channel_settings_sheet.dart';
 
 class AppChannelsPage extends StatefulWidget {
@@ -26,9 +26,10 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
   List<ChannelInfo>? _channels;
   Set<String> _enabledChannels = {};
   Map<String, String> _channelTemplates = {};
-  Map<String, String> _templateLabels = {};   // id → 显示名称，从原生侧加载
-  Map<String, String> _rendererLabels = {};   // id → 显示名称
-  Map<String, Map<String, String>> _channelExtras = {};  // channelId → extra settings
+  Map<String, String> _templateLabels = {}; // id → 显示名称，从原生侧加载
+  Map<String, String> _rendererLabels = {}; // id → 显示名称
+  Map<String, Map<String, String>> _channelExtras =
+      {}; // channelId → extra settings
   bool _loading = true;
 
   @override
@@ -51,25 +52,33 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
       channels = [];
     }
 
-    final enabled         = await widget.controller.getEnabledChannels(pkg);
-    final l10nForLabels   = AppLocalizations.of(context)!;
-    final templateLabels  = widget.controller.getTemplates(l10nForLabels);
-    final rendererLabels  = widget.controller.getRenderers(l10nForLabels);
+    final enabled = await widget.controller.getEnabledChannels(pkg);
+    final l10nForLabels = AppLocalizations.of(context)!;
+    final templateLabels = widget.controller.getTemplates(l10nForLabels);
+    final rendererLabels = widget.controller.getRenderers(l10nForLabels);
     final channelIds = channels.map((c) => c.id).toList();
-    final channelTemplates = await widget.controller.getChannelTemplates(pkg, channelIds);
-    final channelExtras    = await widget.controller.getChannelExtraSettings(pkg, channelIds);
+    final channelTemplates = await widget.controller.getChannelTemplates(
+      pkg,
+      channelIds,
+    );
+    final channelExtras = await widget.controller.getChannelExtraSettings(
+      pkg,
+      channelIds,
+    );
     if (mounted) {
       setState(() {
-        _channels         = channels;
-        _enabledChannels  = enabled;
+        _channels = channels;
+        _enabledChannels = enabled;
         _channelTemplates = channelTemplates;
-        _templateLabels   = templateLabels;
-        _rendererLabels   = rendererLabels;
-        _channelExtras    = channelExtras;
-        _loading          = false;
+        _templateLabels = templateLabels;
+        _rendererLabels = rendererLabels;
+        _channelExtras = channelExtras;
+        _loading = false;
       });
       if (rootError) {
-        WidgetsBinding.instance.addPostFrameCallback((_) => _showRootErrorDialog());
+        WidgetsBinding.instance.addPostFrameCallback(
+          (_) => _showRootErrorDialog(),
+        );
       }
     }
   }
@@ -83,10 +92,7 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
         title: Text(l10n.cannotReadChannels),
         content: Text(l10n.rootRequiredMessage),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(l10n.ok),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(l10n.ok)),
         ],
       ),
     );
@@ -125,9 +131,13 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
 
   Future<void> _setTemplate(String channelId, String template) async {
     setState(
-        () => _channelTemplates = {..._channelTemplates, channelId: template});
+      () => _channelTemplates = {..._channelTemplates, channelId: template},
+    );
     await widget.controller.setChannelTemplate(
-        widget.app.packageName, channelId, template);
+      widget.app.packageName,
+      channelId,
+      template,
+    );
   }
 
   void _updateExtra(String channelId, String key, String value) {
@@ -141,59 +151,108 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
 
   Future<void> _setIconMode(String channelId, String value) async {
     _updateExtra(channelId, 'icon', value);
-    await widget.controller.setChannelIconMode(widget.app.packageName, channelId, value);
+    await widget.controller.setChannelIconMode(
+      widget.app.packageName,
+      channelId,
+      value,
+    );
   }
 
   Future<void> _setFocusIconMode(String channelId, String value) async {
     _updateExtra(channelId, 'focus_icon', value);
-    await widget.controller.setChannelFocusIconMode(widget.app.packageName, channelId, value);
+    await widget.controller.setChannelFocusIconMode(
+      widget.app.packageName,
+      channelId,
+      value,
+    );
   }
 
   Future<void> _setFocusNotif(String channelId, String value) async {
     _updateExtra(channelId, 'focus', value);
-    await widget.controller.setChannelFocusNotif(widget.app.packageName, channelId, value);
+    await widget.controller.setChannelFocusNotif(
+      widget.app.packageName,
+      channelId,
+      value,
+    );
   }
 
   Future<void> _setPreserveSmallIcon(String channelId, String value) async {
     _updateExtra(channelId, 'preserve_small_icon', value);
-    await widget.controller.setChannelPreserveSmallIcon(widget.app.packageName, channelId, value);
+    await widget.controller.setChannelPreserveSmallIcon(
+      widget.app.packageName,
+      channelId,
+      value,
+    );
   }
 
   Future<void> _setFirstFloat(String channelId, String value) async {
     _updateExtra(channelId, 'first_float', value);
-    await widget.controller.setChannelFirstFloat(widget.app.packageName, channelId, value);
+    await widget.controller.setChannelFirstFloat(
+      widget.app.packageName,
+      channelId,
+      value,
+    );
   }
 
   Future<void> _setEnableFloat(String channelId, String value) async {
     _updateExtra(channelId, 'enable_float', value);
-    await widget.controller.setChannelEnableFloat(widget.app.packageName, channelId, value);
+    await widget.controller.setChannelEnableFloat(
+      widget.app.packageName,
+      channelId,
+      value,
+    );
   }
 
   Future<void> _setIslandTimeout(String channelId, String value) async {
     _updateExtra(channelId, 'timeout', value);
-    await widget.controller.setChannelTimeout(widget.app.packageName, channelId, value);
+    await widget.controller.setChannelTimeout(
+      widget.app.packageName,
+      channelId,
+      value,
+    );
   }
 
   Future<void> _setMarquee(String channelId, String value) async {
     _updateExtra(channelId, 'marquee', value);
-    await widget.controller.setChannelMarquee(widget.app.packageName, channelId, value);
+    await widget.controller.setChannelMarquee(
+      widget.app.packageName,
+      channelId,
+      value,
+    );
   }
 
   Future<void> _setRenderer(String channelId, String value) async {
     _updateExtra(channelId, 'renderer', value);
-    await widget.controller.setChannelRenderer(widget.app.packageName, channelId, value);
+    await widget.controller.setChannelRenderer(
+      widget.app.packageName,
+      channelId,
+      value,
+    );
   }
 
-  Future<void> _applyChannelSettings(String channelId, Map<String, String?> settings) async {
+  Future<void> _applyChannelSettings(
+    String channelId,
+    Map<String, String?> settings,
+  ) async {
     if (settings['template'] case final t?) await _setTemplate(channelId, t);
     if (settings['renderer'] case final v?) await _setRenderer(channelId, v);
     if (settings['icon'] case final v?) await _setIconMode(channelId, v);
-    if (settings['focus_icon'] case final v?) await _setFocusIconMode(channelId, v);
+    if (settings['focus_icon'] case final v?) {
+      await _setFocusIconMode(channelId, v);
+    }
     if (settings['focus'] case final v?) await _setFocusNotif(channelId, v);
-    if (settings['preserve_small_icon'] case final v?) await _setPreserveSmallIcon(channelId, v);
-    if (settings['first_float'] case final v?) await _setFirstFloat(channelId, v);
-    if (settings['enable_float'] case final v?) await _setEnableFloat(channelId, v);
-    if (settings['timeout'] case final v?) await _setIslandTimeout(channelId, v);
+    if (settings['preserve_small_icon'] case final v?) {
+      await _setPreserveSmallIcon(channelId, v);
+    }
+    if (settings['first_float'] case final v?) {
+      await _setFirstFloat(channelId, v);
+    }
+    if (settings['enable_float'] case final v?) {
+      await _setEnableFloat(channelId, v);
+    }
+    if (settings['timeout'] case final v?) {
+      await _setIslandTimeout(channelId, v);
+    }
     if (settings['marquee'] case final v?) await _setMarquee(channelId, v);
   }
 
@@ -211,7 +270,7 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
     if (mounted) {
       setState(() {
         _channelTemplates = results[0] as Map<String, String>;
-        _channelExtras    = results[1] as Map<String, Map<String, String>>;
+        _channelExtras = results[1] as Map<String, Map<String, String>>;
       });
     }
   }
@@ -231,9 +290,11 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
 
     final result = await BatchChannelSettingsSheet.show(
       context,
-      mode: BatchChannelMode(scope: GlobalScope(
-        subtitle: l10n.applyToEnabledChannels(enabledIds.length),
-      )),
+      mode: BatchChannelMode(
+        scope: GlobalScope(
+          subtitle: l10n.applyToEnabledChannels(enabledIds.length),
+        ),
+      ),
       templateLabels: _templateLabels,
       rendererLabels: _rendererLabels,
     );
@@ -254,7 +315,8 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
     await widget.controller.setEnabledChannels(widget.app.packageName, {});
   }
 
-  String _importanceLabel(int importance, AppLocalizations l10n) => switch (importance) {
+  String _importanceLabel(int importance, AppLocalizations l10n) =>
+      switch (importance) {
         0 => l10n.importanceNone,
         1 => l10n.importanceMin,
         2 => l10n.importanceLow,
@@ -304,8 +366,10 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                   icon: const Icon(Icons.more_vert),
                   onSelected: (value) {
                     switch (value) {
-                      case 'batch':      _batchApply();
-                      case 'enable_all': _enableAllChannels();
+                      case 'batch':
+                        _batchApply();
+                      case 'enable_all':
+                        _enableAllChannels();
                     }
                   },
                   itemBuilder: (ctx) {
@@ -333,15 +397,16 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
               sliver: SliverToBoxAdapter(
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 10),
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: cs.errorContainer,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.block,
-                          size: 18, color: cs.onErrorContainer),
+                      Icon(Icons.block, size: 18, color: cs.onErrorContainer),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -366,18 +431,22 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.notifications_off_outlined,
-                        size: 48, color: cs.onSurfaceVariant),
+                    Icon(
+                      Icons.notifications_off_outlined,
+                      size: 48,
+                      color: cs.onSurfaceVariant,
+                    ),
                     const SizedBox(height: 12),
-                    Text(l10n.noChannelsFound,
-                        style: TextStyle(color: cs.onSurfaceVariant)),
+                    Text(
+                      l10n.noChannelsFound,
+                      style: TextStyle(color: cs.onSurfaceVariant),
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       l10n.noChannelsFoundSubtitle,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: cs.onSurfaceVariant),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -390,53 +459,55 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                 child: Text(
                   widget.appEnabled
                       ? (allEnabled
-                          ? l10n.allChannelsActive(channels.length)
-                          : l10n.selectedChannels(_enabledChannels.length, channels.length))
+                            ? l10n.allChannelsActive(channels.length)
+                            : l10n.selectedChannels(
+                                _enabledChannels.length,
+                                channels.length,
+                              ))
                       : l10n.allChannelsDisabled(channels.length),
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(color: cs.onSurfaceVariant),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
                 ),
               ),
             ),
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
               sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final ch = channels[index];
-                    final isFirst = index == 0;
-                    final isLast = index == channels.length - 1;
-                    final channelEnabled = _isEnabled(ch.id);
-                    final template = _channelTemplates[ch.id] ?? kTemplateNotificationIsland;
-                    final extras = _channelExtras[ch.id] ?? {};
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final ch = channels[index];
+                  final isFirst = index == 0;
+                  final isLast = index == channels.length - 1;
+                  final channelEnabled = _isEnabled(ch.id);
+                  final template =
+                      _channelTemplates[ch.id] ?? kTemplateNotificationIsland;
+                  final extras = _channelExtras[ch.id] ?? {};
 
-                    return _ChannelTile(
-                      channel: ch,
-                      channelEnabled: channelEnabled,
-                      appEnabled: widget.appEnabled,
-                      template: template,
-                      templateLabels: _templateLabels,
-                      renderer: extras['renderer'] ?? kRendererImageTextWithButtons4,
-                      rendererLabels: _rendererLabels,
-                      importanceLabel: _importanceLabel(ch.importance, l10n),
-                      isFirst: isFirst,
-                      isLast: isLast,
-                      iconMode: extras['icon'] ?? kIconModeAuto,
-                      focusIconMode: extras['focus_icon'] ?? kIconModeAuto,
-                      focusNotif: extras['focus'] ?? kTriOptDefault,
-                      preserveSmallIcon: extras['preserve_small_icon'] ?? kTriOptDefault,
-                      firstFloat: extras['first_float'] ?? kTriOptDefault,
-                      enableFloat: extras['enable_float'] ?? kTriOptDefault,
-                      islandTimeout: extras['timeout'] ?? '5',
-                      marquee: extras['marquee'] ?? kTriOptDefault,
-                      onToggle: (v) => _toggle(ch.id, v),
-                      onSettingsApplied: (s) => _applyChannelSettings(ch.id, s),
-                    );
-                  },
-                  childCount: channels.length,
-                ),
+                  return _ChannelTile(
+                    channel: ch,
+                    channelEnabled: channelEnabled,
+                    appEnabled: widget.appEnabled,
+                    template: template,
+                    templateLabels: _templateLabels,
+                    renderer:
+                        extras['renderer'] ?? kRendererImageTextWithButtons4,
+                    rendererLabels: _rendererLabels,
+                    importanceLabel: _importanceLabel(ch.importance, l10n),
+                    isFirst: isFirst,
+                    isLast: isLast,
+                    iconMode: extras['icon'] ?? kIconModeAuto,
+                    focusIconMode: extras['focus_icon'] ?? kIconModeAuto,
+                    focusNotif: extras['focus'] ?? kTriOptDefault,
+                    preserveSmallIcon:
+                        extras['preserve_small_icon'] ?? kTriOptDefault,
+                    firstFloat: extras['first_float'] ?? kTriOptDefault,
+                    enableFloat: extras['enable_float'] ?? kTriOptDefault,
+                    islandTimeout: extras['timeout'] ?? '5',
+                    marquee: extras['marquee'] ?? kTriOptDefault,
+                    onToggle: (v) => _toggle(ch.id, v),
+                    onSettingsApplied: (s) => _applyChannelSettings(ch.id, s),
+                  );
+                }, childCount: channels.length),
               ),
             ),
           ],
@@ -497,17 +568,17 @@ class _ChannelTile extends StatelessWidget {
     final result = await BatchChannelSettingsSheet.show(
       context,
       mode: SingleChannelMode(
-        channelName:   channel.name,
-        template:      template,
-        renderer:      renderer,
-        iconMode:      iconMode,
+        channelName: channel.name,
+        template: template,
+        renderer: renderer,
+        iconMode: iconMode,
         focusIconMode: focusIconMode,
-        focusNotif:    focusNotif,
+        focusNotif: focusNotif,
         preserveSmallIcon: preserveSmallIcon,
-        firstFloat:    firstFloat,
-        enableFloat:   enableFloat,
+        firstFloat: firstFloat,
+        enableFloat: enableFloat,
         islandTimeout: islandTimeout,
-        marquee:       marquee,
+        marquee: marquee,
       ),
       templateLabels: templateLabels,
       rendererLabels: rendererLabels,
@@ -544,7 +615,8 @@ class _ChannelTile extends StatelessWidget {
                       children: [
                         Text(
                           channel.name,
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(
                                 color: appEnabled
                                     ? null
                                     : cs.onSurface.withValues(alpha: 0.38),
@@ -554,7 +626,8 @@ class _ChannelTile extends StatelessWidget {
                           const SizedBox(height: 2),
                           Text(
                             channel.description,
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
                                   color: appEnabled
                                       ? cs.onSurfaceVariant
                                       : cs.onSurface.withValues(alpha: 0.28),
@@ -566,7 +639,8 @@ class _ChannelTile extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           l10n.channelImportance(importanceLabel, channel.id),
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
                                 color: appEnabled
                                     ? cs.onSurfaceVariant.withValues(alpha: 0.7)
                                     : cs.onSurface.withValues(alpha: 0.22),

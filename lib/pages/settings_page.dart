@@ -5,7 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../controllers/config_io_controller.dart';
 import '../controllers/settings_controller.dart';
 import '../controllers/update_controller.dart';
-import '../l10n/app_localizations.dart';
+import '../l10n/generated/app_localizations.dart';
 import '../widgets/section_label.dart';
 import 'ai_config_page.dart';
 import 'blacklist_page.dart';
@@ -139,8 +139,11 @@ class _SettingsPageState extends State<SettingsPage> {
     try {
       final info = await PackageInfo.fromPlatform();
       if (mounted) {
-        await UpdateController.checkAndShow(context, info.version,
-            showUpToDate: true);
+        await UpdateController.checkAndShow(
+          context,
+          info.version,
+          showUpToDate: true,
+        );
       }
     } finally {
       if (mounted) setState(() => _checkingUpdate = false);
@@ -148,8 +151,8 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   String _themeModeLabel(AppLocalizations l10n) => switch (_ctrl.themeMode) {
-    ThemeMode.light  => l10n.themeModeLight,
-    ThemeMode.dark   => l10n.themeModeDark,
+    ThemeMode.light => l10n.themeModeLight,
+    ThemeMode.dark => l10n.themeModeDark,
     ThemeMode.system => l10n.themeModeSystem,
   };
 
@@ -159,7 +162,8 @@ class _SettingsPageState extends State<SettingsPage> {
       'zh' => l10n.languageZh,
       'en' => l10n.languageEn,
       'ja' => l10n.languageJa,
-      _    => _ctrl.locale!.languageCode,
+      'tr' => l10n.languageTr,
+      _ => _ctrl.locale!.languageCode,
     };
   }
 
@@ -170,8 +174,8 @@ class _SettingsPageState extends State<SettingsPage> {
         title: Text(l10n.themeModeTitle),
         children: [
           _RadioOption(l10n.themeModeSystem, ThemeMode.system, _ctrl.themeMode),
-          _RadioOption(l10n.themeModeLight,  ThemeMode.light,  _ctrl.themeMode),
-          _RadioOption(l10n.themeModeDark,   ThemeMode.dark,   _ctrl.themeMode),
+          _RadioOption(l10n.themeModeLight, ThemeMode.light, _ctrl.themeMode),
+          _RadioOption(l10n.themeModeDark, ThemeMode.dark, _ctrl.themeMode),
         ],
       ),
     );
@@ -184,10 +188,27 @@ class _SettingsPageState extends State<SettingsPage> {
       builder: (ctx) => SimpleDialog(
         title: Text(l10n.languageTitle),
         children: [
-          _RadioOption<Locale?>(l10n.languageAuto, null,              _ctrl.locale),
-          _RadioOption<Locale?>(l10n.languageZh,   const Locale('zh'), _ctrl.locale),
-          _RadioOption<Locale?>(l10n.languageEn,   const Locale('en'), _ctrl.locale),
-          _RadioOption<Locale?>(l10n.languageJa,   const Locale('ja'), _ctrl.locale),
+          _RadioOption<Locale?>(l10n.languageAuto, null, _ctrl.locale),
+          _RadioOption<Locale?>(
+            l10n.languageZh,
+            const Locale('zh'),
+            _ctrl.locale,
+          ),
+          _RadioOption<Locale?>(
+            l10n.languageEn,
+            const Locale('en'),
+            _ctrl.locale,
+          ),
+          _RadioOption<Locale?>(
+            l10n.languageJa,
+            const Locale('ja'),
+            _ctrl.locale,
+          ),
+          _RadioOption<Locale?>(
+            l10n.languageTr,
+            const Locale('tr'),
+            _ctrl.locale,
+          ),
         ],
       ),
     );
@@ -223,22 +244,29 @@ class _SettingsPageState extends State<SettingsPage> {
                     elevation: 0,
                     color: cs.surfaceContainerHighest,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     child: ListTile(
                       contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 4),
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16)),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       leading: const Icon(Icons.psychology_outlined),
                       title: Text(l10n.aiConfigTitle),
-                      subtitle: Text(_ctrl.aiEnabled
-                          ? l10n.aiConfigSubtitleEnabled
-                          : l10n.aiConfigSubtitleDisabled),
+                      subtitle: Text(
+                        _ctrl.aiEnabled
+                            ? l10n.aiConfigSubtitleEnabled
+                            : l10n.aiConfigSubtitleDisabled,
+                      ),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => const AiConfigPage()),
+                          builder: (context) => const AiConfigPage(),
+                        ),
                       ),
                     ),
                   ),
@@ -249,15 +277,20 @@ class _SettingsPageState extends State<SettingsPage> {
                     elevation: 0,
                     color: cs.surfaceContainerHighest,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     child: Column(
                       children: [
                         ListTile(
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 4),
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                           shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(
-                                  top: Radius.circular(16))),
+                            borderRadius: BorderRadius.vertical(
+                              top: Radius.circular(16),
+                            ),
+                          ),
                           leading: const Icon(Icons.block),
                           title: Text(l10n.navBlacklist),
                           subtitle: Text(l10n.navBlacklistSubtitle),
@@ -266,7 +299,8 @@ class _SettingsPageState extends State<SettingsPage> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) => const BlacklistPage()),
+                                builder: (context) => const BlacklistPage(),
+                              ),
                             );
                           },
                         ),
@@ -280,24 +314,31 @@ class _SettingsPageState extends State<SettingsPage> {
                     elevation: 0,
                     color: cs.surfaceContainerHighest,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     child: Column(
                       children: [
                         SwitchListTile(
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 4),
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                           title: Text(l10n.keepFocusNotifTitle),
                           subtitle: Text(l10n.keepFocusNotifSubtitle),
                           value: _ctrl.resumeNotification,
                           onChanged: _onResumeNotificationChanged,
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(
-                                  top: Radius.circular(16))),
+                            borderRadius: BorderRadius.vertical(
+                              top: Radius.circular(16),
+                            ),
+                          ),
                         ),
                         const Divider(height: 1, indent: 16, endIndent: 16),
                         SwitchListTile(
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 4),
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                           title: Text(l10n.unlockAllFocusTitle),
                           subtitle: Text(l10n.unlockAllFocusSubtitle),
                           value: _ctrl.unlockAllFocus,
@@ -306,7 +347,9 @@ class _SettingsPageState extends State<SettingsPage> {
                         const Divider(height: 1, indent: 16, endIndent: 16),
                         SwitchListTile(
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 4),
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                           title: Text(l10n.unlockFocusAuthTitle),
                           subtitle: Text(l10n.unlockFocusAuthSubtitle),
                           value: _ctrl.unlockFocusAuth,
@@ -315,14 +358,18 @@ class _SettingsPageState extends State<SettingsPage> {
                         const Divider(height: 1, indent: 16, endIndent: 16),
                         SwitchListTile(
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 4),
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                           title: Text(l10n.checkUpdateOnLaunchTitle),
                           subtitle: Text(l10n.checkUpdateOnLaunchSubtitle),
                           value: _ctrl.checkUpdateOnLaunch,
                           onChanged: _ctrl.setCheckUpdateOnLaunch,
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(
-                                  bottom: Radius.circular(16))),
+                            borderRadius: BorderRadius.vertical(
+                              bottom: Radius.circular(16),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -334,24 +381,31 @@ class _SettingsPageState extends State<SettingsPage> {
                     elevation: 0,
                     color: cs.surfaceContainerHighest,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     child: Column(
                       children: [
                         SwitchListTile(
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 4),
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                           title: Text(l10n.firstFloatLabel),
                           subtitle: Text(l10n.firstFloatLabelSubtitle),
                           value: _ctrl.defaultFirstFloat,
                           onChanged: _ctrl.setDefaultFirstFloat,
                           shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(
-                                  top: Radius.circular(16))),
+                            borderRadius: BorderRadius.vertical(
+                              top: Radius.circular(16),
+                            ),
+                          ),
                         ),
                         const Divider(height: 1, indent: 16, endIndent: 16),
                         SwitchListTile(
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 4),
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                           title: Text(l10n.updateFloatLabel),
                           subtitle: Text(l10n.updateFloatLabelSubtitle),
                           value: _ctrl.defaultEnableFloat,
@@ -360,7 +414,9 @@ class _SettingsPageState extends State<SettingsPage> {
                         const Divider(height: 1, indent: 16, endIndent: 16),
                         SwitchListTile(
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 4),
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                           title: Text(l10n.marqueeChannelTitle),
                           subtitle: Text(l10n.marqueeChannelTitleSubtitle),
                           value: _ctrl.defaultMarquee,
@@ -369,7 +425,9 @@ class _SettingsPageState extends State<SettingsPage> {
                         const Divider(height: 1, indent: 16, endIndent: 16),
                         SwitchListTile(
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 4),
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                           title: Text(l10n.focusNotificationLabel),
                           subtitle: Text(l10n.focusNotificationLabelSubtitle),
                           value: _ctrl.defaultFocusNotif,
@@ -378,14 +436,20 @@ class _SettingsPageState extends State<SettingsPage> {
                         const Divider(height: 1, indent: 16, endIndent: 16),
                         SwitchListTile(
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 4),
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                           title: Text(l10n.preserveStatusBarSmallIconLabel),
-                          subtitle: Text(l10n.preserveStatusBarSmallIconLabelSubtitle),
+                          subtitle: Text(
+                            l10n.preserveStatusBarSmallIconLabelSubtitle,
+                          ),
                           value: _ctrl.defaultPreserveSmallIcon,
                           onChanged: _ctrl.setDefaultPreserveSmallIcon,
                           shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(
-                                  bottom: Radius.circular(16))),
+                            borderRadius: BorderRadius.vertical(
+                              bottom: Radius.circular(16),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -397,29 +461,36 @@ class _SettingsPageState extends State<SettingsPage> {
                     elevation: 0,
                     color: cs.surfaceContainerHighest,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     child: Column(
                       children: [
                         SwitchListTile(
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 4),
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                           title: Text(l10n.useAppIconTitle),
                           subtitle: Text(l10n.useAppIconSubtitle),
                           value: _ctrl.useHookAppIcon,
                           onChanged: _onUseHookAppIconChanged,
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16)),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                         ),
                         const Divider(height: 1, indent: 16, endIndent: 16),
                         SwitchListTile(
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 4),
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                           title: Text(l10n.roundIconTitle),
                           subtitle: Text(l10n.roundIconSubtitle),
                           value: _ctrl.roundIcon,
                           onChanged: _onRoundIconChanged,
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16)),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                         ),
                         const Divider(height: 1, indent: 16, endIndent: 16),
                         Padding(
@@ -431,25 +502,34 @@ class _SettingsPageState extends State<SettingsPage> {
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text('${l10n.marqueeChannelTitle}|${l10n.marqueeSpeedTitle}',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodyMedium),
+                                  Text(
+                                    '${l10n.marqueeChannelTitle}|${l10n.marqueeSpeedTitle}',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodyMedium,
+                                  ),
                                   Row(
                                     children: [
                                       Text(
                                         l10n.marqueeSpeedLabel(
-                                            _ctrl.marqueeSpeed),
+                                          _ctrl.marqueeSpeed,
+                                        ),
                                         style: Theme.of(context)
                                             .textTheme
                                             .bodySmall
                                             ?.copyWith(
-                                                color: cs.onSurfaceVariant),
+                                              color: cs.onSurfaceVariant,
+                                            ),
                                       ),
                                       Opacity(
-                                        opacity: _ctrl.marqueeSpeed != 100 ? 1.0 : 0.0,
+                                        opacity: _ctrl.marqueeSpeed != 100
+                                            ? 1.0
+                                            : 0.0,
                                         child: IconButton(
-                                          icon: const Icon(Icons.refresh, size: 16),
+                                          icon: const Icon(
+                                            Icons.refresh,
+                                            size: 16,
+                                          ),
                                           padding: EdgeInsets.zero,
                                           visualDensity: VisualDensity.compact,
                                           onPressed: _ctrl.marqueeSpeed != 100
@@ -474,7 +554,9 @@ class _SettingsPageState extends State<SettingsPage> {
                         const Divider(height: 1, indent: 16, endIndent: 16),
                         ListTile(
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 4),
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                           title: Text(l10n.themeModeTitle),
                           subtitle: Text(_themeModeLabel(l10n)),
                           onTap: () => _showThemeModeDialog(l10n),
@@ -482,13 +564,17 @@ class _SettingsPageState extends State<SettingsPage> {
                         const Divider(height: 1, indent: 16, endIndent: 16),
                         ListTile(
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 4),
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                           title: Text(l10n.languageTitle),
                           subtitle: Text(_localeLabel(l10n)),
                           onTap: () => _showLanguageDialog(l10n),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(
-                                  bottom: Radius.circular(16))),
+                            borderRadius: BorderRadius.vertical(
+                              bottom: Radius.circular(16),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -500,15 +586,20 @@ class _SettingsPageState extends State<SettingsPage> {
                     elevation: 0,
                     color: cs.surfaceContainerHighest,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     child: Column(
                       children: [
                         ListTile(
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 4),
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                           shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(
-                                  top: Radius.circular(16))),
+                            borderRadius: BorderRadius.vertical(
+                              top: Radius.circular(16),
+                            ),
+                          ),
                           leading: const Icon(Icons.upload_file_outlined),
                           title: Text(l10n.exportToFile),
                           subtitle: Text(l10n.exportToFileSubtitle),
@@ -517,7 +608,9 @@ class _SettingsPageState extends State<SettingsPage> {
                         const Divider(height: 1, indent: 16, endIndent: 16),
                         ListTile(
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 4),
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                           leading: const Icon(Icons.copy_outlined),
                           title: Text(l10n.exportToClipboard),
                           subtitle: Text(l10n.exportToClipboardSubtitle),
@@ -526,7 +619,9 @@ class _SettingsPageState extends State<SettingsPage> {
                         const Divider(height: 1, indent: 16, endIndent: 16),
                         ListTile(
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 4),
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                           leading: const Icon(Icons.download_outlined),
                           title: Text(l10n.importFromFile),
                           subtitle: Text(l10n.importFromFileSubtitle),
@@ -535,10 +630,14 @@ class _SettingsPageState extends State<SettingsPage> {
                         const Divider(height: 1, indent: 16, endIndent: 16),
                         ListTile(
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 4),
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                           shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(
-                                  bottom: Radius.circular(16))),
+                            borderRadius: BorderRadius.vertical(
+                              bottom: Radius.circular(16),
+                            ),
+                          ),
                           leading: const Icon(Icons.paste_outlined),
                           title: Text(l10n.importFromClipboard),
                           subtitle: Text(l10n.importFromClipboardSubtitle),
@@ -554,7 +653,8 @@ class _SettingsPageState extends State<SettingsPage> {
                     elevation: 0,
                     color: cs.surfaceContainerHighest,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     child: Column(
                       children: [
                         ListTile(
@@ -562,19 +662,22 @@ class _SettingsPageState extends State<SettingsPage> {
                           title: Text(l10n.checkUpdate),
                           trailing: _checkingUpdate
                               ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child:
-                            CircularProgressIndicator(strokeWidth: 2),
-                          )
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
                               : null,
                           onTap: _checkingUpdate ? null : _doCheckUpdate,
                         ),
                         const Divider(height: 1, indent: 16, endIndent: 16),
                         ListTile(
                           shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(
-                                  top: Radius.circular(16))),
+                            borderRadius: BorderRadius.vertical(
+                              top: Radius.circular(16),
+                            ),
+                          ),
                           leading: const Icon(Icons.code),
                           title: const Text('GitHub'),
                           subtitle: const Text('1812z/HyperIsland'),
@@ -587,15 +690,18 @@ class _SettingsPageState extends State<SettingsPage> {
                         const Divider(height: 1, indent: 16, endIndent: 16),
                         ListTile(
                           shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(
-                                  bottom: Radius.circular(16))),
+                            borderRadius: BorderRadius.vertical(
+                              bottom: Radius.circular(16),
+                            ),
+                          ),
                           leading: const Icon(Icons.group_outlined),
                           title: Text(l10n.qqGroup),
                           subtitle: const Text('1045114341'),
                           trailing: const Icon(Icons.copy, size: 18),
                           onTap: () {
                             Clipboard.setData(
-                                const ClipboardData(text: '1045114341'));
+                              const ClipboardData(text: '1045114341'),
+                            );
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(l10n.groupNumberCopied),
