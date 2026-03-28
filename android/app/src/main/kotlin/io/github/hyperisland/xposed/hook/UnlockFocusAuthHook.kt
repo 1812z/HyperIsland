@@ -1,126 +1,77 @@
 package io.github.hyperisland.xposed.hook
 
-import de.robv.android.xposed.IXposedHookLoadPackage
 import io.github.hyperisland.xposed.ConfigManager
-import de.robv.android.xposed.XC_MethodHook
-import de.robv.android.xposed.XposedBridge
-import de.robv.android.xposed.XposedHelpers
-import de.robv.android.xposed.callbacks.XC_LoadPackage
+import io.github.libxposed.api.XposedHelpers
+import io.github.libxposed.api.XposedInterface.PackageLoadedParam
+import io.github.libxposed.api.XposedModule
 
 /**
  * 移除焦点通知白名单签名验证。
  *
  * 作用域：com.xiaomi.xmsf（小米服务框架 / XMSF）
  *
- * 原理：
- *   XMSF 在向设备（手表/手环）推送焦点通知之前，会通过 [com.xiaomi.xms.auth.AuthSession]
- *   验证发起方应用的签名是否在白名单内。方法 `b(error)` 接收验证结果：
- *   - 若 error 不为 null，说明验证失败（签名不在白名单），正常流程会中断推送。
- *
- *   本 Hook 在 `b` 方法执行前拦截，当发现 error 不为 null 时：
- *   1. 将 error 对象的错误码字段 `a` 强制置为 0（成功）。
- *   2. 主动调用实例的 `h()` 方法触发成功回调，并将原方法返回值设为该结果，
- *      跳过原方法的失败处理逻辑。
+ * Hook [AuthSession.b(error)]：当 error 不为 null（验证失败）时，
+ * 将 errorCode 字段 `a` 强制置 0 并触发成功回调，跳过原方法。
  *
  * 设置 key：pref_unlock_focus_auth（布尔，默认 false）
- *
- * 参考：HyperCeiler — UnlockFoucsAuth.kt
  */
-class UnlockFocusAuthHook : IXposedHookLoadPackage {
+object UnlockFocusAuthHook {
 
-    companion object {
-        private const val TAG = "HyperIsland[UnlockFocusAuthHook]"
-        private const val SETTINGS_KEY = "pref_unlock_focus_auth"
-        private const val TARGET_PACKAGE = "com.xiaomi.xmsf"
-        private const val AUTH_SESSION_CLASS = "com.xiaomi.xms.auth.AuthSession"
-    }
+    private const val TAG = "HyperIsland[UnlockFocusAuthHook]"
+    private const val SETTINGS_KEY = "pref_unlock_focus_auth"
+    private const val AUTH_SESSION_CLASS = "com.xiaomi.xms.auth.AuthSession"
 
-    // ─── 开关读取 ─────────────────────────────────────────────────────────────
+    private fun isEnabled(): Boolean = ConfigManager.getBoolean(SETTINGS_KEY, false)
 
-    /**
-     * 通过 ConfigManager 查询「移除焦点通知白名单签名验证」是否已启用。
-     * 直接读取 SharedPreferences XML 文件，无需 HyperIsland 模块后台运行。
-     */
-    private fun isEnabled(): Boolean =
-        ConfigManager.getBoolean(SETTINGS_KEY, false)
-
-    override fun handleLoadPackage(lpparam: XC_LoadPackage.LoadPackageParam) {
-        // 仅 Hook 小米服务框架进程
-        if (lpparam.packageName != TARGET_PACKAGE) return
-
-        // 在 XMSF 进程的 Application.onCreate 初始化 ConfigManager 文件监控
-        XposedHelpers.findAndHookMethod(
-            "android.app.Application",
-            lpparam.classLoader,
-            "onCreate",
-            object : XC_MethodHook() {
-                override fun afterHookedMethod(param: MethodHookParam) {
-                    ConfigManager.init()
-                }
-            }
-        )
-
-        hookAuthSession(lpparam.classLoader)
-    }
-
-    // ─── Hook 方法 ────────────────────────────────────────────────────────────
-
-    /**
-     * Hook [AuthSession.b(error)]：验证结果分发方法。
-     *
-     * 方法签名（混淆后）：fun b(error: Any?)
-     *   - 参数 error 为 null  → 验证成功，原方法正常执行
-     *   - 参数 error 不为 null → 验证失败，本 Hook 强制将其改写为成功
-     *
-     * 字段 `a`：error 对象内的 errorCode 整型字段，置 0 表示无错误。
-     * 方法 `h`：AuthSession 实例上的成功回调触发方法。
-     */
-    private fun hookAuthSession(classLoader: ClassLoader) {
+    fun init(module: XposedModule, param: PackageLoadedParam) {
+        // 在 XMSF Application.onCreate 初始化 ConfigManager
         try {
-            val authSessionClass = XposedHelpers.findClass(AUTH_SESSION_CLASS, classLoader)
+            val appOnCreate = param.classLoader
+                .loadClass("android.app.Application")
+                .getDeclaredMethod("onCreate")
+            module.hook(appOnCreate).intercept { chain ->
+                val result = chain.proceed()
+                ConfigManager.init()
+                result
+            }
+        } catch (_: Throwable) {}
 
-            // 找到参数数量为 1 的方法 `b`（即接收 error 对象的那个重载）
+        hookAuthSession(module, param.classLoader)
+    }
+
+    private fun hookAuthSession(module: XposedModule, classLoader: ClassLoader) {
+        try {
+            val authSessionClass = classLoader.loadClass(AUTH_SESSION_CLASS)
+
             val targetMethod = authSessionClass.declaredMethods
                 .filter { it.name == "b" && it.parameterCount == 1 }
                 .firstOrNull()
 
             if (targetMethod == null) {
-                XposedBridge.log("$TAG: method 'b(error)' not found in $AUTH_SESSION_CLASS")
+                module.log("$TAG: method 'b(error)' not found in $AUTH_SESSION_CLASS")
                 return
             }
 
-            XposedBridge.hookMethod(targetMethod, object : XC_MethodHook() {
-                override fun beforeHookedMethod(param: MethodHookParam) {
-                    val error = param.args[0] ?: return // error 为 null 说明验证已成功，无需干预
+            module.hook(targetMethod).intercept { chain ->
+                val error = chain.args[0]
+                if (error == null || !isEnabled()) return@intercept chain.proceed()
 
-                    // 检查用户开关，未启用则不干预
-                    if (!isEnabled()) return
-
-                    try {
-                        // 读取原始错误码，仅用于日志
-                        val originalCode = XposedHelpers.getIntField(error, "a")
-                        XposedBridge.log(
-                            "$TAG: auth error intercepted, original errorCode=$originalCode, forcing to 0"
-                        )
-
-                        // 将错误码字段置为 0，伪装成验证通过
-                        XposedHelpers.setIntField(error, "a", 0)
-
-                        // 主动调用成功回调 h()，并把返回值设为 hook 结果，跳过原方法
-                        val successResult = XposedHelpers.callMethod(param.thisObject, "h")
-                        param.result = successResult
-
-                        XposedBridge.log("$TAG: auth bypassed successfully")
-                    } catch (e: Throwable) {
-                        // 字段/方法名混淆可能变化，记录日志但不 crash
-                        XposedBridge.log("$TAG: bypass failed — ${e.message}")
-                    }
+                try {
+                    val originalCode = XposedHelpers.getIntField(error, "a")
+                    module.log("$TAG: auth error intercepted, original errorCode=$originalCode, forcing to 0")
+                    XposedHelpers.setIntField(error, "a", 0)
+                    val successResult = XposedHelpers.callMethod(chain.thisObject, "h")
+                    module.log("$TAG: auth bypassed successfully")
+                    successResult  // skip original
+                } catch (e: Throwable) {
+                    module.log("$TAG: bypass failed — ${e.message}")
+                    chain.proceed()
                 }
-            })
+            }
 
-            XposedBridge.log("$TAG: hooked AuthSession.b(error)")
+            module.log("$TAG: hooked AuthSession.b(error)")
         } catch (e: Throwable) {
-            XposedBridge.log("$TAG: failed to hook $AUTH_SESSION_CLASS — ${e.message}")
+            module.log("$TAG: failed to hook $AUTH_SESSION_CLASS — ${e.message}")
         }
     }
 }

@@ -3,7 +3,7 @@ package io.github.hyperisland.xposed.templates
 import android.content.Context
 import android.graphics.drawable.Icon
 import android.os.Bundle
-import de.robv.android.xposed.XposedBridge
+import android.util.Log
 import io.github.hyperisland.xposed.IslandDispatcher
 import io.github.hyperisland.xposed.IslandRequest
 import io.github.hyperisland.xposed.IslandTemplate
@@ -40,7 +40,7 @@ object NotificationIslandNotification : IslandTemplate {
                 "HyperIsland[NotifIsland]: injected — ${data.title} | left=${vm.leftTitle} | right=${vm.rightTitle} | buttons=${data.actions.size} | isOngoing=${data.isOngoing}"
             )
         } catch (e: Exception) {
-            XposedBridge.log("HyperIsland[NotifIsland]: Island injection error: ${e.message}")
+            Log.d("HyperIsland", "HyperIsland[NotifIsland]: Island injection error: ${e.message}")
         }
     }
 
@@ -72,9 +72,9 @@ object NotificationIslandNotification : IslandTemplate {
                     actions          = data.actions.take(2),
                 ),
             )
-            XposedBridge.log("HyperIsland[NotifIsland]: Dispatcher island — ${data.title} | iconMode=${data.iconMode} | timeout=${data.islandTimeout}")
+            Log.d("HyperIsland", "HyperIsland[NotifIsland]: Dispatcher island — ${data.title} | iconMode=${data.iconMode} | timeout=${data.islandTimeout}")
         } catch (e: Exception) {
-            XposedBridge.log("HyperIsland[NotifIsland]: Dispatcher island error: ${e.message}")
+            Log.d("HyperIsland", "HyperIsland[NotifIsland]: Dispatcher island error: ${e.message}")
         }
     }
 

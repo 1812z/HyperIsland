@@ -14,7 +14,7 @@ import io.github.hyperisland.R
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.InProcessController
 import io.github.hyperisland.xposed.moduleContext
-import de.robv.android.xposed.XposedBridge
+import android.util.Log
 import io.github.d4viddf.hyperisland_kit.HyperAction
 import io.github.d4viddf.hyperisland_kit.HyperIslandNotification
 import io.github.d4viddf.hyperisland_kit.HyperPicture
@@ -202,10 +202,10 @@ object DownloadIslandNotification {
                 hasValidProgress -> "${safeProgress}%"
                 else             -> "unknown"
             }
-            XposedBridge.log("HyperIsland[Download]: Island injected — $fileName ($stateTag)")
+            Log.d("HyperIsland", "HyperIsland[Download]: Island injected — $fileName ($stateTag)")
 
         } catch (e: Exception) {
-            XposedBridge.log("HyperIsland[Download]: Island injection error: ${e.message}")
+            Log.d("HyperIsland", "HyperIsland[Download]: Island injection error: ${e.message}")
         }
     }
 

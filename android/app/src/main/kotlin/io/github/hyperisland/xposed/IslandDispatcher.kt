@@ -11,7 +11,7 @@ import android.graphics.drawable.Icon
 import android.os.Build
 import io.github.hyperisland.getAppIcon
 import android.os.Bundle
-import de.robv.android.xposed.XposedBridge
+import android.util.Log
 import io.github.hyperisland.xposed.hook.FocusNotifStatusBarIconHook
 import io.github.d4viddf.hyperisland_kit.HyperAction
 import io.github.d4viddf.hyperisland_kit.HyperIslandNotification
@@ -82,10 +82,10 @@ object IslandDispatcher {
                 ACTION -> {
                     try {
                         val request = IslandRequest.fromIntent(intent)
-                        XposedBridge.log("$TAG onReceive: title=${request.title}")
+                        Log.d("HyperIsland", "$TAG onReceive: title=${request.title}")
                         post(appCtx, request)
                     } catch (e: Exception) {
-                        XposedBridge.log("$TAG onReceive error: ${e.message}")
+                        Log.d("HyperIsland", "$TAG onReceive error: ${e.message}")
                     }
                 }
                 ACTION_CANCEL -> {
@@ -93,7 +93,7 @@ object IslandDispatcher {
                         val notifId = intent.getIntExtra(EXTRA_NOTIF_ID, NOTIF_ID)
                         cancel(appCtx, notifId)
                     } catch (e: Exception) {
-                        XposedBridge.log("$TAG onReceive cancel error: ${e.message}")
+                        Log.d("HyperIsland", "$TAG onReceive cancel error: ${e.message}")
                     }
                 }
             }
@@ -119,7 +119,7 @@ object IslandDispatcher {
             appCtx.registerReceiver(receiver, filter, PERM, null)
         }
         registered = true
-        XposedBridge.log("$TAG registered in pid=${android.os.Process.myPid()}")
+        Log.d("HyperIsland", "$TAG registered in pid=${android.os.Process.myPid()}")
     }
 
     // ── 公开 API ──────────────────────────────────────────────────────────────
@@ -233,7 +233,7 @@ object IslandDispatcher {
                 " | highlight=${request.highlightColor} | dismiss=${request.dismissIsland}"
             )
         } catch (e: Exception) {
-            XposedBridge.log("$TAG post error: ${e.message}")
+            Log.d("HyperIsland", "$TAG post error: ${e.message}")
         }
     }
 
@@ -259,9 +259,9 @@ object IslandDispatcher {
             val nm = context.getSystemService(NotificationManager::class.java) ?: return
             nm.cancel(notifId)
             postedIds.remove(notifId)
-            XposedBridge.log("$TAG cancel: notifId=$notifId")
+            Log.d("HyperIsland", "$TAG cancel: notifId=$notifId")
         } catch (e: Exception) {
-            XposedBridge.log("$TAG cancel error: ${e.message}")
+            Log.d("HyperIsland", "$TAG cancel error: ${e.message}")
         }
     }
 

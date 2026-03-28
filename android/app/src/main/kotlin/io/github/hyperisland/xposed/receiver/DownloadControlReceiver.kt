@@ -5,7 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
-import de.robv.android.xposed.XposedBridge
+import android.util.Log
 
 /**
  * 下载控制接收器
@@ -34,14 +34,14 @@ class DownloadControlReceiver : BroadcastReceiver() {
         val fileName = intent.getStringExtra(EXTRA_FILE_NAME) ?: "未知文件"
         val packageName = intent.getStringExtra(EXTRA_PACKAGE_NAME) ?: ""
 
-        XposedBridge.log("╔════════════════════════════════════════╗")
-        XposedBridge.log("║   🎮 DOWNLOAD CONTROL ACTION RECEIVED  ║")
-        XposedBridge.log("╠════════════════════════════════════════╣")
-        XposedBridge.log("║ Action: $action")
-        XposedBridge.log("║ DownloadID: $downloadId")
-        XposedBridge.log("║ File: $fileName")
-        XposedBridge.log("║ Package: $packageName")
-        XposedBridge.log("╚════════════════════════════════════════╝")
+        Log.d("HyperIsland", "╔════════════════════════════════════════╗")
+        Log.d("HyperIsland", "║   🎮 DOWNLOAD CONTROL ACTION RECEIVED  ║")
+        Log.d("HyperIsland", "╠════════════════════════════════════════╣")
+        Log.d("HyperIsland", "║ Action: $action")
+        Log.d("HyperIsland", "║ DownloadID: $downloadId")
+        Log.d("HyperIsland", "║ File: $fileName")
+        Log.d("HyperIsland", "║ Package: $packageName")
+        Log.d("HyperIsland", "╚════════════════════════════════════════╝")
 
         when (action) {
             ACTION_PAUSE -> {
@@ -60,7 +60,7 @@ class DownloadControlReceiver : BroadcastReceiver() {
      * 处理暂停下载
      */
     private fun handlePause(context: Context, downloadId: Long, fileName: String, packageName: String) {
-        XposedBridge.log("HyperIsland: 📥 Attempting to pause download: $downloadId")
+        Log.d("HyperIsland", "HyperIsland: 📥 Attempting to pause download: $downloadId")
 
         try {
             // 方法1: 使用反射调用 DownloadManager 的 pause 方法
@@ -71,13 +71,13 @@ class DownloadControlReceiver : BroadcastReceiver() {
                 pauseDownloadViaProvider(context, packageName, fileName)
             }
 
-            XposedBridge.log("HyperIsland: ✅ Pause command sent for: $fileName")
+            Log.d("HyperIsland", "HyperIsland: ✅ Pause command sent for: $fileName")
 
             // 可选：发送通知反馈
             // showFeedbackNotification(context, "已暂停", fileName)
 
         } catch (e: Exception) {
-            XposedBridge.log("HyperIsland: ❌ Error pausing download: ${e.message}")
+            Log.d("HyperIsland", "HyperIsland: ❌ Error pausing download: ${e.message}")
             e.printStackTrace()
         }
     }
@@ -86,7 +86,7 @@ class DownloadControlReceiver : BroadcastReceiver() {
      * 处理恢复下载
      */
     private fun handleResume(context: Context, downloadId: Long, fileName: String, packageName: String) {
-        XposedBridge.log("HyperIsland: ▶️ Attempting to resume download: $downloadId")
+        Log.d("HyperIsland", "HyperIsland: ▶️ Attempting to resume download: $downloadId")
 
         try {
             // 方法1: 使用反射调用 DownloadManager 的 resume 方法
@@ -97,10 +97,10 @@ class DownloadControlReceiver : BroadcastReceiver() {
                 resumeDownloadViaProvider(context, packageName, fileName)
             }
 
-            XposedBridge.log("HyperIsland: ✅ Resume command sent for: $fileName")
+            Log.d("HyperIsland", "HyperIsland: ✅ Resume command sent for: $fileName")
 
         } catch (e: Exception) {
-            XposedBridge.log("HyperIsland: ❌ Error resuming download: ${e.message}")
+            Log.d("HyperIsland", "HyperIsland: ❌ Error resuming download: ${e.message}")
             e.printStackTrace()
         }
     }
@@ -109,26 +109,26 @@ class DownloadControlReceiver : BroadcastReceiver() {
      * 处理取消下载
      */
     private fun handleCancel(context: Context, downloadId: Long, fileName: String, packageName: String) {
-        XposedBridge.log("HyperIsland: ❌ Attempting to cancel download: $downloadId")
+        Log.d("HyperIsland", "HyperIsland: ❌ Attempting to cancel download: $downloadId")
 
         try {
             // 方法1: 使用 DownloadManager 的 remove 方法
             if (downloadId > 0) {
                 val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as? DownloadManager
                 downloadManager?.remove(downloadId)
-                XposedBridge.log("HyperIsland: ✅ Download cancelled via DownloadManager: $downloadId")
+                Log.d("HyperIsland", "HyperIsland: ✅ Download cancelled via DownloadManager: $downloadId")
             } else {
                 // 方法2: 通过 ContentProvider 删除下载
                 cancelDownloadViaProvider(context, packageName, fileName)
             }
 
-            XposedBridge.log("HyperIsland: ✅ Cancel command sent for: $fileName")
+            Log.d("HyperIsland", "HyperIsland: ✅ Cancel command sent for: $fileName")
 
             // 可选：移除通知
             // removeNotification(context, packageName)
 
         } catch (e: Exception) {
-            XposedBridge.log("HyperIsland: ❌ Error cancelling download: ${e.message}")
+            Log.d("HyperIsland", "HyperIsland: ❌ Error cancelling download: ${e.message}")
             e.printStackTrace()
         }
     }
@@ -147,9 +147,9 @@ class DownloadControlReceiver : BroadcastReceiver() {
             pauseMethod?.isAccessible = true
             pauseMethod?.invoke(downloadManager, downloadId)
 
-            XposedBridge.log("HyperIsland: Paused via reflection: $downloadId")
+            Log.d("HyperIsland", "HyperIsland: Paused via reflection: $downloadId")
         } catch (e: Exception) {
-            XposedBridge.log("HyperIsland: Reflection pause failed: ${e.message}")
+            Log.d("HyperIsland", "HyperIsland: Reflection pause failed: ${e.message}")
             // 尝试通过 ContentProvider 暂停
             pauseDownloadViaProvider(context, "", downloadId.toString())
         }
@@ -167,9 +167,9 @@ class DownloadControlReceiver : BroadcastReceiver() {
             resumeMethod?.isAccessible = true
             resumeMethod?.invoke(downloadManager, downloadId)
 
-            XposedBridge.log("HyperIsland: Resumed via reflection: $downloadId")
+            Log.d("HyperIsland", "HyperIsland: Resumed via reflection: $downloadId")
         } catch (e: Exception) {
-            XposedBridge.log("HyperIsland: Reflection resume failed: ${e.message}")
+            Log.d("HyperIsland", "HyperIsland: Reflection resume failed: ${e.message}")
             // 尝试通过 ContentProvider 恢复
             resumeDownloadViaProvider(context, "", downloadId.toString())
         }
@@ -222,12 +222,12 @@ class DownloadControlReceiver : BroadcastReceiver() {
                         null
                     )
 
-                    XposedBridge.log("HyperIsland: Paused via provider: $id (updated: $updated)")
+                    Log.d("HyperIsland", "HyperIsland: Paused via provider: $id (updated: $updated)")
                 }
             }
 
         } catch (e: Exception) {
-            XposedBridge.log("HyperIsland: Provider pause failed: ${e.message}")
+            Log.d("HyperIsland", "HyperIsland: Provider pause failed: ${e.message}")
         }
     }
 
@@ -274,12 +274,12 @@ class DownloadControlReceiver : BroadcastReceiver() {
                         null
                     )
 
-                    XposedBridge.log("HyperIsland: Resumed via provider: $id (updated: $updated)")
+                    Log.d("HyperIsland", "HyperIsland: Resumed via provider: $id (updated: $updated)")
                 }
             }
 
         } catch (e: Exception) {
-            XposedBridge.log("HyperIsland: Provider resume failed: ${e.message}")
+            Log.d("HyperIsland", "HyperIsland: Provider resume failed: ${e.message}")
         }
     }
 
@@ -311,12 +311,12 @@ class DownloadControlReceiver : BroadcastReceiver() {
                         null
                     )
 
-                    XposedBridge.log("HyperIsland: Cancelled via provider: $id (deleted: $deleted)")
+                    Log.d("HyperIsland", "HyperIsland: Cancelled via provider: $id (deleted: $deleted)")
                 }
             }
 
         } catch (e: Exception) {
-            XposedBridge.log("HyperIsland: Provider cancel failed: ${e.message}")
+            Log.d("HyperIsland", "HyperIsland: Provider cancel failed: ${e.message}")
         }
     }
 
@@ -333,9 +333,9 @@ class DownloadControlReceiver : BroadcastReceiver() {
                 notificationManager?.cancel(packageName.hashCode())
             }
 
-            XposedBridge.log("HyperIsland: Notification removed for: $packageName")
+            Log.d("HyperIsland", "HyperIsland: Notification removed for: $packageName")
         } catch (e: Exception) {
-            XposedBridge.log("HyperIsland: Error removing notification: ${e.message}")
+            Log.d("HyperIsland", "HyperIsland: Error removing notification: ${e.message}")
         }
     }
 }

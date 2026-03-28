@@ -3,7 +3,7 @@ package io.github.hyperisland.xposed.templates
 import android.content.Context
 import android.graphics.drawable.Icon
 import android.os.Bundle
-import de.robv.android.xposed.XposedBridge
+import android.util.Log
 import io.github.d4viddf.hyperisland_kit.HyperAction
 import io.github.d4viddf.hyperisland_kit.HyperIslandNotification
 import io.github.d4viddf.hyperisland_kit.HyperPicture
@@ -53,9 +53,9 @@ object AINotificationIslandNotification : IslandTemplate {
         val rightText = aiText?.right ?: data.subtitle.ifEmpty { data.title }
 
         if (aiText != null) {
-            XposedBridge.log("HyperIsland[AINotifIsland]: AI text — left=$leftText | right=$rightText")
+            Log.d("HyperIsland", "HyperIsland[AINotifIsland]: AI text — left=$leftText | right=$rightText")
         } else {
-            XposedBridge.log("HyperIsland[AINotifIsland]: Using fallback text — left=$leftText | right=$rightText")
+            Log.d("HyperIsland", "HyperIsland[AINotifIsland]: Using fallback text — left=$leftText | right=$rightText")
         }
 
         if (data.focusNotif == "off") {
@@ -69,7 +69,7 @@ object AINotificationIslandNotification : IslandTemplate {
                 "HyperIsland[AINotifIsland]: Injected — title=${data.title} | left=$leftText | right=$rightText | notifId=${data.notifId}"
             )
         } catch (e: Exception) {
-            XposedBridge.log("HyperIsland[AINotifIsland]: Injection error: ${e.message}")
+            Log.d("HyperIsland", "HyperIsland[AINotifIsland]: Injection error: ${e.message}")
         }
     }
 
@@ -101,10 +101,10 @@ object AINotificationIslandNotification : IslandTemplate {
             future.get(3, TimeUnit.SECONDS)
         } catch (_: TimeoutException) {
             future.cancel(true)
-            XposedBridge.log("HyperIsland[AINotifIsland]: AI request timed out, falling back")
+            Log.d("HyperIsland", "HyperIsland[AINotifIsland]: AI request timed out, falling back")
             null
         } catch (e: Exception) {
-            XposedBridge.log("HyperIsland[AINotifIsland]: AI request error: ${e.message}")
+            Log.d("HyperIsland", "HyperIsland[AINotifIsland]: AI request error: ${e.message}")
             null
         }
     }
@@ -120,13 +120,13 @@ object AINotificationIslandNotification : IslandTemplate {
             readTimeout    = 2500
             doOutput       = true
         }
-        XposedBridge.log("HyperIsland[AINotifIsland]: POST ${config.url}")
+        Log.d("HyperIsland", "HyperIsland[AINotifIsland]: POST ${config.url}")
         return try {
             conn.outputStream.use { it.write(requestBody.toByteArray(Charsets.UTF_8)) }
             val code = conn.responseCode
             if (code != HttpURLConnection.HTTP_OK) {
                 val errorBody = try { conn.errorStream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: "" } catch (_: Exception) { "" }
-                XposedBridge.log("HyperIsland[AINotifIsland]: HTTP $code — $errorBody")
+                Log.d("HyperIsland", "HyperIsland[AINotifIsland]: HTTP $code — $errorBody")
                 return null
             }
             parseAiResponse(conn.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() })
@@ -172,7 +172,7 @@ object AINotificationIslandNotification : IslandTemplate {
             if (left.isEmpty() && right.isEmpty()) null
             else AiIslandText(left.ifEmpty { "通知" }, right.ifEmpty { "新消息" })
         } catch (e: Exception) {
-            XposedBridge.log("HyperIsland[AINotifIsland]: Failed to parse AI response: ${e.message}")
+            Log.d("HyperIsland", "HyperIsland[AINotifIsland]: Failed to parse AI response: ${e.message}")
             null
         }
     }
@@ -205,7 +205,7 @@ object AINotificationIslandNotification : IslandTemplate {
                 ),
             )
         } catch (e: Exception) {
-            XposedBridge.log("HyperIsland[AINotifIsland]: Dispatcher error: ${e.message}")
+            Log.d("HyperIsland", "HyperIsland[AINotifIsland]: Dispatcher error: ${e.message}")
         }
     }
 

@@ -3,7 +3,7 @@ package io.github.hyperisland.xposed.templates
 import android.content.Context
 import android.graphics.drawable.Icon
 import android.os.Bundle
-import de.robv.android.xposed.XposedBridge
+import android.util.Log
 import io.github.hyperisland.R
 import io.github.hyperisland.xposed.IslandTemplate
 import io.github.hyperisland.xposed.IslandViewModel
@@ -34,9 +34,9 @@ object GenericProgressIslandNotification : IslandTemplate {
                 vm.updatable                -> "in-progress"
                 else                        -> "done/paused"
             }
-            XposedBridge.log("HyperIsland[Generic]: injected — ${data.title} ($stateTag) buttons=${data.actions.size}")
+            Log.d("HyperIsland", "HyperIsland[Generic]: injected — ${data.title} ($stateTag) buttons=${data.actions.size}")
         } catch (e: Exception) {
-            XposedBridge.log("HyperIsland[Generic]: Island injection error: ${e.message}")
+            Log.d("HyperIsland", "HyperIsland[Generic]: Island injection error: ${e.message}")
         }
     }
 

@@ -13,12 +13,10 @@ import android.graphics.drawable.Icon
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import io.github.hyperisland.getAppIcon
-import io.github.hyperisland.xposed.templates.DownloadIslandNotification
-import de.robv.android.xposed.XC_MethodHook
-import de.robv.android.xposed.XposedBridge
-import de.robv.android.xposed.XposedHelpers
-import de.robv.android.xposed.callbacks.XC_LoadPackage
+import io.github.hyperisland.xposed.template.DownloadIslandNotification
+import io.github.libxposed.api.XposedModule
 
 /**
  * 进程内下载控制器。
@@ -38,25 +36,19 @@ object InProcessController {
     const val CMD_CANCEL  = "cancel"
     const val CMD_DISMISS = "dismiss"
 
-    // 来自 JADX：MiuiDownloads.Impl 状态常量
     private const val STATUS_PENDING       = 190
     private const val STATUS_RUNNING       = 192
     private const val STATUS_PAUSED_BY_APP = 193
     private const val CONTROL_RUN          = 0
     private const val CONTROL_PAUSED       = 1
 
-    // my_downloads 按调用者 UID 过滤，all_downloads 有全部记录（系统进程可用）
     private val DOWNLOADS_URI     = Uri.parse("content://downloads/my_downloads")
     private val DOWNLOADS_URI_ALL = Uri.parse("content://downloads/all_downloads")
 
     @Volatile private var registered = false
-
-    /** 从 ContentProvider 加载的设置，在 ensureRegistered 时初始化 */
     @Volatile private var resumeNotificationEnabled = true
-    /** 仅用于 DownloadHook：是否将下载管理器通知图标替换为应用图标。 */
     @Volatile var useHookAppIconEnabled = true
 
-    /** 下载通知快照，供暂停后重建覆盖通知 */
     data class DownloadNotifSnapshot(
         val notifId: Int,
         val notifTag: String?,
@@ -68,44 +60,38 @@ object InProcessController {
         val packageName: String
     )
 
-    /** 最近一次快照 */
     @Volatile var lastDownloadSnapshot: DownloadNotifSnapshot? = null
-
-    /** 固定 ID 的暂停覆盖通知，避免和 DM 原通知 ID 冲突 */
     private const val PAUSED_OVERLAY_ID = 0x48594F01
 
-    // ── 初始化：注册进程内 Receiver ────────────────────────────────────────────
+    private fun log(msg: String) = Log.d("HyperIsland", msg)
 
-    /** 从 ConfigManager（文件缓存）加载设置 */
     private fun loadSettings() {
         resumeNotificationEnabled = ConfigManager.getBoolean("pref_resume_notification", true)
         useHookAppIconEnabled     = ConfigManager.getBoolean("pref_use_hook_app_icon", true)
-        XposedBridge.log("HyperIsland: settings loaded — resumeNotification=$resumeNotificationEnabled useHookAppIcon=$useHookAppIconEnabled")
+        log("HyperIsland: settings loaded — resumeNotification=$resumeNotificationEnabled useHookAppIcon=$useHookAppIconEnabled")
     }
 
     fun ensureRegistered(context: Context) {
         if (registered) return
         val appCtx = context.applicationContext ?: context
 
-        // 初始化文件监控配置管理器（无需 app 后台，直接读 SharedPreferences XML）
         ConfigManager.init()
         loadSettings()
         ConfigManager.addChangeListener {
             loadSettings()
-            XposedBridge.log("HyperIsland: settings reloaded via FileObserver")
+            log("HyperIsland: settings reloaded via FileObserver")
         }
 
-        // 打印当前进程的 DownloadManager 实际类型，方便调试
         runCatching {
             val dm = appCtx.getSystemService(Context.DOWNLOAD_SERVICE)
-            XposedBridge.log("HyperIsland: DownloadManager runtime class = ${dm?.javaClass?.name}")
+            log("HyperIsland: DownloadManager runtime class = ${dm?.javaClass?.name}")
         }
 
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(ctx: Context, intent: Intent) {
                 val id = intent.getLongExtra(EXTRA_ID, -1L)
                 val cmd = intent.getStringExtra(EXTRA_CMD)
-                XposedBridge.log("HyperIsland: onReceive cmd=$cmd id=$id")
+                log("HyperIsland: onReceive cmd=$cmd id=$id")
                 when (cmd) {
                     CMD_PAUSE -> {
                         val isAll = id <= 0
@@ -128,7 +114,7 @@ object InProcessController {
                         if (notifId > 0) {
                             val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
                             nm?.cancel(notifTag, notifId)
-                            XposedBridge.log("HyperIsland: dismiss notifId=$notifId tag=$notifTag")
+                            log("HyperIsland: dismiss notifId=$notifId tag=$notifTag")
                         }
                     }
                 }
@@ -136,8 +122,6 @@ object InProcessController {
         }
 
         val filter = IntentFilter(ACTION)
-        // 必须用 EXPORTED：MIUI 超级岛按钮点击时，PendingIntent 由 system_server
-        // 代发，UID ≠ 目标进程，RECEIVER_NOT_EXPORTED 会将广播过滤掉。
         if (Build.VERSION.SDK_INT >= 33) {
             appCtx.registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED)
         } else {
@@ -145,15 +129,14 @@ object InProcessController {
             appCtx.registerReceiver(receiver, filter)
         }
         registered = true
-        XposedBridge.log("HyperIsland: InProcessController registered in pid=${android.os.Process.myPid()}")
+        log("HyperIsland: InProcessController registered in pid=${android.os.Process.myPid()}")
     }
 
     /**
-     * 在 handleLoadPackage 阶段 Hook MiuiDownloadManager 的方法，
-     * 确保在目标包进程里正确调用。
-     * 仅在 com.xiaomi.android.app.downloadmanager 进程中尝试。
+     * Hook MiuiDownloadManager 方法（仅用于日志/调试）。
+     * 在 com.xiaomi.android.app.downloadmanager 进程中调用。
      */
-    fun hookMiuiDownloadManager(lpparam: XC_LoadPackage.LoadPackageParam) {
+    fun hookMiuiDownloadManager(module: XposedModule, classLoader: ClassLoader) {
         val candidates = listOf(
             "com.xiaomi.android.app.downloadmanager.MiuiDownloadManager",
             "com.android.providers.downloads.MiuiDownloadManager",
@@ -161,18 +144,16 @@ object InProcessController {
         )
         for (className in candidates) {
             try {
-                val clazz = lpparam.classLoader.loadClass(className)
-                XposedBridge.log("HyperIsland: Found MiuiDownloadManager: $className")
+                val clazz = classLoader.loadClass(className)
+                module.log("HyperIsland: Found MiuiDownloadManager: $className")
 
-                // Hook pauseDownload 验证方法存在
-                XposedHelpers.findAndHookMethod(clazz, "pauseDownload", LongArray::class.java,
-                    object : XC_MethodHook() {
-                        override fun beforeHookedMethod(param: MethodHookParam) {
-                            val ids = param.args[0] as? LongArray
-                            XposedBridge.log("HyperIsland: pauseDownload called ids=${ids?.toList()}")
-                        }
-                    })
-                XposedBridge.log("HyperIsland: Hooked pauseDownload in $className")
+                val pauseMethod = clazz.getDeclaredMethod("pauseDownload", LongArray::class.java)
+                module.hook(pauseMethod).intercept { chain ->
+                    val ids = chain.args[0] as? LongArray
+                    module.log("HyperIsland: pauseDownload called ids=${ids?.toList()}")
+                    chain.proceed()
+                }
+                module.log("HyperIsland: Hooked pauseDownload in $className")
                 break
             } catch (_: Throwable) {}
         }
@@ -184,7 +165,6 @@ object InProcessController {
     fun resumeIntent(context: Context, downloadId: Long) = makeIntent(context, CMD_RESUME, downloadId, reqCode(downloadId, 1))
     fun cancelIntent(context: Context, downloadId: Long) = makeIntent(context, CMD_CANCEL, downloadId, reqCode(downloadId, 2))
 
-    /** 暂停/恢复/取消所有下载（id=-1 触发 xxxAll） */
     fun pauseAllIntent(context: Context)  = makeIntent(context, CMD_PAUSE,  -1L, 9000001)
     fun cancelAllIntent(context: Context) = makeIntent(context, CMD_CANCEL, -1L, 9000002)
     fun resumeAllIntent(context: Context) = makeIntent(context, CMD_RESUME, -1L, 9000003)
@@ -217,11 +197,8 @@ object InProcessController {
     // ── 控制逻辑 ──────────────────────────────────────────────────────────────
 
     private fun pause(context: Context, downloadId: Long) {
-        // 先尝试 MiuiDownloadManager 反射（传入真实 ID 和通过查询得到的真实 IDs）
         val realIds = queryActiveIds(context)
-        XposedBridge.log("HyperIsland: pause notifId=$downloadId realIds=$realIds")
-
-        // 用 DownloadManager 公开 API 无法 pause，但可以借助查到的真实 ID 更新 ContentProvider
+        log("HyperIsland: pause notifId=$downloadId realIds=$realIds")
         val idsToTry = (listOf(downloadId) + realIds).distinct()
         val values = ContentValues().apply {
             put("status",  STATUS_PAUSED_BY_APP)
@@ -230,24 +207,20 @@ object InProcessController {
         for (id in idsToTry) {
             for (uri in listOf(DOWNLOADS_URI_ALL, DOWNLOADS_URI)) {
                 try {
-                    val rows = context.contentResolver.update(
-                        uri, values, "_id = ?", arrayOf(id.toString())
-                    )
-                    XposedBridge.log("HyperIsland: pause id=$id uri=$uri rows=$rows")
+                    val rows = context.contentResolver.update(uri, values, "_id = ?", arrayOf(id.toString()))
+                    log("HyperIsland: pause id=$id uri=$uri rows=$rows")
                     if (rows > 0) return
                 } catch (e: Exception) {
-                    XposedBridge.log("HyperIsland: pause id=$id uri=$uri err=${e.message}")
+                    log("HyperIsland: pause id=$id uri=$uri err=${e.message}")
                 }
             }
         }
-        // 最后降级：不限 ID，直接更新所有活跃下载
         pauseAll(context)
     }
 
     private fun resume(context: Context, downloadId: Long) {
         val realIds = queryPausedIds(context)
-        XposedBridge.log("HyperIsland: resume notifId=$downloadId realIds=$realIds")
-
+        log("HyperIsland: resume notifId=$downloadId realIds=$realIds")
         val idsToTry = (listOf(downloadId) + realIds).distinct()
         val values = ContentValues().apply {
             put("status",  STATUS_RUNNING)
@@ -256,20 +229,17 @@ object InProcessController {
         for (id in idsToTry) {
             for (uri in listOf(DOWNLOADS_URI_ALL, DOWNLOADS_URI)) {
                 try {
-                    val rows = context.contentResolver.update(
-                        uri, values, "_id = ?", arrayOf(id.toString())
-                    )
-                    XposedBridge.log("HyperIsland: resume id=$id uri=$uri rows=$rows")
+                    val rows = context.contentResolver.update(uri, values, "_id = ?", arrayOf(id.toString()))
+                    log("HyperIsland: resume id=$id uri=$uri rows=$rows")
                     if (rows > 0) return
                 } catch (e: Exception) {
-                    XposedBridge.log("HyperIsland: resume id=$id uri=$uri err=${e.message}")
+                    log("HyperIsland: resume id=$id uri=$uri err=${e.message}")
                 }
             }
         }
         resumeAll(context)
     }
 
-    /** 查询正在运行/等待的下载的真实 ID（和 cancelAll 同一策略）*/
     private fun queryActiveIds(context: Context): List<Long> {
         return try {
             val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as? DownloadManager
@@ -285,18 +255,15 @@ object InProcessController {
             }
             ids
         } catch (e: Exception) {
-            XposedBridge.log("HyperIsland: queryActiveIds err=${e.message}")
+            log("HyperIsland: queryActiveIds err=${e.message}")
             emptyList()
         }
     }
 
-    /** 查询已暂停的下载的真实 ID */
     private fun queryPausedIds(context: Context): List<Long> {
         return try {
             val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as? DownloadManager
-            val cursor = dm?.query(
-                DownloadManager.Query().setFilterByStatus(DownloadManager.STATUS_PAUSED)
-            )
+            val cursor = dm?.query(DownloadManager.Query().setFilterByStatus(DownloadManager.STATUS_PAUSED))
             val ids = mutableListOf<Long>()
             cursor?.use {
                 val col = it.getColumnIndex(DownloadManager.COLUMN_ID)
@@ -304,7 +271,7 @@ object InProcessController {
             }
             ids
         } catch (e: Exception) {
-            XposedBridge.log("HyperIsland: queryPausedIds err=${e.message}")
+            log("HyperIsland: queryPausedIds err=${e.message}")
             emptyList()
         }
     }
@@ -313,15 +280,13 @@ object InProcessController {
         try {
             val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as? DownloadManager
             val n = dm?.remove(downloadId) ?: 0
-            XposedBridge.log("HyperIsland: cancel dm.remove($downloadId)=$n")
-            if (n == 0) cancelAll(context)  // ID 未匹配，降级取消所有活跃
+            log("HyperIsland: cancel dm.remove($downloadId)=$n")
+            if (n == 0) cancelAll(context)
         } catch (e: Exception) {
-            XposedBridge.log("HyperIsland: cancel failed: ${e.message}")
+            log("HyperIsland: cancel failed: ${e.message}")
             cancelAll(context)
         }
     }
-
-    // ── id=-1 降级：操作所有匹配状态的下载 ───────────────────────────────────
 
     private fun pauseAll(context: Context) {
         val values = ContentValues().apply {
@@ -335,10 +300,10 @@ object InProcessController {
                     "status = ? OR status = ?",
                     arrayOf(STATUS_RUNNING.toString(), STATUS_PENDING.toString())
                 )
-                XposedBridge.log("HyperIsland: pauseAll uri=$uri rows=$rows")
+                log("HyperIsland: pauseAll uri=$uri rows=$rows")
                 if (rows > 0) return
             } catch (e: Exception) {
-                XposedBridge.log("HyperIsland: pauseAll uri=$uri err=${e.message}")
+                log("HyperIsland: pauseAll uri=$uri err=${e.message}")
             }
         }
     }
@@ -350,34 +315,30 @@ object InProcessController {
                 put("control", CONTROL_RUN)
             }
             val rows = context.contentResolver.update(
-                DOWNLOADS_URI, values,
-                "status = ?",
-                arrayOf(STATUS_PAUSED_BY_APP.toString())
+                DOWNLOADS_URI, values, "status = ?", arrayOf(STATUS_PAUSED_BY_APP.toString())
             )
-            XposedBridge.log("HyperIsland: resumeAll rows=$rows")
+            log("HyperIsland: resumeAll rows=$rows")
         } catch (e: Exception) {
-            XposedBridge.log("HyperIsland: resumeAll failed: ${e.message}")
+            log("HyperIsland: resumeAll failed: ${e.message}")
         }
     }
 
     private fun cancelAll(context: Context) {
         try {
             val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as? DownloadManager
-            // 只取消正在进行（RUNNING/PENDING）的下载，不碰已暂停的
             val cursor = context.contentResolver.query(
                 DOWNLOADS_URI, arrayOf("_id"),
                 "status = ? OR status = ?",
-                arrayOf(STATUS_RUNNING.toString(), STATUS_PENDING.toString()),
-                null
+                arrayOf(STATUS_RUNNING.toString(), STATUS_PENDING.toString()), null
             )
             val ids = mutableListOf<Long>()
             cursor?.use { while (it.moveToNext()) ids.add(it.getLong(0)) }
             if (ids.isNotEmpty()) {
                 val removed = dm?.remove(*ids.toLongArray()) ?: 0
-                XposedBridge.log("HyperIsland: cancelAll removed=$removed ids=$ids")
+                log("HyperIsland: cancelAll removed=$removed ids=$ids")
             }
         } catch (e: Exception) {
-            XposedBridge.log("HyperIsland: cancelAll failed: ${e.message}")
+            log("HyperIsland: cancelAll failed: ${e.message}")
         }
     }
 
@@ -385,11 +346,11 @@ object InProcessController {
 
     private fun postPausedOverlay(context: Context, isAll: Boolean) {
         if (!resumeNotificationEnabled) {
-            XposedBridge.log("HyperIsland: postPausedOverlay — disabled by setting")
+            log("HyperIsland: postPausedOverlay — disabled by setting")
             return
         }
         val snap = lastDownloadSnapshot ?: run {
-            XposedBridge.log("HyperIsland: postPausedOverlay — no snapshot")
+            log("HyperIsland: postPausedOverlay — no snapshot")
             return
         }
         val overlaySnap = snap.copy(
@@ -422,10 +383,8 @@ object InProcessController {
             )
             extras.putBoolean("hyperisland_processed", true)
 
-            val resumeIntent = if (snapshot.isMultiFile) resumeAllIntent(context)
-                               else                      resumeIntent(context, snapshot.downloadId)
-            val cancelIntent = if (snapshot.isMultiFile) cancelAllIntent(context)
-                               else                      cancelIntent(context, snapshot.downloadId)
+            val resumeIntent = if (snapshot.isMultiFile) resumeAllIntent(context) else resumeIntent(context, snapshot.downloadId)
+            val cancelIntent = if (snapshot.isMultiFile) cancelAllIntent(context) else cancelIntent(context, snapshot.downloadId)
             val resumeLabel = if (snapshot.isMultiFile) "全部恢复" else "恢复"
             val cancelLabel = if (snapshot.isMultiFile) "全部取消" else "取消"
 
@@ -442,35 +401,32 @@ object InProcessController {
 
             val nm = context.getSystemService(NotificationManager::class.java)
             nm?.notify(null, snapshot.notifId, notif)
-            XposedBridge.log("HyperIsland: repostAsPaused id=${snapshot.notifId}")
+            log("HyperIsland: repostAsPaused id=${snapshot.notifId}")
         } catch (e: Exception) {
-            XposedBridge.log("HyperIsland: repostAsPaused failed: ${e.message}")
+            log("HyperIsland: repostAsPaused failed: ${e.message}")
         }
     }
 
     private fun cancelPausedOverlay(context: Context) {
         try {
             context.getSystemService(NotificationManager::class.java)?.cancel(PAUSED_OVERLAY_ID)
-            XposedBridge.log("HyperIsland: cancelPausedOverlay")
+            log("HyperIsland: cancelPausedOverlay")
         } catch (e: Exception) {
-            XposedBridge.log("HyperIsland: cancelPausedOverlay failed: ${e.message}")
+            log("HyperIsland: cancelPausedOverlay failed: ${e.message}")
         }
     }
 
-    /**
-     * 用 getSystemService 的运行时类做反射，不猜类名。
-     * pauseDownload/resumeDownload 签名都是 (long...) = LongArray
-     */
+    @Suppress("unused")
     private fun callDmMethod(context: Context, methodName: String, downloadId: Long): Boolean {
         return try {
             val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) ?: return false
             val method = dm.javaClass.getMethod(methodName, LongArray::class.java)
             method.isAccessible = true
             method.invoke(dm, longArrayOf(downloadId))
-            XposedBridge.log("HyperIsland: $methodName($downloadId) OK [${dm.javaClass.name}]")
+            log("HyperIsland: $methodName($downloadId) OK [${dm.javaClass.name}]")
             true
         } catch (e: Exception) {
-            XposedBridge.log("HyperIsland: $methodName reflection failed: ${e.message}")
+            log("HyperIsland: $methodName reflection failed: ${e.message}")
             false
         }
     }

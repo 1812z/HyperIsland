@@ -7,7 +7,7 @@ import io.github.hyperisland.xposed.templates.DownloadLiteIslandNotification
 import io.github.hyperisland.xposed.templates.GenericProgressIslandNotification
 import io.github.hyperisland.xposed.templates.NotificationIslandLiteNotification
 import io.github.hyperisland.xposed.templates.NotificationIslandNotification
-import de.robv.android.xposed.XposedBridge
+import android.util.Log
 
 /**
  * 模板注册表。
@@ -35,9 +35,7 @@ object TemplateRegistry {
     ) {
         val template = registry[templateId]
         if (template == null) {
-            XposedBridge.log(
-                "HyperIsland[Registry]: unknown template '$templateId', skipped"
-            )
+            Log.d("HyperIsland", "HyperIsland[Registry]: unknown template '$templateId', skipped")
             return
         }
         // 通知进入黑名单处理

@@ -2,7 +2,7 @@ package io.github.hyperisland.xposed.renderer
 
 import android.content.Context
 import android.os.Bundle
-import de.robv.android.xposed.XposedBridge
+import android.util.Log
 import io.github.d4viddf.hyperisland_kit.HyperAction
 import io.github.d4viddf.hyperisland_kit.HyperIslandNotification
 import io.github.d4viddf.hyperisland_kit.HyperPicture
@@ -138,9 +138,9 @@ object ImageTextWithButtonsRenderer : IslandRenderer {
                 useActionsButton   -> ImageTextWithRightTextButtonRenderer.RENDERER_ID
                 else               -> RENDERER_ID
             }
-            XposedBridge.log("HyperIsland[$rendererTag]: rendered template=${vm.templateId}")
+            Log.d("HyperIsland", "HyperIsland[$rendererTag]: rendered template=${vm.templateId}")
         } catch (e: Exception) {
-            XposedBridge.log("HyperIsland[$RENDERER_ID]: render error: ${e.message}")
+            Log.d("HyperIsland", "HyperIsland[$RENDERER_ID]: render error: ${e.message}")
         }
     }
 }

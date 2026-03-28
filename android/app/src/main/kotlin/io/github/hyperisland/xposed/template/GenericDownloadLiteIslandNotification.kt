@@ -3,7 +3,7 @@ package io.github.hyperisland.xposed.templates
 import android.content.Context
 import android.graphics.drawable.Icon
 import android.os.Bundle
-import de.robv.android.xposed.XposedBridge
+import android.util.Log
 import io.github.hyperisland.xposed.IslandTemplate
 import io.github.hyperisland.xposed.IslandViewModel
 import io.github.hyperisland.xposed.NotifData
@@ -33,9 +33,9 @@ object DownloadLiteIslandNotification : IslandTemplate {
                 !vm.updatable               -> "done"
                 else                        -> "paused"
             }
-            XposedBridge.log("HyperIsland[DownloadLite]: injected — ${data.title} ($stateTag) buttons=${data.actions.size}")
+            Log.d("HyperIsland", "HyperIsland[DownloadLite]: injected — ${data.title} ($stateTag) buttons=${data.actions.size}")
         } catch (e: Exception) {
-            XposedBridge.log("HyperIsland[DownloadLite]: Island injection error: ${e.message}")
+            Log.d("HyperIsland", "HyperIsland[DownloadLite]: Island injection error: ${e.message}")
         }
     }
 

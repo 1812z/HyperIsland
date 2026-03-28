@@ -2,7 +2,7 @@ package io.github.hyperisland.xposed
 
 import android.app.ActivityManager
 import android.content.Context
-import de.robv.android.xposed.XposedBridge
+import android.util.Log
 
 /**
  * 应用黑名单过滤器。
@@ -22,16 +22,16 @@ object BlacklistFilter {
             @Suppress("DEPRECATION")
             am.getRunningTasks(1).firstOrNull()?.topActivity?.packageName ?: ""
         } catch (e: Exception) {
-            XposedBridge.log("HyperIsland[Blacklist]: getRunningTasks failed: ${e.message}")
+            Log.d("HyperIsland", "HyperIsland[Blacklist]: getRunningTasks failed: ${e.message}")
             ""
         }
 
         val isBlacklisted = foregroundApp.isNotEmpty() && blacklistStr.split(",").contains(foregroundApp)
-        XposedBridge.log("HyperIsland[Blacklist]: foreground=$foregroundApp, isBlacklisted=$isBlacklisted")
+        Log.d("HyperIsland", "HyperIsland[Blacklist]: foreground=$foregroundApp, isBlacklisted=$isBlacklisted")
 
         if (!isBlacklisted) return data
 
-        XposedBridge.log("HyperIsland[Blacklist]: $foregroundApp skipped float")
+        Log.d("HyperIsland", "HyperIsland[Blacklist]: $foregroundApp skipped float")
         return data.copy(firstFloat = "off", enableFloatMode = "off")
     }
 }
