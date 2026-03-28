@@ -19,11 +19,33 @@ class _AiConfigPageState extends State<AiConfigPage> {
   late final TextEditingController _keyCtrl;
   late final TextEditingController _modelCtrl;
 
-  bool _keyObscured = true;
   bool _testing = false;
   _TestResult? _testResult;
 
+  ({String url, String key, String model}) _effectiveConfig() {
+    if (_ctrl.aiUsePublicPreset) {
+      return (
+        url: kPublicAiRuntimeUrl,
+        key: kPublicAiApiKey,
+        model: kPublicAiModel,
+      );
+    }
+    return (
+      url: SettingsController.normalizeAiUrl(_urlCtrl.text),
+      key: _keyCtrl.text.trim(),
+      model: _modelCtrl.text.trim(),
+    );
+  }
+
+  Future<void> _setPublicPreset(bool value) async {
+    setState(() => _testResult = null);
+    await _ctrl.setAiUsePublicPreset(value);
+  }
+
   void _onCtrlChanged() {
+    _urlCtrl.text = _ctrl.aiUrl;
+    _keyCtrl.text = _ctrl.aiApiKey;
+    _modelCtrl.text = _ctrl.aiModel;
     if (mounted) setState(() {});
   }
 
@@ -46,9 +68,13 @@ class _AiConfigPageState extends State<AiConfigPage> {
   }
 
   Future<void> _save() async {
-    await _ctrl.setAiUrl(_urlCtrl.text.trim());
-    await _ctrl.setAiApiKey(_keyCtrl.text.trim());
-    await _ctrl.setAiModel(_modelCtrl.text.trim());
+    if (_ctrl.aiUsePublicPreset) {
+      await _ctrl.applyPublicAiPreset();
+    } else {
+      await _ctrl.setAiUrl(_urlCtrl.text.trim());
+      await _ctrl.setAiApiKey(_keyCtrl.text.trim());
+      await _ctrl.setAiModel(_modelCtrl.text.trim());
+    }
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -60,9 +86,10 @@ class _AiConfigPageState extends State<AiConfigPage> {
   }
 
   Future<void> _test() async {
-    final url = _urlCtrl.text.trim();
-    final key = _keyCtrl.text.trim();
-    final model = _modelCtrl.text.trim();
+    final config = _effectiveConfig();
+    final url = config.url;
+    final key = config.key;
+    final model = config.model;
 
     if (url.isEmpty) {
       setState(
@@ -81,12 +108,23 @@ class _AiConfigPageState extends State<AiConfigPage> {
     try {
       final body = jsonEncode({
         'model': model.isEmpty ? 'gpt-4o-mini' : model,
-        'messages': [
-          {
-            'role': 'user',
-            'content': 'Reply with exactly: {"left":"test","right":"ok"}',
-          },
-        ],
+        'messages': _ctrl.aiUsePublicPreset
+            ? [
+                {
+                  'role': 'user',
+                  'content': 'You are a notification summarizer. Reply with exactly this JSON and nothing else: {"left":"test","right":"ok"}',
+                },
+              ]
+            : [
+                {
+                  'role': 'system',
+                  'content': 'You are a notification summarizer. Reply with exactly the requested JSON and nothing else.',
+                },
+                {
+                  'role': 'user',
+                  'content': 'Reply with exactly: {"left":"test","right":"ok"}',
+                },
+              ],
         'max_tokens': 30,
         'temperature': 0,
       });
@@ -182,54 +220,74 @@ class _AiConfigPageState extends State<AiConfigPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 8),
-                        // URL
-                        TextField(
-                          controller: _urlCtrl,
-                          decoration: InputDecoration(
-                            labelText: l10n.aiUrlLabel,
-                            hintText: l10n.aiUrlHint,
-                            border: const OutlineInputBorder(),
-                            prefixIcon: const Icon(Icons.link),
-                          ),
-                          keyboardType: TextInputType.url,
-                          autocorrect: false,
+                        SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(l10n.aiPublicPresetTitle),
+                          subtitle: Text(l10n.aiPublicPresetSubtitle),
+                          value: _ctrl.aiUsePublicPreset,
+                          onChanged: _setPublicPreset,
                         ),
-                        const SizedBox(height: 16),
-                        // API Key
-                        TextField(
-                          controller: _keyCtrl,
-                          obscureText: _keyObscured,
-                          decoration: InputDecoration(
-                            labelText: l10n.aiApiKeyLabel,
-                            hintText: l10n.aiApiKeyHint,
-                            border: const OutlineInputBorder(),
-                            prefixIcon: const Icon(Icons.key),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _keyObscured
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
-                              ),
-                              onPressed: () =>
-                                  setState(() => _keyObscured = !_keyObscured),
+                        const SizedBox(height: 8),
+                        if (_ctrl.aiUsePublicPreset) ...[
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: cs.surface,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  l10n.aiPublicPresetEnabledTitle,
+                                  style: Theme.of(context).textTheme.titleSmall,
+                                ),
+                                const SizedBox(height: 6),
+                                Text(l10n.aiPublicPresetEnabledDesc),
+                                const SizedBox(height: 8),
+                                Text('${l10n.aiModelLabel}: $kPublicAiModel'),
+                                const SizedBox(height: 4),
+                                Text('${l10n.aiPublicPresetProviderLabel}: api.9e.nz'),
+                              ],
                             ),
                           ),
-                          autocorrect: false,
-                        ),
-                        const SizedBox(height: 16),
-                        // Model
-                        TextField(
-                          controller: _modelCtrl,
-                          decoration: InputDecoration(
-                            labelText: l10n.aiModelLabel,
-                            hintText: l10n.aiModelHint,
-                            border: const OutlineInputBorder(),
-                            prefixIcon: const Icon(Icons.psychology_outlined),
+                        ] else ...[
+                          TextField(
+                            controller: _urlCtrl,
+                            decoration: InputDecoration(
+                              labelText: l10n.aiUrlLabel,
+                              hintText: l10n.aiUrlHint,
+                              border: const OutlineInputBorder(),
+                              prefixIcon: const Icon(Icons.link),
+                            ),
+                            keyboardType: TextInputType.url,
+                            autocorrect: false,
                           ),
-                          autocorrect: false,
-                        ),
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller: _keyCtrl,
+                            decoration: InputDecoration(
+                              labelText: l10n.aiApiKeyLabel,
+                              hintText: l10n.aiApiKeyHint,
+                              border: const OutlineInputBorder(),
+                              prefixIcon: const Icon(Icons.key),
+                            ),
+                            autocorrect: false,
+                          ),
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller: _modelCtrl,
+                            decoration: InputDecoration(
+                              labelText: l10n.aiModelLabel,
+                              hintText: l10n.aiModelHint,
+                              border: const OutlineInputBorder(),
+                              prefixIcon: const Icon(Icons.psychology_outlined),
+                            ),
+                            autocorrect: false,
+                          ),
+                        ],
                         const SizedBox(height: 16),
-                        // Buttons row
                         Row(
                           children: [
                             Expanded(
@@ -257,11 +315,40 @@ class _AiConfigPageState extends State<AiConfigPage> {
                             ),
                           ],
                         ),
-                        // Test result
                         if (_testResult != null) ...[
                           const SizedBox(height: 12),
                           _TestResultCard(result: _testResult!),
                         ],
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+                Card(
+                  elevation: 0,
+                  color: cs.tertiaryContainer,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.warning_amber_outlined,
+                          color: cs.onTertiaryContainer,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            l10n.aiPublicPresetWarning,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: cs.onTertiaryContainer),
+                          ),
+                        ),
                       ],
                     ),
                   ),

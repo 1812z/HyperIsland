@@ -17,10 +17,19 @@ const kPrefDefaultMarquee             = 'pref_default_marquee';
 const kPrefDefaultFocusNotif          = 'pref_default_focus_notif';
 const kPrefDefaultPreserveSmallIcon   = 'pref_default_preserve_small_icon';
 
-const kPrefAiEnabled  = 'pref_ai_enabled';
-const kPrefAiUrl      = 'pref_ai_url';
-const kPrefAiApiKey   = 'pref_ai_api_key';
-const kPrefAiModel    = 'pref_ai_model';
+const kPrefAiEnabled            = 'pref_ai_enabled';
+const kPrefAiUrl                = 'pref_ai_url';
+const kPrefAiApiKey             = 'pref_ai_api_key';
+const kPrefAiModel              = 'pref_ai_model';
+const kPrefAiUsePublicPreset    = 'pref_ai_use_public_preset';
+const kPrefAiCustomUrl          = 'pref_ai_custom_url';
+const kPrefAiCustomApiKey       = 'pref_ai_custom_api_key';
+const kPrefAiCustomModel        = 'pref_ai_custom_model';
+
+const kPublicAiBaseUrl          = 'https://api.9e.nz/v1';
+const kPublicAiRuntimeUrl       = 'https://api.9e.nz/v1/chat/completions';
+const kPublicAiApiKey           = 'sk-2p8S9WnKKHdwZtSKqboqYZW1lqBWLOi8fcDzOnbxENx1Unkp';
+const kPublicAiModel            = 'gemma-3-27b-it';
 
 class SettingsController extends ChangeNotifier {
   static final SettingsController instance = SettingsController._();
@@ -43,6 +52,7 @@ class SettingsController extends ChangeNotifier {
   bool defaultFocusNotif = true;
   bool defaultPreserveSmallIcon = false;
   bool aiEnabled = false;
+  bool aiUsePublicPreset = false;
   String aiUrl = '';
   String aiApiKey = '';
   String aiModel = '';
@@ -65,10 +75,22 @@ class SettingsController extends ChangeNotifier {
     defaultMarquee             = prefs.getBool(kPrefDefaultMarquee) ?? false;
     defaultFocusNotif          = prefs.getBool(kPrefDefaultFocusNotif) ?? true;
     defaultPreserveSmallIcon   = prefs.getBool(kPrefDefaultPreserveSmallIcon) ?? false;
-    aiEnabled  = prefs.getBool(kPrefAiEnabled) ?? false;
-    aiUrl      = prefs.getString(kPrefAiUrl) ?? '';
-    aiApiKey   = prefs.getString(kPrefAiApiKey) ?? '';
-    aiModel    = prefs.getString(kPrefAiModel) ?? '';
+    aiEnabled          = prefs.getBool(kPrefAiEnabled) ?? false;
+    aiUsePublicPreset  = prefs.getBool(kPrefAiUsePublicPreset) ?? false;
+    final runtimeUrl   = normalizeAiUrl(prefs.getString(kPrefAiUrl) ?? '');
+    final runtimeKey   = prefs.getString(kPrefAiApiKey) ?? '';
+    final runtimeModel = prefs.getString(kPrefAiModel) ?? '';
+    final customUrl    = normalizeAiUrl(prefs.getString(kPrefAiCustomUrl) ?? '');
+    final customKey    = prefs.getString(kPrefAiCustomApiKey) ?? '';
+    final customModel  = prefs.getString(kPrefAiCustomModel) ?? '';
+    aiUrl              = customUrl.isNotEmpty ? customUrl : runtimeUrl;
+    aiApiKey           = customKey.isNotEmpty ? customKey : runtimeKey;
+    aiModel            = customModel.isNotEmpty ? customModel : runtimeModel;
+    if (aiUsePublicPreset) {
+      aiUrl = customUrl;
+      aiApiKey = customKey;
+      aiModel = customModel;
+    }
     themeMode = switch (prefs.getString(kPrefThemeMode)) {
       'light'  => ThemeMode.light,
       'dark'   => ThemeMode.dark,
@@ -180,16 +202,28 @@ class SettingsController extends ChangeNotifier {
     notifyListeners();
   }
 
+  static String normalizeAiUrl(String value) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return '';
+    if (trimmed.endsWith('/v1/chat/completions')) return trimmed;
+    if (trimmed.endsWith('/v1')) return '$trimmed/chat/completions';
+    if (trimmed.endsWith('/v1/')) return '${trimmed}chat/completions';
+    return trimmed;
+  }
+
   Future<void> setAiUrl(String value) async {
+    final normalized = normalizeAiUrl(value);
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(kPrefAiUrl, value);
-    aiUrl = value;
+    await prefs.setString(kPrefAiUrl, normalized);
+    await prefs.setString(kPrefAiCustomUrl, normalized);
+    aiUrl = normalized;
     notifyListeners();
   }
 
   Future<void> setAiApiKey(String value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(kPrefAiApiKey, value);
+    await prefs.setString(kPrefAiCustomApiKey, value);
     aiApiKey = value;
     notifyListeners();
   }
@@ -197,7 +231,40 @@ class SettingsController extends ChangeNotifier {
   Future<void> setAiModel(String value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(kPrefAiModel, value);
+    await prefs.setString(kPrefAiCustomModel, value);
     aiModel = value;
+    notifyListeners();
+  }
+
+  Future<void> setAiUsePublicPreset(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(kPrefAiUsePublicPreset, value);
+    aiUsePublicPreset = value;
+    if (value) {
+      await prefs.setString(kPrefAiUrl, kPublicAiRuntimeUrl);
+      await prefs.setString(kPrefAiApiKey, kPublicAiApiKey);
+      await prefs.setString(kPrefAiModel, kPublicAiModel);
+    } else {
+      final customUrl = normalizeAiUrl(prefs.getString(kPrefAiCustomUrl) ?? '');
+      final customKey = prefs.getString(kPrefAiCustomApiKey) ?? '';
+      final customModel = prefs.getString(kPrefAiCustomModel) ?? '';
+      await prefs.setString(kPrefAiUrl, customUrl);
+      await prefs.setString(kPrefAiApiKey, customKey);
+      await prefs.setString(kPrefAiModel, customModel);
+      aiUrl = customUrl;
+      aiApiKey = customKey;
+      aiModel = customModel;
+    }
+    notifyListeners();
+  }
+
+  Future<void> applyPublicAiPreset() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(kPrefAiUsePublicPreset, true);
+    await prefs.setString(kPrefAiUrl, kPublicAiRuntimeUrl);
+    await prefs.setString(kPrefAiApiKey, kPublicAiApiKey);
+    await prefs.setString(kPrefAiModel, kPublicAiModel);
+    aiUsePublicPreset = true;
     notifyListeners();
   }
 

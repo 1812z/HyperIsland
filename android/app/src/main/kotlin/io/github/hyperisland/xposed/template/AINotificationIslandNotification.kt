@@ -79,6 +79,7 @@ object AINotificationIslandNotification : IslandTemplate {
         val url: String,
         val apiKey: String,
         val model: String,
+        val usePublicPreset: Boolean,
     )
 
     private data class AiIslandText(val left: String, val right: String)
@@ -97,10 +98,11 @@ object AINotificationIslandNotification : IslandTemplate {
         } catch (_: Exception) { false }
 
         return AiConfig(
-            enabled = readBool("pref_ai_enabled"),
-            url     = readString("pref_ai_url"),
-            apiKey  = readString("pref_ai_api_key"),
-            model   = readString("pref_ai_model"),
+            enabled         = readBool("pref_ai_enabled"),
+            url             = readString("pref_ai_url"),
+            apiKey          = readString("pref_ai_api_key"),
+            model           = readString("pref_ai_model"),
+            usePublicPreset = readBool("pref_ai_use_public_preset"),
         )
     }
 
@@ -123,7 +125,7 @@ object AINotificationIslandNotification : IslandTemplate {
     }
 
     private fun callAiApi(config: AiConfig, data: NotifData): AiIslandText? {
-        val requestBody = buildRequestBody(config.model, data)
+        val requestBody = buildRequestBody(config, data)
         val conn = (URL(config.url).openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
             setRequestProperty("Content-Type", "application/json")
@@ -148,7 +150,7 @@ object AINotificationIslandNotification : IslandTemplate {
         }
     }
 
-    private fun buildRequestBody(model: String, data: NotifData): String {
+    private fun buildRequestBody(config: AiConfig, data: NotifData): String {
         val systemPrompt = """
 你是一个 Android 通知摘要助手。
 根据通知信息，提取关键信息，仅返回如下 JSON，不得包含任何其他文字或代码块：
@@ -156,17 +158,26 @@ object AINotificationIslandNotification : IslandTemplate {
 """.trimIndent()
 
         val userContent = buildString {
+            if (config.usePublicPreset) {
+                append("你是一个 Android 通知摘要助手。\n")
+                append("根据通知信息，提取关键信息，仅返回如下 JSON，不得包含任何其他文字或代码块：\n")
+                append("{\"left\":\"通知来源（优先提取谁发的而不是应用名称，6字以内）\",\"right\":\"核心内容（不超过6汉字或者12数字字母）\"}\n\n")
+            }
             append("应用包名：${data.pkg}\n")
             append("标题：${data.title}\n")
             if (data.subtitle.isNotEmpty()) append("正文：${data.subtitle}")
         }
 
         val messages = org.json.JSONArray().apply {
-            put(JSONObject().put("role", "system").put("content", systemPrompt))
-            put(JSONObject().put("role", "user").put("content", userContent))
+            if (config.usePublicPreset) {
+                put(JSONObject().put("role", "user").put("content", userContent))
+            } else {
+                put(JSONObject().put("role", "system").put("content", systemPrompt))
+                put(JSONObject().put("role", "user").put("content", userContent))
+            }
         }
         return JSONObject()
-            .put("model", model.ifEmpty { "gpt-4o-mini" })
+            .put("model", config.model.ifEmpty { "gpt-4o-mini" })
             .put("messages", messages)
             .put("max_tokens", 80)
             .put("temperature", 0.1)

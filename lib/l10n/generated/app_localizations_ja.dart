@@ -588,6 +588,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get aiConfigSubtitleDisabled => '無効 · タップで構成';
 
   @override
+  String get aiConfigSubtitlePublicPreset => '有効 · 公益インターフェースモード';
+
+  @override
   String get aiEnabledTitle => 'AI の概要を有効化';
 
   @override
@@ -614,6 +617,27 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get aiModelHint => 'gpt-4o-mini';
+
+  @override
+  String get aiPublicPresetTitle => '公益インターフェース';
+
+  @override
+  String get aiPublicPresetSubtitle =>
+      '有効にすると、テスト接続と実行時リクエストの両方で内蔵の公益インターフェースを強制使用します。';
+
+  @override
+  String get aiPublicPresetEnabledTitle => '内蔵の公益インターフェースを使用中';
+
+  @override
+  String get aiPublicPresetEnabledDesc =>
+      '内蔵 URL とキーは表示されず、保存時に実行時設定が直接上書きされます。';
+
+  @override
+  String get aiPublicPresetProviderLabel => 'プロバイダー';
+
+  @override
+  String get aiPublicPresetWarning =>
+      'このモードでは通知内容が第三者の公益 AI サービスに送信されます。レート制限、停止、遅延が発生する場合があります。';
 
   @override
   String get aiTestButton => 'テスト接続';

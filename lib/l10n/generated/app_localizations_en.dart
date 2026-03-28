@@ -608,6 +608,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiConfigSubtitleDisabled => 'Disabled · Tap to configure';
 
   @override
+  String get aiConfigSubtitlePublicPreset => 'Enabled · Public preset mode';
+
+  @override
   String get aiEnabledTitle => 'Enable AI Summary';
 
   @override
@@ -634,6 +637,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiModelHint => 'gpt-4o-mini';
+
+  @override
+  String get aiPublicPresetTitle => 'Public Preset';
+
+  @override
+  String get aiPublicPresetSubtitle =>
+      'When enabled, the built-in public endpoint is enforced for both testing and runtime requests.';
+
+  @override
+  String get aiPublicPresetEnabledTitle => 'Built-in public preset is active';
+
+  @override
+  String get aiPublicPresetEnabledDesc =>
+      'The built-in URL and key are hidden, and saving will overwrite the runtime configuration directly.';
+
+  @override
+  String get aiPublicPresetProviderLabel => 'Provider';
+
+  @override
+  String get aiPublicPresetWarning =>
+      'This mode sends notification content to a third-party public AI service. The service may be rate-limited, unavailable, or slow.';
 
   @override
   String get aiTestButton => 'Test Connection';

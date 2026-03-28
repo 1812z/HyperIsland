@@ -615,6 +615,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get aiConfigSubtitleDisabled => 'Kapalı · Yapılandırmak için tıklayın';
 
   @override
+  String get aiConfigSubtitlePublicPreset => 'Etkin · Genel preset modu';
+
+  @override
   String get aiEnabledTitle => 'Yapay Zeka Özetini Etkinleştir';
 
   @override
@@ -641,6 +644,27 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get aiModelHint => 'gpt-4o-mini';
+
+  @override
+  String get aiPublicPresetTitle => 'Genel Arayüz';
+
+  @override
+  String get aiPublicPresetSubtitle =>
+      'Etkinleştirildiğinde, hem test hem de çalışma zamanı istekleri için yerleşik genel uç nokta zorla kullanılır.';
+
+  @override
+  String get aiPublicPresetEnabledTitle => 'Yerleşik genel preset etkin';
+
+  @override
+  String get aiPublicPresetEnabledDesc =>
+      'Yerleşik URL ve anahtar gösterilmez; kaydetme işlemi çalışma zamanı yapılandırmasını doğrudan üzerine yazar.';
+
+  @override
+  String get aiPublicPresetProviderLabel => 'Sağlayıcı';
+
+  @override
+  String get aiPublicPresetWarning =>
+      'Bu mod bildirim içeriğini üçüncü taraf bir genel AI hizmetine gönderir. Hizmet hız sınırına takılabilir, kullanılamayabilir veya yavaş olabilir.';
 
   @override
   String get aiTestButton => 'Bağlantıyı Test Et';

@@ -167,6 +167,12 @@ class _SettingsPageState extends State<SettingsPage> {
     };
   }
 
+  String _aiSubtitle(AppLocalizations l10n) {
+    if (!_ctrl.aiEnabled) return l10n.aiConfigSubtitleDisabled;
+    if (_ctrl.aiUsePublicPreset) return l10n.aiConfigSubtitlePublicPreset;
+    return l10n.aiConfigSubtitleEnabled;
+  }
+
   Future<void> _showThemeModeDialog(AppLocalizations l10n) async {
     final result = await showDialog<ThemeMode>(
       context: context,
@@ -256,11 +262,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                       leading: const Icon(Icons.psychology_outlined),
                       title: Text(l10n.aiConfigTitle),
-                      subtitle: Text(
-                        _ctrl.aiEnabled
-                            ? l10n.aiConfigSubtitleEnabled
-                            : l10n.aiConfigSubtitleDisabled,
-                      ),
+                      subtitle: Text(_aiSubtitle(l10n)),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => Navigator.push(
                         context,

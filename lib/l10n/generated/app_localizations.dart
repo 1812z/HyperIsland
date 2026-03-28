@@ -1146,6 +1146,12 @@ abstract class AppLocalizations {
   /// **'已关闭 · 点击进行配置'**
   String get aiConfigSubtitleDisabled;
 
+  /// No description provided for @aiConfigSubtitlePublicPreset.
+  ///
+  /// In zh, this message translates to:
+  /// **'已启用 · 公益接口模式'**
+  String get aiConfigSubtitlePublicPreset;
+
   /// No description provided for @aiEnabledTitle.
   ///
   /// In zh, this message translates to:
@@ -1199,6 +1205,42 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'gpt-4o-mini'**
   String get aiModelHint;
+
+  /// No description provided for @aiPublicPresetTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'公益接口'**
+  String get aiPublicPresetTitle;
+
+  /// No description provided for @aiPublicPresetSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'启用后将强制使用内置公益接口，测试连接和运行时请求都会走该接口'**
+  String get aiPublicPresetSubtitle;
+
+  /// No description provided for @aiPublicPresetEnabledTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前已使用内置公益接口'**
+  String get aiPublicPresetEnabledTitle;
+
+  /// No description provided for @aiPublicPresetEnabledDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'不会显示内置 URL 和密钥，保存后会直接覆盖运行时配置。'**
+  String get aiPublicPresetEnabledDesc;
+
+  /// No description provided for @aiPublicPresetProviderLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'服务提供方'**
+  String get aiPublicPresetProviderLabel;
+
+  /// No description provided for @aiPublicPresetWarning.
+  ///
+  /// In zh, this message translates to:
+  /// **'该模式会把通知内容发送到第三方公益 AI 服务，服务可能限流、失效或返回较慢，请按需使用。'**
+  String get aiPublicPresetWarning;
 
   /// No description provided for @aiTestButton.
   ///

@@ -582,6 +582,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiConfigSubtitleDisabled => '已关闭 · 点击进行配置';
 
   @override
+  String get aiConfigSubtitlePublicPreset => '已启用 · 公益接口模式';
+
+  @override
   String get aiEnabledTitle => '启用 AI 摘要';
 
   @override
@@ -607,6 +610,25 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aiModelHint => 'gpt-4o-mini';
+
+  @override
+  String get aiPublicPresetTitle => '公益接口';
+
+  @override
+  String get aiPublicPresetSubtitle => '启用后将强制使用内置公益接口，测试连接和运行时请求都会走该接口';
+
+  @override
+  String get aiPublicPresetEnabledTitle => '当前已使用内置公益接口';
+
+  @override
+  String get aiPublicPresetEnabledDesc => '不会显示内置 URL 和密钥，保存后会直接覆盖运行时配置。';
+
+  @override
+  String get aiPublicPresetProviderLabel => '服务提供方';
+
+  @override
+  String get aiPublicPresetWarning =>
+      '该模式会把通知内容发送到第三方公益 AI 服务，服务可能限流、失效或返回较慢，请按需使用。';
 
   @override
   String get aiTestButton => '测试连接';
