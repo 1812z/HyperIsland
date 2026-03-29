@@ -158,7 +158,7 @@ object AINotificationIslandNotification : IslandTemplate {
             val combinedUserContent = buildString {
                 append(userPrompt)
                 append("\n\n仅返回如下 JSON，不得包含任何其他文字或代码块：\n")
-                append("{\"left\":\"左侧文本\",\"right\":\"右侧文本\"}\n\n")
+                append("{\"left\":\"左侧文本（谁发的）\",\"right\":\"右侧文本（总结）\"}\n\n")
                 append(userContent)
             }
             messages.put(JSONObject().put("role", "user").put("content", combinedUserContent))
@@ -167,7 +167,7 @@ object AINotificationIslandNotification : IslandTemplate {
             val systemPrompt = """
 $userPrompt
 仅返回如下 JSON，不得包含任何其他文字或代码块：
-{"left":"左侧文本","right":"右侧文本"}
+{"left":"左侧文本(谁发的)","right":"右侧文本（总结）"}
 """.trimIndent()
             messages.put(JSONObject().put("role", "system").put("content", systemPrompt))
             messages.put(JSONObject().put("role", "user").put("content", userContent))
