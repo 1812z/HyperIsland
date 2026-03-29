@@ -15,6 +15,8 @@ import java.util.WeakHashMap
  */
 object MarqueeHook {
 
+    private const val TAG = "HyperIsland[MarqueeHook]"
+
     private val hookedFactories = mutableSetOf<String>()
     private val scrollerMap = WeakHashMap<TextView, MarqueeController>()
     private val observedViews = WeakHashMap<TextView, Boolean>()
@@ -29,10 +31,10 @@ object MarqueeHook {
         ConfigManager.addChangeListener {
             cachedSpeed = null
             stopAllMarquees()
-            module.log("HyperIsland[MarqueeHook]: settings changed via FileObserver, cache cleared")
+            module.log("$TAG: settings changed via Observer, cache cleared")
         }
         observerRegistered = true
-        module.log("HyperIsland[MarqueeHook]: ConfigManager FileObserver registered in SystemUI")
+        module.log("$TAG: ConfigManager Observer registered in SystemUI")
     }
 
     private fun getMarqueeSpeed(): Int {
@@ -114,7 +116,7 @@ object MarqueeHook {
     // ─── IXposedHookLoadPackage → init ────────────────────────────────────────
 
     fun init(module: XposedModule, param: PackageLoadedParam) {
-        module.log("HyperIsland[MarqueeHook]: initializing for ${param.packageName}")
+        module.log("$TAG: initializing for ${param.packageName}")
         try {
             val factoryClass = param.defaultClassLoader
                 .loadClass("miui.systemui.dynamicisland.template.IslandTemplateFactory")
@@ -122,7 +124,7 @@ object MarqueeHook {
         } catch (_: ClassNotFoundException) {
             hookDynamicClassLoaders(module, param)
         } catch (e: Exception) {
-            module.log("HyperIsland[MarqueeHook]: failed to inject: ${e.message}")
+            module.log("$TAG: failed to inject: ${e.message}")
         }
     }
 
@@ -179,12 +181,12 @@ object MarqueeHook {
                     }
                     result
                 }
-                module.log("HyperIsland[MarqueeHook]: hooked ${targetMethod.name} on ${factoryClass.name}")
+                module.log("$TAG: hooked ${targetMethod.name} on ${factoryClass.name}")
             } else {
-                module.log("HyperIsland[MarqueeHook]: createBigIslandTemplateView not found in ${factoryClass.name}")
+                module.log("$TAG: createBigIslandTemplateView not found in ${factoryClass.name}")
             }
         } catch (e: Exception) {
-            module.log("HyperIsland[MarqueeHook]: doHookFactory error: ${e.message}")
+            module.log("$TAG: doHookFactory error: ${e.message}")
         }
     }
 

@@ -142,8 +142,7 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    // 默认返回 false；LSPosed Hook 加载后会将此方法替换为返回 true
-    fun isModuleActive(): Boolean = false
+    fun isModuleActive(): Boolean = HyperIslandApp.isReady()
 
     /**
      * 获取指定包的通知渠道列表。

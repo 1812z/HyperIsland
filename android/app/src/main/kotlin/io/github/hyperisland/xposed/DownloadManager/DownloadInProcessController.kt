@@ -66,20 +66,33 @@ object InProcessController {
     private fun log(msg: String) = Log.d("HyperIsland", msg)
 
     private fun loadSettings() {
+        log("HyperIsland: loadSettings: starting...")
+        ConfigManager.debugDump()
+        
         resumeNotificationEnabled = ConfigManager.getBoolean("pref_resume_notification", true)
-        useHookAppIconEnabled     = ConfigManager.getBoolean("pref_use_hook_app_icon", true)
+        log("HyperIsland: loadSettings: pref_resume_notification=$resumeNotificationEnabled")
+        
+        useHookAppIconEnabled = ConfigManager.getBoolean("pref_use_hook_app_icon", true)
+        log("HyperIsland: loadSettings: pref_use_hook_app_icon=$useHookAppIconEnabled")
+        
         log("HyperIsland: settings loaded — resumeNotification=$resumeNotificationEnabled useHookAppIcon=$useHookAppIconEnabled")
     }
 
     fun ensureRegistered(context: Context, module: XposedModule) {
+        log("HyperIsland: ensureRegistered called, registered=$registered, pid=${android.os.Process.myPid()}")
         if (registered) return
         val appCtx = context.applicationContext ?: context
 
+        log("HyperIsland: calling ConfigManager.init with context=$appCtx...")
         ConfigManager.init(module)
+        
+        log("HyperIsland: calling loadSettings...")
         loadSettings()
+        
+        log("HyperIsland: adding change listener...")
         ConfigManager.addChangeListener {
             loadSettings()
-            log("HyperIsland: settings reloaded via FileObserver")
+            log("HyperIsland: settings reloaded via Observer")
         }
 
         runCatching {

@@ -20,7 +20,7 @@
 
     <application
         android:label="HyperIsland"
-        android:name="${applicationName}"
+        android:name=".HyperIslandApp"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"

@@ -24,6 +24,8 @@ import io.github.libxposed.api.XposedModule
  */
 object GenericProgressHook {
 
+    private const val TAG = "HyperIsland[Generic]"
+
     @Volatile private var cachedWhitelist: Map<String, Set<String>>? = null
     private val cachedTemplates = mutableMapOf<String, String>()
     private val cachedChannelSettings = mutableMapOf<String, String>()
@@ -37,10 +39,10 @@ object GenericProgressHook {
         if (observerRegistered) return
         ConfigManager.init(module)
         ConfigManager.addChangeListener {
-            clearAllCaches("file_observer", module)
+            clearAllCaches("prefs_changed", module)
         }
         observerRegistered = true
-        module.log("HyperIsland[Generic]: ConfigManager FileObserver registered in SystemUI")
+        module.log("$TAG: ConfigManager Observer registered in SystemUI")
     }
 
     private fun loadChannelStringSetting(cacheKey: String, prefKey: String, default: String): String {
@@ -76,7 +78,7 @@ object GenericProgressHook {
         cachedWhitelist = null
         cachedTemplates.clear()
         cachedChannelSettings.clear()
-        module.log("HyperIsland[Generic]: settings changed, cache cleared ($reason)")
+        module.log("$TAG: settings changed, cache cleared ($reason)")
     }
 
     fun loadChannelTemplate(pkg: String, channelId: String): String {
@@ -102,7 +104,7 @@ object GenericProgressHook {
                 pkg to channels
             }
         if (map.isNotEmpty()) cachedWhitelist = map
-        module.log("HyperIsland[Generic]: whitelist loaded (${map.size} apps): ${map.keys}")
+        module.log("$TAG: whitelist loaded (${map.size} apps): ${map.keys}")
         return map
     }
 
@@ -118,9 +120,9 @@ object GenericProgressHook {
                 if (sbn != null) handleSbn(sbn, module, classLoader)
                 chain.proceed()
             }
-            module.log("HyperIsland[Generic]: hooked MiuiBaseNotifUtil.generateInnerNotifBean")
+            module.log("$TAG: hooked MiuiBaseNotifUtil.generateInnerNotifBean")
         } catch (e: Throwable) {
-            module.log("HyperIsland[Generic]: hook failed: ${e.message}")
+            module.log("$TAG: hook failed: ${e.message}")
         }
 
         // Hook onNotificationRemoved (after) — 优先 3 参数版本
@@ -142,9 +144,9 @@ object GenericProgressHook {
                 result
             }
             cancelHooked = true
-            module.log("HyperIsland[Generic]: hooked onNotificationRemoved(sbn, rankingMap, reason)")
+            module.log("$TAG: hooked onNotificationRemoved(sbn, rankingMap, reason)")
         } catch (e: Throwable) {
-            module.log("HyperIsland[Generic]: onNotificationRemoved 3-param hook failed: ${e.message}")
+            module.log("$TAG: onNotificationRemoved 3-param hook failed: ${e.message}")
         }
 
         if (!cancelHooked) {
@@ -159,9 +161,9 @@ object GenericProgressHook {
                     handleNotificationRemoved(chain.args[0] as? StatusBarNotification, module, classLoader)
                     result
                 }
-                module.log("HyperIsland[Generic]: hooked onNotificationRemoved(sbn)")
+                module.log("$TAG: hooked onNotificationRemoved(sbn)")
             } catch (e: Throwable) {
-                module.log("HyperIsland[Generic]: onNotificationRemoved 1-param hook failed: ${e.message}")
+                module.log("$TAG: onNotificationRemoved 1-param hook failed: ${e.message}")
             }
         }
     }
@@ -279,7 +281,7 @@ object GenericProgressHook {
             )
 
             module.log(
-                "HyperIsland[Generic]: $pkg/$channelId | $title | $progressPercent% | template=$template | buttons=${actions.size} | largeIcon=${largeIcon != null} | preserveSmallIcon=$preserveStatusBarSmallIcon"
+                "$TAG: $pkg/$channelId | $title | $progressPercent% | template=$template | buttons=${actions.size} | largeIcon=${largeIcon != null} | preserveSmallIcon=$preserveStatusBarSmallIcon"
             )
 
             TemplateRegistry.dispatch(
@@ -314,7 +316,7 @@ object GenericProgressHook {
             trackedForCancel["$pkg#${sbn.id}"] = IslandDispatcher.NOTIF_ID
 
         } catch (e: Throwable) {
-            module.log("HyperIsland[Generic]: handleSbn error: ${e.message}")
+            module.log("$TAG: handleSbn error: ${e.message}")
         }
     }
 
