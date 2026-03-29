@@ -52,8 +52,8 @@ object AINotificationIslandNotification : IslandTemplate {
             fetchAiText(aiConfig, data)
         } else null
 
-        val leftText  = aiText?.left  ?: data.title
-        val rightText = aiText?.right ?: data.subtitle.ifEmpty { data.title }
+        val leftText  = aiText?.left  ?: cleanText(data.title)
+        val rightText = aiText?.right ?: cleanText(data.subtitle.ifEmpty { data.title })
 
         log(
             if (aiText != null) "$TAG: AI text — left=$leftText | right=$rightText"
@@ -86,6 +86,13 @@ object AINotificationIslandNotification : IslandTemplate {
     )
 
     private data class AiIslandText(val left: String, val right: String)
+
+    private fun cleanText(text: String): String {
+        return text
+            .replace(Regex("\\s+"), " ")  // 所有空白字符（换行、制表符等）替换为单个空格
+            .trim()
+            .take(50)  // 限制最大长度
+    }
 
     private fun loadAiConfig(context: Context): AiConfig = AiConfig(
         enabled = ConfigManager.getBoolean("pref_ai_enabled", false),

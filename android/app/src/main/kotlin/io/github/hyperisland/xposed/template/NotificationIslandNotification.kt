@@ -30,6 +30,13 @@ object NotificationIslandNotification : IslandTemplate {
 
     override val id = TEMPLATE_ID
 
+    private fun cleanText(text: String): String {
+        return text
+            .replace(Regex("\\s+"), " ")
+            .trim()
+            .take(50)
+    }
+
     override fun inject(context: Context, extras: Bundle, data: NotifData) {
         if (data.focusNotif == "off") {
             injectViaDispatcher(context, data)
@@ -59,8 +66,8 @@ object NotificationIslandNotification : IslandTemplate {
             IslandDispatcher.post(
                 context,
                 IslandRequest(
-                    title            = data.title,
-                    content          = data.subtitle.ifEmpty { data.title },
+                    title            = cleanText(data.title),
+                    content          = cleanText(data.subtitle.ifEmpty { data.title }),
                     icon             = displayIcon,
                     timeoutSecs      = data.islandTimeout,
                     firstFloat       = data.firstFloat == "on",
@@ -102,8 +109,8 @@ object NotificationIslandNotification : IslandTemplate {
 
         return IslandViewModel(
             templateId        = TEMPLATE_ID,
-            leftTitle         = data.title,
-            rightTitle        = data.subtitle.ifEmpty { data.title },
+            leftTitle         = cleanText(data.title),
+            rightTitle        = cleanText(data.subtitle.ifEmpty { data.title }),
             focusTitle        = data.title,
             focusContent      = data.subtitle.ifEmpty { data.title },
             islandIcon        = islandIcon,
