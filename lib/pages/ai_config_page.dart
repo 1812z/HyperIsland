@@ -19,6 +19,7 @@ class _AiConfigPageState extends State<AiConfigPage> {
   late final TextEditingController _keyCtrl;
   late final TextEditingController _modelCtrl;
   late final TextEditingController _promptCtrl;
+  late final FocusNode _urlFocus;
 
   bool _keyObscured = true;
   bool _testing = false;
@@ -28,11 +29,34 @@ class _AiConfigPageState extends State<AiConfigPage> {
     if (mounted) setState(() {});
   }
 
+  void _onUrlFocusChange() {
+    if (!_urlFocus.hasFocus) {
+      final completed = _computeCompletedUrl(_urlCtrl.text.trim());
+      if (completed.isNotEmpty && completed != _urlCtrl.text.trim()) {
+        _urlCtrl.text = completed;
+        _urlCtrl.selection = TextSelection.collapsed(offset: completed.length);
+      }
+    }
+    if (mounted) setState(() {});
+  }
+
+  /// 逐步补全 URL 到 /v1/chat/completions
+  String _computeCompletedUrl(String url) {
+    if (url.isEmpty) return '';
+    final base = url.endsWith('/') ? url.substring(0, url.length - 1) : url;
+    if (base.endsWith('/v1/chat/completions')) return base;
+    if (base.endsWith('/v1/chat')) return '$base/completions';
+    if (base.endsWith('/v1')) return '$base/chat/completions';
+    return '$base/v1/chat/completions';
+  }
+
   @override
   void initState() {
     super.initState();
     _ctrl.addListener(_onCtrlChanged);
     _urlCtrl = TextEditingController(text: _ctrl.aiUrl);
+    _urlCtrl.addListener(() { if (mounted) setState(() {}); });
+    _urlFocus = FocusNode()..addListener(_onUrlFocusChange);
     _keyCtrl = TextEditingController(text: _ctrl.aiApiKey);
     _modelCtrl = TextEditingController(text: _ctrl.aiModel);
     _promptCtrl = TextEditingController(text: _ctrl.aiPrompt);
@@ -41,6 +65,8 @@ class _AiConfigPageState extends State<AiConfigPage> {
   @override
   void dispose() {
     _ctrl.removeListener(_onCtrlChanged);
+    _urlFocus.removeListener(_onUrlFocusChange);
+    _urlFocus.dispose();
     _urlCtrl.dispose();
     _keyCtrl.dispose();
     _modelCtrl.dispose();
@@ -49,6 +75,11 @@ class _AiConfigPageState extends State<AiConfigPage> {
   }
 
   Future<void> _save() async {
+    final completedUrl = _computeCompletedUrl(_urlCtrl.text.trim());
+    if (completedUrl.isNotEmpty && completedUrl != _urlCtrl.text.trim()) {
+      _urlCtrl.text = completedUrl;
+      _urlCtrl.selection = TextSelection.collapsed(offset: completedUrl.length);
+    }
     await _ctrl.setAiUrl(_urlCtrl.text.trim());
     await _ctrl.setAiApiKey(_keyCtrl.text.trim());
     await _ctrl.setAiModel(_modelCtrl.text.trim());
@@ -65,7 +96,9 @@ class _AiConfigPageState extends State<AiConfigPage> {
   }
 
   Future<void> _test() async {
-    final url = _urlCtrl.text.trim();
+    final url = _computeCompletedUrl(_urlCtrl.text.trim()).isNotEmpty
+        ? _computeCompletedUrl(_urlCtrl.text.trim())
+        : _urlCtrl.text.trim();
     final key = _keyCtrl.text.trim();
     final model = _modelCtrl.text.trim();
 
@@ -190,6 +223,7 @@ class _AiConfigPageState extends State<AiConfigPage> {
                         // URL
                         TextField(
                           controller: _urlCtrl,
+                          focusNode: _urlFocus,
                           decoration: InputDecoration(
                             labelText: l10n.aiUrlLabel,
                             hintText: l10n.aiUrlHint,
@@ -199,6 +233,45 @@ class _AiConfigPageState extends State<AiConfigPage> {
                           keyboardType: TextInputType.url,
                           autocorrect: false,
                         ),
+                        // URL 补全预览
+                        Builder(builder: (context) {
+                          final input = _urlCtrl.text.trim();
+                          final preview = _computeCompletedUrl(input);
+                          if (input.isEmpty || preview == input) return const SizedBox.shrink();
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: GestureDetector(
+                              onTap: () {
+                                _urlCtrl.text = preview;
+                                _urlCtrl.selection = TextSelection.collapsed(offset: preview.length);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                                decoration: BoxDecoration(
+                                  color: cs.primaryContainer.withValues(alpha: 0.5),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: cs.primary.withValues(alpha: 0.3)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.auto_fix_high, size: 14, color: cs.primary),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        preview,
+                                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                          color: cs.primary,
+                                          fontFamily: 'monospace',
+                                        ),
+                                      ),
+                                    ),
+                                    Icon(Icons.touch_app_outlined, size: 14, color: cs.primary.withValues(alpha: 0.7)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
                         const SizedBox(height: 16),
                         // API Key
                         TextField(
