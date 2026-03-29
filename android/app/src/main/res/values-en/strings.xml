@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="module_description">More HyperOS 3 Dynamic Island features</string>
+
     <!-- Welcome island -->
     <string name="island_welcome_title">Welcome</string>
 

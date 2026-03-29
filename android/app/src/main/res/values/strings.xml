@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="module_description">澎湃OS3更多超级岛</string>
+
     <!-- 欢迎超级岛 -->
     <string name="island_welcome_title">欢迎使用</string>
 

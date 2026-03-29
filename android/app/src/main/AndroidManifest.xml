@@ -21,6 +21,7 @@
     <application
         android:label="HyperIsland"
         android:name=".HyperIslandApp"
+        android:description="@string/module_description"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"
