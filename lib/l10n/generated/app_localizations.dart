@@ -1254,6 +1254,18 @@ abstract class AppLocalizations {
   /// **'根据通知信息，提取关键信息，左右分别不超过6汉字12字符'**
   String get aiPromptDefault;
 
+  /// No description provided for @aiPromptInUserTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'提示词放在用户消息'**
+  String get aiPromptInUserTitle;
+
+  /// No description provided for @aiPromptInUserSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'某些模型不支持系统指令，开启后将提示词放在用户消息中'**
+  String get aiPromptInUserSubtitle;
+
   /// No description provided for @aiTimeoutLabel.
   ///
   /// In zh, this message translates to:

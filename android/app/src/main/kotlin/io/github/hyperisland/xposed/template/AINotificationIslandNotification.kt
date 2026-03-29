@@ -82,6 +82,7 @@ object AINotificationIslandNotification : IslandTemplate {
         val model: String,
         val prompt: String,
         val timeout: Int,
+        val promptInUser: Boolean,
     )
 
     private data class AiIslandText(val left: String, val right: String)
@@ -93,6 +94,7 @@ object AINotificationIslandNotification : IslandTemplate {
         model   = ConfigManager.getString("pref_ai_model"),
         prompt  = ConfigManager.getString("pref_ai_prompt"),
         timeout = ConfigManager.getInt("pref_ai_timeout", 3).coerceIn(3, 15),
+        promptInUser = ConfigManager.getBoolean("pref_ai_prompt_in_user", false),
     )
 
     // ── AI 调用（带超时） ──────────────────────────────────────────────────────
@@ -114,7 +116,7 @@ object AINotificationIslandNotification : IslandTemplate {
     }
 
     private fun callAiApi(config: AiConfig, data: NotifData): AiIslandText? {
-        val requestBody = buildRequestBody(config.model, config.prompt, data)
+        val requestBody = buildRequestBody(config.model, config.prompt, config.promptInUser, data)
         val conn = (URL(config.url).openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
             setRequestProperty("Content-Type", "application/json")
@@ -139,14 +141,9 @@ object AINotificationIslandNotification : IslandTemplate {
         }
     }
 
-    private fun buildRequestBody(model: String, customPrompt: String, data: NotifData): String {
+    private fun buildRequestBody(model: String, customPrompt: String, promptInUser: Boolean, data: NotifData): String {
         val defaultPrompt = "根据通知信息，提取关键信息，左右分别不超过6汉字12字符"
         val userPrompt = if (customPrompt.isNotEmpty()) customPrompt else defaultPrompt
-        val systemPrompt = """
-$userPrompt
-仅返回如下 JSON，不得包含任何其他文字或代码块：
-{"left":"左侧文本","right":"右侧文本"}
-""".trimIndent()
 
         val userContent = buildString {
             append("应用包名：${data.pkg}\n")
@@ -154,10 +151,28 @@ $userPrompt
             if (data.subtitle.isNotEmpty()) append("正文：${data.subtitle}")
         }
 
-        val messages = org.json.JSONArray().apply {
-            put(JSONObject().put("role", "system").put("content", systemPrompt))
-            put(JSONObject().put("role", "user").put("content", userContent))
+        val messages = org.json.JSONArray()
+
+        if (promptInUser) {
+            // 提示词放在用户消息中
+            val combinedUserContent = buildString {
+                append(userPrompt)
+                append("\n\n仅返回如下 JSON，不得包含任何其他文字或代码块：\n")
+                append("{\"left\":\"左侧文本\",\"right\":\"右侧文本\"}\n\n")
+                append(userContent)
+            }
+            messages.put(JSONObject().put("role", "user").put("content", combinedUserContent))
+        } else {
+            // 提示词放在系统消息中（默认）
+            val systemPrompt = """
+$userPrompt
+仅返回如下 JSON，不得包含任何其他文字或代码块：
+{"left":"左侧文本","right":"右侧文本"}
+""".trimIndent()
+            messages.put(JSONObject().put("role", "system").put("content", systemPrompt))
+            messages.put(JSONObject().put("role", "user").put("content", userContent))
         }
+
         return JSONObject()
             .put("model", model.ifEmpty { "gpt-4o-mini" })
             .put("messages", messages)

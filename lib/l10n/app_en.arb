@@ -221,5 +221,7 @@
   "aiPromptLabel": "Custom Prompt",
   "aiPromptHint": "Leave empty to use default: Extract key info, left and right each no more than 6 words or 12 characters",
   "aiPromptDefault": "Extract key info from notification, left and right each no more than 6 words or 12 characters",
+  "aiPromptInUserTitle": "Put prompt in user message",
+  "aiPromptInUserSubtitle": "Some models don't support system instructions, enable to put prompt in user message",
   "aiTimeoutLabel": "AI Response Timeout"
 }

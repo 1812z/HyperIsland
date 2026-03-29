@@ -335,5 +335,7 @@
   "aiPromptLabel": "自定义提示词",
   "aiPromptHint": "留空使用默认提示词：根据通知信息，提取关键信息，左右分别不超过6汉字12字符",
   "aiPromptDefault": "根据通知信息，提取关键信息，左右分别不超过6汉字12字符",
+  "aiPromptInUserTitle": "提示词放在用户消息",
+  "aiPromptInUserSubtitle": "某些模型不支持系统指令，开启后将提示词放在用户消息中",
   "aiTimeoutLabel": "AI 响应超时"
 }

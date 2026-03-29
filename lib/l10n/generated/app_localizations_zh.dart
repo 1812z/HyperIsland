@@ -637,5 +637,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiPromptDefault => '根据通知信息，提取关键信息，左右分别不超过6汉字12字符';
 
   @override
+  String get aiPromptInUserTitle => '提示词放在用户消息';
+
+  @override
+  String get aiPromptInUserSubtitle => '某些模型不支持系统指令，开启后将提示词放在用户消息中';
+
+  @override
   String get aiTimeoutLabel => 'AI 响应超时';
 }

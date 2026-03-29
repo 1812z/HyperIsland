@@ -666,5 +666,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Extract key info from notification, left and right each no more than 6 words or 12 characters';
 
   @override
+  String get aiPromptInUserTitle => 'Put prompt in user message';
+
+  @override
+  String get aiPromptInUserSubtitle =>
+      'Some models don\'t support system instructions, enable to put prompt in user message';
+
+  @override
   String get aiTimeoutLabel => 'AI Response Timeout';
 }

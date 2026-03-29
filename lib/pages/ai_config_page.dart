@@ -261,6 +261,15 @@ class _AiConfigPageState extends State<AiConfigPage> {
                                 ),
                           ),
                         ),
+                        const SizedBox(height: 16),
+                        // Prompt in user message toggle
+                        SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(l10n.aiPromptInUserTitle),
+                          subtitle: Text(l10n.aiPromptInUserSubtitle),
+                          value: _ctrl.aiPromptInUser,
+                          onChanged: _ctrl.setAiPromptInUser,
+                        ),
                         const SizedBox(height: 24),
                         // Timeout slider
                         Row(

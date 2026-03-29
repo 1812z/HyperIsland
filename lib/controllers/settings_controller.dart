@@ -23,6 +23,7 @@ const kPrefAiApiKey = 'pref_ai_api_key';
 const kPrefAiModel = 'pref_ai_model';
 const kPrefAiPrompt = 'pref_ai_prompt';
 const kPrefAiTimeout = 'pref_ai_timeout';
+const kPrefAiPromptInUser = 'pref_ai_prompt_in_user';
 
 class SettingsController extends ChangeNotifier {
   static final SettingsController instance = SettingsController._();
@@ -50,6 +51,7 @@ class SettingsController extends ChangeNotifier {
   String aiModel = '';
   String aiPrompt = '';
   int aiTimeout = 3;
+  bool aiPromptInUser = false;
   ThemeMode themeMode = ThemeMode.system;
   Locale? locale; // null = follow system
   bool loading = true;
@@ -76,6 +78,7 @@ class SettingsController extends ChangeNotifier {
     aiModel = prefs.getString(kPrefAiModel) ?? '';
     aiPrompt = prefs.getString(kPrefAiPrompt) ?? '';
     aiTimeout = prefs.getInt(kPrefAiTimeout) ?? 3;
+    aiPromptInUser = prefs.getBool(kPrefAiPromptInUser) ?? false;
     themeMode = switch (prefs.getString(kPrefThemeMode)) {
       'light' => ThemeMode.light,
       'dark' => ThemeMode.dark,
@@ -218,6 +221,13 @@ class SettingsController extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(kPrefAiTimeout, value.clamp(3, 15));
     aiTimeout = value.clamp(3, 15);
+    notifyListeners();
+  }
+
+  Future<void> setAiPromptInUser(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(kPrefAiPromptInUser, value);
+    aiPromptInUser = value;
     notifyListeners();
   }
 
