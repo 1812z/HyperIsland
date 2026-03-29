@@ -134,8 +134,7 @@ jobs:
           flutter build apk --release --no-pub \
             --target-platform android-arm64 \
             --build-name="${{ steps.version.outputs.build_version_name }}" \
-            --build-number="${{ steps.version.outputs.build_version_code }}" \
-            --split-per-abi
+            --build-number="${{ steps.version.outputs.build_version_code }}" 
 
       # ────────────────────────────────────────────────────────────────────────
       # 以下步骤：上传编译产物和发布
