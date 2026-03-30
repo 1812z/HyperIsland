@@ -24,24 +24,24 @@
       "version": { "type": "String" }
     }
   },
-  "later": "Sonra Hatırlat",
+  "later": "Daha Sonra",
   "goUpdate": "Güncelle",
-  "sponsorSupport": "Sponsor Desteği",
-  "sponsorAuthor": "Geliştiriciye Destek Ol",
-  "restartScope": "Kapsamı Yeniden Başlat",
+  "sponsorSupport": "Geliştiriciyi Destekle",
+  "sponsorAuthor": "Sponsor Ol",
+  "restartScope": "Etki Alanını Yeniden Başlat",
   "systemUI": "Sistem Arayüzü",
   "downloadManager": "İndirme Yöneticisi",
-  "xmsf": "Xiaomi Servis Çerçevesi",
+  "xmsf": "XMSF (Xiaomi Hizmet Çerçevesi)",
   "notificationTest": "Bildirim Testi",
   "sendTestNotification": "Test Bildirimi Gönder",
   "notes": "Notlar",
   "detectingModuleStatus": "Modül durumu algılanıyor...",
   "moduleStatus": "Modül Durumu",
-  "activated": "Etkinleştirildi",
-  "notActivated": "Etkinleştirilmedi",
+  "activated": "Etkin",
+  "notActivated": "Etkin Değil",
   "enableInLSPosed": "Lütfen bu modülü LSPosed içinde etkinleştirin",
   "systemNotSupported": "Sistem Desteklenmiyor",
-  "systemNotSupportedSubtitle": "Mevcut sistem Dynamic Island özelliğini desteklemiyor (protokol sürümü {version}, sürüm 3 gerekli)",
+  "systemNotSupportedSubtitle": "Mevcut sistem Dynamic Island özelliğini desteklemiyor (protokol sürümü {version}, gereken sürüm: 3)",
   "@systemNotSupportedSubtitle": {
     "placeholders": {
       "version": { "type": "int" }
@@ -53,38 +53,38 @@
       "message": { "type": "String" }
     }
   },
-  "restartRootRequired": "Lütfen uygulamaya ROOT izni verilip verilmediğini kontrol edin",
-  "note1": "1. Bu sayfa yalnızca Dynamic Island desteğini test etmek içindir; gerçek deneyimi yansıtmaz",
-  "note2": "2. HyperCeiler'da Sistem Arayüzü ve Xiaomi Servis Çerçevesi için odaklanmış bildirim beyaz listesini kapatın",
-  "note3": "3. LSPosed yöneticisinde etkinleştirildikten sonra ilgili kapsam uygulamalarının yeniden başlatılması gerekir",
-  "note4": "4. Genel uyum desteklenmektedir; uygun şablonu kendiniz seçerek deneyin",
+  "restartRootRequired": "Lütfen bu uygulamaya root izni verildiğini doğrulayın",
+  "note1": "1. Bu sayfa yalnızca Dynamic Island desteğini test etmek içindir; gerçek görünümü yansıtmaz.",
+  "note2": "2. HyperCeiler'da Sistem Arayüzü ve XMSF için odak bildirimi beyaz listesini kapatın.",
+  "note3": "3. LSPosed Manager'da etkinleştirdikten sonra ilgili etki alanındaki uygulamaları yeniden başlatmanız gerekir.",
+  "note4": "4. Genel uyarlama desteklenir; uygun şablonu seçip deneyin.",
 
   "behaviorSection": "Davranış",
-  "defaultConfigSection": "Kanal Varsayılan Yapılandırması",
+  "defaultConfigSection": "Uygulama Kanal Ayarları Varsayılanları",
   "appearanceSection": "Görünüm",
   "configSection": "Yapılandırma",
   "aboutSection": "Hakkında",
-  "keepFocusNotifTitle": "İndirme Yöneticisi Duraklatıldığında Odaklanmış Bildirimi Koru",
-  "keepFocusNotifSubtitle": "İndirmeye devam etmek için tıklanabilecek bir bildirim gösterir; durum tutarsızlığına yol açabilir",
-  "unlockAllFocusTitle": "Odaklanmış Bildirim Beyaz Listesini Kaldır",
-  "unlockAllFocusSubtitle": "Sistem yetkisi gerekmeksizin tüm uygulamaların odaklanmış bildirim göndermesine izin verir",
-  "unlockFocusAuthTitle": "Odaklanmış Bildirim İmza Doğrulamasını Kaldır",
-  "unlockFocusAuthSubtitle": "İmza doğrulaması atlanarak tüm uygulamaların saat/bilekliğe odaklanmış bildirim göndermesine izin verir (Xiaomi Servis Çerçevesi Hook gerektirir)",
-  "checkUpdateOnLaunchTitle": "Başlangıçta Güncelleme Kontrol Et",
-  "checkUpdateOnLaunchSubtitle": "Uygulama açılırken otomatik olarak yeni sürüm kontrolü yapar",
-  "checkUpdate": "Güncelleme Kontrol Et",
-  "alreadyLatest": "En son sürümde",
-"roundIconTitle": "Simge Köşe Yuvarlama",
-  "roundIconSubtitle": "Bildirim simgelerine yuvarlak köşe efekti ekler",
-  "marqueeChannelTitle": "Kayan Mesaj",
-  "marqueeSpeedTitle": "Kayan Hız",
-  "marqueeSpeedLabel": "{speed} piksel/saniye",
+  "keepFocusNotifTitle": "İndirme Duraklatılsa da Odak Bildirimini Koru",
+  "keepFocusNotifSubtitle": "İndirmeyi sürdürmek için tıklanabilir bir bildirim gösterir; durum senkronu bozulabilir.",
+  "unlockAllFocusTitle": "Odak Bildirimi Beyaz Listesini Kaldır",
+  "unlockAllFocusSubtitle": "Sistem yetkisi olmadan tüm uygulamaların odak bildirimi göndermesine izin verir.",
+  "unlockFocusAuthTitle": "Odak Bildirimi İmza Doğrulamasını Kaldır",
+  "unlockFocusAuthSubtitle": "İmza doğrulamasını atlayarak tüm uygulamaların saat/bilekliğe odak bildirimi göndermesine izin verir (XMSF hook gerekir).",
+  "checkUpdateOnLaunchTitle": "Açılışta Güncellemeleri Denetle",
+  "checkUpdateOnLaunchSubtitle": "Uygulama açılırken yeni sürümleri otomatik denetler.",
+  "checkUpdate": "Güncellemeleri Denetle",
+  "alreadyLatest": "Zaten en güncel sürümdesiniz",
+  "roundIconTitle": "Simge Köşelerini Yuvarla",
+  "roundIconSubtitle": "Bildirim simgelerine yuvarlatılmış köşe uygular.",
+  "marqueeChannelTitle": "Ada Metnini Kaydır",
+  "marqueeSpeedTitle": "Kaydırma Hızı",
+  "marqueeSpeedLabel": "{speed} px/sn",
   "@marqueeSpeedLabel": {
     "placeholders": {
       "speed": { "type": "int" }
     }
   },
-  "themeModeTitle": "Renk Modu",
+  "themeModeTitle": "Tema",
   "themeModeSystem": "Sistemi Takip Et",
   "themeModeLight": "Açık",
   "themeModeDark": "Koyu",
@@ -94,16 +94,16 @@
   "languageEn": "English",
   "languageJa": "日本語",
   "languageTr": "Türkçe",
-  "exportToFile": "Dosyaya Aktar",
-  "exportToFileSubtitle": "Yapılandırmayı JSON dosyası olarak kaydet",
-  "exportToClipboard": "Panoya Aktar",
-  "exportToClipboardSubtitle": "Yapılandırmayı JSON metni olarak kopyala",
+  "exportToFile": "Dosyaya Dışa Aktar",
+  "exportToFileSubtitle": "Yapılandırmayı JSON dosyası olarak kaydeder.",
+  "exportToClipboard": "Panoya Dışa Aktar",
+  "exportToClipboardSubtitle": "Yapılandırmayı JSON metni olarak panoya kopyalar.",
   "importFromFile": "Dosyadan İçe Aktar",
-  "importFromFileSubtitle": "Yapılandırmayı JSON dosyasından geri yükle",
+  "importFromFileSubtitle": "Yapılandırmayı JSON dosyasından geri yükler.",
   "importFromClipboard": "Panodan İçe Aktar",
-  "importFromClipboardSubtitle": "Yapılandırmayı panodan JSON metni olarak geri yükle",
-  "qqGroup": "QQ Tartışma Grubu",
-  "restartScopeApp": "Ayarların geçerli olması için kapsam uygulamasını yeniden başlatın",
+  "importFromClipboardSubtitle": "Panodaki JSON metninden yapılandırmayı geri yükler.",
+  "qqGroup": "QQ Topluluk Grubu",
+  "restartScopeApp": "Ayarların geçerli olması için etki alanındaki uygulamayı yeniden başlatın",
   "groupNumberCopied": "Grup numarası panoya kopyalandı",
   "exportedTo": "Dışa aktarıldı: {path}",
   "@exportedTo": {
@@ -118,7 +118,7 @@
     }
   },
   "configCopied": "Yapılandırma panoya kopyalandı",
-  "importSuccess": "İçe aktarma başarılı, toplam {count} yapılandırma öğesi; değişikliklerin uygulanması için uygulamayı yeniden başlatın",
+  "importSuccess": "İçe aktarma başarılı, toplam {count} öğe yüklendi. Lütfen uygulamayı yeniden başlatın.",
   "@importSuccess": {
     "placeholders": {
       "count": { "type": "int" }
@@ -131,7 +131,7 @@
     }
   },
 
-  "appAdaptation": "Uygulama Uyumu",
+  "appAdaptation": "Uygulama Listesi",
   "selectedAppsCount": "{count} uygulama seçildi",
   "@selectedAppsCount": {
     "placeholders": {
@@ -139,9 +139,9 @@
     }
   },
   "cancelSelection": "Seçimi İptal Et",
-  "deselectAll": "Tümünü Kaldır",
+  "deselectAll": "Tüm Seçimi Kaldır",
   "selectAll": "Tümünü Seç",
-  "batchChannelSettings": "Toplu Kanal Yapılandırması",
+  "batchChannelSettings": "Toplu Kanal Ayarı",
   "selectEnabledApps": "Etkin Uygulamaları Seç",
   "batchEnable": "Toplu Etkinleştir",
   "batchDisable": "Toplu Devre Dışı Bırak",
@@ -150,20 +150,20 @@
   "refreshList": "Listeyi Yenile",
   "enableAll": "Tümünü Etkinleştir",
   "disableAll": "Tümünü Devre Dışı Bırak",
-  "enabledAppsCount": "{count} uygulama için Dynamic Island etkinleştirildi",
+  "enabledAppsCount": "Dynamic Island, {count} uygulama için etkin",
   "@enabledAppsCount": {
     "placeholders": {
       "count": { "type": "int" }
     }
   },
-  "enabledAppsCountWithSystem": "{count} uygulama için Dynamic Island etkinleştirildi (sistem uygulamaları dahil)",
+  "enabledAppsCountWithSystem": "Dynamic Island, {count} uygulama için etkin (sistem uygulamaları dahil)",
   "@enabledAppsCountWithSystem": {
     "placeholders": {
       "count": { "type": "int" }
     }
   },
-  "searchApps": "Uygulama adı veya paket adıyla arayın",
-  "noAppsFound": "Yüklü uygulama bulunamadı\nUygulama listesi izninin etkin olup olmadığını kontrol edin",
+  "searchApps": "Uygulama adında veya paket adında ara",
+  "noAppsFound": "Yüklü uygulama bulunamadı\nUygulama listesi izninin açık olduğunu kontrol edin",
   "noMatchingApps": "Eşleşen uygulama bulunamadı",
   "applyToSelectedAppsChannels": "Seçili {count} uygulamanın etkin kanallarına uygulanacak",
   "@applyToSelectedAppsChannels": {
@@ -171,7 +171,7 @@
       "count": { "type": "int" }
     }
   },
-  "applyingConfig": "Yapılandırma uygulanıyor…",
+  "applyingConfig": "Yapılandırma uygulanıyor...",
   "progressApps": "{done} / {total} uygulama",
   "@progressApps": {
     "placeholders": {
@@ -179,18 +179,18 @@
       "total": { "type": "int" }
     }
   },
-  "batchApplied": "{count} uygulamaya toplu olarak uygulandı",
+  "batchApplied": "Toplu ayar {count} uygulamaya uygulandı",
   "@batchApplied": {
     "placeholders": {
       "count": { "type": "int" }
     }
   },
 
-  "cannotReadChannels": "Bildirim kanalları okunamıyor",
-  "rootRequiredMessage": "Bildirim kanallarını okumak için ROOT izni gereklidir.\nLütfen uygulamaya ROOT izninin verildiğini doğrulayıp tekrar deneyin.",
+  "cannotReadChannels": "Bildirim Kanalları Okunamıyor",
+  "rootRequiredMessage": "Bildirim kanallarını okumak için root izni gerekir.\nLütfen bu uygulamaya root izni verdiğinizi doğrulayıp tekrar deneyin.",
   "enableAllChannels": "Tüm Kanalları Etkinleştir",
   "noChannelsFound": "Bildirim kanalı bulunamadı",
-  "noChannelsFoundSubtitle": "Bu uygulama henüz bildirim kanalı oluşturmamış veya kanallar okunamıyor",
+  "noChannelsFoundSubtitle": "Bu uygulama henüz bildirim kanalı oluşturmamış olabilir veya kanallar okunamıyor.",
   "allChannelsActive": "Tüm {count} kanal için geçerli",
   "@allChannelsActive": {
     "placeholders": {
@@ -210,7 +210,7 @@
       "count": { "type": "int" }
     }
   },
-  "appDisabledBanner": "Uygulamanın ana anahtarı kapalı; aşağıdaki kanal ayarları geçerli olmayacak",
+  "appDisabledBanner": "Uygulama devre dışı; aşağıdaki kanal ayarları etkisizdir",
   "channelImportance": "Önem: {importance}  ·  {id}",
   "@channelImportance": {
     "placeholders": {
@@ -220,12 +220,12 @@
   },
   "channelSettings": "Kanal Ayarları",
   "importanceNone": "Yok",
-  "importanceMin": "Çok Düşük",
+  "importanceMin": "En Düşük",
   "importanceLow": "Düşük",
   "importanceDefault": "Varsayılan",
   "importanceHigh": "Yüksek",
   "importanceUnknown": "Bilinmiyor",
-  "applyToEnabledChannels": "Etkin {count} kanala uygulanacak",
+  "applyToEnabledChannels": "Etkin olan {count} kanala uygulanacak",
   "@applyToEnabledChannels": {
     "placeholders": {
       "count": { "type": "int" }
@@ -239,26 +239,26 @@
   },
 
   "templateDownloadName": "İndirme",
-  "templateNotificationIslandName": "Bildirim Dynamic Island",
-  "templateNotificationIslandLiteName": "Bildirim Dynamic Island | Hafif",
-  "templateDownloadLiteName": "İndirme | Lite",
+  "templateNotificationIslandName": "Bildirim Süper Ada",
+  "templateNotificationIslandLiteName": "Bildirim Süper Ada|Lite",
+  "templateDownloadLiteName": "İndirme|Lite",
   "islandSection": "Ada",
 
   "template": "Şablon",
   "rendererLabel": "Stil",
-  "rendererImageTextWithButtons4Name": "Yeni Görsel+Metin Bileşeni + Alt Metin Düğmeleri",
-  "rendererCoverInfoName": "Kapak Bileşeni + Otomatik Satır Kaydırma",
-  "rendererImageTextWithRightTextButtonName": "Yeni Görsel+Metin Bileşeni + Sağ Metin Düğmesi",
-  "islandIcon": "Dynamic Island Simgesi",
+  "rendererImageTextWithButtons4Name": "Görsel + Metin + Alt Metin Düğmeleri",
+  "rendererCoverInfoName": "Kapak Bilgisi + Otomatik Satır Kaydırma",
+  "rendererImageTextWithRightTextButtonName": "Görsel + Metin + Sağ Metin Düğmesi",
+  "islandIcon": "Ada Simgesi",
   "focusIconLabel": "Odak Simgesi",
-  "focusNotificationLabel": "Odaklanmış Bildirim",
-  "preserveStatusBarSmallIconLabel": "Durum Çubuğu Simgesi",
-  "islandIconLabel": "Büyük ada simgesi",
-  "islandIconLabelSubtitle": "Etkinleştirildiğinde adanın büyük simgesini gösterir (küçük ada etkilenmez)",
-  "firstFloatLabel": "İlk Açılış",
-  "updateFloatLabel": "Güncelleme Açılışı",
-  "autoDisappear": "Otomatik Kaybol",
-  "seconds": "saniye",
+  "focusNotificationLabel": "Odak Bildirimini Kullan",
+  "preserveStatusBarSmallIconLabel": "Durum Çubuğu Küçük Simgesini Koru",
+  "islandIconLabel": "Büyük Ada Simgesini Göster",
+  "islandIconLabelSubtitle": "Bu ayar açık olduğunda büyük Ada simgesi gösterilir (küçük Ada etkilenmez).",
+  "firstFloatLabel": "İlk Bildirimde Genişlet",
+  "updateFloatLabel": "Güncellemede Yeniden Genişlet",
+  "autoDisappear": "Otomatik Kapanma",
+  "seconds": "sn",
   "onlyEnabledChannels": "Yalnızca Etkin Kanallara Uygula",
   "enabledChannelsCount": "{enabled} / {total} kanal etkin",
   "@enabledChannelsCount": {
@@ -284,9 +284,9 @@
   "errorEmptyClipboard": "Pano boş",
 
   "navBlacklist": "Bildirim Kara Listesi",
-  "navBlacklistSubtitle": "Kara listedeki bir uygulama başlatıldığında odaklanmış bildirimlerin otomatik açılması devre dışı bırakılır",
-  "presetGamesTitle": "Popüler Oyunları Tek Tıkla Filtrele",
-  "presetGamesSuccess": "Şablondan {count} yüklü oyun kara listeye eklendi",
+  "navBlacklistSubtitle": "Kara listedeki bir uygulama açıldığında odak bildiriminin otomatik genişletilmesi devre dışı kalır",
+  "presetGamesTitle": "Popüler Oyunları Tek Dokunuşla Filtrele",
+  "presetGamesSuccess": "Ön ayardan {count} yüklü oyun kara listeye eklendi",
   "@presetGamesSuccess": {
     "placeholders": {
       "count": {
@@ -294,31 +294,31 @@
       }
     }
   },
-  "blacklistedAppsCount": "{count} uygulamanın odaklanmış bildirimleri engellendi",
+  "blacklistedAppsCount": "{count} uygulamanın odak bildirimi engellendi",
   "@blacklistedAppsCount": {
     "placeholders": {
       "count": { "type": "int" }
     }
   },
-  "blacklistedAppsCountWithSystem": "{count} uygulamanın odaklanmış bildirimleri engellendi (sistem uygulamaları dahil)",
+  "blacklistedAppsCountWithSystem": "{count} uygulamanın odak bildirimi engellendi (sistem uygulamaları dahil)",
   "@blacklistedAppsCountWithSystem": {
     "placeholders": {
       "count": { "type": "int" }
     }
   },
 
-  "firstFloatLabelSubtitle": "Dynamic Island ilk bildirimi aldığında odaklanmış bildirim olarak açılıp açılmayacağı",
-  "updateFloatLabelSubtitle": "Dynamic Island güncellendiğinde bildirimin açılıp açılmayacağı",
-  "marqueeChannelTitleSubtitle": "Dynamic Island mesajı çok uzun olduğunda kayan yazı olarak gösterilip gösterilmeyeceği",
-  "focusNotificationLabelSubtitle": "Bildirimi odaklanmış bildirimle değiştirir (kapatıldığında orijinal bildirim gösterilir)",
-  "preserveStatusBarSmallIconLabelSubtitle": "Odaklanmış bildirim açıkken durum çubuğu küçük simgesinin zorla korunup korunmayacağı",
+  "firstFloatLabelSubtitle": "Bu ayar açık olduğunda ilk bildirim geldiğinde Ada genişler.",
+  "updateFloatLabelSubtitle": "Bu ayar açık olduğunda bildirim güncellendiğinde Ada yeniden genişler.",
+  "marqueeChannelTitleSubtitle": "Bu ayar açık olduğunda uzun metin Ada üzerinde kayarak gösterilir.",
+  "focusNotificationLabelSubtitle": "Bu ayar açık olduğunda normal bildirim yerine odak bildirimi gösterilir. Kapalıysa normal bildirim gösterilir.",
+  "preserveStatusBarSmallIconLabelSubtitle": "Bu ayar açık olduğunda odak bildirimi sırasında durum çubuğu küçük simgesi görünür kalır.",
 
-  "aiConfigSection": "Yapay Zeka Geliştirme",
-  "aiConfigTitle": "Yapay Zeka Bildirim Özeti",
-  "aiConfigSubtitleEnabled": "Etkin · Yapay Zeka parametrelerini yapılandırmak için tıklayın",
-  "aiConfigSubtitleDisabled": "Kapalı · Yapılandırmak için tıklayın",
-  "aiEnabledTitle": "Yapay Zeka Özetini Etkinleştir",
-  "aiEnabledSubtitle": "Dynamic Island sol ve sağ metni yapay zeka tarafından oluşturulur; zaman aşımı veya hata durumunda otomatik olarak geri döner",
+  "aiConfigSection": "AI Geliştirmeleri",
+  "aiConfigTitle": "AI Bildirim Özeti",
+  "aiConfigSubtitleEnabled": "Etkin · AI parametrelerini yapılandırmak için dokunun",
+  "aiConfigSubtitleDisabled": "Kapalı · Yapılandırmak için dokunun",
+  "aiEnabledTitle": "AI Özetini Etkinleştir",
+  "aiEnabledSubtitle": "Ada'nın sol ve sağ metni AI tarafından üretilir; zaman aşımı veya hata durumunda otomatik geri dönüş yapılır",
   "aiApiSection": "API Parametreleri",
   "aiUrlLabel": "API Adresi",
   "aiUrlHint": "https://api.openai.com/v1/chat/completions",
@@ -326,13 +326,16 @@
   "aiApiKeyHint": "sk-...",
   "aiModelLabel": "Model",
   "aiModelHint": "gpt-4o-mini",
-  "aiTestButton": "Bağlantıyı Test Et",
+  "aiTestButton": "Bağlantıyı Dene",
   "aiTestUrlEmpty": "Lütfen önce API adresini girin",
   "aiConfigSaveButton": "Kaydet",
-  "aiConfigSaved": "Yapay Zeka yapılandırması kaydedildi",
-  "aiConfigTips": "Yapay Zeka, bildirimin uygulama paket adını, başlığını ve gövdesini alarak sol (kaynak) ve sağ (içerik) kısa metinleri döndürür. OpenAI biçimiyle uyumlu API'leri destekler (DeepSeek, Claude vb.). 3 saniye içinde yanıt gelmezse otomatik olarak varsayılan mantığa geri döner.",
-  "templateAiNotificationIslandName": "Yapay Zeka Bildirim Dynamic Island",
-  "aiPromptLabel": "Özel Prompt",
-  "aiPromptHint": "Varsayılan için boş bırakın: Bildirimden önemli bilgiyi çıkar, sol ve sağ ayrı ayrı en fazla 6 kelime veya 12 karakter",
-  "aiPromptDefault": "Bildirimden önemli bilgiyi çıkar, sol ve sağ ayrı ayrı en fazla 6 kelime veya 12 karakter olsun"
+  "aiConfigSaved": "AI yapılandırması kaydedildi",
+  "aiConfigTips": "AI, bildirimdeki uygulama paket adını, başlığı ve metni alır; solda (kaynak) ve sağda (içerik) kısa metin üretir. OpenAI formatı ile uyumlu API'leri destekler (DeepSeek, Claude vb.). 3 saniye içinde yanıt gelmezse varsayılan mantığa geri döner.",
+  "templateAiNotificationIslandName": "AI Bildirim Süper Ada",
+  "aiPromptLabel": "Özel Promt",
+  "aiPromptHint": "Boş bırakırsanız varsayılan promt kullanılır: Bildirimden ana bilgiyi çıkarın; sol ve sağ metin ayrı ayrı en fazla 6 kelime veya 12 karakter olsun",
+  "aiPromptDefault": "Bildirimden ana bilgiyi çıkarın; sol ve sağ metin ayrı ayrı en fazla 6 kelime veya 12 karakter olsun",
+  "aiPromptInUserTitle": "Promtu kullanıcı mesajına yerleştir",
+  "aiPromptInUserSubtitle": "Bazı modeller sistem talimatlarını desteklemez; etkinleştirilirse promt kullanıcı mesajına eklenir",
+  "aiTimeoutLabel": "AI Yanıt Zaman Aşımı"
 }
