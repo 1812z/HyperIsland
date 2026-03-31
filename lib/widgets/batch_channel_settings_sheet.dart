@@ -263,6 +263,14 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
     final text = Theme.of(context).textTheme;
     final l10n = AppLocalizations.of(context)!;
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    final titleBottomPadding = 12.0;
+    final contentTopPadding = 12.0;
+    final contentBottomPadding = 4.0;
+    final sectionTitleGap = 6.0;
+    final rowGap = 10.0;
+    final blockGap = 16.0;
+    final scopeGap = 12.0;
+    final endGap = 20.0;
 
     return Padding(
       padding: EdgeInsets.only(bottom: keyboardHeight),
@@ -282,7 +290,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
 
           // ── 标题区 ──────────────────────────────────────────────────────
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+            padding: EdgeInsets.fromLTRB(24, 0, 24, titleBottomPadding),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -307,7 +315,12 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
           Flexible(
             child: SingleChildScrollView(
               controller: _scrollController,
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+              padding: EdgeInsets.fromLTRB(
+                24,
+                contentTopPadding,
+                24,
+                contentBottomPadding,
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -326,14 +339,14 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                           ? (v) => setState(() => _onlyEnabled = v)
                           : null,
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: scopeGap),
                     const Divider(height: 1),
-                    const SizedBox(height: 16),
+                    SizedBox(height: scopeGap),
                   ],
 
                   // ── 模板 & 样式设置 ────────────────────────────────────
                   _SectionLabel(l10n.template),
-                  const SizedBox(height: 8),
+                  SizedBox(height: sectionTitleGap),
                   _BatchSettingRow(
                     label: l10n.template,
                     value: _template,
@@ -348,7 +361,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                         .toList(),
                     onChanged: (v) => setState(() => _template = v),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: rowGap),
                   _BatchSettingRow(
                     label: l10n.rendererLabel,
                     value: _renderer,
@@ -363,11 +376,11 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                         .toList(),
                     onChanged: (v) => setState(() => _renderer = v),
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: blockGap),
 
                   // ── 超级岛 ─────────────────────────────────────────────
                   _SectionLabel(l10n.islandSection),
-                  const SizedBox(height: 8),
+                  SizedBox(height: sectionTitleGap),
                   _BatchSettingRow(
                     label: l10n.islandIcon,
                     value: _iconMode,
@@ -392,7 +405,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                     ],
                     onChanged: (v) => setState(() => _iconMode = v),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: rowGap),
                   _BatchSettingRow(
                     label: l10n.islandIconLabel,
                     value: _showIslandIcon,
@@ -415,7 +428,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                     ],
                     onChanged: (v) => setState(() => _showIslandIcon = v),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: rowGap),
                   _BatchSettingRow(
                     label: l10n.firstFloatLabel,
                     value: _firstFloat,
@@ -438,7 +451,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                     ],
                     onChanged: (v) => setState(() => _firstFloat = v),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: rowGap),
                   _BatchSettingRow(
                     label: l10n.updateFloatLabel,
                     value: _enableFloat,
@@ -461,7 +474,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                     ],
                     onChanged: (v) => setState(() => _enableFloat = v),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: rowGap),
                   _BatchSettingRow(
                     label: l10n.marqueeChannelTitle,
                     value: _marquee,
@@ -484,69 +497,42 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                     ],
                     onChanged: (v) => setState(() => _marquee = v),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: rowGap),
                   // 自动消失
-                  Row(
-                    children: [
-                      SizedBox(
-                        width: 120,
-                        child: Padding(
-                          padding: const EdgeInsets.only(right: 12),
-                          child: Text(
-                            l10n.autoDisappear,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(color: cs.onSurfaceVariant),
-                          ),
-                        ),
+                  _SettingField(
+                    label: l10n.autoDisappear,
+                    child: TextFormField(
+                      controller: _timeoutController,
+                      focusNode: _timeoutFocusNode,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: _fieldDecoration(
+                        context,
+                        hintText: _isSingle ? null : l10n.noChange,
+                        suffixText: _islandTimeout != null
+                            ? l10n.seconds
+                            : null,
                       ),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _timeoutController,
-                          focusNode: _timeoutFocusNode,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                          ],
-                          decoration: InputDecoration(
-                            hintText: _isSingle ? null : l10n.noChange,
-                            suffixText: _islandTimeout != null
-                                ? l10n.seconds
-                                : null,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 12,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            filled: true,
-                            fillColor: cs.surfaceContainerHighest,
-                          ),
-                          onChanged: (v) {
-                            final trimmed = v.trim();
-                            final n = int.tryParse(trimmed);
-                            final valid =
-                                trimmed.isNotEmpty && n != null && n >= 1;
-                            setState(() {
-                              // 单渠道模式：无效输入时保留上一个合法值
-                              if (valid) {
-                                _islandTimeout = trimmed;
-                              } else if (!_isSingle) {
-                                _islandTimeout = null;
-                              }
-                            });
-                          },
-                        ),
-                      ),
-                    ],
+                      onChanged: (v) {
+                        final trimmed = v.trim();
+                        final n = int.tryParse(trimmed);
+                        final valid = trimmed.isNotEmpty && n != null && n >= 1;
+                        setState(() {
+                          // 单渠道模式：无效输入时保留上一个合法值
+                          if (valid) {
+                            _islandTimeout = trimmed;
+                          } else if (!_isSingle) {
+                            _islandTimeout = null;
+                          }
+                        });
+                      },
+                    ),
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: blockGap),
 
                   // ── 焦点通知 ───────────────────────────────────────────
                   _SectionLabel(l10n.focusNotificationLabel),
-                  const SizedBox(height: 8),
+                  SizedBox(height: sectionTitleGap),
                   _BatchSettingRow(
                     label: l10n.focusIconLabel,
                     value: _focusIconMode,
@@ -571,7 +557,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                     ],
                     onChanged: (v) => setState(() => _focusIconMode = v),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: rowGap),
                   _BatchSettingRow(
                     label: l10n.focusNotificationLabel,
                     value: _focusNotif,
@@ -597,7 +583,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                       if (v == kTriOptOff) _preserveSmallIcon = kTriOptOff;
                     }),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: rowGap),
                   _BatchSettingRow(
                     label: l10n.preserveStatusBarSmallIconLabel,
                     value: _focusNotif == kTriOptOff
@@ -627,7 +613,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                         ? null
                         : (v) => setState(() => _preserveSmallIcon = v),
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: endGap),
                 ],
               ),
             ),
@@ -728,7 +714,7 @@ class _ScopeToggleCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         onTap: active ? () => onChanged!(!value) : null,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           child: Row(
             children: [
               Expanded(
@@ -783,53 +769,64 @@ class _BatchSettingRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
 
-    return Row(
+    return _SettingField(
+      label: label,
+      child: DropdownButtonFormField<String?>(
+        key: ValueKey(value),
+        initialValue: value,
+        isExpanded: true,
+        items: [
+          if (showNotChange)
+            DropdownMenuItem<String?>(value: null, child: Text(l10n.noChange)),
+          ...items,
+        ],
+        onChanged: onChanged,
+        decoration: _fieldDecoration(context),
+      ),
+    );
+  }
+}
+
+class _SettingField extends StatelessWidget {
+  const _SettingField({required this.label, required this.child});
+
+  final String label;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: 120,
-          child: Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
-            ),
-          ),
+        Text(
+          label,
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
         ),
-        Expanded(
-          child: DropdownButtonFormField<String?>(
-            key: ValueKey(value),
-            initialValue: value,
-            isExpanded: true,
-            items: [
-              if (showNotChange)
-                DropdownMenuItem<String?>(
-                  value: null,
-                  child: Text(l10n.noChange),
-                ),
-              ...items,
-            ],
-            onChanged: onChanged,
-            decoration: InputDecoration(
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 12,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              filled: true,
-              fillColor: cs.surfaceContainerHighest,
-            ),
-          ),
-        ),
+        const SizedBox(height: 6),
+        child,
       ],
     );
   }
+}
+
+InputDecoration _fieldDecoration(
+  BuildContext context, {
+  String? hintText,
+  String? suffixText,
+}) {
+  final cs = Theme.of(context).colorScheme;
+  return InputDecoration(
+    hintText: hintText,
+    suffixText: suffixText,
+    isDense: true,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+    filled: true,
+    fillColor: cs.surfaceContainerHighest,
+  );
 }

@@ -10,6 +10,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.io.ByteArrayOutputStream
 import java.util.LinkedHashMap
@@ -66,6 +67,18 @@ class MainActivity : FlutterActivity() {
                 "showTest" -> {
                     // 通过广播由 SystemUI 发送，无需本地通知权限
                     handleShowTest(result)
+                }
+
+                "previewChannelTemplate" -> {
+                    handlePreviewChannelTemplate(call, result)
+                }
+
+                "stopChannelTemplatePreview" -> {
+                    io.github.hyperisland.xposed.IslandDispatcher.sendCancelBroadcast(
+                        this,
+                        io.github.hyperisland.xposed.IslandDispatcher.PREVIEW_NOTIF_ID,
+                    )
+                    result.success(true)
                 }
 
                 "getInstalledApps" -> {
@@ -626,6 +639,37 @@ class MainActivity : FlutterActivity() {
         } catch (e: Exception) {
             Log.e(TAG, "Error showing test notification", e)
             result.error("ERROR", e.message, null)
+        }
+    }
+
+    private fun handlePreviewChannelTemplate(call: MethodCall, result: MethodChannel.Result) {
+        val packageName = call.argument<String>("packageName")?.trim().orEmpty()
+        val channelId = call.argument<String>("channelId")?.trim().orEmpty()
+        if (packageName.isEmpty() || channelId.isEmpty()) {
+            result.error("INVALID_ARGS", "packageName and channelId are required", null)
+            return
+        }
+
+        val channelName = call.argument<String>("channelName")?.trim().orEmpty()
+        val title = call.argument<String>("title")?.trim().orEmpty()
+        val subtitle = call.argument<String>("subtitle")?.trim().orEmpty()
+        val progress = call.argument<Int>("progress") ?: -1
+        val isOngoing = call.argument<Boolean>("isOngoing") ?: false
+
+        try {
+            io.github.hyperisland.xposed.IslandDispatcher.sendPreviewBroadcast(
+                context = this,
+                packageName = packageName,
+                channelId = channelId,
+                channelName = channelName,
+                title = title,
+                subtitle = subtitle,
+                progress = progress,
+                isOngoing = isOngoing,
+            )
+            result.success(true)
+        } catch (e: Exception) {
+            result.error("PREVIEW_ERROR", e.message, null)
         }
     }
 }

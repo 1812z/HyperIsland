@@ -6,6 +6,7 @@ import '../controllers/settings_controller.dart';
 import '../controllers/update_controller.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../widgets/section_label.dart';
+import 'template_preview_page.dart';
 
 const _channel = MethodChannel('io.github.hyperisland/test');
 
@@ -239,6 +240,25 @@ class _HomePageState extends State<HomePage> {
                   icon: const Icon(Icons.notifications_active_outlined),
                   label: Text(l10n.sendTestNotification),
                   style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const TemplatePreviewPage(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.science_outlined),
+                  label: Text('${l10n.navApps} · ${l10n.notificationTest}'),
+                  style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),

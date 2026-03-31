@@ -32,14 +32,19 @@ object TemplateRegistry {
         context: Context,
         extras: Bundle,
         data: NotifData,
+        applyBlacklist: Boolean = true,
     ) {
         val template = registry[templateId]
         if (template == null) {
             logWarn("$TAG: unknown template '$templateId', skipped")
             return
         }
-        // 通知进入黑名单处理
-        val filteredData = BlacklistFilter.applyTo(context, data) ?: return
-        template.inject(context, extras, filteredData)
+        val finalData = if (applyBlacklist) {
+            // 通知进入黑名单处理
+            BlacklistFilter.applyTo(context, data) ?: return
+        } else {
+            data
+        }
+        template.inject(context, extras, finalData)
     }
 }

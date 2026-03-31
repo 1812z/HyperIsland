@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../controllers/whitelist_controller.dart';
@@ -5,6 +7,8 @@ import '../l10n/generated/app_localizations.dart';
 import '../widgets/batch_channel_settings_sheet.dart';
 import '../widgets/app_list_widgets.dart';
 import '../services/app_cache_service.dart';
+
+const _previewChannel = MethodChannel('io.github.hyperisland/test');
 
 class AppChannelsPage extends StatefulWidget {
   final AppInfo app;
@@ -36,11 +40,19 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
   Map<String, Map<String, String>> _channelExtras =
       {}; // channelId → extra settings
   bool _loading = true;
+  bool _previewActive = false;
+  Timer? _previewAutoStopTimer;
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _previewAutoStopTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -306,6 +318,69 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
     await widget.controller.setEnabledChannels(widget.app.packageName, {});
   }
 
+  bool _isProgressTemplate(String template) {
+    return template == kTemplateGenericProgress ||
+        template == kTemplateDownloadLite;
+  }
+
+  int _resolvePreviewTimeoutSeconds(String channelId) {
+    final rawTimeout = _channelExtras[channelId]?['timeout'];
+    final parsed = int.tryParse(rawTimeout ?? '');
+    if (parsed == null || parsed < 1) return 5;
+    return parsed;
+  }
+
+  void _schedulePreviewAutoStop(int seconds) {
+    _previewAutoStopTimer?.cancel();
+    _previewAutoStopTimer = Timer(Duration(seconds: seconds), () {
+      _stopPreview();
+    });
+  }
+
+  Future<void> _previewSelectedChannel(
+    ChannelInfo channel,
+    String template,
+  ) async {
+    final isProgressTemplate = _isProgressTemplate(template);
+    final progress = isProgressTemplate ? 58 : -1;
+    final title = isProgressTemplate
+        ? '${widget.app.appName} · ${channel.name}'
+        : widget.app.appName;
+    final subtitle = isProgressTemplate
+        ? '${channel.name} · $progress%'
+        : '${channel.name} · HyperIsland';
+    final timeoutSeconds = _resolvePreviewTimeoutSeconds(channel.id);
+
+    try {
+      await _previewChannel.invokeMethod('previewChannelTemplate', {
+        'packageName': widget.app.packageName,
+        'channelId': channel.id,
+        'channelName': channel.name,
+        'title': title,
+        'subtitle': subtitle,
+        'progress': progress,
+        'isOngoing': false,
+      });
+      if (!mounted) return;
+      setState(() => _previewActive = true);
+      _schedulePreviewAutoStop(timeoutSeconds);
+    } on PlatformException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message ?? 'Preview failed')));
+    }
+  }
+
+  Future<void> _stopPreview() async {
+    _previewAutoStopTimer?.cancel();
+    _previewAutoStopTimer = null;
+    try {
+      await _previewChannel.invokeMethod('stopChannelTemplatePreview');
+    } catch (_) {}
+    if (mounted) setState(() => _previewActive = false);
+  }
+
   String _importanceLabel(int importance, AppLocalizations l10n) =>
       switch (importance) {
         0 => l10n.importanceNone,
@@ -352,6 +427,12 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
               ],
             ),
             actions: [
+              if (_previewActive)
+                IconButton(
+                  tooltip: l10n.cancel,
+                  icon: const Icon(Icons.stop_circle_outlined),
+                  onPressed: _stopPreview,
+                ),
               if (!_loading && channels.isNotEmpty)
                 AppBarOverflowMenuButton(
                   onSelected: (value) {
@@ -499,6 +580,7 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                     islandTimeout: extras['timeout'] ?? '5',
                     marquee: extras['marquee'] ?? kTriOptDefault,
                     onToggle: (v) => _toggle(ch.id, v),
+                    onPreview: () => _previewSelectedChannel(ch, template),
                     onSettingsApplied: (s) => _applyChannelSettings(ch.id, s),
                   );
                 }, childCount: channels.length),
@@ -535,6 +617,7 @@ class _ChannelTile extends StatelessWidget {
     required this.islandTimeout,
     required this.marquee,
     required this.onToggle,
+    this.onPreview,
     required this.onSettingsApplied,
   });
 
@@ -558,6 +641,7 @@ class _ChannelTile extends StatelessWidget {
   final String islandTimeout;
   final String marquee;
   final ValueChanged<bool> onToggle;
+  final VoidCallback? onPreview;
   final ValueChanged<Map<String, String?>> onSettingsApplied;
 
   void _openSettings(BuildContext context) async {
@@ -647,6 +731,15 @@ class _ChannelTile extends StatelessWidget {
                         ),
                       ],
                     ),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      Icons.visibility_outlined,
+                      size: 22,
+                      color: cs.onSurfaceVariant,
+                    ),
+                    onPressed: onPreview,
+                    tooltip: l10n.notificationTest,
                   ),
                   IconButton(
                     icon: Icon(

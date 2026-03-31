@@ -52,8 +52,19 @@ object IslandDispatcher {
     const val ACTION        = "io.github.hyperisland.ACTION_SHOW_ISLAND"
     /** 广播 Action，用于跨进程请求取消代理通知。*/
     const val ACTION_CANCEL = "io.github.hyperisland.ACTION_CANCEL_ISLAND"
+    
+    const val ACTION_PREVIEW = "io.github.hyperisland.ACTION_PREVIEW_TEMPLATE"
     /** 取消广播携带的通知 ID extra 键。*/
     const val EXTRA_NOTIF_ID = "notif_id"
+
+    private const val EXTRA_PREVIEW_PACKAGE = "preview_package"
+    private const val EXTRA_PREVIEW_CHANNEL_ID = "preview_channel_id"
+    private const val EXTRA_PREVIEW_CHANNEL_NAME = "preview_channel_name"
+    private const val EXTRA_PREVIEW_TITLE = "preview_title"
+    private const val EXTRA_PREVIEW_SUBTITLE = "preview_subtitle"
+    private const val EXTRA_PREVIEW_PROGRESS = "preview_progress"
+    private const val EXTRA_PREVIEW_ONGOING = "preview_ongoing"
+    private const val EXTRA_PREVIEW_NOTIF_ID = "preview_notif_id"
 
     /**
      * 广播发送方所需权限（signature 级）。
@@ -63,6 +74,8 @@ object IslandDispatcher {
 
     /** 默认通知 ID。固定 ID 保证同一时刻只有一条岛通知存在。*/
     const val NOTIF_ID = 0x48594944  // "HYID"
+   
+    const val PREVIEW_NOTIF_ID = 0x48595056  // "HYPV"
 
     const val CHANNEL_ID            = "hyperisland_dispatcher"
     private const val CHANNEL_NAME = "HyperIsland 超级岛"
@@ -97,6 +110,13 @@ object IslandDispatcher {
                         module?.logError("$TAG: onReceive cancel error: ${e.message}")
                     }
                 }
+                ACTION_PREVIEW -> {
+                    try {
+                        handlePreviewBroadcast(appCtx, intent.extras ?: Bundle())
+                    } catch (e: Exception) {
+                        module?.logError("$TAG: onReceive preview error: ${e.message}")
+                    }
+                }
             }
         }
     }
@@ -113,7 +133,10 @@ object IslandDispatcher {
         val appCtx = context.applicationContext ?: context
         createChannel(appCtx)
 
-        val filter = IntentFilter(ACTION).apply { addAction(ACTION_CANCEL) }
+        val filter = IntentFilter(ACTION).apply {
+            addAction(ACTION_CANCEL)
+            addAction(ACTION_PREVIEW)
+        }
         if (Build.VERSION.SDK_INT >= 33) {
             appCtx.registerReceiver(receiver, filter, PERM, null, Context.RECEIVER_EXPORTED)
         } else {
@@ -246,6 +269,37 @@ object IslandDispatcher {
         context.sendBroadcast(intent)
     }
 
+    fun sendPreviewBroadcast(
+        context: Context,
+        packageName: String,
+        channelId: String,
+        channelName: String,
+        title: String,
+        subtitle: String,
+        progress: Int = -1,
+        isOngoing: Boolean = false,
+        notifId: Int = PREVIEW_NOTIF_ID,
+    ) {
+        val intent = Intent(ACTION_PREVIEW).apply {
+            putExtra(EXTRA_PREVIEW_PACKAGE, packageName)
+            putExtra(EXTRA_PREVIEW_CHANNEL_ID, channelId)
+            putExtra(EXTRA_PREVIEW_CHANNEL_NAME, channelName)
+            putExtra(EXTRA_PREVIEW_TITLE, title)
+            putExtra(EXTRA_PREVIEW_SUBTITLE, subtitle)
+            putExtra(EXTRA_PREVIEW_PROGRESS, progress)
+            putExtra(EXTRA_PREVIEW_ONGOING, isOngoing)
+            putExtra(EXTRA_PREVIEW_NOTIF_ID, notifId)
+        }
+        context.sendBroadcast(intent)
+    }
+
+    fun sendCancelBroadcast(context: Context, notifId: Int = NOTIF_ID) {
+        val intent = Intent(ACTION_CANCEL).apply {
+            putExtra(EXTRA_NOTIF_ID, notifId)
+        }
+        context.sendBroadcast(intent)
+    }
+
     /**
      * [进程内直接调用]
      * 原始通知被取消时调用，同步取消代理通知并清除首次发送状态。
@@ -263,6 +317,137 @@ object IslandDispatcher {
     }
 
     // ── 内部工具 ──────────────────────────────────────────────────────────────
+    private fun handlePreviewBroadcast(context: Context, extras: Bundle) {
+        val packageName = extras.getString(EXTRA_PREVIEW_PACKAGE).orEmpty()
+        val channelId = extras.getString(EXTRA_PREVIEW_CHANNEL_ID).orEmpty()
+        if (packageName.isEmpty() || channelId.isEmpty()) {
+            module?.logWarn("$TAG: preview ignored, missing package/channel")
+            return
+        }
+
+        val channelName = extras.getString(EXTRA_PREVIEW_CHANNEL_NAME).orEmpty()
+        val title = extras.getString(EXTRA_PREVIEW_TITLE)
+            ?.takeIf { it.isNotBlank() }
+            ?: if (channelName.isNotEmpty()) channelName else packageName
+        val subtitle = extras.getString(EXTRA_PREVIEW_SUBTITLE)
+            ?.takeIf { it.isNotBlank() }
+            ?: "HyperIsland Preview"
+        val progressRaw = extras.getInt(EXTRA_PREVIEW_PROGRESS, -1)
+        val progress = if (progressRaw < 0) -1 else progressRaw.coerceIn(0, 100)
+        val isOngoing = extras.getBoolean(EXTRA_PREVIEW_ONGOING, false)
+        val notifId = extras.getInt(EXTRA_PREVIEW_NOTIF_ID, PREVIEW_NOTIF_ID)
+
+        val template = readStringSetting(
+            "pref_channel_template_${packageName}_$channelId",
+            "notification_island",
+        )
+        val renderer = readStringSetting(
+            "pref_channel_renderer_${packageName}_$channelId",
+            "image_text_with_buttons_4",
+        )
+        val iconMode = readStringSetting(
+            "pref_channel_icon_${packageName}_$channelId",
+            "auto",
+        )
+        val focusIconMode = readStringSetting(
+            "pref_channel_focus_icon_${packageName}_$channelId",
+            "auto",
+        )
+
+        val defaultFirstFloat = ConfigManager.getBoolean("pref_default_first_float", false)
+        val defaultEnableFloat = ConfigManager.getBoolean("pref_default_enable_float", false)
+        val defaultPreserveSmallIcon = ConfigManager.getBoolean("pref_default_preserve_small_icon", false)
+        val defaultShowIslandIcon = ConfigManager.getBoolean("pref_default_show_island_icon", true)
+
+        // Preview must always render via extras path so it stays on PREVIEW_NOTIF_ID.
+        val focusNotif = "on"
+        val preserveStatusBarSmallIcon = resolveTriOpt(
+            readStringSetting(
+                "pref_channel_preserve_small_icon_${packageName}_$channelId",
+                "default",
+            ),
+            defaultPreserveSmallIcon,
+        )
+        val showIslandIcon = resolveTriOpt(
+            readStringSetting("pref_channel_show_island_icon_${packageName}_$channelId", "default"),
+            defaultShowIslandIcon,
+        )
+        val firstFloat = resolveTriOpt(
+            readStringSetting("pref_channel_first_float_${packageName}_$channelId", "default"),
+            defaultFirstFloat,
+        )
+        val enableFloat = resolveTriOpt(
+            readStringSetting("pref_channel_enable_float_${packageName}_$channelId", "default"),
+            defaultEnableFloat,
+        )
+        val islandTimeout = readStringSetting(
+            "pref_channel_timeout_${packageName}_$channelId",
+            "5",
+        ).toIntOrNull()?.coerceAtLeast(1) ?: 5
+
+        val appIcon = context.packageManager.getAppIcon(packageName) ?: fallbackIcon(context)
+        val data = NotifData(
+            pkg = packageName,
+            channelId = channelId,
+            notifId = notifId,
+            title = title,
+            subtitle = subtitle,
+            progress = progress,
+            actions = emptyList(),
+            notifIcon = appIcon,
+            largeIcon = appIcon,
+            appIconRaw = appIcon,
+            iconMode = iconMode,
+            focusIconMode = focusIconMode,
+            focusNotif = focusNotif,
+            preserveStatusBarSmallIcon = preserveStatusBarSmallIcon,
+            firstFloat = firstFloat,
+            enableFloatMode = enableFloat,
+            islandTimeout = islandTimeout,
+            showIslandIcon = showIslandIcon,
+            isOngoing = isOngoing,
+            contentIntent = null,
+            renderer = renderer,
+        )
+
+        val islandExtras = Bundle()
+        TemplateRegistry.dispatch(
+            templateId = template,
+            context = context,
+            extras = islandExtras,
+            data = data,
+            applyBlacklist = false,
+        )
+
+        val nm = context.getSystemService(NotificationManager::class.java) ?: return
+        createChannel(context)
+        val notif = Notification.Builder(context, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle(title)
+            .setContentText(subtitle)
+            .setAutoCancel(true)
+            .build()
+        notif.extras.putAll(islandExtras)
+
+        val isFirstPreview = !postedIds.contains(notifId)
+        if (isFirstPreview) nm.cancel(notifId)
+        nm.notify(notifId, notif)
+        postedIds.add(notifId)
+
+        module?.log(
+            "$TAG: preview posted pkg=$packageName channel=$channelId template=$template renderer=$renderer",
+        )
+    }
+
+    private fun readStringSetting(key: String, defaultValue: String): String {
+        return ConfigManager.getString(key, defaultValue).takeIf { it.isNotBlank() } ?: defaultValue
+    }
+
+    private fun resolveTriOpt(channelValue: String, globalDefault: Boolean): String = when (channelValue) {
+        "on" -> "on"
+        "off" -> "off"
+        else -> if (globalDefault) "on" else "off"
+    }
 
     /**
      * 优先使用 [IslandRequest.icon]；为 null 时从 HyperIsland 应用获取启动图标并做圆角处理；
