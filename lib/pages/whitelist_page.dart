@@ -173,6 +173,7 @@ class _WhitelistPageState extends State<WhitelistPage> {
         backgroundColor: cs.surface,
         body: RefreshIndicator(
           onRefresh: _ctrl.refresh,
+          edgeOffset: 300.0,
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
