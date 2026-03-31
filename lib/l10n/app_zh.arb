@@ -64,7 +64,7 @@
   "appearanceSection": "外观",
   "configSection": "配置",
   "aboutSection": "关于",
-  "keepFocusNotifTitle": "下载管理器暂停后保留焦点通知",
+  "keepFocusNotifTitle": "下载管理器暂停后保留通知",
   "keepFocusNotifSubtitle": "显示一条通知，点击以继续下载，可能导致状态不同步",
   "unlockAllFocusTitle": "移除焦点通知白名单",
   "unlockAllFocusSubtitle": "允许所有应用发送焦点通知，无需系统授权",
@@ -338,5 +338,8 @@
   "aiPromptDefault": "根据通知信息，提取关键信息，左右分别不超过6汉字12字符",
   "aiPromptInUserTitle": "提示词放在用户消息",
   "aiPromptInUserSubtitle": "某些模型不支持系统指令，开启后将提示词放在用户消息中",
-  "aiTimeoutLabel": "AI 响应超时"
+  "aiTimeoutLabel": "AI 响应超时",
+
+  "hideDesktopIconTitle": "隐藏桌面图标",
+  "hideDesktopIconSubtitle": "隐藏启动器中的应用图标，隐藏后可通过 LSPosed 管理器打开"
 }

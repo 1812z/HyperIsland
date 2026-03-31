@@ -49,7 +49,7 @@
   "appearanceSection": "Appearance",
   "configSection": "Configuration",
   "aboutSection": "About",
-  "keepFocusNotifTitle": "Keep focus notification after download pause",
+  "keepFocusNotifTitle": "Keep notification after download pause",
   "keepFocusNotifSubtitle": "Show a notification to resume download, may cause state desync",
   "unlockAllFocusTitle": "Remove focus notification whitelist",
   "unlockAllFocusSubtitle": "Allow all apps to send focus notifications without system authorization",
@@ -224,5 +224,8 @@
   "aiPromptDefault": "Extract key info from notification, left and right each no more than 6 words or 12 characters",
   "aiPromptInUserTitle": "Put prompt in user message",
   "aiPromptInUserSubtitle": "Some models don't support system instructions, enable to put prompt in user message",
-  "aiTimeoutLabel": "AI Response Timeout"
+  "aiTimeoutLabel": "AI Response Timeout",
+
+  "hideDesktopIconTitle": "Hide Desktop Icon",
+  "hideDesktopIconSubtitle": "Hide the app icon from launcher. Open via LSPosed Manager after hiding"
 }

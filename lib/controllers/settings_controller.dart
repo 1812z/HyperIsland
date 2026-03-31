@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const kPrefResumeNotification = 'pref_resume_notification';
@@ -17,6 +18,7 @@ const kPrefDefaultMarquee = 'pref_default_marquee';
 const kPrefDefaultFocusNotif = 'pref_default_focus_notif';
 const kPrefDefaultPreserveSmallIcon = 'pref_default_preserve_small_icon';
 const kPrefDefaultShowIslandIcon = 'pref_default_show_island_icon';
+const kPrefHideDesktopIcon = 'pref_hide_desktop_icon';
 
 const kPrefAiEnabled = 'pref_ai_enabled';
 const kPrefAiUrl = 'pref_ai_url';
@@ -47,6 +49,7 @@ class SettingsController extends ChangeNotifier {
   bool defaultFocusNotif = true;
   bool defaultPreserveSmallIcon = false;
   bool defaultShowIslandIcon = true;
+  bool hideDesktopIcon = false;
   bool aiEnabled = false;
   String aiUrl = '';
   String aiApiKey = '';
@@ -75,6 +78,7 @@ class SettingsController extends ChangeNotifier {
     defaultPreserveSmallIcon =
         prefs.getBool(kPrefDefaultPreserveSmallIcon) ?? false;
     defaultShowIslandIcon = prefs.getBool(kPrefDefaultShowIslandIcon) ?? true;
+    hideDesktopIcon = prefs.getBool(kPrefHideDesktopIcon) ?? false;
     aiEnabled = prefs.getBool(kPrefAiEnabled) ?? false;
     aiUrl = prefs.getString(kPrefAiUrl) ?? '';
     aiApiKey = prefs.getString(kPrefAiApiKey) ?? '';
@@ -91,6 +95,7 @@ class SettingsController extends ChangeNotifier {
     locale = localeStr != null ? Locale(localeStr) : null;
     loading = false;
     notifyListeners();
+    syncHideDesktopIconFromSystem();
   }
 
   Future<void> setResumeNotification(bool value) async {
@@ -190,6 +195,33 @@ class SettingsController extends ChangeNotifier {
     await prefs.setBool(kPrefDefaultShowIslandIcon, value);
     defaultShowIslandIcon = value;
     notifyListeners();
+  }
+
+  Future<void> setHideDesktopIcon(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(kPrefHideDesktopIcon, value);
+    hideDesktopIcon = value;
+    const channel = MethodChannel('io.github.hyperisland/test');
+    try {
+      await channel.invokeMethod('setDesktopIconVisible', {'visible': !value});
+    } catch (_) {}
+    notifyListeners();
+  }
+
+  Future<void> syncHideDesktopIconFromSystem() async {
+    const channel = MethodChannel('io.github.hyperisland/test');
+    try {
+      final visible = await channel.invokeMethod<bool>('isDesktopIconVisible');
+      if (visible != null) {
+        final hidden = !visible;
+        if (hideDesktopIcon != hidden) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool(kPrefHideDesktopIcon, hidden);
+          hideDesktopIcon = hidden;
+          notifyListeners();
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> setAiEnabled(bool value) async {

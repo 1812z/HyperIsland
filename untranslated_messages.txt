@@ -1,1 +1,11 @@
-{}
+{
+  "ja": [
+    "hideDesktopIconTitle",
+    "hideDesktopIconSubtitle"
+  ],
+
+  "tr": [
+    "hideDesktopIconTitle",
+    "hideDesktopIconSubtitle"
+  ]
+}

@@ -45,6 +45,10 @@ class _SettingsPageState extends State<SettingsPage> {
     await _ctrl.setRoundIcon(value);
   }
 
+  Future<void> _onHideDesktopIconChanged(bool value) async {
+    await _ctrl.setHideDesktopIcon(value);
+  }
+
   void _onMarqueeSpeedChanged(double value) {
     _ctrl.setMarqueeSpeed(value.round());
   }
@@ -375,6 +379,20 @@ class _SettingsPageState extends State<SettingsPage> {
                           subtitle: Text(l10n.checkUpdateOnLaunchSubtitle),
                           value: _ctrl.checkUpdateOnLaunch,
                           onChanged: _ctrl.setCheckUpdateOnLaunch,
+                        ),
+                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        SwitchListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
+                          title: Text(
+                            l10n.hideDesktopIconTitle,
+                            style: titleStyle,
+                          ),
+                          subtitle: Text(l10n.hideDesktopIconSubtitle),
+                          value: _ctrl.hideDesktopIcon,
+                          onChanged: _onHideDesktopIconChanged,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.vertical(
                               bottom: Radius.circular(16),

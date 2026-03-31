@@ -345,7 +345,7 @@ abstract class AppLocalizations {
   /// No description provided for @keepFocusNotifTitle.
   ///
   /// In zh, this message translates to:
-  /// **'下载管理器暂停后保留焦点通知'**
+  /// **'下载管理器暂停后保留通知'**
   String get keepFocusNotifTitle;
 
   /// No description provided for @keepFocusNotifSubtitle.
@@ -1271,6 +1271,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'AI 响应超时'**
   String get aiTimeoutLabel;
+
+  /// No description provided for @hideDesktopIconTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'隐藏桌面图标'**
+  String get hideDesktopIconTitle;
+
+  /// No description provided for @hideDesktopIconSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'隐藏启动器中的应用图标，隐藏后可通过 LSPosed 管理器打开'**
+  String get hideDesktopIconSubtitle;
 }
 
 class _AppLocalizationsDelegate
