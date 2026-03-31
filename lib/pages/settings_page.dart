@@ -49,6 +49,10 @@ class _SettingsPageState extends State<SettingsPage> {
     await _ctrl.setRoundIcon(value);
   }
 
+  Future<void> _onHideDesktopIconChanged(bool value) async {
+    await _ctrl.setHideDesktopIcon(value);
+  }
+
   void _onMarqueeSpeedChanged(double value) {
     _ctrl.setMarqueeSpeed(value.round());
   }
@@ -218,10 +222,7 @@ class _SettingsPageState extends State<SettingsPage> {
               titlePadding: const EdgeInsets.only(left: 26, bottom: 16),
               title: Text(
                 l10n.navSettings,
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w400,
-                ),
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w400),
               ),
             ),
           ),
@@ -328,7 +329,10 @@ class _SettingsPageState extends State<SettingsPage> {
                             horizontal: 16,
                             vertical: 4,
                           ),
-                          title: Text(l10n.keepFocusNotifTitle, style: titleStyle),
+                          title: Text(
+                            l10n.keepFocusNotifTitle,
+                            style: titleStyle,
+                          ),
                           subtitle: Text(l10n.keepFocusNotifSubtitle),
                           value: _ctrl.resumeNotification,
                           onChanged: _onResumeNotificationChanged,
@@ -344,7 +348,10 @@ class _SettingsPageState extends State<SettingsPage> {
                             horizontal: 16,
                             vertical: 4,
                           ),
-                          title: Text(l10n.unlockAllFocusTitle, style: titleStyle),
+                          title: Text(
+                            l10n.unlockAllFocusTitle,
+                            style: titleStyle,
+                          ),
                           subtitle: Text(l10n.unlockAllFocusSubtitle),
                           value: _ctrl.unlockAllFocus,
                           onChanged: _ctrl.setUnlockAllFocus,
@@ -355,7 +362,10 @@ class _SettingsPageState extends State<SettingsPage> {
                             horizontal: 16,
                             vertical: 4,
                           ),
-                          title: Text(l10n.unlockFocusAuthTitle, style: titleStyle),
+                          title: Text(
+                            l10n.unlockFocusAuthTitle,
+                            style: titleStyle,
+                          ),
                           subtitle: Text(l10n.unlockFocusAuthSubtitle),
                           value: _ctrl.unlockFocusAuth,
                           onChanged: _ctrl.setUnlockFocusAuth,
@@ -366,10 +376,27 @@ class _SettingsPageState extends State<SettingsPage> {
                             horizontal: 16,
                             vertical: 4,
                           ),
-                          title: Text(l10n.checkUpdateOnLaunchTitle, style: titleStyle),
+                          title: Text(
+                            l10n.checkUpdateOnLaunchTitle,
+                            style: titleStyle,
+                          ),
                           subtitle: Text(l10n.checkUpdateOnLaunchSubtitle),
                           value: _ctrl.checkUpdateOnLaunch,
                           onChanged: _ctrl.setCheckUpdateOnLaunch,
+                        ),
+                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        SwitchListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
+                          title: Text(
+                            l10n.hideDesktopIconTitle,
+                            style: titleStyle,
+                          ),
+                          subtitle: Text(l10n.hideDesktopIconSubtitle),
+                          value: _ctrl.hideDesktopIcon,
+                          onChanged: _onHideDesktopIconChanged,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.vertical(
                               bottom: Radius.circular(16),
@@ -425,7 +452,10 @@ class _SettingsPageState extends State<SettingsPage> {
                             horizontal: 16,
                             vertical: 4,
                           ),
-                          title: Text(l10n.marqueeChannelTitle, style: titleStyle),
+                          title: Text(
+                            l10n.marqueeChannelTitle,
+                            style: titleStyle,
+                          ),
                           subtitle: Text(l10n.marqueeChannelTitleSubtitle),
                           value: _ctrl.defaultMarquee,
                           onChanged: _ctrl.setDefaultMarquee,
@@ -436,7 +466,10 @@ class _SettingsPageState extends State<SettingsPage> {
                             horizontal: 16,
                             vertical: 4,
                           ),
-                          title: Text(l10n.focusNotificationLabel, style: titleStyle),
+                          title: Text(
+                            l10n.focusNotificationLabel,
+                            style: titleStyle,
+                          ),
                           subtitle: Text(l10n.focusNotificationLabelSubtitle),
                           value: _ctrl.defaultFocusNotif,
                           onChanged: _ctrl.setDefaultFocusNotif,
@@ -447,7 +480,10 @@ class _SettingsPageState extends State<SettingsPage> {
                             horizontal: 16,
                             vertical: 4,
                           ),
-                          title: Text(l10n.preserveStatusBarSmallIconLabel, style: titleStyle),
+                          title: Text(
+                            l10n.preserveStatusBarSmallIconLabel,
+                            style: titleStyle,
+                          ),
                           subtitle: Text(
                             l10n.preserveStatusBarSmallIconLabelSubtitle,
                           ),
@@ -508,7 +544,12 @@ class _SettingsPageState extends State<SettingsPage> {
                           ),
                           title: Row(
                             children: [
-                              Expanded(child: Text(l10n.marqueeChannelTitle, style: titleStyle)),
+                              Expanded(
+                                child: Text(
+                                  l10n.marqueeChannelTitle,
+                                  style: titleStyle,
+                                ),
+                              ),
                               Text(
                                 l10n.marqueeSpeedLabel(_ctrl.marqueeSpeed),
                                 style: Theme.of(context).textTheme.bodySmall
@@ -568,10 +609,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             horizontal: 16,
                             vertical: 4,
                           ),
-                          title: Text(
-                            l10n.themeModeTitle,
-                            style: titleStyle,
-                          ),
+                          title: Text(l10n.themeModeTitle, style: titleStyle),
                           subtitle: Text(_themeModeLabel(l10n)),
                           onTap: () => _showThemeModeDialog(l10n),
                         ),
@@ -581,10 +619,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             horizontal: 16,
                             vertical: 4,
                           ),
-                          title: Text(
-                            l10n.languageTitle,
-                            style: titleStyle,
-                          ),
+                          title: Text(l10n.languageTitle, style: titleStyle),
                           subtitle: Text(_localeLabel(l10n)),
                           onTap: () => _showLanguageDialog(l10n),
                           shape: RoundedRectangleBorder(
@@ -632,7 +667,10 @@ class _SettingsPageState extends State<SettingsPage> {
                             vertical: 4,
                           ),
                           leading: const Icon(Icons.copy_outlined),
-                          title: Text(l10n.exportToClipboard, style: titleStyle),
+                          title: Text(
+                            l10n.exportToClipboard,
+                            style: titleStyle,
+                          ),
                           subtitle: Text(l10n.exportToClipboardSubtitle),
                           onTap: _exportToClipboard,
                         ),
@@ -659,7 +697,10 @@ class _SettingsPageState extends State<SettingsPage> {
                             ),
                           ),
                           leading: const Icon(Icons.paste_outlined),
-                          title: Text(l10n.importFromClipboard, style: titleStyle),
+                          title: Text(
+                            l10n.importFromClipboard,
+                            style: titleStyle,
+                          ),
                           subtitle: Text(l10n.importFromClipboardSubtitle),
                           onTap: _importFromClipboard,
                         ),
@@ -685,12 +726,12 @@ class _SettingsPageState extends State<SettingsPage> {
                           title: Text(l10n.checkUpdate, style: titleStyle),
                           trailing: _checkingUpdate
                               ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                            ),
-                          )
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
                               : null,
                           onTap: _checkingUpdate ? null : _doCheckUpdate,
                         ),

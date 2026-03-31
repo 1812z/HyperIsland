@@ -138,6 +138,43 @@ class MainActivity : FlutterActivity() {
                     result.success(version)
                 }
 
+                "setDesktopIconVisible" -> {
+                    val visible = call.argument<Boolean>("visible") ?: true
+                    try {
+                        val componentName = android.content.ComponentName(
+                            packageName,
+                            "$packageName.MainActivityAlias"
+                        )
+                        val newState = if (visible) {
+                            PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+                        } else {
+                            PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+                        }
+                        packageManager.setComponentEnabledSetting(
+                            componentName,
+                            newState,
+                            PackageManager.DONT_KILL_APP
+                        )
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("ERROR", e.message, null)
+                    }
+                }
+
+                "isDesktopIconVisible" -> {
+                    try {
+                        val componentName = android.content.ComponentName(
+                            packageName,
+                            "$packageName.MainActivityAlias"
+                        )
+                        val state = packageManager.getComponentEnabledSetting(componentName)
+                        val visible = state != PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+                        result.success(visible)
+                    } catch (e: Exception) {
+                        result.error("ERROR", e.message, null)
+                    }
+                }
+
                 else -> {
                     result.notImplemented()
                 }

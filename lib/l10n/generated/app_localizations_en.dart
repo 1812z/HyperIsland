@@ -674,4 +674,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiTimeoutLabel => 'AI Response Timeout';
+
+  @override
+  String get hideDesktopIconTitle => 'Hide Desktop Icon';
+
+  @override
+  String get hideDesktopIconSubtitle =>
+      'Hide the app icon from launcher. Open via LSPosed Manager after hiding';
 }

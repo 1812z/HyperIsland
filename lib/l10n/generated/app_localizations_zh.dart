@@ -644,4 +644,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aiTimeoutLabel => 'AI 响应超时';
+
+  @override
+  String get hideDesktopIconTitle => '隐藏桌面图标';
+
+  @override
+  String get hideDesktopIconSubtitle => '隐藏启动器中的应用图标，隐藏后可通过 LSPosed 管理器打开';
 }
