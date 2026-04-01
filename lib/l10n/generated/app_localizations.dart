@@ -1167,7 +1167,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiUrlLabel.
   ///
   /// In zh, this message translates to:
-  /// **'API 地址'**
+  /// **'API 地址（必须完整）'**
   String get aiUrlLabel;
 
   /// No description provided for @aiUrlHint.
@@ -1227,7 +1227,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiConfigTips.
   ///
   /// In zh, this message translates to:
-  /// **'AI 将收到通知的应用包名、标题和正文，返回左侧（来源）和右侧（内容）短文本。支持兼容 OpenAI 格式的接口（如 DeepSeek、Claude 等）。超过 3 秒未响应时自动回退到默认逻辑。'**
+  /// **'AI 将收到通知的应用包名、标题和正文，返回左侧（来源）和右侧（内容）短文本。支持兼容 OpenAI 格式的接口（如 DeepSeek、Claude 等）。超过未响应时自动回退到默认逻辑。'**
   String get aiConfigTips;
 
   /// No description provided for @templateAiNotificationIslandName.

@@ -648,7 +648,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiConfigTips =>
-      'AI receives the app package, title, and content of each notification, and returns short left (source) and right (content) text. Compatible with OpenAI-format APIs (e.g. DeepSeek, Claude). Falls back to default logic if no response within 3 seconds.';
+      'AI receives the app package, title, and content of each notification, and returns short left (source) and right (content) text. Compatible with OpenAI-format APIs (e.g. DeepSeek, Claude). Falls back to default logic if no response.';
 
   @override
   String get templateAiNotificationIslandName => 'AI Notification Island';

@@ -591,7 +591,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiApiSection => 'API 参数';
 
   @override
-  String get aiUrlLabel => 'API 地址';
+  String get aiUrlLabel => 'API 地址（必须完整）';
 
   @override
   String get aiUrlHint => 'https://api.openai.com/v1/chat/completions';
@@ -622,7 +622,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aiConfigTips =>
-      'AI 将收到通知的应用包名、标题和正文，返回左侧（来源）和右侧（内容）短文本。支持兼容 OpenAI 格式的接口（如 DeepSeek、Claude 等）。超过 3 秒未响应时自动回退到默认逻辑。';
+      'AI 将收到通知的应用包名、标题和正文，返回左侧（来源）和右侧（内容）短文本。支持兼容 OpenAI 格式的接口（如 DeepSeek、Claude 等）。超过未响应时自动回退到默认逻辑。';
 
   @override
   String get templateAiNotificationIslandName => 'AI 通知超级岛';

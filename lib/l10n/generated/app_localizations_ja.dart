@@ -630,7 +630,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get aiConfigTips =>
-      'AI は各通知のアプリパッケージ、タイトル、コンテンツを受信し短い左側 (ソース) と右側 (コンテンツ) のテキストを返します。OpenAI 形式の API (DeepSeek、Claude など) と互換性があります。3 秒以内に応答がない場合は、デフォルトのロジックにフォールバックします。';
+      'AI は各通知のアプリパッケージ、タイトル、コンテンツを受信し短い左側 (ソース) と右側 (コンテンツ) のテキストを返します。OpenAI 形式の API (DeepSeek、Claude など) と互換性があります。応答がない場合は、デフォルトのロジックにフォールバックします。';
 
   @override
   String get templateAiNotificationIslandName => 'AI Notification Island';

@@ -653,7 +653,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get aiConfigTips =>
-      'AI, bildirimdeki uygulama paket adını, başlığı ve metni alır; solda (kaynak) ve sağda (içerik) kısa metin üretir. OpenAI formatı ile uyumlu API\'leri destekler (DeepSeek, Claude vb.). 3 saniye içinde yanıt gelmezse varsayılan mantığa geri döner.';
+      'AI, bildirimdeki uygulama paket adını, başlığı ve metni alır; solda (kaynak) ve sağda (içerik) kısa metin üretir. OpenAI formatı ile uyumlu API\'leri destekler (DeepSeek, Claude vb.). Yanıt gelmezse varsayılan mantığa geri döner.';
 
   @override
   String get templateAiNotificationIslandName => 'AI Bildirim Süper Ada';

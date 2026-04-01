@@ -330,7 +330,7 @@
   "aiTestUrlEmpty": "Lütfen önce API adresini girin",
   "aiConfigSaveButton": "Kaydet",
   "aiConfigSaved": "AI yapılandırması kaydedildi",
-"aiConfigTips": "AI, bildirimdeki uygulama paket adını, başlığı ve metni alır; solda (kaynak) ve sağda (içerik) kısa metin üretir. OpenAI formatı ile uyumlu API'leri destekler (DeepSeek, Claude vb.). Yanıt gelmezse varsayılan mantığa geri döner."
+"aiConfigTips": "AI, bildirimdeki uygulama paket adını, başlığı ve metni alır; solda (kaynak) ve sağda (içerik) kısa metin üretir. OpenAI formatı ile uyumlu API'leri destekler (DeepSeek, Claude vb.). Yanıt gelmezse varsayılan mantığa geri döner.",
   "templateAiNotificationIslandName": "AI Bildirim Süper Ada",
   "aiPromptLabel": "Özel Prompt",
   "aiPromptHint": "Boş bırakırsanız varsayılan prompt kullanılır: Bildirimden ana bilgiyi çıkarın; sol ve sağ metin ayrı ayrı en fazla 6 kelime veya 12 karakter olsun",

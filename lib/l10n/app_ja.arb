@@ -208,7 +208,7 @@
   "aiTestUrlEmpty": "始めに API URL を入力してください",
   "aiConfigSaveButton": "保存",
   "aiConfigSaved": "AI の構成を保存しました",
-"aiConfigTips": "AI は各通知のアプリパッケージ、タイトル、コンテンツを受信し短い左側 (ソース) と右側 (コンテンツ) のテキストを返します。OpenAI 形式の API (DeepSeek、Claude など) と互換性があります。応答がない場合は、デフォルトのロジックにフォールバックします。"
+  "aiConfigTips": "AI は各通知のアプリパッケージ、タイトル、コンテンツを受信し短い左側 (ソース) と右側 (コンテンツ) のテキストを返します。OpenAI 形式の API (DeepSeek、Claude など) と互換性があります。応答がない場合は、デフォルトのロジックにフォールバックします。",
   "templateAiNotificationIslandName": "AI Notification Island",
   "aiPromptLabel": "カスタムプロンプト",
   "aiPromptHint": "デフォルトを使用する場合は空欄: 左右それぞれ 6 単語または 12 文字以内の重要な情報を抽出します",
