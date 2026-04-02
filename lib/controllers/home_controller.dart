@@ -5,22 +5,34 @@ class HomeController extends ChangeNotifier {
   static const _platform = MethodChannel('io.github.hyperisland/test');
 
   bool isSending = false;
-  bool? moduleActive; // null = 检测中
-  int? focusProtocolVersion; // null = 检测中
+  bool? moduleActive;
+  int? focusProtocolVersion;
+  int? lsposedApiVersion;
 
   HomeController() {
     _checkStatus();
   }
 
   Future<void> _checkStatus() async {
+    int apiVersion = 0;
+    try {
+      apiVersion = await _platform.invokeMethod('getLSPosedApiVersion');
+      lsposedApiVersion = apiVersion;
+    } catch (_) {
+      lsposedApiVersion = 0;
+    }
+
     try {
       final bool active = await _platform.invokeMethod('isModuleActive');
-      moduleActive = active;
+      moduleActive = active && apiVersion >= 101;
     } catch (_) {
       moduleActive = false;
     }
+
     try {
-      final int version = await _platform.invokeMethod('getFocusProtocolVersion');
+      final int version = await _platform.invokeMethod(
+        'getFocusProtocolVersion',
+      );
       focusProtocolVersion = version;
     } catch (_) {
       focusProtocolVersion = 0;

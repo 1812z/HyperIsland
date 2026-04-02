@@ -94,6 +94,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get enableInLSPosed => 'Please enable this module in LSPosed';
 
   @override
+  String get updateLSPosedRequired => 'Please update LSPosed version';
+
+  @override
   String get systemNotSupported => 'System Not Supported';
 
   @override
@@ -648,7 +651,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiConfigTips =>
-      'AI receives the app package, title, and content of each notification, and returns short left (source) and right (content) text. Compatible with OpenAI-format APIs (e.g. DeepSeek, Claude). Falls back to default logic if no response within 3 seconds.';
+      'AI receives the app package, title, and content of each notification, and returns short left (source) and right (content) text. Compatible with OpenAI-format APIs (e.g. DeepSeek, Claude). Falls back to default logic if no response.';
 
   @override
   String get templateAiNotificationIslandName => 'AI Notification Island';
@@ -680,4 +683,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get hideDesktopIconSubtitle =>
       'Hide the app icon from launcher. Open via LSPosed Manager after hiding';
+
+  @override
+  String get restoreLockscreenTitle => 'Restore Lockscreen Notification';
+
+  @override
+  String get restoreLockscreenSubtitle =>
+      'Skip focus notification processing on lockscreen, keep original privacy behavior';
 }

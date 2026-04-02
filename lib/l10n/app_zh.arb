@@ -40,6 +40,7 @@
   "activated": "已激活",
   "notActivated": "未激活",
   "enableInLSPosed": "请在 LSPosed 中启用本模块",
+  "updateLSPosedRequired": "请更新 LSPosed 版本",
   "systemNotSupported": "系统不支持",
   "systemNotSupportedSubtitle": "当前系统不支持超级岛功能（协议版本 {version}，需要版本 3）",
   "@systemNotSupportedSubtitle": {
@@ -321,7 +322,7 @@
   "aiEnabledTitle": "启用 AI 摘要",
   "aiEnabledSubtitle": "由 AI 生成超级岛左右文本，超时或失败时自动回退",
   "aiApiSection": "API 参数",
-  "aiUrlLabel": "API 地址",
+  "aiUrlLabel": "API 地址（必须完整）",
   "aiUrlHint": "https://api.openai.com/v1/chat/completions",
   "aiApiKeyLabel": "API 密钥",
   "aiApiKeyHint": "sk-...",
@@ -331,7 +332,7 @@
   "aiTestUrlEmpty": "请先填写 API 地址",
   "aiConfigSaveButton": "保存",
   "aiConfigSaved": "AI 配置已保存",
-  "aiConfigTips": "AI 将收到通知的应用包名、标题和正文，返回左侧（来源）和右侧（内容）短文本。支持兼容 OpenAI 格式的接口（如 DeepSeek、Claude 等）。超过 3 秒未响应时自动回退到默认逻辑。",
+  "aiConfigTips": "AI 将收到通知的应用包名、标题和正文，返回左侧（来源）和右侧（内容）短文本。支持兼容 OpenAI 格式的接口（如 DeepSeek、Claude 等）。超过未响应时自动回退到默认逻辑。",
   "templateAiNotificationIslandName": "AI 通知超级岛",
   "aiPromptLabel": "自定义提示词",
   "aiPromptHint": "留空使用默认提示词：根据通知信息，提取关键信息，左右分别不超过6汉字12字符",
@@ -341,5 +342,8 @@
   "aiTimeoutLabel": "AI 响应超时",
 
   "hideDesktopIconTitle": "隐藏桌面图标",
-  "hideDesktopIconSubtitle": "隐藏启动器中的应用图标，隐藏后可通过 LSPosed 管理器打开"
+  "hideDesktopIconSubtitle": "隐藏启动器中的应用图标，隐藏后可通过 LSPosed 管理器打开",
+
+  "restoreLockscreenTitle": "锁屏通知复原",
+  "restoreLockscreenSubtitle": "锁屏时跳过焦点通知处理，保持原始通知隐私行为"
 }

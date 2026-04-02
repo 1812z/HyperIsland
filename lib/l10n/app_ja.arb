@@ -27,6 +27,7 @@
   "activated": "有効",
   "notActivated": "無効",
   "enableInLSPosed": "LSPosed でこのモジュールを有効化してください",
+  "updateLSPosedRequired": "LSPosed バージョンを更新してください",
   "systemNotSupported": "システムは非対応です",
   "systemNotSupportedSubtitle": "システムは Dynamic Island に非対応です (現在のプロトコルバージョンは {version}、プロトコルバージョン 3 が必要です)",
   "@systemNotSupportedSubtitle": {
@@ -208,12 +209,15 @@
   "aiTestUrlEmpty": "始めに API URL を入力してください",
   "aiConfigSaveButton": "保存",
   "aiConfigSaved": "AI の構成を保存しました",
-  "aiConfigTips": "AI は各通知のアプリパッケージ、タイトル、コンテンツを受信し短い左側 (ソース) と右側 (コンテンツ) のテキストを返します。OpenAI 形式の API (DeepSeek、Claude など) と互換性があります。3 秒以内に応答がない場合は、デフォルトのロジックにフォールバックします。",
+  "aiConfigTips": "AI は各通知のアプリパッケージ、タイトル、コンテンツを受信し短い左側 (ソース) と右側 (コンテンツ) のテキストを返します。OpenAI 形式の API (DeepSeek、Claude など) と互換性があります。応答がない場合は、デフォルトのロジックにフォールバックします。",
   "templateAiNotificationIslandName": "AI Notification Island",
   "aiPromptLabel": "カスタムプロンプト",
   "aiPromptHint": "デフォルトを使用する場合は空欄: 左右それぞれ 6 単語または 12 文字以内の重要な情報を抽出します",
   "aiPromptDefault": "通知から重要な情報を抽出します。左右それぞれ 6 単語または 12 文字以内とします。",
   "aiPromptInUserTitle": "ユーザーメッセージにプロンプトを表示する",
   "aiPromptInUserSubtitle": "一部のモデルではシステム命令がサポートされていないため、ユーザーメッセージにプロンプ​​トを表示させることができません",
-  "aiTimeoutLabel": "AI レスポンスのタイムアウト"
+  "aiTimeoutLabel": "AI レスポンスのタイムアウト",
+
+  "restoreLockscreenTitle": "ロック画面通知復元",
+  "restoreLockscreenSubtitle": "ロック画面時にフォーカス通知処理をスキップし、元の通知プライバシー動作を維持"
 }

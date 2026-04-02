@@ -46,3 +46,4 @@ app.*.map.json
 /.claude
 release.jks
 /example/
+opencode.json

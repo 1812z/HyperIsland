@@ -295,6 +295,11 @@ class WhitelistController extends ChangeNotifier {
           'renderer':
               prefs.getString('pref_channel_renderer_${packageName}_$id') ??
               kRendererImageTextWithButtons4,
+          'restore_lockscreen':
+              prefs.getString(
+                'pref_channel_restore_lockscreen_${packageName}_$id',
+              ) ??
+              kTriOptDefault,
         }),
       ),
     );
@@ -393,6 +398,18 @@ class WhitelistController extends ChangeNotifier {
     );
   }
 
+  Future<void> setChannelRestoreLockscreen(
+    String packageName,
+    String channelId,
+    String value,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      'pref_channel_restore_lockscreen_${packageName}_$channelId',
+      value,
+    );
+  }
+
   Future<void> setChannelShowIslandIcon(
     String packageName,
     String channelId,
@@ -438,6 +455,7 @@ class WhitelistController extends ChangeNotifier {
       'enable_float': 'pref_channel_enable_float',
       'timeout': 'pref_channel_timeout',
       'marquee': 'pref_channel_marquee',
+      'restore_lockscreen': 'pref_channel_restore_lockscreen',
     };
     final futures = <Future<bool>>[];
     for (final id in channelIds) {

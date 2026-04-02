@@ -225,7 +225,10 @@ class _HomePageState extends State<HomePage> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                _ModuleStatusCard(active: _ctrl.moduleActive),
+                _ModuleStatusCard(
+                  active: _ctrl.moduleActive,
+                  apiVersion: _ctrl.lsposedApiVersion,
+                ),
                 if (_ctrl.focusProtocolVersion != null &&
                     _ctrl.focusProtocolVersion != 3) ...[
                   const SizedBox(height: 12),
@@ -284,7 +287,8 @@ class _HomePageState extends State<HomePage> {
 
 class _ModuleStatusCard extends StatelessWidget {
   final bool? active;
-  const _ModuleStatusCard({required this.active});
+  final int? apiVersion;
+  const _ModuleStatusCard({required this.active, this.apiVersion});
 
   @override
   Widget build(BuildContext context) {
@@ -314,6 +318,7 @@ class _ModuleStatusCard extends StatelessWidget {
     }
 
     final bool isActive = active!;
+    final bool isApiOutdated = apiVersion != null && apiVersion! < 101;
     final color = isActive ? Colors.green : cs.error;
     final bgColor = isActive
         ? Colors.green.withValues(alpha: 0.12)
@@ -362,7 +367,18 @@ class _ModuleStatusCard extends StatelessWidget {
                   if (!isActive) ...[
                     const SizedBox(height: 4),
                     Text(
-                      l10n.enableInLSPosed,
+                      isApiOutdated
+                          ? l10n.updateLSPosedRequired
+                          : l10n.enableInLSPosed,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: color.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
+                  if (apiVersion != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      'API: $apiVersion',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: color.withValues(alpha: 0.7),
                       ),

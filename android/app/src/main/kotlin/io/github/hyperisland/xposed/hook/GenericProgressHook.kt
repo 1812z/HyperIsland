@@ -1,5 +1,6 @@
 package io.github.hyperisland.xposed
 
+import android.app.KeyguardManager
 import android.app.Notification
 import android.service.notification.StatusBarNotification
 import io.github.hyperisland.getAppIcon
@@ -200,6 +201,19 @@ object GenericProgressHook {
             val extras = notif.extras ?: return
 
             if (isMediaNotification(notif, extras)) return
+
+            val defaultRestoreLockscreen = loadBooleanSetting("global:default_restore_lockscreen", "pref_default_restore_lockscreen", false)
+            val restoreLockscreenRaw = loadChannelStringSetting("restore_lockscreen:$pkg/$channelId", "pref_channel_restore_lockscreen_${pkg}_$channelId", "default")
+            val restoreLockscreen = resolveTriOpt(restoreLockscreenRaw, defaultRestoreLockscreen)
+            module.log("$TAG: restoreLockscreen raw=$restoreLockscreenRaw, resolved=$restoreLockscreen, default=$defaultRestoreLockscreen")
+
+            if (restoreLockscreen == "on" && shouldRedactPrivateContentOnLockscreen(context, notif, module)) {
+                module.log("$TAG: skipping due to lockscreen restore")
+                extras.remove("miui.focus.param")
+                extras.remove("hyperisland_generic_processed")
+                return
+            }
+
             if (extras.containsKey("miui.focus.param")) return
 
             val progressMax   = extras.getInt(Notification.EXTRA_PROGRESS_MAX, 0)
@@ -327,6 +341,26 @@ object GenericProgressHook {
         } catch (e: Throwable) {
             module.log("$TAG: handleSbn error: ${e.message}")
         }
+    }
+
+    private fun shouldRedactPrivateContentOnLockscreen(
+        context: android.content.Context,
+        notif: Notification,
+        module: XposedModule,
+    ): Boolean {
+        if (!isKeyguardLocked(context, module)) return false
+        val vis = notif.visibility
+        module.log("$TAG: notification visibility = $vis (PUBLIC=${Notification.VISIBILITY_PUBLIC}, PRIVATE=${Notification.VISIBILITY_PRIVATE}, SECRET=${Notification.VISIBILITY_SECRET})")
+        if (vis == Notification.VISIBILITY_PUBLIC) return false
+        // VISIBILITY_PRIVATE 或 VISIBILITY_SECRET 都应该跳过处理
+        return true
+    }
+
+    private fun isKeyguardLocked(context: android.content.Context, module: XposedModule): Boolean {
+        val keyguardManager = context.getSystemService(KeyguardManager::class.java) ?: return false
+        val locked = keyguardManager.isKeyguardLocked
+        module.log("$TAG: isKeyguardLocked = $locked")
+        return locked
     }
 
     private fun isMediaNotification(notif: Notification, extras: android.os.Bundle): Boolean {

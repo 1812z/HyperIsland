@@ -40,7 +40,8 @@ class HyperIslandApp : Application(), XposedServiceHelper.OnServiceListener {
 
     override fun onServiceBind(service: XposedService) {
         xposedService = service
-        Log.d(TAG, "XposedService bound, syncing all prefs")
+        apiVersion = service.apiVersion
+        Log.d(TAG, "XposedService bound, API version: $apiVersion, syncing all prefs")
         syncAllToRemote(service)
         synchronized(serviceReadyLock) { serviceReadyLock.notifyAll() }
     }
@@ -105,9 +106,12 @@ class HyperIslandApp : Application(), XposedServiceHelper.OnServiceListener {
         const val REMOTE_PREFS_NAME = "FlutterSharedPreferences"
 
         @Volatile private var serviceReady = false
+        @Volatile private var apiVersion: Int = 0
         private val serviceReadyLock = Object()
 
         fun isReady(): Boolean = serviceReady
+
+        fun getApiVersion(): Int = apiVersion
 
         fun awaitReady(timeoutMs: Long = 1500): Boolean {
             if (isReady()) return true

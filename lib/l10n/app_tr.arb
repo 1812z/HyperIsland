@@ -40,6 +40,7 @@
   "activated": "Etkin",
   "notActivated": "Etkin Değil",
   "enableInLSPosed": "Lütfen bu modülü LSPosed içinde etkinleştirin",
+  "updateLSPosedRequired": "Lütfen LSPosed sürümünü güncelleyin",
   "systemNotSupported": "Sistem Desteklenmiyor",
   "systemNotSupportedSubtitle": "Mevcut sistem Dynamic Island özelliğini desteklemiyor (protokol sürümü {version}, gereken sürüm: 3)",
   "@systemNotSupportedSubtitle": {
@@ -330,12 +331,17 @@
   "aiTestUrlEmpty": "Lütfen önce API adresini girin",
   "aiConfigSaveButton": "Kaydet",
   "aiConfigSaved": "AI yapılandırması kaydedildi",
-  "aiConfigTips": "AI, bildirimdeki uygulama paket adını, başlığı ve metni alır; solda (kaynak) ve sağda (içerik) kısa metin üretir. OpenAI formatı ile uyumlu API'leri destekler (DeepSeek, Claude vb.). 3 saniye içinde yanıt gelmezse varsayılan mantığa geri döner.",
+  "aiConfigTips": "AI, bildirimdeki uygulama paket adını, başlığı ve metni alır; solda (kaynak) ve sağda (içerik) kısa metin üretir. OpenAI formatı ile uyumlu API'leri destekler (DeepSeek, Claude vb.). Yanıt gelmezse varsayılan mantığa geri döner.",
   "templateAiNotificationIslandName": "AI Bildirim Süper Ada",
   "aiPromptLabel": "Özel Prompt",
   "aiPromptHint": "Boş bırakırsanız varsayılan prompt kullanılır: Bildirimden ana bilgiyi çıkarın; sol ve sağ metin ayrı ayrı en fazla 6 kelime veya 12 karakter olsun",
   "aiPromptDefault": "Bildirimden ana bilgiyi çıkarın; sol ve sağ metin ayrı ayrı en fazla 6 kelime veya 12 karakter olsun",
   "aiPromptInUserTitle": "Prompt'u kullanıcı mesajına yerleştir",
   "aiPromptInUserSubtitle": "Bazı modeller sistem talimatlarını desteklemez; etkinleştirilirse prompt kullanıcı mesajına eklenir",
-  "aiTimeoutLabel": "AI Yanıt Zaman Aşımı"
+  "aiTimeoutLabel": "AI Yanıt Zaman Aşımı",
+  "hideDesktopIconTitle": "Ana Ekran Simgesini Gizle",
+  "hideDesktopIconSubtitle": "Uygulama simgesini başlatıcıdan gizler. Gizledikten sonra LSPosed Manager üzerinden açın",
+
+  "restoreLockscreenTitle": "Kilit Ekranı Bildirimini Geri Yükle",
+  "restoreLockscreenSubtitle": "Kilit ekranında odak bildirimi işlemini atlayın, özgün gizlilik davranışını koruyun"
 }

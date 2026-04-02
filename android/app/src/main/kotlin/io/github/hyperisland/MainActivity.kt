@@ -142,6 +142,14 @@ class MainActivity : FlutterActivity() {
                     }.start()
                 }
 
+                "getLSPosedApiVersion" -> {
+                    Thread {
+                        val ready = HyperIslandApp.awaitReady()
+                        val version = if (ready) HyperIslandApp.getApiVersion() else 0
+                        runOnUiThread { result.success(version) }
+                    }.start()
+                }
+
                 "getFocusProtocolVersion" -> {
                     val version = Settings.System.getInt(
                         contentResolver,

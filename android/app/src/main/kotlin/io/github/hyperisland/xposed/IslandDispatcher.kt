@@ -211,10 +211,26 @@ object IslandDispatcher {
 
             val resourceBundle = islandBuilder.buildResourceBundle()
 
+            val publicVersion = Notification.Builder(context, CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setContentTitle(CHANNEL_NAME)
+                .setContentText("")
+                .setVisibility(Notification.VISIBILITY_PUBLIC)
+                .build()
+
+            val visibility = if (request.showNotification) {
+                Notification.VISIBILITY_PRIVATE
+            } else {
+                // Dispatcher-only island trigger should not leak content on lockscreen.
+                Notification.VISIBILITY_SECRET
+            }
+
             val notif = Notification.Builder(context, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
                 .setContentTitle(request.title)
                 .setContentText(request.content)
+                .setVisibility(visibility)
+                .setPublicVersion(publicVersion)
                 .setAutoCancel(true)
                 .apply {
                     if (request.isOngoing) setOngoing(true)
@@ -523,10 +539,18 @@ object IslandDispatcher {
     private fun createChannel(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val nm = context.getSystemService(NotificationManager::class.java) ?: return
-        if (nm.getNotificationChannel(CHANNEL_ID) != null) return
+        val existing = nm.getNotificationChannel(CHANNEL_ID)
+        if (existing != null) {
+            existing.setShowBadge(false)
+            existing.lockscreenVisibility = Notification.VISIBILITY_PRIVATE
+            nm.createNotificationChannel(existing)
+            return
+        }
+
         nm.createNotificationChannel(
             NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH).apply {
                 setShowBadge(false)
+                lockscreenVisibility = Notification.VISIBILITY_PRIVATE
             }
         )
     }

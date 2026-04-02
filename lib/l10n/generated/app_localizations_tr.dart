@@ -94,6 +94,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get enableInLSPosed => 'Lütfen bu modülü LSPosed içinde etkinleştirin';
 
   @override
+  String get updateLSPosedRequired => 'Lütfen LSPosed sürümünü güncelleyin';
+
+  @override
   String get systemNotSupported => 'Sistem Desteklenmiyor';
 
   @override
@@ -653,7 +656,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get aiConfigTips =>
-      'AI, bildirimdeki uygulama paket adını, başlığı ve metni alır; solda (kaynak) ve sağda (içerik) kısa metin üretir. OpenAI formatı ile uyumlu API\'leri destekler (DeepSeek, Claude vb.). 3 saniye içinde yanıt gelmezse varsayılan mantığa geri döner.';
+      'AI, bildirimdeki uygulama paket adını, başlığı ve metni alır; solda (kaynak) ve sağda (içerik) kısa metin üretir. OpenAI formatı ile uyumlu API\'leri destekler (DeepSeek, Claude vb.). Yanıt gelmezse varsayılan mantığa geri döner.';
 
   @override
   String get templateAiNotificationIslandName => 'AI Bildirim Süper Ada';
@@ -680,8 +683,16 @@ class AppLocalizationsTr extends AppLocalizations {
   String get aiTimeoutLabel => 'AI Yanıt Zaman Aşımı';
 
   @override
-  String get hideDesktopIconTitle => '隐藏桌面图标';
+  String get hideDesktopIconTitle => 'Ana Ekran Simgesini Gizle';
 
   @override
-  String get hideDesktopIconSubtitle => '隐藏启动器中的应用图标，隐藏后可通过 LSPosed 管理器打开';
+  String get hideDesktopIconSubtitle =>
+      'Uygulama simgesini başlatıcıdan gizler. Gizledikten sonra LSPosed Manager üzerinden açın';
+
+  @override
+  String get restoreLockscreenTitle => 'Kilit Ekranı Bildirimini Geri Yükle';
+
+  @override
+  String get restoreLockscreenSubtitle =>
+      'Kilit ekranında odak bildirimi işlemini atlayın, özgün gizlilik davranışını koruyun';
 }

@@ -94,6 +94,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get enableInLSPosed => 'LSPosed でこのモジュールを有効化してください';
 
   @override
+  String get updateLSPosedRequired => 'LSPosed バージョンを更新してください';
+
+  @override
   String get systemNotSupported => 'システムは非対応です';
 
   @override
@@ -630,7 +633,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get aiConfigTips =>
-      'AI は各通知のアプリパッケージ、タイトル、コンテンツを受信し短い左側 (ソース) と右側 (コンテンツ) のテキストを返します。OpenAI 形式の API (DeepSeek、Claude など) と互換性があります。3 秒以内に応答がない場合は、デフォルトのロジックにフォールバックします。';
+      'AI は各通知のアプリパッケージ、タイトル、コンテンツを受信し短い左側 (ソース) と右側 (コンテンツ) のテキストを返します。OpenAI 形式の API (DeepSeek、Claude など) と互換性があります。応答がない場合は、デフォルトのロジックにフォールバックします。';
 
   @override
   String get templateAiNotificationIslandName => 'AI Notification Island';
@@ -660,4 +663,11 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get hideDesktopIconSubtitle => '隐藏启动器中的应用图标，隐藏后可通过 LSPosed 管理器打开';
+
+  @override
+  String get restoreLockscreenTitle => 'ロック画面通知復元';
+
+  @override
+  String get restoreLockscreenSubtitle =>
+      'ロック画面時にフォーカス通知処理をスキップし、元の通知プライバシー動作を維持';
 }

@@ -492,6 +492,20 @@ class _SettingsPageState extends State<SettingsPage> {
                             horizontal: 16,
                             vertical: 4,
                           ),
+                          title: Text(
+                            l10n.restoreLockscreenTitle,
+                            style: titleStyle,
+                          ),
+                          subtitle: Text(l10n.restoreLockscreenSubtitle),
+                          value: _ctrl.defaultRestoreLockscreen,
+                          onChanged: _ctrl.setDefaultRestoreLockscreen,
+                        ),
+                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        SwitchListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                           title: Text(l10n.islandIconLabel, style: titleStyle),
                           subtitle: Text(l10n.islandIconLabelSubtitle),
                           value: _ctrl.defaultShowIslandIcon,

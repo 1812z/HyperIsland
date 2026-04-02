@@ -19,6 +19,7 @@ const kPrefDefaultFocusNotif = 'pref_default_focus_notif';
 const kPrefDefaultPreserveSmallIcon = 'pref_default_preserve_small_icon';
 const kPrefDefaultShowIslandIcon = 'pref_default_show_island_icon';
 const kPrefHideDesktopIcon = 'pref_hide_desktop_icon';
+const kPrefDefaultRestoreLockscreen = 'pref_default_restore_lockscreen';
 
 const kPrefAiEnabled = 'pref_ai_enabled';
 const kPrefAiUrl = 'pref_ai_url';
@@ -50,6 +51,7 @@ class SettingsController extends ChangeNotifier {
   bool defaultPreserveSmallIcon = false;
   bool defaultShowIslandIcon = true;
   bool hideDesktopIcon = false;
+  bool defaultRestoreLockscreen = false;
   bool aiEnabled = false;
   String aiUrl = '';
   String aiApiKey = '';
@@ -79,6 +81,8 @@ class SettingsController extends ChangeNotifier {
         prefs.getBool(kPrefDefaultPreserveSmallIcon) ?? false;
     defaultShowIslandIcon = prefs.getBool(kPrefDefaultShowIslandIcon) ?? true;
     hideDesktopIcon = prefs.getBool(kPrefHideDesktopIcon) ?? false;
+    defaultRestoreLockscreen =
+        prefs.getBool(kPrefDefaultRestoreLockscreen) ?? false;
     aiEnabled = prefs.getBool(kPrefAiEnabled) ?? false;
     aiUrl = prefs.getString(kPrefAiUrl) ?? '';
     aiApiKey = prefs.getString(kPrefAiApiKey) ?? '';
@@ -205,6 +209,13 @@ class SettingsController extends ChangeNotifier {
     try {
       await channel.invokeMethod('setDesktopIconVisible', {'visible': !value});
     } catch (_) {}
+    notifyListeners();
+  }
+
+  Future<void> setDefaultRestoreLockscreen(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(kPrefDefaultRestoreLockscreen, value);
+    defaultRestoreLockscreen = value;
     notifyListeners();
   }
 

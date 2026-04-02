@@ -30,6 +30,7 @@
   "activated": "Activated",
   "notActivated": "Not Activated",
   "enableInLSPosed": "Please enable this module in LSPosed",
+  "updateLSPosedRequired": "Please update LSPosed version",
   "systemNotSupported": "System Not Supported",
   "systemNotSupportedSubtitle": "Current system does not support Dynamic Island (protocol version {version}, requires version 3)",
   "@systemNotSupportedSubtitle": {
@@ -217,7 +218,7 @@
   "aiTestUrlEmpty": "Please enter an API URL first",
   "aiConfigSaveButton": "Save",
   "aiConfigSaved": "AI configuration saved",
-  "aiConfigTips": "AI receives the app package, title, and content of each notification, and returns short left (source) and right (content) text. Compatible with OpenAI-format APIs (e.g. DeepSeek, Claude). Falls back to default logic if no response within 3 seconds.",
+  "aiConfigTips": "AI receives the app package, title, and content of each notification, and returns short left (source) and right (content) text. Compatible with OpenAI-format APIs (e.g. DeepSeek, Claude). Falls back to default logic if no response.",
   "templateAiNotificationIslandName": "AI Notification Island",
   "aiPromptLabel": "Custom Prompt",
   "aiPromptHint": "Leave empty to use default: Extract key info, left and right each no more than 6 words or 12 characters",
@@ -227,5 +228,8 @@
   "aiTimeoutLabel": "AI Response Timeout",
 
   "hideDesktopIconTitle": "Hide Desktop Icon",
-  "hideDesktopIconSubtitle": "Hide the app icon from launcher. Open via LSPosed Manager after hiding"
+  "hideDesktopIconSubtitle": "Hide the app icon from launcher. Open via LSPosed Manager after hiding",
+
+  "restoreLockscreenTitle": "Restore Lockscreen Notification",
+  "restoreLockscreenSubtitle": "Skip focus notification processing on lockscreen, keep original privacy behavior"
 }
