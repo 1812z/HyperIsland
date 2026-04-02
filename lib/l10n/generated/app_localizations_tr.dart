@@ -94,6 +94,11 @@ class AppLocalizationsTr extends AppLocalizations {
   String get enableInLSPosed => 'Lütfen bu modülü LSPosed içinde etkinleştirin';
 
   @override
+  String lsposedApiVersion(int version) {
+    return 'LSPosed API 版本：$version';
+  }
+
+  @override
   String get updateLSPosedRequired => 'Lütfen LSPosed sürümünü güncelleyin';
 
   @override
@@ -174,10 +179,28 @@ class AppLocalizationsTr extends AppLocalizations {
       'Uygulama açılırken yeni sürümleri otomatik denetler.';
 
   @override
+  String get showWelcomeTitle => '显示启动欢迎语';
+
+  @override
+  String get showWelcomeSubtitle => '应用启动时在超级岛显示欢迎信息';
+
+  @override
+  String get interactionHapticsTitle => '交互触感';
+
+  @override
+  String get interactionHapticsSubtitle => '为开关、滑块和按钮启用 Hyper 定制震感反馈';
+
+  @override
   String get checkUpdate => 'Güncellemeleri Denetle';
 
   @override
   String get alreadyLatest => 'Zaten en güncel sürümdesiniz';
+
+  @override
+  String get useAppIconTitle => '使用应用图标';
+
+  @override
+  String get useAppIconSubtitle => '下载管理器通知使用应用图标';
 
   @override
   String get roundIconTitle => 'Simge Köşelerini Yuvarla';
@@ -242,6 +265,12 @@ class AppLocalizationsTr extends AppLocalizations {
       'Yapılandırmayı JSON metni olarak panoya kopyalar.';
 
   @override
+  String get exportConfig => '导出配置';
+
+  @override
+  String get exportConfigSubtitle => '选择导出到文件或剪贴板';
+
+  @override
   String get importFromFile => 'Dosyadan İçe Aktar';
 
   @override
@@ -254,6 +283,12 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get importFromClipboardSubtitle =>
       'Panodaki JSON metninden yapılandırmayı geri yükler.';
+
+  @override
+  String get importConfig => '导入配置';
+
+  @override
+  String get importConfigSubtitle => '选择从文件或剪贴板导入';
 
   @override
   String get qqGroup => 'QQ Topluluk Grubu';
@@ -478,6 +513,13 @@ class AppLocalizationsTr extends AppLocalizations {
   String get islandIcon => 'Ada Simgesi';
 
   @override
+  String get islandIconLabel => 'Büyük Ada Simgesini Göster';
+
+  @override
+  String get islandIconLabelSubtitle =>
+      'Bu ayar açık olduğunda büyük Ada simgesi gösterilir (küçük Ada etkilenmez).';
+
+  @override
   String get focusIconLabel => 'Odak Simgesi';
 
   @override
@@ -488,15 +530,11 @@ class AppLocalizationsTr extends AppLocalizations {
       'Durum Çubuğu Küçük Simgesini Koru';
 
   @override
-  String get preserveStatusBarSmallIconLabelSubtitle =>
-      'Bu ayar açık olduğunda odak bildirimi sırasında durum çubuğu küçük simgesi görünür kalır.';
+  String get restoreLockscreenTitle => 'Kilit Ekranı Bildirimini Geri Yükle';
 
   @override
-  String get islandIconLabel => 'Büyük Ada Simgesini Göster';
-
-  @override
-  String get islandIconLabelSubtitle =>
-      'Bu ayar açık olduğunda büyük Ada simgesi gösterilir (küçük Ada etkilenmez).';
+  String get restoreLockscreenSubtitle =>
+      'Kilit ekranında odak bildirimi işlemini atlayın, özgün gizlilik davranışını koruyun';
 
   @override
   String get firstFloatLabel => 'İlk Bildirimde Genişlet';
@@ -602,6 +640,10 @@ class AppLocalizationsTr extends AppLocalizations {
       'Bu ayar açık olduğunda normal bildirim yerine odak bildirimi gösterilir. Kapalıysa normal bildirim gösterilir.';
 
   @override
+  String get preserveStatusBarSmallIconLabelSubtitle =>
+      'Bu ayar açık olduğunda odak bildirimi sırasında durum çubuğu küçük simgesi görünür kalır.';
+
+  @override
   String get aiConfigSection => 'AI Geliştirmeleri';
 
   @override
@@ -643,10 +685,114 @@ class AppLocalizationsTr extends AppLocalizations {
   String get aiModelHint => 'gpt-4o-mini';
 
   @override
+  String get aiPromptLabel => 'Özel Prompt';
+
+  @override
+  String get aiPromptHint =>
+      'Boş bırakırsanız varsayılan prompt kullanılır: Bildirimden ana bilgiyi çıkarın; sol ve sağ metin ayrı ayrı en fazla 6 kelime veya 12 karakter olsun';
+
+  @override
+  String get aiPromptInUserTitle => 'Prompt\'u kullanıcı mesajına yerleştir';
+
+  @override
+  String get aiPromptInUserSubtitle =>
+      'Bazı modeller sistem talimatlarını desteklemez; etkinleştirilirse prompt kullanıcı mesajına eklenir';
+
+  @override
+  String get aiTimeoutTitle => 'AI 响应超时';
+
+  @override
+  String aiTimeoutLabel(int seconds) {
+    return 'AI Yanıt Zaman Aşımı';
+  }
+
+  @override
+  String get aiTemperatureTitle => '采样温度 (Temperature)';
+
+  @override
+  String get aiTemperatureSubtitle => '控制回答的随机性。0 为准确，1 则更具创意';
+
+  @override
+  String get aiMaxTokensTitle => '最大 Token 数 (Max Tokens)';
+
+  @override
+  String get aiMaxTokensSubtitle => '限制 AI 生成回答的最大长度';
+
+  @override
+  String get aiDefaultPromptFull =>
+      '留空使用默认提示词：根据通知信息，提取关键信息，左右分别不超过 6 汉字 12 字符';
+
+  @override
   String get aiTestButton => 'Bağlantıyı Dene';
 
   @override
   String get aiTestUrlEmpty => 'Lütfen önce API adresini girin';
+
+  @override
+  String get aiLastLogTitle => '最近一次 AI 请求日志';
+
+  @override
+  String get aiLastLogSubtitle => '测试连接和通知触发的 AI 请求都会显示在这里';
+
+  @override
+  String get aiLastLogEmpty => '还没有可显示的 AI 请求日志';
+
+  @override
+  String get aiLastLogSourceLabel => '来源';
+
+  @override
+  String get aiLastLogTimeLabel => '时间';
+
+  @override
+  String get aiLastLogStatusLabel => '状态';
+
+  @override
+  String get aiLastLogDurationLabel => '耗时';
+
+  @override
+  String get aiLastLogSourceNotification => '通知触发';
+
+  @override
+  String get aiLastLogSourceSettingsTest => '设置页测试';
+
+  @override
+  String get aiLastLogRendered => '渲染';
+
+  @override
+  String get aiLastLogRaw => '原始';
+
+  @override
+  String get aiLastLogCopy => '复制日志';
+
+  @override
+  String get aiLastLogCopied => 'AI 请求日志已复制';
+
+  @override
+  String get aiLastLogRequest => '请求';
+
+  @override
+  String get aiLastLogResponse => '回复';
+
+  @override
+  String get aiLastLogUsage => 'Token 用量';
+
+  @override
+  String get aiLastLogMessages => '消息';
+
+  @override
+  String get aiLastLogError => '错误';
+
+  @override
+  String get aiLastLogHttpCode => 'HTTP 状态';
+
+  @override
+  String get aiLastLogLeftText => '左侧文本';
+
+  @override
+  String get aiLastLogRightText => '右侧文本';
+
+  @override
+  String get aiLastLogAssistantContent => '模型回复内容';
 
   @override
   String get aiConfigSaveButton => 'Kaydet';
@@ -662,37 +808,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get templateAiNotificationIslandName => 'AI Bildirim Süper Ada';
 
   @override
-  String get aiPromptLabel => 'Özel Prompt';
-
-  @override
-  String get aiPromptHint =>
-      'Boş bırakırsanız varsayılan prompt kullanılır: Bildirimden ana bilgiyi çıkarın; sol ve sağ metin ayrı ayrı en fazla 6 kelime veya 12 karakter olsun';
-
-  @override
-  String get aiPromptDefault =>
-      'Bildirimden ana bilgiyi çıkarın; sol ve sağ metin ayrı ayrı en fazla 6 kelime veya 12 karakter olsun';
-
-  @override
-  String get aiPromptInUserTitle => 'Prompt\'u kullanıcı mesajına yerleştir';
-
-  @override
-  String get aiPromptInUserSubtitle =>
-      'Bazı modeller sistem talimatlarını desteklemez; etkinleştirilirse prompt kullanıcı mesajına eklenir';
-
-  @override
-  String get aiTimeoutLabel => 'AI Yanıt Zaman Aşımı';
-
-  @override
   String get hideDesktopIconTitle => 'Ana Ekran Simgesini Gizle';
 
   @override
   String get hideDesktopIconSubtitle =>
       'Uygulama simgesini başlatıcıdan gizler. Gizledikten sonra LSPosed Manager üzerinden açın';
-
-  @override
-  String get restoreLockscreenTitle => 'Kilit Ekranı Bildirimini Geri Yükle';
-
-  @override
-  String get restoreLockscreenSubtitle =>
-      'Kilit ekranında odak bildirimi işlemini atlayın, özgün gizlilik davranışını koruyun';
 }

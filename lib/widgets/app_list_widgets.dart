@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'dart:typed_data';
 import '../services/app_cache_service.dart';
 
 class AppListSearchHeader extends StatelessWidget {
   const AppListSearchHeader({
     super.key,
     required this.countText,
+    this.showCountText = true,
     required this.searchController,
     required this.searchFocusNode,
     required this.hintText,
@@ -13,6 +15,7 @@ class AppListSearchHeader extends StatelessWidget {
   });
 
   final String countText;
+  final bool showCountText;
   final TextEditingController searchController;
   final FocusNode searchFocusNode;
   final String hintText;
@@ -26,13 +29,15 @@ class AppListSearchHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          countText,
-          style: Theme.of(
-            context,
-          ).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
-        ),
-        const SizedBox(height: 12),
+        if (showCountText) ...[
+          Text(
+            countText,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+          ),
+          const SizedBox(height: 12),
+        ],
         SearchBar(
           controller: searchController,
           focusNode: searchFocusNode,
@@ -47,6 +52,9 @@ class AppListSearchHeader extends StatelessWidget {
           padding: const WidgetStatePropertyAll(
             EdgeInsets.symmetric(horizontal: 16),
           ),
+          elevation: const WidgetStatePropertyAll(0),
+          backgroundColor: WidgetStatePropertyAll(cs.surfaceContainerHighest),
+          constraints: const BoxConstraints(minHeight: 48, maxHeight: 48),
         ),
       ],
     );
@@ -102,13 +110,7 @@ class AppListItemFrame extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: Image.memory(
-                  app.icon,
-                  width: 44,
-                  height: 44,
-                  fit: BoxFit.cover,
-                  gaplessPlayback: true,
-                ),
+                child: _AppIconView(app: app, key: ValueKey(app.packageName)),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -125,8 +127,9 @@ class AppListItemFrame extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       app.packageName,
-                      style: Theme.of(context).textTheme.bodySmall
-                          ?.copyWith(color: cs.onSurfaceVariant),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -138,6 +141,67 @@ class AppListItemFrame extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _AppIconView extends StatefulWidget {
+  const _AppIconView({required this.app, super.key});
+
+  final AppInfo app;
+
+  @override
+  State<_AppIconView> createState() => _AppIconViewState();
+}
+
+class _AppIconViewState extends State<_AppIconView> {
+  Future<Uint8List?>? _iconFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.app.icon.isEmpty) {
+      _iconFuture = AppCacheService.instance.getIcon(widget.app.packageName);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.app.icon.isNotEmpty) {
+      return Image.memory(
+        widget.app.icon,
+        width: 44,
+        height: 44,
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
+      );
+    }
+
+    return FutureBuilder<Uint8List?>(
+      future: _iconFuture,
+      builder: (context, snapshot) {
+        final icon = snapshot.data;
+        if (icon != null && icon.isNotEmpty) {
+          return Image.memory(
+            icon,
+            width: 44,
+            height: 44,
+            fit: BoxFit.cover,
+            gaplessPlayback: true,
+          );
+        }
+        return Container(
+          width: 44,
+          height: 44,
+          color: Theme.of(context).colorScheme.surfaceContainer,
+          alignment: Alignment.center,
+          child: Icon(
+            Icons.apps_rounded,
+            size: 22,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        );
+      },
     );
   }
 }
@@ -321,5 +385,48 @@ class AppPopupMenuLabel extends StatelessWidget {
         if (trailing != null) ...[const SizedBox(width: 8), trailing!],
       ],
     );
+  }
+}
+
+class FixedSliverHeaderDelegate extends SliverPersistentHeaderDelegate {
+  FixedSliverHeaderDelegate({
+    required this.height,
+    this.minHeight,
+    required this.builder,
+  });
+
+  final double height;
+  final double? minHeight;
+  final Widget Function(
+    BuildContext context,
+    bool overlapsContent,
+    double collapseProgress,
+  )
+  builder;
+
+  @override
+  double get minExtent => minHeight ?? height;
+
+  @override
+  double get maxExtent => height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    final range = maxExtent - minExtent;
+    final progress = range <= 0
+        ? 1.0
+        : (shrinkOffset / range).clamp(0.0, 1.0).toDouble();
+    return builder(context, overlapsContent, progress);
+  }
+
+  @override
+  bool shouldRebuild(covariant FixedSliverHeaderDelegate oldDelegate) {
+    return oldDelegate.height != height ||
+        oldDelegate.minHeight != minHeight ||
+        oldDelegate.builder != builder;
   }
 }

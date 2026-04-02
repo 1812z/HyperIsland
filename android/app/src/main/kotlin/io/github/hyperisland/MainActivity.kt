@@ -33,6 +33,7 @@ class MainActivity : FlutterActivity() {
     )
 
     private val CHANNEL = "io.github.hyperisland/test"
+    private val HAPTIC_CHANNEL = "io.github.hyperisland/haptics"
     private val TAG = "HyperIsland"
     private val REQUEST_APP_LIST_PERMISSION = 1002
 
@@ -42,19 +43,26 @@ class MainActivity : FlutterActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (isModuleActive()) {
-            val icon = packageManager.getAppIcon(packageName)
-            io.github.hyperisland.xposed.IslandDispatcher.sendBroadcast(
-                this,
-                io.github.hyperisland.xposed.IslandRequest(
-                    title            = getString(R.string.island_welcome_title),
-                    content          = "HyperIsland",
-                    icon             = icon,
-                    firstFloat       = false,
-                    enableFloat      = false,
-                    highlightColor   = "#E040FB",
-                    showNotification = false,
+            val prefs = getSharedPreferences("FlutterSharedPreferences", android.content.Context.MODE_PRIVATE)
+            val showWelcome = try {
+                prefs.getBoolean("flutter.pref_show_welcome", true)
+            } catch (e: Exception) { true }
+
+            if (showWelcome) {
+                val icon = packageManager.getAppIcon(packageName)
+                io.github.hyperisland.xposed.IslandDispatcher.sendBroadcast(
+                    this,
+                    io.github.hyperisland.xposed.IslandRequest(
+                        title            = getString(R.string.island_welcome_title),
+                        content          = "HyperIsland",
+                        icon             = icon,
+                        firstFloat       = false,
+                        enableFloat      = false,
+                        highlightColor   = "#E040FB",
+                        showNotification = false,
+                    )
                 )
-            )
+            }
         }
     }
 
@@ -92,6 +100,21 @@ class MainActivity : FlutterActivity() {
                             } else {
                                 result.success(channels)
                             }
+                        }
+                    }.start()
+                }
+
+                "getAppIcon" -> {
+                    val pkg = call.argument<String>("packageName") ?: ""
+                    Thread {
+                        try {
+                            val pm = packageManager
+                            val bmp = pm.getApplicationIcon(pkg).toBitmap(96)
+                            val stream = ByteArrayOutputStream()
+                            bmp.compress(Bitmap.CompressFormat.PNG, 90, stream)
+                            runOnUiThread { result.success(stream.toByteArray()) }
+                        } catch (e: Exception) {
+                            runOnUiThread { result.success(null) }
                         }
                     }.start()
                 }
@@ -182,12 +205,21 @@ class MainActivity : FlutterActivity() {
                         result.error("ERROR", e.message, null)
                     }
                 }
-
                 else -> {
                     result.notImplemented()
                 }
             }
         }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, HAPTIC_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "button" -> result.success(InteractionHaptics.performButton(this))
+                    "toggle" -> result.success(InteractionHaptics.performToggle(this))
+                    "sliderTick" -> result.success(InteractionHaptics.performSliderTick(this))
+                    else -> result.notImplemented()
+                }
+            }
     }
 
     fun isModuleActive(): Boolean = HyperIslandApp.isReady()
@@ -588,13 +620,9 @@ class MainActivity : FlutterActivity() {
             .mapNotNull { app ->
                 try {
                     val label    = pm.getApplicationLabel(app).toString()
-                    val bmp = pm.getApplicationIcon(app.packageName).toBitmap(96)
-                    val stream = ByteArrayOutputStream()
-                    bmp.compress(Bitmap.CompressFormat.PNG, 90, stream)
                     mapOf(
                         "packageName" to app.packageName,
                         "appName"     to label,
-                        "icon"        to stream.toByteArray(),
                         "isSystem"    to ((app.flags and ApplicationInfo.FLAG_SYSTEM) != 0)
                     )
                 } catch (_: Exception) { null }

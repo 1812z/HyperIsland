@@ -94,6 +94,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get enableInLSPosed => 'Please enable this module in LSPosed';
 
   @override
+  String lsposedApiVersion(int version) {
+    return 'LSPosed API 版本：$version';
+  }
+
+  @override
   String get updateLSPosedRequired => 'Please update LSPosed version';
 
   @override
@@ -174,10 +179,28 @@ class AppLocalizationsEn extends AppLocalizations {
       'Automatically check for new versions when the app starts';
 
   @override
+  String get showWelcomeTitle => '显示启动欢迎语';
+
+  @override
+  String get showWelcomeSubtitle => '应用启动时在超级岛显示欢迎信息';
+
+  @override
+  String get interactionHapticsTitle => '交互触感';
+
+  @override
+  String get interactionHapticsSubtitle => '为开关、滑块和按钮启用 Hyper 定制震感反馈';
+
+  @override
   String get checkUpdate => 'Check for updates';
 
   @override
   String get alreadyLatest => 'Already on the latest version';
+
+  @override
+  String get useAppIconTitle => '使用应用图标';
+
+  @override
+  String get useAppIconSubtitle => '下载管理器通知使用应用图标';
 
   @override
   String get roundIconTitle => 'Round icon corners';
@@ -239,6 +262,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportToClipboardSubtitle => 'Copy configuration as JSON text';
 
   @override
+  String get exportConfig => '导出配置';
+
+  @override
+  String get exportConfigSubtitle => '选择导出到文件或剪贴板';
+
+  @override
   String get importFromFile => 'Import from file';
 
   @override
@@ -250,6 +279,12 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get importFromClipboardSubtitle =>
       'Restore configuration from JSON text in clipboard';
+
+  @override
+  String get importConfig => '导入配置';
+
+  @override
+  String get importConfigSubtitle => '选择从文件或剪贴板导入';
 
   @override
   String get qqGroup => 'QQ Group';
@@ -474,6 +509,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get islandIcon => 'Island icon';
 
   @override
+  String get islandIconLabel => 'Large island icon';
+
+  @override
+  String get islandIconLabelSubtitle =>
+      'Show the large icon of the island when enabled (small island not affected)';
+
+  @override
   String get focusIconLabel => 'Focus icon';
 
   @override
@@ -483,15 +525,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get preserveStatusBarSmallIconLabel => 'Status bar icon';
 
   @override
-  String get preserveStatusBarSmallIconLabelSubtitle =>
-      'Whether to force keep status bar icon when focus notification is displayed';
+  String get restoreLockscreenTitle => 'Restore Lockscreen Notification';
 
   @override
-  String get islandIconLabel => 'Large island icon';
-
-  @override
-  String get islandIconLabelSubtitle =>
-      'Show the large icon of the island when enabled (small island not affected)';
+  String get restoreLockscreenSubtitle =>
+      'Skip focus notification processing on lockscreen, keep original privacy behavior';
 
   @override
   String get firstFloatLabel => 'First float';
@@ -597,6 +635,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Replace notification with focus notification (shows original notification when disabled)';
 
   @override
+  String get preserveStatusBarSmallIconLabelSubtitle =>
+      'Whether to force keep status bar icon when focus notification is displayed';
+
+  @override
   String get aiConfigSection => 'AI Enhancement';
 
   @override
@@ -638,10 +680,114 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiModelHint => 'gpt-4o-mini';
 
   @override
+  String get aiPromptLabel => 'Custom Prompt';
+
+  @override
+  String get aiPromptHint =>
+      'Leave empty to use default: Extract key info, left and right each no more than 6 words or 12 characters';
+
+  @override
+  String get aiPromptInUserTitle => 'Put prompt in user message';
+
+  @override
+  String get aiPromptInUserSubtitle =>
+      'Some models don\'t support system instructions, enable to put prompt in user message';
+
+  @override
+  String get aiTimeoutTitle => 'AI 响应超时';
+
+  @override
+  String aiTimeoutLabel(int seconds) {
+    return 'AI Response Timeout';
+  }
+
+  @override
+  String get aiTemperatureTitle => '采样温度 (Temperature)';
+
+  @override
+  String get aiTemperatureSubtitle => '控制回答的随机性。0 为准确，1 则更具创意';
+
+  @override
+  String get aiMaxTokensTitle => '最大 Token 数 (Max Tokens)';
+
+  @override
+  String get aiMaxTokensSubtitle => '限制 AI 生成回答的最大长度';
+
+  @override
+  String get aiDefaultPromptFull =>
+      '留空使用默认提示词：根据通知信息，提取关键信息，左右分别不超过 6 汉字 12 字符';
+
+  @override
   String get aiTestButton => 'Test Connection';
 
   @override
   String get aiTestUrlEmpty => 'Please enter an API URL first';
+
+  @override
+  String get aiLastLogTitle => '最近一次 AI 请求日志';
+
+  @override
+  String get aiLastLogSubtitle => '测试连接和通知触发的 AI 请求都会显示在这里';
+
+  @override
+  String get aiLastLogEmpty => '还没有可显示的 AI 请求日志';
+
+  @override
+  String get aiLastLogSourceLabel => '来源';
+
+  @override
+  String get aiLastLogTimeLabel => '时间';
+
+  @override
+  String get aiLastLogStatusLabel => '状态';
+
+  @override
+  String get aiLastLogDurationLabel => '耗时';
+
+  @override
+  String get aiLastLogSourceNotification => '通知触发';
+
+  @override
+  String get aiLastLogSourceSettingsTest => '设置页测试';
+
+  @override
+  String get aiLastLogRendered => '渲染';
+
+  @override
+  String get aiLastLogRaw => '原始';
+
+  @override
+  String get aiLastLogCopy => '复制日志';
+
+  @override
+  String get aiLastLogCopied => 'AI 请求日志已复制';
+
+  @override
+  String get aiLastLogRequest => '请求';
+
+  @override
+  String get aiLastLogResponse => '回复';
+
+  @override
+  String get aiLastLogUsage => 'Token 用量';
+
+  @override
+  String get aiLastLogMessages => '消息';
+
+  @override
+  String get aiLastLogError => '错误';
+
+  @override
+  String get aiLastLogHttpCode => 'HTTP 状态';
+
+  @override
+  String get aiLastLogLeftText => '左侧文本';
+
+  @override
+  String get aiLastLogRightText => '右侧文本';
+
+  @override
+  String get aiLastLogAssistantContent => '模型回复内容';
 
   @override
   String get aiConfigSaveButton => 'Save';
@@ -657,37 +803,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get templateAiNotificationIslandName => 'AI Notification Island';
 
   @override
-  String get aiPromptLabel => 'Custom Prompt';
-
-  @override
-  String get aiPromptHint =>
-      'Leave empty to use default: Extract key info, left and right each no more than 6 words or 12 characters';
-
-  @override
-  String get aiPromptDefault =>
-      'Extract key info from notification, left and right each no more than 6 words or 12 characters';
-
-  @override
-  String get aiPromptInUserTitle => 'Put prompt in user message';
-
-  @override
-  String get aiPromptInUserSubtitle =>
-      'Some models don\'t support system instructions, enable to put prompt in user message';
-
-  @override
-  String get aiTimeoutLabel => 'AI Response Timeout';
-
-  @override
   String get hideDesktopIconTitle => 'Hide Desktop Icon';
 
   @override
   String get hideDesktopIconSubtitle =>
       'Hide the app icon from launcher. Open via LSPosed Manager after hiding';
-
-  @override
-  String get restoreLockscreenTitle => 'Restore Lockscreen Notification';
-
-  @override
-  String get restoreLockscreenSubtitle =>
-      'Skip focus notification processing on lockscreen, keep original privacy behavior';
 }

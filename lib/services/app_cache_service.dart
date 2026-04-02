@@ -22,6 +22,7 @@ class AppCacheService extends ChangeNotifier {
   static const _channel = MethodChannel('io.github.hyperisland/test');
 
   List<AppInfo> _cachedApps = [];
+  final Map<String, Uint8List> _iconCache = {};
   bool _loading = false;
   bool _initialized = false;
   DateTime? _lastLoadTime;
@@ -35,8 +36,7 @@ class AppCacheService extends ChangeNotifier {
 
   static const _excludedPackages = {
     "com.android.providers.downloads.ui",
-    "com.android.systemui"
-
+    "com.android.systemui",
   };
 
   Future<void> initialize() async {
@@ -79,18 +79,31 @@ class AppCacheService extends ChangeNotifier {
           }) ??
           [];
 
-      _cachedApps = rawList
-          .map((raw) {
-            final map = Map<String, dynamic>.from(raw as Map);
-            return AppInfo(
-              packageName: map['packageName'] as String,
-              appName: map['appName'] as String,
-              icon: Uint8List.fromList((map['icon'] as List).cast<int>()),
-              isSystem: map['isSystem'] as bool? ?? false,
+      _cachedApps =
+          rawList
+              .map((raw) {
+                final map = Map<String, dynamic>.from(raw as Map);
+                final packageName = map['packageName'] as String;
+                final iconRaw = map['icon'];
+                final icon = iconRaw is List
+                    ? Uint8List.fromList(iconRaw.cast<int>())
+                    : Uint8List(0);
+                if (icon.isNotEmpty) {
+                  _iconCache[packageName] = icon;
+                }
+                return AppInfo(
+                  packageName: packageName,
+                  appName: map['appName'] as String,
+                  icon: icon,
+                  isSystem: map['isSystem'] as bool? ?? false,
+                );
+              })
+              .where((a) => !_excludedPackages.contains(a.packageName))
+              .toList()
+            ..sort(
+              (a, b) =>
+                  a.appName.toLowerCase().compareTo(b.appName.toLowerCase()),
             );
-          })
-          .where((a) => !_excludedPackages.contains(a.packageName))
-          .toList();
 
       _lastLoadTime = DateTime.now();
     } catch (e) {
@@ -105,8 +118,27 @@ class AppCacheService extends ChangeNotifier {
     await loadApps();
   }
 
+  Future<Uint8List?> getIcon(String packageName) async {
+    final cached = _iconCache[packageName];
+    if (cached != null && cached.isNotEmpty) return cached;
+
+    try {
+      final icon = await _channel.invokeMethod<Uint8List>('getAppIcon', {
+        'packageName': packageName,
+      });
+      if (icon != null && icon.isNotEmpty) {
+        _iconCache[packageName] = icon;
+        return icon;
+      }
+    } catch (e) {
+      debugPrint('AppCacheService.getIcon error: $e');
+    }
+    return null;
+  }
+
   void clearCache() {
     _cachedApps = [];
+    _iconCache.clear();
     _lastLoadTime = null;
     notifyListeners();
   }

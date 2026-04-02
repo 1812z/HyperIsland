@@ -1,9 +1,13 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../controllers/settings_controller.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../services/interaction_haptics.dart';
 import '../widgets/section_label.dart';
+import '../widgets/modern_slider.dart';
 
 class AiConfigPage extends StatefulWidget {
   const AiConfigPage({super.key});
@@ -14,6 +18,8 @@ class AiConfigPage extends StatefulWidget {
 
 class _AiConfigPageState extends State<AiConfigPage> {
   final _ctrl = SettingsController.instance;
+  static const _defaultAiPrompt =
+      '根据通知信息，提取关键信息，左右分别不超过6汉字12字符';
 
   late final TextEditingController _urlCtrl;
   late final TextEditingController _keyCtrl;
@@ -35,7 +41,9 @@ class _AiConfigPageState extends State<AiConfigPage> {
     _urlCtrl = TextEditingController(text: _ctrl.aiUrl);
     _keyCtrl = TextEditingController(text: _ctrl.aiApiKey);
     _modelCtrl = TextEditingController(text: _ctrl.aiModel);
-    _promptCtrl = TextEditingController(text: _ctrl.aiPrompt);
+    _promptCtrl = TextEditingController(
+      text: _ctrl.aiPrompt.isEmpty ? _defaultAiPrompt : _ctrl.aiPrompt,
+    );
   }
 
   @override
@@ -49,25 +57,31 @@ class _AiConfigPageState extends State<AiConfigPage> {
   }
 
   Future<void> _save() async {
+    await InteractionHaptics.button();
     await _ctrl.setAiUrl(_urlCtrl.text.trim());
     await _ctrl.setAiApiKey(_keyCtrl.text.trim());
     await _ctrl.setAiModel(_modelCtrl.text.trim());
     await _ctrl.setAiPrompt(_promptCtrl.text.trim());
-    await _ctrl.setAiTimeout(_ctrl.aiTimeout);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)!.aiConfigSaved),
-          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
     }
   }
 
   Future<void> _test() async {
+    await InteractionHaptics.button();
     final url = _urlCtrl.text.trim();
     final key = _keyCtrl.text.trim();
     final model = _modelCtrl.text.trim();
+    final requestTime = DateTime.now();
+    String requestBody = '';
 
     if (url.isEmpty) {
       setState(
@@ -84,17 +98,34 @@ class _AiConfigPageState extends State<AiConfigPage> {
     });
 
     try {
-      final body = jsonEncode({
+      final promptText = _promptCtrl.text.trim();
+      const sampleUserContent =
+          '应用包名：com.example.app\n标题：测试通知\n正文：这是一条用于测试 AI 提取效果的示例消息';
+      requestBody = jsonEncode({
         'model': model.isEmpty ? 'gpt-4o-mini' : model,
         'messages': [
-          {
-            'role': 'user',
-            'content': 'Reply with exactly: {"left":"test","right":"ok"}',
-          },
+          if (!_ctrl.aiPromptInUser && promptText.isNotEmpty)
+            {'role': 'system', 'content': promptText},
+          if (_ctrl.aiPromptInUser && promptText.isNotEmpty)
+            {'role': 'user', 'content': promptText},
+          {'role': 'user', 'content': sampleUserContent},
         ],
-        'max_tokens': 30,
-        'temperature': 0,
+        'max_tokens': _ctrl.aiMaxTokens,
+        'temperature': _ctrl.aiTemperature,
       });
+      await _ctrl.saveAiLastLog(
+        AiLogEntry(
+          timestamp: requestTime,
+          source: 'settings_test',
+          url: url,
+          model: model.isEmpty ? 'gpt-4o-mini' : model,
+          requestBody: requestBody,
+          responseBody: '',
+          error: '',
+          statusCode: null,
+          durationMs: null,
+        ),
+      );
 
       final response = await http
           .post(
@@ -104,9 +135,9 @@ class _AiConfigPageState extends State<AiConfigPage> {
               'Accept': 'application/json',
               if (key.isNotEmpty) 'Authorization': 'Bearer $key',
             },
-            body: body,
+            body: requestBody,
           )
-          .timeout(const Duration(seconds: 10));
+          .timeout(Duration(seconds: _ctrl.aiTimeout));
 
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>;
@@ -114,8 +145,34 @@ class _AiConfigPageState extends State<AiConfigPage> {
             (json['choices'] as List?)?.firstOrNull?['message']?['content']
                 as String? ??
             '';
+        await _ctrl.saveAiLastLog(
+          AiLogEntry(
+            timestamp: requestTime,
+            source: 'settings_test',
+            url: url,
+            model: model.isEmpty ? 'gpt-4o-mini' : model,
+            requestBody: requestBody,
+            responseBody: response.body,
+            error: '',
+            statusCode: response.statusCode,
+            durationMs: DateTime.now().difference(requestTime).inMilliseconds,
+          ),
+        );
         setState(() => _testResult = _TestResult.ok(content.trim()));
       } else {
+        await _ctrl.saveAiLastLog(
+          AiLogEntry(
+            timestamp: requestTime,
+            source: 'settings_test',
+            url: url,
+            model: model.isEmpty ? 'gpt-4o-mini' : model,
+            requestBody: requestBody,
+            responseBody: response.body,
+            error: 'HTTP ${response.statusCode}',
+            statusCode: response.statusCode,
+            durationMs: DateTime.now().difference(requestTime).inMilliseconds,
+          ),
+        );
         setState(
           () => _testResult = _TestResult.fail(
             'HTTP ${response.statusCode}\n${response.body}',
@@ -123,6 +180,19 @@ class _AiConfigPageState extends State<AiConfigPage> {
         );
       }
     } on Exception catch (e) {
+      await _ctrl.saveAiLastLog(
+        AiLogEntry(
+          timestamp: requestTime,
+          source: 'settings_test',
+          url: url,
+          model: model.isEmpty ? 'gpt-4o-mini' : model,
+          requestBody: requestBody,
+          responseBody: '',
+          error: e.toString(),
+          statusCode: null,
+          durationMs: DateTime.now().difference(requestTime).inMilliseconds,
+        ),
+      );
       setState(() => _testResult = _TestResult.fail(e.toString()));
     } finally {
       if (mounted) setState(() => _testing = false);
@@ -133,6 +203,7 @@ class _AiConfigPageState extends State<AiConfigPage> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
+    final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
       backgroundColor: cs.surface,
@@ -147,7 +218,6 @@ class _AiConfigPageState extends State<AiConfigPage> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
-                // Enable toggle
                 SectionLabel(l10n.aiConfigSection),
                 const SizedBox(height: 8),
                 Card(
@@ -167,12 +237,14 @@ class _AiConfigPageState extends State<AiConfigPage> {
                     title: Text(l10n.aiEnabledTitle),
                     subtitle: Text(l10n.aiEnabledSubtitle),
                     value: _ctrl.aiEnabled,
-                    onChanged: _ctrl.setAiEnabled,
+                    onChanged: (value) async {
+                      await InteractionHaptics.toggle();
+                      await _ctrl.setAiEnabled(value);
+                    },
                   ),
                 ),
                 const SizedBox(height: 24),
 
-                // API parameters
                 SectionLabel(l10n.aiApiSection),
                 const SizedBox(height: 8),
                 Card(
@@ -182,121 +254,218 @@ class _AiConfigPageState extends State<AiConfigPage> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                    padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: 8),
-                        // URL
-                        TextField(
+                        _buildTextField(
                           controller: _urlCtrl,
-                          decoration: InputDecoration(
-                            labelText: l10n.aiUrlLabel,
-                            hintText: l10n.aiUrlHint,
-                            border: const OutlineInputBorder(),
-                            prefixIcon: const Icon(Icons.link),
-                          ),
-                          keyboardType: TextInputType.url,
-                          autocorrect: false,
+                          label: l10n.aiUrlLabel,
+                          hint: l10n.aiUrlHint,
+                          icon: FontAwesomeIcons.link,
                         ),
                         const SizedBox(height: 16),
-                        // API Key
-                        TextField(
+                        _buildTextField(
                           controller: _keyCtrl,
-                          obscureText: _keyObscured,
-                          decoration: InputDecoration(
-                            labelText: l10n.aiApiKeyLabel,
-                            hintText: l10n.aiApiKeyHint,
-                            border: const OutlineInputBorder(),
-                            prefixIcon: const Icon(Icons.key),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _keyObscured
-                                    ? Icons.visibility_off
-                                    : Icons.visibility,
-                              ),
-                              onPressed: () =>
-                                  setState(() => _keyObscured = !_keyObscured),
+                          label: l10n.aiApiKeyLabel,
+                          hint: l10n.aiApiKeyHint,
+                          icon: FontAwesomeIcons.key,
+                          obscure: _keyObscured,
+                          suffix: IconButton(
+                            icon: FaIcon(
+                              _keyObscured
+                                  ? FontAwesomeIcons.eyeSlash
+                                  : FontAwesomeIcons.eye,
+                              size: 16,
                             ),
+                            onPressed: () async {
+                              await InteractionHaptics.button();
+                              setState(() => _keyObscured = !_keyObscured);
+                            },
                           ),
-                          autocorrect: false,
                         ),
                         const SizedBox(height: 16),
-                        // Model
-                        TextField(
+                        _buildTextField(
                           controller: _modelCtrl,
-                          decoration: InputDecoration(
-                            labelText: l10n.aiModelLabel,
-                            hintText: l10n.aiModelHint,
-                            border: const OutlineInputBorder(),
-                            prefixIcon: const Icon(Icons.psychology_outlined),
-                          ),
-                          autocorrect: false,
+                          label: l10n.aiModelLabel,
+                          hint: l10n.aiModelHint,
+                          icon: FontAwesomeIcons.lightbulb,
                         ),
                         const SizedBox(height: 16),
-                        // Custom Prompt
-                        TextField(
+                        _buildTextField(
                           controller: _promptCtrl,
-                          decoration: InputDecoration(
-                            labelText: l10n.aiPromptLabel,
-                            hintText: l10n.aiPromptDefault,
-                            border: const OutlineInputBorder(),
-                            prefixIcon: const Icon(Icons.edit_note),
-                            alignLabelWithHint: true,
-                          ),
-                          maxLines: 5,
-                          minLines: 3,
-                          autocorrect: false,
-                        ),
-                        const SizedBox(height: 8),
-                        Padding(
-                          padding: const EdgeInsets.only(left: 16),
-                          child: Text(
-                            l10n.aiPromptHint,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
-                          ),
+                          label: l10n.aiPromptLabel,
+                          hint: l10n.aiPromptHint,
+                          icon: FontAwesomeIcons.penToSquare,
+                          minLines: 1,
+                          maxLines: 10,
                         ),
                         const SizedBox(height: 16),
-                        // Prompt in user message toggle
-                        SwitchListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: Text(l10n.aiPromptInUserTitle),
-                          subtitle: Text(l10n.aiPromptInUserSubtitle),
-                          value: _ctrl.aiPromptInUser,
-                          onChanged: _ctrl.setAiPromptInUser,
-                        ),
-                        const SizedBox(height: 24),
-                        // Timeout slider
                         Row(
                           children: [
-                            Icon(Icons.timer_outlined, size: 20, color: cs.onSurfaceVariant),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    l10n.aiPromptInUserTitle,
+                                    style: textTheme.titleMedium,
+                                  ),
+                                  Text(
+                                    l10n.aiPromptInUserSubtitle,
+                                    style: textTheme.bodySmall?.copyWith(
+                                      color: cs.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Switch(
+                              value: _ctrl.aiPromptInUser,
+                              onChanged: (value) async {
+                                await InteractionHaptics.toggle();
+                                await _ctrl.setAiPromptInUser(value);
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+
+                        Row(
+                          children: [
+                            const FaIcon(FontAwesomeIcons.clock, size: 18),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(l10n.aiTimeoutLabel, style: Theme.of(context).textTheme.bodyMedium),
-                                  Text('${_ctrl.aiTimeout}s', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+                                  Text(
+                                    l10n.aiTimeoutTitle,
+                                    style: textTheme.titleMedium,
+                                  ),
                                 ],
+                              ),
+                            ),
+                            Text(
+                              l10n.aiTimeoutLabel(_ctrl.aiTimeout),
+                              style: textTheme.bodyLarge?.copyWith(
+                                color: cs.primary,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ],
                         ),
-                        Slider(
-                          value: _ctrl.aiTimeout.toDouble(),
-                          min: 3,
-                          max: 15,
-                          divisions: 12,
-                          label: '${_ctrl.aiTimeout}s',
-                          onChanged: (v) => _ctrl.setAiTimeout(v.round()),
+                        SliderTheme(
+                          data: ModernSliderTheme.theme(context),
+                          child: Slider(
+                            value: _ctrl.aiTimeout.toDouble(),
+                            min: 1,
+                            max: 10,
+                            divisions: 9,
+                            label: '${_ctrl.aiTimeout}s',
+                            onChanged: (v) async {
+                              await InteractionHaptics.sliderTick();
+                              await _ctrl.setAiTimeout(v.toInt());
+                            },
+                          ),
                         ),
-                        const SizedBox(height: 8),
-                        // Buttons row
+
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            const FaIcon(
+                              FontAwesomeIcons.temperatureHalf,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    l10n.aiTemperatureTitle,
+                                    style: textTheme.titleMedium,
+                                  ),
+                                  Text(
+                                    l10n.aiTemperatureSubtitle,
+                                    style: textTheme.bodySmall?.copyWith(
+                                      color: cs.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Text(
+                              _ctrl.aiTemperature.toStringAsFixed(1),
+                              style: textTheme.bodyLarge?.copyWith(
+                                color: cs.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SliderTheme(
+                          data: ModernSliderTheme.theme(context),
+                          child: Slider(
+                            value: _ctrl.aiTemperature,
+                            min: 0,
+                            max: 1,
+                            divisions: 10,
+                            label: _ctrl.aiTemperature.toStringAsFixed(1),
+                            onChanged: (v) async {
+                              await InteractionHaptics.sliderTick();
+                              await _ctrl.setAiTemperature(v);
+                            },
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            const FaIcon(FontAwesomeIcons.coins, size: 18),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    l10n.aiMaxTokensTitle,
+                                    style: textTheme.titleMedium,
+                                  ),
+                                  Text(
+                                    l10n.aiMaxTokensSubtitle,
+                                    style: textTheme.bodySmall?.copyWith(
+                                      color: cs.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Text(
+                              '${_ctrl.aiMaxTokens}',
+                              style: textTheme.bodyLarge?.copyWith(
+                                color: cs.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SliderTheme(
+                          data: ModernSliderTheme.theme(context),
+                          child: Slider(
+                            value: _ctrl.aiMaxTokens.toDouble(),
+                            min: 10,
+                            max: 500,
+                            divisions: 49,
+                            label: '${_ctrl.aiMaxTokens}',
+                            onChanged: (v) async {
+                              await InteractionHaptics.sliderTick();
+                              await _ctrl.setAiMaxTokens(v.toInt());
+                            },
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
                         Row(
                           children: [
                             Expanded(
@@ -310,21 +479,42 @@ class _AiConfigPageState extends State<AiConfigPage> {
                                           strokeWidth: 2,
                                         ),
                                       )
-                                    : const Icon(Icons.wifi_tethering),
+                                    : const FaIcon(
+                                        FontAwesomeIcons.radiation,
+                                        size: 16,
+                                      ),
                                 label: Text(l10n.aiTestButton),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
                               ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: FilledButton.icon(
                                 onPressed: _save,
-                                icon: const Icon(Icons.save_outlined),
+                                icon: const FaIcon(
+                                  FontAwesomeIcons.floppyDisk,
+                                  size: 16,
+                                ),
                                 label: Text(l10n.aiConfigSaveButton),
+                                style: FilledButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
                               ),
                             ),
                           ],
                         ),
-                        // Test result
                         if (_testResult != null) ...[
                           const SizedBox(height: 12),
                           _TestResultCard(result: _testResult!),
@@ -335,10 +525,9 @@ class _AiConfigPageState extends State<AiConfigPage> {
                 ),
                 const SizedBox(height: 16),
 
-                // Tips
                 Card(
                   elevation: 0,
-                  color: cs.secondaryContainer,
+                  color: cs.secondaryContainer.withValues(alpha: 0.5),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -347,10 +536,10 @@ class _AiConfigPageState extends State<AiConfigPage> {
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(
-                          Icons.info_outline,
+                        FaIcon(
+                          FontAwesomeIcons.circleInfo,
                           color: cs.onSecondaryContainer,
-                          size: 20,
+                          size: 18,
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -372,9 +561,50 @@ class _AiConfigPageState extends State<AiConfigPage> {
       ),
     );
   }
-}
 
-// ── 测试结果 ─────────────────────────────────────────────────────────────────
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required FaIconData icon,
+    bool obscure = false,
+    int? minLines,
+    int? maxLines = 1,
+    Widget? suffix,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    return TextField(
+      controller: controller,
+      obscureText: obscure,
+      minLines: minLines,
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        prefixIcon: Padding(
+          padding: const EdgeInsets.all(12),
+          child: FaIcon(icon, size: 18),
+        ),
+        suffixIcon: suffix,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: cs.outlineVariant),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: cs.primary, width: 2),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
+        alignLabelWithHint: true,
+      ),
+      autocorrect: false,
+    );
+  }
+}
 
 class _TestResult {
   final bool success;
