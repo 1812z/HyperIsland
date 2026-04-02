@@ -29,21 +29,29 @@ class _AiConfigPageState extends State<AiConfigPage> {
   bool _testing = false;
   _TestResult? _testResult;
   late int _aiTimeoutDraft;
+  late double _aiTemperatureDraft;
+  late int _aiMaxTokensDraft;
   late bool _aiEnabledValue;
   late bool _aiPromptInUserValue;
 
   void _onCtrlChanged() {
     if (!mounted) return;
     final nextTimeout = _ctrl.aiTimeout;
+    final nextTemperature = _ctrl.aiTemperature;
+    final nextMaxTokens = _ctrl.aiMaxTokens;
     final nextAiEnabled = _ctrl.aiEnabled;
     final nextPromptInUser = _ctrl.aiPromptInUser;
     if (nextTimeout == _aiTimeoutDraft &&
+        nextTemperature == _aiTemperatureDraft &&
+        nextMaxTokens == _aiMaxTokensDraft &&
         nextAiEnabled == _aiEnabledValue &&
         nextPromptInUser == _aiPromptInUserValue) {
       return;
     }
     setState(() {
       _aiTimeoutDraft = nextTimeout;
+      _aiTemperatureDraft = nextTemperature;
+      _aiMaxTokensDraft = nextMaxTokens;
       _aiEnabledValue = nextAiEnabled;
       _aiPromptInUserValue = nextPromptInUser;
     });
@@ -60,6 +68,8 @@ class _AiConfigPageState extends State<AiConfigPage> {
       text: _ctrl.aiPrompt.isEmpty ? _defaultAiPrompt : _ctrl.aiPrompt,
     );
     _aiTimeoutDraft = _ctrl.aiTimeout;
+    _aiTemperatureDraft = _ctrl.aiTemperature;
+    _aiMaxTokensDraft = _ctrl.aiMaxTokens;
     _aiEnabledValue = _ctrl.aiEnabled;
     _aiPromptInUserValue = _ctrl.aiPromptInUser;
   }
@@ -111,6 +121,28 @@ class _AiConfigPageState extends State<AiConfigPage> {
     final next = value.round();
     if (_ctrl.aiTimeout == next) return;
     await _ctrl.setAiTimeout(next);
+  }
+
+  void _onTemperatureChanged(double value) {
+    if (_aiTemperatureDraft == value) return;
+    setState(() => _aiTemperatureDraft = value);
+  }
+
+  Future<void> _persistTemperature(double value) async {
+    if (_ctrl.aiTemperature == value) return;
+    await _ctrl.setAiTemperature(value);
+  }
+
+  void _onMaxTokensChanged(double value) {
+    final next = value.round();
+    if (_aiMaxTokensDraft == next) return;
+    setState(() => _aiMaxTokensDraft = next);
+  }
+
+  Future<void> _persistMaxTokens(double value) async {
+    final next = value.round();
+    if (_ctrl.aiMaxTokens == next) return;
+    await _ctrl.setAiMaxTokens(next);
   }
 
   Future<void> _onAiEnabledChanged(bool value) async {
@@ -381,17 +413,20 @@ class _AiConfigPageState extends State<AiConfigPage> {
                             ),
                           ],
                         ),
-                        Slider(
-                          value: _aiTimeoutDraft.toDouble(),
-                          min: 3,
-                          max: 15,
-                          divisions: 12,
-                          label: '${_aiTimeoutDraft}s',
-                          onChanged: (v) async {
-                            await InteractionHaptics.sliderTick();
-                            _onTimeoutChanged(v);
-                          },
-                          onChangeEnd: _persistTimeout,
+                        SliderTheme(
+                          data: ModernSliderTheme.theme(context),
+                          child: Slider(
+                            value: _aiTimeoutDraft.toDouble(),
+                            min: 2,
+                            max: 15,
+                            divisions: 13,
+                            label: '${_aiTimeoutDraft}s',
+                            onChanged: (v) async {
+                              await InteractionHaptics.sliderTick();
+                              _onTimeoutChanged(v);
+                            },
+                            onChangeEnd: _persistTimeout,
+                          ),
                         ),
 
                         const SizedBox(height: 16),
@@ -420,7 +455,7 @@ class _AiConfigPageState extends State<AiConfigPage> {
                               ),
                             ),
                             Text(
-                              _ctrl.aiTemperature.toStringAsFixed(1),
+                              _aiTemperatureDraft.toStringAsFixed(1),
                               style: textTheme.bodyLarge?.copyWith(
                                 color: cs.primary,
                                 fontWeight: FontWeight.bold,
@@ -431,15 +466,16 @@ class _AiConfigPageState extends State<AiConfigPage> {
                         SliderTheme(
                           data: ModernSliderTheme.theme(context),
                           child: Slider(
-                            value: _ctrl.aiTemperature,
+                            value: _aiTemperatureDraft,
                             min: 0,
                             max: 1,
                             divisions: 10,
-                            label: _ctrl.aiTemperature.toStringAsFixed(1),
+                            label: _aiTemperatureDraft.toStringAsFixed(1),
                             onChanged: (v) async {
                               await InteractionHaptics.sliderTick();
-                              await _ctrl.setAiTemperature(v);
+                              _onTemperatureChanged(v);
                             },
+                            onChangeEnd: _persistTemperature,
                           ),
                         ),
 
@@ -466,7 +502,7 @@ class _AiConfigPageState extends State<AiConfigPage> {
                               ),
                             ),
                             Text(
-                              '${_ctrl.aiMaxTokens}',
+                              '$_aiMaxTokensDraft',
                               style: textTheme.bodyLarge?.copyWith(
                                 color: cs.primary,
                                 fontWeight: FontWeight.bold,
@@ -477,15 +513,16 @@ class _AiConfigPageState extends State<AiConfigPage> {
                         SliderTheme(
                           data: ModernSliderTheme.theme(context),
                           child: Slider(
-                            value: _ctrl.aiMaxTokens.toDouble(),
-                            min: 10,
-                            max: 500,
-                            divisions: 49,
-                            label: '${_ctrl.aiMaxTokens}',
+                            value: _aiMaxTokensDraft.toDouble(),
+                            min: 20,
+                            max: 100,
+                            divisions: 80,
+                            label: '$_aiMaxTokensDraft',
                             onChanged: (v) async {
                               await InteractionHaptics.sliderTick();
-                              await _ctrl.setAiMaxTokens(v.toInt());
+                              _onMaxTokensChanged(v);
                             },
+                            onChangeEnd: _persistMaxTokens,
                           ),
                         ),
 

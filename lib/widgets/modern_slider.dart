@@ -14,7 +14,7 @@ class ModernSliderTheme {
       trackShape: const ModernSliderTrackShape(), // 自定义轨道形状
       overlayColor: cs.primary.withValues(alpha: 0.1), // 触摸反馈层颜色
       valueIndicatorColor: cs.primary, // 数值提示气泡颜色
-      valueIndicatorTextStyle: const TextStyle(color: Colors.white), // 数值提示文字样式
+      valueIndicatorTextStyle: const TextStyle(color: Colors.black), // 数值提示文字样式
       tickMarkShape: SliderTickMarkShape.noTickMark, // 隐藏刻度标记
     );
   }
