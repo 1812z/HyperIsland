@@ -25,7 +25,7 @@ class _SettingsPageState extends State<SettingsPage> {
   late int _marqueeSpeedDraft;
   late int _uiStateHash;
 
-  int _buildUiStateHash() => Object.hash(
+  int _buildUiStateHash() => Object.hashAll([
     _ctrl.loading,
     _ctrl.aiEnabled,
     _ctrl.resumeNotification,
@@ -44,7 +44,10 @@ class _SettingsPageState extends State<SettingsPage> {
     _ctrl.marqueeSpeed,
     _ctrl.themeMode,
     _ctrl.locale,
-  );
+    _ctrl.interactionHaptics,
+    _ctrl.showWelcome,
+    _ctrl.useHookAppIcon,
+  ]);
 
   void _onChanged() {
     if (!mounted) return;

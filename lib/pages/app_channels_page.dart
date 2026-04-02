@@ -36,11 +36,29 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
   Map<String, String> _rendererLabels = {};
   Map<String, Map<String, String>> _channelExtras = {};
   bool _loading = true;
+  late bool _appEnabled;
 
   @override
   void initState() {
     super.initState();
+    _appEnabled = widget.appEnabled;
+    widget.controller.addListener(_onControllerChanged);
     _load();
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onControllerChanged);
+    super.dispose();
+  }
+
+  void _onControllerChanged() {
+    final newEnabled = widget.controller.enabledPackages.contains(
+      widget.app.packageName,
+    );
+    if (newEnabled != _appEnabled) {
+      setState(() => _appEnabled = newEnabled);
+    }
   }
 
   Future<void> _load() async {
@@ -105,12 +123,12 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
   }
 
   bool _isEnabled(String channelId) {
-    if (!widget.appEnabled) return false;
+    if (!_appEnabled) return false;
     return _enabledChannels.isEmpty || _enabledChannels.contains(channelId);
   }
 
   Future<void> _toggle(String channelId, bool value) async {
-    if (!widget.appEnabled) return;
+    if (!_appEnabled) return;
     final all = _channels ?? [];
     Set<String> newSet;
 
@@ -273,7 +291,7 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
     final cs = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
     final channels = _channels ?? [];
-    final allEnabled = widget.appEnabled && _enabledChannels.isEmpty;
+    final allEnabled = _appEnabled && _enabledChannels.isEmpty;
     final appIconSizePx = (32 * MediaQuery.devicePixelRatioOf(context)).round();
 
     return Scaffold(
@@ -307,10 +325,7 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                 ),
                 Transform.scale(
                   scale: 0.9,
-                  child: Switch(
-                    value: widget.appEnabled,
-                    onChanged: _setAppEnabled,
-                  ),
+                  child: Switch(value: _appEnabled, onChanged: _setAppEnabled),
                 ),
               ],
             ),
@@ -345,7 +360,7 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
             ],
           ),
 
-          if (!widget.appEnabled)
+          if (!_appEnabled)
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               sliver: SliverToBoxAdapter(
@@ -411,7 +426,7 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               sliver: SliverToBoxAdapter(
                 child: Text(
-                  widget.appEnabled
+                  _appEnabled
                       ? (allEnabled
                             ? l10n.allChannelsActive(channels.length)
                             : l10n.selectedChannels(
@@ -441,7 +456,7 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                     return _ChannelTile(
                       channel: ch,
                       channelEnabled: channelEnabled,
-                      appEnabled: widget.appEnabled,
+                      appEnabled: _appEnabled,
                       template: template,
                       templateLabels: _templateLabels,
                       renderer:
