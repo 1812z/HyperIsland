@@ -171,7 +171,7 @@
   "optOn": "ON",
   "optOff": "OFF",
   "errorInvalidFormat": "無効な構成フォーマットです",
-  "errorNoStorageDir": "ストレージディレクトリを取得できません",
+  "errorNoStorageDir": "ストレージのディレクトリを取得できません",
   "errorNoFileSelected": "ファイルが選択されていません",
   "errorNoFilePath": "ファイルパスを取得できません",
   "errorEmptyClipboard": "クリップボードは空です",
