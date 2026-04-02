@@ -4,15 +4,20 @@ import 'package:flutter/services.dart';
 class AppInfo {
   final String packageName;
   final String appName;
+  final String appNameLower;
+  final String packageNameLower;
   final Uint8List icon;
   final bool isSystem;
 
-  const AppInfo({
+  AppInfo({
     required this.packageName,
     required this.appName,
+    String? appNameLower,
+    String? packageNameLower,
     required this.icon,
     this.isSystem = false,
-  });
+  }) : appNameLower = appNameLower ?? appName.toLowerCase(),
+       packageNameLower = packageNameLower ?? packageName.toLowerCase();
 }
 
 class AppCacheService extends ChangeNotifier {

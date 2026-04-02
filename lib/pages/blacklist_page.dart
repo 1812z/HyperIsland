@@ -129,7 +129,6 @@ class _BlacklistPageState extends State<BlacklistPage> {
                 ],
               ),
 
-              // 说明 + 搜索栏
               SliverPersistentHeader(
                 pinned: true,
                 delegate: FixedSliverHeaderDelegate(
@@ -162,7 +161,6 @@ class _BlacklistPageState extends State<BlacklistPage> {
                 ),
               ),
 
-              // 内容区
               if (_ctrl.loading)
                 const SliverFillRemaining(
                   child: Center(child: CircularProgressIndicator()),
@@ -184,6 +182,7 @@ class _BlacklistPageState extends State<BlacklistPage> {
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
                   sliver: SliverList.separated(
                     itemCount: apps.length,
+                    addAutomaticKeepAlives: false,
                     separatorBuilder: (_, __) => const SizedBox(height: 2),
                     itemBuilder: (context, index) {
                       final app = apps[index];

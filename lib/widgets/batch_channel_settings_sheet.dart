@@ -154,9 +154,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
   // 仅 BatchChannelMode + SingleAppScope 下使用
   bool _onlyEnabled = false;
 
-  final _scrollController = ScrollController();
   late final TextEditingController _timeoutController;
-  final _timeoutFocusNode = FocusNode();
 
   bool get _isSingle => widget.mode is SingleChannelMode;
 
@@ -180,27 +178,11 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
     } else {
       _timeoutController = TextEditingController();
     }
-
-    _timeoutFocusNode.addListener(() {
-      if (_timeoutFocusNode.hasFocus) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (_scrollController.hasClients) {
-            _scrollController.animateTo(
-              _scrollController.position.maxScrollExtent,
-              duration: const Duration(milliseconds: 280),
-              curve: Curves.easeOut,
-            );
-          }
-        });
-      }
-    });
   }
 
   @override
   void dispose() {
-    _scrollController.dispose();
     _timeoutController.dispose();
-    _timeoutFocusNode.dispose();
     super.dispose();
   }
 
@@ -268,7 +250,6 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
     final cs = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     final l10n = AppLocalizations.of(context)!;
-    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
     final titleBottomPadding = 12.0;
     final contentTopPadding = 12.0;
     final contentBottomPadding = 4.0;
@@ -278,8 +259,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
     final scopeGap = 12.0;
     final endGap = 20.0;
 
-    return Padding(
-      padding: EdgeInsets.only(bottom: keyboardHeight),
+    return _KeyboardInsetPadding(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -319,340 +299,338 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
 
           // ── 可滚动内容区 ─────────────────────────────────────────────────
           Flexible(
-            child: GestureDetector(
-              onTap: () => FocusScope.of(context).unfocus(),
-              child: SingleChildScrollView(
-                controller: _scrollController,
-                padding: EdgeInsets.fromLTRB(
-                  24,
-                  contentTopPadding,
-                  24,
-                  contentBottomPadding,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // 范围切换卡片（仅 BatchChannelMode + SingleAppScope）
-                    if (widget.mode case BatchChannelMode(
-                      scope: SingleAppScope(
-                        :final totalChannels,
-                        :final enabledChannels,
+            child: SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: EdgeInsets.fromLTRB(
+                24,
+                contentTopPadding,
+                24,
+                contentBottomPadding,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // 范围切换卡片（仅 BatchChannelMode + SingleAppScope）
+                  if (widget.mode case BatchChannelMode(
+                    scope: SingleAppScope(
+                      :final totalChannels,
+                      :final enabledChannels,
+                    ),
+                  )) ...[
+                    _ScopeToggleCard(
+                      totalChannels: totalChannels,
+                      enabledChannels: enabledChannels,
+                      value: _onlyEnabled,
+                      onChanged: enabledChannels > 0
+                          ? (v) => setState(() => _onlyEnabled = v)
+                          : null,
+                    ),
+                    SizedBox(height: scopeGap),
+                    const Divider(height: 1),
+                    SizedBox(height: scopeGap),
+                  ],
+
+                  // ── 模板 & 样式设置 ────────────────────────────────────
+                  _SectionLabel(l10n.template),
+                  SizedBox(height: sectionTitleGap),
+                  _BatchSettingRow(
+                    label: l10n.template,
+                    value: _template,
+                    showNotChange: !_isSingle,
+                    items: widget.templateLabels.entries
+                        .map(
+                          (e) => DropdownMenuItem<String?>(
+                            value: e.key,
+                            child: Text(e.value),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (v) => setState(() => _template = v),
+                  ),
+                  SizedBox(height: rowGap),
+                  _BatchSettingRow(
+                    label: l10n.rendererLabel,
+                    value: _renderer,
+                    showNotChange: !_isSingle,
+                    items: widget.rendererLabels.entries
+                        .map(
+                          (e) => DropdownMenuItem<String?>(
+                            value: e.key,
+                            child: Text(e.value),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (v) => setState(() => _renderer = v),
+                  ),
+                  SizedBox(height: blockGap),
+
+                  // ── 超级岛 ─────────────────────────────────────────────
+                  _SectionLabel(l10n.islandSection),
+                  SizedBox(height: sectionTitleGap),
+                  _BatchSettingRow(
+                    label: l10n.islandIcon,
+                    value: _iconMode,
+                    showNotChange: !_isSingle,
+                    items: [
+                      DropdownMenuItem(
+                        value: kIconModeAuto,
+                        child: Text(l10n.iconModeAuto),
                       ),
-                    )) ...[
-                      _ScopeToggleCard(
-                        totalChannels: totalChannels,
-                        enabledChannels: enabledChannels,
-                        value: _onlyEnabled,
-                        onChanged: enabledChannels > 0
-                            ? (v) => setState(() => _onlyEnabled = v)
+                      DropdownMenuItem(
+                        value: kIconModeNotifSmall,
+                        child: Text(l10n.iconModeNotifSmall),
+                      ),
+                      DropdownMenuItem(
+                        value: kIconModeNotifLarge,
+                        child: Text(l10n.iconModeNotifLarge),
+                      ),
+                      DropdownMenuItem(
+                        value: kIconModeAppIcon,
+                        child: Text(l10n.iconModeAppIcon),
+                      ),
+                    ],
+                    onChanged: (v) => setState(() => _iconMode = v),
+                  ),
+                  SizedBox(height: rowGap),
+                  _BatchSettingRow(
+                    label: l10n.islandIconLabel,
+                    value: _showIslandIcon,
+                    showNotChange: !_isSingle,
+                    items: [
+                      DropdownMenuItem(
+                        value: kTriOptDefault,
+                        child: Text(
+                          _defaultLabel(context, _ctrl.defaultShowIslandIcon),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOn,
+                        child: Text(l10n.optOn),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOff,
+                        child: Text(l10n.optOff),
+                      ),
+                    ],
+                    onChanged: (v) => setState(() => _showIslandIcon = v),
+                  ),
+                  SizedBox(height: rowGap),
+                  _BatchSettingRow(
+                    label: l10n.firstFloatLabel,
+                    value: _firstFloat,
+                    showNotChange: !_isSingle,
+                    items: [
+                      DropdownMenuItem(
+                        value: kTriOptDefault,
+                        child: Text(
+                          _defaultLabel(context, _ctrl.defaultFirstFloat),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOn,
+                        child: Text(l10n.optOn),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOff,
+                        child: Text(l10n.optOff),
+                      ),
+                    ],
+                    onChanged: (v) => setState(() => _firstFloat = v),
+                  ),
+                  SizedBox(height: rowGap),
+                  _BatchSettingRow(
+                    label: l10n.updateFloatLabel,
+                    value: _enableFloat,
+                    showNotChange: !_isSingle,
+                    items: [
+                      DropdownMenuItem(
+                        value: kTriOptDefault,
+                        child: Text(
+                          _defaultLabel(context, _ctrl.defaultEnableFloat),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOn,
+                        child: Text(l10n.optOn),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOff,
+                        child: Text(l10n.optOff),
+                      ),
+                    ],
+                    onChanged: (v) => setState(() => _enableFloat = v),
+                  ),
+                  SizedBox(height: rowGap),
+                  _BatchSettingRow(
+                    label: l10n.marqueeChannelTitle,
+                    value: _marquee,
+                    showNotChange: !_isSingle,
+                    items: [
+                      DropdownMenuItem(
+                        value: kTriOptDefault,
+                        child: Text(
+                          _defaultLabel(context, _ctrl.defaultMarquee),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOn,
+                        child: Text(l10n.optOn),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOff,
+                        child: Text(l10n.optOff),
+                      ),
+                    ],
+                    onChanged: (v) => setState(() => _marquee = v),
+                  ),
+                  SizedBox(height: rowGap),
+                  // 自动消失
+                  _SettingField(
+                    label: l10n.autoDisappear,
+                    child: TextFormField(
+                      controller: _timeoutController,
+                      keyboardType: TextInputType.number,
+                      textInputAction: TextInputAction.done,
+                      scrollPadding: EdgeInsets.zero,
+                      onTapOutside: (_) {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                      },
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: _fieldDecoration(
+                        context,
+                        hintText: _isSingle ? null : l10n.noChange,
+                        suffixText: _islandTimeout != null
+                            ? l10n.seconds
                             : null,
                       ),
-                      SizedBox(height: scopeGap),
-                      const Divider(height: 1),
-                      SizedBox(height: scopeGap),
-                    ],
+                      onChanged: (v) {
+                        final trimmed = v.trim();
+                        final n = int.tryParse(trimmed);
+                        final valid = trimmed.isNotEmpty && n != null && n >= 1;
+                        setState(() {
+                          // 单渠道模式：无效输入时保留上一个合法值
+                          if (valid) {
+                            _islandTimeout = trimmed;
+                          } else if (!_isSingle) {
+                            _islandTimeout = null;
+                          }
+                        });
+                      },
+                    ),
+                  ),
+                  SizedBox(height: blockGap),
 
-                    // ── 模板 & 样式设置 ────────────────────────────────────
-                    _SectionLabel(l10n.template),
-                    SizedBox(height: sectionTitleGap),
-                    _BatchSettingRow(
-                      label: l10n.template,
-                      value: _template,
-                      showNotChange: !_isSingle,
-                      items: widget.templateLabels.entries
-                          .map(
-                            (e) => DropdownMenuItem<String?>(
-                              value: e.key,
-                              child: Text(e.value),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (v) => setState(() => _template = v),
-                    ),
-                    SizedBox(height: rowGap),
-                    _BatchSettingRow(
-                      label: l10n.rendererLabel,
-                      value: _renderer,
-                      showNotChange: !_isSingle,
-                      items: widget.rendererLabels.entries
-                          .map(
-                            (e) => DropdownMenuItem<String?>(
-                              value: e.key,
-                              child: Text(e.value),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (v) => setState(() => _renderer = v),
-                    ),
-                    SizedBox(height: blockGap),
-
-                    // ── 超级岛 ─────────────────────────────────────────────
-                    _SectionLabel(l10n.islandSection),
-                    SizedBox(height: sectionTitleGap),
-                    _BatchSettingRow(
-                      label: l10n.islandIcon,
-                      value: _iconMode,
-                      showNotChange: !_isSingle,
-                      items: [
-                        DropdownMenuItem(
-                          value: kIconModeAuto,
-                          child: Text(l10n.iconModeAuto),
-                        ),
-                        DropdownMenuItem(
-                          value: kIconModeNotifSmall,
-                          child: Text(l10n.iconModeNotifSmall),
-                        ),
-                        DropdownMenuItem(
-                          value: kIconModeNotifLarge,
-                          child: Text(l10n.iconModeNotifLarge),
-                        ),
-                        DropdownMenuItem(
-                          value: kIconModeAppIcon,
-                          child: Text(l10n.iconModeAppIcon),
-                        ),
-                      ],
-                      onChanged: (v) => setState(() => _iconMode = v),
-                    ),
-                    SizedBox(height: rowGap),
-                    _BatchSettingRow(
-                      label: l10n.islandIconLabel,
-                      value: _showIslandIcon,
-                      showNotChange: !_isSingle,
-                      items: [
-                        DropdownMenuItem(
-                          value: kTriOptDefault,
-                          child: Text(
-                            _defaultLabel(context, _ctrl.defaultShowIslandIcon),
-                          ),
-                        ),
-                        DropdownMenuItem(
-                          value: kTriOptOn,
-                          child: Text(l10n.optOn),
-                        ),
-                        DropdownMenuItem(
-                          value: kTriOptOff,
-                          child: Text(l10n.optOff),
-                        ),
-                      ],
-                      onChanged: (v) => setState(() => _showIslandIcon = v),
-                    ),
-                    SizedBox(height: rowGap),
-                    _BatchSettingRow(
-                      label: l10n.firstFloatLabel,
-                      value: _firstFloat,
-                      showNotChange: !_isSingle,
-                      items: [
-                        DropdownMenuItem(
-                          value: kTriOptDefault,
-                          child: Text(
-                            _defaultLabel(context, _ctrl.defaultFirstFloat),
-                          ),
-                        ),
-                        DropdownMenuItem(
-                          value: kTriOptOn,
-                          child: Text(l10n.optOn),
-                        ),
-                        DropdownMenuItem(
-                          value: kTriOptOff,
-                          child: Text(l10n.optOff),
-                        ),
-                      ],
-                      onChanged: (v) => setState(() => _firstFloat = v),
-                    ),
-                    SizedBox(height: rowGap),
-                    _BatchSettingRow(
-                      label: l10n.updateFloatLabel,
-                      value: _enableFloat,
-                      showNotChange: !_isSingle,
-                      items: [
-                        DropdownMenuItem(
-                          value: kTriOptDefault,
-                          child: Text(
-                            _defaultLabel(context, _ctrl.defaultEnableFloat),
-                          ),
-                        ),
-                        DropdownMenuItem(
-                          value: kTriOptOn,
-                          child: Text(l10n.optOn),
-                        ),
-                        DropdownMenuItem(
-                          value: kTriOptOff,
-                          child: Text(l10n.optOff),
-                        ),
-                      ],
-                      onChanged: (v) => setState(() => _enableFloat = v),
-                    ),
-                    SizedBox(height: rowGap),
-                    _BatchSettingRow(
-                      label: l10n.marqueeChannelTitle,
-                      value: _marquee,
-                      showNotChange: !_isSingle,
-                      items: [
-                        DropdownMenuItem(
-                          value: kTriOptDefault,
-                          child: Text(
-                            _defaultLabel(context, _ctrl.defaultMarquee),
-                          ),
-                        ),
-                        DropdownMenuItem(
-                          value: kTriOptOn,
-                          child: Text(l10n.optOn),
-                        ),
-                        DropdownMenuItem(
-                          value: kTriOptOff,
-                          child: Text(l10n.optOff),
-                        ),
-                      ],
-                      onChanged: (v) => setState(() => _marquee = v),
-                    ),
-                    SizedBox(height: rowGap),
-                    // 自动消失
-                    _SettingField(
-                      label: l10n.autoDisappear,
-                      child: TextFormField(
-                        controller: _timeoutController,
-                        focusNode: _timeoutFocusNode,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        decoration: _fieldDecoration(
-                          context,
-                          hintText: _isSingle ? null : l10n.noChange,
-                          suffixText: _islandTimeout != null
-                              ? l10n.seconds
-                              : null,
-                        ),
-                        onChanged: (v) {
-                          final trimmed = v.trim();
-                          final n = int.tryParse(trimmed);
-                          final valid =
-                              trimmed.isNotEmpty && n != null && n >= 1;
-                          setState(() {
-                            // 单渠道模式：无效输入时保留上一个合法值
-                            if (valid) {
-                              _islandTimeout = trimmed;
-                            } else if (!_isSingle) {
-                              _islandTimeout = null;
-                            }
-                          });
-                        },
+                  // ── 焦点通知 ───────────────────────────────────────────
+                  _SectionLabel(l10n.focusNotificationLabel),
+                  SizedBox(height: sectionTitleGap),
+                  _BatchSettingRow(
+                    label: l10n.focusIconLabel,
+                    value: _focusIconMode,
+                    showNotChange: !_isSingle,
+                    items: [
+                      DropdownMenuItem(
+                        value: kIconModeAuto,
+                        child: Text(l10n.iconModeAuto),
                       ),
-                    ),
-                    SizedBox(height: blockGap),
-
-                    // ── 焦点通知 ───────────────────────────────────────────
-                    _SectionLabel(l10n.focusNotificationLabel),
-                    SizedBox(height: sectionTitleGap),
-                    _BatchSettingRow(
-                      label: l10n.focusIconLabel,
-                      value: _focusIconMode,
-                      showNotChange: !_isSingle,
-                      items: [
-                        DropdownMenuItem(
-                          value: kIconModeAuto,
-                          child: Text(l10n.iconModeAuto),
+                      DropdownMenuItem(
+                        value: kIconModeNotifSmall,
+                        child: Text(l10n.iconModeNotifSmall),
+                      ),
+                      DropdownMenuItem(
+                        value: kIconModeNotifLarge,
+                        child: Text(l10n.iconModeNotifLarge),
+                      ),
+                      DropdownMenuItem(
+                        value: kIconModeAppIcon,
+                        child: Text(l10n.iconModeAppIcon),
+                      ),
+                    ],
+                    onChanged: (v) => setState(() => _focusIconMode = v),
+                  ),
+                  SizedBox(height: rowGap),
+                  _BatchSettingRow(
+                    label: l10n.focusNotificationLabel,
+                    value: _focusNotif,
+                    showNotChange: !_isSingle,
+                    items: [
+                      DropdownMenuItem(
+                        value: kTriOptDefault,
+                        child: Text(
+                          _defaultLabel(context, _ctrl.defaultFocusNotif),
                         ),
-                        DropdownMenuItem(
-                          value: kIconModeNotifSmall,
-                          child: Text(l10n.iconModeNotifSmall),
-                        ),
-                        DropdownMenuItem(
-                          value: kIconModeNotifLarge,
-                          child: Text(l10n.iconModeNotifLarge),
-                        ),
-                        DropdownMenuItem(
-                          value: kIconModeAppIcon,
-                          child: Text(l10n.iconModeAppIcon),
-                        ),
-                      ],
-                      onChanged: (v) => setState(() => _focusIconMode = v),
-                    ),
-                    SizedBox(height: rowGap),
-                    _BatchSettingRow(
-                      label: l10n.focusNotificationLabel,
-                      value: _focusNotif,
-                      showNotChange: !_isSingle,
-                      items: [
-                        DropdownMenuItem(
-                          value: kTriOptDefault,
-                          child: Text(
-                            _defaultLabel(context, _ctrl.defaultFocusNotif),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOn,
+                        child: Text(l10n.optOn),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOff,
+                        child: Text(l10n.optOff),
+                      ),
+                    ],
+                    onChanged: (v) => setState(() {
+                      _focusNotif = v;
+                      if (v == kTriOptOff) _preserveSmallIcon = kTriOptOff;
+                    }),
+                  ),
+                  SizedBox(height: rowGap),
+                  _BatchSettingRow(
+                    label: l10n.preserveStatusBarSmallIconLabel,
+                    value: _focusNotif == kTriOptOff
+                        ? kTriOptOff
+                        : _preserveSmallIcon,
+                    showNotChange: !_isSingle,
+                    items: [
+                      DropdownMenuItem(
+                        value: kTriOptDefault,
+                        child: Text(
+                          _defaultLabel(
+                            context,
+                            _ctrl.defaultPreserveSmallIcon,
                           ),
                         ),
-                        DropdownMenuItem(
-                          value: kTriOptOn,
-                          child: Text(l10n.optOn),
-                        ),
-                        DropdownMenuItem(
-                          value: kTriOptOff,
-                          child: Text(l10n.optOff),
-                        ),
-                      ],
-                      onChanged: (v) => setState(() {
-                        _focusNotif = v;
-                        if (v == kTriOptOff) _preserveSmallIcon = kTriOptOff;
-                      }),
-                    ),
-                    SizedBox(height: rowGap),
-                    _BatchSettingRow(
-                      label: l10n.preserveStatusBarSmallIconLabel,
-                      value: _focusNotif == kTriOptOff
-                          ? kTriOptOff
-                          : _preserveSmallIcon,
-                      showNotChange: !_isSingle,
-                      items: [
-                        DropdownMenuItem(
-                          value: kTriOptDefault,
-                          child: Text(
-                            _defaultLabel(
-                              context,
-                              _ctrl.defaultPreserveSmallIcon,
-                            ),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOn,
+                        child: Text(l10n.optOn),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOff,
+                        child: Text(l10n.optOff),
+                      ),
+                    ],
+                    onChanged: _focusNotif == kTriOptOff
+                        ? null
+                        : (v) => setState(() => _preserveSmallIcon = v),
+                  ),
+                  SizedBox(height: rowGap),
+                  _BatchSettingRow(
+                    label: l10n.restoreLockscreenTitle,
+                    value: _restoreLockscreen,
+                    showNotChange: !_isSingle,
+                    items: [
+                      DropdownMenuItem(
+                        value: kTriOptDefault,
+                        child: Text(
+                          _defaultLabel(
+                            context,
+                            _ctrl.defaultRestoreLockscreen,
                           ),
                         ),
-                        DropdownMenuItem(
-                          value: kTriOptOn,
-                          child: Text(l10n.optOn),
-                        ),
-                        DropdownMenuItem(
-                          value: kTriOptOff,
-                          child: Text(l10n.optOff),
-                        ),
-                      ],
-                      onChanged: _focusNotif == kTriOptOff
-                          ? null
-                          : (v) => setState(() => _preserveSmallIcon = v),
-                    ),
-                    SizedBox(height: rowGap),
-                    _BatchSettingRow(
-                      label: l10n.restoreLockscreenTitle,
-                      value: _restoreLockscreen,
-                      showNotChange: !_isSingle,
-                      items: [
-                        DropdownMenuItem(
-                          value: kTriOptDefault,
-                          child: Text(
-                            _defaultLabel(
-                              context,
-                              _ctrl.defaultRestoreLockscreen,
-                            ),
-                          ),
-                        ),
-                        DropdownMenuItem(
-                          value: kTriOptOn,
-                          child: Text(l10n.optOn),
-                        ),
-                        DropdownMenuItem(
-                          value: kTriOptOff,
-                          child: Text(l10n.optOff),
-                        ),
-                      ],
-                      onChanged: (v) => setState(() => _restoreLockscreen = v),
-                    ),
-                    SizedBox(height: endGap),
-                  ],
-                ),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOn,
+                        child: Text(l10n.optOn),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOff,
+                        child: Text(l10n.optOff),
+                      ),
+                    ],
+                    onChanged: (v) => setState(() => _restoreLockscreen = v),
+                  ),
+                  SizedBox(height: endGap),
+                ],
               ),
             ),
           ),
@@ -663,7 +641,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
               24,
               8,
               24,
-              16 + MediaQuery.of(context).padding.bottom,
+              16 + MediaQuery.paddingOf(context).bottom,
             ),
             child: Row(
               children: [
@@ -697,6 +675,23 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _KeyboardInsetPadding extends StatelessWidget {
+  const _KeyboardInsetPadding({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOut,
+      padding: EdgeInsets.only(bottom: bottomInset),
+      child: child,
     );
   }
 }

@@ -7,6 +7,7 @@ const kPrefAppBlacklist = 'pref_app_blacklist';
 class BlacklistController extends ChangeNotifier {
   List<AppInfo> _allApps = [];
   List<AppInfo> _sortedApps = [];
+  List<AppInfo> _filteredApps = [];
   Set<String> blacklistedPackages = {};
   bool loading = true;
   String _searchQuery = '';
@@ -333,10 +334,11 @@ class BlacklistController extends ChangeNotifier {
         if (aOn != bOn) return aOn ? -1 : 1;
         return a.appName.compareTo(b.appName);
       });
+    _rebuildFilteredApps();
   }
 
-  List<AppInfo> get filteredApps {
-    final q = _searchQuery.toLowerCase();
+  void _rebuildFilteredApps() {
+    final q = _searchQuery.trim().toLowerCase();
     Iterable<AppInfo> source = showSystemApps
         ? _sortedApps
         : _sortedApps.where(
@@ -344,13 +346,13 @@ class BlacklistController extends ChangeNotifier {
           );
     if (q.isNotEmpty) {
       source = source.where(
-        (a) =>
-            a.appName.toLowerCase().contains(q) ||
-            a.packageName.toLowerCase().contains(q),
+        (a) => a.appNameLower.contains(q) || a.packageNameLower.contains(q),
       );
     }
-    return source is List<AppInfo> ? source : source.toList();
+    _filteredApps = source is List<AppInfo> ? source : source.toList();
   }
+
+  List<AppInfo> get filteredApps => _filteredApps;
 
   Future<void> refresh() => _load();
 
@@ -376,43 +378,58 @@ class BlacklistController extends ChangeNotifier {
   }
 
   Future<void> setBlacklisted(String packageName, bool enabled) async {
-    if (enabled) {
-      blacklistedPackages.add(packageName);
-    } else {
-      blacklistedPackages.remove(packageName);
-    }
+    final changed = enabled
+        ? blacklistedPackages.add(packageName)
+        : blacklistedPackages.remove(packageName);
+    if (!changed) return;
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(kPrefAppBlacklist, blacklistedPackages.join(','));
+    _rebuildFilteredApps();
     notifyListeners();
   }
 
   void setSearch(String query) {
+    if (_searchQuery == query) return;
     _searchQuery = query;
-    _resort();
+    _rebuildFilteredApps();
     notifyListeners();
   }
 
   void setShowSystemApps(bool value) {
+    if (showSystemApps == value) return;
     showSystemApps = value;
-    _resort();
+    _rebuildFilteredApps();
     notifyListeners();
   }
 
   Future<void> enableAll() async {
+    var changed = false;
     for (final a in filteredApps) {
-      blacklistedPackages.add(a.packageName);
+      if (blacklistedPackages.add(a.packageName)) {
+        changed = true;
+      }
     }
+    if (!changed) return;
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(kPrefAppBlacklist, blacklistedPackages.join(','));
+    _rebuildFilteredApps();
     notifyListeners();
   }
 
   Future<void> disableAll() async {
+    var changed = false;
     for (final a in filteredApps) {
-      blacklistedPackages.remove(a.packageName);
+      if (blacklistedPackages.remove(a.packageName)) {
+        changed = true;
+      }
     }
+    if (!changed) return;
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(kPrefAppBlacklist, blacklistedPackages.join(','));
+    _rebuildFilteredApps();
     notifyListeners();
   }
 

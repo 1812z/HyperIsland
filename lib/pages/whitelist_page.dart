@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../controllers/whitelist_controller.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -179,8 +181,10 @@ class _WhitelistPageState extends State<WhitelistPage> {
     for (var i = 0; i < selected.length; i++) {
       final pkg = selected[i];
       try {
-        final channels = await _ctrl.getChannels(pkg);
-        final enabledChannels = await _ctrl.getEnabledChannels(pkg);
+        final channelsFuture = _ctrl.getChannels(pkg);
+        final enabledChannelsFuture = _ctrl.getEnabledChannels(pkg);
+        final channels = await channelsFuture;
+        final enabledChannels = await enabledChannelsFuture;
         final ids = enabledChannels.isEmpty
             ? channels.map((c) => c.id).toList()
             : enabledChannels.toList();
@@ -191,8 +195,8 @@ class _WhitelistPageState extends State<WhitelistPage> {
       doneNotifier.value = i + 1;
     }
 
-    doneNotifier.dispose();
     if (mounted) Navigator.pop(context);
+    doneNotifier.dispose();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -406,6 +410,7 @@ class _WhitelistPageState extends State<WhitelistPage> {
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
                   sliver: SliverList.separated(
                     itemCount: apps.length,
+                    addAutomaticKeepAlives: false,
                     separatorBuilder: (_, __) => const SizedBox(height: 2),
                     itemBuilder: (context, index) {
                       final app = apps[index];

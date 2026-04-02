@@ -22,14 +22,46 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   final _ctrl = SettingsController.instance;
   bool _checkingUpdate = false;
+  late int _marqueeSpeedDraft;
+  late int _uiStateHash;
+
+  int _buildUiStateHash() => Object.hash(
+    _ctrl.loading,
+    _ctrl.aiEnabled,
+    _ctrl.resumeNotification,
+    _ctrl.unlockAllFocus,
+    _ctrl.unlockFocusAuth,
+    _ctrl.checkUpdateOnLaunch,
+    _ctrl.hideDesktopIcon,
+    _ctrl.defaultFirstFloat,
+    _ctrl.defaultEnableFloat,
+    _ctrl.defaultMarquee,
+    _ctrl.defaultFocusNotif,
+    _ctrl.defaultPreserveSmallIcon,
+    _ctrl.defaultRestoreLockscreen,
+    _ctrl.defaultShowIslandIcon,
+    _ctrl.roundIcon,
+    _ctrl.marqueeSpeed,
+    _ctrl.themeMode,
+    _ctrl.locale,
+  );
 
   void _onChanged() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    final nextHash = _buildUiStateHash();
+    final nextMarquee = _ctrl.marqueeSpeed;
+    if (nextHash == _uiStateHash && nextMarquee == _marqueeSpeedDraft) return;
+    setState(() {
+      _uiStateHash = nextHash;
+      _marqueeSpeedDraft = nextMarquee;
+    });
   }
 
   @override
   void initState() {
     super.initState();
+    _marqueeSpeedDraft = _ctrl.marqueeSpeed;
+    _uiStateHash = _buildUiStateHash();
     _ctrl.addListener(_onChanged);
   }
 
@@ -75,9 +107,17 @@ class _SettingsPageState extends State<SettingsPage> {
     await _ctrl.setHideDesktopIcon(value);
   }
 
-  Future<void> _onMarqueeSpeedChanged(double value) async {
+  void _onMarqueeSpeedChanged(double value) {
+    final next = value.round();
+    if (_marqueeSpeedDraft == next) return;
+    setState(() => _marqueeSpeedDraft = next);
+  }
+
+  Future<void> _persistMarqueeSpeed(double value) async {
     await InteractionHaptics.sliderTick();
-    _ctrl.setMarqueeSpeed(value.round());
+    final next = value.round();
+    if (_ctrl.marqueeSpeed == next) return;
+    await _ctrl.setMarqueeSpeed(next);
   }
 
   void _showSnack(String msg) {
@@ -147,74 +187,6 @@ class _SettingsPageState extends State<SettingsPage> {
     } catch (e) {
       _showSnack(l10n.importFailed(e.toString()));
     }
-  }
-
-  Future<void> _showExportOptions(AppLocalizations l10n) async {
-    await InteractionHaptics.button();
-    if (!mounted) return;
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.upload_file_outlined),
-              title: Text(l10n.exportToFile),
-              subtitle: Text(l10n.exportToFileSubtitle),
-              onTap: () async {
-                Navigator.of(sheetContext).pop();
-                await _exportToFile();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.copy_outlined),
-              title: Text(l10n.exportToClipboard),
-              subtitle: Text(l10n.exportToClipboardSubtitle),
-              onTap: () async {
-                Navigator.of(sheetContext).pop();
-                await _exportToClipboard();
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showImportOptions(AppLocalizations l10n) async {
-    await InteractionHaptics.button();
-    if (!mounted) return;
-    await showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.download_outlined),
-              title: Text(l10n.importFromFile),
-              subtitle: Text(l10n.importFromFileSubtitle),
-              onTap: () async {
-                Navigator.of(sheetContext).pop();
-                await _importFromFile();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.paste_outlined),
-              title: Text(l10n.importFromClipboard),
-              subtitle: Text(l10n.importFromClipboardSubtitle),
-              onTap: () async {
-                Navigator.of(sheetContext).pop();
-                await _importFromClipboard();
-              },
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   Future<void> _doCheckUpdate() async {
@@ -317,13 +289,17 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
+    final titleStyle = Theme.of(context).textTheme.titleMedium;
 
     return Scaffold(
       backgroundColor: cs.surface,
       body: CustomScrollView(
+        physics: const ClampingScrollPhysics(),
         slivers: [
-          SliverAppBar.large(
-            title: Text(l10n.navSettings),
+          SliverAppBar(
+            pinned: true,
+            floating: false,
+            expandedHeight: 130,
             backgroundColor: cs.surface,
             centerTitle: false,
           ),
@@ -335,564 +311,653 @@ class _SettingsPageState extends State<SettingsPage> {
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               sliver: SliverList(
-                delegate: SliverChildListDelegate([
-                  SectionLabel(l10n.aiConfigSection),
-                  const SizedBox(height: 8),
-                  Card(
-                    elevation: 0,
-                    color: cs.surfaceContainerHighest,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                delegate: SliverChildListDelegate(
+                  [
+                    Padding(
+                      padding: const EdgeInsets.only(left: 18, top: 8),
+                      child: SectionLabel(l10n.aiConfigSection),
                     ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 4,
-                      ),
+                    const SizedBox(height: 8),
+                    Card(
+                      elevation: 0,
+                      color: cs.surfaceContainerHighest,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      leading: const Icon(Icons.psychology_outlined),
-                      title: Text(l10n.aiConfigTitle),
-                      subtitle: Text(
-                        _ctrl.aiEnabled
-                            ? l10n.aiConfigSubtitleEnabled
-                            : l10n.aiConfigSubtitleDisabled,
-                      ),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () async {
-                        if (!context.mounted) return;
-                        Navigator.push(
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        leading: const Icon(Icons.psychology_outlined),
+                        title: Text(l10n.aiConfigTitle, style: titleStyle),
+                        subtitle: Text(
+                          _ctrl.aiEnabled
+                              ? l10n.aiConfigSubtitleEnabled
+                              : l10n.aiConfigSubtitleDisabled,
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) => const AiConfigPage(),
                           ),
-                        );
-                      },
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  SectionLabel(l10n.navBlacklist),
-                  const SizedBox(height: 8),
-                  Card(
-                    elevation: 0,
-                    color: cs.surfaceContainerHighest,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 18),
+                      child: SectionLabel(l10n.navBlacklist),
                     ),
-                    child: Column(
-                      children: [
-                        ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
+                    const SizedBox(height: 8),
+                    Card(
+                      elevation: 0,
+                      color: cs.surfaceContainerHighest,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(16),
                           ),
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(
-                              top: Radius.circular(16),
+                        ),
+                        leading: const Icon(Icons.block),
+                        title: Text(l10n.navBlacklist, style: titleStyle),
+                        subtitle: Text(l10n.navBlacklistSubtitle),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const BlacklistPage(),
                             ),
-                          ),
-                          leading: const Icon(Icons.block),
-                          title: Text(l10n.navBlacklist),
-                          subtitle: Text(l10n.navBlacklistSubtitle),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () async {
-                            if (!context.mounted) return;
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const BlacklistPage(),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 18),
+                      child: SectionLabel(l10n.behaviorSection),
+                    ),
+                    const SizedBox(height: 8),
+                    Card(
+                      elevation: 0,
+                      color: cs.surfaceContainerHighest,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        children: [
+                          SwitchListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            title: Text(
+                              l10n.interactionHapticsTitle,
+                              style: titleStyle,
+                            ),
+                            subtitle: Text(l10n.interactionHapticsSubtitle),
+                            value: _ctrl.interactionHaptics,
+                            onChanged: (value) async {
+                              await InteractionHaptics.toggle(force: true);
+                              await _ctrl.setInteractionHaptics(value);
+                            },
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(16),
                               ),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  SectionLabel(l10n.behaviorSection),
-                  const SizedBox(height: 8),
-                  Card(
-                    elevation: 0,
-                    color: cs.surfaceContainerHighest,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      children: [
-                        SwitchListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          title: Text(l10n.interactionHapticsTitle),
-                          subtitle: Text(l10n.interactionHapticsSubtitle),
-                          value: _ctrl.interactionHaptics,
-                          onChanged: (value) async {
-                            await InteractionHaptics.toggle(force: true);
-                            await _ctrl.setInteractionHaptics(value);
-                          },
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(
-                              top: Radius.circular(16),
                             ),
                           ),
-                        ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        SwitchListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          title: Text(l10n.keepFocusNotifTitle),
-                          subtitle: Text(l10n.keepFocusNotifSubtitle),
-                          value: _ctrl.resumeNotification,
-                          onChanged: _onResumeNotificationChanged,
-                        ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        SwitchListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          title: Text(l10n.unlockAllFocusTitle),
-                          subtitle: Text(l10n.unlockAllFocusSubtitle),
-                          value: _ctrl.unlockAllFocus,
-                          onChanged: (value) async {
-                            await InteractionHaptics.toggle();
-                            await _ctrl.setUnlockAllFocus(value);
-                          },
-                        ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        SwitchListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          title: Text(l10n.unlockFocusAuthTitle),
-                          subtitle: Text(l10n.unlockFocusAuthSubtitle),
-                          value: _ctrl.unlockFocusAuth,
-                          onChanged: (value) async {
-                            await InteractionHaptics.toggle();
-                            await _ctrl.setUnlockFocusAuth(value);
-                          },
-                        ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        SwitchListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          title: Text(l10n.showWelcomeTitle),
-                          subtitle: Text(l10n.showWelcomeSubtitle),
-                          value: _ctrl.showWelcome,
-                          onChanged: (value) async {
-                            await InteractionHaptics.toggle();
-                            await _ctrl.setShowWelcome(value);
-                          },
-                        ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        SwitchListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          title: Text(l10n.hideDesktopIconTitle),
-                          subtitle: Text(l10n.hideDesktopIconSubtitle),
-                          value: _ctrl.hideDesktopIcon,
-                          onChanged: (value) async {
-                            await InteractionHaptics.toggle();
-                            await _onHideDesktopIconChanged(value);
-                          },
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(
-                              bottom: Radius.circular(16),
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          SwitchListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
                             ),
-                          ),
-                        ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        SwitchListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          title: Text(l10n.checkUpdateOnLaunchTitle),
-                          subtitle: Text(l10n.checkUpdateOnLaunchSubtitle),
-                          value: _ctrl.checkUpdateOnLaunch,
-                          onChanged: (value) async {
-                            await InteractionHaptics.toggle();
-                            await _ctrl.setCheckUpdateOnLaunch(value);
-                          },
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(
-                              bottom: Radius.circular(16),
+                            title: Text(
+                              l10n.keepFocusNotifTitle,
+                              style: titleStyle,
                             ),
+                            subtitle: Text(l10n.keepFocusNotifSubtitle),
+                            value: _ctrl.resumeNotification,
+                            onChanged: _onResumeNotificationChanged,
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  SectionLabel(l10n.defaultConfigSection),
-                  const SizedBox(height: 8),
-                  Card(
-                    elevation: 0,
-                    color: cs.surfaceContainerHighest,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      children: [
-                        SwitchListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          title: Text(l10n.firstFloatLabel),
-                          subtitle: Text(l10n.firstFloatLabelSubtitle),
-                          value: _ctrl.defaultFirstFloat,
-                          onChanged: (value) async {
-                            await InteractionHaptics.toggle();
-                            await _ctrl.setDefaultFirstFloat(value);
-                          },
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(
-                              top: Radius.circular(16),
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          SwitchListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
                             ),
-                          ),
-                        ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        SwitchListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          title: Text(l10n.updateFloatLabel),
-                          subtitle: Text(l10n.updateFloatLabelSubtitle),
-                          value: _ctrl.defaultEnableFloat,
-                          onChanged: (value) async {
-                            await InteractionHaptics.toggle();
-                            await _ctrl.setDefaultEnableFloat(value);
-                          },
-                        ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        SwitchListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          title: Text(l10n.marqueeChannelTitle),
-                          subtitle: Text(l10n.marqueeChannelTitleSubtitle),
-                          value: _ctrl.defaultMarquee,
-                          onChanged: (value) async {
-                            await InteractionHaptics.toggle();
-                            await _ctrl.setDefaultMarquee(value);
-                          },
-                        ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        SwitchListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          title: Text(l10n.focusNotificationLabel),
-                          subtitle: Text(l10n.focusNotificationLabelSubtitle),
-                          value: _ctrl.defaultFocusNotif,
-                          onChanged: (value) async {
-                            await InteractionHaptics.toggle();
-                            await _ctrl.setDefaultFocusNotif(value);
-                          },
-                        ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        SwitchListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          title: Text(l10n.restoreLockscreenTitle),
-                          subtitle: Text(l10n.restoreLockscreenSubtitle),
-                          value: _ctrl.defaultRestoreLockscreen,
-                          onChanged: (value) async {
-                            await InteractionHaptics.toggle();
-                            await _ctrl.setDefaultRestoreLockscreen(value);
-                          },
-                        ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        SwitchListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          title: Text(l10n.islandIconLabel),
-                          subtitle: Text(l10n.islandIconLabelSubtitle),
-                          value: _ctrl.defaultShowIslandIcon,
-                          onChanged: (value) async {
-                            await InteractionHaptics.toggle();
-                            await _ctrl.setDefaultShowIslandIcon(value);
-                          },
-                        ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        SwitchListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          title: Text(l10n.preserveStatusBarSmallIconLabel),
-                          subtitle: Text(
-                            l10n.preserveStatusBarSmallIconLabelSubtitle,
-                          ),
-                          value: _ctrl.defaultPreserveSmallIcon,
-                          onChanged: (value) async {
-                            await InteractionHaptics.toggle();
-                            await _ctrl.setDefaultPreserveSmallIcon(value);
-                          },
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(
-                              bottom: Radius.circular(16),
+                            title: Text(
+                              l10n.unlockAllFocusTitle,
+                              style: titleStyle,
                             ),
+                            subtitle: Text(l10n.unlockAllFocusSubtitle),
+                            value: _ctrl.unlockAllFocus,
+                            onChanged: (value) async {
+                              await InteractionHaptics.toggle();
+                              await _ctrl.setUnlockAllFocus(value);
+                            },
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  SectionLabel(l10n.appearanceSection),
-                  const SizedBox(height: 8),
-                  Card(
-                    elevation: 0,
-                    color: cs.surfaceContainerHighest,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      children: [
-                        SwitchListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          SwitchListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            title: Text(
+                              l10n.unlockFocusAuthTitle,
+                              style: titleStyle,
+                            ),
+                            subtitle: Text(l10n.unlockFocusAuthSubtitle),
+                            value: _ctrl.unlockFocusAuth,
+                            onChanged: (value) async {
+                              await InteractionHaptics.toggle();
+                              await _ctrl.setUnlockFocusAuth(value);
+                            },
                           ),
-                          title: Text(l10n.useAppIconTitle),
-                          subtitle: Text(l10n.useAppIconSubtitle),
-                          value: _ctrl.useHookAppIcon,
-                          onChanged: _onUseHookAppIconChanged,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          SwitchListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            title: Text(
+                              l10n.showWelcomeTitle,
+                              style: titleStyle,
+                            ),
+                            subtitle: Text(l10n.showWelcomeSubtitle),
+                            value: _ctrl.showWelcome,
+                            onChanged: (value) async {
+                              await InteractionHaptics.toggle();
+                              await _ctrl.setShowWelcome(value);
+                            },
                           ),
-                        ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        SwitchListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          SwitchListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            title: Text(
+                              l10n.hideDesktopIconTitle,
+                              style: titleStyle,
+                            ),
+                            subtitle: Text(l10n.hideDesktopIconSubtitle),
+                            value: _ctrl.hideDesktopIcon,
+                            onChanged: _onHideDesktopIconChanged,
                           ),
-                          title: Text(l10n.roundIconTitle),
-                          subtitle: Text(l10n.roundIconSubtitle),
-                          value: _ctrl.roundIcon,
-                          onChanged: _onRoundIconChanged,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 2,
-                          ),
-                          title: Row(
-                            children: [
-                              Expanded(child: Text(l10n.marqueeChannelTitle)),
-                              Text(
-                                l10n.marqueeSpeedLabel(_ctrl.marqueeSpeed),
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(fontWeight: FontWeight.bold),
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          SwitchListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            title: Text(
+                              l10n.checkUpdateOnLaunchTitle,
+                              style: titleStyle,
+                            ),
+                            subtitle: Text(l10n.checkUpdateOnLaunchSubtitle),
+                            value: _ctrl.checkUpdateOnLaunch,
+                            onChanged: (value) async {
+                              await InteractionHaptics.toggle();
+                              await _ctrl.setCheckUpdateOnLaunch(value);
+                            },
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(
+                                bottom: Radius.circular(16),
                               ),
-
-                              if (_ctrl.marqueeSpeed != 100)
-                                SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: IconButton(
-                                    icon: const Icon(Icons.refresh, size: 18),
-                                    padding: EdgeInsets.zero,
-                                    visualDensity: VisualDensity.compact,
-                                    onPressed: () => _ctrl.setMarqueeSpeed(100),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 18),
+                      child: SectionLabel(l10n.defaultConfigSection),
+                    ),
+                    const SizedBox(height: 8),
+                    Card(
+                      elevation: 0,
+                      color: cs.surfaceContainerHighest,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        children: [
+                          SwitchListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            title: Text(
+                              l10n.firstFloatLabel,
+                              style: titleStyle,
+                            ),
+                            subtitle: Text(l10n.firstFloatLabelSubtitle),
+                            value: _ctrl.defaultFirstFloat,
+                            onChanged: (value) async {
+                              await InteractionHaptics.toggle();
+                              await _ctrl.setDefaultFirstFloat(value);
+                            },
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(16),
+                              ),
+                            ),
+                          ),
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          SwitchListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            title: Text(
+                              l10n.updateFloatLabel,
+                              style: titleStyle,
+                            ),
+                            subtitle: Text(l10n.updateFloatLabelSubtitle),
+                            value: _ctrl.defaultEnableFloat,
+                            onChanged: (value) async {
+                              await InteractionHaptics.toggle();
+                              await _ctrl.setDefaultEnableFloat(value);
+                            },
+                          ),
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          SwitchListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            title: Text(
+                              l10n.marqueeChannelTitle,
+                              style: titleStyle,
+                            ),
+                            subtitle: Text(l10n.marqueeChannelTitleSubtitle),
+                            value: _ctrl.defaultMarquee,
+                            onChanged: (value) async {
+                              await InteractionHaptics.toggle();
+                              await _ctrl.setDefaultMarquee(value);
+                            },
+                          ),
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          SwitchListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            title: Text(
+                              l10n.focusNotificationLabel,
+                              style: titleStyle,
+                            ),
+                            subtitle: Text(l10n.focusNotificationLabelSubtitle),
+                            value: _ctrl.defaultFocusNotif,
+                            onChanged: (value) async {
+                              await InteractionHaptics.toggle();
+                              await _ctrl.setDefaultFocusNotif(value);
+                            },
+                          ),
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          SwitchListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            title: Text(
+                              l10n.restoreLockscreenTitle,
+                              style: titleStyle,
+                            ),
+                            subtitle: Text(l10n.restoreLockscreenSubtitle),
+                            value: _ctrl.defaultRestoreLockscreen,
+                            onChanged: (value) async {
+                              await InteractionHaptics.toggle();
+                              await _ctrl.setDefaultRestoreLockscreen(value);
+                            },
+                          ),
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          SwitchListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            title: Text(
+                              l10n.islandIconLabel,
+                              style: titleStyle,
+                            ),
+                            subtitle: Text(l10n.islandIconLabelSubtitle),
+                            value: _ctrl.defaultShowIslandIcon,
+                            onChanged: (value) async {
+                              await InteractionHaptics.toggle();
+                              await _ctrl.setDefaultShowIslandIcon(value);
+                            },
+                          ),
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          SwitchListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            title: Text(
+                              l10n.preserveStatusBarSmallIconLabel,
+                              style: titleStyle,
+                            ),
+                            subtitle: Text(
+                              l10n.preserveStatusBarSmallIconLabelSubtitle,
+                            ),
+                            value: _ctrl.defaultPreserveSmallIcon,
+                            onChanged: (value) async {
+                              await InteractionHaptics.toggle();
+                              await _ctrl.setDefaultPreserveSmallIcon(value);
+                            },
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(
+                                bottom: Radius.circular(16),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 18),
+                      child: SectionLabel(l10n.appearanceSection),
+                    ),
+                    const SizedBox(height: 8),
+                    Card(
+                      elevation: 0,
+                      color: cs.surfaceContainerHighest,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        children: [
+                          SwitchListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            title: Text(
+                              l10n.useAppIconTitle,
+                              style: titleStyle,
+                            ),
+                            subtitle: Text(l10n.useAppIconSubtitle),
+                            value: _ctrl.useHookAppIcon,
+                            onChanged: _onUseHookAppIconChanged,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          SwitchListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            title: Text(l10n.roundIconTitle, style: titleStyle),
+                            subtitle: Text(l10n.roundIconSubtitle),
+                            value: _ctrl.roundIcon,
+                            onChanged: _onRoundIconChanged,
+                          ),
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 2,
+                            ),
+                            title: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    l10n.marqueeChannelTitle,
+                                    style: titleStyle,
                                   ),
                                 ),
-                            ],
-                          ),
-                          subtitle: Row(
-                            children: [
-                              Text(
-                                l10n.marqueeSpeedTitle,
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(color: cs.onSurfaceVariant),
-                              ),
-                              Expanded(
-                                child: SliderTheme(
-                                  data: ModernSliderTheme.theme(context),
-                                  child: Slider(
-                                    value: _ctrl.marqueeSpeed.toDouble(),
-                                    min: 20,
-                                    max: 500,
-                                    divisions: 48,
-                                    label: l10n.marqueeSpeedLabel(
-                                      _ctrl.marqueeSpeed,
+                                Text(
+                                  l10n.marqueeSpeedLabel(_marqueeSpeedDraft),
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(color: cs.onSurfaceVariant),
+                                ),
+                                if (_marqueeSpeedDraft != 100)
+                                  SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: IconButton(
+                                      icon: const Icon(Icons.refresh, size: 18),
+                                      padding: EdgeInsets.zero,
+                                      visualDensity: VisualDensity.compact,
+                                      onPressed: () async {
+                                        await InteractionHaptics.button();
+                                        setState(
+                                          () => _marqueeSpeedDraft = 100,
+                                        );
+                                        _ctrl.setMarqueeSpeed(100);
+                                      },
                                     ),
-                                    onChanged: _onMarqueeSpeedChanged,
+                                  ),
+                              ],
+                            ),
+                            subtitle: Row(
+                              children: [
+                                Text(
+                                  l10n.marqueeSpeedTitle,
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(color: cs.onSurfaceVariant),
+                                ),
+                                Expanded(
+                                  child: SliderTheme(
+                                    data: ModernSliderTheme.theme(context),
+                                    child: Slider(
+                                      value: _marqueeSpeedDraft.toDouble(),
+                                      min: 20,
+                                      max: 500,
+                                      divisions: 48,
+                                      onChanged: _onMarqueeSpeedChanged,
+                                      onChangeEnd: _persistMarqueeSpeed,
+                                    ),
                                   ),
                                 ),
+                              ],
+                            ),
+                          ),
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            title: Text(l10n.themeModeTitle, style: titleStyle),
+                            subtitle: Text(_themeModeLabel(l10n)),
+                            onTap: () => _showThemeModeDialog(l10n),
+                          ),
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            title: Text(l10n.languageTitle, style: titleStyle),
+                            subtitle: Text(_localeLabel(l10n)),
+                            onTap: () => _showLanguageDialog(l10n),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(
+                                bottom: Radius.circular(16),
                               ),
-                            ],
-                          ),
-                        ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          title: Text(l10n.themeModeTitle),
-                          subtitle: Text(_themeModeLabel(l10n)),
-                          onTap: () => _showThemeModeDialog(l10n),
-                        ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          title: Text(l10n.languageTitle),
-                          subtitle: Text(_localeLabel(l10n)),
-                          onTap: () => _showLanguageDialog(l10n),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(
-                              bottom: Radius.circular(16),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  SectionLabel(l10n.configSection),
-                  const SizedBox(height: 8),
-                  Card(
-                    elevation: 0,
-                    color: cs.surfaceContainerHighest,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 18),
+                      child: SectionLabel(l10n.configSection),
                     ),
-                    child: Column(
-                      children: [
-                        ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(
-                              top: Radius.circular(16),
+                    const SizedBox(height: 8),
+                    Card(
+                      elevation: 0,
+                      color: cs.surfaceContainerHighest,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        children: [
+                          ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
                             ),
-                          ),
-                          leading: const Icon(Icons.upload_file_outlined),
-                          title: Text(l10n.exportConfig),
-                          subtitle: Text(l10n.exportConfigSubtitle),
-                          onTap: () => _showExportOptions(l10n),
-                        ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          leading: const Icon(Icons.download_outlined),
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(
-                              bottom: Radius.circular(16),
-                            ),
-                          ),
-                          title: Text(l10n.importConfig),
-                          subtitle: Text(l10n.importConfigSubtitle),
-                          onTap: () => _showImportOptions(l10n),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  SectionLabel(l10n.aboutSection),
-                  const SizedBox(height: 8),
-                  Card(
-                    elevation: 0,
-                    color: cs.surfaceContainerHighest,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      children: [
-                        ListTile(
-                          leading: const Icon(Icons.system_update_outlined),
-                          title: Text(l10n.checkUpdate),
-                          trailing: _checkingUpdate
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : null,
-                          onTap: _checkingUpdate ? null : _doCheckUpdate,
-                        ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        ListTile(
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(
-                              top: Radius.circular(16),
-                            ),
-                          ),
-                          leading: const Icon(Icons.code),
-                          title: const Text('GitHub'),
-                          subtitle: const Text('1812z/HyperIsland'),
-                          trailing: const Icon(Icons.open_in_new, size: 18),
-                          onTap: () async {
-                            await InteractionHaptics.button();
-                            await launchUrl(
-                              Uri.parse('https://github.com/1812z/HyperIsland'),
-                              mode: LaunchMode.externalApplication,
-                            );
-                          },
-                        ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        ListTile(
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(
-                              bottom: Radius.circular(16),
-                            ),
-                          ),
-                          leading: const Icon(Icons.group_outlined),
-                          title: Text(l10n.qqGroup),
-                          subtitle: const Text('1045114341'),
-                          trailing: const Icon(Icons.copy, size: 18),
-                          onTap: () async {
-                            await InteractionHaptics.button();
-                            if (!context.mounted) return;
-                            Clipboard.setData(
-                              const ClipboardData(text: '1045114341'),
-                            );
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(l10n.groupNumberCopied),
-                                duration: const Duration(seconds: 2),
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(16),
                               ),
-                            );
-                          },
-                        ),
-                      ],
+                            ),
+                            leading: const Icon(Icons.upload_file_outlined),
+                            title: Text(l10n.exportToFile, style: titleStyle),
+                            subtitle: Text(l10n.exportToFileSubtitle),
+                            onTap: _exportToFile,
+                          ),
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            leading: const Icon(Icons.copy_outlined),
+                            title: Text(
+                              l10n.exportToClipboard,
+                              style: titleStyle,
+                            ),
+                            subtitle: Text(l10n.exportToClipboardSubtitle),
+                            onTap: _exportToClipboard,
+                          ),
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            leading: const Icon(Icons.download_outlined),
+                            title: Text(l10n.importFromFile, style: titleStyle),
+                            subtitle: Text(l10n.importFromFileSubtitle),
+                            onTap: _importFromFile,
+                          ),
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(
+                                bottom: Radius.circular(16),
+                              ),
+                            ),
+                            leading: const Icon(Icons.paste_outlined),
+                            title: Text(
+                              l10n.importFromClipboard,
+                              style: titleStyle,
+                            ),
+                            subtitle: Text(l10n.importFromClipboardSubtitle),
+                            onTap: _importFromClipboard,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 32),
-                ]),
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 18),
+                      child: SectionLabel(l10n.aboutSection),
+                    ),
+                    const SizedBox(height: 8),
+                    Card(
+                      elevation: 0,
+                      color: cs.surfaceContainerHighest,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        children: [
+                          ListTile(
+                            leading: const Icon(Icons.system_update_outlined),
+                            title: Text(l10n.checkUpdate, style: titleStyle),
+                            trailing: _checkingUpdate
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : null,
+                            onTap: _checkingUpdate ? null : _doCheckUpdate,
+                          ),
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          ListTile(
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(16),
+                              ),
+                            ),
+                            leading: const Icon(Icons.code),
+                            title: Text('GitHub', style: titleStyle),
+                            subtitle: const Text('1812z/HyperIsland'),
+                            trailing: const Icon(Icons.open_in_new, size: 18),
+                            onTap: () async {
+                              await InteractionHaptics.button();
+                              await launchUrl(
+                                Uri.parse(
+                                  'https://github.com/1812z/HyperIsland',
+                                ),
+                                mode: LaunchMode.externalApplication,
+                              );
+                            },
+                          ),
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          ListTile(
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(
+                                bottom: Radius.circular(16),
+                              ),
+                            ),
+                            leading: const Icon(Icons.group_outlined),
+                            title: Text(l10n.qqGroup, style: titleStyle),
+                            subtitle: const Text('1045114341'),
+                            trailing: const Icon(Icons.copy, size: 18),
+                            onTap: () async {
+                              await InteractionHaptics.button();
+                              Clipboard.setData(
+                                const ClipboardData(text: '1045114341'),
+                              );
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(l10n.groupNumberCopied),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                  ],
+                  addAutomaticKeepAlives: false,
+                  addSemanticIndexes: true,
+                ),
               ),
             ),
         ],
@@ -901,7 +966,6 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 }
 
-/// Generic radio option for SimpleDialog — pops the dialog with [value].
 class _RadioOption<T> extends StatelessWidget {
   const _RadioOption(this.label, this.value, {super.key});
 

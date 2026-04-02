@@ -20,10 +20,14 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   final _ctrl = SettingsController.instance;
+  late ThemeMode _themeMode;
+  Locale? _locale;
 
   @override
   void initState() {
     super.initState();
+    _themeMode = _ctrl.themeMode;
+    _locale = _ctrl.locale;
     _ctrl.addListener(_onSettingsChanged);
   }
 
@@ -33,7 +37,16 @@ class _MyAppState extends State<MyApp> {
     super.dispose();
   }
 
-  void _onSettingsChanged() => setState(() {});
+  void _onSettingsChanged() {
+    final nextThemeMode = _ctrl.themeMode;
+    final nextLocale = _ctrl.locale;
+    if (nextThemeMode == _themeMode && nextLocale == _locale) return;
+    if (!mounted) return;
+    setState(() {
+      _themeMode = nextThemeMode;
+      _locale = nextLocale;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +59,7 @@ class _MyAppState extends State<MyApp> {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
-      locale: _ctrl.locale,
+      locale: _locale,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF6750A4),
@@ -61,7 +74,7 @@ class _MyAppState extends State<MyApp> {
         ),
         useMaterial3: true,
       ),
-      themeMode: _ctrl.themeMode,
+      themeMode: _themeMode,
       home: const MainPage(),
     );
   }

@@ -18,8 +18,7 @@ class AiConfigPage extends StatefulWidget {
 
 class _AiConfigPageState extends State<AiConfigPage> {
   final _ctrl = SettingsController.instance;
-  static const _defaultAiPrompt =
-      '根据通知信息，提取关键信息，左右分别不超过6汉字12字符';
+  static const _defaultAiPrompt = '根据通知信息，提取关键信息，左右分别不超过6汉字12字符';
 
   late final TextEditingController _urlCtrl;
   late final TextEditingController _keyCtrl;
@@ -29,9 +28,25 @@ class _AiConfigPageState extends State<AiConfigPage> {
   bool _keyObscured = true;
   bool _testing = false;
   _TestResult? _testResult;
+  late int _aiTimeoutDraft;
+  late bool _aiEnabledValue;
+  late bool _aiPromptInUserValue;
 
   void _onCtrlChanged() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    final nextTimeout = _ctrl.aiTimeout;
+    final nextAiEnabled = _ctrl.aiEnabled;
+    final nextPromptInUser = _ctrl.aiPromptInUser;
+    if (nextTimeout == _aiTimeoutDraft &&
+        nextAiEnabled == _aiEnabledValue &&
+        nextPromptInUser == _aiPromptInUserValue) {
+      return;
+    }
+    setState(() {
+      _aiTimeoutDraft = nextTimeout;
+      _aiEnabledValue = nextAiEnabled;
+      _aiPromptInUserValue = nextPromptInUser;
+    });
   }
 
   @override
@@ -44,6 +59,9 @@ class _AiConfigPageState extends State<AiConfigPage> {
     _promptCtrl = TextEditingController(
       text: _ctrl.aiPrompt.isEmpty ? _defaultAiPrompt : _ctrl.aiPrompt,
     );
+    _aiTimeoutDraft = _ctrl.aiTimeout;
+    _aiEnabledValue = _ctrl.aiEnabled;
+    _aiPromptInUserValue = _ctrl.aiPromptInUser;
   }
 
   @override
@@ -58,10 +76,18 @@ class _AiConfigPageState extends State<AiConfigPage> {
 
   Future<void> _save() async {
     await InteractionHaptics.button();
-    await _ctrl.setAiUrl(_urlCtrl.text.trim());
-    await _ctrl.setAiApiKey(_keyCtrl.text.trim());
-    await _ctrl.setAiModel(_modelCtrl.text.trim());
-    await _ctrl.setAiPrompt(_promptCtrl.text.trim());
+    final nextUrl = _urlCtrl.text.trim();
+    final nextKey = _keyCtrl.text.trim();
+    final nextModel = _modelCtrl.text.trim();
+    final nextPrompt = _promptCtrl.text.trim();
+
+    if (nextUrl != _ctrl.aiUrl) await _ctrl.setAiUrl(nextUrl);
+    if (nextKey != _ctrl.aiApiKey) await _ctrl.setAiApiKey(nextKey);
+    if (nextModel != _ctrl.aiModel) await _ctrl.setAiModel(nextModel);
+    if (nextPrompt != _ctrl.aiPrompt) await _ctrl.setAiPrompt(nextPrompt);
+    if (_aiTimeoutDraft != _ctrl.aiTimeout) {
+      await _ctrl.setAiTimeout(_aiTimeoutDraft);
+    }
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -73,6 +99,32 @@ class _AiConfigPageState extends State<AiConfigPage> {
         ),
       );
     }
+  }
+
+  void _onTimeoutChanged(double value) {
+    final next = value.round();
+    if (_aiTimeoutDraft == next) return;
+    setState(() => _aiTimeoutDraft = next);
+  }
+
+  Future<void> _persistTimeout(double value) async {
+    final next = value.round();
+    if (_ctrl.aiTimeout == next) return;
+    await _ctrl.setAiTimeout(next);
+  }
+
+  Future<void> _onAiEnabledChanged(bool value) async {
+    if (_aiEnabledValue == value) return;
+    await InteractionHaptics.toggle();
+    setState(() => _aiEnabledValue = value);
+    await _ctrl.setAiEnabled(value);
+  }
+
+  Future<void> _onAiPromptInUserChanged(bool value) async {
+    if (_aiPromptInUserValue == value) return;
+    await InteractionHaptics.toggle();
+    setState(() => _aiPromptInUserValue = value);
+    await _ctrl.setAiPromptInUser(value);
   }
 
   Future<void> _test() async {
@@ -236,11 +288,8 @@ class _AiConfigPageState extends State<AiConfigPage> {
                     ),
                     title: Text(l10n.aiEnabledTitle),
                     subtitle: Text(l10n.aiEnabledSubtitle),
-                    value: _ctrl.aiEnabled,
-                    onChanged: (value) async {
-                      await InteractionHaptics.toggle();
-                      await _ctrl.setAiEnabled(value);
-                    },
+                    value: _aiEnabledValue,
+                    onChanged: _onAiEnabledChanged,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -301,36 +350,14 @@ class _AiConfigPageState extends State<AiConfigPage> {
                           maxLines: 10,
                         ),
                         const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    l10n.aiPromptInUserTitle,
-                                    style: textTheme.titleMedium,
-                                  ),
-                                  Text(
-                                    l10n.aiPromptInUserSubtitle,
-                                    style: textTheme.bodySmall?.copyWith(
-                                      color: cs.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Switch(
-                              value: _ctrl.aiPromptInUser,
-                              onChanged: (value) async {
-                                await InteractionHaptics.toggle();
-                                await _ctrl.setAiPromptInUser(value);
-                              },
-                            ),
-                          ],
+                        SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(l10n.aiPromptInUserTitle),
+                          subtitle: Text(l10n.aiPromptInUserSubtitle),
+                          value: _aiPromptInUserValue,
+                          onChanged: _onAiPromptInUserChanged,
                         ),
                         const SizedBox(height: 24),
-
                         Row(
                           children: [
                             const FaIcon(FontAwesomeIcons.clock, size: 18),
@@ -343,31 +370,28 @@ class _AiConfigPageState extends State<AiConfigPage> {
                                     l10n.aiTimeoutTitle,
                                     style: textTheme.titleMedium,
                                   ),
+                                  Text(
+                                    '${_aiTimeoutDraft}s',
+                                    style: textTheme.bodySmall?.copyWith(
+                                      color: cs.onSurfaceVariant,
+                                    ),
+                                  ),
                                 ],
-                              ),
-                            ),
-                            Text(
-                              l10n.aiTimeoutLabel(_ctrl.aiTimeout),
-                              style: textTheme.bodyLarge?.copyWith(
-                                color: cs.primary,
-                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ],
                         ),
-                        SliderTheme(
-                          data: ModernSliderTheme.theme(context),
-                          child: Slider(
-                            value: _ctrl.aiTimeout.toDouble(),
-                            min: 1,
-                            max: 10,
-                            divisions: 9,
-                            label: '${_ctrl.aiTimeout}s',
-                            onChanged: (v) async {
-                              await InteractionHaptics.sliderTick();
-                              await _ctrl.setAiTimeout(v.toInt());
-                            },
-                          ),
+                        Slider(
+                          value: _aiTimeoutDraft.toDouble(),
+                          min: 3,
+                          max: 15,
+                          divisions: 12,
+                          label: '${_aiTimeoutDraft}s',
+                          onChanged: (v) async {
+                            await InteractionHaptics.sliderTick();
+                            _onTimeoutChanged(v);
+                          },
+                          onChangeEnd: _persistTimeout,
                         ),
 
                         const SizedBox(height: 16),

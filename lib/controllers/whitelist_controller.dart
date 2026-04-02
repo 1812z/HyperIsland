@@ -50,6 +50,7 @@ class WhitelistController extends ChangeNotifier {
   List<AppInfo> _allApps = [];
   // 稳定列表：切换开关时不重排，仅 _resort() 时更新
   List<AppInfo> _sortedApps = [];
+  List<AppInfo> _filteredApps = [];
   Set<String> enabledPackages = {};
   bool loading = true;
   String _searchQuery = '';
@@ -67,10 +68,11 @@ class WhitelistController extends ChangeNotifier {
         if (aOn != bOn) return aOn ? -1 : 1;
         return a.appName.compareTo(b.appName);
       });
+    _rebuildFilteredApps();
   }
 
-  List<AppInfo> get filteredApps {
-    final q = _searchQuery.toLowerCase();
+  void _rebuildFilteredApps() {
+    final q = _searchQuery.trim().toLowerCase();
     Iterable<AppInfo> source = showSystemApps
         ? _sortedApps
         : _sortedApps.where(
@@ -78,13 +80,13 @@ class WhitelistController extends ChangeNotifier {
           );
     if (q.isNotEmpty) {
       source = source.where(
-        (a) =>
-            a.appName.toLowerCase().contains(q) ||
-            a.packageName.toLowerCase().contains(q),
+        (a) => a.appNameLower.contains(q) || a.packageNameLower.contains(q),
       );
     }
-    return source is List<AppInfo> ? source : source.toList();
+    _filteredApps = source is List<AppInfo> ? source : source.toList();
   }
+
+  List<AppInfo> get filteredApps => _filteredApps;
 
   Future<void> refresh() => _load();
 
@@ -110,58 +112,80 @@ class WhitelistController extends ChangeNotifier {
   }
 
   Future<void> setEnabled(String packageName, bool enabled) async {
-    if (enabled) {
-      enabledPackages.add(packageName);
-    } else {
-      enabledPackages.remove(packageName);
-    }
+    final changed = enabled
+        ? enabledPackages.add(packageName)
+        : enabledPackages.remove(packageName);
+    if (!changed) return;
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(kPrefGenericWhitelist, enabledPackages.join(','));
-    // 切换开关：不重排，直接通知
+    _rebuildFilteredApps();
     notifyListeners();
   }
 
   void setSearch(String query) {
+    if (_searchQuery == query) return;
     _searchQuery = query;
-    _resort();
+    _rebuildFilteredApps();
     notifyListeners();
   }
 
   void setShowSystemApps(bool value) {
+    if (showSystemApps == value) return;
     showSystemApps = value;
-    _resort();
+    _rebuildFilteredApps();
     notifyListeners();
   }
 
   Future<void> enableAll() async {
+    var changed = false;
     for (final a in filteredApps) {
-      enabledPackages.add(a.packageName);
+      if (enabledPackages.add(a.packageName)) {
+        changed = true;
+      }
     }
+    if (!changed) return;
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(kPrefGenericWhitelist, enabledPackages.join(','));
+    _rebuildFilteredApps();
     notifyListeners();
   }
 
   Future<void> disableAll() async {
+    var changed = false;
     for (final a in filteredApps) {
-      enabledPackages.remove(a.packageName);
+      if (enabledPackages.remove(a.packageName)) {
+        changed = true;
+      }
     }
+    if (!changed) return;
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(kPrefGenericWhitelist, enabledPackages.join(','));
+    _rebuildFilteredApps();
     notifyListeners();
   }
 
   /// 批量开启或关闭指定包，仅保存一次 prefs。
   Future<void> setEnabledBatch(List<String> packages, bool enabled) async {
+    var changed = false;
     for (final pkg in packages) {
       if (enabled) {
-        enabledPackages.add(pkg);
+        if (enabledPackages.add(pkg)) {
+          changed = true;
+        }
       } else {
-        enabledPackages.remove(pkg);
+        if (enabledPackages.remove(pkg)) {
+          changed = true;
+        }
       }
     }
+    if (!changed) return;
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(kPrefGenericWhitelist, enabledPackages.join(','));
+    _rebuildFilteredApps();
     notifyListeners();
   }
 
