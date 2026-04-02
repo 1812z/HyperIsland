@@ -635,7 +635,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiApiSection => 'API 参数';
 
   @override
-  String get aiUrlLabel => 'API 地址';
+  String get aiUrlLabel => 'API 地址（必须完整）';
 
   @override
   String get aiUrlHint => 'https://api.openai.com/v1/chat/completions';
@@ -771,4 +771,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get templateAiNotificationIslandName => 'AI 通知超级岛';
+
+  @override
+  String get hideDesktopIconTitle => '隐藏桌面图标';
+
+  @override
+  String get hideDesktopIconSubtitle => '隐藏启动器中的应用图标，隐藏后可通过 LSPosed 管理器打开';
 }

@@ -385,7 +385,7 @@
   "aiEnabledTitle": "启用 AI 摘要",
   "aiEnabledSubtitle": "由 AI 生成超级岛左右文本，超时或失败时自动回退",
   "aiApiSection": "API 参数",
-  "aiUrlLabel": "API 地址",
+  "aiUrlLabel": "API 地址（必须完整）",
   "aiUrlHint": "https://api.openai.com/v1/chat/completions",
   "aiApiKeyLabel": "API 密钥",
   "aiApiKeyHint": "sk-...",
@@ -436,5 +436,7 @@
   "aiConfigSaveButton": "保存",
   "aiConfigSaved": "AI 配置已保存",
   "aiConfigTips": "AI 将收到通知的应用包名、标题和正文，返回左侧（来源）和右侧（内容）短文本。支持兼容 OpenAI 格式的接口（如 DeepSeek、Claude 等）。超过 3 秒未响应时自动回退到默认逻辑。",
-  "templateAiNotificationIslandName": "AI 通知超级岛"
+  "templateAiNotificationIslandName": "AI 通知超级岛",
+  "hideDesktopIconTitle": "隐藏桌面图标",
+  "hideDesktopIconSubtitle": "隐藏启动器中的应用图标，隐藏后可通过 LSPosed 管理器打开"
 }

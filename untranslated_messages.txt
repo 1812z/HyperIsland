@@ -32,7 +32,9 @@
     "aiLastLogHttpCode",
     "aiLastLogLeftText",
     "aiLastLogRightText",
-    "aiLastLogAssistantContent"
+    "aiLastLogAssistantContent",
+    "hideDesktopIconTitle",
+    "hideDesktopIconSubtitle"
   ],
 
   "tr": [

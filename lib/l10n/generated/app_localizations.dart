@@ -1251,7 +1251,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiUrlLabel.
   ///
   /// In zh, this message translates to:
-  /// **'API 地址'**
+  /// **'API 地址（必须完整）'**
   String get aiUrlLabel;
 
   /// No description provided for @aiUrlHint.
@@ -1517,6 +1517,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'AI 通知超级岛'**
   String get templateAiNotificationIslandName;
+
+  /// No description provided for @hideDesktopIconTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'隐藏桌面图标'**
+  String get hideDesktopIconTitle;
+
+  /// No description provided for @hideDesktopIconSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'隐藏启动器中的应用图标，隐藏后可通过 LSPosed 管理器打开'**
+  String get hideDesktopIconSubtitle;
 }
 
 class _AppLocalizationsDelegate

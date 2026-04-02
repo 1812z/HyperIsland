@@ -70,6 +70,11 @@ class _SettingsPageState extends State<SettingsPage> {
     await _ctrl.setRoundIcon(value);
   }
 
+  Future<void> _onHideDesktopIconChanged(bool value) async {
+    await InteractionHaptics.toggle();
+    await _ctrl.setHideDesktopIcon(value);
+  }
+
   Future<void> _onMarqueeSpeedChanged(double value) async {
     await InteractionHaptics.sliderTick();
     _ctrl.setMarqueeSpeed(value.round());
@@ -492,6 +497,25 @@ class _SettingsPageState extends State<SettingsPage> {
                             horizontal: 16,
                             vertical: 4,
                           ),
+                          title: Text(l10n.hideDesktopIconTitle),
+                          subtitle: Text(l10n.hideDesktopIconSubtitle),
+                          value: _ctrl.hideDesktopIcon,
+                          onChanged: (value) async {
+                            await InteractionHaptics.toggle();
+                            await _onHideDesktopIconChanged(value);
+                          },
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.vertical(
+                              bottom: Radius.circular(16),
+                            ),
+                          ),
+                        ),
+                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        SwitchListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                           title: Text(l10n.checkUpdateOnLaunchTitle),
                           subtitle: Text(l10n.checkUpdateOnLaunchSubtitle),
                           value: _ctrl.checkUpdateOnLaunch,
@@ -670,71 +694,53 @@ class _SettingsPageState extends State<SettingsPage> {
                           ),
                         ),
                         const Divider(height: 1, indent: 16, endIndent: 16),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 2,
+                          ),
+                          title: Row(
                             children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    '${l10n.marqueeChannelTitle}|${l10n.marqueeSpeedTitle}',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodyMedium,
-                                  ),
-                                  Row(
-                                    children: [
-                                      Text(
-                                        l10n.marqueeSpeedLabel(
-                                          _ctrl.marqueeSpeed,
-                                        ),
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodyLarge
-                                            ?.copyWith(
-                                              color: cs.primary,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                      ),
-                                      Opacity(
-                                        opacity: _ctrl.marqueeSpeed != 100
-                                            ? 1.0
-                                            : 0.0,
-                                        child: IconButton(
-                                          icon: const Icon(
-                                            Icons.refresh,
-                                            size: 16,
-                                          ),
-                                          padding: EdgeInsets.zero,
-                                          visualDensity: VisualDensity.compact,
-                                          onPressed: _ctrl.marqueeSpeed != 100
-                                              ? () async {
-                                                  await InteractionHaptics.button();
-                                                  await _ctrl.setMarqueeSpeed(
-                                                    100,
-                                                  );
-                                                }
-                                              : null,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                              Expanded(child: Text(l10n.marqueeChannelTitle)),
+                              Text(
+                                l10n.marqueeSpeedLabel(_ctrl.marqueeSpeed),
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(fontWeight: FontWeight.bold),
                               ),
-                              SliderTheme(
-                                data: ModernSliderTheme.theme(context),
-                                child: Slider(
-                                  value: _ctrl.marqueeSpeed.toDouble(),
-                                  min: 20,
-                                  max: 500,
-                                  divisions: 48,
-                                  label: l10n.marqueeSpeedLabel(
-                                    _ctrl.marqueeSpeed,
+
+                              if (_ctrl.marqueeSpeed != 100)
+                                SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: IconButton(
+                                    icon: const Icon(Icons.refresh, size: 18),
+                                    padding: EdgeInsets.zero,
+                                    visualDensity: VisualDensity.compact,
+                                    onPressed: () => _ctrl.setMarqueeSpeed(100),
                                   ),
-                                  onChanged: _onMarqueeSpeedChanged,
+                                ),
+                            ],
+                          ),
+                          subtitle: Row(
+                            children: [
+                              Text(
+                                l10n.marqueeSpeedTitle,
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(color: cs.onSurfaceVariant),
+                              ),
+                              Expanded(
+                                child: SliderTheme(
+                                  data: ModernSliderTheme.theme(context),
+                                  child: Slider(
+                                    value: _ctrl.marqueeSpeed.toDouble(),
+                                    min: 20,
+                                    max: 500,
+                                    divisions: 48,
+                                    label: l10n.marqueeSpeedLabel(
+                                      _ctrl.marqueeSpeed,
+                                    ),
+                                    onChanged: _onMarqueeSpeedChanged,
+                                  ),
                                 ),
                               ),
                             ],

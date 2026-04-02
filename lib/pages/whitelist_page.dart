@@ -411,6 +411,7 @@ class _WhitelistPageState extends State<WhitelistPage> {
                       final app = apps[index];
                       final pkg = app.packageName;
                       return _AppTile(
+                        key: ValueKey(pkg),
                         app: app,
                         enabled: _ctrl.enabledPackages.contains(pkg),
                         onChanged: _selectionMode
@@ -451,6 +452,7 @@ class _WhitelistPageState extends State<WhitelistPage> {
 
 class _AppTile extends StatelessWidget {
   const _AppTile({
+    super.key,
     required this.app,
     required this.enabled,
     required this.onChanged,

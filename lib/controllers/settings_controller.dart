@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const kPrefShowWelcome = 'pref_show_welcome';
@@ -22,7 +23,7 @@ const kPrefDefaultMarquee = 'pref_default_marquee';
 const kPrefDefaultFocusNotif = 'pref_default_focus_notif';
 const kPrefDefaultRestoreLockscreen = 'pref_default_restore_lockscreen';
 const kPrefDefaultPreserveSmallIcon = 'pref_default_preserve_small_icon';
-
+const kPrefHideDesktopIcon = 'pref_hide_desktop_icon';
 const kPrefAiEnabled = 'pref_ai_enabled';
 const kPrefAiUrl = 'pref_ai_url';
 const kPrefAiApiKey = 'pref_ai_api_key';
@@ -108,6 +109,7 @@ class SettingsController extends ChangeNotifier {
   bool defaultShowIslandIcon = true;
   bool defaultMarquee = false;
   bool defaultFocusNotif = true;
+  bool hideDesktopIcon = false;
   bool defaultRestoreLockscreen = false;
   bool defaultPreserveSmallIcon = false;
   bool aiEnabled = false;
@@ -141,6 +143,8 @@ class SettingsController extends ChangeNotifier {
     defaultShowIslandIcon = prefs.getBool(kPrefDefaultShowIslandIcon) ?? true;
     defaultMarquee = prefs.getBool(kPrefDefaultMarquee) ?? false;
     defaultFocusNotif = prefs.getBool(kPrefDefaultFocusNotif) ?? true;
+    hideDesktopIcon = prefs.getBool(kPrefHideDesktopIcon) ?? false;
+    defaultShowIslandIcon = prefs.getBool(kPrefDefaultShowIslandIcon) ?? true;
     defaultRestoreLockscreen =
         prefs.getBool(kPrefDefaultRestoreLockscreen) ?? false;
     defaultPreserveSmallIcon =
@@ -272,17 +276,28 @@ class SettingsController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setDefaultRestoreLockscreen(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(kPrefDefaultRestoreLockscreen, value);
-    defaultRestoreLockscreen = value;
-    notifyListeners();
-  }
-
   Future<void> setDefaultPreserveSmallIcon(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(kPrefDefaultPreserveSmallIcon, value);
     defaultPreserveSmallIcon = value;
+    notifyListeners();
+  }
+
+  Future<void> setHideDesktopIcon(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(kPrefHideDesktopIcon, value);
+    hideDesktopIcon = value;
+    const channel = MethodChannel('io.github.hyperisland/test');
+    try {
+      await channel.invokeMethod('setDesktopIconVisible', {'visible': !value});
+    } catch (_) {}
+    notifyListeners();
+  }
+
+  Future<void> setDefaultRestoreLockscreen(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(kPrefDefaultRestoreLockscreen, value);
+    defaultRestoreLockscreen = value;
     notifyListeners();
   }
 

@@ -189,6 +189,7 @@ class _BlacklistPageState extends State<BlacklistPage> {
                       final app = apps[index];
                       final pkg = app.packageName;
                       return _AppTile(
+                        key: ValueKey(pkg),
                         app: app,
                         enabled: _ctrl.blacklistedPackages.contains(pkg),
                         onChanged: (v) => _ctrl.setBlacklisted(pkg, v ?? false),
@@ -214,6 +215,7 @@ class _BlacklistPageState extends State<BlacklistPage> {
 
 class _AppTile extends StatelessWidget {
   const _AppTile({
+    super.key,
     required this.app,
     required this.enabled,
     required this.onChanged,

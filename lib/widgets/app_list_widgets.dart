@@ -110,7 +110,7 @@ class AppListItemFrame extends StatelessWidget {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: _AppIconView(app: app),
+                child: _AppIconView(app: app, key: ValueKey(app.packageName)),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -146,7 +146,7 @@ class AppListItemFrame extends StatelessWidget {
 }
 
 class _AppIconView extends StatefulWidget {
-  const _AppIconView({required this.app});
+  const _AppIconView({required this.app, super.key});
 
   final AppInfo app;
 

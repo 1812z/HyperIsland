@@ -394,5 +394,7 @@
   "aiConfigSaveButton": "Kaydet",
   "aiConfigSaved": "Yapay Zeka yapılandırması kaydedildi",
   "aiConfigTips": "Yapay Zeka, bildirimin uygulama paket adını, başlığını ve gövdesini alarak sol (kaynak) ve sağ (içerik) kısa metinleri döndürür. OpenAI biçimiyle uyumlu API'leri destekler (DeepSeek, Claude vb.). 3 saniye içinde yanıt gelmezse otomatik olarak varsayılan mantığa geri döner.",
-  "templateAiNotificationIslandName": "Yapay Zeka Bildirim Dynamic Island"
+  "templateAiNotificationIslandName": "Yapay Zeka Bildirim Dynamic Island",
+  "hideDesktopIconTitle": "Ana Ekran Simgesini Gizle",
+  "hideDesktopIconSubtitle": "Uygulama simgesini başlatıcıdan gizler. Gizledikten sonra LSPosed Manager üzerinden açın"
 }

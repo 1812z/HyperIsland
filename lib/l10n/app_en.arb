@@ -268,5 +268,7 @@
   "aiConfigSaveButton": "Save",
   "aiConfigSaved": "AI configuration saved",
   "aiConfigTips": "AI receives the app package, title, and content of each notification, and returns short left (source) and right (content) text. Compatible with OpenAI-format APIs (e.g. DeepSeek, Claude). Falls back to default logic if no response within 3 seconds.",
-  "templateAiNotificationIslandName": "AI Notification Island"
+  "templateAiNotificationIslandName": "AI Notification Island",
+  "hideDesktopIconTitle": "Hide Desktop Icon",
+  "hideDesktopIconSubtitle": "Hide the app icon from launcher. Open via LSPosed Manager after hiding"
 }

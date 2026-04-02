@@ -809,4 +809,11 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get templateAiNotificationIslandName =>
       'Yapay Zeka Bildirim Dynamic Island';
+
+  @override
+  String get hideDesktopIconTitle => 'Ana Ekran Simgesini Gizle';
+
+  @override
+  String get hideDesktopIconSubtitle =>
+      'Uygulama simgesini başlatıcıdan gizler. Gizledikten sonra LSPosed Manager üzerinden açın';
 }
