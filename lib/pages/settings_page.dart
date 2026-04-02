@@ -837,7 +837,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     const SizedBox(height: 32),
                   ],
                   addAutomaticKeepAlives: false,
-                  addSemanticIndexes: false,
+                  addSemanticIndexes: true,
                 ),
               ),
             ),
