@@ -1,0 +1,62 @@
+{
+  "en": [
+    "aiTemperatureSubtitle",
+    "aiMaxTokensSubtitle"
+  ],
+
+  "ja": [
+    "lsposedApiVersion",
+    "showWelcomeTitle",
+    "showWelcomeSubtitle",
+    "aiPromptInUserTitle",
+    "aiPromptInUserSubtitle",
+    "aiTimeoutTitle",
+    "aiTimeoutLabel",
+    "aiTemperatureTitle",
+    "aiTemperatureSubtitle",
+    "aiMaxTokensTitle",
+    "aiMaxTokensSubtitle",
+    "aiDefaultPromptFull",
+    "aiLastLogDurationLabel",
+    "aiLastLogRendered",
+    "aiLastLogRaw",
+    "aiLastLogCopy",
+    "aiLastLogCopied",
+    "aiLastLogRequest",
+    "aiLastLogResponse",
+    "aiLastLogMessages",
+    "aiLastLogError",
+    "aiLastLogHttpCode",
+    "aiLastLogLeftText",
+    "aiLastLogRightText",
+    "aiLastLogAssistantContent"
+  ],
+
+  "tr": [
+    "lsposedApiVersion",
+    "showWelcomeTitle",
+    "showWelcomeSubtitle",
+    "aiPromptInUserTitle",
+    "aiPromptInUserSubtitle",
+    "aiTimeoutTitle",
+    "aiTimeoutLabel",
+    "aiTemperatureTitle",
+    "aiTemperatureSubtitle",
+    "aiMaxTokensTitle",
+    "aiMaxTokensSubtitle",
+    "aiDefaultPromptFull",
+    "aiLastLogDurationLabel",
+    "aiLastLogRendered",
+    "aiLastLogRaw",
+    "aiLastLogCopy",
+    "aiLastLogCopied",
+    "aiLastLogRequest",
+    "aiLastLogResponse",
+    "aiLastLogMessages",
+    "aiLastLogError",
+    "aiLastLogHttpCode",
+    "aiLastLogLeftText",
+    "aiLastLogRightText",
+    "aiLastLogAssistantContent"
+  ]
+}

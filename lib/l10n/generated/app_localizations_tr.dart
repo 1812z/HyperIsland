@@ -46,19 +46,19 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get later => 'Daha Sonra';
+  String get later => 'Sonra Hatırlat';
 
   @override
   String get goUpdate => 'Güncelle';
 
   @override
-  String get sponsorSupport => 'Geliştiriciyi Destekle';
+  String get sponsorSupport => 'Sponsor Desteği';
 
   @override
-  String get sponsorAuthor => 'Sponsor Ol';
+  String get sponsorAuthor => 'Geliştiriciye Destek Ol';
 
   @override
-  String get restartScope => 'Etki Alanını Yeniden Başlat';
+  String get restartScope => 'Kapsamı Yeniden Başlat';
 
   @override
   String get systemUI => 'Sistem Arayüzü';
@@ -67,7 +67,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get downloadManager => 'İndirme Yöneticisi';
 
   @override
-  String get xmsf => 'XMSF (Xiaomi Hizmet Çerçevesi)';
+  String get xmsf => 'Xiaomi Servis Çerçevesi';
 
   @override
   String get notificationTest => 'Bildirim Testi';
@@ -85,23 +85,28 @@ class AppLocalizationsTr extends AppLocalizations {
   String get moduleStatus => 'Modül Durumu';
 
   @override
-  String get activated => 'Etkin';
+  String get activated => 'Etkinleştirildi';
 
   @override
-  String get notActivated => 'Etkin Değil';
+  String get notActivated => 'Etkinleştirilmedi';
 
   @override
   String get enableInLSPosed => 'Lütfen bu modülü LSPosed içinde etkinleştirin';
 
   @override
-  String get updateLSPosedRequired => 'Lütfen LSPosed sürümünü güncelleyin';
+  String lsposedApiVersion(int version) {
+    return 'LSPosed API 版本: $version';
+  }
+
+  @override
+  String get updateLSPosedRequired => '请更新 LSPosed 版本';
 
   @override
   String get systemNotSupported => 'Sistem Desteklenmiyor';
 
   @override
   String systemNotSupportedSubtitle(int version) {
-    return 'Mevcut sistem Dynamic Island özelliğini desteklemiyor (protokol sürümü $version, gereken sürüm: 3)';
+    return 'Mevcut sistem Dynamic Island özelliğini desteklemiyor (protokol sürümü $version, sürüm 3 gerekli)';
   }
 
   @override
@@ -111,29 +116,29 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get restartRootRequired =>
-      'Lütfen bu uygulamaya root izni verildiğini doğrulayın';
+      'Lütfen uygulamaya ROOT izni verilip verilmediğini kontrol edin';
 
   @override
   String get note1 =>
-      '1. Bu sayfa yalnızca Dynamic Island desteğini test etmek içindir; gerçek görünümü yansıtmaz.';
+      '1. Bu sayfa yalnızca Dynamic Island desteğini test etmek içindir; gerçek deneyimi yansıtmaz';
 
   @override
   String get note2 =>
-      '2. HyperCeiler\'da Sistem Arayüzü ve XMSF için odak bildirimi beyaz listesini kapatın.';
+      '2. HyperCeiler\'da Sistem Arayüzü ve Xiaomi Servis Çerçevesi için odaklanmış bildirim beyaz listesini kapatın';
 
   @override
   String get note3 =>
-      '3. LSPosed Manager\'da etkinleştirdikten sonra ilgili etki alanındaki uygulamaları yeniden başlatmanız gerekir.';
+      '3. LSPosed yöneticisinde etkinleştirildikten sonra ilgili kapsam uygulamalarının yeniden başlatılması gerekir';
 
   @override
   String get note4 =>
-      '4. Genel uyarlama desteklenir; uygun şablonu seçip deneyin.';
+      '4. Genel uyum desteklenmektedir; uygun şablonu kendiniz seçerek deneyin';
 
   @override
   String get behaviorSection => 'Davranış';
 
   @override
-  String get defaultConfigSection => 'Uygulama Kanal Ayarları Varsayılanları';
+  String get defaultConfigSection => 'Kanal Varsayılan Yapılandırması';
 
   @override
   String get appearanceSection => 'Görünüm';
@@ -146,59 +151,81 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get keepFocusNotifTitle =>
-      'İndirme Duraklatılsa da Odak Bildirimini Koru';
+      'İndirme Yöneticisi Duraklatıldığında Odaklanmış Bildirimi Koru';
 
   @override
   String get keepFocusNotifSubtitle =>
-      'İndirmeyi sürdürmek için tıklanabilir bir bildirim gösterir; durum senkronu bozulabilir.';
+      'İndirmeye devam etmek için tıklanabilecek bir bildirim gösterir; durum tutarsızlığına yol açabilir';
 
   @override
-  String get unlockAllFocusTitle => 'Odak Bildirimi Beyaz Listesini Kaldır';
+  String get unlockAllFocusTitle =>
+      'Odaklanmış Bildirim Beyaz Listesini Kaldır';
 
   @override
   String get unlockAllFocusSubtitle =>
-      'Sistem yetkisi olmadan tüm uygulamaların odak bildirimi göndermesine izin verir.';
+      'Sistem yetkisi gerekmeksizin tüm uygulamaların odaklanmış bildirim göndermesine izin verir';
 
   @override
-  String get unlockFocusAuthTitle => 'Odak Bildirimi İmza Doğrulamasını Kaldır';
+  String get unlockFocusAuthTitle =>
+      'Odaklanmış Bildirim İmza Doğrulamasını Kaldır';
 
   @override
   String get unlockFocusAuthSubtitle =>
-      'İmza doğrulamasını atlayarak tüm uygulamaların saat/bilekliğe odak bildirimi göndermesine izin verir (XMSF hook gerekir).';
+      'İmza doğrulaması atlanarak tüm uygulamaların saat/bilekliğe odaklanmış bildirim göndermesine izin verir (Xiaomi Servis Çerçevesi Hook gerektirir)';
 
   @override
-  String get checkUpdateOnLaunchTitle => 'Açılışta Güncellemeleri Denetle';
+  String get checkUpdateOnLaunchTitle => 'Başlangıçta Güncelleme Kontrol Et';
 
   @override
   String get checkUpdateOnLaunchSubtitle =>
-      'Uygulama açılırken yeni sürümleri otomatik denetler.';
+      'Uygulama açılırken otomatik olarak yeni sürüm kontrolü yapar';
 
   @override
-  String get checkUpdate => 'Güncellemeleri Denetle';
+  String get showWelcomeTitle => '显示启动欢迎语';
 
   @override
-  String get alreadyLatest => 'Zaten en güncel sürümdesiniz';
+  String get showWelcomeSubtitle => '应用启动时在超级岛显示欢迎信息';
 
   @override
-  String get roundIconTitle => 'Simge Köşelerini Yuvarla';
+  String get interactionHapticsTitle => 'Etkileşim Dokunuşu';
+
+  @override
+  String get interactionHapticsSubtitle =>
+      'Anahtarlar, kaydırıcılar ve düğmeler için Hyper özel dokunsal geri bildirimi etkinleştir';
+
+  @override
+  String get checkUpdate => 'Güncelleme Kontrol Et';
+
+  @override
+  String get alreadyLatest => 'En son sürümde';
+
+  @override
+  String get useAppIconTitle => 'Uygulama Simgesi Kullan';
+
+  @override
+  String get useAppIconSubtitle =>
+      'İndirme yöneticisi bildirimleri uygulama simgesini kullanır';
+
+  @override
+  String get roundIconTitle => 'Simge Köşe Yuvarlama';
 
   @override
   String get roundIconSubtitle =>
-      'Bildirim simgelerine yuvarlatılmış köşe uygular.';
+      'Bildirim simgelerine yuvarlak köşe efekti ekler';
 
   @override
-  String get marqueeChannelTitle => 'Ada Metnini Kaydır';
+  String get marqueeChannelTitle => 'Kayan Mesaj';
 
   @override
-  String get marqueeSpeedTitle => 'Kaydırma Hızı';
+  String get marqueeSpeedTitle => 'Kayan Hız';
 
   @override
   String marqueeSpeedLabel(int speed) {
-    return '$speed px/sn';
+    return '$speed piksel/saniye';
   }
 
   @override
-  String get themeModeTitle => 'Tema';
+  String get themeModeTitle => 'Renk Modu';
 
   @override
   String get themeModeSystem => 'Sistemi Takip Et';
@@ -228,39 +255,51 @@ class AppLocalizationsTr extends AppLocalizations {
   String get languageTr => 'Türkçe';
 
   @override
-  String get exportToFile => 'Dosyaya Dışa Aktar';
+  String get exportToFile => 'Dosyaya Aktar';
 
   @override
   String get exportToFileSubtitle =>
-      'Yapılandırmayı JSON dosyası olarak kaydeder.';
+      'Yapılandırmayı JSON dosyası olarak kaydet';
 
   @override
-  String get exportToClipboard => 'Panoya Dışa Aktar';
+  String get exportToClipboard => 'Panoya Aktar';
 
   @override
   String get exportToClipboardSubtitle =>
-      'Yapılandırmayı JSON metni olarak panoya kopyalar.';
+      'Yapılandırmayı JSON metni olarak kopyala';
+
+  @override
+  String get exportConfig => 'Yapılandırmayı dışa aktar';
+
+  @override
+  String get exportConfigSubtitle => 'Hedef olarak dosya veya panoyu seç';
 
   @override
   String get importFromFile => 'Dosyadan İçe Aktar';
 
   @override
   String get importFromFileSubtitle =>
-      'Yapılandırmayı JSON dosyasından geri yükler.';
+      'Yapılandırmayı JSON dosyasından geri yükle';
 
   @override
   String get importFromClipboard => 'Panodan İçe Aktar';
 
   @override
   String get importFromClipboardSubtitle =>
-      'Panodaki JSON metninden yapılandırmayı geri yükler.';
+      'Yapılandırmayı panodan JSON metni olarak geri yükle';
 
   @override
-  String get qqGroup => 'QQ Topluluk Grubu';
+  String get importConfig => 'Yapılandırmayı içe aktar';
+
+  @override
+  String get importConfigSubtitle => 'Kaynak olarak dosya veya panoyu seç';
+
+  @override
+  String get qqGroup => 'QQ Tartışma Grubu';
 
   @override
   String get restartScopeApp =>
-      'Ayarların geçerli olması için etki alanındaki uygulamayı yeniden başlatın';
+      'Ayarların geçerli olması için kapsam uygulamasını yeniden başlatın';
 
   @override
   String get groupNumberCopied => 'Grup numarası panoya kopyalandı';
@@ -280,7 +319,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String importSuccess(int count) {
-    return 'İçe aktarma başarılı, toplam $count öğe yüklendi. Lütfen uygulamayı yeniden başlatın.';
+    return 'İçe aktarma başarılı, toplam $count yapılandırma öğesi; değişikliklerin uygulanması için uygulamayı yeniden başlatın';
   }
 
   @override
@@ -289,7 +328,7 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get appAdaptation => 'Uygulama Listesi';
+  String get appAdaptation => 'Uygulama Uyumu';
 
   @override
   String selectedAppsCount(int count) {
@@ -300,13 +339,13 @@ class AppLocalizationsTr extends AppLocalizations {
   String get cancelSelection => 'Seçimi İptal Et';
 
   @override
-  String get deselectAll => 'Tüm Seçimi Kaldır';
+  String get deselectAll => 'Tümünü Kaldır';
 
   @override
   String get selectAll => 'Tümünü Seç';
 
   @override
-  String get batchChannelSettings => 'Toplu Kanal Ayarı';
+  String get batchChannelSettings => 'Toplu Kanal Yapılandırması';
 
   @override
   String get selectEnabledApps => 'Etkin Uygulamaları Seç';
@@ -321,7 +360,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get multiSelect => 'Çoklu Seçim';
 
   @override
-  String get showSystemApps => 'Sistem Uygulamaları';
+  String get showSystemApps => 'Sistem Uygulamalarını Göster';
 
   @override
   String get refreshList => 'Listeyi Yenile';
@@ -334,20 +373,20 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String enabledAppsCount(int count) {
-    return 'Dynamic Island, $count uygulama için etkin';
+    return '$count uygulama için Dynamic Island etkinleştirildi';
   }
 
   @override
   String enabledAppsCountWithSystem(int count) {
-    return 'Dynamic Island, $count uygulama için etkin (sistem uygulamaları dahil)';
+    return '$count uygulama için Dynamic Island etkinleştirildi (sistem uygulamaları dahil)';
   }
 
   @override
-  String get searchApps => 'Uygulama adında veya paket adında ara';
+  String get searchApps => 'Uygulama adı veya paket adıyla arayın';
 
   @override
   String get noAppsFound =>
-      'Yüklü uygulama bulunamadı\nUygulama listesi izninin açık olduğunu kontrol edin';
+      'Yüklü uygulama bulunamadı\nUygulama listesi izninin etkin olup olmadığını kontrol edin';
 
   @override
   String get noMatchingApps => 'Eşleşen uygulama bulunamadı';
@@ -358,7 +397,7 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get applyingConfig => 'Yapılandırma uygulanıyor...';
+  String get applyingConfig => 'Yapılandırma uygulanıyor…';
 
   @override
   String progressApps(int done, int total) {
@@ -367,15 +406,15 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String batchApplied(int count) {
-    return 'Toplu ayar $count uygulamaya uygulandı';
+    return '$count uygulamaya toplu olarak uygulandı';
   }
 
   @override
-  String get cannotReadChannels => 'Bildirim Kanalları Okunamıyor';
+  String get cannotReadChannels => 'Bildirim kanalları okunamıyor';
 
   @override
   String get rootRequiredMessage =>
-      'Bildirim kanallarını okumak için root izni gerekir.\nLütfen bu uygulamaya root izni verdiğinizi doğrulayıp tekrar deneyin.';
+      'Bildirim kanallarını okumak için ROOT izni gereklidir.\nLütfen uygulamaya ROOT izninin verildiğini doğrulayıp tekrar deneyin.';
 
   @override
   String get enableAllChannels => 'Tüm Kanalları Etkinleştir';
@@ -385,7 +424,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get noChannelsFoundSubtitle =>
-      'Bu uygulama henüz bildirim kanalı oluşturmamış olabilir veya kanallar okunamıyor.';
+      'Bu uygulama henüz bildirim kanalı oluşturmamış veya kanallar okunamıyor';
 
   @override
   String allChannelsActive(int count) {
@@ -404,7 +443,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get appDisabledBanner =>
-      'Uygulama devre dışı; aşağıdaki kanal ayarları etkisizdir';
+      'Uygulamanın ana anahtarı kapalı; aşağıdaki kanal ayarları geçerli olmayacak';
 
   @override
   String channelImportance(String importance, String id) {
@@ -418,7 +457,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get importanceNone => 'Yok';
 
   @override
-  String get importanceMin => 'En Düşük';
+  String get importanceMin => 'Çok Düşük';
 
   @override
   String get importanceLow => 'Düşük';
@@ -434,7 +473,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String applyToEnabledChannels(int count) {
-    return 'Etkin olan $count kanala uygulanacak';
+    return 'Etkin $count kanala uygulanacak';
   }
 
   @override
@@ -446,13 +485,14 @@ class AppLocalizationsTr extends AppLocalizations {
   String get templateDownloadName => 'İndirme';
 
   @override
-  String get templateNotificationIslandName => 'Bildirim Süper Ada';
+  String get templateNotificationIslandName => 'Bildirim Dynamic Island';
 
   @override
-  String get templateNotificationIslandLiteName => 'Bildirim Süper Ada|Lite';
+  String get templateNotificationIslandLiteName =>
+      'Bildirim Dynamic Island | Hafif';
 
   @override
-  String get templateDownloadLiteName => 'İndirme|Lite';
+  String get templateDownloadLiteName => 'İndirme | Lite';
 
   @override
   String get islandSection => 'Ada';
@@ -465,50 +505,52 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get rendererImageTextWithButtons4Name =>
-      'Görsel + Metin + Alt Metin Düğmeleri';
+      'Yeni Görsel+Metin Bileşeni + Alt Metin Düğmeleri';
 
   @override
-  String get rendererCoverInfoName => 'Kapak Bilgisi + Otomatik Satır Kaydırma';
+  String get rendererCoverInfoName =>
+      'Kapak Bileşeni + Otomatik Satır Kaydırma';
 
   @override
   String get rendererImageTextWithRightTextButtonName =>
-      'Görsel + Metin + Sağ Metin Düğmesi';
+      'Yeni Görsel+Metin Bileşeni + Sağ Metin Düğmesi';
 
   @override
-  String get islandIcon => 'Ada Simgesi';
+  String get islandIcon => 'Dynamic Island Simgesi';
+
+  @override
+  String get islandIconLabel => '大岛图标';
+
+  @override
+  String get islandIconLabelSubtitle => '开启后显示超级岛的大图标（小岛不受影响）';
 
   @override
   String get focusIconLabel => 'Odak Simgesi';
 
   @override
-  String get focusNotificationLabel => 'Odak Bildirimini Kullan';
+  String get focusNotificationLabel => 'Odaklanmış Bildirim';
 
   @override
-  String get preserveStatusBarSmallIconLabel =>
-      'Durum Çubuğu Küçük Simgesini Koru';
+  String get preserveStatusBarSmallIconLabel => 'Durum Çubuğu Simgesi';
 
   @override
-  String get preserveStatusBarSmallIconLabelSubtitle =>
-      'Bu ayar açık olduğunda odak bildirimi sırasında durum çubuğu küçük simgesi görünür kalır.';
+  String get restoreLockscreenTitle => 'Kilit Ekranı Bildirimini Geri Yükle';
 
   @override
-  String get islandIconLabel => 'Büyük Ada Simgesini Göster';
+  String get restoreLockscreenSubtitle =>
+      'Kilit ekranında odak bildirim işlemesini atla ve özgün bildirim gizlilik davranışını koru';
 
   @override
-  String get islandIconLabelSubtitle =>
-      'Bu ayar açık olduğunda büyük Ada simgesi gösterilir (küçük Ada etkilenmez).';
+  String get firstFloatLabel => 'İlk Açılış';
 
   @override
-  String get firstFloatLabel => 'İlk Bildirimde Genişlet';
+  String get updateFloatLabel => 'Güncelleme Açılışı';
 
   @override
-  String get updateFloatLabel => 'Güncellemede Yeniden Genişlet';
+  String get autoDisappear => 'Otomatik Kaybol';
 
   @override
-  String get autoDisappear => 'Otomatik Kapanma';
-
-  @override
-  String get seconds => 'sn';
+  String get seconds => 'saniye';
 
   @override
   String get onlyEnabledChannels => 'Yalnızca Etkin Kanallara Uygula';
@@ -565,61 +607,65 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get navBlacklistSubtitle =>
-      'Kara listedeki bir uygulama açıldığında odak bildiriminin otomatik genişletilmesi devre dışı kalır';
+      'Kara listedeki bir uygulama başlatıldığında odaklanmış bildirimlerin otomatik açılması devre dışı bırakılır';
 
   @override
-  String get presetGamesTitle => 'Popüler Oyunları Tek Dokunuşla Filtrele';
+  String get presetGamesTitle => 'Popüler Oyunları Tek Tıkla Filtrele';
 
   @override
   String presetGamesSuccess(int count) {
-    return 'Ön ayardan $count yüklü oyun kara listeye eklendi';
+    return 'Şablondan $count yüklü oyun kara listeye eklendi';
   }
 
   @override
   String blacklistedAppsCount(int count) {
-    return '$count uygulamanın odak bildirimi engellendi';
+    return '$count uygulamanın odaklanmış bildirimleri engellendi';
   }
 
   @override
   String blacklistedAppsCountWithSystem(int count) {
-    return '$count uygulamanın odak bildirimi engellendi (sistem uygulamaları dahil)';
+    return '$count uygulamanın odaklanmış bildirimleri engellendi (sistem uygulamaları dahil)';
   }
 
   @override
   String get firstFloatLabelSubtitle =>
-      'Bu ayar açık olduğunda ilk bildirim geldiğinde Ada genişler.';
+      'Dynamic Island ilk bildirimi aldığında odaklanmış bildirim olarak açılıp açılmayacağı';
 
   @override
   String get updateFloatLabelSubtitle =>
-      'Bu ayar açık olduğunda bildirim güncellendiğinde Ada yeniden genişler.';
+      'Dynamic Island güncellendiğinde bildirimin açılıp açılmayacağı';
 
   @override
   String get marqueeChannelTitleSubtitle =>
-      'Bu ayar açık olduğunda uzun metin Ada üzerinde kayarak gösterilir.';
+      'Dynamic Island mesajı çok uzun olduğunda kayan yazı olarak gösterilip gösterilmeyeceği';
 
   @override
   String get focusNotificationLabelSubtitle =>
-      'Bu ayar açık olduğunda normal bildirim yerine odak bildirimi gösterilir. Kapalıysa normal bildirim gösterilir.';
+      'Bildirimi odaklanmış bildirimle değiştirir (kapatıldığında orijinal bildirim gösterilir)';
 
   @override
-  String get aiConfigSection => 'AI Geliştirmeleri';
+  String get preserveStatusBarSmallIconLabelSubtitle =>
+      'Odaklanmış bildirim açıkken durum çubuğu küçük simgesinin zorla korunup korunmayacağı';
 
   @override
-  String get aiConfigTitle => 'AI Bildirim Özeti';
+  String get aiConfigSection => 'Yapay Zeka Geliştirme';
+
+  @override
+  String get aiConfigTitle => 'Yapay Zeka Bildirim Özeti';
 
   @override
   String get aiConfigSubtitleEnabled =>
-      'Etkin · AI parametrelerini yapılandırmak için dokunun';
+      'Etkin · Yapay Zeka parametrelerini yapılandırmak için tıklayın';
 
   @override
-  String get aiConfigSubtitleDisabled => 'Kapalı · Yapılandırmak için dokunun';
+  String get aiConfigSubtitleDisabled => 'Kapalı · Yapılandırmak için tıklayın';
 
   @override
-  String get aiEnabledTitle => 'AI Özetini Etkinleştir';
+  String get aiEnabledTitle => 'Yapay Zeka Özetini Etkinleştir';
 
   @override
   String get aiEnabledSubtitle =>
-      'Ada\'nın sol ve sağ metni AI tarafından üretilir; zaman aşımı veya hata durumunda otomatik geri dönüş yapılır';
+      'Dynamic Island sol ve sağ metni yapay zeka tarafından oluşturulur; zaman aşımı veya hata durumunda otomatik olarak geri döner';
 
   @override
   String get aiApiSection => 'API Parametreleri';
@@ -643,56 +689,124 @@ class AppLocalizationsTr extends AppLocalizations {
   String get aiModelHint => 'gpt-4o-mini';
 
   @override
-  String get aiTestButton => 'Bağlantıyı Dene';
+  String get aiPromptLabel => 'Sistem İstemi';
+
+  @override
+  String get aiPromptHint => 'Varsayılanı kullanmak için boş bırakın';
+
+  @override
+  String get aiPromptInUserTitle => '提示词放在用户消息';
+
+  @override
+  String get aiPromptInUserSubtitle => '某些模型不支持系统指令，开启后将提示词放在用户消息中';
+
+  @override
+  String get aiTimeoutTitle => 'AI 响应超时';
+
+  @override
+  String aiTimeoutLabel(int seconds) {
+    return '${seconds}s';
+  }
+
+  @override
+  String get aiTemperatureTitle => '采样温度 (Temperature)';
+
+  @override
+  String get aiTemperatureSubtitle => '控制回答的随机性。0 为准确，1 则更具创意';
+
+  @override
+  String get aiMaxTokensTitle => '最大 Token 数 (Max Tokens)';
+
+  @override
+  String get aiMaxTokensSubtitle => '限制 AI 生成回答的最大长度';
+
+  @override
+  String get aiDefaultPromptFull => '留空使用默认提示词：根据通知信息，提取关键信息，左右分别不超过6汉字12字符';
+
+  @override
+  String get aiTestButton => 'Bağlantıyı Test Et';
 
   @override
   String get aiTestUrlEmpty => 'Lütfen önce API adresini girin';
 
   @override
+  String get aiLastLogTitle => 'Son AI İstek Günlüğü';
+
+  @override
+  String get aiLastLogSubtitle =>
+      'Bağlantı testi ve bildirim tetikli AI istekleri burada görünür';
+
+  @override
+  String get aiLastLogEmpty => 'Henüz gösterilecek bir AI istek günlüğü yok';
+
+  @override
+  String get aiLastLogSourceLabel => 'Kaynak';
+
+  @override
+  String get aiLastLogTimeLabel => 'Zaman';
+
+  @override
+  String get aiLastLogStatusLabel => 'Durum';
+
+  @override
+  String get aiLastLogDurationLabel => '耗时';
+
+  @override
+  String get aiLastLogSourceNotification => 'Bildirim';
+
+  @override
+  String get aiLastLogSourceSettingsTest => 'Ayar Testi';
+
+  @override
+  String get aiLastLogRendered => '渲染';
+
+  @override
+  String get aiLastLogRaw => '原始';
+
+  @override
+  String get aiLastLogCopy => '复制日志';
+
+  @override
+  String get aiLastLogCopied => 'AI 请求日志已复制';
+
+  @override
+  String get aiLastLogRequest => '请求';
+
+  @override
+  String get aiLastLogResponse => '回复';
+
+  @override
+  String get aiLastLogUsage => 'Token Kullanımı';
+
+  @override
+  String get aiLastLogMessages => '消息';
+
+  @override
+  String get aiLastLogError => '错误';
+
+  @override
+  String get aiLastLogHttpCode => 'HTTP 状态';
+
+  @override
+  String get aiLastLogLeftText => '左侧文本';
+
+  @override
+  String get aiLastLogRightText => '右侧文本';
+
+  @override
+  String get aiLastLogAssistantContent => '模型回复内容';
+
+  @override
   String get aiConfigSaveButton => 'Kaydet';
 
   @override
-  String get aiConfigSaved => 'AI yapılandırması kaydedildi';
+  String get aiConfigSaved => 'Yapay Zeka yapılandırması kaydedildi';
 
   @override
   String get aiConfigTips =>
-      'AI, bildirimdeki uygulama paket adını, başlığı ve metni alır; solda (kaynak) ve sağda (içerik) kısa metin üretir. OpenAI formatı ile uyumlu API\'leri destekler (DeepSeek, Claude vb.). Yanıt gelmezse varsayılan mantığa geri döner.';
+      'Yapay Zeka, bildirimin uygulama paket adını, başlığını ve gövdesini alarak sol (kaynak) ve sağ (içerik) kısa metinleri döndürür. OpenAI biçimiyle uyumlu API\'leri destekler (DeepSeek, Claude vb.). 3 saniye içinde yanıt gelmezse otomatik olarak varsayılan mantığa geri döner.';
 
   @override
-  String get templateAiNotificationIslandName => 'AI Bildirim Süper Ada';
-
-  @override
-  String get aiPromptLabel => 'Özel Prompt';
-
-  @override
-  String get aiPromptHint =>
-      'Boş bırakırsanız varsayılan prompt kullanılır: Bildirimden ana bilgiyi çıkarın; sol ve sağ metin ayrı ayrı en fazla 6 kelime veya 12 karakter olsun';
-
-  @override
-  String get aiPromptDefault =>
-      'Bildirimden ana bilgiyi çıkarın; sol ve sağ metin ayrı ayrı en fazla 6 kelime veya 12 karakter olsun';
-
-  @override
-  String get aiPromptInUserTitle => 'Prompt\'u kullanıcı mesajına yerleştir';
-
-  @override
-  String get aiPromptInUserSubtitle =>
-      'Bazı modeller sistem talimatlarını desteklemez; etkinleştirilirse prompt kullanıcı mesajına eklenir';
-
-  @override
-  String get aiTimeoutLabel => 'AI Yanıt Zaman Aşımı';
-
-  @override
-  String get hideDesktopIconTitle => 'Ana Ekran Simgesini Gizle';
-
-  @override
-  String get hideDesktopIconSubtitle =>
-      'Uygulama simgesini başlatıcıdan gizler. Gizledikten sonra LSPosed Manager üzerinden açın';
-
-  @override
-  String get restoreLockscreenTitle => 'Kilit Ekranı Bildirimini Geri Yükle';
-
-  @override
-  String get restoreLockscreenSubtitle =>
-      'Kilit ekranında odak bildirimi işlemini atlayın, özgün gizlilik davranışını koruyun';
+  String get templateAiNotificationIslandName =>
+      'Yapay Zeka Bildirim Dynamic Island';
 }

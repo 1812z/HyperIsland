@@ -94,6 +94,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get enableInLSPosed => '请在 LSPosed 中启用本模块';
 
   @override
+  String lsposedApiVersion(int version) {
+    return 'LSPosed API 版本: $version';
+  }
+
+  @override
   String get updateLSPosedRequired => '请更新 LSPosed 版本';
 
   @override
@@ -140,7 +145,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aboutSection => '关于';
 
   @override
-  String get keepFocusNotifTitle => '下载管理器暂停后保留通知';
+  String get keepFocusNotifTitle => '下载管理器暂停后保留焦点通知';
 
   @override
   String get keepFocusNotifSubtitle => '显示一条通知，点击以继续下载，可能导致状态不同步';
@@ -165,10 +170,28 @@ class AppLocalizationsZh extends AppLocalizations {
   String get checkUpdateOnLaunchSubtitle => '启动应用时自动检查是否有新版本';
 
   @override
+  String get showWelcomeTitle => '显示启动欢迎语';
+
+  @override
+  String get showWelcomeSubtitle => '应用启动时在超级岛显示欢迎信息';
+
+  @override
+  String get interactionHapticsTitle => '交互触感';
+
+  @override
+  String get interactionHapticsSubtitle => '为开关、滑块和按钮启用 Hyper 定制震感反馈';
+
+  @override
   String get checkUpdate => '检查更新';
 
   @override
   String get alreadyLatest => '已是最新版本';
+
+  @override
+  String get useAppIconTitle => '使用应用图标';
+
+  @override
+  String get useAppIconSubtitle => '下载管理器通知使用应用图标';
 
   @override
   String get roundIconTitle => '图标圆角';
@@ -180,7 +203,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get marqueeChannelTitle => '消息滚动';
 
   @override
-  String get marqueeSpeedTitle => '速度';
+  String get marqueeSpeedTitle => '滚动速度';
 
   @override
   String marqueeSpeedLabel(int speed) {
@@ -230,6 +253,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportToClipboardSubtitle => '将配置复制为 JSON 文本';
 
   @override
+  String get exportConfig => '导出配置';
+
+  @override
+  String get exportConfigSubtitle => '选择导出到文件或剪贴板';
+
+  @override
   String get importFromFile => '从文件导入';
 
   @override
@@ -240,6 +269,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get importFromClipboardSubtitle => '从剪贴板中的 JSON 文本恢复配置';
+
+  @override
+  String get importConfig => '导入配置';
+
+  @override
+  String get importConfigSubtitle => '选择从文件或剪贴板导入';
 
   @override
   String get qqGroup => 'QQ 交流群';
@@ -457,6 +492,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get islandIcon => '超级岛图标';
 
   @override
+  String get islandIconLabel => '大岛图标';
+
+  @override
+  String get islandIconLabelSubtitle => '开启后显示超级岛的大图标（小岛不受影响）';
+
+  @override
   String get focusIconLabel => '焦点图标';
 
   @override
@@ -466,13 +507,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get preserveStatusBarSmallIconLabel => '状态栏图标';
 
   @override
-  String get preserveStatusBarSmallIconLabelSubtitle => '焦点通知打开时，是否强制保留状态栏小图标';
+  String get restoreLockscreenTitle => '锁屏通知复原';
 
   @override
-  String get islandIconLabel => '大岛图标';
-
-  @override
-  String get islandIconLabelSubtitle => '开启后显示超级岛的大图标（小岛不受影响）';
+  String get restoreLockscreenSubtitle => '锁屏时跳过焦点通知处理，保持原始通知隐私行为';
 
   @override
   String get firstFloatLabel => '初次展开';
@@ -573,6 +611,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get focusNotificationLabelSubtitle => '替换通知为焦点通知（关闭后显示原始通知）';
 
   @override
+  String get preserveStatusBarSmallIconLabelSubtitle => '焦点通知打开时，是否强制保留状态栏小图标';
+
+  @override
   String get aiConfigSection => 'AI 增强';
 
   @override
@@ -594,7 +635,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiApiSection => 'API 参数';
 
   @override
-  String get aiUrlLabel => 'API 地址（必须完整）';
+  String get aiUrlLabel => 'API 地址';
 
   @override
   String get aiUrlHint => 'https://api.openai.com/v1/chat/completions';
@@ -612,10 +653,111 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiModelHint => 'gpt-4o-mini';
 
   @override
+  String get aiPromptLabel => '系统提示词';
+
+  @override
+  String get aiPromptHint => '留空则使用默认提示词';
+
+  @override
+  String get aiPromptInUserTitle => '提示词放在用户消息';
+
+  @override
+  String get aiPromptInUserSubtitle => '某些模型不支持系统指令，开启后将提示词放在用户消息中';
+
+  @override
+  String get aiTimeoutTitle => 'AI 响应超时';
+
+  @override
+  String aiTimeoutLabel(int seconds) {
+    return '${seconds}s';
+  }
+
+  @override
+  String get aiTemperatureTitle => '采样温度 (Temperature)';
+
+  @override
+  String get aiTemperatureSubtitle => '控制回答的随机性。0 为准确，1 则更具创意';
+
+  @override
+  String get aiMaxTokensTitle => '最大 Token 数 (Max Tokens)';
+
+  @override
+  String get aiMaxTokensSubtitle => '限制 AI 生成回答的最大长度';
+
+  @override
+  String get aiDefaultPromptFull => '留空使用默认提示词：根据通知信息，提取关键信息，左右分别不超过6汉字12字符';
+
+  @override
   String get aiTestButton => '测试连接';
 
   @override
   String get aiTestUrlEmpty => '请先填写 API 地址';
+
+  @override
+  String get aiLastLogTitle => '最近一次 AI 请求日志';
+
+  @override
+  String get aiLastLogSubtitle => '测试连接和通知触发的 AI 请求都会显示在这里';
+
+  @override
+  String get aiLastLogEmpty => '还没有可显示的 AI 请求日志';
+
+  @override
+  String get aiLastLogSourceLabel => '来源';
+
+  @override
+  String get aiLastLogTimeLabel => '时间';
+
+  @override
+  String get aiLastLogStatusLabel => '状态';
+
+  @override
+  String get aiLastLogDurationLabel => '耗时';
+
+  @override
+  String get aiLastLogSourceNotification => '通知触发';
+
+  @override
+  String get aiLastLogSourceSettingsTest => '设置页测试';
+
+  @override
+  String get aiLastLogRendered => '渲染';
+
+  @override
+  String get aiLastLogRaw => '原始';
+
+  @override
+  String get aiLastLogCopy => '复制日志';
+
+  @override
+  String get aiLastLogCopied => 'AI 请求日志已复制';
+
+  @override
+  String get aiLastLogRequest => '请求';
+
+  @override
+  String get aiLastLogResponse => '回复';
+
+  @override
+  String get aiLastLogUsage => 'Token 用量';
+
+  @override
+  String get aiLastLogMessages => '消息';
+
+  @override
+  String get aiLastLogError => '错误';
+
+  @override
+  String get aiLastLogHttpCode => 'HTTP 状态';
+
+  @override
+  String get aiLastLogLeftText => '左侧文本';
+
+  @override
+  String get aiLastLogRightText => '右侧文本';
+
+  @override
+  String get aiLastLogAssistantContent => '模型回复内容';
 
   @override
   String get aiConfigSaveButton => '保存';
@@ -625,38 +767,8 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aiConfigTips =>
-      'AI 将收到通知的应用包名、标题和正文，返回左侧（来源）和右侧（内容）短文本。支持兼容 OpenAI 格式的接口（如 DeepSeek、Claude 等）。超过未响应时自动回退到默认逻辑。';
+      'AI 将收到通知的应用包名、标题和正文，返回左侧（来源）和右侧（内容）短文本。支持兼容 OpenAI 格式的接口（如 DeepSeek、Claude 等）。超过 3 秒未响应时自动回退到默认逻辑。';
 
   @override
   String get templateAiNotificationIslandName => 'AI 通知超级岛';
-
-  @override
-  String get aiPromptLabel => '自定义提示词';
-
-  @override
-  String get aiPromptHint => '留空使用默认提示词：根据通知信息，提取关键信息，左右分别不超过6汉字12字符';
-
-  @override
-  String get aiPromptDefault => '根据通知信息，提取关键信息，左右分别不超过6汉字12字符';
-
-  @override
-  String get aiPromptInUserTitle => '提示词放在用户消息';
-
-  @override
-  String get aiPromptInUserSubtitle => '某些模型不支持系统指令，开启后将提示词放在用户消息中';
-
-  @override
-  String get aiTimeoutLabel => 'AI 响应超时';
-
-  @override
-  String get hideDesktopIconTitle => '隐藏桌面图标';
-
-  @override
-  String get hideDesktopIconSubtitle => '隐藏启动器中的应用图标，隐藏后可通过 LSPosed 管理器打开';
-
-  @override
-  String get restoreLockscreenTitle => '锁屏通知复原';
-
-  @override
-  String get restoreLockscreenSubtitle => '锁屏时跳过焦点通知处理，保持原始通知隐私行为';
 }

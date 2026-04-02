@@ -1,16 +1,13 @@
 {
   "@@locale": "en",
-
   "navHome": "Home",
   "navApps": "Apps",
   "navSettings": "Settings",
-
   "cancel": "Cancel",
   "confirm": "Confirm",
   "ok": "OK",
   "apply": "Apply",
   "noChange": "No change",
-
   "newVersionFound": "New Version Available",
   "currentVersion": "Current version: {version}",
   "latestVersion": "Latest version: {version}",
@@ -30,12 +27,22 @@
   "activated": "Activated",
   "notActivated": "Not Activated",
   "enableInLSPosed": "Please enable this module in LSPosed",
+  "lsposedApiVersion": "LSPosed API Version: {version}",
   "updateLSPosedRequired": "Please update LSPosed version",
+  "@lsposedApiVersion": {
+    "placeholders": {
+      "version": {
+        "type": "int"
+      }
+    }
+  },
   "systemNotSupported": "System Not Supported",
   "systemNotSupportedSubtitle": "Current system does not support Dynamic Island (protocol version {version}, requires version 3)",
   "@systemNotSupportedSubtitle": {
     "placeholders": {
-      "version": { "type": "int" }
+      "version": {
+        "type": "int"
+      }
     }
   },
   "restartFailed": "Restart failed: {message}",
@@ -44,13 +51,12 @@
   "note2": "2. Disable focus notification whitelist for System UI and MIUI Framework in HyperCeiler",
   "note3": "3. After activating in LSPosed Manager, you must restart the related scope app",
   "note4": "4. General adaptation is supported, try checking an appropriate template",
-
   "behaviorSection": "Behavior",
   "defaultConfigSection": "Default Channel Settings",
   "appearanceSection": "Appearance",
   "configSection": "Configuration",
   "aboutSection": "About",
-  "keepFocusNotifTitle": "Keep notification after download pause",
+  "keepFocusNotifTitle": "Keep focus notification after download pause",
   "keepFocusNotifSubtitle": "Show a notification to resume download, may cause state desync",
   "unlockAllFocusTitle": "Remove focus notification whitelist",
   "unlockAllFocusSubtitle": "Allow all apps to send focus notifications without system authorization",
@@ -58,16 +64,24 @@
   "unlockFocusAuthSubtitle": "Allow all apps to send focus notifications to watch/bracelet, bypassing signature check (requires hooking XMSF)",
   "checkUpdateOnLaunchTitle": "Check for updates on launch",
   "checkUpdateOnLaunchSubtitle": "Automatically check for new versions when the app starts",
+  "showWelcomeTitle": "Show Welcome Message",
+  "showWelcomeSubtitle": "Show a welcome notification on the island when the app starts",
+  "interactionHapticsTitle": "Interaction Haptics",
+  "interactionHapticsSubtitle": "Enable Hyper-custom haptic feedback for switches, sliders, and buttons",
   "checkUpdate": "Check for updates",
   "alreadyLatest": "Already on the latest version",
-"roundIconTitle": "Round icon corners",
+  "useAppIconTitle": "Use app icon",
+  "useAppIconSubtitle": "Use app icon for Download Manager notifications",
+  "roundIconTitle": "Round icon corners",
   "roundIconSubtitle": "Add rounded corners to notification icons",
   "marqueeChannelTitle": "Text Scrolling Island",
-  "marqueeSpeedTitle": "Speed",
+  "marqueeSpeedTitle": "Scroll Speed",
   "marqueeSpeedLabel": "{speed} px/s",
   "@marqueeSpeedLabel": {
     "placeholders": {
-      "speed": { "type": "int" }
+      "speed": {
+        "type": "int"
+      }
     }
   },
   "themeModeTitle": "Color mode",
@@ -84,10 +98,14 @@
   "exportToFileSubtitle": "Save configuration as a JSON file",
   "exportToClipboard": "Export to clipboard",
   "exportToClipboardSubtitle": "Copy configuration as JSON text",
+  "exportConfig": "Export configuration",
+  "exportConfigSubtitle": "Choose file or clipboard as the destination",
   "importFromFile": "Import from file",
   "importFromFileSubtitle": "Restore configuration from a JSON file",
   "importFromClipboard": "Import from clipboard",
   "importFromClipboardSubtitle": "Restore configuration from JSON text in clipboard",
+  "importConfig": "Import configuration",
+  "importConfigSubtitle": "Choose file or clipboard as the source",
   "qqGroup": "QQ Group",
   "restartScopeApp": "Please restart the scope app for settings to take effect",
   "groupNumberCopied": "Group number copied to clipboard",
@@ -96,7 +114,6 @@
   "configCopied": "Configuration copied to clipboard",
   "importSuccess": "Import successful, {count} items, please restart the app",
   "importFailed": "Import failed: {error}",
-
   "appAdaptation": "App Adaptation",
   "selectedAppsCount": "{count} apps selected",
   "cancelSelection": "Cancel selection",
@@ -120,7 +137,6 @@
   "applyingConfig": "Applying configuration...",
   "progressApps": "{done} / {total} apps",
   "batchApplied": "Batch applied to {count} apps",
-
   "cannotReadChannels": "Cannot Read Notification Channels",
   "rootRequiredMessage": "Reading notification channels requires ROOT permission.\nPlease confirm ROOT permission is granted and try again.",
   "enableAllChannels": "Enable all channels",
@@ -140,25 +156,24 @@
   "importanceUnknown": "Unknown",
   "applyToEnabledChannels": "Will apply to {count} enabled channels",
   "applyToAllChannels": "Will apply to all {count} channels",
-
   "templateDownloadName": "Download",
   "templateNotificationIslandName": "Notification Island",
   "templateNotificationIslandLiteName": "Notification Island|Lite",
   "templateDownloadLiteName": "Download|Lite",
   "islandSection": "Island",
-
   "template": "Template",
   "rendererLabel": "Style",
   "rendererImageTextWithButtons4Name": "Image+Text+Bottom Text Buttons",
   "rendererCoverInfoName": "Cover Info+Auto Wrap",
   "rendererImageTextWithRightTextButtonName": "Image+Text+Right Text Button",
   "islandIcon": "Island icon",
+  "islandIconLabel": "Large island icon",
+  "islandIconLabelSubtitle": "Show the large icon of the island when enabled (small island not affected)",
   "focusIconLabel": "Focus icon",
   "focusNotificationLabel": "Focus notification",
   "preserveStatusBarSmallIconLabel": "Status bar icon",
-  "preserveStatusBarSmallIconLabelSubtitle": "Whether to force keep status bar icon when focus notification is displayed",
-  "islandIconLabel": "Large island icon",
-  "islandIconLabelSubtitle": "Show the large icon of the island when enabled (small island not affected)",
+  "restoreLockscreenTitle": "Restore Lockscreen Notification",
+  "restoreLockscreenSubtitle": "Skip focus-notification handling on lockscreen and keep original notification privacy behavior",
   "firstFloatLabel": "First float",
   "updateFloatLabel": "Update float",
   "autoDisappear": "Auto dismiss",
@@ -174,13 +189,11 @@
   "optDefaultOff": "Default (Off)",
   "optOn": "On",
   "optOff": "Off",
-
   "errorInvalidFormat": "Invalid configuration format",
   "errorNoStorageDir": "Cannot get storage directory",
   "errorNoFileSelected": "No file selected",
   "errorNoFilePath": "Cannot get file path",
   "errorEmptyClipboard": "Clipboard is empty",
-
   "navBlacklist": "Focus Blacklist",
   "navBlacklistSubtitle": "Block focus notification float or hide for specific apps",
   "presetGamesTitle": "Quick Filter Popular Games",
@@ -194,13 +207,11 @@
   },
   "blacklistedAppsCount": "Blocked focus notifications for {count} apps",
   "blacklistedAppsCountWithSystem": "Blocked focus notifications for {count} apps (including system apps)",
-
   "firstFloatLabelSubtitle": "Whether to expand as focus notification when Island receives notification for the first time",
   "updateFloatLabelSubtitle": "Whether to expand notification when Island updates",
   "marqueeChannelTitleSubtitle": "Whether to scroll long messages on Island",
   "focusNotificationLabelSubtitle": "Replace notification with focus notification (shows original notification when disabled)",
   "preserveStatusBarSmallIconLabelSubtitle": "Whether to force keep status bar icon when focus notification is displayed",
-
   "aiConfigSection": "AI Enhancement",
   "aiConfigTitle": "AI Notification Summary",
   "aiConfigSubtitleEnabled": "Enabled · Tap to configure AI parameters",
@@ -214,22 +225,48 @@
   "aiApiKeyHint": "sk-...",
   "aiModelLabel": "Model",
   "aiModelHint": "gpt-4o-mini",
+  "aiPromptLabel": "System Prompt",
+  "aiPromptHint": "Leave empty to use default",
+  "aiPromptInUserTitle": "Prompt in User Message",
+  "aiPromptInUserSubtitle": "Some models don't support system instructions, use user message instead",
+  "aiTimeoutTitle": "AI Response Timeout",
+  "aiTimeoutLabel": "{seconds}s",
+  "aiTemperatureTitle": "Sampling Temperature",
+  "aiMaxTokensTitle": "Max Tokens",
+  "@aiTimeoutLabel": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "aiDefaultPromptFull": "Leave empty for default: extract key info, max 6 chars left / 12 chars right",
   "aiTestButton": "Test Connection",
   "aiTestUrlEmpty": "Please enter an API URL first",
+  "aiLastLogTitle": "Latest AI Request Log",
+  "aiLastLogSubtitle": "Requests from both test connection and live notifications appear here",
+  "aiLastLogEmpty": "No AI request log yet",
+  "aiLastLogSourceLabel": "Source",
+  "aiLastLogTimeLabel": "Time",
+  "aiLastLogStatusLabel": "Status",
+  "aiLastLogDurationLabel": "Duration",
+  "aiLastLogSourceNotification": "Notification",
+  "aiLastLogSourceSettingsTest": "Settings Test",
+  "aiLastLogRendered": "Rendered",
+  "aiLastLogRaw": "Raw",
+  "aiLastLogCopy": "Copy Log",
+  "aiLastLogCopied": "AI request log copied",
+  "aiLastLogRequest": "Request",
+  "aiLastLogResponse": "Response",
+  "aiLastLogUsage": "Token Usage",
+  "aiLastLogMessages": "Messages",
+  "aiLastLogError": "Error",
+  "aiLastLogHttpCode": "HTTP Status",
+  "aiLastLogLeftText": "Left Text",
+  "aiLastLogRightText": "Right Text",
+  "aiLastLogAssistantContent": "Assistant Content",
   "aiConfigSaveButton": "Save",
   "aiConfigSaved": "AI configuration saved",
-  "aiConfigTips": "AI receives the app package, title, and content of each notification, and returns short left (source) and right (content) text. Compatible with OpenAI-format APIs (e.g. DeepSeek, Claude). Falls back to default logic if no response.",
-  "templateAiNotificationIslandName": "AI Notification Island",
-  "aiPromptLabel": "Custom Prompt",
-  "aiPromptHint": "Leave empty to use default: Extract key info, left and right each no more than 6 words or 12 characters",
-  "aiPromptDefault": "Extract key info from notification, left and right each no more than 6 words or 12 characters",
-  "aiPromptInUserTitle": "Put prompt in user message",
-  "aiPromptInUserSubtitle": "Some models don't support system instructions, enable to put prompt in user message",
-  "aiTimeoutLabel": "AI Response Timeout",
-
-  "hideDesktopIconTitle": "Hide Desktop Icon",
-  "hideDesktopIconSubtitle": "Hide the app icon from launcher. Open via LSPosed Manager after hiding",
-
-  "restoreLockscreenTitle": "Restore Lockscreen Notification",
-  "restoreLockscreenSubtitle": "Skip focus notification processing on lockscreen, keep original privacy behavior"
+  "aiConfigTips": "AI receives the app package, title, and content of each notification, and returns short left (source) and right (content) text. Compatible with OpenAI-format APIs (e.g. DeepSeek, Claude). Falls back to default logic if no response within 3 seconds.",
+  "templateAiNotificationIslandName": "AI Notification Island"
 }

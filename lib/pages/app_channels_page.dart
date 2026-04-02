@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../controllers/whitelist_controller.dart';
@@ -36,10 +38,12 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
   Map<String, Map<String, String>> _channelExtras =
       {}; // channelId → extra settings
   bool _loading = true;
+  late bool _appEnabled;
 
   @override
   void initState() {
     super.initState();
+    _appEnabled = widget.appEnabled;
     _load();
   }
 
@@ -105,12 +109,12 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
 
   /// 渠道是否生效：应用总开关关闭时强制返回 false。
   bool _isEnabled(String channelId) {
-    if (!widget.appEnabled) return false;
+    if (!_appEnabled) return false;
     return _enabledChannels.isEmpty || _enabledChannels.contains(channelId);
   }
 
   Future<void> _toggle(String channelId, bool value) async {
-    if (!widget.appEnabled) return;
+    if (!_appEnabled) return;
     final all = _channels ?? [];
     Set<String> newSet;
 
@@ -132,6 +136,11 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
 
     setState(() => _enabledChannels = newSet);
     await widget.controller.setEnabledChannels(widget.app.packageName, newSet);
+  }
+
+  Future<void> _setAppEnabled(bool value) async {
+    setState(() => _appEnabled = value);
+    await widget.controller.setEnabled(widget.app.packageName, value);
   }
 
   Future<void> _setTemplate(String channelId, String template) async {
@@ -327,7 +336,7 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
     final cs = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
     final channels = _channels ?? [];
-    final allEnabled = widget.appEnabled && _enabledChannels.isEmpty;
+    final allEnabled = _appEnabled && _enabledChannels.isEmpty;
 
     return Scaffold(
       backgroundColor: cs.surface,
@@ -337,23 +346,30 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
             backgroundColor: cs.surface,
             centerTitle: false,
             title: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.memory(
-                    widget.app.icon,
-                    width: 32,
-                    height: 32,
-                    fit: BoxFit.cover,
-                    gaplessPlayback: true,
-                  ),
-                ),
+                _AppHeaderIcon(app: widget.app),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Text(
-                    widget.app.appName,
-                    overflow: TextOverflow.ellipsis,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(widget.app.appName, overflow: TextOverflow.ellipsis),
+                      Text(
+                        widget.app.packageName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
+                ),
+                Transform.scale(
+                  scale: 0.9,
+                  child: Switch(value: _appEnabled, onChanged: _setAppEnabled),
                 ),
               ],
             ),
@@ -389,7 +405,7 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
           ),
 
           // 应用总开关关闭时的提示横幅
-          if (!widget.appEnabled)
+          if (!_appEnabled)
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               sliver: SliverToBoxAdapter(
@@ -455,7 +471,7 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               sliver: SliverToBoxAdapter(
                 child: Text(
-                  widget.appEnabled
+                  _appEnabled
                       ? (allEnabled
                             ? l10n.allChannelsActive(channels.length)
                             : l10n.selectedChannels(
@@ -484,7 +500,7 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                   return _ChannelTile(
                     channel: ch,
                     channelEnabled: channelEnabled,
-                    appEnabled: widget.appEnabled,
+                    appEnabled: _appEnabled,
                     template: template,
                     templateLabels: _templateLabels,
                     renderer:
@@ -515,6 +531,76 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
           ],
         ],
       ),
+    );
+  }
+}
+
+class _AppHeaderIcon extends StatefulWidget {
+  const _AppHeaderIcon({required this.app});
+
+  final AppInfo app;
+
+  @override
+  State<_AppHeaderIcon> createState() => _AppHeaderIconState();
+}
+
+class _AppHeaderIconState extends State<_AppHeaderIcon> {
+  Future<Uint8List?>? _iconFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.app.icon.isEmpty) {
+      _iconFuture = AppCacheService.instance.getIcon(widget.app.packageName);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.app.icon.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.memory(
+          widget.app.icon,
+          width: 32,
+          height: 32,
+          fit: BoxFit.cover,
+          gaplessPlayback: true,
+        ),
+      );
+    }
+
+    return FutureBuilder<Uint8List?>(
+      future: _iconFuture,
+      builder: (context, snapshot) {
+        final icon = snapshot.data;
+        if (icon != null && icon.isNotEmpty) {
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.memory(
+              icon,
+              width: 32,
+              height: 32,
+              fit: BoxFit.cover,
+              gaplessPlayback: true,
+            ),
+          );
+        }
+        return Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainer,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          alignment: Alignment.center,
+          child: Icon(
+            Icons.apps_rounded,
+            size: 18,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        );
+      },
     );
   }
 }

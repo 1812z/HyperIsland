@@ -1,0 +1,50 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+
+class HomeController extends ChangeNotifier {
+  static const _platform = MethodChannel('io.github.hyperisland/test');
+
+  bool isSending = false;
+  bool? moduleActive; // null = 检测中
+  int? focusProtocolVersion; // null = 检测中
+  int? xposedApiVersion; // null = 检测中
+
+  HomeController() {
+    _checkStatus();
+  }
+
+  Future<void> _checkStatus() async {
+    try {
+      final bool active = await _platform.invokeMethod('isModuleActive');
+      moduleActive = active;
+    } catch (_) {
+      moduleActive = false;
+    }
+    try {
+      final int version = await _platform.invokeMethod('getApiVersion');
+      xposedApiVersion = version;
+    } catch (_) {
+      xposedApiVersion = 0;
+    }
+    try {
+      final int version = await _platform.invokeMethod('getFocusProtocolVersion');
+      focusProtocolVersion = version;
+    } catch (_) {
+      focusProtocolVersion = 0;
+    }
+    notifyListeners();
+  }
+
+  Future<void> sendTest() async {
+    isSending = true;
+    notifyListeners();
+    try {
+      await _platform.invokeMethod('showTest');
+    } on PlatformException catch (_) {
+      // ignore
+    } finally {
+      isSending = false;
+      notifyListeners();
+    }
+  }
+}

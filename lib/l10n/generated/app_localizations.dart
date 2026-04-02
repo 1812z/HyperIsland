@@ -264,6 +264,12 @@ abstract class AppLocalizations {
   /// **'请在 LSPosed 中启用本模块'**
   String get enableInLSPosed;
 
+  /// No description provided for @lsposedApiVersion.
+  ///
+  /// In zh, this message translates to:
+  /// **'LSPosed API 版本: {version}'**
+  String lsposedApiVersion(int version);
+
   /// No description provided for @updateLSPosedRequired.
   ///
   /// In zh, this message translates to:
@@ -351,7 +357,7 @@ abstract class AppLocalizations {
   /// No description provided for @keepFocusNotifTitle.
   ///
   /// In zh, this message translates to:
-  /// **'下载管理器暂停后保留通知'**
+  /// **'下载管理器暂停后保留焦点通知'**
   String get keepFocusNotifTitle;
 
   /// No description provided for @keepFocusNotifSubtitle.
@@ -396,6 +402,30 @@ abstract class AppLocalizations {
   /// **'启动应用时自动检查是否有新版本'**
   String get checkUpdateOnLaunchSubtitle;
 
+  /// No description provided for @showWelcomeTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'显示启动欢迎语'**
+  String get showWelcomeTitle;
+
+  /// No description provided for @showWelcomeSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'应用启动时在超级岛显示欢迎信息'**
+  String get showWelcomeSubtitle;
+
+  /// No description provided for @interactionHapticsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'交互触感'**
+  String get interactionHapticsTitle;
+
+  /// No description provided for @interactionHapticsSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'为开关、滑块和按钮启用 Hyper 定制震感反馈'**
+  String get interactionHapticsSubtitle;
+
   /// No description provided for @checkUpdate.
   ///
   /// In zh, this message translates to:
@@ -407,6 +437,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'已是最新版本'**
   String get alreadyLatest;
+
+  /// No description provided for @useAppIconTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'使用应用图标'**
+  String get useAppIconTitle;
+
+  /// No description provided for @useAppIconSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'下载管理器通知使用应用图标'**
+  String get useAppIconSubtitle;
 
   /// No description provided for @roundIconTitle.
   ///
@@ -429,7 +471,7 @@ abstract class AppLocalizations {
   /// No description provided for @marqueeSpeedTitle.
   ///
   /// In zh, this message translates to:
-  /// **'速度'**
+  /// **'滚动速度'**
   String get marqueeSpeedTitle;
 
   /// No description provided for @marqueeSpeedLabel.
@@ -522,6 +564,18 @@ abstract class AppLocalizations {
   /// **'将配置复制为 JSON 文本'**
   String get exportToClipboardSubtitle;
 
+  /// No description provided for @exportConfig.
+  ///
+  /// In zh, this message translates to:
+  /// **'导出配置'**
+  String get exportConfig;
+
+  /// No description provided for @exportConfigSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择导出到文件或剪贴板'**
+  String get exportConfigSubtitle;
+
   /// No description provided for @importFromFile.
   ///
   /// In zh, this message translates to:
@@ -545,6 +599,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'从剪贴板中的 JSON 文本恢复配置'**
   String get importFromClipboardSubtitle;
+
+  /// No description provided for @importConfig.
+  ///
+  /// In zh, this message translates to:
+  /// **'导入配置'**
+  String get importConfig;
+
+  /// No description provided for @importConfigSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择从文件或剪贴板导入'**
+  String get importConfigSubtitle;
 
   /// No description provided for @qqGroup.
   ///
@@ -912,6 +978,18 @@ abstract class AppLocalizations {
   /// **'超级岛图标'**
   String get islandIcon;
 
+  /// No description provided for @islandIconLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'大岛图标'**
+  String get islandIconLabel;
+
+  /// No description provided for @islandIconLabelSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'开启后显示超级岛的大图标（小岛不受影响）'**
+  String get islandIconLabelSubtitle;
+
   /// No description provided for @focusIconLabel.
   ///
   /// In zh, this message translates to:
@@ -930,23 +1008,17 @@ abstract class AppLocalizations {
   /// **'状态栏图标'**
   String get preserveStatusBarSmallIconLabel;
 
-  /// No description provided for @preserveStatusBarSmallIconLabelSubtitle.
+  /// No description provided for @restoreLockscreenTitle.
   ///
   /// In zh, this message translates to:
-  /// **'焦点通知打开时，是否强制保留状态栏小图标'**
-  String get preserveStatusBarSmallIconLabelSubtitle;
+  /// **'锁屏通知复原'**
+  String get restoreLockscreenTitle;
 
-  /// No description provided for @islandIconLabel.
+  /// No description provided for @restoreLockscreenSubtitle.
   ///
   /// In zh, this message translates to:
-  /// **'大岛图标'**
-  String get islandIconLabel;
-
-  /// No description provided for @islandIconLabelSubtitle.
-  ///
-  /// In zh, this message translates to:
-  /// **'开启后显示超级岛的大图标（小岛不受影响）'**
-  String get islandIconLabelSubtitle;
+  /// **'锁屏时跳过焦点通知处理，保持原始通知隐私行为'**
+  String get restoreLockscreenSubtitle;
 
   /// No description provided for @firstFloatLabel.
   ///
@@ -1128,6 +1200,12 @@ abstract class AppLocalizations {
   /// **'替换通知为焦点通知（关闭后显示原始通知）'**
   String get focusNotificationLabelSubtitle;
 
+  /// No description provided for @preserveStatusBarSmallIconLabelSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'焦点通知打开时，是否强制保留状态栏小图标'**
+  String get preserveStatusBarSmallIconLabelSubtitle;
+
   /// No description provided for @aiConfigSection.
   ///
   /// In zh, this message translates to:
@@ -1173,7 +1251,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiUrlLabel.
   ///
   /// In zh, this message translates to:
-  /// **'API 地址（必须完整）'**
+  /// **'API 地址'**
   String get aiUrlLabel;
 
   /// No description provided for @aiUrlHint.
@@ -1206,6 +1284,72 @@ abstract class AppLocalizations {
   /// **'gpt-4o-mini'**
   String get aiModelHint;
 
+  /// No description provided for @aiPromptLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'系统提示词'**
+  String get aiPromptLabel;
+
+  /// No description provided for @aiPromptHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'留空则使用默认提示词'**
+  String get aiPromptHint;
+
+  /// No description provided for @aiPromptInUserTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'提示词放在用户消息'**
+  String get aiPromptInUserTitle;
+
+  /// No description provided for @aiPromptInUserSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'某些模型不支持系统指令，开启后将提示词放在用户消息中'**
+  String get aiPromptInUserSubtitle;
+
+  /// No description provided for @aiTimeoutTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'AI 响应超时'**
+  String get aiTimeoutTitle;
+
+  /// No description provided for @aiTimeoutLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'{seconds}s'**
+  String aiTimeoutLabel(int seconds);
+
+  /// No description provided for @aiTemperatureTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'采样温度 (Temperature)'**
+  String get aiTemperatureTitle;
+
+  /// No description provided for @aiTemperatureSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'控制回答的随机性。0 为准确，1 则更具创意'**
+  String get aiTemperatureSubtitle;
+
+  /// No description provided for @aiMaxTokensTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'最大 Token 数 (Max Tokens)'**
+  String get aiMaxTokensTitle;
+
+  /// No description provided for @aiMaxTokensSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'限制 AI 生成回答的最大长度'**
+  String get aiMaxTokensSubtitle;
+
+  /// No description provided for @aiDefaultPromptFull.
+  ///
+  /// In zh, this message translates to:
+  /// **'留空使用默认提示词：根据通知信息，提取关键信息，左右分别不超过6汉字12字符'**
+  String get aiDefaultPromptFull;
+
   /// No description provided for @aiTestButton.
   ///
   /// In zh, this message translates to:
@@ -1217,6 +1361,138 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'请先填写 API 地址'**
   String get aiTestUrlEmpty;
+
+  /// No description provided for @aiLastLogTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'最近一次 AI 请求日志'**
+  String get aiLastLogTitle;
+
+  /// No description provided for @aiLastLogSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'测试连接和通知触发的 AI 请求都会显示在这里'**
+  String get aiLastLogSubtitle;
+
+  /// No description provided for @aiLastLogEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'还没有可显示的 AI 请求日志'**
+  String get aiLastLogEmpty;
+
+  /// No description provided for @aiLastLogSourceLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'来源'**
+  String get aiLastLogSourceLabel;
+
+  /// No description provided for @aiLastLogTimeLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'时间'**
+  String get aiLastLogTimeLabel;
+
+  /// No description provided for @aiLastLogStatusLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'状态'**
+  String get aiLastLogStatusLabel;
+
+  /// No description provided for @aiLastLogDurationLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'耗时'**
+  String get aiLastLogDurationLabel;
+
+  /// No description provided for @aiLastLogSourceNotification.
+  ///
+  /// In zh, this message translates to:
+  /// **'通知触发'**
+  String get aiLastLogSourceNotification;
+
+  /// No description provided for @aiLastLogSourceSettingsTest.
+  ///
+  /// In zh, this message translates to:
+  /// **'设置页测试'**
+  String get aiLastLogSourceSettingsTest;
+
+  /// No description provided for @aiLastLogRendered.
+  ///
+  /// In zh, this message translates to:
+  /// **'渲染'**
+  String get aiLastLogRendered;
+
+  /// No description provided for @aiLastLogRaw.
+  ///
+  /// In zh, this message translates to:
+  /// **'原始'**
+  String get aiLastLogRaw;
+
+  /// No description provided for @aiLastLogCopy.
+  ///
+  /// In zh, this message translates to:
+  /// **'复制日志'**
+  String get aiLastLogCopy;
+
+  /// No description provided for @aiLastLogCopied.
+  ///
+  /// In zh, this message translates to:
+  /// **'AI 请求日志已复制'**
+  String get aiLastLogCopied;
+
+  /// No description provided for @aiLastLogRequest.
+  ///
+  /// In zh, this message translates to:
+  /// **'请求'**
+  String get aiLastLogRequest;
+
+  /// No description provided for @aiLastLogResponse.
+  ///
+  /// In zh, this message translates to:
+  /// **'回复'**
+  String get aiLastLogResponse;
+
+  /// No description provided for @aiLastLogUsage.
+  ///
+  /// In zh, this message translates to:
+  /// **'Token 用量'**
+  String get aiLastLogUsage;
+
+  /// No description provided for @aiLastLogMessages.
+  ///
+  /// In zh, this message translates to:
+  /// **'消息'**
+  String get aiLastLogMessages;
+
+  /// No description provided for @aiLastLogError.
+  ///
+  /// In zh, this message translates to:
+  /// **'错误'**
+  String get aiLastLogError;
+
+  /// No description provided for @aiLastLogHttpCode.
+  ///
+  /// In zh, this message translates to:
+  /// **'HTTP 状态'**
+  String get aiLastLogHttpCode;
+
+  /// No description provided for @aiLastLogLeftText.
+  ///
+  /// In zh, this message translates to:
+  /// **'左侧文本'**
+  String get aiLastLogLeftText;
+
+  /// No description provided for @aiLastLogRightText.
+  ///
+  /// In zh, this message translates to:
+  /// **'右侧文本'**
+  String get aiLastLogRightText;
+
+  /// No description provided for @aiLastLogAssistantContent.
+  ///
+  /// In zh, this message translates to:
+  /// **'模型回复内容'**
+  String get aiLastLogAssistantContent;
 
   /// No description provided for @aiConfigSaveButton.
   ///
@@ -1233,7 +1509,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiConfigTips.
   ///
   /// In zh, this message translates to:
-  /// **'AI 将收到通知的应用包名、标题和正文，返回左侧（来源）和右侧（内容）短文本。支持兼容 OpenAI 格式的接口（如 DeepSeek、Claude 等）。超过未响应时自动回退到默认逻辑。'**
+  /// **'AI 将收到通知的应用包名、标题和正文，返回左侧（来源）和右侧（内容）短文本。支持兼容 OpenAI 格式的接口（如 DeepSeek、Claude 等）。超过 3 秒未响应时自动回退到默认逻辑。'**
   String get aiConfigTips;
 
   /// No description provided for @templateAiNotificationIslandName.
@@ -1241,66 +1517,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'AI 通知超级岛'**
   String get templateAiNotificationIslandName;
-
-  /// No description provided for @aiPromptLabel.
-  ///
-  /// In zh, this message translates to:
-  /// **'自定义提示词'**
-  String get aiPromptLabel;
-
-  /// No description provided for @aiPromptHint.
-  ///
-  /// In zh, this message translates to:
-  /// **'留空使用默认提示词：根据通知信息，提取关键信息，左右分别不超过6汉字12字符'**
-  String get aiPromptHint;
-
-  /// No description provided for @aiPromptDefault.
-  ///
-  /// In zh, this message translates to:
-  /// **'根据通知信息，提取关键信息，左右分别不超过6汉字12字符'**
-  String get aiPromptDefault;
-
-  /// No description provided for @aiPromptInUserTitle.
-  ///
-  /// In zh, this message translates to:
-  /// **'提示词放在用户消息'**
-  String get aiPromptInUserTitle;
-
-  /// No description provided for @aiPromptInUserSubtitle.
-  ///
-  /// In zh, this message translates to:
-  /// **'某些模型不支持系统指令，开启后将提示词放在用户消息中'**
-  String get aiPromptInUserSubtitle;
-
-  /// No description provided for @aiTimeoutLabel.
-  ///
-  /// In zh, this message translates to:
-  /// **'AI 响应超时'**
-  String get aiTimeoutLabel;
-
-  /// No description provided for @hideDesktopIconTitle.
-  ///
-  /// In zh, this message translates to:
-  /// **'隐藏桌面图标'**
-  String get hideDesktopIconTitle;
-
-  /// No description provided for @hideDesktopIconSubtitle.
-  ///
-  /// In zh, this message translates to:
-  /// **'隐藏启动器中的应用图标，隐藏后可通过 LSPosed 管理器打开'**
-  String get hideDesktopIconSubtitle;
-
-  /// No description provided for @restoreLockscreenTitle.
-  ///
-  /// In zh, this message translates to:
-  /// **'锁屏通知复原'**
-  String get restoreLockscreenTitle;
-
-  /// No description provided for @restoreLockscreenSubtitle.
-  ///
-  /// In zh, this message translates to:
-  /// **'锁屏时跳过焦点通知处理，保持原始通知隐私行为'**
-  String get restoreLockscreenSubtitle;
 }
 
 class _AppLocalizationsDelegate

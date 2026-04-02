@@ -1,0 +1,95 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!--
+        超级岛广播权限（signature 级）。
+        仅与 HyperIsland 使用相同签名的应用可获得此权限，
+        保证只有本应用能触发 SystemUI 进程内的 IslandDispatcher Receiver。
+    -->
+    <permission
+        android:name="io.github.hyperisland.SEND_ISLAND"
+        android:protectionLevel="signature" />
+    <uses-permission android:name="io.github.hyperisland.SEND_ISLAND" />
+
+    <!-- 下载管理权限 -->
+    <uses-permission android:name="android.permission.DOWNLOAD_WITHOUT_NOTIFICATION"/>
+    <uses-permission android:name="android.permission.ACCESS_DOWNLOAD_MANAGER"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Android 11+ 包可见性：查询所有已安装应用 -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"/>
+    <!-- MIUI/HyperOS 运行时权限：获取已安装应用列表 -->
+    <uses-permission android:name="com.android.permission.GET_INSTALLED_APPS"/>
+
+    <application
+        android:label="HyperIsland"
+        android:name="${applicationName}"
+        android:extractNativeLibs="true"
+        android:icon="@mipmap/ic_launcher">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:taskAffinity=""
+            android:theme="@style/LaunchTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
+            <!-- Specifies an Android theme to apply to this Activity as soon as
+                 the Android process has started. This theme is visible to the user
+                 while the Flutter UI initializes. After that, this theme continues
+                 to determine the Window background behind the Flutter UI. -->
+            <meta-data
+              android:name="io.flutter.embedding.android.NormalTheme"
+              android:resource="@style/NormalTheme"
+              />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+        <!-- Don't delete the meta-data below.
+             This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2" />
+
+        <!-- Xposed Module -->
+        <meta-data
+            android:name="xposedmodule"
+            android:value="true" />
+        <meta-data
+            android:name="xposeddescription"
+            android:value="澎湃OS3更多超级岛" />
+        <meta-data
+            android:name="xposedminversion"
+            android:value="82" />
+        <meta-data
+            android:name="xposedscope"
+            android:value="io.github.hyperisland;com.android.providers.downloads;com.xiaomi.android.app.downloadmanager;com.android.systemui;com.xiaomi.xmsf" />
+
+        <!-- 设置 Provider，供 Xposed Hook 进程跨进程读取 -->
+        <provider
+            android:name=".SettingsProvider"
+            android:authorities="io.github.hyperisland.settings"
+            android:exported="true" />
+
+        <!-- 下载控制接收器 -->
+        <receiver
+            android:name=".xposed.DownloadControlReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="io.github.hyperisland.DOWNLOAD_CONTROL"/>
+            </intent-filter>
+        </receiver>
+    </application>
+    <!-- Required to query activities that can process text, see:
+         https://developer.android.com/training/package-visibility and
+         https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.
+
+         In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.PROCESS_TEXT"/>
+            <data android:mimeType="text/plain"/>
+        </intent>
+    </queries>
+</manifest>

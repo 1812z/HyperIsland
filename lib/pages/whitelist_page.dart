@@ -17,12 +17,16 @@ class _WhitelistPageState extends State<WhitelistPage> {
   static const String _selectEnabledAction = 'select_enabled';
   static const String _enableAction = 'enable';
   static const String _disableAction = 'disable';
+  static const double _backToTopThreshold = 420;
 
   late final WhitelistController _ctrl;
   final _searchCtrl = TextEditingController();
   final _searchFocus = FocusNode();
+  final _scrollController = ScrollController();
   final Set<String> _selectedPackages = {};
   bool _inSelectionMode = false;
+  bool _showBackToTop = false;
+  double _lastOffset = 0;
 
   @override
   void initState() {
@@ -31,6 +35,27 @@ class _WhitelistPageState extends State<WhitelistPage> {
     _ctrl.addListener(() {
       if (mounted) setState(() {});
     });
+    _scrollController.addListener(_handleScroll);
+  }
+
+  void _handleScroll() {
+    if (!_scrollController.hasClients) return;
+    final offset = _scrollController.offset;
+    final isScrollingUp = offset < _lastOffset;
+    final shouldShow = offset > _backToTopThreshold && isScrollingUp;
+    if (shouldShow != _showBackToTop && mounted) {
+      setState(() => _showBackToTop = shouldShow);
+    }
+    _lastOffset = offset;
+  }
+
+  Future<void> _scrollToTop() async {
+    if (!_scrollController.hasClients) return;
+    await _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   @override
@@ -44,10 +69,36 @@ class _WhitelistPageState extends State<WhitelistPage> {
     _ctrl.dispose();
     _searchCtrl.dispose();
     _searchFocus.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
   bool get _selectionMode => _inSelectionMode;
+
+  void _clearSearch() {
+    _searchCtrl.clear();
+    _ctrl.setSearch('');
+  }
+
+  bool _handleBackPressed() {
+    if (_selectionMode) {
+      _clearSelection();
+      return true;
+    }
+
+    final keyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
+    if (_searchFocus.hasFocus && keyboardVisible) {
+      _searchFocus.unfocus();
+      return true;
+    }
+
+    if (!_searchFocus.hasFocus && _searchCtrl.text.isNotEmpty) {
+      _clearSearch();
+      return true;
+    }
+
+    return false;
+  }
 
   void _enterSelectionMode([String? pkg]) {
     setState(() {
@@ -165,16 +216,33 @@ class _WhitelistPageState extends State<WhitelistPage> {
         apps.every((a) => _selectedPackages.contains(a.packageName));
 
     return PopScope(
-      canPop: !_selectionMode,
+      canPop: false,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop && _selectionMode) _clearSelection();
+        if (didPop) return;
+        final consumed = _handleBackPressed();
+        if (!consumed && mounted) {
+          Navigator.of(context).pop();
+        }
       },
       child: Scaffold(
         backgroundColor: cs.surface,
+        floatingActionButton: AnimatedScale(
+          scale: _showBackToTop ? 1 : 0,
+          duration: const Duration(milliseconds: 180),
+          child: AnimatedOpacity(
+            opacity: _showBackToTop ? 1 : 0,
+            duration: const Duration(milliseconds: 180),
+            child: FloatingActionButton.small(
+              onPressed: _scrollToTop,
+              child: const Icon(Icons.keyboard_arrow_up_rounded),
+            ),
+          ),
+        ),
         body: RefreshIndicator(
           onRefresh: _ctrl.refresh,
           edgeOffset: 300.0,
           child: CustomScrollView(
+            controller: _scrollController,
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               SliverAppBar.large(
@@ -284,22 +352,35 @@ class _WhitelistPageState extends State<WhitelistPage> {
               ),
 
               // 说明 + 搜索栏
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                sliver: SliverToBoxAdapter(
-                  child: AppListSearchHeader(
-                    countText: _ctrl.showSystemApps
-                        ? l10n.enabledAppsCountWithSystem(enabledCount)
-                        : l10n.enabledAppsCount(enabledCount),
-                    searchController: _searchCtrl,
-                    searchFocusNode: _searchFocus,
-                    hintText: l10n.searchApps,
-                    onChanged: _ctrl.setSearch,
-                    onClear: () {
-                      _searchCtrl.clear();
-                      _ctrl.setSearch('');
-                    },
-                  ),
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: FixedSliverHeaderDelegate(
+                  height: 92,
+                  minHeight: 60,
+                  builder: (context, overlapsContent, collapseProgress) =>
+                      Material(
+                        color: overlapsContent
+                            ? cs.surfaceContainerLow
+                            : cs.surface,
+                        surfaceTintColor: Theme.of(
+                          context,
+                        ).colorScheme.surfaceTint,
+                        elevation: 0,
+                        child: Container(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                          child: AppListSearchHeader(
+                            countText: _ctrl.showSystemApps
+                                ? l10n.enabledAppsCountWithSystem(enabledCount)
+                                : l10n.enabledAppsCount(enabledCount),
+                            showCountText: !overlapsContent,
+                            searchController: _searchCtrl,
+                            searchFocusNode: _searchFocus,
+                            hintText: l10n.searchApps,
+                            onChanged: _ctrl.setSearch,
+                            onClear: _clearSearch,
+                          ),
+                        ),
+                      ),
                 ),
               ),
 

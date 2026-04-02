@@ -1,0 +1,254 @@
+name: Build & Release
+
+# 触发条件
+on:
+  # 当推送 v* 格式的 tag 时触发（如 v1.6.0）
+  push:
+    tags:
+      - 'v*'
+  # 手动触发：在 GitHub Actions 页面可以手动运行此工作流
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '版本号（格式：1.5.0）'
+        required: false
+        type: string
+      build_only:
+        description: '仅构建不发布'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      # 第一步：检出代码
+      # fetch-depth: 2 表示获取最近 2 个提交的历史（用于版本对比）
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 2
+
+      # 第二步：检测版本号是否变更
+      # 从 pubspec.yaml 读取当前版本，与上一个提交的版本对比
+      - name: Detect version change
+        id: version
+        run: |
+          # 1. 优先获取手动输入的版本，如果没有则从 pubspec.yaml 提取
+          INPUT_VERSION="${{ github.event.inputs.version }}"
+          CURRENT_FULL=$(grep '^version:' pubspec.yaml | awk '{print $2}')
+          CURRENT_NAME=$(echo "$CURRENT_FULL" | cut -d'+' -f1)
+          CURRENT_CODE=$(echo "$CURRENT_FULL" | cut -d'+' -f2)
+
+          VERSION_NAME=${INPUT_VERSION:-$CURRENT_NAME}
+          VERSION_CODE=$CURRENT_CODE
+
+          # 2. 判断是否发布
+          # 手动触发时强制发布（除非指定 build_only=true）
+          # 自动触发时根据版本是否变更来决定
+          PREVIOUS_FULL=$(git show HEAD~1:pubspec.yaml 2>/dev/null | grep '^version:' | awk '{print $2}' || echo "")
+          PREVIOUS_NAME=$(echo "$PREVIOUS_FULL" | cut -d'+' -f1)
+
+          SHOULD_RELEASE="true"
+          if [[ "${{ github.event.inputs.build_only }}" == "true" ]]; then
+            SHOULD_RELEASE="false"
+            echo "::notice::Build only mode enabled via input."
+          elif [[ "${{ github.event_name }}" == "push" ]] && [[ "$VERSION_NAME" == "$PREVIOUS_NAME" ]]; then
+            # 仅在自动推送时检查版本变更，手动触发时忽略此检查
+            SHOULD_RELEASE="false"
+            echo "::notice::No version name change detected ($PREVIOUS_NAME -> $VERSION_NAME)."
+          fi
+
+          if [ "$SHOULD_RELEASE" == "true" ]; then
+            # 版本已变更，标记为 true，后续会发布 Release
+            echo "changed=true" >> $GITHUB_OUTPUT
+            echo "build_version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+            echo "build_version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+            echo "::notice::Version $VERSION_NAME will be released."
+          else
+            # 版本未变更，标记为 false，只编译不发布
+            # versionCode 递增，versionName 添加 -dev 和构建号后缀
+            NEW_VERSION_CODE=$((VERSION_CODE + 1))
+            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "build_version_name=$VERSION_NAME-dev.$NEW_VERSION_CODE" >> $GITHUB_OUTPUT
+            echo "build_version_code=$NEW_VERSION_CODE" >> $GITHUB_OUTPUT
+            echo "::notice::Build only version: $VERSION_NAME-dev.$NEW_VERSION_CODE+$NEW_VERSION_CODE"
+          fi
+
+          # 输出原始版本信息供后续步骤使用
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "version_code=$VERSION_CODE"  >> $GITHUB_OUTPUT
+          echo "previous_version=$PREVIOUS_NAME" >> $GITHUB_OUTPUT
+
+      # 第三步：安装 Java 环境
+      # Flutter 编译 Android 需要 Java 17
+      - name: Set up Java
+        uses: actions/setup-java@v4.3.0
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      # 第四步：安装 Flutter SDK
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2.18.0
+        with:
+          flutter-version: '3.41.6'
+          cache: true
+          cache-key: 'flutter-:os:-:channel:-:version:-:arch:-:hash:'
+          pub-cache-key: 'flutter-pub-:os:-:channel:-:version:-:arch:-:hash:'
+
+      # 第五步：设置 Gradle
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4.1.0
+        with:
+          gradle-version: wrapper
+          cache-disabled: false
+
+      # 第六步：安装 Flutter 依赖
+      # 执行 flutter pub get 下载 pubspec.yaml 中定义的所有依赖包
+      - name: Install dependencies
+        run: flutter pub get --offline || flutter pub get
+
+      # 第七步：解码签名密钥
+      # 将 base64 编码的密钥文件解码为 .jks 文件
+      - name: Decode keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/release.jks
+
+      # 第八步：编译 APK
+      # 使用 release 模式编译（包含代码混淆和资源压缩）
+      # 发布版本：使用原始版本号
+      # 仅编译版本：versionName 添加 -dev 后缀，versionCode 递增
+      # 仅编译 ARM64 架构
+      - name: Build APK
+        env:
+          KEYSTORE_PATH: release.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          flutter build apk --release --no-pub \
+            --target-platform android-arm64 \
+            --build-name="${{ steps.version.outputs.build_version_name }}" \
+            --build-number="${{ steps.version.outputs.build_version_code }}" \
+            --split-per-abi
+
+      # ────────────────────────────────────────────────────────────────────────
+      # 以下步骤：上传编译产物和发布
+      # ────────────────────────────────────────────────────────────────────────
+
+      # 第九步：上传 APK 作为 GitHub Actions 工件
+      - name: Upload APK as artifact
+        uses: actions/upload-artifact@v4.6.0
+        with:
+          name: HyperIsland-v${{ steps.version.outputs.version_name }}
+          path: build/app/outputs/flutter-apk/app-*-release.apk
+          retention-days: 30
+          compression-level: 0
+
+      # 第十步：重命名 APK 文件（仅在版本变更时执行）
+      - name: Rename APK for release
+        if: steps.version.outputs.changed == 'true'
+        run: |
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk \
+            "HyperIsland-v${{ steps.version.outputs.version_name }}.apk"
+
+      # 第十一步：提取更新日志（仅在版本变更时执行）
+      # 优先从 CHANGELOG.md 中提取，如果没有则从 git 记录生成
+      - name: Extract changelog
+        if: steps.version.outputs.changed == 'true'
+        id: changelog
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.version_name }}"
+          $previousVersion = "${{ steps.version.outputs.previous_version }}"
+          $changelogContent = ""
+
+          # 优先从 CHANGELOG.md 提取版本更新内容
+          try {
+            if (Test-Path 'CHANGELOG.md') {
+              $changelogFile = Get-Content 'CHANGELOG.md' -Raw
+              # 匹配以 "# V<version>" 开头直到下一个版本标题或文件结尾
+              # 支持格式：# V1.6.8 或 # V1.6.8 (2024-12-19)
+              $escapedVersion = [regex]::Escape($version)
+              $pattern = "(?ms)^#\s*V$escapedVersion\b[\s\S]*?(?=^#\s*V\d+\.\d+\.\d+\b|\Z)"
+              $match = [regex]::Match($changelogFile, $pattern)
+
+              # 如果简单模式不匹配，尝试包含日期的完整模式
+              if (-not $match.Success) {
+                $pattern = "(?ms)^#\s*V$escapedVersion\s*\([\d-]+\)[\s\S]*?(?=^#\s*V\d+\.\d+\.\d+\s*\(|\Z)"
+                $match = [regex]::Match($changelogFile, $pattern)
+              }
+
+              if ($match.Success) {
+                $section = $match.Value.Trim()
+                # 去掉第一行标题（# Vx.y.z ...）
+                $lines = $section -split "`n"
+                if ($lines.Length -gt 1) {
+                  $body = ($lines | Select-Object -Skip 1) -join "`n"
+                } else {
+                  $body = $section
+                }
+                $body = $body.Trim()
+                if ($body) {
+                  echo "已从 CHANGELOG.md 提取版本更新内容"
+                  $changelogContent = $body
+                }
+              }
+            }
+          } catch {
+            echo "从 CHANGELOG.md 提取内容失败: $_"
+          }
+
+          # 如果还是没有内容，生成commit日志
+          if (-not $changelogContent) {
+            echo "未在 CHANGELOG.md 中找到版本 $version 的段落，使用提交记录生成更新内容"
+            $commitLog = ""
+
+            if ($previousVersion -ne "") {
+              try {
+                $commits = git log "v$previousVersion"..HEAD --pretty=format:"- %s" 2>$null
+                if ($commits) {
+                  $commitLog = $commits
+                }
+              } catch {
+                echo "无法获取版本标签间的提交记录"
+              }
+            }
+
+            if (-not $commitLog) {
+              $commits = git log --pretty=format:"- %s" -20 2>$null
+              $commitLog = $commits
+            }
+
+            $changelogContent = "### 变更日志`n`n$commitLog"
+          }
+
+          # 将多行内容转换为 GitHub Output 格式
+          echo "content<<EOF" >> $env:GITHUB_OUTPUT
+          echo "$changelogContent" >> $env:GITHUB_OUTPUT
+          echo "EOF" >> $env:GITHUB_OUTPUT
+
+      # 第十二步：创建 GitHub Release（仅在版本变更时执行）
+      # 在 GitHub 的 Releases 页面创建新版本发布
+      # 包含版本标签、发布说明和 APK 文件下载链接
+      - name: Create GitHub Release
+        if: steps.version.outputs.changed == 'true'
+        uses: softprops/action-gh-release@v2.1.0
+        with:
+          # 创建的 git tag 名称（格式：v1.5.0）
+          tag_name: v${{ steps.version.outputs.version_name }}
+          # Release 标题
+          name: HyperIsland v${{ steps.version.outputs.version_name }}
+          # Release 描述信息（包含更新日志）
+          body: ${{ steps.changelog.outputs.content }}
+          # 要上传到 Release 的文件
+          files: HyperIsland-v${{ steps.version.outputs.version_name }}.apk
+          # 不作为草稿发布（直接发布）
+          draft: false
+          # 不标记为预发布版本
+          prerelease: false
