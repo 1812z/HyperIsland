@@ -9,89 +9,89 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get navHome => 'Home'; [cite: 1]
+  String get navHome => 'Home';
 
   @override
-  String get navApps => 'Apps'; [cite: 1]
+  String get navApps => 'Apps';
 
   @override
-  String get navSettings => 'Settings'; [cite: 1]
+  String get navSettings => 'Settings';
 
   @override
-  String get cancel => 'Cancel'; [cite: 1]
+  String get cancel => 'Cancel';
 
   @override
-  String get confirm => 'Confirm'; [cite: 1]
+  String get confirm => 'Confirm';
 
   @override
-  String get ok => 'OK'; [cite: 1]
+  String get ok => 'OK';
 
   @override
-  String get apply => 'Apply'; [cite: 1]
+  String get apply => 'Apply';
 
   @override
-  String get noChange => 'No change'; [cite: 1]
+  String get noChange => 'No change';
 
   @override
-  String get newVersionFound => 'New Version Available'; [cite: 1]
+  String get newVersionFound => 'New Version Available';
 
   @override
   String currentVersion(String version) {
-    return 'Current version: $version'; [cite: 1]
+    return 'Current version: $version';
   }
 
   @override
   String latestVersion(String version) {
-    return 'Latest version: $version'; [cite: 1]
+    return 'Latest version: $version';
   }
 
   @override
-  String get later => 'Later'; [cite: 1]
+  String get later => 'Later';
 
   @override
-  String get goUpdate => 'Update'; [cite: 1]
+  String get goUpdate => 'Update';
 
   @override
-  String get sponsorSupport => 'Support the Author'; [cite: 1]
+  String get sponsorSupport => 'Support the Author';
 
   @override
-  String get sponsorAuthor => 'Sponsor'; [cite: 1]
+  String get sponsorAuthor => 'Sponsor';
 
   @override
-  String get restartScope => 'Restart Scope'; [cite: 1]
+  String get restartScope => 'Restart Scope';
 
   @override
-  String get systemUI => 'System UI'; [cite: 1]
+  String get systemUI => 'System UI';
 
   @override
-  String get downloadManager => 'Download Manager'; [cite: 1]
+  String get downloadManager => 'Download Manager';
 
   @override
-  String get xmsf => 'XMSF (Xiaomi Service Framework)'; [cite: 1]
+  String get xmsf => 'XMSF (Xiaomi Service Framework)';
 
   @override
-  String get notificationTest => 'Notification Test'; [cite: 1]
+  String get notificationTest => 'Notification Test';
 
   @override
-  String get sendTestNotification => 'Send Test Notification'; [cite: 1]
+  String get sendTestNotification => 'Send Test Notification';
 
   @override
-  String get notes => 'Notes'; [cite: 1]
+  String get notes => 'Notes';
 
   @override
-  String get detectingModuleStatus => 'Detecting module status...'; [cite: 1]
+  String get detectingModuleStatus => 'Detecting module status...';
 
   @override
-  String get moduleStatus => 'Module Status'; [cite: 1]
+  String get moduleStatus => 'Module Status';
 
   @override
-  String get activated => 'Activated'; [cite: 1]
+  String get activated => 'Activated';
 
   @override
-  String get notActivated => 'Not Activated'; [cite: 1]
+  String get notActivated => 'Not Activated';
 
   @override
-  String get enableInLSPosed => 'Please enable this module in LSPosed'; [cite: 1]
+  String get enableInLSPosed => 'Please enable this module in LSPosed';
 
   @override
   String lsposedApiVersion(int version) {
@@ -99,24 +99,24 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get updateLSPosedRequired => 'Please update LSPosed version'; [cite: 1]
+  String get updateLSPosedRequired => 'Please update LSPosed version';
 
   @override
-  String get systemNotSupported => 'System Not Supported'; [cite: 1]
+  String get systemNotSupported => 'System Not Supported';
 
   @override
   String systemNotSupportedSubtitle(int version) {
-    return 'Current system does not support Dynamic Island (protocol version $version, requires version 3)'; [cite: 2]
+    return 'Current system does not support Dynamic Island (protocol version $version, requires version 3)';
   }
 
   @override
   String restartFailed(String message) {
-    return 'Restart failed: $message'; [cite: 2]
+    return 'Restart failed: $message';
   }
 
   @override
   String get restartRootRequired =>
-      'Please check if ROOT permission has been granted to this app'; [cite: 2]
+      'Please check if ROOT permission has been granted to this app';
 
   @override
   String get note1 =>
@@ -128,55 +128,55 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get note3 =>
-      '3. After activating in LSPosed Manager, you must restart the related scope app'; [cite: 4]
+      '3. After activating in LSPosed Manager, you must restart the related scope app';
 
   @override
   String get note4 =>
-      '4. General adaptation is supported, try checking an appropriate template'; [cite: 4]
+      '4. General adaptation is supported, try checking an appropriate template';
 
   @override
-  String get behaviorSection => 'Behavior'; [cite: 4]
+  String get behaviorSection => 'Behavior';
 
   @override
-  String get defaultConfigSection => 'Default Channel Settings'; [cite: 4]
+  String get defaultConfigSection => 'Default Channel Settings';
 
   @override
-  String get appearanceSection => 'Appearance'; [cite: 4]
+  String get appearanceSection => 'Appearance';
 
   @override
-  String get configSection => 'Configuration'; [cite: 4]
+  String get configSection => 'Configuration';
 
   @override
-  String get aboutSection => 'About'; [cite: 4]
+  String get aboutSection => 'About';
 
   @override
-  String get keepFocusNotifTitle => 'Keep notification after download pause'; [cite: 4]
+  String get keepFocusNotifTitle => 'Keep notification after download pause';
 
   @override
   String get keepFocusNotifSubtitle =>
-      'Show a focus notification to resume download, but state synchronization issues may occur'; [cite: 4]
+      'Show a focus notification to resume download, but state synchronization issues may occur';
 
   @override
-  String get unlockAllFocusTitle => 'Remove focus notification whitelist'; [cite: 4]
+  String get unlockAllFocusTitle => 'Remove focus notification whitelist';
 
   @override
   String get unlockAllFocusSubtitle =>
-      'Allow all apps to send focus notifications without system authorization'; [cite: 4]
+      'Allow all apps to send focus notifications without system authorization';
 
   @override
   String get unlockFocusAuthTitle =>
-      'Remove focus notification signature verification'; [cite: 4]
+      'Remove focus notification signature verification';
 
   @override
   String get unlockFocusAuthSubtitle =>
-      'Allow all apps to send focus notifications to watch/bracelet, bypassing signature check (requires hooking XMSF)'; [cite: 4]
+      'Allow all apps to send focus notifications to watch/bracelet, bypassing signature check (requires hooking XMSF)';
 
   @override
-  String get checkUpdateOnLaunchTitle => 'Check for updates on launch'; [cite: 4]
+  String get checkUpdateOnLaunchTitle => 'Check for updates on launch';
 
   @override
   String get checkUpdateOnLaunchSubtitle =>
-      'Automatically check for new versions when the app starts'; [cite: 4]
+      'Automatically check for new versions when the app starts';
 
   @override
   String get showWelcomeTitle => 'Show welcome message on launch';
@@ -191,10 +191,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get interactionHapticsSubtitle => 'Enable Hyper custom haptic feedback for switches, sliders, and buttons';
 
   @override
-  String get checkUpdate => 'Check for updates'; [cite: 4]
+  String get checkUpdate => 'Check for updates';
 
   @override
-  String get alreadyLatest => 'Already on the latest version'; [cite: 4]
+  String get alreadyLatest => 'Already on the latest version';
 
   @override
   String get useAppIconTitle => 'Use App Icon';
@@ -203,63 +203,63 @@ class AppLocalizationsEn extends AppLocalizations {
   String get useAppIconSubtitle => 'Use the app icon for download manager notifications';
 
   @override
-  String get roundIconTitle => 'Round icon corners'; [cite: 4]
+  String get roundIconTitle => 'Round icon corners';
 
   @override
-  String get roundIconSubtitle => 'Add rounded corners to notification icons'; [cite: 4]
+  String get roundIconSubtitle => 'Add rounded corners to notification icons';
 
   @override
-  String get marqueeChannelTitle => 'Text Scrolling Island'; [cite: 4]
+  String get marqueeChannelTitle => 'Text Scrolling Island';
 
   @override
-  String get marqueeSpeedTitle => 'Speed'; [cite: 4]
+  String get marqueeSpeedTitle => 'Speed';
 
   @override
   String marqueeSpeedLabel(int speed) {
-    return '$speed px/s'; [cite: 4]
+    return '$speed px/s';
   }
 
   @override
-  String get themeModeTitle => 'Color mode'; [cite: 5]
+  String get themeModeTitle => 'Color mode';
 
   @override
-  String get themeModeSystem => 'Follow system'; [cite: 5]
+  String get themeModeSystem => 'Follow system';
 
   @override
-  String get themeModeLight => 'Light'; [cite: 5]
+  String get themeModeLight => 'Light';
 
   @override
-  String get themeModeDark => 'Dark'; [cite: 5]
+  String get themeModeDark => 'Dark';
 
   @override
-  String get languageTitle => 'Language'; [cite: 5]
+  String get languageTitle => 'Language';
 
   @override
-  String get languageAuto => 'Follow system'; [cite: 5]
+  String get languageAuto => 'Follow system';
 
   @override
-  String get languageZh => '中文'; [cite: 5]
+  String get languageZh => '中文';
 
   @override
-  String get languageEn => 'English'; [cite: 5]
+  String get languageEn => 'English';
 
   @override
-  String get languageJa => '日本語'; [cite: 5]
+  String get languageJa => '日本語';
 
   @override
-  String get languageTr => 'Türkçe'; [cite: 5]
+  String get languageTr => 'Türkçe';
 
   @override
-  String get exportToFile => 'Export to file'; [cite: 5]
+  String get exportToFile => 'Export to file';
 
   @override
-  String get exportToFileSubtitle => 'Save configuration as a JSON file'; [cite: 5]
+  String get exportToFileSubtitle => 'Save configuration as a JSON file';
 
   @override
-  String get exportToClipboard => 'Export to clipboard'; [cite: 5]
+  String get exportToClipboard => 'Export to clipboard';
 
   @override
-  String get exportToClipboardSubtitle => 'Copy configuration as JSON text'; [cite: 5]
+  String get exportToClipboardSubtitle => 'Copy configuration as JSON text';
 
   @override
   String get exportConfig => 'Export Configuration';
@@ -268,17 +268,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportConfigSubtitle => 'Choose to export to file or clipboard';
 
   @override
-  String get importFromFile => 'Import from file'; [cite: 5]
+  String get importFromFile => 'Import from file';
 
   @override
-  String get importFromFileSubtitle => 'Restore configuration from a JSON file'; [cite: 5]
+  String get importFromFileSubtitle => 'Restore configuration from a JSON file';
 
   @override
-  String get importFromClipboard => 'Import from clipboard'; [cite: 5]
+  String get importFromClipboard => 'Import from clipboard';
 
   @override
   String get importFromClipboardSubtitle =>
-      'Restore configuration from JSON text in clipboard'; [cite: 5]
+      'Restore configuration from JSON text in clipboard';
 
   @override
   String get importConfig => 'Import Configuration';
@@ -287,242 +287,242 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importConfigSubtitle => 'Choose to import from file or clipboard';
 
   @override
-  String get qqGroup => 'QQ Group'; [cite: 5]
+  String get qqGroup => 'QQ Group';
 
   @override
   String get restartScopeApp =>
-      'Please restart the scope app for settings to take effect'; [cite: 5]
+      'Please restart the scope app for settings to take effect';
 
   @override
-  String get groupNumberCopied => 'Group number copied to clipboard'; [cite: 5]
+  String get groupNumberCopied => 'Group number copied to clipboard';
 
   @override
   String exportedTo(String path) {
-    return 'Exported to: $path'; [cite: 5]
+    return 'Exported to: $path';
   }
 
   @override
   String exportFailed(String error) {
-    return 'Export failed: $error'; [cite: 5]
+    return 'Export failed: $error';
   }
 
   @override
-  String get configCopied => 'Configuration copied to clipboard'; [cite: 5]
+  String get configCopied => 'Configuration copied to clipboard';
 
   @override
   String importSuccess(int count) {
-    return 'Import successful, $count items, please restart the app'; [cite: 5]
+    return 'Import successful, $count items, please restart the app';
   }
 
   @override
   String importFailed(String error) {
-    return 'Import failed: $error'; [cite: 5]
+    return 'Import failed: $error';
   }
 
   @override
-  String get appAdaptation => 'App Adaptation'; [cite: 5]
+  String get appAdaptation => 'App Adaptation';
 
   @override
   String selectedAppsCount(int count) {
-    return '$count apps selected'; [cite: 6]
+    return '$count apps selected';
   }
 
   @override
-  String get cancelSelection => 'Cancel selection'; [cite: 6]
+  String get cancelSelection => 'Cancel selection';
 
   @override
-  String get deselectAll => 'Deselect all'; [cite: 6]
+  String get deselectAll => 'Deselect all';
 
   @override
-  String get selectAll => 'Select all'; [cite: 6]
+  String get selectAll => 'Select all';
 
   @override
-  String get batchChannelSettings => 'Batch channel settings'; [cite: 6]
+  String get batchChannelSettings => 'Batch channel settings';
 
   @override
-  String get selectEnabledApps => 'Select enabled apps'; [cite: 6]
+  String get selectEnabledApps => 'Select enabled apps';
 
   @override
-  String get batchEnable => 'Batch enable'; [cite: 6]
+  String get batchEnable => 'Batch enable';
 
   @override
-  String get batchDisable => 'Batch disable'; [cite: 6]
+  String get batchDisable => 'Batch disable';
 
   @override
-  String get multiSelect => 'Multi-select'; [cite: 6]
+  String get multiSelect => 'Multi-select';
 
   @override
-  String get showSystemApps => 'Show system apps'; [cite: 6]
+  String get showSystemApps => 'Show system apps';
 
   @override
-  String get refreshList => 'Refresh list'; [cite: 6]
+  String get refreshList => 'Refresh list';
 
   @override
-  String get enableAll => 'Enable all'; [cite: 6]
+  String get enableAll => 'Enable all';
 
   @override
-  String get disableAll => 'Disable all'; [cite: 6]
+  String get disableAll => 'Disable all';
 
   @override
   String enabledAppsCount(int count) {
-    return 'Dynamic Island enabled for $count apps'; [cite: 6]
+    return 'Dynamic Island enabled for $count apps';
   }
 
   @override
   String enabledAppsCountWithSystem(int count) {
-    return 'Dynamic Island enabled for $count apps (including system apps)'; [cite: 6]
+    return 'Dynamic Island enabled for $count apps (including system apps)';
   }
 
   @override
-  String get searchApps => 'Search app name or package name'; [cite: 6]
+  String get searchApps => 'Search app name or package name';
 
   @override
   String get noAppsFound =>
-      'No installed apps found\nPlease check if app list permission is enabled'; [cite: 6]
+      'No installed apps found\nPlease check if app list permission is enabled';
 
   @override
-  String get noMatchingApps => 'No matching apps'; [cite: 6]
+  String get noMatchingApps => 'No matching apps';
 
   @override
   String applyToSelectedAppsChannels(int count) {
-    return 'Will apply to enabled channels of $count selected apps'; [cite: 6]
+    return 'Will apply to enabled channels of $count selected apps';
   }
 
   @override
-  String get applyingConfig => 'Applying configuration...'; [cite: 6]
+  String get applyingConfig => 'Applying configuration...';
 
   @override
   String progressApps(int done, int total) {
-    return 'Progress: $done / $total'; [cite: 6]
+    return 'Progress: $done / $total';
   }
 
   @override
   String batchApplied(int count) {
-    return 'Batch applied to $count apps'; [cite: 6]
+    return 'Batch applied to $count apps';
   }
 
   @override
-  String get cannotReadChannels => 'Cannot Read Notification Channels'; [cite: 6]
+  String get cannotReadChannels => 'Cannot Read Notification Channels';
 
   @override
   String get rootRequiredMessage =>
-      'Reading notification channels requires ROOT permission.\nPlease confirm ROOT permission is granted and try again.'; [cite: 6]
+      'Reading notification channels requires ROOT permission.\nPlease confirm ROOT permission is granted and try again.';
 
   @override
-  String get enableAllChannels => 'Enable all channels'; [cite: 6]
+  String get enableAllChannels => 'Enable all channels';
 
   @override
-  String get noChannelsFound => 'No notification channels found'; [cite: 6]
+  String get noChannelsFound => 'No notification channels found';
 
   @override
   String get noChannelsFoundSubtitle =>
-      'This app has no notification channels, or they cannot be read'; [cite: 7]
+      'This app has no notification channels, or they cannot be read';
 
   @override
   String allChannelsActive(int count) {
-    return 'Active for all $count channels'; [cite: 7]
+    return 'Active for all $count channels';
   }
 
   @override
   String selectedChannels(int selected, int total) {
-    return '$selected / $total channels selected'; [cite: 7]
+    return '$selected / $total channels selected';
   }
 
   @override
   String allChannelsDisabled(int count) {
-    return 'All $count channels (disabled)'; [cite: 7]
+    return 'All $count channels (disabled)';
   }
 
   @override
   String get appDisabledBanner =>
-      'App is disabled, the following channel settings have no effect'; [cite: 7]
+      'App is disabled, the following channel settings have no effect';
 
   @override
   String channelImportance(String importance, String id) {
-    return 'Importance: $importance  ·  $id'; [cite: 7]
+    return 'Importance: $importance  ·  $id';
   }
 
   @override
-  String get channelSettings => 'Channel settings'; [cite: 7]
+  String get channelSettings => 'Channel settings';
 
   @override
-  String get importanceNone => 'None'; [cite: 7]
+  String get importanceNone => 'None';
 
   @override
-  String get importanceMin => 'Min'; [cite: 7]
+  String get importanceMin => 'Min';
 
   @override
-  String get importanceLow => 'Low'; [cite: 7]
+  String get importanceLow => 'Low';
 
   @override
-  String get importanceDefault => 'Default'; [cite: 7]
+  String get importanceDefault => 'Default';
 
   @override
-  String get importanceHigh => 'High'; [cite: 7]
+  String get importanceHigh => 'High';
 
   @override
-  String get importanceUnknown => 'Unknown'; [cite: 7]
+  String get importanceUnknown => 'Unknown';
 
   @override
   String applyToEnabledChannels(int count) {
-    return 'Will apply to $count enabled channels'; [cite: 7]
+    return 'Will apply to $count enabled channels';
   }
 
   @override
   String applyToAllChannels(int count) {
-    return 'Will apply to all $count channels'; [cite: 7]
+    return 'Will apply to all $count channels';
   }
 
   @override
-  String get templateDownloadName => 'Download'; [cite: 7]
+  String get templateDownloadName => 'Download';
 
   @override
-  String get templateNotificationIslandName => 'Notification Island'; [cite: 7]
+  String get templateNotificationIslandName => 'Notification Island';
 
   @override
-  String get templateNotificationIslandLiteName => 'Notification Island|Lite'; [cite: 7]
+  String get templateNotificationIslandLiteName => 'Notification Island|Lite';
 
   @override
-  String get templateDownloadLiteName => 'Download|Lite'; [cite: 7]
+  String get templateDownloadLiteName => 'Download|Lite';
 
   @override
-  String get islandSection => 'Island'; [cite: 7]
+  String get islandSection => 'Island';
 
   @override
-  String get template => 'Template'; [cite: 7]
+  String get template => 'Template';
 
   @override
-  String get rendererLabel => 'Style'; [cite: 7]
+  String get rendererLabel => 'Style';
 
   @override
   String get rendererImageTextWithButtons4Name =>
-      'Image+Text+Bottom Text Buttons'; [cite: 7]
+      'Image+Text+Bottom Text Buttons';
 
   @override
-  String get rendererCoverInfoName => 'Cover Info+Auto Wrap'; [cite: 7]
+  String get rendererCoverInfoName => 'Cover Info+Auto Wrap';
 
   @override
   String get rendererImageTextWithRightTextButtonName =>
       'Image+Text+Right Text Button'; [cite: 7, 8]
 
   @override
-  String get islandIcon => 'Island icon'; [cite: 8]
+  String get islandIcon => 'Island icon';
 
   @override
-  String get islandIconLabel => 'Large island icon'; [cite: 8]
+  String get islandIconLabel => 'Large island icon';
 
   @override
   String get islandIconLabelSubtitle =>
-      'Show the large icon of the island when enabled (small island not affected)'; [cite: 8]
+      'Show the large icon of the island when enabled (small island not affected)';
 
   @override
-  String get focusIconLabel => 'Focus icon'; [cite: 8]
+  String get focusIconLabel => 'Focus icon';
 
   @override
-  String get focusNotificationLabel => 'Focus notification'; [cite: 8]
+  String get focusNotificationLabel => 'Focus notification';
 
   @override
-  String get preserveStatusBarSmallIconLabel => 'Status bar icon'; [cite: 8]
+  String get preserveStatusBarSmallIconLabel => 'Status bar icon';
 
   @override
   String get restoreLockscreenTitle => 'Restore Lockscreen Notification';
@@ -532,131 +532,131 @@ class AppLocalizationsEn extends AppLocalizations {
       'Skip focus notification processing on lockscreen, keep original privacy behavior';
 
   @override
-  String get firstFloatLabel => 'First float'; [cite: 8]
+  String get firstFloatLabel => 'First float';
 
   @override
-  String get updateFloatLabel => 'Update float'; [cite: 8]
+  String get updateFloatLabel => 'Update float';
 
   @override
-  String get autoDisappear => 'Auto dismiss'; [cite: 8]
+  String get autoDisappear => 'Auto dismiss';
 
   @override
-  String get seconds => 's'; [cite: 8]
+  String get seconds => 's';
 
   @override
-  String get onlyEnabledChannels => 'Only apply to enabled channels'; [cite: 8]
+  String get onlyEnabledChannels => 'Only apply to enabled channels';
 
   @override
   String enabledChannelsCount(int enabled, int total) {
-    return '$enabled / $total channels enabled'; [cite: 8]
+    return '$enabled / $total channels enabled';
   }
 
   @override
-  String get iconModeAuto => 'Auto'; [cite: 8]
+  String get iconModeAuto => 'Auto';
 
   @override
-  String get iconModeNotifSmall => 'Small notification icon'; [cite: 8]
+  String get iconModeNotifSmall => 'Small notification icon';
 
   @override
-  String get iconModeNotifLarge => 'Large notification icon'; [cite: 8]
+  String get iconModeNotifLarge => 'Large notification icon';
 
   @override
-  String get iconModeAppIcon => 'App icon'; [cite: 8]
+  String get iconModeAppIcon => 'App icon';
 
   @override
-  String get optDefault => 'Default'; [cite: 8]
+  String get optDefault => 'Default';
 
   @override
-  String get optDefaultOn => 'Default (On)'; [cite: 8]
+  String get optDefaultOn => 'Default (On)';
 
   @override
-  String get optDefaultOff => 'Default (Off)'; [cite: 8]
+  String get optDefaultOff => 'Default (Off)';
 
   @override
-  String get optOn => 'On'; [cite: 8]
+  String get optOn => 'On';
 
   @override
-  String get optOff => 'Off'; [cite: 8]
+  String get optOff => 'Off';
 
   @override
-  String get errorInvalidFormat => 'Invalid configuration format'; [cite: 8]
+  String get errorInvalidFormat => 'Invalid configuration format';
 
   @override
-  String get errorNoStorageDir => 'Cannot get storage directory'; [cite: 8]
+  String get errorNoStorageDir => 'Cannot get storage directory';
 
   @override
-  String get errorNoFileSelected => 'No file selected'; [cite: 8]
+  String get errorNoFileSelected => 'No file selected';
 
   @override
-  String get errorNoFilePath => 'Cannot get file path'; [cite: 8]
+  String get errorNoFilePath => 'Cannot get file path';
 
   @override
-  String get errorEmptyClipboard => 'Clipboard is empty'; [cite: 8]
+  String get errorEmptyClipboard => 'Clipboard is empty';
 
   @override
-  String get navBlacklist => 'Focus Blacklist'; [cite: 8]
+  String get navBlacklist => 'Focus Blacklist';
 
   @override
   String get navBlacklistSubtitle =>
-      'Block focus notification float or hide for specific apps'; [cite: 9]
+      'Block focus notification float or hide for specific apps';
 
   @override
-  String get presetGamesTitle => 'Quick Filter Popular Games'; [cite: 9]
+  String get presetGamesTitle => 'Quick Filter Popular Games';
 
   @override
   String presetGamesSuccess(int count) {
-    return 'Added $count installed games to blacklist from preset'; [cite: 9]
+    return 'Added $count installed games to blacklist from preset';
   }
 
   @override
   String blacklistedAppsCount(int count) {
-    return 'Blocked focus notifications for $count apps'; [cite: 9]
+    return 'Blocked focus notifications for $count apps';
   }
 
   @override
   String blacklistedAppsCountWithSystem(int count) {
-    return 'Blocked focus notifications for $count apps (including system apps)'; [cite: 9]
+    return 'Blocked focus notifications for $count apps (including system apps)';
   }
 
   @override
   String get firstFloatLabelSubtitle =>
-      'Whether to expand as focus notification when Island receives notification for the first time'; [cite: 9]
+      'Whether to expand as focus notification when Island receives notification for the first time';
 
   @override
   String get updateFloatLabelSubtitle =>
-      'Whether to expand notification when Island updates'; [cite: 9]
+      'Whether to expand notification when Island updates';
 
   @override
   String get marqueeChannelTitleSubtitle =>
-      'Whether to scroll long messages on Island'; [cite: 9]
+      'Whether to scroll long messages on Island';
 
   @override
   String get focusNotificationLabelSubtitle =>
-      'Replace notification with focus notification (shows original notification when disabled)'; [cite: 9]
+      'Replace notification with focus notification (shows original notification when disabled)';
 
   @override
   String get preserveStatusBarSmallIconLabelSubtitle =>
-      'Whether to force keep status bar icon when focus notification is displayed'; [cite: 8]
+      'Whether to force keep status bar icon when focus notification is displayed';
 
   @override
-  String get aiConfigSection => 'AI Enhancement'; [cite: 9]
+  String get aiConfigSection => 'AI Enhancement';
 
   @override
-  String get aiConfigTitle => 'AI Notification Summary'; [cite: 9]
+  String get aiConfigTitle => 'AI Notification Summary';
 
   @override
   String get aiConfigSubtitleEnabled =>
-      'Enabled · Tap to configure AI parameters'; [cite: 9]
+      'Enabled · Tap to configure AI parameters';
 
   @override
-  String get aiConfigSubtitleDisabled => 'Disabled · Tap to configure'; [cite: 9]
+  String get aiConfigSubtitleDisabled => 'Disabled · Tap to configure';
 
   @override
-  String get aiEnabledTitle => 'Enable AI Summary'; [cite: 9]
+  String get aiEnabledTitle => 'Enable AI Summary';
 
   @override
   String get aiEnabledSubtitle =>
-      'AI generates Island left/right text, falls back on timeout or error'; [cite: 9]
+      'AI generates Island left/right text, falls back on timeout or error';
 
   @override
   String get aiApiSection => 'API Parameters';
