@@ -267,7 +267,7 @@ abstract class AppLocalizations {
   /// No description provided for @lsposedApiVersion.
   ///
   /// In zh, this message translates to:
-  /// **'LSPosed API 版本：{version}'**
+  /// **'LSPosed API: {version}'**
   String lsposedApiVersion(int version);
 
   /// No description provided for @updateLSPosedRequired.

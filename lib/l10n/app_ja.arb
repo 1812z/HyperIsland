@@ -10,7 +10,23 @@
   "noChange": "変更しない",
   "newVersionFound": "新しいバージョンが利用可能です",
   "currentVersion": "現在のバージョン: {version}",
+  "@currentVersion": {
+    "placeholders": {
+      "version": { "type": "String" }
+    }
+  },
   "latestVersion": "最新のバージョン: {version}",
+  "@latestVersion": {
+    "placeholders": {
+      "version": { "type": "String" }
+    }
+  },
+  "lsposedApiVersion": "LSPosed API バージョン: {version}",
+  "@lsposedApiVersion": {
+    "placeholders": {
+      "version": { "type": "int" }
+    }
+  },
   "later": "後で",
   "goUpdate": "更新",
   "sponsorSupport": "作者をサポートする",
@@ -56,11 +72,17 @@
   "unlockFocusAuthSubtitle": "署名検証のバイパスとすべてのアプリでフォーカス通知を時計/ブレスレットに送信可能な状態にします (XMSF のフックが必要です)",
   "checkUpdateOnLaunchTitle": "起動時に更新を確認する",
   "checkUpdateOnLaunchSubtitle": "アプリの起動時に最新のバージョンを自動で確認します",
+  "showWelcomeTitle": "起動時のウェルカムメッセージを表示",
+  "showWelcomeSubtitle": "アプリ起動時に Island にウェルカム情報を表示します",
+  "interactionHapticsTitle": "インタラクションの触覚フィードバック",
+  "interactionHapticsSubtitle": "スイッチ、スライダー、ボタンに Hyper カスタム振動フィードバックを有効にします",
   "checkUpdate": "更新を確認",
   "alreadyLatest": "最新のバージョンを使用しています",
+  "useAppIconTitle": "アプリアイコンを使用",
+  "useAppIconSubtitle": "ダウンロードマネージャーの通知にアプリアイコンを使用します",
   "roundIconTitle": "アイコンの角を丸める",
   "roundIconSubtitle": "通知アイコンの角を丸めます",
-  "marqueeChannelTitle": "Island のテキストをスクロール ",
+  "marqueeChannelTitle": "Island のテキストをスクロール",
   "marqueeSpeedTitle": "速度",
   "marqueeSpeedLabel": "{speed} px/秒",
   "@marqueeSpeedLabel": {
@@ -88,6 +110,10 @@
   "importFromFileSubtitle": "JSON ファイルから構成を復元します",
   "importFromClipboard": "クリップボードからインポート",
   "importFromClipboardSubtitle": "クリップボードの JSON テキストから構成を復元します",
+  "exportConfig": "構成をエクスポート",
+  "exportConfigSubtitle": "ファイルまたはクリップボードへのエクスポートを選択します",
+  "importConfig": "構成をインポート",
+  "importConfigSubtitle": "ファイルまたはクリップボードからのインポートを選択します",
   "qqGroup": "QQ グループ",
   "restartScopeApp": "設定を適用するにはスコープアプリを再起動してください",
   "groupNumberCopied": "グループ番号をクリップボードにコピーしました",
@@ -124,7 +150,7 @@
   "enableAllChannels": "すべてのチャンネルで有効",
   "noChannelsFound": "通知チャンネルがありません",
   "noChannelsFoundSubtitle": "このアプリには通知チャンネルがありません。通知の読み取りはできません。",
-  "allChannelsActive": "{count} 個のチャンネルですべて有効",
+  "allChannelsActive": "全 {count} 個のチャンネルですべて有効",
   "selectedChannels": "{selected} / {total} 個のチャンネルを選択済み",
   "allChannelsDisabled": "すべての {count} 個のチャンネル (無効化済み)",
   "appDisabledBanner": "アプリが無効化されているため、以下のチャンネル設定は無効です",
@@ -171,7 +197,7 @@
   "optOn": "ON",
   "optOff": "OFF",
   "errorInvalidFormat": "無効な構成フォーマットです",
-  "errorNoStorageDir": "ストレージのディレクトリを取得できません",
+  "errorNoStorageDir": "ストレージディレクトリを取得できません",
   "errorNoFileSelected": "ファイルが選択されていません",
   "errorNoFilePath": "ファイルパスを取得できません",
   "errorEmptyClipboard": "クリップボードは空です",
@@ -207,6 +233,28 @@
   "aiModelHint": "gpt-4o-mini",
   "aiTestButton": "テスト接続",
   "aiTestUrlEmpty": "始めに API URL を入力してください",
+  "aiLastLogTitle": "最近の AI リクエストログ",
+  "aiLastLogSubtitle": "テスト接続や通知によってトリガーされた AI リクエストがここに表示されます",
+  "aiLastLogEmpty": "表示できる AI リクエストログがまだありません",
+  "aiLastLogSourceLabel": "ソース",
+  "aiLastLogTimeLabel": "時間",
+  "aiLastLogStatusLabel": "ステータス",
+  "aiLastLogDurationLabel": "実行時間",
+  "aiLastLogSourceNotification": "通知トリガー",
+  "aiLastLogSourceSettingsTest": "設定テスト",
+  "aiLastLogRendered": "レンダリング済み",
+  "aiLastLogRaw": "オリジナル",
+  "aiLastLogCopy": "ログをコピー",
+  "aiLastLogCopied": "AI リクエストログをコピーしました",
+  "aiLastLogRequest": "リクエスト",
+  "aiLastLogResponse": "レスポンス",
+  "aiLastLogUsage": "トークン使用量",
+  "aiLastLogMessages": "メッセージ",
+  "aiLastLogError": "エラー",
+  "aiLastLogHttpCode": "HTTP ステータス",
+  "aiLastLogLeftText": "左側のテキスト",
+  "aiLastLogRightText": "右側のテキスト",
+  "aiLastLogAssistantContent": "モデルのレスポンスコンテンツ",
   "aiConfigSaveButton": "保存",
   "aiConfigSaved": "AI の構成を保存しました",
   "aiConfigTips": "AI は各通知のアプリパッケージ、タイトル、コンテンツを受信し、短い左側 (ソース) と右側 (コンテンツ) のテキストを返します。OpenAI 形式の API (DeepSeek、Claude など) と互換性があります。レスポンスがない場合は、デフォルトのロジックにフォールバックします。",
@@ -215,8 +263,19 @@
   "aiPromptHint": "デフォルトを使用する場合は空欄: 左右それぞれ 6 単語または 12 文字以内の重要な情報を抽出します",
   "aiPromptDefault": "通知から重要な情報を抽出します。左右それぞれ 6 単語または 12 文字以内とします。",
   "aiPromptInUserTitle": "ユーザーメッセージにプロンプトを表示する",
-  "aiPromptInUserSubtitle": "一部のモデルではシステム命令がサポートされていないため、ユーザーメッセージにプロンプ​​トを表示させることができません",
+  "aiPromptInUserSubtitle": "一部のモデルではシステム命令がサポートされていないため、有効にするとユーザーメッセージにプロンプ​​トを表示させます",
+  "aiTimeoutTitle": "AI レスポンスのタイムアウト",
   "aiTimeoutLabel": "AI レスポンスのタイムアウト",
+  "@aiTimeoutLabel": {
+    "placeholders": {
+      "seconds": { "type": "int" }
+    }
+  },
+  "aiTemperatureTitle": "サンプリング温度",
+  "aiTemperatureSubtitle": "回答のランダム性を制御します。0 は正確、1 はより独創的になります",
+  "aiMaxTokensTitle": "最大トークン数",
+  "aiMaxTokensSubtitle": "AI が生成する回答の最大長を制限します",
+  "aiDefaultPromptFull": "空欄でデフォルトを使用：通知から重要な情報を抽出します。左右それぞれ 6 漢字 12 文字以内とします。",
   "hideDesktopIconTitle": "デスクトップアイコンを非表示にする",
   "hideDesktopIconSubtitle": "アプリのアイコンをランチャーから非表示にします。非表示後は、LSPosed Manager 経由で開くことができます。",
   "restoreLockscreenTitle": "ロック画面の通知を復元する",

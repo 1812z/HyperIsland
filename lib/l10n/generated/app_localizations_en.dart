@@ -182,13 +182,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get showWelcomeTitle => 'Show welcome message on launch';
 
   @override
-  String get showWelcomeSubtitle => 'Display welcome information on Island when the app starts';
+  String get showWelcomeSubtitle =>
+      'Display welcome information on Island when the app starts';
 
   @override
   String get interactionHapticsTitle => 'Interaction Haptics';
 
   @override
-  String get interactionHapticsSubtitle => 'Enable Hyper custom haptic feedback for switches, sliders, and buttons';
+  String get interactionHapticsSubtitle =>
+      'Enable Hyper custom haptic feedback for switches, sliders, and buttons';
 
   @override
   String get checkUpdate => 'Check for updates';
@@ -200,7 +202,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get useAppIconTitle => 'Use App Icon';
 
   @override
-  String get useAppIconSubtitle => 'Use the app icon for download manager notifications';
+  String get useAppIconSubtitle =>
+      'Use the app icon for download manager notifications';
 
   @override
   String get roundIconTitle => 'Round icon corners';
@@ -705,13 +708,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiTemperatureTitle => 'Sampling Temperature';
 
   @override
-  String get aiTemperatureSubtitle => 'Control the randomness of responses. 0 is precise, 1 is more creative';
+  String get aiTemperatureSubtitle =>
+      'Control the randomness of responses. 0 is precise, 1 is more creative';
 
   @override
   String get aiMaxTokensTitle => 'Max Tokens';
 
   @override
-  String get aiMaxTokensSubtitle => 'Limit the maximum length of AI-generated responses';
+  String get aiMaxTokensSubtitle =>
+      'Limit the maximum length of AI-generated responses';
 
   @override
   String get aiDefaultPromptFull =>
@@ -727,7 +732,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiLastLogTitle => 'Recent AI Request Log';
 
   @override
-  String get aiLastLogSubtitle => 'AI requests triggered by connection tests or notifications are displayed here';
+  String get aiLastLogSubtitle =>
+      'AI requests triggered by connection tests or notifications are displayed here';
 
   @override
   String get aiLastLogEmpty => 'No AI request logs to display yet';
