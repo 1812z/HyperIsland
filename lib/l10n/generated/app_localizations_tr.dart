@@ -95,7 +95,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String lsposedApiVersion(int version) {
-    return 'LSPosed API 版本：$version';
+    return 'LSPosed API: $version';
   }
 
   @override

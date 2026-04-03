@@ -95,7 +95,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String lsposedApiVersion(int version) {
-    return 'LSPosed API 版本：$version';
+    return 'LSPosed API Version: $version';
   }
 
   @override
@@ -154,7 +154,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get keepFocusNotifSubtitle =>
-      'Show a notification to resume download, may cause state desync';
+      'Show a focus notification to resume download, but state synchronization issues may occur';
 
   @override
   String get unlockAllFocusTitle => 'Remove focus notification whitelist';
@@ -179,16 +179,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'Automatically check for new versions when the app starts';
 
   @override
-  String get showWelcomeTitle => '显示启动欢迎语';
+  String get showWelcomeTitle => 'Show welcome message on launch';
 
   @override
-  String get showWelcomeSubtitle => '应用启动时在超级岛显示欢迎信息';
+  String get showWelcomeSubtitle =>
+      'Display welcome information on Island when the app starts';
 
   @override
-  String get interactionHapticsTitle => '交互触感';
+  String get interactionHapticsTitle => 'Interaction Haptics';
 
   @override
-  String get interactionHapticsSubtitle => '为开关、滑块和按钮启用 Hyper 定制震感反馈';
+  String get interactionHapticsSubtitle =>
+      'Enable Hyper custom haptic feedback for switches, sliders, and buttons';
 
   @override
   String get checkUpdate => 'Check for updates';
@@ -197,10 +199,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get alreadyLatest => 'Already on the latest version';
 
   @override
-  String get useAppIconTitle => '使用应用图标';
+  String get useAppIconTitle => 'Use App Icon';
 
   @override
-  String get useAppIconSubtitle => '下载管理器通知使用应用图标';
+  String get useAppIconSubtitle =>
+      'Use the app icon for download manager notifications';
 
   @override
   String get roundIconTitle => 'Round icon corners';
@@ -262,10 +265,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportToClipboardSubtitle => 'Copy configuration as JSON text';
 
   @override
-  String get exportConfig => '导出配置';
+  String get exportConfig => 'Export Configuration';
 
   @override
-  String get exportConfigSubtitle => '选择导出到文件或剪贴板';
+  String get exportConfigSubtitle => 'Choose to export to file or clipboard';
 
   @override
   String get importFromFile => 'Import from file';
@@ -281,10 +284,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Restore configuration from JSON text in clipboard';
 
   @override
-  String get importConfig => '导入配置';
+  String get importConfig => 'Import Configuration';
 
   @override
-  String get importConfigSubtitle => '选择从文件或剪贴板导入';
+  String get importConfigSubtitle => 'Choose to import from file or clipboard';
 
   @override
   String get qqGroup => 'QQ Group';
@@ -393,7 +396,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String progressApps(int done, int total) {
-    return '$done / $total apps';
+    return 'Progress: $done / $total';
   }
 
   @override
@@ -691,10 +694,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiPromptInUserSubtitle =>
-      'Some models don\'t support system instructions, enable to put prompt in user message';
+      'Some models do not support system instructions; enable to put prompt in user message';
 
   @override
-  String get aiTimeoutTitle => 'AI 响应超时';
+  String get aiTimeoutTitle => 'AI Response Timeout';
 
   @override
   String aiTimeoutLabel(int seconds) {
@@ -702,20 +705,22 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get aiTemperatureTitle => '采样温度 (Temperature)';
+  String get aiTemperatureTitle => 'Sampling Temperature';
 
   @override
-  String get aiTemperatureSubtitle => '控制回答的随机性。0 为准确，1 则更具创意';
+  String get aiTemperatureSubtitle =>
+      'Control the randomness of responses. 0 is precise, 1 is more creative';
 
   @override
-  String get aiMaxTokensTitle => '最大 Token 数 (Max Tokens)';
+  String get aiMaxTokensTitle => 'Max Tokens';
 
   @override
-  String get aiMaxTokensSubtitle => '限制 AI 生成回答的最大长度';
+  String get aiMaxTokensSubtitle =>
+      'Limit the maximum length of AI-generated responses';
 
   @override
   String get aiDefaultPromptFull =>
-      '留空使用默认提示词：根据通知信息，提取关键信息，左右分别不超过 6 汉字 12 字符';
+      'Leave empty to use default prompt: Extract key info from notification, no more than 6 words or 12 characters for left and right sides';
 
   @override
   String get aiTestButton => 'Test Connection';
@@ -724,70 +729,71 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiTestUrlEmpty => 'Please enter an API URL first';
 
   @override
-  String get aiLastLogTitle => '最近一次 AI 请求日志';
+  String get aiLastLogTitle => 'Recent AI Request Log';
 
   @override
-  String get aiLastLogSubtitle => '测试连接和通知触发的 AI 请求都会显示在这里';
+  String get aiLastLogSubtitle =>
+      'AI requests triggered by connection tests or notifications are displayed here';
 
   @override
-  String get aiLastLogEmpty => '还没有可显示的 AI 请求日志';
+  String get aiLastLogEmpty => 'No AI request logs to display yet';
 
   @override
-  String get aiLastLogSourceLabel => '来源';
+  String get aiLastLogSourceLabel => 'Source';
 
   @override
-  String get aiLastLogTimeLabel => '时间';
+  String get aiLastLogTimeLabel => 'Time';
 
   @override
-  String get aiLastLogStatusLabel => '状态';
+  String get aiLastLogStatusLabel => 'Status';
 
   @override
-  String get aiLastLogDurationLabel => '耗时';
+  String get aiLastLogDurationLabel => 'Duration';
 
   @override
-  String get aiLastLogSourceNotification => '通知触发';
+  String get aiLastLogSourceNotification => 'Notification Trigger';
 
   @override
-  String get aiLastLogSourceSettingsTest => '设置页测试';
+  String get aiLastLogSourceSettingsTest => 'Settings Test';
 
   @override
-  String get aiLastLogRendered => '渲染';
+  String get aiLastLogRendered => 'Rendered';
 
   @override
-  String get aiLastLogRaw => '原始';
+  String get aiLastLogRaw => 'Raw';
 
   @override
-  String get aiLastLogCopy => '复制日志';
+  String get aiLastLogCopy => 'Copy Log';
 
   @override
-  String get aiLastLogCopied => 'AI 请求日志已复制';
+  String get aiLastLogCopied => 'AI request log copied';
 
   @override
-  String get aiLastLogRequest => '请求';
+  String get aiLastLogRequest => 'Request';
 
   @override
-  String get aiLastLogResponse => '回复';
+  String get aiLastLogResponse => 'Response';
 
   @override
-  String get aiLastLogUsage => 'Token 用量';
+  String get aiLastLogUsage => 'Token Usage';
 
   @override
-  String get aiLastLogMessages => '消息';
+  String get aiLastLogMessages => 'Messages';
 
   @override
-  String get aiLastLogError => '错误';
+  String get aiLastLogError => 'Error';
 
   @override
-  String get aiLastLogHttpCode => 'HTTP 状态';
+  String get aiLastLogHttpCode => 'HTTP Status';
 
   @override
-  String get aiLastLogLeftText => '左侧文本';
+  String get aiLastLogLeftText => 'Left Text';
 
   @override
-  String get aiLastLogRightText => '右侧文本';
+  String get aiLastLogRightText => 'Right Text';
 
   @override
-  String get aiLastLogAssistantContent => '模型回复内容';
+  String get aiLastLogAssistantContent => 'Model Response Content';
 
   @override
   String get aiConfigSaveButton => 'Save';

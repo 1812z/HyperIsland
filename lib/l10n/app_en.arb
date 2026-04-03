@@ -13,7 +13,23 @@
 
   "newVersionFound": "New Version Available",
   "currentVersion": "Current version: {version}",
+  "@currentVersion": {
+    "placeholders": {
+      "version": { "type": "String" }
+    }
+  },
   "latestVersion": "Latest version: {version}",
+  "@latestVersion": {
+    "placeholders": {
+      "version": { "type": "String" }
+    }
+  },
+  "lsposedApiVersion": "LSPosed API Version: {version}",
+  "@lsposedApiVersion": {
+    "placeholders": {
+      "version": { "type": "int" }
+    }
+  },
   "later": "Later",
   "goUpdate": "Update",
   "sponsorSupport": "Support the Author",
@@ -51,16 +67,22 @@
   "configSection": "Configuration",
   "aboutSection": "About",
   "keepFocusNotifTitle": "Keep notification after download pause",
-  "keepFocusNotifSubtitle": "Show a notification to resume download, may cause state desync",
+  "keepFocusNotifSubtitle": "Show a focus notification to resume download, but state synchronization issues may occur",
   "unlockAllFocusTitle": "Remove focus notification whitelist",
   "unlockAllFocusSubtitle": "Allow all apps to send focus notifications without system authorization",
   "unlockFocusAuthTitle": "Remove focus notification signature verification",
   "unlockFocusAuthSubtitle": "Allow all apps to send focus notifications to watch/bracelet, bypassing signature check (requires hooking XMSF)",
   "checkUpdateOnLaunchTitle": "Check for updates on launch",
   "checkUpdateOnLaunchSubtitle": "Automatically check for new versions when the app starts",
+  "showWelcomeTitle": "Show welcome message on launch",
+  "showWelcomeSubtitle": "Display welcome information on Island when the app starts",
+  "interactionHapticsTitle": "Interaction Haptics",
+  "interactionHapticsSubtitle": "Enable Hyper custom haptic feedback for switches, sliders, and buttons",
   "checkUpdate": "Check for updates",
   "alreadyLatest": "Already on the latest version",
-"roundIconTitle": "Round icon corners",
+  "useAppIconTitle": "Use App Icon",
+  "useAppIconSubtitle": "Use the app icon for download manager notifications",
+  "roundIconTitle": "Round icon corners",
   "roundIconSubtitle": "Add rounded corners to notification icons",
   "marqueeChannelTitle": "Text Scrolling Island",
   "marqueeSpeedTitle": "Speed",
@@ -88,6 +110,10 @@
   "importFromFileSubtitle": "Restore configuration from a JSON file",
   "importFromClipboard": "Import from clipboard",
   "importFromClipboardSubtitle": "Restore configuration from JSON text in clipboard",
+  "exportConfig": "Export Configuration",
+  "exportConfigSubtitle": "Choose to export to file or clipboard",
+  "importConfig": "Import Configuration",
+  "importConfigSubtitle": "Choose to import from file or clipboard",
   "qqGroup": "QQ Group",
   "restartScopeApp": "Please restart the scope app for settings to take effect",
   "groupNumberCopied": "Group number copied to clipboard",
@@ -118,7 +144,7 @@
   "noMatchingApps": "No matching apps",
   "applyToSelectedAppsChannels": "Will apply to enabled channels of {count} selected apps",
   "applyingConfig": "Applying configuration...",
-  "progressApps": "{done} / {total} apps",
+  "progressApps": "Progress: {done} / {total}",
   "batchApplied": "Batch applied to {count} apps",
 
   "cannotReadChannels": "Cannot Read Notification Channels",
@@ -216,6 +242,28 @@
   "aiModelHint": "gpt-4o-mini",
   "aiTestButton": "Test Connection",
   "aiTestUrlEmpty": "Please enter an API URL first",
+  "aiLastLogTitle": "Recent AI Request Log",
+  "aiLastLogSubtitle": "AI requests triggered by connection tests or notifications are displayed here",
+  "aiLastLogEmpty": "No AI request logs to display yet",
+  "aiLastLogSourceLabel": "Source",
+  "aiLastLogTimeLabel": "Time",
+  "aiLastLogStatusLabel": "Status",
+  "aiLastLogDurationLabel": "Duration",
+  "aiLastLogSourceNotification": "Notification Trigger",
+  "aiLastLogSourceSettingsTest": "Settings Test",
+  "aiLastLogRendered": "Rendered",
+  "aiLastLogRaw": "Raw",
+  "aiLastLogCopy": "Copy Log",
+  "aiLastLogCopied": "AI request log copied",
+  "aiLastLogRequest": "Request",
+  "aiLastLogResponse": "Response",
+  "aiLastLogUsage": "Token Usage",
+  "aiLastLogMessages": "Messages",
+  "aiLastLogError": "Error",
+  "aiLastLogHttpCode": "HTTP Status",
+  "aiLastLogLeftText": "Left Text",
+  "aiLastLogRightText": "Right Text",
+  "aiLastLogAssistantContent": "Model Response Content",
   "aiConfigSaveButton": "Save",
   "aiConfigSaved": "AI configuration saved",
   "aiConfigTips": "AI receives the app package, title, and content of each notification, and returns short left (source) and right (content) text. Compatible with OpenAI-format APIs (e.g. DeepSeek, Claude). Falls back to default logic if no response.",
@@ -224,8 +272,19 @@
   "aiPromptHint": "Leave empty to use default: Extract key info, left and right each no more than 6 words or 12 characters",
   "aiPromptDefault": "Extract key info from notification, left and right each no more than 6 words or 12 characters",
   "aiPromptInUserTitle": "Put prompt in user message",
-  "aiPromptInUserSubtitle": "Some models don't support system instructions, enable to put prompt in user message",
+  "aiPromptInUserSubtitle": "Some models do not support system instructions; enable to put prompt in user message",
+  "aiTimeoutTitle": "AI Response Timeout",
   "aiTimeoutLabel": "AI Response Timeout",
+  "@aiTimeoutLabel": {
+    "placeholders": {
+      "seconds": { "type": "int" }
+    }
+  },
+  "aiTemperatureTitle": "Sampling Temperature",
+  "aiTemperatureSubtitle": "Control the randomness of responses. 0 is precise, 1 is more creative",
+  "aiMaxTokensTitle": "Max Tokens",
+  "aiMaxTokensSubtitle": "Limit the maximum length of AI-generated responses",
+  "aiDefaultPromptFull": "Leave empty to use default prompt: Extract key info from notification, no more than 6 words or 12 characters for left and right sides",
 
   "hideDesktopIconTitle": "Hide Desktop Icon",
   "hideDesktopIconSubtitle": "Hide the app icon from launcher. Open via LSPosed Manager after hiding",

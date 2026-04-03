@@ -44,7 +44,7 @@
   "activated": "已激活",
   "notActivated": "未激活",
   "enableInLSPosed": "请在 LSPosed 中启用本模块",
-  "lsposedApiVersion": "LSPosed API 版本：{version}",
+  "lsposedApiVersion": "LSPosed API: {version}",
   "updateLSPosedRequired": "请更新 LSPosed 版本",
   "@lsposedApiVersion": {
     "placeholders": {
