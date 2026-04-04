@@ -17,9 +17,9 @@ object MarqueeHook {
 
     private const val TAG = "HyperIsland[MarqueeHook]"
 
-    private fun normalizeText(text: String): String {
+private fun normalizeText(text: String): String {
         return text
-            .replace(Regex("[\\n\\r\\t\\u00A0\\u200B\\uFEFF]+"), "")
+            .replace(Regex("[\\n\\r\\t\\u00A0\\u200B\\uFEFF]+"), " ")
             .replace(Regex(" +"), " ")
             .trim()
     }
@@ -75,6 +75,12 @@ object MarqueeHook {
             stopMarquee(textView)
             return
         }
+        if (textView.maxLines != 1) {
+            textView.setSingleLine(true)
+        }
+        if (fullText != cleanText) {
+            textView.text = cleanText
+        }
         val measuredW = textView.paint.measureText(cleanText)
         val visibleW = resolveVisibleWidth(textView)
         val availableW = visibleW - textView.paddingLeft - textView.paddingRight
@@ -91,7 +97,13 @@ object MarqueeHook {
     }
 
     fun stopMarquee(textView: TextView) {
-        scrollerMap.remove(textView)?.stop()
+        val controller = scrollerMap.remove(textView)
+        controller?.stop()
+        val fullText = textView.text?.toString() ?: ""
+        val cleanText = normalizeText(fullText)
+        if (fullText != cleanText) {
+            textView.text = cleanText
+        }
     }
 
     private fun resolveVisibleWidth(view: View): Int {
@@ -176,41 +188,41 @@ object MarqueeHook {
                 if (updateMethod != null) {
                     module.hook(updateMethod).intercept { chain ->
                         val result = chain.proceed()
-                        val islandView = chain.thisObject as? ViewGroup
-                        val islandData = chain.args.getOrNull(0)
-                        var pkgName = ""
                         try {
-                            if (islandData != null) {
-                                val getExtrasMethod = islandData.javaClass.getMethod("getExtras")
-                                val extras = getExtrasMethod.invoke(islandData) as? android.os.Bundle
-                                pkgName = extras?.getString("miui.pkg.name") ?: ""
-                            }
-                        } catch (_: Exception) {}
-                        if (pkgName.isNotEmpty()) {
-                            targetPkg[islandView!!] = pkgName
-                        } else if (islandView != null) {
-                            pkgName = targetPkg[islandView] ?: ""
-                        }
-                        if (pkgName.isNotEmpty() && islandView != null) {
+                            val islandView = chain.thisObject as? ViewGroup
+                            if (islandView == null) return@intercept result
+                            val islandData = chain.args.getOrNull(0)
+                            var pkgName = ""
                             try {
-                                ensureObserver(islandView.context, module)
-                                val isOngoing = try {
-                                    islandData?.javaClass?.getMethod("isOngoing")?.invoke(islandData) as? Boolean ?: false
-                                } catch (_: Exception) { false }
-                                val enabled = if (isOngoing) {
-                                    false
-                                } else {
-                                    val marqueeRaw = ConfigManager.getString("pref_channel_marquee_$pkgName", "default")
-                                    val defaultMarquee = ConfigManager.getBoolean("pref_default_marquee", false)
-                                    when (marqueeRaw) {
-                                        "on" -> true
-                                        "off" -> false
-                                        else -> defaultMarquee
-                                    }
+                                if (islandData != null) {
+                                    val getExtrasMethod = islandData.javaClass.getMethod("getExtras")
+                                    val extras = getExtrasMethod.invoke(islandData) as? android.os.Bundle
+                                    pkgName = extras?.getString("miui.pkg.name") ?: ""
                                 }
-                                traverseAndApplyMarquee(islandView, enabled)
                             } catch (_: Exception) {}
-                        }
+                            if (pkgName.isNotEmpty()) {
+                                targetPkg[islandView] = pkgName
+                            } else {
+                                pkgName = targetPkg[islandView] ?: ""
+                            }
+                            if (pkgName.isEmpty()) return@intercept result
+                            ensureObserver(islandView.context, module)
+                            val isOngoing = try {
+                                islandData?.javaClass?.getMethod("isOngoing")?.invoke(islandData) as? Boolean ?: false
+                            } catch (_: Exception) { false }
+                            if (isOngoing) {
+                                traverseAndApplyMarquee(islandView, false)
+                                return@intercept result
+                            }
+                            val marqueeRaw = ConfigManager.getString("pref_channel_marquee_${pkgName}", "default")
+                            val defaultMarquee = ConfigManager.getBoolean("pref_default_marquee", false)
+                            val enabled = when (marqueeRaw) {
+                                "on" -> true
+                                "off" -> false
+                                else -> defaultMarquee
+                            }
+                            traverseAndApplyMarquee(islandView, enabled)
+                        } catch (_: Exception) {}
                         result
                     }
                     hookedContentView = true
