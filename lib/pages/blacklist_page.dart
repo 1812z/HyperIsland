@@ -129,35 +129,19 @@ class _BlacklistPageState extends State<BlacklistPage> {
                 ],
               ),
 
-              SliverPersistentHeader(
-                pinned: true,
-                delegate: FixedSliverHeaderDelegate(
-                  height: 92,
-                  builder: (context, overlapsContent, collapseProgress) =>
-                      Material(
-                        color: overlapsContent
-                            ? cs.surfaceContainerLow
-                            : cs.surface,
-                        surfaceTintColor: Theme.of(
-                          context,
-                        ).colorScheme.surfaceTint,
-                        elevation: 0,
-                        child: Container(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                          child: AppListSearchHeader(
-                            countText: _ctrl.showSystemApps
-                                ? l10n.blacklistedAppsCountWithSystem(
-                                    enabledCount,
-                                  )
-                                : l10n.blacklistedAppsCount(enabledCount),
-                            searchController: _searchCtrl,
-                            searchFocusNode: _searchFocus,
-                            hintText: l10n.searchApps,
-                            onChanged: _ctrl.setSearch,
-                            onClear: _clearSearch,
-                          ),
-                        ),
-                      ),
+              SliverToBoxAdapter(
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: AppListSearchHeader(
+                    countText: _ctrl.showSystemApps
+                        ? l10n.blacklistedAppsCountWithSystem(enabledCount)
+                        : l10n.blacklistedAppsCount(enabledCount),
+                    searchController: _searchCtrl,
+                    searchFocusNode: _searchFocus,
+                    hintText: l10n.searchApps,
+                    onChanged: _ctrl.setSearch,
+                    onClear: _clearSearch,
+                  ),
                 ),
               ),
 
