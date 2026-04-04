@@ -12,10 +12,10 @@ class WhitelistPage extends StatefulWidget {
   const WhitelistPage({super.key});
 
   @override
-  State<WhitelistPage> createState() => _WhitelistPageState();
+  State<WhitelistPage> createState() => WhitelistPageState();
 }
 
-class _WhitelistPageState extends State<WhitelistPage> {
+class WhitelistPageState extends State<WhitelistPage> {
   static const String _selectEnabledAction = 'select_enabled';
   static const String _enableAction = 'enable';
   static const String _disableAction = 'disable';
@@ -82,7 +82,7 @@ class _WhitelistPageState extends State<WhitelistPage> {
     _ctrl.setSearch('');
   }
 
-  bool _handleBackPressed() {
+  bool handleBackPressed() {
     if (_selectionMode) {
       _clearSelection();
       return true;
@@ -219,16 +219,7 @@ class _WhitelistPageState extends State<WhitelistPage> {
         apps.isNotEmpty &&
         apps.every((a) => _selectedPackages.contains(a.packageName));
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (didPop) return;
-        final consumed = _handleBackPressed();
-        if (!consumed && mounted) {
-          Navigator.of(context).pop();
-        }
-      },
-      child: Scaffold(
+    return Scaffold(
         backgroundColor: cs.surface,
         floatingActionButton: AnimatedScale(
           scale: _showBackToTop ? 1 : 0,
@@ -450,7 +441,6 @@ class _WhitelistPageState extends State<WhitelistPage> {
             ],
           ),
         ),
-      ),
     );
   }
 }
