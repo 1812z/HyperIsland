@@ -183,7 +183,10 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
       Future<void> Function(String, String, String) persist,
     ) {
       final value = settings[key];
-      if (value == null || nextExtras[key] == value) return;
+      if (value == null) return;
+      final current = nextExtras[key];
+      if (current == value) return;
+      if (value.isEmpty && (current == null || current.isEmpty)) return;
       nextExtras[key] = value;
       extrasChanged = true;
       futures.add(persist(pkg, channelId, value));

@@ -98,7 +98,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String lsposedApiVersion(int version) {
-    return 'LSPosed API: $version';
+    return 'LSPosed API Sürümü: $version';
   }
 
   @override
@@ -182,16 +182,18 @@ class AppLocalizationsTr extends AppLocalizations {
       'Uygulama açılırken yeni sürümleri otomatik denetler.';
 
   @override
-  String get showWelcomeTitle => '显示启动欢迎语';
+  String get showWelcomeTitle => 'Açılışta karşılama mesajını göster';
 
   @override
-  String get showWelcomeSubtitle => '应用启动时在超级岛显示欢迎信息';
+  String get showWelcomeSubtitle =>
+      'Uygulama başladığında Ada üzerinde karşılama bilgisini göster';
 
   @override
-  String get interactionHapticsTitle => '交互触感';
+  String get interactionHapticsTitle => 'Etkileşim haptikleri';
 
   @override
-  String get interactionHapticsSubtitle => '为开关、滑块和按钮启用 Hyper 定制震感反馈';
+  String get interactionHapticsSubtitle =>
+      'Anahtarlar, kaydırıcılar ve düğmeler için Hyper özel dokunsal geri bildirimi etkinleştir';
 
   @override
   String get checkUpdate => 'Güncellemeleri Denetle';
@@ -200,10 +202,11 @@ class AppLocalizationsTr extends AppLocalizations {
   String get alreadyLatest => 'Zaten en güncel sürümdesiniz';
 
   @override
-  String get useAppIconTitle => '使用应用图标';
+  String get useAppIconTitle => 'Uygulama simgesini kullan';
 
   @override
-  String get useAppIconSubtitle => '下载管理器通知使用应用图标';
+  String get useAppIconSubtitle =>
+      'İndirme yöneticisi bildirimleri için uygulama simgesini kullan';
 
   @override
   String get roundIconTitle => 'Simge Köşelerini Yuvarla';
@@ -268,10 +271,11 @@ class AppLocalizationsTr extends AppLocalizations {
       'Yapılandırmayı JSON metni olarak panoya kopyalar.';
 
   @override
-  String get exportConfig => '导出配置';
+  String get exportConfig => 'Yapılandırmayı Dışa Aktar';
 
   @override
-  String get exportConfigSubtitle => '选择导出到文件或剪贴板';
+  String get exportConfigSubtitle =>
+      'Dosyaya veya panoya dışa aktarma yöntemini seçin';
 
   @override
   String get importFromFile => 'Dosyadan İçe Aktar';
@@ -288,10 +292,11 @@ class AppLocalizationsTr extends AppLocalizations {
       'Panodaki JSON metninden yapılandırmayı geri yükler.';
 
   @override
-  String get importConfig => '导入配置';
+  String get importConfig => 'Yapılandırmayı İçe Aktar';
 
   @override
-  String get importConfigSubtitle => '选择从文件或剪贴板导入';
+  String get importConfigSubtitle =>
+      'Dosyadan veya panodan içe aktarma yöntemini seçin';
 
   @override
   String get qqGroup => 'QQ Topluluk Grubu';
@@ -733,7 +738,7 @@ class AppLocalizationsTr extends AppLocalizations {
       'Bazı modeller sistem talimatlarını desteklemez; etkinleştirilirse prompt kullanıcı mesajına eklenir';
 
   @override
-  String get aiTimeoutTitle => 'AI 响应超时';
+  String get aiTimeoutTitle => 'AI Yanıt Zaman Aşımı';
 
   @override
   String aiTimeoutLabel(int seconds) {
@@ -741,20 +746,22 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get aiTemperatureTitle => '采样温度 (Temperature)';
+  String get aiTemperatureTitle => 'Örnekleme Sıcaklığı';
 
   @override
-  String get aiTemperatureSubtitle => '控制回答的随机性。0 为准确，1 则更具创意';
+  String get aiTemperatureSubtitle =>
+      'Yanıtların rastgeleliğini kontrol eder. 0 daha kesin, 1 daha yaratıcıdır';
 
   @override
-  String get aiMaxTokensTitle => '最大 Token 数 (Max Tokens)';
+  String get aiMaxTokensTitle => 'Maksimum Token';
 
   @override
-  String get aiMaxTokensSubtitle => '限制 AI 生成回答的最大长度';
+  String get aiMaxTokensSubtitle =>
+      'AI tarafından üretilen yanıtların en fazla uzunluğunu sınırlar';
 
   @override
   String get aiDefaultPromptFull =>
-      '留空使用默认提示词：根据通知信息，提取关键信息，左右分别不超过 6 汉字 12 字符';
+      'Boş bırakırsanız varsayılan prompt kullanılır: Bildirimden ana bilgiyi çıkarın; sol ve sağ taraf için en fazla 6 kelime veya 12 karakter';
 
   @override
   String get aiTestButton => 'Bağlantıyı Dene';
@@ -763,70 +770,71 @@ class AppLocalizationsTr extends AppLocalizations {
   String get aiTestUrlEmpty => 'Lütfen önce API adresini girin';
 
   @override
-  String get aiLastLogTitle => '最近一次 AI 请求日志';
+  String get aiLastLogTitle => 'Son AI İstek Günlüğü';
 
   @override
-  String get aiLastLogSubtitle => '测试连接和通知触发的 AI 请求都会显示在这里';
+  String get aiLastLogSubtitle =>
+      'Bağlantı testi veya bildirimler tarafından tetiklenen AI istekleri burada gösterilir';
 
   @override
-  String get aiLastLogEmpty => '还没有可显示的 AI 请求日志';
+  String get aiLastLogEmpty => 'Henüz gösterilecek AI istek günlüğü yok';
 
   @override
-  String get aiLastLogSourceLabel => '来源';
+  String get aiLastLogSourceLabel => 'Kaynak';
 
   @override
-  String get aiLastLogTimeLabel => '时间';
+  String get aiLastLogTimeLabel => 'Zaman';
 
   @override
-  String get aiLastLogStatusLabel => '状态';
+  String get aiLastLogStatusLabel => 'Durum';
 
   @override
-  String get aiLastLogDurationLabel => '耗时';
+  String get aiLastLogDurationLabel => 'Süre';
 
   @override
-  String get aiLastLogSourceNotification => '通知触发';
+  String get aiLastLogSourceNotification => 'Bildirim Tetiklemesi';
 
   @override
-  String get aiLastLogSourceSettingsTest => '设置页测试';
+  String get aiLastLogSourceSettingsTest => 'Ayar Testi';
 
   @override
-  String get aiLastLogRendered => '渲染';
+  String get aiLastLogRendered => 'İşlenmiş';
 
   @override
-  String get aiLastLogRaw => '原始';
+  String get aiLastLogRaw => 'Ham';
 
   @override
-  String get aiLastLogCopy => '复制日志';
+  String get aiLastLogCopy => 'Günlüğü Kopyala';
 
   @override
-  String get aiLastLogCopied => 'AI 请求日志已复制';
+  String get aiLastLogCopied => 'AI istek günlüğü kopyalandı';
 
   @override
-  String get aiLastLogRequest => '请求';
+  String get aiLastLogRequest => 'İstek';
 
   @override
-  String get aiLastLogResponse => '回复';
+  String get aiLastLogResponse => 'Yanıt';
 
   @override
-  String get aiLastLogUsage => 'Token 用量';
+  String get aiLastLogUsage => 'Token Kullanımı';
 
   @override
-  String get aiLastLogMessages => '消息';
+  String get aiLastLogMessages => 'Mesajlar';
 
   @override
-  String get aiLastLogError => '错误';
+  String get aiLastLogError => 'Hata';
 
   @override
-  String get aiLastLogHttpCode => 'HTTP 状态';
+  String get aiLastLogHttpCode => 'HTTP Durum Kodu';
 
   @override
-  String get aiLastLogLeftText => '左侧文本';
+  String get aiLastLogLeftText => 'Sol Metin';
 
   @override
-  String get aiLastLogRightText => '右侧文本';
+  String get aiLastLogRightText => 'Sağ Metin';
 
   @override
-  String get aiLastLogAssistantContent => '模型回复内容';
+  String get aiLastLogAssistantContent => 'Model Yanıt İçeriği';
 
   @override
   String get aiConfigSaveButton => 'Kaydet';

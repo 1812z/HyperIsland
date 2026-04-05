@@ -479,10 +479,12 @@ class WhitelistController extends ChangeNotifier {
     String value,
   ) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      'pref_channel_highlight_color_${packageName}_$channelId',
-      value,
-    );
+    final key = 'pref_channel_highlight_color_${packageName}_$channelId';
+    if (value.isEmpty) {
+      await prefs.remove(key);
+    } else {
+      await prefs.setString(key, value);
+    }
   }
 
   Future<void> setChannelShowLeftHighlight(

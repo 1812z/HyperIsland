@@ -355,7 +355,9 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
           'timeout': _islandTimeout,
           'marquee': _marquee,
           'restore_lockscreen': _restoreLockscreen,
-          'highlight_color': _highlightColor,
+          'highlight_color': _isSingle
+              ? (_highlightColor ?? '')
+              : _highlightColor,
           'show_left_highlight': _showLeftHighlight == null
               ? null
               : (_showLeftHighlight! ? kTriOptOn : kTriOptOff),
@@ -657,20 +659,35 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                             onTapOutside: (_) {
                               FocusManager.instance.primaryFocus?.unfocus();
                             },
-                            decoration: _fieldDecoration(
-                              context,
-                              hintText: _isSingle
-                                  ? l10n.highlightColorHint
-                                  : l10n.noChange,
-                            ),
+                            decoration:
+                                _fieldDecoration(
+                                  context,
+                                  hintText: _isSingle
+                                      ? l10n.highlightColorHint
+                                      : l10n.noChange,
+                                ).copyWith(
+                                  suffixIcon:
+                                      _highlightColorController.text.isNotEmpty
+                                      ? IconButton(
+                                          icon: const Icon(
+                                            Icons.clear,
+                                            size: 18,
+                                          ),
+                                          onPressed: () {
+                                            _highlightColorController.clear();
+                                            setState(
+                                              () => _highlightColor = null,
+                                            );
+                                          },
+                                        )
+                                      : null,
+                                ),
                             onChanged: (v) {
                               final trimmed = v.trim();
                               setState(() {
-                                if (trimmed.isNotEmpty) {
-                                  _highlightColor = trimmed;
-                                } else if (!_isSingle) {
-                                  _highlightColor = null;
-                                }
+                                _highlightColor = trimmed.isNotEmpty
+                                    ? trimmed
+                                    : null;
                               });
                             },
                           ),
