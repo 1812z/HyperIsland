@@ -344,21 +344,47 @@ class WhitelistPageState extends State<WhitelistPage> {
                     ],
             ),
 
-            // 说明 + 搜索栏
+            // 说明文本（随列表滚动，不吸顶）
             SliverToBoxAdapter(
-              child: Container(
+              child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                child: AppListSearchHeader(
-                  countText: _ctrl.showSystemApps
+                child: Text(
+                  _ctrl.showSystemApps
                       ? l10n.enabledAppsCountWithSystem(enabledCount)
                       : l10n.enabledAppsCount(enabledCount),
-                  showCountText: true,
-                  searchController: _searchCtrl,
-                  searchFocusNode: _searchFocus,
-                  hintText: l10n.searchApps,
-                  onChanged: _ctrl.setSearch,
-                  onClear: _clearSearch,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
                 ),
+              ),
+            ),
+
+            // 搜索栏（仅搜索框吸顶）
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: FixedSliverHeaderDelegate(
+                height: 60,
+                minHeight: 60,
+                builder: (context, overlapsContent, collapseProgress) =>
+                    Material(
+                      color: overlapsContent
+                          ? cs.surfaceContainerLow
+                          : cs.surface,
+                      surfaceTintColor: Theme.of(context).colorScheme.surfaceTint,
+                      elevation: 0,
+                      child: Container(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                        child: AppListSearchHeader(
+                          countText: '',
+                          showCountText: false,
+                          searchController: _searchCtrl,
+                          searchFocusNode: _searchFocus,
+                          hintText: l10n.searchApps,
+                          onChanged: _ctrl.setSearch,
+                          onClear: _clearSearch,
+                        ),
+                      ),
+                    ),
               ),
             ),
 
