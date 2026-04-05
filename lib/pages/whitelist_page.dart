@@ -365,11 +365,18 @@ class WhitelistPageState extends State<WhitelistPage> {
               delegate: FixedSliverHeaderDelegate(
                 height: 60,
                 minHeight: 60,
-                builder: (context, overlapsContent, collapseProgress) =>
-                    Material(
-                      color: overlapsContent
-                          ? cs.surfaceContainerLow
-                          : cs.surface,
+                builder: (context, overlapsContent, collapseProgress) {
+                  final appBarTheme = Theme.of(context).appBarTheme;
+                  final elevation = appBarTheme.scrolledUnderElevation ?? 3.0;
+                  final pinnedBg = overlapsContent
+                      ? ElevationOverlay.applySurfaceTint(
+                          cs.surface,
+                          cs.surfaceTint,
+                          elevation,
+                        )
+                      : cs.surface;
+                  return Material(
+                      color: pinnedBg,
                       surfaceTintColor: Theme.of(context).colorScheme.surfaceTint,
                       elevation: 0,
                       child: Container(
@@ -380,11 +387,15 @@ class WhitelistPageState extends State<WhitelistPage> {
                           searchController: _searchCtrl,
                           searchFocusNode: _searchFocus,
                           hintText: l10n.searchApps,
+                          searchBarBackgroundColor: overlapsContent
+                              ? Colors.white
+                              : cs.surfaceContainerHighest,
                           onChanged: _ctrl.setSearch,
                           onClear: _clearSearch,
                         ),
                       ),
-                    ),
+                    );
+                },
               ),
             ),
 
