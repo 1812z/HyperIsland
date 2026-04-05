@@ -126,8 +126,8 @@ object AINotificationIslandNotification : IslandTemplate {
             setRequestProperty("Content-Type", "application/json")
             setRequestProperty("Accept", "application/json")
             if (config.apiKey.isNotEmpty()) setRequestProperty("Authorization", "Bearer ${config.apiKey}")
-            connectTimeout = 2500
-            readTimeout    = 2500
+            connectTimeout = config.timeout * 1000
+            readTimeout    = config.timeout * 1000
             doOutput       = true
         }
         //log("$TAG: POST ${config.url}")
