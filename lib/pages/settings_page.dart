@@ -749,8 +749,11 @@ class _SettingsPageState extends State<SettingsPage> {
                                 ),
                                 Text(
                                   l10n.marqueeSpeedLabel(_marqueeSpeedDraft),
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(color: cs.onSurfaceVariant),
+                                  style: Theme.of(context).textTheme.bodyLarge
+                                      ?.copyWith(
+                                        color: cs.primary,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                 ),
                                 if (_marqueeSpeedDraft != 100)
                                   SizedBox(
@@ -822,12 +825,30 @@ class _SettingsPageState extends State<SettingsPage> {
                               ),
                               child: Row(
                                 children: [
+                                  Expanded(
+                                    child: SliderTheme(
+                                      data: ModernSliderTheme.theme(context),
+                                      child: Slider(
+                                        value: _bigIslandMaxWidthDraft
+                                            .toDouble(),
+                                        min: 500,
+                                        max: 1000,
+                                        divisions: 54,
+                                        onChanged: _onBigIslandMaxWidthChanged,
+                                        onChangeEnd: _persistBigIslandMaxWidth,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
                                   Text(
                                     l10n.bigIslandMaxWidthLabel(
                                       _bigIslandMaxWidthDraft,
                                     ),
-                                    style: Theme.of(context).textTheme.bodySmall
-                                        ?.copyWith(color: cs.onSurfaceVariant),
+                                    style: Theme.of(context).textTheme.bodyLarge
+                                        ?.copyWith(
+                                          color: cs.primary,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                   ),
                                   if (_bigIslandMaxWidthDraft != 600)
                                     SizedBox(
@@ -849,20 +870,6 @@ class _SettingsPageState extends State<SettingsPage> {
                                         },
                                       ),
                                     ),
-                                  Expanded(
-                                    child: SliderTheme(
-                                      data: ModernSliderTheme.theme(context),
-                                      child: Slider(
-                                        value: _bigIslandMaxWidthDraft
-                                            .toDouble(),
-                                        min: 500,
-                                        max: 1000,
-                                        divisions: 54,
-                                        onChanged: _onBigIslandMaxWidthChanged,
-                                        onChangeEnd: _persistBigIslandMaxWidth,
-                                      ),
-                                    ),
-                                  ),
                                 ],
                               ),
                             ),

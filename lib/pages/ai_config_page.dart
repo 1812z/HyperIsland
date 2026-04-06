@@ -402,13 +402,14 @@ class _AiConfigPageState extends State<AiConfigPage> {
                                     l10n.aiTimeoutTitle,
                                     style: textTheme.titleMedium,
                                   ),
-                                  Text(
-                                    '${_aiTimeoutDraft}s',
-                                    style: textTheme.bodySmall?.copyWith(
-                                      color: cs.onSurfaceVariant,
-                                    ),
-                                  ),
                                 ],
+                              ),
+                            ),
+                            Text(
+                              '${_aiTimeoutDraft}s',
+                              style: textTheme.bodyLarge?.copyWith(
+                                color: cs.primary,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ],

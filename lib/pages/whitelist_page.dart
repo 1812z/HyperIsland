@@ -388,7 +388,7 @@ class WhitelistPageState extends State<WhitelistPage> {
                           searchFocusNode: _searchFocus,
                           hintText: l10n.searchApps,
                           searchBarBackgroundColor: overlapsContent
-                              ? Colors.white
+                              ? cs.surface
                               : cs.surfaceContainerHighest,
                           onChanged: _ctrl.setSearch,
                           onClear: _clearSearch,
