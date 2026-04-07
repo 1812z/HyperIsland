@@ -1,0 +1,27 @@
+package io.github.hyperisland.data.prefs
+
+data class SettingsState(
+    val showWelcome: Boolean = true,
+    val resumeNotification: Boolean = true,
+    val useHookAppIcon: Boolean = true,
+    val interactionHaptics: Boolean = true,
+    val checkUpdateOnLaunch: Boolean = true,
+    val themeMode: String = "system",
+    val locale: String? = null,
+    val aiEnabled: Boolean = false,
+    val roundIcon: Boolean = true,
+    val marqueeFeature: Boolean = false,
+    val marqueeSpeed: Int = 100,
+    val bigIslandMaxWidthEnabled: Boolean = false,
+    val bigIslandMaxWidth: Int = 600,
+    val unlockAllFocus: Boolean = false,
+    val unlockFocusAuth: Boolean = false,
+    val defaultFirstFloat: Boolean = false,
+    val defaultEnableFloat: Boolean = false,
+    val defaultShowIslandIcon: Boolean = true,
+    val defaultMarquee: Boolean = false,
+    val defaultFocusNotif: Boolean = true,
+    val defaultPreserveSmallIcon: Boolean = false,
+    val defaultRestoreLockscreen: Boolean = false,
+    val hideDesktopIcon: Boolean = false,
+)
