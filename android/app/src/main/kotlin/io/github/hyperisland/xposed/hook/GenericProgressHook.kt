@@ -35,6 +35,7 @@ object GenericProgressHook : BaseHook() {
 
     override fun onConfigChanged() {
         clearAllCaches()
+        IslandInfoCache.clear()
     }
 
     @Volatile private var cachedWhitelist: Map<String, Set<String>>? = null
@@ -43,6 +44,31 @@ object GenericProgressHook : BaseHook() {
 
     private val lastProgressCache = mutableMapOf<String, Int>()
     private val trackedForCancel = mutableMapOf<String, Int>()
+
+    object IslandInfoCache {
+        private val cache = mutableMapOf<String, IslandInfo>()
+        
+        data class IslandInfo(
+            val pkg: String,
+            val channelId: String,
+            val notifId: Int,
+            val isOngoing: Boolean
+        )
+        
+        fun put(pkg: String, channelId: String, notifId: Int, isOngoing: Boolean) {
+            cache["$pkg#$notifId"] = IslandInfo(pkg, channelId, notifId, isOngoing)
+        }
+        
+        fun get(pkg: String, notifId: Int): IslandInfo? = cache["$pkg#$notifId"]
+        
+        fun remove(pkg: String, notifId: Int) {
+            cache.remove("$pkg#$notifId")
+        }
+        
+        fun clear() {
+            cache.clear()
+        }
+    }
 
     private fun loadChannelStringSetting(cacheKey: String, prefKey: String, default: String): String {
         cachedChannelSettings[cacheKey]?.let { return it }
@@ -174,6 +200,7 @@ object GenericProgressHook : BaseHook() {
         sbn ?: return
         val key = "${sbn.packageName}#${sbn.id}"
         val proxyId = trackedForCancel.remove(key) ?: return
+        IslandInfoCache.remove(sbn.packageName, sbn.id)
         val context = HookUtils.getContext(classLoader) ?: return
         IslandDispatcher.cancel(context, proxyId)
     }
@@ -193,6 +220,7 @@ object GenericProgressHook : BaseHook() {
             if (allowedChannels.isNotEmpty() && channelId !in allowedChannels) return
 
             val extras = notif.extras ?: return
+            extras.putString("hyperisland_channel_id", channelId)
 
             if (isMediaNotification(notif, extras)) return
 
@@ -204,7 +232,7 @@ object GenericProgressHook : BaseHook() {
                 log(module, "restoreLockscreen raw=$restoreLockscreenRaw, resolved=$restoreLockscreen, default=$defaultRestoreLockscreen")
                 log(module, "skipping due to lockscreen restore")
                 extras.remove("miui.focus.param")
-                extras.remove("hyperisland_generic_processed")
+                extras.remove("hyperisland_processed")
                 return
             }
 
@@ -216,7 +244,6 @@ object GenericProgressHook : BaseHook() {
 
             if (hasProgressBar) {
                 if (extras.getBoolean("hyperisland_processed", false)) return
-                if (extras.getBoolean("hyperisland_generic_processed", false)) return
             }
 
             val cacheKey = "$pkg#${sbn.id}"
@@ -332,8 +359,8 @@ object GenericProgressHook : BaseHook() {
                 ),
             )
 
-            extras.putBoolean("hyperisland_generic_processed", true)
             trackedForCancel["$pkg#${sbn.id}"] = IslandDispatcher.NOTIF_ID
+            IslandInfoCache.put(pkg, channelId, sbn.id, isOngoing)
 
         } catch (e: Throwable) {
             logError(module, "handleSbn error: ${e.message}")

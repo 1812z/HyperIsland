@@ -1,5 +1,6 @@
 package io.github.hyperisland.xposed.hook
 
+import android.service.notification.StatusBarNotification
 import android.view.Choreographer
 import android.view.View
 import android.view.ViewGroup
@@ -8,6 +9,7 @@ import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.log
 import io.github.hyperisland.xposed.logError
 import io.github.hyperisland.xposed.utils.HookUtils
+import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.util.WeakHashMap
 
@@ -16,9 +18,14 @@ import java.util.WeakHashMap
  */
 object MarqueeHook : BaseHook() {
 
+    private const val TAG = "HyperIsland[Marquee]"
+
+    override fun getTag() = TAG
+
     override fun onConfigChanged() {
         cachedSpeed = null
         hookedContentView = false
+        cachedWhitelist = null
         stopAllMarquees()
     }
 
@@ -187,6 +194,24 @@ object MarqueeHook : BaseHook() {
 
     private var hookedContentView = false
     private val targetPkg = java.util.Collections.synchronizedMap(WeakHashMap<View, String>())
+    private val targetNotifId = java.util.Collections.synchronizedMap(WeakHashMap<View, Int>())
+    @Volatile private var cachedWhitelist: Map<String, Set<String>>? = null
+
+    private fun loadWhitelist(): Map<String, Set<String>> {
+        cachedWhitelist?.let { return it }
+        val csv = ConfigManager.getString("pref_generic_whitelist")
+        val map = csv.split(",")
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .associate { pkg ->
+                val channelCsv = ConfigManager.getString("pref_channels_$pkg")
+                val channels = if (channelCsv.isBlank()) emptySet()
+                else channelCsv.split(",").filter { it.isNotBlank() }.toSet()
+                pkg to channels
+            }
+        if (map.isNotEmpty()) cachedWhitelist = map
+        return map
+    }
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
         hookDynamicClassLoaders(module)
@@ -210,25 +235,46 @@ object MarqueeHook : BaseHook() {
                             if (islandView == null) return@intercept result
                             val islandData = chain.args.getOrNull(0)
                             var pkgName = ""
+                            var notifId = 0
                             try {
                                 if (islandData != null) {
                                     val getExtrasMethod = islandData.javaClass.getMethod("getExtras")
                                     val extras = getExtrasMethod.invoke(islandData) as? android.os.Bundle
-                                    pkgName = extras?.getString("miui.pkg.name") ?: ""
+                                    val sbn = if (android.os.Build.VERSION.SDK_INT >= 33) {
+                                        extras?.getParcelable("miui.sbn", StatusBarNotification::class.java)
+                                    } else {
+                                        @Suppress("DEPRECATION")
+                                        extras?.getParcelable("miui.sbn") as? StatusBarNotification
+                                    }
+                                    pkgName = sbn?.packageName ?: extras?.getString("miui.pkg.name") ?: ""
+                                    notifId = sbn?.id ?: 0
+                                    targetPkg[islandView] = pkgName
+                                    if (notifId != 0) targetNotifId[islandView] = notifId
                                 }
                             } catch (_: Exception) {}
-                            if (pkgName.isNotEmpty()) {
-                                targetPkg[islandView] = pkgName
-                            } else {
+                            if (pkgName.isEmpty()) {
                                 pkgName = targetPkg[islandView] ?: ""
+                            }
+                            if (notifId == 0) {
+                                notifId = targetNotifId[islandView] ?: 0
                             }
                             if (pkgName.isEmpty()) return@intercept result
                             
-                            val isOngoing = try {
-                                islandData?.javaClass?.getMethod("isOngoing")?.invoke(islandData) as? Boolean ?: false
-                            } catch (_: Exception) { false }
+                            val whitelist = loadWhitelist()
+                            val allowedChannels = whitelist[pkgName]
+                            if (allowedChannels == null) {
+                                return@intercept result
+                            }
                             
-                            val marqueeRaw = ConfigManager.getString("pref_channel_marquee_${pkgName}", "default")
+                            val islandInfo = GenericProgressHook.IslandInfoCache.get(pkgName, notifId)
+                            val channelId = islandInfo?.channelId ?: ""
+                            val isOngoing = islandInfo?.isOngoing ?: false
+                            
+                            if (allowedChannels.isNotEmpty() && channelId.isNotEmpty() && channelId !in allowedChannels) {
+                                return@intercept result
+                            }
+                            
+                            val marqueeRaw = ConfigManager.getString("pref_channel_marquee_${pkgName}_${channelId}", "default")
                             val defaultMarquee = ConfigManager.getBoolean("pref_default_marquee", false)
                             val enabled = when (marqueeRaw) {
                                 "on" -> true
@@ -248,7 +294,7 @@ object MarqueeHook : BaseHook() {
                         result
                     }
                     hookedContentView = true
-                    log("Hooked updateBigIslandView on $className")
+                    module.log("Hooked updateBigIslandView on $className")
                 }
             } catch (_: Exception) {}
         }
