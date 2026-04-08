@@ -3,6 +3,12 @@ name: Sync Release to Another Repo
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to sync (e.g. v1.9.9)'
+        required: true
+        type: string
 
 jobs:
   sync-release:
@@ -22,6 +28,22 @@ jobs:
           echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
           echo "new_tag=${VERSION_CODE}-${VERSION_NAME}" >> $GITHUB_OUTPUT
 
+      - name: Download release asset
+        run: |
+          TAG="${{ github.event.inputs.tag || github.event.release.tag_name }}"
+          gh release download "$TAG" \
+            --pattern "*.apk" \
+            --dir ./release
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Rename APK
+        id: rename
+        run: |
+          APK_FILE=$(ls ./release/*.apk | head -n1)
+          NEW_NAME="${{ steps.version.outputs.new_tag }}.apk"
+          mv "$APK_FILE" "./$NEW_NAME"
+
       - name: Create release in target repo
         uses: softprops/action-gh-release@v2.1.0
         with:
@@ -31,7 +53,6 @@ jobs:
           body: ${{ github.event.release.body }}
           draft: false
           prerelease: false
-          files: |
-            build/app/outputs/flutter-apk/app-release.apk
+          files: ${{ steps.version.outputs.new_tag }}.apk
         env:
           GITHUB_TOKEN: ${{ secrets.TARGET_REPO_TOKEN }}
