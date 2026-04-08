@@ -2,6 +2,9 @@ package io.github.hyperisland
 
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.provider.Settings
@@ -42,28 +45,29 @@ class MainActivity : FlutterActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (isModuleActive()) {
+        Thread {
+            val active = HyperIslandApp.awaitReady()
+            if (!active) return@Thread
+
             val prefs = getSharedPreferences("FlutterSharedPreferences", android.content.Context.MODE_PRIVATE)
             val showWelcome = try {
                 prefs.getBoolean("flutter.pref_show_welcome", true)
             } catch (e: Exception) { true }
+            if (!showWelcome) return@Thread
 
-            if (showWelcome) {
-                val icon = packageManager.getAppIcon(packageName)
-                io.github.hyperisland.xposed.IslandDispatcher.sendBroadcast(
-                    this,
-                    io.github.hyperisland.xposed.IslandRequest(
-                        title            = getString(R.string.island_welcome_title),
-                        content          = "HyperIsland",
-                        icon             = icon,
-                        firstFloat       = false,
-                        enableFloat      = false,
-                        highlightColor   = "#E040FB",
-                        showNotification = false,
-                    )
+            val icon = packageManager.getAppIcon(packageName)
+            sendIslandWithReset(
+                io.github.hyperisland.xposed.IslandRequest(
+                    title            = getString(R.string.island_welcome_title),
+                    content          = "HyperIsland",
+                    icon             = icon,
+                    firstFloat       = false,
+                    enableFloat      = false,
+                    highlightColor   = "#E040FB",
+                    showNotification = false,
                 )
-            }
-        }
+            )
+        }.start()
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -684,8 +688,7 @@ class MainActivity : FlutterActivity() {
     private fun handleShowTest(result: MethodChannel.Result) {
         try {
             val icon = packageManager.getAppIcon(packageName)
-            io.github.hyperisland.xposed.IslandDispatcher.sendBroadcast(
-                this,
+            sendIslandWithReset(
                 io.github.hyperisland.xposed.IslandRequest(
                     title            = getString(R.string.island_welcome_title),
                     content          = "HyperIsland",
@@ -700,5 +703,27 @@ class MainActivity : FlutterActivity() {
             Log.e(TAG, "Error showing test notification", e)
             result.error("ERROR", e.message, null)
         }
+    }
+
+    private fun sendIslandWithReset(request: io.github.hyperisland.xposed.IslandRequest) {
+        val cancelIntent = Intent(io.github.hyperisland.xposed.IslandDispatcher.ACTION_CANCEL).apply {
+            putExtra(
+                io.github.hyperisland.xposed.IslandDispatcher.EXTRA_NOTIF_ID,
+                request.notifId
+            )
+        }
+        sendOrderedBroadcast(
+            cancelIntent,
+            io.github.hyperisland.xposed.IslandDispatcher.PERM,
+            object : BroadcastReceiver() {
+                override fun onReceive(context: Context?, intent: Intent?) {
+                    io.github.hyperisland.xposed.IslandDispatcher.sendBroadcast(this@MainActivity, request)
+                }
+            },
+            null,
+            0,
+            null,
+            null
+        )
     }
 }
