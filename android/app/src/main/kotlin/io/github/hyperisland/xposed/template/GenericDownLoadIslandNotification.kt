@@ -166,6 +166,7 @@ object GenericDownloadIslandNotification : IslandTemplate {
             showRightHighlightColor = data.showRightHighlightColor,
             showLeftNarrowFont = data.showLeftNarrowFont,
             showRightNarrowFont = data.showRightNarrowFont,
+            outerGlow = data.outerGlow,
         )
     }
 }

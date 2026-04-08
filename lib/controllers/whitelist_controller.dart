@@ -282,7 +282,7 @@ class WhitelistController extends ChangeNotifier {
 
   // ── 渠道级额外设置（图标、焦点通知、初次展开、更新展开）────────────────────
 
-  /// 批量读取各渠道的额外设置，返回 channelId → {icon, focus_icon, focus, preserve_small_icon, first_float, enable_float, timeout, marquee, highlight_color}。
+  /// 批量读取各渠道的额外设置，返回 channelId → {icon, focus_icon, focus, preserve_small_icon, first_float, enable_float, timeout, marquee, highlight_color, outer_glow}。
   Future<Map<String, Map<String, String>>> getChannelExtraSettings(
     String packageName,
     List<String> channelIds,
@@ -348,6 +348,9 @@ class WhitelistController extends ChangeNotifier {
               prefs.getString(
                 'pref_channel_show_right_narrow_font_${packageName}_$id',
               ) ??
+              kTriOptOff,
+          'outer_glow':
+              prefs.getString('pref_channel_outer_glow_${packageName}_$id') ??
               kTriOptOff,
         }),
       ),
@@ -545,6 +548,18 @@ class WhitelistController extends ChangeNotifier {
     );
   }
 
+  Future<void> setChannelOuterGlow(
+    String packageName,
+    String channelId,
+    String value,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      'pref_channel_outer_glow_${packageName}_$channelId',
+      value,
+    );
+  }
+
   /// 批量应用渠道配置到指定渠道列表。
   /// [settings] 中 null 值的 key 表示不更改该项。
   Future<void> batchApplyChannelSettings(
@@ -572,6 +587,7 @@ class WhitelistController extends ChangeNotifier {
       'show_right_highlight': 'pref_channel_show_right_highlight',
       'show_left_narrow_font': 'pref_channel_show_left_narrow_font',
       'show_right_narrow_font': 'pref_channel_show_right_narrow_font',
+      'outer_glow': 'pref_channel_outer_glow',
     };
     final futures = <Future<bool>>[];
     for (final id in channelIds) {

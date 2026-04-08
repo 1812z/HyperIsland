@@ -302,6 +302,9 @@ object GenericProgressHook : BaseHook() {
             val showRightNarrowFont = loadChannelStringSetting(
                 "show_right_narrow_font:$pkg/$channelId", "pref_channel_show_right_narrow_font_${pkg}_$channelId", "off"
             ) == "on"
+            val outerGlow = loadChannelStringSetting(
+                "outer_glow:$pkg/$channelId", "pref_channel_outer_glow_${pkg}_$channelId", "off"
+            ) == "on"
 
             log(module, "$pkg/$channelId | $title |  template=$template")
 //            log(module, "$pkg/$channelId | $title | $progressPercent% | template=$template | buttons=${actions.size} | largeIcon=${largeIcon != null} | preserveSmallIcon=$preserveStatusBarSmallIcon")
@@ -337,6 +340,7 @@ object GenericProgressHook : BaseHook() {
                     showRightHighlightColor = showRightHighlight,
                     showLeftNarrowFont = showLeftNarrowFont,
                     showRightNarrowFont = showRightNarrowFont,
+                    outerGlow = outerGlow,
                 ),
             )
 

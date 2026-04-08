@@ -131,6 +131,7 @@ object ImageTextWithButtonsRenderer : IslandRenderer {
             if (applyWrap) jsonParam = wrapLongTextJson(jsonParam)
             jsonParam = injectUpdatable(jsonParam, vm.updatable)
             jsonParam = injectHighlightColor(jsonParam, vm.highlightColor)
+            jsonParam = injectOuterGlow(jsonParam, vm.outerGlow)
             extras.putString("miui.focus.param", jsonParam)
 
             if (vm.setFocusProxy && vm.showNotification) {

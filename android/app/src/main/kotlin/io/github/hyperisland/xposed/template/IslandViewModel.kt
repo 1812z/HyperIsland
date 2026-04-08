@@ -60,4 +60,6 @@ data class IslandViewModel(
     val showLeftNarrowFont: Boolean = false,
     /** 大岛右侧文本是否使用窄字体。 */
     val showRightNarrowFont: Boolean = false,
+    /** 是否开启大岛外圈光效（outEffectSrc=outer_glow）。 */
+    val outerGlow: Boolean = false,
 )

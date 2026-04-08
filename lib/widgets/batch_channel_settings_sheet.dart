@@ -32,6 +32,7 @@ class SingleChannelMode extends ChannelSettingsMode {
     required this.showRightHighlight,
     required this.showLeftNarrowFont,
     required this.showRightNarrowFont,
+    required this.outerGlow,
   });
 
   final String channelName;
@@ -52,6 +53,7 @@ class SingleChannelMode extends ChannelSettingsMode {
   final String showRightHighlight;
   final String showLeftNarrowFont;
   final String showRightNarrowFont;
+  final String outerGlow;
 }
 
 /// 批量模式：对多个渠道批量操作，字段默认"不更改"。
@@ -165,6 +167,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
   bool? _showRightHighlight;
   bool? _showLeftNarrowFont;
   bool? _showRightNarrowFont;
+  bool _outerGlowEnabled = false;
 
   // 仅 BatchChannelMode + SingleAppScope 下使用
   bool _onlyEnabled = false;
@@ -195,6 +198,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
       _showRightHighlight = m.showRightHighlight == kTriOptOn;
       _showLeftNarrowFont = m.showLeftNarrowFont == kTriOptOn;
       _showRightNarrowFont = m.showRightNarrowFont == kTriOptOn;
+      _outerGlowEnabled = m.outerGlow == kTriOptOn;
       _timeoutController = TextEditingController(text: m.islandTimeout);
       _highlightColorController = TextEditingController(text: m.highlightColor);
     } else {
@@ -328,7 +332,8 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
       _showLeftHighlight != null ||
       _showRightHighlight != null ||
       _showLeftNarrowFont != null ||
-      _showRightNarrowFont != null;
+      _showRightNarrowFont != null ||
+      _outerGlowEnabled;
 
   String _title(AppLocalizations l10n) => switch (widget.mode) {
     SingleChannelMode m => m.channelName,
@@ -380,6 +385,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
           'show_right_narrow_font': _showRightNarrowFont == null
               ? null
               : (_showRightNarrowFont! ? kTriOptOn : kTriOptOff),
+          'outer_glow': _outerGlowEnabled ? kTriOptOn : kTriOptOff,
         },
         onlyEnabled: switch (widget.mode) {
           BatchChannelMode(scope: SingleAppScope()) => _onlyEnabled,
@@ -394,6 +400,9 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
     final cs = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     final l10n = AppLocalizations.of(context)!;
+    final outerGlowLabel = Localizations.localeOf(context).languageCode == 'zh'
+        ? '外圈光效'
+        : 'Outer glow';
     final titleBottomPadding = 12.0;
     final contentTopPadding = 12.0;
     final contentBottomPadding = 4.0;
@@ -900,6 +909,40 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                       ),
                     ],
                     onChanged: (v) => setState(() => _restoreLockscreen = v),
+                  ),
+                  SizedBox(height: rowGap),
+                  _SettingField(
+                    label: outerGlowLabel,
+                    child: Material(
+                      color: cs.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(12),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () => setState(() {
+                          _outerGlowEnabled = !_outerGlowEnabled;
+                        }),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                _outerGlowEnabled ? l10n.optOn : l10n.optOff,
+                                style: Theme.of(context).textTheme.bodyMedium,
+                              ),
+                              Switch(
+                                value: _outerGlowEnabled,
+                                onChanged: (v) =>
+                                    setState(() => _outerGlowEnabled = v),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                   SizedBox(height: endGap),
                 ],

@@ -107,6 +107,17 @@ fun injectHighlightColor(jsonParam: String, highlightColor: String?): String {
     } catch (_: Exception) { jsonParam }
 }
 
+/** 将 outerGlow 注入到 param_v2.outEffectSrc。 */
+fun injectOuterGlow(jsonParam: String, outerGlow: Boolean): String {
+    if (!outerGlow) return jsonParam
+    return try {
+        val json = org.json.JSONObject(jsonParam)
+        val pv2 = json.optJSONObject("param_v2") ?: return jsonParam
+        pv2.put("outEffectSrc", "outer_glow")
+        json.toString()
+    } catch (_: Exception) { jsonParam }
+}
+
 /**
  * 根据渲染器 ID 返回对应的 [IslandRenderer] 实例，未匹配时回退到默认渲染器。
  * 新增渲染器只需在此处注册，所有模板无需修改。

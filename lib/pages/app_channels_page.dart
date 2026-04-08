@@ -226,6 +226,7 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
       'show_right_narrow_font',
       widget.controller.setChannelShowRightNarrowFont,
     );
+    queueExtra('outer_glow', widget.controller.setChannelOuterGlow);
 
     if (templateChanged || extrasChanged) {
       setState(() {
@@ -507,6 +508,7 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                           extras['show_left_narrow_font'] ?? kTriOptOff,
                       showRightNarrowFont:
                           extras['show_right_narrow_font'] ?? kTriOptOff,
+                      outerGlow: extras['outer_glow'] ?? kTriOptOff,
                       onToggle: (v) => _toggle(ch.id, v),
                       onSettingsApplied: (s) => _applyChannelSettings(ch.id, s),
                     );
@@ -620,6 +622,7 @@ class _ChannelTile extends StatelessWidget {
     required this.showRightHighlight,
     required this.showLeftNarrowFont,
     required this.showRightNarrowFont,
+    required this.outerGlow,
     required this.onToggle,
     required this.onSettingsApplied,
   });
@@ -649,6 +652,7 @@ class _ChannelTile extends StatelessWidget {
   final String showRightHighlight;
   final String showLeftNarrowFont;
   final String showRightNarrowFont;
+  final String outerGlow;
   final ValueChanged<bool> onToggle;
   final ValueChanged<Map<String, String?>> onSettingsApplied;
 
@@ -674,6 +678,7 @@ class _ChannelTile extends StatelessWidget {
         showRightHighlight: showRightHighlight,
         showLeftNarrowFont: showLeftNarrowFont,
         showRightNarrowFont: showRightNarrowFont,
+        outerGlow: outerGlow,
       ),
       templateLabels: templateLabels,
       rendererLabels: rendererLabels,
