@@ -9,7 +9,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.graphics.drawable.Icon
 import android.os.Build
-import io.github.hyperisland.getAppIcon
+import io.github.hyperisland.utils.getAppIcon
 import android.os.Bundle
 import io.github.hyperisland.xposed.hook.FocusNotifStatusBarIconHook
 import io.github.libxposed.api.XposedModule

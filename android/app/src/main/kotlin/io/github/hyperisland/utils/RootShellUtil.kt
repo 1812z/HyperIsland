@@ -1,4 +1,4 @@
-package io.github.hyperisland
+package io.github.hyperisland.utils
 
 import kotlin.concurrent.thread
 

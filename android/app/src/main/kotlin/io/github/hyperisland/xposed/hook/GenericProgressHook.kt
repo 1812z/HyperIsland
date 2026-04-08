@@ -4,8 +4,8 @@ import android.app.KeyguardManager
 import android.app.Notification
 import android.graphics.drawable.Icon
 import android.service.notification.StatusBarNotification
-import io.github.hyperisland.getAppIcon
-import io.github.hyperisland.resolveDynamicHighlightColor
+import io.github.hyperisland.utils.getAppIcon
+import io.github.hyperisland.utils.resolveDynamicHighlightColor
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.IslandDispatcher
 import io.github.hyperisland.xposed.NotifData

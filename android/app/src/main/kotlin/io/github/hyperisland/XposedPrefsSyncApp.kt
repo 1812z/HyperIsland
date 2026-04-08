@@ -17,14 +17,14 @@ import io.github.libxposed.service.XposedServiceHelper
  *   - 写入用 [XposedService.getRemotePreferences].edit()
  *   - Hook 端用 module.getRemotePreferences() 读取
  */
-class HyperIslandApp : Application(), XposedServiceHelper.OnServiceListener {
+class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener {
 
     private val flutterPrefs: SharedPreferences by lazy {
-        getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+        getSharedPreferences(REMOTE_PREFS_NAME, Context.MODE_PRIVATE)
     }
 
-    @Volatile private var xposedService: XposedService? = null
-        set(value) { field = value; serviceReady = value != null }
+    @Volatile
+    private var xposedService: XposedService? = null
 
     private val flutterPrefsListener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
         syncKeyToRemote(prefs, key)
@@ -36,18 +36,26 @@ class HyperIslandApp : Application(), XposedServiceHelper.OnServiceListener {
         flutterPrefs.registerOnSharedPreferenceChangeListener(flutterPrefsListener)
     }
 
+    override fun onTerminate() {
+        flutterPrefs.unregisterOnSharedPreferenceChangeListener(flutterPrefsListener)
+        xposedService = null
+        ServiceState.markNotReady()
+        super.onTerminate()
+    }
+
     // ── XposedService 回调 ────────────────────────────────────────────────────
 
     override fun onServiceBind(service: XposedService) {
         xposedService = service
-        apiVersion = service.apiVersion
-        Log.d(TAG, "XposedService bound, API version: $apiVersion, syncing all prefs")
+        ServiceState.markReady(service.apiVersion)
+        Log.d(TAG, "XposedService bound, API version: ${ServiceState.getApiVersion()}, syncing all prefs")
         syncAllToRemote(service)
-        synchronized(serviceReadyLock) { serviceReadyLock.notifyAll() }
+        ServiceState.notifyReady()
     }
 
     override fun onServiceDied(service: XposedService) {
         xposedService = null
+        ServiceState.markNotReady()
         Log.d(TAG, "XposedService died")
     }
 
@@ -56,31 +64,32 @@ class HyperIslandApp : Application(), XposedServiceHelper.OnServiceListener {
     /** 单个 key 变更时，增量同步到 RemotePreferences。 */
     private fun syncKeyToRemote(prefs: SharedPreferences, key: String?) {
         val service = xposedService ?: return
-        try {
-            val remote = service.getRemotePreferences(REMOTE_PREFS_NAME)
-            val editor = remote.edit() ?: return
-            if (key == null) {
-                writeAll(prefs, editor)
-            } else {
-                writeValue(editor, key, prefs.all[key])
-            }
-            editor.apply()
-            Log.d(TAG, "synced key=$key to remote prefs")
-        } catch (e: Exception) {
-            Log.w(TAG, "syncKeyToRemote failed: ${e.message}")
-        }
+        syncToRemote(service, prefs, key)
     }
 
     /** Service 刚绑定时，将所有 FlutterSharedPreferences 条目全量同步。 */
     private fun syncAllToRemote(service: XposedService) {
+        syncToRemote(service, flutterPrefs, key = null)
+    }
+
+    private fun syncToRemote(service: XposedService, sourcePrefs: SharedPreferences, key: String?) {
         try {
             val remote = service.getRemotePreferences(REMOTE_PREFS_NAME)
             val editor = remote.edit() ?: return
-            writeAll(flutterPrefs, editor)
+            if (key == null) {
+                writeAll(sourcePrefs, editor)
+            } else {
+                writeValue(editor, key, sourcePrefs.all[key])
+            }
             editor.apply()
-            Log.d(TAG, "full sync done: ${flutterPrefs.all.size} keys")
+            if (key == null) {
+                Log.d(TAG, "full sync done: ${sourcePrefs.all.size} keys")
+            } else {
+                Log.d(TAG, "synced key=$key to remote prefs")
+            }
         } catch (e: Exception) {
-            Log.w(TAG, "syncAllToRemote failed: ${e.message}")
+            val scope = if (key == null) "all" else key
+            Log.w(TAG, "syncToRemote failed (key=$scope): ${e.message}")
         }
     }
 
@@ -105,23 +114,48 @@ class HyperIslandApp : Application(), XposedServiceHelper.OnServiceListener {
         private const val TAG = "HyperIsland[App]"
         const val REMOTE_PREFS_NAME = "FlutterSharedPreferences"
 
-        @Volatile private var serviceReady = false
-        @Volatile private var apiVersion: Int = 0
-        private val serviceReadyLock = Object()
+        private object ServiceState {
+            @Volatile private var serviceReady = false
+            @Volatile private var apiVersion: Int = 0
+            @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
+            private val serviceReadyLock = Object()
 
-        fun isReady(): Boolean = serviceReady
+            fun isReady(): Boolean = serviceReady
 
-        fun getApiVersion(): Int = apiVersion
+            fun getApiVersion(): Int = apiVersion
 
-        fun awaitReady(timeoutMs: Long = 1500): Boolean {
-            if (isReady()) return true
-            synchronized(serviceReadyLock) {
-                if (!isReady()) {
-                    try { serviceReadyLock.wait(timeoutMs) }
-                    catch (_: InterruptedException) { }
-                }
+            fun markReady(newApiVersion: Int) {
+                apiVersion = newApiVersion
+                serviceReady = true
             }
-            return isReady()
+
+            fun markNotReady() {
+                serviceReady = false
+                apiVersion = 0
+            }
+
+            fun notifyReady() {
+                synchronized(serviceReadyLock) { serviceReadyLock.notifyAll() }
+            }
+
+            fun awaitReady(timeoutMs: Long): Boolean {
+                if (isReady()) return true
+                synchronized(serviceReadyLock) {
+                    if (!isReady()) {
+                        try {
+                            serviceReadyLock.wait(timeoutMs)
+                        } catch (_: InterruptedException) {
+                        }
+                    }
+                }
+                return isReady()
+            }
         }
+
+        fun isReady(): Boolean = ServiceState.isReady()
+
+        fun getApiVersion(): Int = ServiceState.getApiVersion()
+
+        fun awaitReady(timeoutMs: Long = 1500): Boolean = ServiceState.awaitReady(timeoutMs)
     }
 }
