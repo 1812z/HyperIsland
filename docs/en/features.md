@@ -57,6 +57,7 @@ Choose the appropriate Super Island template for each app/channel:
 - **Auto Dismiss**: Set seconds before Super Island auto-hides
 - **Highlight Color**: Custom highlight color (supports HEX values)
 - **Text Highlight**: Choose left or right text to display with highlight color
+- **Narrow Font**: When enabled, switch the Dynamic Island to the narrow font (this will cause “.” to be converted to “:”)
 
 ## Focus Notification Customization
 
@@ -68,6 +69,7 @@ Choose the appropriate Super Island template for each app/channel:
   - Off: Restore notification to normal style, only show Super Island
 - **Status Bar Icon**: Toggle status bar icon display
 - **Lock Screen Restore**: Restore normal notification style on lock screen to use system's built-in privacy management
+- **Outer Ring Glow Effect**: When enabled, a dynamic glow effect appears around focus notifications
 
 ::: warning
 When Focus Notification is disabled, the Super Island is sent by **System UI** on behalf of the app, which may have compatibility issues.
