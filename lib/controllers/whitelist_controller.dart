@@ -339,6 +339,16 @@ class WhitelistController extends ChangeNotifier {
                 'pref_channel_show_right_highlight_${packageName}_$id',
               ) ??
               kTriOptOff,
+          'show_left_narrow_font':
+              prefs.getString(
+                'pref_channel_show_left_narrow_font_${packageName}_$id',
+              ) ??
+              kTriOptOff,
+          'show_right_narrow_font':
+              prefs.getString(
+                'pref_channel_show_right_narrow_font_${packageName}_$id',
+              ) ??
+              kTriOptOff,
         }),
       ),
     );
@@ -511,6 +521,30 @@ class WhitelistController extends ChangeNotifier {
     );
   }
 
+  Future<void> setChannelShowLeftNarrowFont(
+    String packageName,
+    String channelId,
+    String value,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      'pref_channel_show_left_narrow_font_${packageName}_$channelId',
+      value,
+    );
+  }
+
+  Future<void> setChannelShowRightNarrowFont(
+    String packageName,
+    String channelId,
+    String value,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      'pref_channel_show_right_narrow_font_${packageName}_$channelId',
+      value,
+    );
+  }
+
   /// 批量应用渠道配置到指定渠道列表。
   /// [settings] 中 null 值的 key 表示不更改该项。
   Future<void> batchApplyChannelSettings(
@@ -536,6 +570,8 @@ class WhitelistController extends ChangeNotifier {
       'highlight_color': 'pref_channel_highlight_color',
       'show_left_highlight': 'pref_channel_show_left_highlight',
       'show_right_highlight': 'pref_channel_show_right_highlight',
+      'show_left_narrow_font': 'pref_channel_show_left_narrow_font',
+      'show_right_narrow_font': 'pref_channel_show_right_narrow_font',
     };
     final futures = <Future<bool>>[];
     for (final id in channelIds) {

@@ -578,6 +578,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get textHighlightLabel => 'Metin vurgusu';
 
   @override
+  String get narrowFontLabel => 'Dar yazı tipi';
+
+  @override
   String get showLeftHighlightLabel => 'Sol metin vurgusu';
 
   @override

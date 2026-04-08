@@ -296,6 +296,12 @@ object GenericProgressHook : BaseHook() {
             val showRightHighlight = loadChannelStringSetting(
                 "show_right_highlight:$pkg/$channelId", "pref_channel_show_right_highlight_${pkg}_$channelId", "off"
             ) == "on"
+            val showLeftNarrowFont = loadChannelStringSetting(
+                "show_left_narrow_font:$pkg/$channelId", "pref_channel_show_left_narrow_font_${pkg}_$channelId", "off"
+            ) == "on"
+            val showRightNarrowFont = loadChannelStringSetting(
+                "show_right_narrow_font:$pkg/$channelId", "pref_channel_show_right_narrow_font_${pkg}_$channelId", "off"
+            ) == "on"
 
             log(module, "$pkg/$channelId | $title |  template=$template")
 //            log(module, "$pkg/$channelId | $title | $progressPercent% | template=$template | buttons=${actions.size} | largeIcon=${largeIcon != null} | preserveSmallIcon=$preserveStatusBarSmallIcon")
@@ -329,6 +335,8 @@ object GenericProgressHook : BaseHook() {
                     highlightColor  = highlightColor,
                     showLeftHighlightColor = showLeftHighlight,
                     showRightHighlightColor = showRightHighlight,
+                    showLeftNarrowFont = showLeftNarrowFont,
+                    showRightNarrowFont = showRightNarrowFont,
                 ),
             )
 

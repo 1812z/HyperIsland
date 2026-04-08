@@ -188,6 +188,7 @@
   "highlightColorLabel": "ハイライト色",
   "highlightColorHint": "#RRGGBB 形式、空白でデフォルト",
   "textHighlightLabel": "テキストハイライト",
+  "narrowFontLabel": "ナローフォント",
   "showLeftHighlightLabel": "左テキストハイライト",
   "showRightHighlightLabel": "右テキストハイライト",
   "showLeftHighlightShort": "左",

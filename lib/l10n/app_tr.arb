@@ -279,6 +279,7 @@
   "highlightColorLabel": "Vurgu Rengi",
   "highlightColorHint": "#RRGGBB formatı, varsayılan için boş bırakın",
   "textHighlightLabel": "Metin vurgusu",
+  "narrowFontLabel": "Dar yazı tipi",
   "showLeftHighlightLabel": "Sol metin vurgusu",
   "showRightHighlightLabel": "Sağ metin vurgusu",
   "showLeftHighlightShort": "Sol",

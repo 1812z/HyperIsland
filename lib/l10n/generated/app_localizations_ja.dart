@@ -555,6 +555,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get textHighlightLabel => 'テキストハイライト';
 
   @override
+  String get narrowFontLabel => 'ナローフォント';
+
+  @override
   String get showLeftHighlightLabel => '左テキストハイライト';
 
   @override

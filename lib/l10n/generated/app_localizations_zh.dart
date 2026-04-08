@@ -548,6 +548,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get textHighlightLabel => '文本高亮';
 
   @override
+  String get narrowFontLabel => '窄字体';
+
+  @override
   String get showLeftHighlightLabel => '左侧文本高亮';
 
   @override

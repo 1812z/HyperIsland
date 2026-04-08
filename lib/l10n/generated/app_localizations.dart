@@ -1086,6 +1086,12 @@ abstract class AppLocalizations {
   /// **'文本高亮'**
   String get textHighlightLabel;
 
+  /// No description provided for @narrowFontLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'窄字体'**
+  String get narrowFontLabel;
+
   /// No description provided for @showLeftHighlightLabel.
   ///
   /// In zh, this message translates to:

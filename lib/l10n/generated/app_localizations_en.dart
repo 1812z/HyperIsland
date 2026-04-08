@@ -571,6 +571,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get textHighlightLabel => 'Text highlight';
 
   @override
+  String get narrowFontLabel => 'Narrow font';
+
+  @override
   String get showLeftHighlightLabel => 'Left text highlight';
 
   @override

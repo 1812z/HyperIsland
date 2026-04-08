@@ -218,6 +218,14 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
       'show_right_highlight',
       widget.controller.setChannelShowRightHighlight,
     );
+    queueExtra(
+      'show_left_narrow_font',
+      widget.controller.setChannelShowLeftNarrowFont,
+    );
+    queueExtra(
+      'show_right_narrow_font',
+      widget.controller.setChannelShowRightNarrowFont,
+    );
 
     if (templateChanged || extrasChanged) {
       setState(() {
@@ -495,6 +503,10 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                           extras['show_left_highlight'] ?? kTriOptOff,
                       showRightHighlight:
                           extras['show_right_highlight'] ?? kTriOptOff,
+                      showLeftNarrowFont:
+                          extras['show_left_narrow_font'] ?? kTriOptOff,
+                      showRightNarrowFont:
+                          extras['show_right_narrow_font'] ?? kTriOptOff,
                       onToggle: (v) => _toggle(ch.id, v),
                       onSettingsApplied: (s) => _applyChannelSettings(ch.id, s),
                     );
@@ -606,6 +618,8 @@ class _ChannelTile extends StatelessWidget {
     required this.highlightColor,
     required this.showLeftHighlight,
     required this.showRightHighlight,
+    required this.showLeftNarrowFont,
+    required this.showRightNarrowFont,
     required this.onToggle,
     required this.onSettingsApplied,
   });
@@ -633,6 +647,8 @@ class _ChannelTile extends StatelessWidget {
   final String highlightColor;
   final String showLeftHighlight;
   final String showRightHighlight;
+  final String showLeftNarrowFont;
+  final String showRightNarrowFont;
   final ValueChanged<bool> onToggle;
   final ValueChanged<Map<String, String?>> onSettingsApplied;
 
@@ -656,6 +672,8 @@ class _ChannelTile extends StatelessWidget {
         highlightColor: highlightColor,
         showLeftHighlight: showLeftHighlight,
         showRightHighlight: showRightHighlight,
+        showLeftNarrowFont: showLeftNarrowFont,
+        showRightNarrowFont: showRightNarrowFont,
       ),
       templateLabels: templateLabels,
       rendererLabels: rendererLabels,

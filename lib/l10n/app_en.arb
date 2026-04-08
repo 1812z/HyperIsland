@@ -201,6 +201,7 @@
   "highlightColorLabel": "Highlight color",
   "highlightColorHint": "#RRGGBB format, leave empty for default",
   "textHighlightLabel": "Text highlight",
+  "narrowFontLabel": "Narrow font",
   "showLeftHighlightLabel": "Left text highlight",
   "showRightHighlightLabel": "Right text highlight",
   "showLeftHighlightShort": "Left",

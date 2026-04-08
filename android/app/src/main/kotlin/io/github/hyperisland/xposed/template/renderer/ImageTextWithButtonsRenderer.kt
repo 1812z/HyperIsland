@@ -69,13 +69,13 @@ object ImageTextWithButtonsRenderer : IslandRenderer {
             val leftSide = if (!vm.showIslandIcon) {
                 ImageTextInfoLeft(
                     type     = 1,
-                    textInfo = TextInfo(title = vm.leftTitle, showHighlightColor = vm.showLeftHighlightColor),
+                    textInfo = TextInfo(title = vm.leftTitle, narrowFont = vm.showLeftNarrowFont, showHighlightColor = vm.showLeftHighlightColor),
                 )
             } else {
                 ImageTextInfoLeft(
                     type     = 1,
                     picInfo  = PicInfo(type = 1, pic = iconKey),
-                    textInfo = TextInfo(title = vm.leftTitle, showHighlightColor = vm.showLeftHighlightColor),
+                    textInfo = TextInfo(title = vm.leftTitle, narrowFont = vm.showLeftNarrowFont, showHighlightColor = vm.showLeftHighlightColor),
                 )
             }
             when {
@@ -83,14 +83,14 @@ object ImageTextWithButtonsRenderer : IslandRenderer {
                     left = leftSide,
                     progressText = ProgressTextInfo(
                         progressInfo = CircularProgressInfo(progress = vm.circularProgress),
-                        textInfo     = TextInfo(title = vm.rightTitle, narrowFont = true, showHighlightColor = vm.showRightHighlightColor),
+                        textInfo     = TextInfo(title = vm.rightTitle, narrowFont = vm.showRightNarrowFont, showHighlightColor = vm.showRightHighlightColor),
                     ),
                 )
                 vm.showRightSide -> builder.setBigIslandInfo(
                     left  = leftSide,
                     right = ImageTextInfoRight(
                         type     = 2,
-                        textInfo = TextInfo(title = vm.rightTitle, narrowFont = true, showHighlightColor = vm.showRightHighlightColor),
+                        textInfo = TextInfo(title = vm.rightTitle, narrowFont = vm.showRightNarrowFont, showHighlightColor = vm.showRightHighlightColor),
                     ),
                 )
                 else -> builder.setBigIslandInfo(left = leftSide)

@@ -342,6 +342,7 @@
   "highlightColorLabel": "高亮颜色",
   "highlightColorHint": "#RRGGBB 格式，留空使用默认",
   "textHighlightLabel": "文本高亮",
+  "narrowFontLabel": "窄字体",
   "showLeftHighlightLabel": "左侧文本高亮",
   "showRightHighlightLabel": "右侧文本高亮",
   "showLeftHighlightShort": "左侧",

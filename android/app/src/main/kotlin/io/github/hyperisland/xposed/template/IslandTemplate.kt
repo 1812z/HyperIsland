@@ -113,4 +113,8 @@ data class NotifData(
     val showLeftHighlightColor: Boolean = false,
     /** 大岛右侧文本是否显示高亮颜色。 */
     val showRightHighlightColor: Boolean = false,
+    /** 大岛左侧文本是否使用窄字体。 */
+    val showLeftNarrowFont: Boolean = false,
+    /** 大岛右侧文本是否使用窄字体。 */
+    val showRightNarrowFont: Boolean = false,
 )

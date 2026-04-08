@@ -270,6 +270,8 @@ $userPrompt
             highlightColor    = data.highlightColor,
             showLeftHighlightColor = data.showLeftHighlightColor,
             showRightHighlightColor = data.showRightHighlightColor,
+            showLeftNarrowFont = data.showLeftNarrowFont,
+            showRightNarrowFont = data.showRightNarrowFont,
         )
     }
 
