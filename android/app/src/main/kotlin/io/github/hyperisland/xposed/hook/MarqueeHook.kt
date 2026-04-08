@@ -1,24 +1,20 @@
 package io.github.hyperisland.xposed.hook
 
-import android.util.Log
 import android.view.Choreographer
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import io.github.hyperisland.xposed.ConfigManager
+import io.github.hyperisland.xposed.log
+import io.github.hyperisland.xposed.logError
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
-import io.github.libxposed.api.XposedModule
 import java.util.WeakHashMap
 
 /**
  * Hook SystemUI 中超级岛大岛视图的 TextView，实现自定义跑马灯（文字横向滚动）效果。
  */
 object MarqueeHook : BaseHook() {
-
-    private const val TAG = "HyperIsland[MarqueeHook]"
-
-    override fun getTag() = TAG
 
     override fun onConfigChanged() {
         cachedSpeed = null
@@ -118,6 +114,7 @@ object MarqueeHook : BaseHook() {
     }
 
     fun traverseAndApplyMarquee(bigIslandView: ViewGroup, enabled: Boolean) {
+        log("Marquee ${if (enabled) "enabled" else "disabled"} for island view")
         islandMarqueeState[bigIslandView] = enabled
         traverseInternal(bigIslandView, enabled)
     }
@@ -137,9 +134,7 @@ object MarqueeHook : BaseHook() {
 
     private fun traverseInternal(view: View, enabled: Boolean) {
         if (view is TextView) {
-            if (isInExpandedView(view)) {
-                return
-            }
+            if (isInExpandedView(view)) return
             if (observedViews.containsKey(view)) {
                 if (enabled) startMarquee(view)
                 else stopMarquee(view)
@@ -232,10 +227,6 @@ object MarqueeHook : BaseHook() {
                             val isOngoing = try {
                                 islandData?.javaClass?.getMethod("isOngoing")?.invoke(islandData) as? Boolean ?: false
                             } catch (_: Exception) { false }
-                            if (isOngoing) {
-                                traverseAndApplyMarquee(islandView, false)
-                                return@intercept result
-                            }
                             
                             val marqueeRaw = ConfigManager.getString("pref_channel_marquee_${pkgName}", "default")
                             val defaultMarquee = ConfigManager.getBoolean("pref_default_marquee", false)
@@ -244,12 +235,20 @@ object MarqueeHook : BaseHook() {
                                 "off" -> false
                                 else -> defaultMarquee
                             }
-                            traverseAndApplyMarquee(islandView, enabled)
-                        } catch (_: Exception) {}
+                            
+                            if (!enabled || isOngoing) {
+                                return@intercept result
+                            }
+                            
+                            log("Marquee triggered for package: $pkgName")
+                            traverseAndApplyMarquee(islandView, true)
+                        } catch (e: Exception) {
+                            logError("Error in updateBigIslandView hook: ${e.message}")
+                        }
                         result
                     }
                     hookedContentView = true
-                    module.log(Log.DEBUG, TAG, "hooked updateBigIslandView on $className")
+                    log("Hooked updateBigIslandView on $className")
                 }
             } catch (_: Exception) {}
         }
