@@ -147,13 +147,9 @@ class SettingsController extends ChangeNotifier {
     interactionHaptics = prefs.getBool(kPrefInteractionHaptics) ?? true;
     roundIcon = prefs.getBool(kPrefRoundIcon) ?? true;
     marqueeFeature = prefs.getBool(kPrefMarqueeFeature) ?? false;
-    marqueeSpeed = (prefs.getInt(kPrefMarqueeSpeed) ?? 100).clamp(20, 500);
-    bigIslandMaxWidthEnabled =
-        prefs.getBool(kPrefBigIslandMaxWidthEnabled) ?? false;
-    bigIslandMaxWidth = (prefs.getInt(kPrefBigIslandMaxWidth) ?? 600).clamp(
-      500,
-      1000,
-    );
+    marqueeSpeed = prefs.getInt(kPrefMarqueeSpeed) ?? 100;
+    bigIslandMaxWidthEnabled = prefs.getBool(kPrefBigIslandMaxWidthEnabled) ?? false;
+    bigIslandMaxWidth = prefs.getInt(kPrefBigIslandMaxWidth) ?? 200;
     unlockAllFocus = prefs.getBool(kPrefUnlockAllFocus) ?? false;
     unlockFocusAuth = prefs.getBool(kPrefUnlockFocusAuth) ?? false;
     checkUpdateOnLaunch = prefs.getBool(kPrefCheckUpdateOnLaunch) ?? true;
@@ -253,7 +249,7 @@ class SettingsController extends ChangeNotifier {
   }
 
   Future<void> setBigIslandMaxWidth(int value) async {
-    final clamped = value.clamp(500, 1000);
+    final clamped = value.clamp(100, 500);
     if (bigIslandMaxWidth == clamped) return;
     final prefs = await _getPrefs();
     await prefs.setInt(kPrefBigIslandMaxWidth, clamped);

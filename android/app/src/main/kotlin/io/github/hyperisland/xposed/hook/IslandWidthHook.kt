@@ -20,6 +20,11 @@ object BigIslandMinWidthHook : BaseHook() {
     private var hookedCalculateMaxWidthWithSmall = false
     private var hookedSetMaxWidth = false
 
+    private fun dpToPx(dp: Int): Float {
+        val density = android.content.res.Resources.getSystem().displayMetrics.density
+        return dp * density
+    }
+
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
         hookDynamicClassLoaders(module)
     }
@@ -42,8 +47,8 @@ object BigIslandMinWidthHook : BaseHook() {
                             return@intercept chain.proceed()
                         }
                         
-                        val maxWidthDp = ConfigManager.getInt("pref_big_island_max_width", DEFAULT_MAX_WIDTH_DP).coerceIn(500, 1000)
-                        val maxWidthPx = maxWidthDp.toFloat()
+                        val maxWidthDp = ConfigManager.getInt("pref_big_island_max_width", DEFAULT_MAX_WIDTH_DP).coerceIn(100, 1000)
+                        val maxWidthPx = dpToPx(maxWidthDp)
                         
                         log(module, "calculateMaxWidthWithSmall returning $maxWidthPx")
                         
@@ -64,15 +69,25 @@ object BigIslandMinWidthHook : BaseHook() {
                             return@intercept chain.proceed()
                         }
                         
-                        val maxWidthDp = ConfigManager.getInt("pref_big_island_max_width", DEFAULT_MAX_WIDTH_DP).coerceIn(500, 1000)
-                        val view = chain.thisObject as? android.view.View
-                        val maxWidthPx = maxWidthDp.toFloat()
+                        val maxWidthDp = ConfigManager.getInt("pref_big_island_max_width", DEFAULT_MAX_WIDTH_DP).coerceIn(100, 1000)
+                        val target = chain.thisObject ?: return@intercept chain.proceed()
+                        val maxWidthPx = dpToPx(maxWidthDp)
+                        val clockWidth = (chain.args.getOrNull(1) as? Number)?.toFloat() ?: -1f
+                        val batteryWidth = (chain.args.getOrNull(2) as? Number)?.toFloat() ?: -1f
                         
                         val maxWidthField = clazz.getDeclaredField("maxWidth")
                         maxWidthField.isAccessible = true
-                        maxWidthField.setFloat(view, maxWidthPx)
-                        
-                        log(module, "maxWidth=$maxWidthPx px")
+                        maxWidthField.setFloat(target, maxWidthPx)
+
+                        val clockWidthField = clazz.getDeclaredField("clockWidth")
+                        clockWidthField.isAccessible = true
+                        clockWidthField.setFloat(target, clockWidth)
+
+                        val batteryWidthField = clazz.getDeclaredField("batteryWidth")
+                        batteryWidthField.isAccessible = true
+                        batteryWidthField.setFloat(target, batteryWidth)
+
+                        log(module, "maxWidth=$maxWidthPx px, clockWidth=$clockWidth, batteryWidth=$batteryWidth")
                         
                         return@intercept null
                     }

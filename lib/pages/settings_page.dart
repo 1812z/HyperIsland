@@ -848,8 +848,8 @@ class _SettingsPageState extends State<SettingsPage> {
                                       child: Slider(
                                         value: _bigIslandMaxWidthDraft
                                             .toDouble(),
-                                        min: 500,
-                                        max: 1000,
+                                        min: 100,
+                                        max: 500,
                                         divisions: 54,
                                         onChanged:
                                             InteractionHaptics.interceptSlider(
