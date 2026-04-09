@@ -121,7 +121,7 @@ object MarqueeHook : BaseHook() {
     }
 
     fun traverseAndApplyMarquee(bigIslandView: ViewGroup, enabled: Boolean) {
-        log("Marquee ${if (enabled) "enabled" else "disabled"} for island view")
+        //log("Marquee ${if (enabled) "enabled" else "disabled"} for island view")
         islandMarqueeState[bigIslandView] = enabled
         traverseInternal(bigIslandView, enabled)
     }
@@ -194,6 +194,7 @@ object MarqueeHook : BaseHook() {
 
     private var hookedContentView = false
     private val targetPkg = java.util.Collections.synchronizedMap(WeakHashMap<View, String>())
+    private val targetChannel = java.util.Collections.synchronizedMap(WeakHashMap<View, String>())
     @Volatile private var cachedWhitelist: Map<String, Set<String>>? = null
 
     private fun loadWhitelist(): Map<String, Set<String>> {
@@ -250,10 +251,14 @@ object MarqueeHook : BaseHook() {
                                     channelId = sbn?.notification?.channelId ?: ""
                                     isOngoing = (sbn?.notification?.flags ?: 0) and android.app.Notification.FLAG_ONGOING_EVENT != 0
                                     targetPkg[islandView] = pkgName
+                                    targetChannel[islandView] = channelId
                                 }
                             } catch (_: Exception) {}
                             if (pkgName.isEmpty()) {
                                 pkgName = targetPkg[islandView] ?: ""
+                            }
+                            if (channelId.isEmpty()) {
+                                channelId = targetChannel[islandView] ?: ""
                             }
                             if (pkgName.isEmpty()) return@intercept result
                             
@@ -262,12 +267,17 @@ object MarqueeHook : BaseHook() {
                             if (allowedChannels == null) {
                                 return@intercept result
                             }
+
+                            if (allowedChannels.isNotEmpty() && channelId.isEmpty()) {
+                                return@intercept result
+                            }
                             
                             if (allowedChannels.isNotEmpty() && channelId.isNotEmpty() && channelId !in allowedChannels) {
                                 return@intercept result
                             }
                             
-                            val marqueeRaw = ConfigManager.getString("pref_channel_marquee_${pkgName}_${channelId}", "default")
+                            val marqueeKey = "pref_channel_marquee_${pkgName}_${channelId}"
+                            val marqueeRaw = ConfigManager.getString(marqueeKey, "default")
                             val defaultMarquee = ConfigManager.getBoolean("pref_default_marquee", false)
                             val enabled = when (marqueeRaw) {
                                 "on" -> true
