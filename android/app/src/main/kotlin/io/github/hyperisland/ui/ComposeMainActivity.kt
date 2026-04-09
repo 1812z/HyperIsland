@@ -17,10 +17,12 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -98,8 +100,12 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -122,6 +128,7 @@ import androidx.navigationevent.compose.LocalNavigationEventDispatcherOwner
 import androidx.navigationevent.compose.rememberNavigationEventDispatcherOwner
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import io.github.hyperisland.data.prefs.PrefKeys
 import io.github.hyperisland.data.prefs.SettingsState
 import io.github.hyperisland.ui.ai.AiConfigScreen
@@ -174,6 +181,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.pressable
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
+import kotlinx.coroutines.delay
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -408,6 +416,12 @@ private const val DEFAULT_BIG_ISLAND_MAX_WIDTH = 600
 private const val ROUTE_TRANSITION_DURATION_MS = 280
 private const val OVERLAY_TRANSITION_DURATION_MS = 320
 
+private fun resolveNightMode(themeMode: String): Int = when (themeMode) {
+    "light" -> AppCompatDelegate.MODE_NIGHT_NO
+    "dark" -> AppCompatDelegate.MODE_NIGHT_YES
+    else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+}
+
 @Composable
 private fun HyperCeilerNavItem(
     destination: TopLevelDestination,
@@ -465,6 +479,7 @@ private fun HyperCeilerNavigationSwitchBar(
     modifier: Modifier = Modifier,
     backdrop: LayerBackdrop? = null,
 ) {
+    val isDarkTheme = isSystemInDarkTheme()
     val navBottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     AnimatedContent(
         targetState = style.floating,
@@ -513,19 +528,27 @@ private fun HyperCeilerNavigationSwitchBar(
                         .shadow(
                             elevation = style.floatingShadowElevation,
                             shape = androidx.compose.foundation.shape.RoundedCornerShape(style.floatingCornerRadius),
-                            ambientColor = Color.Black.copy(alpha = 0.10f),
-                            spotColor = Color.Black.copy(alpha = 0.12f),
+                            ambientColor = Color.Black.copy(alpha = if (isDarkTheme) 0.34f else 0.10f),
+                            spotColor = Color.Black.copy(alpha = if (isDarkTheme) 0.42f else 0.12f),
                             clip = false,
                         )
                         .clip(androidx.compose.foundation.shape.RoundedCornerShape(style.floatingCornerRadius))
                         .let { if (backdrop != null) it.textureBlur(backdrop, shape = androidx.compose.foundation.shape.RoundedCornerShape(style.floatingCornerRadius), blurRadiusX = 32f, blurRadiusY = 32f) else it }
                         .background(
                             brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color(0xFFFFFFFF).copy(alpha = if (backdrop != null) 0.65f else 1f),
-                                    Color(0xFFFAFAFB).copy(alpha = if (backdrop != null) 0.65f else 1f),
-                                    Color(0xFFF3F4F6).copy(alpha = if (backdrop != null) 0.65f else 1f),
-                                ),
+                                colors = if (isDarkTheme) {
+                                    listOf(
+                                        MaterialTheme.colorScheme.surface.copy(alpha = if (backdrop != null) 0.78f else 0.96f),
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (backdrop != null) 0.70f else 0.90f),
+                                        MaterialTheme.colorScheme.surface.copy(alpha = if (backdrop != null) 0.66f else 0.86f),
+                                    )
+                                } else {
+                                    listOf(
+                                        Color(0xFFFFFFFF).copy(alpha = if (backdrop != null) 0.65f else 1f),
+                                        Color(0xFFFAFAFB).copy(alpha = if (backdrop != null) 0.65f else 1f),
+                                        Color(0xFFF3F4F6).copy(alpha = if (backdrop != null) 0.65f else 1f),
+                                    )
+                                },
                             ),
                         )
                         .drawWithCache {
@@ -538,25 +561,50 @@ private fun HyperCeilerNavigationSwitchBar(
                             val strokeAngleRad = Math.toRadians(34.0)
                             val dx = (cos(strokeAngleRad) * halfW).toFloat()
                             val dy = (sin(strokeAngleRad) * halfH).toFloat()
-                            val outerStrokeBrush = Brush.linearGradient(
-                                colors = listOf(
-                                    Color.White.copy(alpha = 0.97f),
-                                    Color(0xFFF1F2F5).copy(alpha = 0.78f),
-                                    Color(0xFFE2E4E9).copy(alpha = 0.62f),
-                                    Color.White.copy(alpha = 0.93f),
-                                ),
-                                start = Offset(halfW - dx, halfH - dy),
-                                end = Offset(halfW + dx, halfH + dy),
-                            )
-                            val innerStrokeBrush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.White.copy(alpha = 0.84f),
-                                    Color.White.copy(alpha = 0.28f),
-                                    Color.Transparent,
-                                ),
-                                startY = 0f,
-                                endY = size.height * 0.70f,
-                            )
+                            val outerStrokeBrush = if (isDarkTheme) {
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        Color.White.copy(alpha = 0.22f),
+                                        Color.White.copy(alpha = 0.10f),
+                                        Color.Black.copy(alpha = 0.14f),
+                                        Color.White.copy(alpha = 0.18f),
+                                    ),
+                                    start = Offset(halfW - dx, halfH - dy),
+                                    end = Offset(halfW + dx, halfH + dy),
+                                )
+                            } else {
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        Color.White.copy(alpha = 0.97f),
+                                        Color(0xFFF1F2F5).copy(alpha = 0.78f),
+                                        Color(0xFFE2E4E9).copy(alpha = 0.62f),
+                                        Color.White.copy(alpha = 0.93f),
+                                    ),
+                                    start = Offset(halfW - dx, halfH - dy),
+                                    end = Offset(halfW + dx, halfH + dy),
+                                )
+                            }
+                            val innerStrokeBrush = if (isDarkTheme) {
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.White.copy(alpha = 0.22f),
+                                        Color.White.copy(alpha = 0.08f),
+                                        Color.Transparent,
+                                    ),
+                                    startY = 0f,
+                                    endY = size.height * 0.70f,
+                                )
+                            } else {
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.White.copy(alpha = 0.84f),
+                                        Color.White.copy(alpha = 0.28f),
+                                        Color.Transparent,
+                                    ),
+                                    startY = 0f,
+                                    endY = size.height * 0.70f,
+                                )
+                            }
                             onDrawWithContent {
                                 drawContent()
                                 drawRoundRect(
@@ -638,6 +686,36 @@ private fun routeTitle(route: String?): String {
     }
 }
 
+@Composable
+private fun OverlayPopupMenuContainer(content: @Composable () -> Unit) {
+    val isDarkTheme = isSystemInDarkTheme()
+    val containerShape = RoundedCornerShape(16.dp)
+    Box(
+        modifier = Modifier
+            .clip(containerShape)
+            .background(
+                MaterialTheme.colorScheme.surface.copy(
+                    alpha = if (isDarkTheme) 0.95f else 0.98f,
+                ),
+            )
+            .then(
+                if (isDarkTheme) {
+                    Modifier.border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.42f),
+                        shape = containerShape,
+                    )
+                } else {
+                    Modifier
+                },
+            ),
+    ) {
+        MiuixListPopupColumn {
+            content()
+        }
+    }
+}
+
 private fun openExternalUrl(context: Context, url: String) {
     runCatching {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
@@ -658,6 +736,12 @@ private fun HyperIslandComposeApp() {
     val blacklistVm: BlacklistViewModel = viewModel()
     val settingsVm: SettingsViewModel = viewModel()
     val settingsState by settingsVm.uiState.collectAsStateWithLifecycle()
+    LaunchedEffect(settingsState.themeMode) {
+        val targetMode = resolveNightMode(settingsState.themeMode)
+        if (AppCompatDelegate.getDefaultNightMode() != targetMode) {
+            AppCompatDelegate.setDefaultNightMode(targetMode)
+        }
+    }
     val appsState by appsVm.uiState.collectAsStateWithLifecycle()
     val blacklistState by blacklistVm.uiState.collectAsStateWithLifecycle()
     var showRestartDialog by remember { mutableStateOf(false) }
@@ -738,6 +822,49 @@ private fun HyperIslandComposeApp() {
 
     var isAppsSearchExpanded by remember { mutableStateOf(false) }
     var isBlacklistSearchExpanded by remember { mutableStateOf(false) }
+    var appsSearchFieldValue by remember { mutableStateOf(TextFieldValue("")) }
+    var blacklistSearchFieldValue by remember { mutableStateOf(TextFieldValue("")) }
+    val appsSearchFocusRequester = remember { FocusRequester() }
+    val blacklistSearchFocusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    LaunchedEffect(appsState.query, isAppsSearchExpanded) {
+        if (!isAppsSearchExpanded) {
+            appsSearchFieldValue = TextFieldValue(
+                text = appsState.query,
+                selection = TextRange(appsState.query.length),
+            )
+        }
+    }
+    LaunchedEffect(blacklistState.query, isBlacklistSearchExpanded) {
+        if (!isBlacklistSearchExpanded) {
+            blacklistSearchFieldValue = TextFieldValue(
+                text = blacklistState.query,
+                selection = TextRange(blacklistState.query.length),
+            )
+        }
+    }
+
+    LaunchedEffect(isAppsSearchExpanded) {
+        if (isAppsSearchExpanded) {
+            appsSearchFieldValue = appsSearchFieldValue.copy(
+                selection = TextRange(appsSearchFieldValue.text.length),
+            )
+            delay(120)
+            appsSearchFocusRequester.requestFocus()
+            keyboardController?.show()
+        }
+    }
+    LaunchedEffect(isBlacklistSearchExpanded) {
+        if (isBlacklistSearchExpanded) {
+            blacklistSearchFieldValue = blacklistSearchFieldValue.copy(
+                selection = TextRange(blacklistSearchFieldValue.text.length),
+            )
+            delay(120)
+            blacklistSearchFocusRequester.requestFocus()
+            keyboardController?.show()
+        }
+    }
 
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
@@ -1007,7 +1134,7 @@ private fun HyperIslandComposeApp() {
                                                         appChannelsBatchRequestId += 1
                                                     },
                                                 )
-                                                MiuixListPopupColumn {
+                                                OverlayPopupMenuContainer {
                                                     menuItems.forEachIndexed { index, (title, action) ->
                                                         MiuixDropdownImpl(
                                                             text = title,
@@ -1021,7 +1148,17 @@ private fun HyperIslandComposeApp() {
                                             }
                                         }
                                     } else if (currentRoute == "blacklist") {
-                                        MiuixIconButton(onClick = { isBlacklistSearchExpanded = !isBlacklistSearchExpanded }) {
+                                        MiuixIconButton(
+                                            onClick = {
+                                                if (!isBlacklistSearchExpanded) {
+                                                    blacklistSearchFieldValue = TextFieldValue(
+                                                        text = blacklistState.query,
+                                                        selection = TextRange(blacklistState.query.length),
+                                                    )
+                                                }
+                                                isBlacklistSearchExpanded = !isBlacklistSearchExpanded
+                                            },
+                                        ) {
                                             Icon(
                                                 imageVector = MiuixIcons.Regular.Search,
                                                 contentDescription = "搜索",
@@ -1065,7 +1202,7 @@ private fun HyperIslandComposeApp() {
                                                         blacklistVm.refresh()
                                                     },
                                                 )
-                                                MiuixListPopupColumn {
+                                                OverlayPopupMenuContainer {
                                                     menuItems.forEachIndexed { index, (title, action) ->
                                                         MiuixDropdownImpl(
                                                             text = title,
@@ -1103,7 +1240,17 @@ private fun HyperIslandComposeApp() {
                                 }
 
                                 TopBarVariant.PrimaryApps -> {
-                                    MiuixIconButton(onClick = { isAppsSearchExpanded = !isAppsSearchExpanded }) {
+                                    MiuixIconButton(
+                                        onClick = {
+                                            if (!isAppsSearchExpanded) {
+                                                appsSearchFieldValue = TextFieldValue(
+                                                    text = appsState.query,
+                                                    selection = TextRange(appsState.query.length),
+                                                )
+                                            }
+                                            isAppsSearchExpanded = !isAppsSearchExpanded
+                                        },
+                                    ) {
                                         Icon(
                                             imageVector = MiuixIcons.Regular.Search,
                                             contentDescription = "搜索",
@@ -1176,7 +1323,7 @@ private fun HyperIslandComposeApp() {
                                                     },
                                                 )
                                             }
-                                            MiuixListPopupColumn {
+                                            OverlayPopupMenuContainer {
                                                 menuItems.forEachIndexed { index, (title, action) ->
                                                     MiuixDropdownImpl(
                                                         text = title,
@@ -1214,11 +1361,15 @@ private fun HyperIslandComposeApp() {
                                     label = "apps_search_bar_visibility",
                                 ) {
                                     MiuixTextField(
-                                        value = appsState.query,
-                                        onValueChange = appsVm::setQuery,
+                                        value = appsSearchFieldValue,
+                                        onValueChange = {
+                                            appsSearchFieldValue = it
+                                            appsVm.setQuery(it.text)
+                                        },
                                         label = "搜索应用 / 包名",
                                         useLabelAsPlaceholder = true,
                                         modifier = Modifier
+                                            .focusRequester(appsSearchFocusRequester)
                                             .fillMaxWidth()
                                             .padding(horizontal = 16.dp, vertical = 8.dp),
                                     )
@@ -1275,11 +1426,15 @@ private fun HyperIslandComposeApp() {
                                 label = "blacklist_search_bar_visibility",
                             ) {
                                 MiuixTextField(
-                                    value = blacklistState.query,
-                                    onValueChange = blacklistVm::setQuery,
+                                    value = blacklistSearchFieldValue,
+                                    onValueChange = {
+                                        blacklistSearchFieldValue = it
+                                        blacklistVm.setQuery(it.text)
+                                    },
                                     label = "搜索应用 / 包名",
                                     useLabelAsPlaceholder = true,
                                     modifier = Modifier
+                                        .focusRequester(blacklistSearchFocusRequester)
                                         .fillMaxWidth()
                                         .padding(horizontal = 16.dp, vertical = 8.dp),
                                 )
@@ -1880,6 +2035,8 @@ private fun HomeScreen(
 @Composable
 private fun SponsorDialog(show: Boolean, onDismiss: () -> Unit) {
     val context = LocalContext.current
+    val isDarkTheme = isSystemInDarkTheme()
+    val panelShape = RoundedCornerShape(16.dp)
     val qrBitmap = remember {
         runCatching {
             context.assets.open("flutter_assets/assets/images/wechat.jpg").use { stream ->
@@ -1903,14 +2060,50 @@ private fun SponsorDialog(show: Boolean, onDismiss: () -> Unit) {
                 .scrollEndHaptic(),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            Text(
+                text = "支持项目持续更新，感谢你的认可。",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
+            )
             if (qrBitmap != null) {
-                Image(
-                    bitmap = qrBitmap.asImageBitmap(),
-                    contentDescription = "微信赞助二维码",
-                    modifier = Modifier.fillMaxWidth(),
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(panelShape)
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant.copy(
+                                alpha = if (isDarkTheme) 0.28f else 0.18f,
+                            ),
+                        )
+                        .then(
+                            if (isDarkTheme) {
+                                Modifier.border(
+                                    1.dp,
+                                    MaterialTheme.colorScheme.outline.copy(alpha = 0.38f),
+                                    panelShape,
+                                )
+                            } else {
+                                Modifier
+                            },
+                        )
+                        .padding(8.dp),
+                ) {
+                    Image(
+                        bitmap = qrBitmap.asImageBitmap(),
+                        contentDescription = "微信赞助二维码",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp)),
+                    )
+                }
             } else {
-                Text("未找到赞助图片 assets/images/wechat.jpg")
+                Text(
+                    text = "未找到赞助图片 assets/images/wechat.jpg",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             MiuixButton(
                 onClick = onDismiss,
@@ -1928,6 +2121,8 @@ private fun RestartScopeDialog(
     onDismiss: () -> Unit,
     onConfirm: (Boolean, Boolean, Boolean) -> Unit,
 ) {
+    val isDarkTheme = isSystemInDarkTheme()
+    val scopeCardShape = RoundedCornerShape(16.dp)
     var restartSystemUi by remember { mutableStateOf(true) }
     var restartDownloads by remember { mutableStateOf(true) }
     var restartXmsf by remember { mutableStateOf(true) }
@@ -1949,16 +2144,35 @@ private fun RestartScopeDialog(
                 .overScrollVertical()
                 .scrollEndHaptic(),
         ) {
+            Text(
+                text = "选择后将依次重启对应进程并刷新岛通知能力。",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
             Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(
-                        start = 16.dp,
-                        end = 16.dp,
-                        top = 8.dp,
-                        bottom = 16.dp,
-                    ),
+                    .clip(scopeCardShape)
+                    .background(
+                        MaterialTheme.colorScheme.surfaceVariant.copy(
+                            alpha = if (isDarkTheme) 0.22f else 0.12f,
+                        ),
+                    )
+                    .then(
+                        if (isDarkTheme) {
+                            Modifier.border(
+                                1.dp,
+                                MaterialTheme.colorScheme.outline.copy(alpha = 0.40f),
+                                scopeCardShape,
+                            )
+                        } else {
+                            Modifier
+                        },
+                    )
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 ScopeCheckboxRow(
                     title = "系统界面",
@@ -2168,6 +2382,16 @@ private fun SettingsScreen(
                     state.defaultMarquee,
                 ) { onToggle(PrefKeys.DEFAULT_MARQUEE, it) }
                 ToggleItem(
+                    "高亮动态取色",
+                    "开启后默认使用图标自动取色",
+                    state.defaultDynamicHighlightColor,
+                ) { onToggle(PrefKeys.DEFAULT_DYNAMIC_HIGHLIGHT_COLOR, it) }
+                ToggleItem(
+                    "外圈光效",
+                    "",
+                    state.defaultOuterGlow,
+                ) { onToggle(PrefKeys.DEFAULT_OUTER_GLOW, it) }
+                ToggleItem(
                     "焦点通知",
                     "替换通知为焦点通知（关闭后显示原始通知）",
                     state.defaultFocusNotif,
@@ -2346,6 +2570,8 @@ private fun MainActivityPreview() {
                 defaultEnableFloat = true,
                 defaultShowIslandIcon = true,
                 defaultMarquee = true,
+                defaultDynamicHighlightColor = true,
+                defaultOuterGlow = false,
                 defaultFocusNotif = true,
                 defaultPreserveSmallIcon = false,
                 defaultRestoreLockscreen = false,
@@ -2513,6 +2739,8 @@ private fun applyPreviewToggle(state: SettingsState, key: String, enabled: Boole
         PrefKeys.DEFAULT_FIRST_FLOAT -> state.copy(defaultFirstFloat = enabled)
         PrefKeys.DEFAULT_ENABLE_FLOAT -> state.copy(defaultEnableFloat = enabled)
         PrefKeys.DEFAULT_MARQUEE -> state.copy(defaultMarquee = enabled)
+        PrefKeys.DEFAULT_DYNAMIC_HIGHLIGHT_COLOR -> state.copy(defaultDynamicHighlightColor = enabled)
+        PrefKeys.DEFAULT_OUTER_GLOW -> state.copy(defaultOuterGlow = enabled)
         PrefKeys.DEFAULT_FOCUS_NOTIF -> state.copy(defaultFocusNotif = enabled)
         PrefKeys.DEFAULT_RESTORE_LOCKSCREEN -> state.copy(defaultRestoreLockscreen = enabled)
         PrefKeys.DEFAULT_SHOW_ISLAND_ICON -> state.copy(defaultShowIslandIcon = enabled)

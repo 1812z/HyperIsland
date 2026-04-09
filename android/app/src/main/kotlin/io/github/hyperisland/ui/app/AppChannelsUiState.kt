@@ -33,6 +33,10 @@ data class ChannelExtraSettings(
     val renderer: String = "image_text_with_buttons_4",
     val restoreLockscreen: String = "default",
     val highlightColor: String = "",
+    val dynamicHighlightColor: String = "default",
     val showLeftHighlight: String = "off",
     val showRightHighlight: String = "off",
+    val showLeftNarrowFont: String = "off",
+    val showRightNarrowFont: String = "off",
+    val outerGlow: String = "default",
 )

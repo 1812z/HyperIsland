@@ -22,6 +22,8 @@ object PrefKeys {
     const val DEFAULT_ENABLE_FLOAT = "pref_default_enable_float"
     const val DEFAULT_SHOW_ISLAND_ICON = "pref_default_show_island_icon"
     const val DEFAULT_MARQUEE = "pref_default_marquee"
+    const val DEFAULT_DYNAMIC_HIGHLIGHT_COLOR = "pref_default_dynamic_highlight_color"
+    const val DEFAULT_OUTER_GLOW = "pref_default_outer_glow"
     const val DEFAULT_FOCUS_NOTIF = "pref_default_focus_notif"
     const val DEFAULT_PRESERVE_SMALL_ICON = "pref_default_preserve_small_icon"
     const val DEFAULT_RESTORE_LOCKSCREEN = "pref_default_restore_lockscreen"

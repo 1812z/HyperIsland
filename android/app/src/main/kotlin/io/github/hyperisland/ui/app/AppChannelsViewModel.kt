@@ -131,8 +131,12 @@ class AppChannelsViewModel(
             "marquee" -> current.copy(marquee = value)
             "renderer" -> current.copy(renderer = value)
             "restore_lockscreen" -> current.copy(restoreLockscreen = value)
+            "dynamic_highlight_color" -> current.copy(dynamicHighlightColor = value)
             "show_left_highlight" -> current.copy(showLeftHighlight = value)
             "show_right_highlight" -> current.copy(showRightHighlight = value)
+            "show_left_narrow_font" -> current.copy(showLeftNarrowFont = value)
+            "show_right_narrow_font" -> current.copy(showRightNarrowFont = value)
+            "outer_glow" -> current.copy(outerGlow = value)
             else -> return
         }
         repo.setChannelSetting(packageName, channelId, setting, value)

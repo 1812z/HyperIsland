@@ -186,6 +186,10 @@ class AppAdaptationRepository(private val context: Context) {
                 "default",
             ) ?: "default",
             highlightColor = prefs.getString("pref_channel_highlight_color_${packageName}_$channelId", "") ?: "",
+            dynamicHighlightColor = prefs.getString(
+                "pref_channel_dynamic_highlight_color_${packageName}_$channelId",
+                "default",
+            ) ?: "default",
             showLeftHighlight = prefs.getString(
                 "pref_channel_show_left_highlight_${packageName}_$channelId",
                 "off",
@@ -194,6 +198,18 @@ class AppAdaptationRepository(private val context: Context) {
                 "pref_channel_show_right_highlight_${packageName}_$channelId",
                 "off",
             ) ?: "off",
+            showLeftNarrowFont = prefs.getString(
+                "pref_channel_show_left_narrow_font_${packageName}_$channelId",
+                "off",
+            ) ?: "off",
+            showRightNarrowFont = prefs.getString(
+                "pref_channel_show_right_narrow_font_${packageName}_$channelId",
+                "off",
+            ) ?: "off",
+            outerGlow = prefs.getString(
+                "pref_channel_outer_glow_${packageName}_$channelId",
+                "default",
+            ) ?: "default",
         )
     }
 
@@ -210,8 +226,12 @@ class AppAdaptationRepository(private val context: Context) {
             "renderer" -> "pref_channel_renderer_${packageName}_$channelId"
             "restore_lockscreen" -> "pref_channel_restore_lockscreen_${packageName}_$channelId"
             "highlight_color" -> "pref_channel_highlight_color_${packageName}_$channelId"
+            "dynamic_highlight_color" -> "pref_channel_dynamic_highlight_color_${packageName}_$channelId"
             "show_left_highlight" -> "pref_channel_show_left_highlight_${packageName}_$channelId"
             "show_right_highlight" -> "pref_channel_show_right_highlight_${packageName}_$channelId"
+            "show_left_narrow_font" -> "pref_channel_show_left_narrow_font_${packageName}_$channelId"
+            "show_right_narrow_font" -> "pref_channel_show_right_narrow_font_${packageName}_$channelId"
+            "outer_glow" -> "pref_channel_outer_glow_${packageName}_$channelId"
             else -> return
         }
         if (setting == "highlight_color" && value.isBlank()) {
@@ -244,8 +264,12 @@ class AppAdaptationRepository(private val context: Context) {
                     "renderer" -> "pref_channel_renderer_${packageName}_$channelId"
                     "restore_lockscreen" -> "pref_channel_restore_lockscreen_${packageName}_$channelId"
                     "highlight_color" -> "pref_channel_highlight_color_${packageName}_$channelId"
+                    "dynamic_highlight_color" -> "pref_channel_dynamic_highlight_color_${packageName}_$channelId"
                     "show_left_highlight" -> "pref_channel_show_left_highlight_${packageName}_$channelId"
                     "show_right_highlight" -> "pref_channel_show_right_highlight_${packageName}_$channelId"
+                    "show_left_narrow_font" -> "pref_channel_show_left_narrow_font_${packageName}_$channelId"
+                    "show_right_narrow_font" -> "pref_channel_show_right_narrow_font_${packageName}_$channelId"
+                    "outer_glow" -> "pref_channel_outer_glow_${packageName}_$channelId"
                     else -> null
                 } ?: return@forEach
                 if (setting == "highlight_color" && value.isBlank()) {

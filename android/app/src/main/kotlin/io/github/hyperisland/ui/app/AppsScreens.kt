@@ -4,6 +4,7 @@ import android.graphics.BitmapFactory
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -44,17 +46,22 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.foundation.isSystemInDarkTheme
 import io.github.hyperisland.ui.FaGlyph
 import io.github.hyperisland.ui.FaIcon
 import top.yukonga.miuix.kmp.basic.Button as MiuixButton
+import top.yukonga.miuix.kmp.basic.ButtonDefaults as MiuixButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card as MiuixCard
 import top.yukonga.miuix.kmp.basic.Checkbox as MiuixCheckbox
-import top.yukonga.miuix.kmp.basic.ColorPalette as MiuixColorPalette
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator as MiuixCircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.IconButton as MiuixIconButton
 import top.yukonga.miuix.kmp.basic.PullToRefresh as MiuixPullToRefresh
@@ -76,6 +83,7 @@ import top.yukonga.miuix.kmp.blur.textureBlur
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.pressable
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
+import kotlinx.coroutines.delay
 
 @Composable
 fun AppsScreen(
@@ -667,6 +675,7 @@ private fun ChannelSettingsContent(
     )
 
     val templateOptions = listOf(
+        "generic_progress" to "下载",
         "notification_island" to "通知超级岛",
         "notification_island_lite" to "通知超级岛 Lite",
         "download_lite" to "下载 Lite",
@@ -685,62 +694,20 @@ private fun ChannelSettingsContent(
     val focusOptions = triStateOptions(defaultOn = true)
     val preserveStatusBarOptions = triStateOptions(defaultOn = false)
     val restoreLockscreenOptions = triStateOptions(defaultOn = false)
+    val dynamicHighlightOptions = listOf(
+        "default" to "默认(关闭)",
+        "on" to "开启",
+        "off" to "关闭",
+        "dark" to "暗",
+        "darker" to "更暗",
+    )
+    val outerGlowOptions = triStateOptions(defaultOn = false)
     val rendererOptions = listOf(
         "image_text_with_buttons_4" to "新图文组件 + 底部文本按钮",
         "image_text_with_buttons_4_wrap" to "封面信息样式",
         "image_text_with_right_text_button" to "图文右侧文本按钮",
     )
     var highlightDraft by remember(extras.highlightColor) { mutableStateOf(extras.highlightColor) }
-    var showColorPaletteDialog by remember { mutableStateOf(false) }
-    var dialogPaletteColor by remember { mutableStateOf(parseHexToColor(extras.highlightColor) ?: Color(0xFFFF3B30)) }
-    val paletteColor = remember(highlightDraft) {
-        parseHexToColor(highlightDraft) ?: Color(0xFFFF3B30)
-    }
-
-    BackHandler(enabled = showColorPaletteDialog) {
-        showColorPaletteDialog = false
-    }
-
-    OverlayDialog(
-        title = "选择高亮颜色",
-        show = showColorPaletteDialog,
-        onDismissRequest = { showColorPaletteDialog = false },
-        renderInRootScaffold = false,
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            MiuixColorPalette(
-                color = dialogPaletteColor,
-                onColorChanged = { dialogPaletteColor = it },
-                showPreview = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                TextButton(
-                    onClick = { showColorPaletteDialog = false },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text("取消")
-                }
-                TextButton(
-                    onClick = {
-                        val hex = dialogPaletteColor.toHexRgbString()
-                        highlightDraft = hex
-                        onSetHighlightColor(hex)
-                        showColorPaletteDialog = false
-                    },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Text("确定")
-                }
-            }
-        }
-    }
 
     Column(
         modifier = Modifier
@@ -778,39 +745,28 @@ private fun ChannelSettingsContent(
             SettingsDropdownRow("消息滚动", marqueeOptions, extras.marquee, true, largeText = true) {
                 onSetSetting("marquee", it)
             }
-            MiuixTextField(
+            InputDialogRow(
+                title = "自动消失时长",
+                subtitle = "点击后在对话框中输入 1-30 秒",
                 value = timeout,
-                onValueChange = { onSetTimeout(it) },
-                label = "自动消失时长(1-30秒)",
-                useLabelAsPlaceholder = true,
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                emptyValueText = "5",
+                dialogTitle = "修改自动消失时长",
+                dialogDescription = "值应该大于等于 1 并小于等于 30",
+                onConfirm = { onSetTimeout(it.trim()) },
             )
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                MiuixTextField(
-                    value = highlightDraft,
-                    onValueChange = {
-                        highlightDraft = it
-                        onSetHighlightColor(it)
-                    },
-                    label = "高亮颜色(#RRGGBB，可空)",
-                    useLabelAsPlaceholder = true,
-                    singleLine = true,
-                    modifier = Modifier.weight(1f),
-                )
-                MiuixButton(
-                    onClick = {
-                        dialogPaletteColor = paletteColor
-                        showColorPaletteDialog = true
-                    },
-                ) {
-                    Text("调色盘")
-                }
-            }
+            InputDialogRow(
+                title = "高亮颜色",
+                subtitle = "点击后输入 #RRGGBB，留空可清空",
+                value = highlightDraft,
+                emptyValueText = "未设置",
+                dialogTitle = "修改高亮颜色",
+                dialogDescription = "请输入 #RRGGBB 格式，留空可清空当前颜色",
+                onConfirm = {
+                    val next = it.trim()
+                    highlightDraft = next
+                    onSetHighlightColor(next)
+                },
+            )
             SwitchSettingRow(
                 title = "左侧高亮",
                 checked = extras.showLeftHighlight == "on",
@@ -820,6 +776,25 @@ private fun ChannelSettingsContent(
                 title = "右侧高亮",
                 checked = extras.showRightHighlight == "on",
                 onCheckedChange = { onSetSetting("show_right_highlight", if (it) "on" else "off") },
+            )
+            SettingsDropdownRow(
+                "高亮动态取色",
+                dynamicHighlightOptions,
+                extras.dynamicHighlightColor,
+                true,
+                largeText = true,
+            ) {
+                onSetSetting("dynamic_highlight_color", it)
+            }
+            SwitchSettingRow(
+                title = "左侧窄字体",
+                checked = extras.showLeftNarrowFont == "on",
+                onCheckedChange = { onSetSetting("show_left_narrow_font", if (it) "on" else "off") },
+            )
+            SwitchSettingRow(
+                title = "右侧窄字体",
+                checked = extras.showRightNarrowFont == "on",
+                onCheckedChange = { onSetSetting("show_right_narrow_font", if (it) "on" else "off") },
             )
         }
 
@@ -839,6 +814,9 @@ private fun ChannelSettingsContent(
             SettingsDropdownRow("锁屏通知恢复", restoreLockscreenOptions, extras.restoreLockscreen, true, largeText = true) {
                 onSetSetting("restore_lockscreen", it)
             }
+            SettingsDropdownRow("外圈光效", outerGlowOptions, extras.outerGlow, true, largeText = true) {
+                onSetSetting("outer_glow", it)
+            }
         }
     }
 }
@@ -853,7 +831,24 @@ private fun ChannelSectionTitle(title: String) {
 
 @Composable
 private fun ChannelSectionCard(content: @Composable () -> Unit) {
-    MiuixCard(modifier = Modifier.fillMaxWidth()) {
+    val isDarkTheme = isSystemInDarkTheme()
+    val cardShape = RoundedCornerShape(18.dp)
+    MiuixCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(cardShape)
+            .then(
+                if (isDarkTheme) {
+                    Modifier.border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.34f),
+                        shape = cardShape,
+                    )
+                } else {
+                    Modifier
+                },
+            ),
+    ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -861,20 +856,6 @@ private fun ChannelSectionCard(content: @Composable () -> Unit) {
             content()
         }
     }
-}
-
-private fun parseHexToColor(value: String): Color? {
-    val text = value.trim()
-    if (text.isBlank()) return null
-    val normalized = if (text.startsWith("#")) text else "#$text"
-    return runCatching { Color(android.graphics.Color.parseColor(normalized)) }.getOrNull()
-}
-
-private fun Color.toHexRgbString(): String {
-    val r = (red * 255f).toInt().coerceIn(0, 255)
-    val g = (green * 255f).toInt().coerceIn(0, 255)
-    val b = (blue * 255f).toInt().coerceIn(0, 255)
-    return "#%02X%02X%02X".format(r, g, b)
 }
 
 @Composable
@@ -902,6 +883,138 @@ private fun SettingsDropdownRow(
 }
 
 @Composable
+private fun InputDialogRow(
+    title: String,
+    subtitle: String,
+    value: String,
+    emptyValueText: String,
+    dialogTitle: String,
+    dialogDescription: String,
+    onConfirm: (String) -> Unit,
+) {
+    var showDialog by remember { mutableStateOf(false) }
+    var draft by remember(value) { mutableStateOf(value) }
+    val inputFocusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val displayValue = value.ifBlank { emptyValueText }
+    val titleColor = MiuixTheme.colorScheme.onBackground
+    val summaryColor = MiuixTheme.colorScheme.onSurfaceVariantSummary
+    val valueColor = MiuixTheme.colorScheme.onSurfaceVariantActions
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .clickable {
+                draft = value
+                showDialog = true
+            }
+            .padding(start = 16.dp, end = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(end = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = title,
+                fontSize = MiuixTheme.textStyles.headline1.fontSize,
+                fontWeight = FontWeight.Medium,
+                color = titleColor,
+            )
+            if (subtitle.isNotBlank()) {
+                Text(
+                    text = subtitle,
+                    fontSize = MiuixTheme.textStyles.body2.fontSize,
+                    color = summaryColor,
+                )
+            }
+        }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                text = displayValue,
+                fontSize = MiuixTheme.textStyles.body2.fontSize,
+                color = valueColor,
+            )
+            Icon(
+                imageVector = MiuixIcons.Basic.ArrowRight,
+                contentDescription = null,
+                tint = valueColor,
+            )
+        }
+    }
+
+    OverlayDialog(
+        title = dialogTitle,
+        show = showDialog,
+        onDismissRequest = { showDialog = false },
+        renderInRootScaffold = false,
+    ) {
+        LaunchedEffect(showDialog) {
+            if (showDialog) {
+                delay(120)
+                inputFocusRequester.requestFocus()
+                keyboardController?.show()
+            }
+        }
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            if (dialogDescription.isNotBlank()) {
+                Text(
+                    text = dialogDescription,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            MiuixTextField(
+                value = draft,
+                onValueChange = { draft = it },
+                label = title,
+                useLabelAsPlaceholder = true,
+                singleLine = true,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(inputFocusRequester),
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                MiuixButton(
+                    onClick = { showDialog = false },
+                    modifier = Modifier.weight(1f),
+                ) {
+                    Text("取消")
+                }
+                MiuixButton(
+                    onClick = {
+                        onConfirm(draft)
+                        showDialog = false
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = MiuixButtonDefaults.buttonColorsPrimary(),
+                ) {
+                    Text(
+                        text = "确认",
+                        color = MiuixTheme.colorScheme.onPrimary,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun BatchApplyDialog(
     title: String,
     onDismiss: () -> Unit,
@@ -914,6 +1027,11 @@ private fun BatchApplyDialog(
         "on" to "开启",
         "off" to "关闭",
     )
+    val toggleOptions = listOf(
+        noChange to "不更改",
+        "on" to "开启",
+        "off" to "关闭",
+    )
     val iconModeOptions = listOf(
         noChange to "不更改",
         "auto" to "自动",
@@ -923,6 +1041,7 @@ private fun BatchApplyDialog(
     )
     val templateOptions = listOf(
         noChange to "不更改",
+        "generic_progress" to "下载",
         "notification_island" to "通知超级岛",
         "notification_island_lite" to "通知超级岛 Lite",
         "download_lite" to "下载 Lite",
@@ -933,6 +1052,14 @@ private fun BatchApplyDialog(
         "image_text_with_buttons_4" to "新图文组件 + 底部文本按钮",
         "image_text_with_buttons_4_wrap" to "封面信息样式",
         "image_text_with_right_text_button" to "图文右侧文本按钮",
+    )
+    val dynamicHighlightOptions = listOf(
+        noChange to "不更改",
+        "default" to "默认",
+        "on" to "开启",
+        "off" to "关闭",
+        "dark" to "暗",
+        "darker" to "更暗",
     )
 
     var template by remember { mutableStateOf(noChange) }
@@ -946,9 +1073,13 @@ private fun BatchApplyDialog(
     var firstFloat by remember { mutableStateOf(noChange) }
     var enableFloat by remember { mutableStateOf(noChange) }
     var marquee by remember { mutableStateOf(noChange) }
+    var dynamicHighlightColor by remember { mutableStateOf(noChange) }
     var restoreLockscreen by remember { mutableStateOf(noChange) }
-    var showLeftHighlight by remember { mutableStateOf(false) }
-    var showRightHighlight by remember { mutableStateOf(false) }
+    var outerGlow by remember { mutableStateOf(noChange) }
+    var showLeftHighlight by remember { mutableStateOf(noChange) }
+    var showRightHighlight by remember { mutableStateOf(noChange) }
+    var showLeftNarrowFont by remember { mutableStateOf(noChange) }
+    var showRightNarrowFont by remember { mutableStateOf(noChange) }
     var highlightColor by remember { mutableStateOf("") }
     OverlayBottomSheet(
         show = true,
@@ -981,9 +1112,13 @@ private fun BatchApplyDialog(
                     putIfChanged("first_float", firstFloat)
                     putIfChanged("enable_float", enableFloat)
                     putIfChanged("marquee", marquee)
+                    putIfChanged("dynamic_highlight_color", dynamicHighlightColor)
                     putIfChanged("restore_lockscreen", restoreLockscreen)
-                    settings["show_left_highlight"] = if (showLeftHighlight) "on" else "off"
-                    settings["show_right_highlight"] = if (showRightHighlight) "on" else "off"
+                    putIfChanged("outer_glow", outerGlow)
+                    putIfChanged("show_left_highlight", showLeftHighlight)
+                    putIfChanged("show_right_highlight", showRightHighlight)
+                    putIfChanged("show_left_narrow_font", showLeftNarrowFont)
+                    putIfChanged("show_right_narrow_font", showRightNarrowFont)
 
                     val normalizedTimeout = timeout.trim().toIntOrNull()?.coerceIn(1, 30)?.toString()
                     if (!normalizedTimeout.isNullOrEmpty()) {
@@ -1032,32 +1167,39 @@ private fun BatchApplyDialog(
                     SettingsDropdownRow("消息滚动", triStateOptions, marquee, true, largeText = true) {
                         marquee = it
                     }
-                    MiuixTextField(
+                    InputDialogRow(
+                        title = "自动消失时长",
+                        subtitle = "点击后在对话框中输入，留空表示不更改",
                         value = timeout,
-                        onValueChange = { timeout = it },
-                        label = "自动消失时长(1-30秒，留空不改)",
-                        useLabelAsPlaceholder = true,
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                        emptyValueText = "不更改",
+                        dialogTitle = "修改自动消失时长",
+                        dialogDescription = "值应该大于等于 1 并小于等于 30，留空表示不更改",
+                        onConfirm = { timeout = it.trim() },
                     )
-                    MiuixTextField(
+                    InputDialogRow(
+                        title = "高亮颜色",
+                        subtitle = "点击后输入 #RRGGBB，留空表示不更改",
                         value = highlightColor,
-                        onValueChange = { highlightColor = it },
-                        label = "高亮颜色(#RRGGBB，留空不改)",
-                        useLabelAsPlaceholder = true,
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                        emptyValueText = "不更改",
+                        dialogTitle = "修改高亮颜色",
+                        dialogDescription = "请输入 #RRGGBB 格式，留空表示不更改",
+                        onConfirm = { highlightColor = it.trim() },
                     )
-                    SwitchSettingRow(
-                        title = "左侧高亮",
-                        checked = showLeftHighlight,
-                        onCheckedChange = { showLeftHighlight = it },
-                    )
-                    SwitchSettingRow(
-                        title = "右侧高亮",
-                        checked = showRightHighlight,
-                        onCheckedChange = { showRightHighlight = it },
-                    )
+                    SettingsDropdownRow("高亮动态取色", dynamicHighlightOptions, dynamicHighlightColor, true, largeText = true) {
+                        dynamicHighlightColor = it
+                    }
+                    SettingsDropdownRow("左侧高亮", toggleOptions, showLeftHighlight, true, largeText = true) {
+                        showLeftHighlight = it
+                    }
+                    SettingsDropdownRow("右侧高亮", toggleOptions, showRightHighlight, true, largeText = true) {
+                        showRightHighlight = it
+                    }
+                    SettingsDropdownRow("左侧窄字体", toggleOptions, showLeftNarrowFont, true, largeText = true) {
+                        showLeftNarrowFont = it
+                    }
+                    SettingsDropdownRow("右侧窄字体", toggleOptions, showRightNarrowFont, true, largeText = true) {
+                        showRightNarrowFont = it
+                    }
                 }
 
                 ChannelSectionTitle("焦点通知")
@@ -1071,6 +1213,9 @@ private fun BatchApplyDialog(
                     }
                     SettingsDropdownRow("锁屏通知恢复", triStateOptions, restoreLockscreen, true, largeText = true) {
                         restoreLockscreen = it
+                    }
+                    SettingsDropdownRow("外圈光效", triStateOptions, outerGlow, true, largeText = true) {
+                        outerGlow = it
                     }
                 }
             }
@@ -1148,11 +1293,17 @@ private fun SwitchSettingRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .heightIn(min = 56.dp)
+            .padding(start = 16.dp, end = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(title, style = MaterialTheme.typography.titleMedium)
+        Text(
+            text = title,
+            fontSize = MiuixTheme.textStyles.headline1.fontSize,
+            fontWeight = FontWeight.Medium,
+            color = MiuixTheme.colorScheme.onBackground,
+        )
         MiuixSwitch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
@@ -1245,8 +1396,12 @@ private fun ChannelSettingsScreenPreview() {
                             renderer = "image_text_with_buttons_4",
                             restoreLockscreen = "off",
                             highlightColor = "#00C2FF",
+                            dynamicHighlightColor = "dark",
                             showLeftHighlight = "on",
                             showRightHighlight = "off",
+                            showLeftNarrowFont = "on",
+                            showRightNarrowFont = "off",
+                            outerGlow = "on",
                         ),
                     ),
                 ),

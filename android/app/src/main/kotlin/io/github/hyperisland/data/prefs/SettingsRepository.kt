@@ -37,6 +37,8 @@ class SettingsRepository(private val context: Context) {
             defaultEnableFloat = prefs.getBoolean(PrefKeys.DEFAULT_ENABLE_FLOAT, false),
             defaultShowIslandIcon = prefs.getBoolean(PrefKeys.DEFAULT_SHOW_ISLAND_ICON, true),
             defaultMarquee = prefs.getBoolean(PrefKeys.DEFAULT_MARQUEE, false),
+            defaultDynamicHighlightColor = prefs.getBoolean(PrefKeys.DEFAULT_DYNAMIC_HIGHLIGHT_COLOR, false),
+            defaultOuterGlow = prefs.getBoolean(PrefKeys.DEFAULT_OUTER_GLOW, false),
             defaultFocusNotif = prefs.getBoolean(PrefKeys.DEFAULT_FOCUS_NOTIF, true),
             defaultPreserveSmallIcon = prefs.getBoolean(PrefKeys.DEFAULT_PRESERVE_SMALL_ICON, false),
             defaultRestoreLockscreen = prefs.getBoolean(PrefKeys.DEFAULT_RESTORE_LOCKSCREEN, false),

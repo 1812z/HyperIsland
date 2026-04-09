@@ -21,6 +21,8 @@ data class SettingsState(
     val defaultEnableFloat: Boolean = false,
     val defaultShowIslandIcon: Boolean = true,
     val defaultMarquee: Boolean = false,
+    val defaultDynamicHighlightColor: Boolean = false,
+    val defaultOuterGlow: Boolean = false,
     val defaultFocusNotif: Boolean = true,
     val defaultPreserveSmallIcon: Boolean = false,
     val defaultRestoreLockscreen: Boolean = false,

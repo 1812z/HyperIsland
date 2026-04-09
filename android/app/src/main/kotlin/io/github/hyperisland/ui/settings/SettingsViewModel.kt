@@ -54,6 +54,8 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
                 PrefKeys.DEFAULT_ENABLE_FLOAT -> it.copy(defaultEnableFloat = value)
                 PrefKeys.DEFAULT_SHOW_ISLAND_ICON -> it.copy(defaultShowIslandIcon = value)
                 PrefKeys.DEFAULT_MARQUEE -> it.copy(defaultMarquee = value)
+                PrefKeys.DEFAULT_DYNAMIC_HIGHLIGHT_COLOR -> it.copy(defaultDynamicHighlightColor = value)
+                PrefKeys.DEFAULT_OUTER_GLOW -> it.copy(defaultOuterGlow = value)
                 PrefKeys.DEFAULT_FOCUS_NOTIF -> it.copy(defaultFocusNotif = value)
                 PrefKeys.DEFAULT_PRESERVE_SMALL_ICON -> it.copy(defaultPreserveSmallIcon = value)
                 PrefKeys.DEFAULT_RESTORE_LOCKSCREEN -> it.copy(defaultRestoreLockscreen = value)
