@@ -9,6 +9,9 @@ data class ChannelItem(
 
 data class AppChannelsUiState(
     val packageName: String = "",
+    val appName: String = "",
+    val appIcon: ByteArray = byteArrayOf(),
+    val appEnabled: Boolean = false,
     val loading: Boolean = true,
     val channels: List<ChannelItem> = emptyList(),
     val enabledChannels: Set<String> = emptySet(),

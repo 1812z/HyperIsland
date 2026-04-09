@@ -15,6 +15,7 @@ object PrefKeys {
     const val MARQUEE_SPEED = "pref_marquee_speed"
     const val BIG_ISLAND_MAX_WIDTH_ENABLED = "pref_big_island_max_width_enabled"
     const val BIG_ISLAND_MAX_WIDTH = "pref_big_island_max_width"
+    const val USE_FLOATING_NAVIGATION_BAR = "pref_use_floating_navigation_bar"
     const val UNLOCK_ALL_FOCUS = "pref_unlock_all_focus"
     const val UNLOCK_FOCUS_AUTH = "pref_unlock_focus_auth"
     const val DEFAULT_FIRST_FLOAT = "pref_default_first_float"

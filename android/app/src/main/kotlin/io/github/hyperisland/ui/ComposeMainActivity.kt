@@ -51,6 +51,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -343,7 +344,39 @@ private fun routeLevel(route: String?): Int = when {
     else -> 1
 }
 
-private fun resolveRouteSlideDirection(
+private fun resolveMainSwitchDirection(
+    fromRoute: String?,
+    toRoute: String?,
+): AnimatedContentTransitionScope.SlideDirection? {
+    val fromMain = mainRouteIndex(fromRoute)
+    val toMain = mainRouteIndex(toRoute)
+    if (fromMain < 0 || toMain < 0 || fromMain == toMain) return null
+    return if (toMain > fromMain) {
+        AnimatedContentTransitionScope.SlideDirection.Left
+    } else {
+        AnimatedContentTransitionScope.SlideDirection.Right
+    }
+}
+
+private fun resolveRouteForwardSlideDirection(
+    fromRoute: String?,
+    toRoute: String?,
+): AnimatedContentTransitionScope.SlideDirection? {
+    if (fromRoute == toRoute) return null
+
+    val fromLevel = routeLevel(fromRoute)
+    val toLevel = routeLevel(toRoute)
+
+    return if (toLevel > fromLevel) {
+        AnimatedContentTransitionScope.SlideDirection.Left
+    } else if (toLevel < fromLevel) {
+        AnimatedContentTransitionScope.SlideDirection.Right
+    } else {
+        AnimatedContentTransitionScope.SlideDirection.Left
+    }
+}
+
+private fun resolveRoutePopSlideDirection(
     fromRoute: String?,
     toRoute: String?,
 ): AnimatedContentTransitionScope.SlideDirection? {
@@ -352,20 +385,14 @@ private fun resolveRouteSlideDirection(
     val fromMain = mainRouteIndex(fromRoute)
     val toMain = mainRouteIndex(toRoute)
     if (fromMain >= 0 && toMain >= 0 && fromMain != toMain) {
-        return if (toMain > fromMain) {
-            AnimatedContentTransitionScope.SlideDirection.Left
-        } else {
-            AnimatedContentTransitionScope.SlideDirection.Right
-        }
+        return null
     }
 
     val fromLevel = routeLevel(fromRoute)
     val toLevel = routeLevel(toRoute)
-    if (fromLevel == toLevel) {
-        return AnimatedContentTransitionScope.SlideDirection.Left
-    }
-
-    return if (toLevel > fromLevel) {
+    return if (toLevel < fromLevel) {
+        AnimatedContentTransitionScope.SlideDirection.Right
+    } else if (toLevel > fromLevel) {
         AnimatedContentTransitionScope.SlideDirection.Left
     } else {
         AnimatedContentTransitionScope.SlideDirection.Right
@@ -378,6 +405,8 @@ private const val GITHUB_RELEASE_URL = "https://github.com/1812z/HyperIsland/rel
 private const val QQ_GROUP_NUMBER = "1045114341"
 private const val DEFAULT_MARQUEE_SPEED = 100
 private const val DEFAULT_BIG_ISLAND_MAX_WIDTH = 600
+private const val ROUTE_TRANSITION_DURATION_MS = 280
+private const val OVERLAY_TRANSITION_DURATION_MS = 320
 
 @Composable
 private fun HyperCeilerNavItem(
@@ -814,19 +843,16 @@ private fun HyperIslandComposeApp() {
         state = rememberTopAppBarState(),
         canScroll = { !popupShowing },
     )
-    val secondaryScrollBehavior = MiuixScrollBehavior(
-        state = rememberTopAppBarState(),
-        canScroll = { !popupShowing },
-    )
-    val activePrimaryScrollBehavior = when (currentRoute) {
+    val topBarOwnerRoute = when {
+        currentRoute?.startsWith("app_channels/") == true ||
+            currentRoute?.startsWith("channel_settings/") == true -> "apps"
+        currentRoute == "blacklist" || currentRoute == "ai_config" -> "settings"
+        else -> currentRoute
+    }
+    val activeTopBarScrollBehavior = when (topBarOwnerRoute) {
         "apps" -> appsScrollBehavior
         "settings" -> settingsScrollBehavior
         else -> homeScrollBehavior
-    }
-    val activeTopBarScrollBehavior = if (isSecondaryRoute) {
-        secondaryScrollBehavior
-    } else {
-        activePrimaryScrollBehavior
     }
     val backDispatcher = LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
 
@@ -1319,59 +1345,211 @@ private fun HyperIslandComposeApp() {
                             navController = navController,
                             startDestination = "home",
                             enterTransition = {
-                                val direction = resolveRouteSlideDirection(
-                                    fromRoute = initialState.destination.route,
-                                    toRoute = targetState.destination.route,
-                                )
-                                if (direction != null) {
-                                    slideIntoContainer(
-                                        direction,
-                                        animationSpec = tween(260),
-                                    )
-                                } else {
-                                    EnterTransition.None
+                                val fromRoute = initialState.destination.route
+                                val toRoute = targetState.destination.route
+                                val fromLevel = routeLevel(fromRoute)
+                                val toLevel = routeLevel(toRoute)
+                                val mainSwitchDirection = resolveMainSwitchDirection(fromRoute, toRoute)
+                                when {
+                                    mainSwitchDirection != null -> {
+                                        slideIntoContainer(
+                                            mainSwitchDirection,
+                                            animationSpec = tween(
+                                                durationMillis = ROUTE_TRANSITION_DURATION_MS,
+                                                easing = FastOutSlowInEasing,
+                                            ),
+                                        ) + fadeIn(
+                                            animationSpec = tween(
+                                                durationMillis = ROUTE_TRANSITION_DURATION_MS,
+                                                easing = FastOutSlowInEasing,
+                                            ),
+                                        )
+                                    }
+                                    toLevel > fromLevel -> {
+                                        // HyperCeiler-like push: new page overlays from right.
+                                        slideIntoContainer(
+                                            AnimatedContentTransitionScope.SlideDirection.Left,
+                                            animationSpec = tween(
+                                                durationMillis = OVERLAY_TRANSITION_DURATION_MS,
+                                                easing = FastOutSlowInEasing,
+                                            ),
+                                        ) + fadeIn(
+                                            animationSpec = tween(
+                                                durationMillis = OVERLAY_TRANSITION_DURATION_MS,
+                                                easing = FastOutSlowInEasing,
+                                            ),
+                                        )
+                                    }
+                                    else -> {
+                                        val direction = resolveRouteForwardSlideDirection(fromRoute, toRoute)
+                                        if (direction != null) {
+                                            slideIntoContainer(
+                                                direction,
+                                                animationSpec = tween(
+                                                    durationMillis = ROUTE_TRANSITION_DURATION_MS,
+                                                    easing = FastOutSlowInEasing,
+                                                ),
+                                            )
+                                        } else {
+                                            EnterTransition.None
+                                        }
+                                    }
                                 }
                             },
                             exitTransition = {
-                                val direction = resolveRouteSlideDirection(
-                                    fromRoute = initialState.destination.route,
-                                    toRoute = targetState.destination.route,
-                                )
-                                if (direction != null) {
-                                    slideOutOfContainer(
-                                        direction,
-                                        animationSpec = tween(260),
-                                    )
-                                } else {
-                                    ExitTransition.None
+                                val fromRoute = initialState.destination.route
+                                val toRoute = targetState.destination.route
+                                val fromLevel = routeLevel(fromRoute)
+                                val toLevel = routeLevel(toRoute)
+                                val mainSwitchDirection = resolveMainSwitchDirection(fromRoute, toRoute)
+                                when {
+                                    mainSwitchDirection != null -> {
+                                        slideOutOfContainer(
+                                            mainSwitchDirection,
+                                            animationSpec = tween(
+                                                durationMillis = ROUTE_TRANSITION_DURATION_MS,
+                                                easing = FastOutSlowInEasing,
+                                            ),
+                                        ) + fadeOut(
+                                            animationSpec = tween(
+                                                durationMillis = ROUTE_TRANSITION_DURATION_MS,
+                                                easing = FastOutSlowInEasing,
+                                            ),
+                                        )
+                                    }
+                                    toLevel > fromLevel -> {
+                                        // Keep background page as an underlay while pushing.
+                                        fadeOut(
+                                            animationSpec = tween(
+                                                durationMillis = OVERLAY_TRANSITION_DURATION_MS,
+                                                easing = FastOutSlowInEasing,
+                                            ),
+                                        ) + scaleOut(
+                                            targetScale = 0.97f,
+                                            animationSpec = tween(
+                                                durationMillis = OVERLAY_TRANSITION_DURATION_MS,
+                                                easing = FastOutSlowInEasing,
+                                            ),
+                                        )
+                                    }
+                                    else -> {
+                                        val direction = resolveRouteForwardSlideDirection(fromRoute, toRoute)
+                                        if (direction != null) {
+                                            slideOutOfContainer(
+                                                direction,
+                                                animationSpec = tween(
+                                                    durationMillis = ROUTE_TRANSITION_DURATION_MS,
+                                                    easing = FastOutSlowInEasing,
+                                                ),
+                                            )
+                                        } else {
+                                            ExitTransition.None
+                                        }
+                                    }
                                 }
                             },
                             popEnterTransition = {
-                                val direction = resolveRouteSlideDirection(
-                                    fromRoute = initialState.destination.route,
-                                    toRoute = targetState.destination.route,
-                                )
-                                if (direction != null) {
-                                    slideIntoContainer(
-                                        direction,
-                                        animationSpec = tween(260),
-                                    )
-                                } else {
-                                    EnterTransition.None
+                                val fromRoute = initialState.destination.route
+                                val toRoute = targetState.destination.route
+                                val fromLevel = routeLevel(fromRoute)
+                                val toLevel = routeLevel(toRoute)
+                                val mainSwitchDirection = resolveMainSwitchDirection(fromRoute, toRoute)
+                                when {
+                                    mainSwitchDirection != null -> {
+                                        slideIntoContainer(
+                                            mainSwitchDirection,
+                                            animationSpec = tween(
+                                                durationMillis = ROUTE_TRANSITION_DURATION_MS,
+                                                easing = FastOutSlowInEasing,
+                                            ),
+                                        ) + fadeIn(
+                                            animationSpec = tween(
+                                                durationMillis = ROUTE_TRANSITION_DURATION_MS,
+                                                easing = FastOutSlowInEasing,
+                                            ),
+                                        )
+                                    }
+                                    toLevel < fromLevel -> {
+                                        // Underlay page re-appears from the back.
+                                        fadeIn(
+                                            animationSpec = tween(
+                                                durationMillis = OVERLAY_TRANSITION_DURATION_MS,
+                                                easing = FastOutSlowInEasing,
+                                            ),
+                                        ) + scaleIn(
+                                            initialScale = 0.97f,
+                                            animationSpec = tween(
+                                                durationMillis = OVERLAY_TRANSITION_DURATION_MS,
+                                                easing = FastOutSlowInEasing,
+                                            ),
+                                        )
+                                    }
+                                    else -> {
+                                        val direction = resolveRoutePopSlideDirection(fromRoute, toRoute)
+                                        if (direction != null) {
+                                            slideIntoContainer(
+                                                direction,
+                                                animationSpec = tween(
+                                                    durationMillis = ROUTE_TRANSITION_DURATION_MS,
+                                                    easing = FastOutSlowInEasing,
+                                                ),
+                                            )
+                                        } else {
+                                            EnterTransition.None
+                                        }
+                                    }
                                 }
                             },
                             popExitTransition = {
-                                val direction = resolveRouteSlideDirection(
-                                    fromRoute = initialState.destination.route,
-                                    toRoute = targetState.destination.route,
-                                )
-                                if (direction != null) {
-                                    slideOutOfContainer(
-                                        direction,
-                                        animationSpec = tween(260),
-                                    )
-                                } else {
-                                    ExitTransition.None
+                                val fromRoute = initialState.destination.route
+                                val toRoute = targetState.destination.route
+                                val fromLevel = routeLevel(fromRoute)
+                                val toLevel = routeLevel(toRoute)
+                                val mainSwitchDirection = resolveMainSwitchDirection(fromRoute, toRoute)
+                                when {
+                                    mainSwitchDirection != null -> {
+                                        slideOutOfContainer(
+                                            mainSwitchDirection,
+                                            animationSpec = tween(
+                                                durationMillis = ROUTE_TRANSITION_DURATION_MS,
+                                                easing = FastOutSlowInEasing,
+                                            ),
+                                        ) + fadeOut(
+                                            animationSpec = tween(
+                                                durationMillis = ROUTE_TRANSITION_DURATION_MS,
+                                                easing = FastOutSlowInEasing,
+                                            ),
+                                        )
+                                    }
+                                    toLevel < fromLevel -> {
+                                        // Top overlay page leaves to right on back.
+                                        slideOutOfContainer(
+                                            AnimatedContentTransitionScope.SlideDirection.Right,
+                                            animationSpec = tween(
+                                                durationMillis = OVERLAY_TRANSITION_DURATION_MS,
+                                                easing = FastOutSlowInEasing,
+                                            ),
+                                        ) + fadeOut(
+                                            animationSpec = tween(
+                                                durationMillis = OVERLAY_TRANSITION_DURATION_MS,
+                                                easing = FastOutSlowInEasing,
+                                            ),
+                                        )
+                                    }
+                                    else -> {
+                                        val direction = resolveRoutePopSlideDirection(fromRoute, toRoute)
+                                        if (direction != null) {
+                                            slideOutOfContainer(
+                                                direction,
+                                                animationSpec = tween(
+                                                    durationMillis = ROUTE_TRANSITION_DURATION_MS,
+                                                    easing = FastOutSlowInEasing,
+                                                ),
+                                            )
+                                        } else {
+                                            ExitTransition.None
+                                        }
+                                    }
                                 }
                             },
                             modifier = Modifier.fillMaxSize(),
@@ -1479,7 +1657,7 @@ private fun HyperIslandComposeApp() {
                                     onBatchApplyToEnabledChannels = vm::batchApplyToEnabledChannels,
                                     enableAllRequestId = appChannelsEnableAllRequestId,
                                     batchRequestId = appChannelsBatchRequestId,
-                                    modifier = Modifier.nestedScroll(secondaryScrollBehavior.nestedScrollConnection),
+                                    modifier = Modifier.nestedScroll(appsScrollBehavior.nestedScrollConnection),
                                 )
                             }
                             composable(
@@ -1509,7 +1687,7 @@ private fun HyperIslandComposeApp() {
                                     onSetTimeout = { vm.setTimeout(channelIdArg, it) },
                                     onSetSetting = { setting, value -> vm.setSetting(channelIdArg, setting, value) },
                                     onSetHighlightColor = { vm.setHighlightColor(channelIdArg, it) },
-                                    modifier = Modifier.nestedScroll(secondaryScrollBehavior.nestedScrollConnection),
+                                    modifier = Modifier.nestedScroll(appsScrollBehavior.nestedScrollConnection),
                                 )
                             }
                             composable("blacklist") {
@@ -1524,7 +1702,7 @@ private fun HyperIslandComposeApp() {
                                     onQueryChange = blacklistVm::setQuery,
                                     onSetBlacklisted = blacklistVm::setBlacklisted,
                                     canPullToRefresh = false,
-                                    modifier = Modifier.nestedScroll(secondaryScrollBehavior.nestedScrollConnection),
+                                    modifier = Modifier.nestedScroll(settingsScrollBehavior.nestedScrollConnection),
                                 )
                             }
                             composable("ai_config") {
@@ -1540,7 +1718,7 @@ private fun HyperIslandComposeApp() {
                                     onUpdate = vm::setState,
                                     onSave = vm::save,
                                     onTest = vm::testConnection,
-                                    modifier = Modifier.nestedScroll(secondaryScrollBehavior.nestedScrollConnection),
+                                    modifier = Modifier.nestedScroll(settingsScrollBehavior.nestedScrollConnection),
                                 )
                             }
                         }

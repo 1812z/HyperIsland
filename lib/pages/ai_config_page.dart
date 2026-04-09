@@ -293,10 +293,11 @@ class _AiConfigPageState extends State<AiConfigPage> {
       backgroundColor: cs.surface,
       body: CustomScrollView(
         slivers: [
-          SliverAppBar.large(
+          SliverAppBar(
             title: Text(l10n.aiConfigTitle),
             backgroundColor: cs.surface,
             centerTitle: false,
+            pinned: true,
           ),
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16),

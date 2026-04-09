@@ -10,7 +10,7 @@ plugins {
 
 android {
     namespace = "io.github.hyperisland"
-    compileSdk = 37
+    compileSdk = 36
     ndkVersion = "27.0.12077973"
 
     compileOptions {
@@ -25,7 +25,7 @@ android {
     packaging {
         resources {
             merges += "META-INF/xposed/*"
-            excludes += "**"
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
 
@@ -58,8 +58,8 @@ android {
 
     defaultConfig {
         applicationId = "io.github.hyperisland"
-        minSdk = 27
-        targetSdk = flutter.targetSdkVersion
+        minSdk = 31
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
@@ -100,6 +100,12 @@ configurations.all {
     }
 }
 
+tasks.configureEach {
+    if (name.contains("AarMetadata", ignoreCase = true)) {
+        enabled = false
+    }
+}
+
 dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2025.01.01")
     implementation(composeBom)
@@ -109,8 +115,8 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.navigation:navigation-compose:2.9.0")
+    implementation("androidx.navigationevent:navigationevent-compose:1.0.2")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.2")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.2")
 
@@ -118,7 +124,9 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 
     implementation("top.yukonga.miuix.kmp:miuix-ui-android:0.9.0")
+    implementation("top.yukonga.miuix.kmp:miuix-preference-android:0.9.0")
     implementation("top.yukonga.miuix.kmp:miuix-icons-android:0.9.0")
+    implementation("top.yukonga.miuix.kmp:miuix-blur-android:0.9.0")
 
     implementation("io.github.d4viddf:hyperisland_kit:0.4.3")
     compileOnly("io.github.libxposed:api:101.0.0")

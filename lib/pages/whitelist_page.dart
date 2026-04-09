@@ -5,6 +5,7 @@ import '../controllers/whitelist_controller.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../widgets/batch_channel_settings_sheet.dart';
 import '../widgets/app_list_widgets.dart';
+import '../routes/card_push_route.dart';
 import 'app_channels_page.dart';
 import '../services/app_cache_service.dart';
 
@@ -437,7 +438,7 @@ class WhitelistPageState extends State<WhitelistPage> {
                           ? () => _toggleSelection(pkg)
                           : () => Navigator.push(
                               context,
-                              MaterialPageRoute(
+                              buildCardPushRoute(
                                 builder: (_) => AppChannelsPage(
                                   app: app,
                                   controller: _ctrl,

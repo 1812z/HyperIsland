@@ -30,6 +30,7 @@ class SettingsRepository(private val context: Context) {
             marqueeSpeed = prefs.getInt(PrefKeys.MARQUEE_SPEED, 100).coerceIn(20, 500),
             bigIslandMaxWidthEnabled = prefs.getBoolean(PrefKeys.BIG_ISLAND_MAX_WIDTH_ENABLED, false),
             bigIslandMaxWidth = prefs.getInt(PrefKeys.BIG_ISLAND_MAX_WIDTH, 600).coerceIn(500, 1000),
+            useFloatingNavigationBar = prefs.getBoolean(PrefKeys.USE_FLOATING_NAVIGATION_BAR, false),
             unlockAllFocus = prefs.getBoolean(PrefKeys.UNLOCK_ALL_FOCUS, false),
             unlockFocusAuth = prefs.getBoolean(PrefKeys.UNLOCK_FOCUS_AUTH, false),
             defaultFirstFloat = prefs.getBoolean(PrefKeys.DEFAULT_FIRST_FLOAT, false),

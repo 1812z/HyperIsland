@@ -14,6 +14,7 @@ data class SettingsState(
     val marqueeSpeed: Int = 100,
     val bigIslandMaxWidthEnabled: Boolean = false,
     val bigIslandMaxWidth: Int = 600,
+    val useFloatingNavigationBar: Boolean = false,
     val unlockAllFocus: Boolean = false,
     val unlockFocusAuth: Boolean = false,
     val defaultFirstFloat: Boolean = false,

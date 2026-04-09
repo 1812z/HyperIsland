@@ -47,6 +47,7 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
                 PrefKeys.ROUND_ICON -> it.copy(roundIcon = value)
                 PrefKeys.MARQUEE_FEATURE -> it.copy(marqueeFeature = value)
                 PrefKeys.BIG_ISLAND_MAX_WIDTH_ENABLED -> it.copy(bigIslandMaxWidthEnabled = value)
+                PrefKeys.USE_FLOATING_NAVIGATION_BAR -> it.copy(useFloatingNavigationBar = value)
                 PrefKeys.UNLOCK_ALL_FOCUS -> it.copy(unlockAllFocus = value)
                 PrefKeys.UNLOCK_FOCUS_AUTH -> it.copy(unlockFocusAuth = value)
                 PrefKeys.DEFAULT_FIRST_FLOAT -> it.copy(defaultFirstFloat = value)

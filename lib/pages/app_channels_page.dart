@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../controllers/whitelist_controller.dart';
@@ -304,15 +302,14 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
     final l10n = AppLocalizations.of(context)!;
     final channels = _channels ?? [];
     final allEnabled = _appEnabled && _enabledChannels.isEmpty;
-    final appIconSizePx = (32 * MediaQuery.devicePixelRatioOf(context)).round();
-
     return Scaffold(
       backgroundColor: cs.surface,
       body: CustomScrollView(
         slivers: [
-          SliverAppBar.large(
+          SliverAppBar(
             backgroundColor: cs.surface,
             centerTitle: false,
+            pinned: true,
             title: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -454,53 +451,58 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
             ),
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final ch = channels[index];
-                    final isFirst = index == 0;
-                    final isLast = index == channels.length - 1;
-                    final channelEnabled = _isEnabled(ch.id);
-                    final template =
-                        _channelTemplates[ch.id] ?? kTemplateNotificationIsland;
-                    final extras = _channelExtras[ch.id] ?? {};
+              sliver: SliverToBoxAdapter(
+                child: Material(
+                  color: cs.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(16),
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(channels.length, (index) {
+                      final ch = channels[index];
+                      final isLast = index == channels.length - 1;
+                      final channelEnabled = _isEnabled(ch.id);
+                      final template =
+                          _channelTemplates[ch.id] ??
+                          kTemplateNotificationIsland;
+                      final extras = _channelExtras[ch.id] ?? {};
 
-                    return _ChannelTile(
-                      channel: ch,
-                      channelEnabled: channelEnabled,
-                      appEnabled: _appEnabled,
-                      template: template,
-                      templateLabels: _templateLabels,
-                      renderer:
-                          extras['renderer'] ?? kRendererImageTextWithButtons4,
-                      rendererLabels: _rendererLabels,
-                      importanceLabel: _importanceLabel(ch.importance, l10n),
-                      isFirst: isFirst,
-                      isLast: isLast,
-                      iconMode: extras['icon'] ?? kIconModeAuto,
-                      focusIconMode: extras['focus_icon'] ?? kIconModeAuto,
-                      focusNotif: extras['focus'] ?? kTriOptDefault,
-                      preserveSmallIcon:
-                          extras['preserve_small_icon'] ?? kTriOptDefault,
-                      showIslandIcon:
-                          extras['show_island_icon'] ?? kTriOptDefault,
-                      firstFloat: extras['first_float'] ?? kTriOptDefault,
-                      enableFloat: extras['enable_float'] ?? kTriOptDefault,
-                      islandTimeout: extras['timeout'] ?? '5',
-                      marquee: extras['marquee'] ?? kTriOptDefault,
-                      restoreLockscreen:
-                          extras['restore_lockscreen'] ?? kTriOptDefault,
-                      highlightColor: extras['highlight_color'] ?? '',
-                      showLeftHighlight:
-                          extras['show_left_highlight'] ?? kTriOptOff,
-                      showRightHighlight:
-                          extras['show_right_highlight'] ?? kTriOptOff,
-                      onToggle: (v) => _toggle(ch.id, v),
-                      onSettingsApplied: (s) => _applyChannelSettings(ch.id, s),
-                    );
-                  },
-                  childCount: channels.length,
-                  addAutomaticKeepAlives: false,
+                      return _ChannelTile(
+                        channel: ch,
+                        channelEnabled: channelEnabled,
+                        appEnabled: _appEnabled,
+                        template: template,
+                        templateLabels: _templateLabels,
+                        renderer:
+                            extras['renderer'] ??
+                            kRendererImageTextWithButtons4,
+                        rendererLabels: _rendererLabels,
+                        importanceLabel: _importanceLabel(ch.importance, l10n),
+                        isLast: isLast,
+                        iconMode: extras['icon'] ?? kIconModeAuto,
+                        focusIconMode: extras['focus_icon'] ?? kIconModeAuto,
+                        focusNotif: extras['focus'] ?? kTriOptDefault,
+                        preserveSmallIcon:
+                            extras['preserve_small_icon'] ?? kTriOptDefault,
+                        showIslandIcon:
+                            extras['show_island_icon'] ?? kTriOptDefault,
+                        firstFloat: extras['first_float'] ?? kTriOptDefault,
+                        enableFloat: extras['enable_float'] ?? kTriOptDefault,
+                        islandTimeout: extras['timeout'] ?? '5',
+                        marquee: extras['marquee'] ?? kTriOptDefault,
+                        restoreLockscreen:
+                            extras['restore_lockscreen'] ?? kTriOptDefault,
+                        highlightColor: extras['highlight_color'] ?? '',
+                        showLeftHighlight:
+                            extras['show_left_highlight'] ?? kTriOptOff,
+                        showRightHighlight:
+                            extras['show_right_highlight'] ?? kTriOptOff,
+                        onToggle: (v) => _toggle(ch.id, v),
+                        onSettingsApplied: (s) =>
+                            _applyChannelSettings(ch.id, s),
+                      );
+                    }),
+                  ),
                 ),
               ),
             ),
@@ -591,7 +593,6 @@ class _ChannelTile extends StatelessWidget {
     required this.renderer,
     required this.rendererLabels,
     required this.importanceLabel,
-    required this.isFirst,
     required this.isLast,
     required this.iconMode,
     required this.focusIconMode,
@@ -618,7 +619,6 @@ class _ChannelTile extends StatelessWidget {
   final String renderer;
   final Map<String, String> rendererLabels;
   final String importanceLabel;
-  final bool isFirst;
   final bool isLast;
   final String iconMode;
   final String focusIconMode;
@@ -667,86 +667,75 @@ class _ChannelTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
-    final radius = BorderRadius.vertical(
-      top: isFirst ? const Radius.circular(16) : Radius.zero,
-      bottom: isLast ? const Radius.circular(16) : Radius.zero,
-    );
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Material(
-          color: cs.surfaceContainerHighest,
-          borderRadius: radius,
-          child: InkWell(
-            borderRadius: radius,
-            onTap: appEnabled ? () => onToggle(!channelEnabled) : null,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 4, 12),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          channel.name,
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(
-                                color: appEnabled
-                                    ? null
-                                    : cs.onSurface.withValues(alpha: 0.38),
-                              ),
+        InkWell(
+          onTap: appEnabled ? () => onToggle(!channelEnabled) : null,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 4, 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        channel.name,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: appEnabled
+                              ? null
+                              : cs.onSurface.withValues(alpha: 0.38),
                         ),
-                        if (channel.description.isNotEmpty) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            channel.description,
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: appEnabled
-                                      ? cs.onSurfaceVariant
-                                      : cs.onSurface.withValues(alpha: 0.28),
-                                ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
+                      ),
+                      if (channel.description.isNotEmpty) ...[
                         const SizedBox(height: 2),
                         Text(
-                          l10n.channelImportance(importanceLabel, channel.id),
+                          channel.description,
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
                                 color: appEnabled
-                                    ? cs.onSurfaceVariant.withValues(alpha: 0.7)
-                                    : cs.onSurface.withValues(alpha: 0.22),
+                                    ? cs.onSurfaceVariant
+                                    : cs.onSurface.withValues(alpha: 0.28),
                               ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
-                    ),
+                      const SizedBox(height: 2),
+                      Text(
+                        l10n.channelImportance(importanceLabel, channel.id),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: appEnabled
+                              ? cs.onSurfaceVariant.withValues(alpha: 0.7)
+                              : cs.onSurface.withValues(alpha: 0.22),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.settings_outlined,
-                      size: 22,
-                      color: appEnabled && channelEnabled
-                          ? cs.onSurfaceVariant
-                          : cs.onSurface.withValues(alpha: 0.28),
-                    ),
-                    onPressed: appEnabled && channelEnabled
-                        ? () => _openSettings(context)
-                        : null,
-                    tooltip: l10n.channelSettings,
+                ),
+                IconButton(
+                  icon: Icon(
+                    Icons.settings_outlined,
+                    size: 22,
+                    color: appEnabled && channelEnabled
+                        ? cs.onSurfaceVariant
+                        : cs.onSurface.withValues(alpha: 0.28),
                   ),
-                  Switch(
-                    value: channelEnabled,
-                    onChanged: appEnabled ? onToggle : null,
-                  ),
-                ],
-              ),
+                  onPressed: appEnabled && channelEnabled
+                      ? () => _openSettings(context)
+                      : null,
+                  tooltip: l10n.channelSettings,
+                ),
+                Switch(
+                  value: channelEnabled,
+                  onChanged: appEnabled ? onToggle : null,
+                ),
+              ],
             ),
           ),
         ),

@@ -3,6 +3,7 @@ package io.github.hyperisland.ui.blacklist
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.hyperisland.ui.app.filterApps
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -34,6 +35,7 @@ class BlacklistViewModel(app: Application) : AndroidViewModel(app) {
                     _uiState.update {
                         it.copy(loading = false, apps = apps, blacklistedPackages = blacklisted)
                     }
+                    updateFilteredApps()
                 }
                 .onFailure { e ->
                     _uiState.update {
@@ -45,10 +47,12 @@ class BlacklistViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setQuery(query: String) {
         _uiState.update { it.copy(query = query) }
+        updateFilteredApps()
     }
 
     fun setShowSystemApps(value: Boolean) {
         _uiState.update { it.copy(showSystemApps = value) }
+        updateFilteredApps()
     }
 
     fun setBlacklisted(packageName: String, enabled: Boolean) {
@@ -57,20 +61,23 @@ class BlacklistViewModel(app: Application) : AndroidViewModel(app) {
         }.toSet()
         repo.saveBlacklistedPackages(next)
         _uiState.update { it.copy(blacklistedPackages = next) }
+        updateFilteredApps()
     }
 
     fun enableAllVisible() {
-        val visible = currentVisibleApps().map { it.packageName }
+        val visible = _uiState.value.filteredApps.map { it.packageName }
         val next = _uiState.value.blacklistedPackages.toMutableSet().apply { addAll(visible) }.toSet()
         repo.saveBlacklistedPackages(next)
         _uiState.update { it.copy(blacklistedPackages = next) }
+        updateFilteredApps()
     }
 
     fun disableAllVisible() {
-        val visible = currentVisibleApps().map { it.packageName }.toSet()
+        val visible = _uiState.value.filteredApps.map { it.packageName }.toSet()
         val next = _uiState.value.blacklistedPackages.toMutableSet().apply { removeAll(visible) }.toSet()
         repo.saveBlacklistedPackages(next)
         _uiState.update { it.copy(blacklistedPackages = next) }
+        updateFilteredApps()
     }
 
     fun applyGamePreset() {
@@ -79,17 +86,24 @@ class BlacklistViewModel(app: Application) : AndroidViewModel(app) {
         if (added > 0) {
             repo.saveBlacklistedPackages(next)
             _uiState.update { it.copy(blacklistedPackages = next) }
+            updateFilteredApps()
         }
         viewModelScope.launch {
             _events.emit("已新增 $added 个游戏到黑名单")
         }
     }
 
-    private fun currentVisibleApps() = _uiState.value.apps.filter { app ->
-        val state = _uiState.value
-        val matchSystem = state.showSystemApps || !app.isSystem || state.blacklistedPackages.contains(app.packageName)
-        val q = state.query.trim().lowercase()
-        val matchQuery = q.isBlank() || app.appName.lowercase().contains(q) || app.packageName.lowercase().contains(q)
-        matchSystem && matchQuery
+    private fun updateFilteredApps() {
+        _uiState.update { state ->
+            state.copy(
+                filteredApps = filterApps(
+                    apps = state.apps,
+                    query = state.query,
+                    showSystemApps = state.showSystemApps,
+                    alwaysVisiblePackages = state.blacklistedPackages,
+                    prioritizedPackages = state.blacklistedPackages,
+                ),
+            )
+        }
     }
 }

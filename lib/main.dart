@@ -74,6 +74,8 @@ class _MyAppState extends State<MyApp> {
         ),
         useMaterial3: true,
       ),
+      builder: (context, child) =>
+          HeroControllerScope.none(child: child ?? const SizedBox.shrink()),
       themeMode: _themeMode,
       home: const MainPage(),
     );

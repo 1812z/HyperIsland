@@ -4,6 +4,7 @@ data class AppItem(
     val packageName: String,
     val appName: String,
     val isSystem: Boolean,
+    val icon: ByteArray = byteArrayOf(),
 )
 
 data class AppsUiState(
@@ -12,6 +13,8 @@ data class AppsUiState(
     val query: String = "",
     val showSystemApps: Boolean = false,
     val apps: List<AppItem> = emptyList(),
+    val filteredApps: List<AppItem> = emptyList(),
     val enabledPackages: Set<String> = emptySet(),
+    val selectedPackages: Set<String> = emptySet(),
     val error: String? = null,
 )

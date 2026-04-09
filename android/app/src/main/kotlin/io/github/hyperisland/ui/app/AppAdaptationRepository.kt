@@ -3,16 +3,25 @@ package io.github.hyperisland.ui.app
 import android.content.Context
 import android.content.SharedPreferences
 import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import io.github.hyperisland.NotificationChannelReader
+import io.github.hyperisland.toBitmap
 import io.github.hyperisland.data.prefs.PrefKeys
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
+import java.util.concurrent.ConcurrentHashMap
 
 class AppAdaptationRepository(private val context: Context) {
     private val prefs: SharedPreferences =
         context.getSharedPreferences(PrefKeys.PREFS_NAME, Context.MODE_PRIVATE)
+    private val iconCache = ConcurrentHashMap<String, ByteArray>()
 
-    suspend fun loadInstalledApps(): List<AppItem> = withContext(Dispatchers.IO) {
+    suspend fun loadInstalledApps(includeIcons: Boolean = true): List<AppItem> = withContext(Dispatchers.IO) {
         val pm = context.packageManager
         pm.getInstalledApplications(0)
             .asSequence()
@@ -23,11 +32,72 @@ class AppAdaptationRepository(private val context: Context) {
                         packageName = app.packageName,
                         appName = pm.getApplicationLabel(app).toString(),
                         isSystem = (app.flags and ApplicationInfo.FLAG_SYSTEM) != 0,
+                        icon = if (includeIcons) {
+                            readCachedAppIconBytes(pm, app.packageName)
+                        } else {
+                            byteArrayOf()
+                        },
                     )
                 }.getOrNull()
             }
             .sortedBy { it.appName.lowercase() }
             .toList()
+    }
+
+    suspend fun loadAppItem(packageName: String): AppItem? = withContext(Dispatchers.IO) {
+        val pm = context.packageManager
+        runCatching {
+            val app = pm.getApplicationInfo(packageName, 0)
+            AppItem(
+                packageName = packageName,
+                appName = pm.getApplicationLabel(app).toString(),
+                isSystem = (app.flags and ApplicationInfo.FLAG_SYSTEM) != 0,
+                icon = readCachedAppIconBytes(pm, packageName),
+            )
+        }.getOrNull()
+    }
+
+    suspend fun loadAppIcon(packageName: String): ByteArray = withContext(Dispatchers.IO) {
+        readCachedAppIconBytes(context.packageManager, packageName)
+    }
+
+    suspend fun loadAppIcons(
+        packageNames: List<String>,
+        parallelism: Int = 6,
+    ): Map<String, ByteArray> = coroutineScope {
+        val pm = context.packageManager
+        val iconDispatcher = Dispatchers.IO.limitedParallelism(parallelism)
+        packageNames
+            .distinct()
+            .map { packageName ->
+                async(iconDispatcher) {
+                    packageName to readCachedAppIconBytes(pm, packageName)
+                }
+            }
+            .awaitAll()
+            .filter { (_, icon) -> icon.isNotEmpty() }
+            .toMap()
+    }
+
+    private fun readAppIconBytes(pm: PackageManager, packageName: String): ByteArray {
+        return runCatching {
+            ByteArrayOutputStream().use { stream ->
+                pm.getApplicationIcon(packageName)
+                    .toBitmap(96)
+                    .compress(Bitmap.CompressFormat.PNG, 90, stream)
+                stream.toByteArray()
+            }
+        }.getOrDefault(byteArrayOf())
+    }
+
+    private fun readCachedAppIconBytes(pm: PackageManager, packageName: String): ByteArray {
+        val cached = iconCache[packageName]
+        if (cached != null) return cached
+        val icon = readAppIconBytes(pm, packageName)
+        if (icon.isNotEmpty()) {
+            iconCache[packageName] = icon
+        }
+        return icon
     }
 
     fun loadEnabledPackages(): Set<String> {
@@ -37,6 +107,17 @@ class AppAdaptationRepository(private val context: Context) {
 
     fun setEnabledPackages(value: Set<String>) {
         prefs.edit().putString("pref_generic_whitelist", value.joinToString(",")).apply()
+    }
+
+    fun isAppEnabled(packageName: String): Boolean {
+        return loadEnabledPackages().contains(packageName)
+    }
+
+    fun setAppEnabled(packageName: String, enabled: Boolean) {
+        val next = loadEnabledPackages().toMutableSet().apply {
+            if (enabled) add(packageName) else remove(packageName)
+        }.toSet()
+        setEnabledPackages(next)
     }
 
     suspend fun loadChannels(packageName: String): List<ChannelItem>? = withContext(Dispatchers.IO) {

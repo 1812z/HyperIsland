@@ -7,6 +7,7 @@ data class BlacklistUiState(
     val query: String = "",
     val showSystemApps: Boolean = false,
     val apps: List<AppItem> = emptyList(),
+    val filteredApps: List<AppItem> = emptyList(),
     val blacklistedPackages: Set<String> = emptySet(),
     val error: String? = null,
 )

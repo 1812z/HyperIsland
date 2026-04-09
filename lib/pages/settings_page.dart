@@ -9,6 +9,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../services/interaction_haptics.dart';
 import '../widgets/section_label.dart';
 import '../widgets/modern_slider.dart';
+import '../routes/card_push_route.dart';
 import 'ai_config_page.dart';
 import 'blacklist_page.dart';
 
@@ -364,7 +365,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => Navigator.push(
                           context,
-                          MaterialPageRoute(
+                          buildCardPushRoute(
                             builder: (context) => const AiConfigPage(),
                           ),
                         ),
@@ -399,7 +400,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
+                            buildCardPushRoute(
                               builder: (context) => const BlacklistPage(),
                             ),
                           );

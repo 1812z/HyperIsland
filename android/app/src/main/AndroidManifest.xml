@@ -22,7 +22,6 @@
         android:label="HyperIsland"
         android:name=".HyperIslandApp"
         android:description="@string/module_description"
-        android:extractNativeLibs="true"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".ui.ComposeMainActivity"

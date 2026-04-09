@@ -20,20 +20,6 @@ class AppChannelsViewModel(
     private val _uiState = MutableStateFlow(AppChannelsUiState(packageName = packageName))
     val uiState: StateFlow<AppChannelsUiState> = _uiState.asStateFlow()
 
-    private val templates = listOf(
-        "notification_island",
-        "notification_island_lite",
-        "download_lite",
-        "ai_notification_island",
-    )
-    private val iconModes = listOf("auto", "notif_small", "notif_large", "app_icon")
-    private val triStates = listOf("default", "on", "off")
-    private val renderers = listOf(
-        "image_text_with_buttons_4",
-        "image_text_with_buttons_4_wrap",
-        "image_text_with_right_text_button",
-    )
-
     init {
         refresh()
     }
@@ -65,6 +51,8 @@ class AppChannelsViewModel(
             }
 
             val enabled = repo.getEnabledChannels(packageName)
+            val appItem = repo.loadAppItem(packageName)
+            val appEnabled = repo.isAppEnabled(packageName)
             val templateMap = channels.associate { ch ->
                 ch.id to repo.getChannelTemplate(packageName, ch.id)
             }
@@ -77,6 +65,9 @@ class AppChannelsViewModel(
             _uiState.update {
                 it.copy(
                     loading = false,
+                    appName = appItem?.appName ?: packageName,
+                    appIcon = appItem?.icon ?: byteArrayOf(),
+                    appEnabled = appEnabled,
                     channels = channels,
                     enabledChannels = enabled,
                     channelTemplates = templateMap,
@@ -85,6 +76,11 @@ class AppChannelsViewModel(
                 )
             }
         }
+    }
+
+    fun setAppEnabled(enabled: Boolean) {
+        repo.setAppEnabled(packageName, enabled)
+        _uiState.update { it.copy(appEnabled = enabled) }
     }
 
     fun toggleChannel(channelId: String, value: Boolean) {
@@ -111,12 +107,9 @@ class AppChannelsViewModel(
         _uiState.update { it.copy(enabledChannels = emptySet()) }
     }
 
-    fun cycleTemplate(channelId: String) {
-        val current = _uiState.value.channelTemplates[channelId] ?: templates.first()
-        val idx = templates.indexOf(current).takeIf { it >= 0 } ?: 0
-        val next = templates[(idx + 1) % templates.size]
-        repo.setChannelTemplate(packageName, channelId, next)
-        _uiState.update { it.copy(channelTemplates = it.channelTemplates + (channelId to next)) }
+    fun setTemplate(channelId: String, template: String) {
+        repo.setChannelTemplate(packageName, channelId, template)
+        _uiState.update { it.copy(channelTemplates = it.channelTemplates + (channelId to template)) }
     }
 
     fun setTimeout(channelId: String, timeout: String) {
@@ -125,36 +118,21 @@ class AppChannelsViewModel(
         _uiState.update { it.copy(channelTimeout = it.channelTimeout + (channelId to normalized)) }
     }
 
-    fun cycleSetting(channelId: String, setting: String) {
+    fun setSetting(channelId: String, setting: String, value: String) {
         val current = _uiState.value.channelExtras[channelId] ?: return
         val next = when (setting) {
-            "icon" -> current.copy(icon = nextOf(iconModes, current.icon))
-            "focus_icon" -> current.copy(focusIcon = nextOf(iconModes, current.focusIcon))
-            "focus" -> current.copy(focus = nextOf(triStates, current.focus))
-            "preserve_small_icon" -> current.copy(preserveSmallIcon = nextOf(triStates, current.preserveSmallIcon))
-            "show_island_icon" -> current.copy(showIslandIcon = nextOf(triStates, current.showIslandIcon))
-            "first_float" -> current.copy(firstFloat = nextOf(triStates, current.firstFloat))
-            "enable_float" -> current.copy(enableFloat = nextOf(triStates, current.enableFloat))
-            "marquee" -> current.copy(marquee = nextOf(triStates, current.marquee))
-            "renderer" -> current.copy(renderer = nextOf(renderers, current.renderer))
-            "restore_lockscreen" -> current.copy(restoreLockscreen = nextOf(triStates, current.restoreLockscreen))
-            "show_left_highlight" -> current.copy(showLeftHighlight = nextOf(listOf("off", "on"), current.showLeftHighlight))
-            "show_right_highlight" -> current.copy(showRightHighlight = nextOf(listOf("off", "on"), current.showRightHighlight))
-            else -> return
-        }
-        val value = when (setting) {
-            "icon" -> next.icon
-            "focus_icon" -> next.focusIcon
-            "focus" -> next.focus
-            "preserve_small_icon" -> next.preserveSmallIcon
-            "show_island_icon" -> next.showIslandIcon
-            "first_float" -> next.firstFloat
-            "enable_float" -> next.enableFloat
-            "marquee" -> next.marquee
-            "renderer" -> next.renderer
-            "restore_lockscreen" -> next.restoreLockscreen
-            "show_left_highlight" -> next.showLeftHighlight
-            "show_right_highlight" -> next.showRightHighlight
+            "icon" -> current.copy(icon = value)
+            "focus_icon" -> current.copy(focusIcon = value)
+            "focus" -> current.copy(focus = value)
+            "preserve_small_icon" -> current.copy(preserveSmallIcon = value)
+            "show_island_icon" -> current.copy(showIslandIcon = value)
+            "first_float" -> current.copy(firstFloat = value)
+            "enable_float" -> current.copy(enableFloat = value)
+            "marquee" -> current.copy(marquee = value)
+            "renderer" -> current.copy(renderer = value)
+            "restore_lockscreen" -> current.copy(restoreLockscreen = value)
+            "show_left_highlight" -> current.copy(showLeftHighlight = value)
+            "show_right_highlight" -> current.copy(showRightHighlight = value)
             else -> return
         }
         repo.setChannelSetting(packageName, channelId, setting, value)
@@ -178,10 +156,5 @@ class AppChannelsViewModel(
         }
         repo.batchApplyChannelSettings(packageName, ids, settings)
         refresh()
-    }
-
-    private fun nextOf(options: List<String>, current: String): String {
-        val idx = options.indexOf(current).takeIf { it >= 0 } ?: 0
-        return options[(idx + 1) % options.size]
     }
 }
