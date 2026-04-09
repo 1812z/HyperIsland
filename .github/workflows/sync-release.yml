@@ -1,0 +1,77 @@
+name: Sync Release to Another Repo
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to sync (e.g. v1.9.9)'
+        required: true
+        type: string
+
+jobs:
+  sync-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Get version info
+        id: version
+        run: |
+          CURRENT_FULL=$(grep '^version:' pubspec.yaml | awk '{print $2}')
+          VERSION_NAME=$(echo "$CURRENT_FULL" | cut -d'+' -f1)
+          VERSION_CODE=$(echo "$CURRENT_FULL" | cut -d'+' -f2)
+          
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+          echo "new_tag=${VERSION_CODE}-${VERSION_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Download release asset
+        id: download
+        run: |
+          TAG="${{ github.event.inputs.tag || github.event.release.tag_name }}"
+          gh release download "$TAG" \
+            --pattern "*.apk" \
+            --dir ./release
+          APK_FILE=$(ls ./release/*.apk | head -n1)
+          APK_NAME=$(basename "$APK_FILE")
+          echo "apk_name=$APK_NAME" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Get release info
+        id: release_info
+        run: |
+          TAG="${{ github.event.inputs.tag || github.event.release.tag_name }}"
+          RELEASE_NAME="${{ github.event.release.name }}"
+          BODY="${{ github.event.release.body }}"
+          
+          if [ -z "$RELEASE_NAME" ]; then
+            RELEASE_NAME=$(gh release view "$TAG" --json name -q .name)
+          fi
+          
+          if [ -z "$BODY" ]; then
+            BODY=$(gh release view "$TAG" --json body -q .body)
+          fi
+          
+          echo "name=$RELEASE_NAME" >> $GITHUB_OUTPUT
+          echo "content<<EOF" >> $GITHUB_OUTPUT
+          echo "$BODY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Create release in target repo
+        uses: softprops/action-gh-release@v2.1.0
+        with:
+          repository: Xposed-Modules-Repo/io.github.hyperisland
+          tag_name: ${{ steps.version.outputs.new_tag }}
+          name: v${{ steps.version.outputs.version_name }}
+          body: ${{ steps.release_info.outputs.content }}
+          draft: false
+          prerelease: false
+          files: ./release/${{ steps.download.outputs.apk_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.TARGET_REPO_TOKEN }}

@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'dart:typed_data';
 import '../services/app_cache_service.dart';
+import '../services/interaction_haptics.dart';
 
 class AppListSearchHeader extends StatelessWidget {
   const AppListSearchHeader({
@@ -247,7 +249,12 @@ class AppBarOverflowMenuButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         side: BorderSide(color: borderColor, width: 0.9),
       ),
-      onSelected: onSelected,
+      onSelected: onSelected == null
+          ? null
+          : (value) {
+              unawaited(InteractionHaptics.button());
+              onSelected!(value);
+            },
       itemBuilder: itemBuilder,
     );
   }

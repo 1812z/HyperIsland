@@ -549,10 +549,28 @@ class AppLocalizationsJa extends AppLocalizations {
   String get highlightColorLabel => 'ハイライト色';
 
   @override
+  String get dynamicHighlightColorLabel => 'ハイライトの動的色取得';
+
+  @override
+  String get dynamicHighlightColorLabelSubtitle => '有効時はデフォルトでアイコンから動的に色を取得します';
+
+  @override
+  String get dynamicHighlightModeDark => '暗め';
+
+  @override
+  String get dynamicHighlightModeDarker => 'さらに暗め';
+
+  @override
+  String get outerGlowLabel => '外側グロー';
+
+  @override
   String get highlightColorHint => '#RRGGBB 形式、空白でデフォルト';
 
   @override
   String get textHighlightLabel => 'テキストハイライト';
+
+  @override
+  String get narrowFontLabel => 'ナローフォント';
 
   @override
   String get showLeftHighlightLabel => '左テキストハイライト';

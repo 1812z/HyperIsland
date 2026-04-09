@@ -8,6 +8,7 @@ import '../widgets/app_list_widgets.dart';
 import '../routes/card_push_route.dart';
 import 'app_channels_page.dart';
 import '../services/app_cache_service.dart';
+import '../services/interaction_haptics.dart';
 
 class WhitelistPage extends StatefulWidget {
   const WhitelistPage({super.key});
@@ -229,7 +230,7 @@ class WhitelistPageState extends State<WhitelistPage> {
           opacity: _showBackToTop ? 1 : 0,
           duration: const Duration(milliseconds: 180),
           child: FloatingActionButton.small(
-            onPressed: _scrollToTop,
+            onPressed: InteractionHaptics.interceptButton(_scrollToTop),
             child: const Icon(Icons.keyboard_arrow_up_rounded),
           ),
         ),
@@ -248,7 +249,9 @@ class WhitelistPageState extends State<WhitelistPage> {
               leading: _selectionMode
                   ? IconButton(
                       icon: const Icon(Icons.close),
-                      onPressed: _clearSelection,
+                      onPressed: InteractionHaptics.interceptButton(
+                        _clearSelection,
+                      ),
                       tooltip: l10n.cancelSelection,
                     )
                   : null,
@@ -265,14 +268,18 @@ class WhitelistPageState extends State<WhitelistPage> {
                         tooltip: allSelected
                             ? l10n.deselectAll
                             : l10n.selectAll,
-                        onPressed: allSelected ? _deselectAll : _selectAll,
+                        onPressed: InteractionHaptics.interceptButton(
+                          allSelected ? _deselectAll : _selectAll,
+                        ),
                       ),
                       // 批量设置渠道配置
                       IconButton(
                         icon: const Icon(Icons.tune),
                         tooltip: l10n.batchChannelSettings,
                         onPressed: _selectedPackages.isNotEmpty
-                            ? _batchApplySelected
+                            ? InteractionHaptics.interceptButton(
+                                _batchApplySelected,
+                              )
                             : null,
                       ),
                       // 批量操作菜单
@@ -317,7 +324,11 @@ class WhitelistPageState extends State<WhitelistPage> {
                       IconButton(
                         icon: const Icon(Icons.checklist_outlined),
                         tooltip: l10n.multiSelect,
-                        onPressed: _ctrl.loading ? null : _enterSelectionMode,
+                        onPressed: _ctrl.loading
+                            ? null
+                            : InteractionHaptics.interceptButton(
+                                _enterSelectionMode,
+                              ),
                       ),
                       AppBarOverflowMenuButton(
                         onSelected: (value) =>
@@ -496,17 +507,23 @@ class _AppTile extends StatelessWidget {
 
     return AppListItemFrame(
       app: app,
-      onTap: onTap,
-      onLongPress: onLongPress,
+      onTap: selectionMode ? InteractionHaptics.interceptButton(onTap)! : onTap,
+      onLongPress: InteractionHaptics.interceptButton(onLongPress),
       selected: isSelected,
       isFirst: isFirst,
       isLast: isLast,
       trailing: selectionMode
-          ? Checkbox(value: isSelected, onChanged: (_) => onTap())
+          ? Checkbox(
+              value: isSelected,
+              onChanged: InteractionHaptics.interceptCheckbox((_) => onTap()),
+            )
           : Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Switch(value: enabled, onChanged: onChanged),
+                Switch(
+                  value: enabled,
+                  onChanged: InteractionHaptics.interceptToggle(onChanged),
+                ),
                 const SizedBox(width: 4),
                 Icon(Icons.chevron_right, color: cs.onSurfaceVariant, size: 20),
               ],

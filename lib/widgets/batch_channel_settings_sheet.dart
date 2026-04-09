@@ -29,8 +29,12 @@ class SingleChannelMode extends ChannelSettingsMode {
     required this.marquee,
     required this.restoreLockscreen,
     required this.highlightColor,
+    required this.dynamicHighlightColor,
     required this.showLeftHighlight,
     required this.showRightHighlight,
+    required this.showLeftNarrowFont,
+    required this.showRightNarrowFont,
+    required this.outerGlow,
   });
 
   final String channelName;
@@ -47,8 +51,12 @@ class SingleChannelMode extends ChannelSettingsMode {
   final String marquee;
   final String restoreLockscreen;
   final String highlightColor;
+  final String dynamicHighlightColor;
   final String showLeftHighlight;
   final String showRightHighlight;
+  final String showLeftNarrowFont;
+  final String showRightNarrowFont;
+  final String outerGlow;
 }
 
 /// 批量模式：对多个渠道批量操作，字段默认"不更改"。
@@ -159,8 +167,12 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
   String? _marquee;
   String? _restoreLockscreen;
   String? _highlightColor;
+  String? _dynamicHighlightColor;
   bool? _showLeftHighlight;
   bool? _showRightHighlight;
+  bool? _showLeftNarrowFont;
+  bool? _showRightNarrowFont;
+  String? _outerGlow;
 
   // 仅 BatchChannelMode + SingleAppScope 下使用
   bool _onlyEnabled = false;
@@ -169,6 +181,12 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
   late final TextEditingController _highlightColorController;
 
   bool get _isSingle => widget.mode is SingleChannelMode;
+  bool get _dynamicHighlightEnabled =>
+      (_dynamicHighlightColor == kTriOptDefault &&
+          _ctrl.defaultDynamicHighlightColor) ||
+      _dynamicHighlightColor == 'on' ||
+      _dynamicHighlightColor == 'dark' ||
+      _dynamicHighlightColor == 'darker';
 
   @override
   void initState() {
@@ -187,8 +205,12 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
       _marquee = m.marquee;
       _restoreLockscreen = m.restoreLockscreen;
       _highlightColor = m.highlightColor;
+      _dynamicHighlightColor = m.dynamicHighlightColor;
       _showLeftHighlight = m.showLeftHighlight == kTriOptOn;
       _showRightHighlight = m.showRightHighlight == kTriOptOn;
+      _showLeftNarrowFont = m.showLeftNarrowFont == kTriOptOn;
+      _showRightNarrowFont = m.showRightNarrowFont == kTriOptOn;
+      _outerGlow = m.outerGlow;
       _timeoutController = TextEditingController(text: m.islandTimeout);
       _highlightColorController = TextEditingController(text: m.highlightColor);
     } else {
@@ -331,8 +353,12 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
       _marquee != null ||
       _restoreLockscreen != null ||
       _highlightColor != null ||
+      _dynamicHighlightColor != null ||
       _showLeftHighlight != null ||
-      _showRightHighlight != null;
+      _showRightHighlight != null ||
+      _showLeftNarrowFont != null ||
+      _showRightNarrowFont != null ||
+      _outerGlow != null;
 
   String _title(AppLocalizations l10n) => switch (widget.mode) {
     SingleChannelMode m => m.channelName,
@@ -372,12 +398,22 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
           'highlight_color': _isSingle
               ? (_highlightColor ?? '')
               : _highlightColor,
+          'dynamic_highlight_color': _isSingle
+              ? (_dynamicHighlightColor ?? kTriOptDefault)
+              : _dynamicHighlightColor,
           'show_left_highlight': _showLeftHighlight == null
               ? null
               : (_showLeftHighlight! ? kTriOptOn : kTriOptOff),
           'show_right_highlight': _showRightHighlight == null
               ? null
               : (_showRightHighlight! ? kTriOptOn : kTriOptOff),
+          'show_left_narrow_font': _showLeftNarrowFont == null
+              ? null
+              : (_showLeftNarrowFont! ? kTriOptOn : kTriOptOff),
+          'show_right_narrow_font': _showRightNarrowFont == null
+              ? null
+              : (_showRightNarrowFont! ? kTriOptOn : kTriOptOff),
+          'outer_glow': _isSingle ? (_outerGlow ?? kTriOptDefault) : _outerGlow,
         },
         onlyEnabled: switch (widget.mode) {
           BatchChannelMode(scope: SingleAppScope()) => _onlyEnabled,
@@ -400,6 +436,9 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
     final blockGap = 8.0;
     final scopeGap = 12.0;
     final endGap = 20.0;
+    final hasHighlightColor =
+        _dynamicHighlightEnabled ||
+        (_highlightColor?.trim().isNotEmpty ?? false);
 
     return _KeyboardInsetPadding(
       child: Column(
@@ -668,6 +707,8 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                         Expanded(
                           child: TextFormField(
                             controller: _highlightColorController,
+                            enabled: !_dynamicHighlightEnabled,
+                            readOnly: _dynamicHighlightEnabled,
                             textInputAction: TextInputAction.done,
                             scrollPadding: EdgeInsets.zero,
                             onTapOutside: (_) {
@@ -681,7 +722,10 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                                       : l10n.noChange,
                                 ).copyWith(
                                   suffixIcon:
-                                      _highlightColorController.text.isNotEmpty
+                                      !_dynamicHighlightEnabled &&
+                                          _highlightColorController
+                                              .text
+                                              .isNotEmpty
                                       ? IconButton(
                                           icon: const Icon(
                                             Icons.clear,
@@ -696,27 +740,31 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                                         )
                                       : null,
                                 ),
-                            onChanged: (v) {
-                              final trimmed = v.trim();
-                              setState(() {
-                                _highlightColor = trimmed.isNotEmpty
-                                    ? trimmed
-                                    : null;
-                              });
-                            },
+                            onChanged: _dynamicHighlightEnabled
+                                ? null
+                                : (v) {
+                                    final trimmed = v.trim();
+                                    setState(() {
+                                      _highlightColor = trimmed.isNotEmpty
+                                          ? trimmed
+                                          : null;
+                                    });
+                                  },
                           ),
                         ),
                         const SizedBox(width: 8),
                         GestureDetector(
-                          onTap: () async {
-                            final color = await _showColorPicker(context);
-                            if (color != null) {
-                              final hex =
-                                  '#${color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
-                              _highlightColorController.text = hex;
-                              setState(() => _highlightColor = hex);
-                            }
-                          },
+                          onTap: _dynamicHighlightEnabled
+                              ? null
+                              : () async {
+                                  final color = await _showColorPicker(context);
+                                  if (color != null) {
+                                    final hex =
+                                        '#${color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
+                                    _highlightColorController.text = hex;
+                                    setState(() => _highlightColor = hex);
+                                  }
+                                },
                           child: Container(
                             width: 48,
                             height: 48,
@@ -731,6 +779,42 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                     ),
                   ),
                   SizedBox(height: rowGap),
+                  _BatchSettingRow(
+                    label: l10n.dynamicHighlightColorLabel,
+                    value: _dynamicHighlightColor,
+                    showNotChange: !_isSingle,
+                    items: [
+                      DropdownMenuItem(
+                        value: kTriOptDefault,
+                        child: Text(
+                          _defaultLabel(
+                            context,
+                            _ctrl.defaultDynamicHighlightColor,
+                          ),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOff,
+                        child: Text(l10n.optOff),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOn,
+                        child: Text(l10n.optOn),
+                      ),
+                      DropdownMenuItem(
+                        value: 'dark',
+                        child: Text(l10n.dynamicHighlightModeDark),
+                      ),
+                      DropdownMenuItem(
+                        value: 'darker',
+                        child: Text(l10n.dynamicHighlightModeDarker),
+                      ),
+                    ],
+                    onChanged: (v) => setState(() {
+                      _dynamicHighlightColor = v;
+                    }),
+                  ),
+                  SizedBox(height: rowGap),
                   // 文本高亮
                   _SettingField(
                     label: l10n.textHighlightLabel,
@@ -741,8 +825,9 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                             label: l10n.showLeftHighlightShort,
                             value: _showLeftHighlight,
                             showNotChange: !_isSingle,
-                            onChanged: (v) =>
-                                setState(() => _showLeftHighlight = v),
+                            onChanged: hasHighlightColor
+                                ? (v) => setState(() => _showLeftHighlight = v)
+                                : null,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -751,8 +836,36 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                             label: l10n.showRightHighlightShort,
                             value: _showRightHighlight,
                             showNotChange: !_isSingle,
+                            onChanged: hasHighlightColor
+                                ? (v) => setState(() => _showRightHighlight = v)
+                                : null,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: rowGap),
+                  _SettingField(
+                    label: l10n.narrowFontLabel,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _HighlightSwitch(
+                            label: l10n.showLeftHighlightShort,
+                            value: _showLeftNarrowFont,
+                            showNotChange: !_isSingle,
                             onChanged: (v) =>
-                                setState(() => _showRightHighlight = v),
+                                setState(() => _showLeftNarrowFont = v),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _HighlightSwitch(
+                            label: l10n.showRightHighlightShort,
+                            value: _showRightNarrowFont,
+                            showNotChange: !_isSingle,
+                            onChanged: (v) =>
+                                setState(() => _showRightNarrowFont = v),
                           ),
                         ),
                       ],
@@ -868,6 +981,29 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                       ),
                     ],
                     onChanged: (v) => setState(() => _restoreLockscreen = v),
+                  ),
+                  SizedBox(height: rowGap),
+                  _BatchSettingRow(
+                    label: l10n.outerGlowLabel,
+                    value: _outerGlow,
+                    showNotChange: !_isSingle,
+                    items: [
+                      DropdownMenuItem(
+                        value: kTriOptDefault,
+                        child: Text(
+                          _defaultLabel(context, _ctrl.defaultOuterGlow),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOn,
+                        child: Text(l10n.optOn),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOff,
+                        child: Text(l10n.optOff),
+                      ),
+                    ],
+                    onChanged: (v) => setState(() => _outerGlow = v),
                   ),
                   SizedBox(height: endGap),
                 ],
@@ -1148,9 +1284,12 @@ class _HighlightSwitch extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final enabled = onChanged != null;
 
     return Material(
-      color: cs.surfaceContainerHighest,
+      color: enabled
+          ? cs.surfaceContainerHighest
+          : cs.surfaceContainerHighest.withValues(alpha: 0.45),
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
@@ -1168,7 +1307,12 @@ class _HighlightSwitch extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(label, style: Theme.of(context).textTheme.bodyMedium),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: enabled ? null : cs.onSurfaceVariant,
+                ),
+              ),
               const SizedBox(width: 8),
               Switch(
                 value: value ?? false,

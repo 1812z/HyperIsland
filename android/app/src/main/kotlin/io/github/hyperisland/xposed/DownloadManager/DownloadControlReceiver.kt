@@ -1,4 +1,4 @@
-package io.github.hyperisland.xposed
+package io.github.hyperisland.xposed.DownloadManager
 
 import android.app.DownloadManager
 import android.content.BroadcastReceiver

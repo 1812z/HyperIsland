@@ -565,10 +565,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get highlightColorLabel => 'Highlight color';
 
   @override
+  String get dynamicHighlightColorLabel => 'Dynamic highlight color';
+
+  @override
+  String get dynamicHighlightColorLabelSubtitle =>
+      'Use icon-based dynamic color by default';
+
+  @override
+  String get dynamicHighlightModeDark => 'Dark';
+
+  @override
+  String get dynamicHighlightModeDarker => 'Darker';
+
+  @override
+  String get outerGlowLabel => 'Outer glow';
+
+  @override
   String get highlightColorHint => '#RRGGBB format, leave empty for default';
 
   @override
   String get textHighlightLabel => 'Text highlight';
+
+  @override
+  String get narrowFontLabel => 'Narrow font';
 
   @override
   String get showLeftHighlightLabel => 'Left text highlight';

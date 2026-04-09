@@ -23,6 +23,9 @@ const kPrefDefaultEnableFloat = 'pref_default_enable_float';
 const kPrefDefaultShowIslandIcon = 'pref_default_show_island_icon';
 const kPrefDefaultMarquee = 'pref_default_marquee';
 const kPrefDefaultFocusNotif = 'pref_default_focus_notif';
+const kPrefDefaultDynamicHighlightColor =
+    'pref_default_dynamic_highlight_color';
+const kPrefDefaultOuterGlow = 'pref_default_outer_glow';
 const kPrefDefaultRestoreLockscreen = 'pref_default_restore_lockscreen';
 const kPrefDefaultPreserveSmallIcon = 'pref_default_preserve_small_icon';
 const kPrefHideDesktopIcon = 'pref_hide_desktop_icon';
@@ -114,6 +117,8 @@ class SettingsController extends ChangeNotifier {
   bool defaultShowIslandIcon = true;
   bool defaultMarquee = false;
   bool defaultFocusNotif = true;
+  bool defaultDynamicHighlightColor = false;
+  bool defaultOuterGlow = false;
   bool hideDesktopIcon = false;
   bool defaultRestoreLockscreen = false;
   bool defaultPreserveSmallIcon = false;
@@ -147,13 +152,10 @@ class SettingsController extends ChangeNotifier {
     interactionHaptics = prefs.getBool(kPrefInteractionHaptics) ?? true;
     roundIcon = prefs.getBool(kPrefRoundIcon) ?? true;
     marqueeFeature = prefs.getBool(kPrefMarqueeFeature) ?? false;
-    marqueeSpeed = (prefs.getInt(kPrefMarqueeSpeed) ?? 100).clamp(20, 500);
+    marqueeSpeed = prefs.getInt(kPrefMarqueeSpeed) ?? 100;
     bigIslandMaxWidthEnabled =
         prefs.getBool(kPrefBigIslandMaxWidthEnabled) ?? false;
-    bigIslandMaxWidth = (prefs.getInt(kPrefBigIslandMaxWidth) ?? 600).clamp(
-      500,
-      1000,
-    );
+    bigIslandMaxWidth = prefs.getInt(kPrefBigIslandMaxWidth) ?? 200;
     unlockAllFocus = prefs.getBool(kPrefUnlockAllFocus) ?? false;
     unlockFocusAuth = prefs.getBool(kPrefUnlockFocusAuth) ?? false;
     checkUpdateOnLaunch = prefs.getBool(kPrefCheckUpdateOnLaunch) ?? true;
@@ -162,6 +164,9 @@ class SettingsController extends ChangeNotifier {
     defaultShowIslandIcon = prefs.getBool(kPrefDefaultShowIslandIcon) ?? true;
     defaultMarquee = prefs.getBool(kPrefDefaultMarquee) ?? false;
     defaultFocusNotif = prefs.getBool(kPrefDefaultFocusNotif) ?? true;
+    defaultDynamicHighlightColor =
+        prefs.getBool(kPrefDefaultDynamicHighlightColor) ?? false;
+    defaultOuterGlow = prefs.getBool(kPrefDefaultOuterGlow) ?? false;
     hideDesktopIcon = prefs.getBool(kPrefHideDesktopIcon) ?? false;
     defaultShowIslandIcon = prefs.getBool(kPrefDefaultShowIslandIcon) ?? true;
     defaultRestoreLockscreen =
@@ -253,7 +258,7 @@ class SettingsController extends ChangeNotifier {
   }
 
   Future<void> setBigIslandMaxWidth(int value) async {
-    final clamped = value.clamp(500, 1000);
+    final clamped = value.clamp(100, 500);
     if (bigIslandMaxWidth == clamped) return;
     final prefs = await _getPrefs();
     await prefs.setInt(kPrefBigIslandMaxWidth, clamped);
@@ -322,6 +327,22 @@ class SettingsController extends ChangeNotifier {
     final prefs = await _getPrefs();
     await prefs.setBool(kPrefDefaultFocusNotif, value);
     defaultFocusNotif = value;
+    notifyListeners();
+  }
+
+  Future<void> setDefaultDynamicHighlightColor(bool value) async {
+    if (defaultDynamicHighlightColor == value) return;
+    final prefs = await _getPrefs();
+    await prefs.setBool(kPrefDefaultDynamicHighlightColor, value);
+    defaultDynamicHighlightColor = value;
+    notifyListeners();
+  }
+
+  Future<void> setDefaultOuterGlow(bool value) async {
+    if (defaultOuterGlow == value) return;
+    final prefs = await _getPrefs();
+    await prefs.setBool(kPrefDefaultOuterGlow, value);
+    defaultOuterGlow = value;
     notifyListeners();
   }
 

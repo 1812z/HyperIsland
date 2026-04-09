@@ -1074,6 +1074,36 @@ abstract class AppLocalizations {
   /// **'高亮颜色'**
   String get highlightColorLabel;
 
+  /// No description provided for @dynamicHighlightColorLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'高亮动态取色'**
+  String get dynamicHighlightColorLabel;
+
+  /// No description provided for @dynamicHighlightColorLabelSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'开启后默认使用图标自动取色'**
+  String get dynamicHighlightColorLabelSubtitle;
+
+  /// No description provided for @dynamicHighlightModeDark.
+  ///
+  /// In zh, this message translates to:
+  /// **'暗'**
+  String get dynamicHighlightModeDark;
+
+  /// No description provided for @dynamicHighlightModeDarker.
+  ///
+  /// In zh, this message translates to:
+  /// **'更暗'**
+  String get dynamicHighlightModeDarker;
+
+  /// No description provided for @outerGlowLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'外圈光效'**
+  String get outerGlowLabel;
+
   /// No description provided for @highlightColorHint.
   ///
   /// In zh, this message translates to:
@@ -1085,6 +1115,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'文本高亮'**
   String get textHighlightLabel;
+
+  /// No description provided for @narrowFontLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'窄字体'**
+  String get narrowFontLabel;
 
   /// No description provided for @showLeftHighlightLabel.
   ///

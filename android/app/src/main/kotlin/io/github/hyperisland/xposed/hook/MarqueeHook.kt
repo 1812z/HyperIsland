@@ -1,14 +1,16 @@
 package io.github.hyperisland.xposed.hook
 
-import android.util.Log
+import android.service.notification.StatusBarNotification
 import android.view.Choreographer
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import io.github.hyperisland.xposed.ConfigManager
+import io.github.hyperisland.xposed.log
+import io.github.hyperisland.xposed.logError
 import io.github.hyperisland.xposed.utils.HookUtils
-import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import io.github.libxposed.api.XposedModule
+import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.util.WeakHashMap
 
 /**
@@ -16,13 +18,14 @@ import java.util.WeakHashMap
  */
 object MarqueeHook : BaseHook() {
 
-    private const val TAG = "HyperIsland[MarqueeHook]"
+    private const val TAG = "HyperIsland[Marquee]"
 
     override fun getTag() = TAG
 
     override fun onConfigChanged() {
         cachedSpeed = null
         hookedContentView = false
+        cachedWhitelist = null
         stopAllMarquees()
     }
 
@@ -118,12 +121,27 @@ object MarqueeHook : BaseHook() {
     }
 
     fun traverseAndApplyMarquee(bigIslandView: ViewGroup, enabled: Boolean) {
+        log("Marquee ${if (enabled) "enabled" else "disabled"} for island view")
         islandMarqueeState[bigIslandView] = enabled
         traverseInternal(bigIslandView, enabled)
     }
 
+    private fun isInExpandedView(view: View): Boolean {
+        var p: View? = view
+        while (p != null) {
+            val className = p.javaClass.simpleName
+            if (className.contains("DynamicIslandExpandedView") || 
+                className.contains("ExpandedView")) {
+                return true
+            }
+            p = if (p.parent is View) p.parent as View else null
+        }
+        return false
+    }
+
     private fun traverseInternal(view: View, enabled: Boolean) {
         if (view is TextView) {
+            if (isInExpandedView(view)) return
             if (observedViews.containsKey(view)) {
                 if (enabled) startMarquee(view)
                 else stopMarquee(view)
@@ -133,6 +151,7 @@ object MarqueeHook : BaseHook() {
             val listeners = ArrayList<View.OnLayoutChangeListener>()
             val layoutListener = View.OnLayoutChangeListener { v, _, _, _, _, _, _, _, _ ->
                 val tv = v as TextView
+                if (isInExpandedView(tv)) return@OnLayoutChangeListener
                 if (isMarqueeEnabledFor(tv)) startMarquee(tv)
                 else stopMarquee(tv)
             }
@@ -143,6 +162,7 @@ object MarqueeHook : BaseHook() {
                 override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
                 override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
                 override fun afterTextChanged(s: android.text.Editable?) {
+                    if (isInExpandedView(view)) return
                     if (isMarqueeEnabledFor(view)) startMarquee(view)
                     else stopMarquee(view)
                 }
@@ -156,6 +176,7 @@ object MarqueeHook : BaseHook() {
             view.setOnHierarchyChangeListener(object : ViewGroup.OnHierarchyChangeListener {
                 override fun onChildViewAdded(parent: View?, child: View?) {
                     if (child is TextView) {
+                        if (isInExpandedView(child)) return
                         traverseInternal(child, isMarqueeEnabledFor(child))
                     } else if (child is ViewGroup) {
                         traverseInternal(child, false)
@@ -173,6 +194,23 @@ object MarqueeHook : BaseHook() {
 
     private var hookedContentView = false
     private val targetPkg = java.util.Collections.synchronizedMap(WeakHashMap<View, String>())
+    @Volatile private var cachedWhitelist: Map<String, Set<String>>? = null
+
+    private fun loadWhitelist(): Map<String, Set<String>> {
+        cachedWhitelist?.let { return it }
+        val csv = ConfigManager.getString("pref_generic_whitelist")
+        val map = csv.split(",")
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .associate { pkg ->
+                val channelCsv = ConfigManager.getString("pref_channels_$pkg")
+                val channels = if (channelCsv.isBlank()) emptySet()
+                else channelCsv.split(",").filter { it.isNotBlank() }.toSet()
+                pkg to channels
+            }
+        if (map.isNotEmpty()) cachedWhitelist = map
+        return map
+    }
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
         hookDynamicClassLoaders(module)
@@ -196,41 +234,60 @@ object MarqueeHook : BaseHook() {
                             if (islandView == null) return@intercept result
                             val islandData = chain.args.getOrNull(0)
                             var pkgName = ""
+                            var channelId = ""
+                            var isOngoing = false
                             try {
                                 if (islandData != null) {
                                     val getExtrasMethod = islandData.javaClass.getMethod("getExtras")
                                     val extras = getExtrasMethod.invoke(islandData) as? android.os.Bundle
-                                    pkgName = extras?.getString("miui.pkg.name") ?: ""
+                                    val sbn = if (android.os.Build.VERSION.SDK_INT >= 33) {
+                                        extras?.getParcelable("miui.sbn", StatusBarNotification::class.java)
+                                    } else {
+                                        @Suppress("DEPRECATION")
+                                        extras?.getParcelable("miui.sbn") as? StatusBarNotification
+                                    }
+                                    pkgName = sbn?.packageName ?: ""
+                                    channelId = sbn?.notification?.channelId ?: ""
+                                    isOngoing = (sbn?.notification?.flags ?: 0) and android.app.Notification.FLAG_ONGOING_EVENT != 0
+                                    targetPkg[islandView] = pkgName
                                 }
                             } catch (_: Exception) {}
-                            if (pkgName.isNotEmpty()) {
-                                targetPkg[islandView] = pkgName
-                            } else {
+                            if (pkgName.isEmpty()) {
                                 pkgName = targetPkg[islandView] ?: ""
                             }
                             if (pkgName.isEmpty()) return@intercept result
                             
-                            val isOngoing = try {
-                                islandData?.javaClass?.getMethod("isOngoing")?.invoke(islandData) as? Boolean ?: false
-                            } catch (_: Exception) { false }
-                            if (isOngoing) {
-                                traverseAndApplyMarquee(islandView, false)
+                            val whitelist = loadWhitelist()
+                            val allowedChannels = whitelist[pkgName]
+                            if (allowedChannels == null) {
                                 return@intercept result
                             }
                             
-                            val marqueeRaw = ConfigManager.getString("pref_channel_marquee_${pkgName}", "default")
+                            if (allowedChannels.isNotEmpty() && channelId.isNotEmpty() && channelId !in allowedChannels) {
+                                return@intercept result
+                            }
+                            
+                            val marqueeRaw = ConfigManager.getString("pref_channel_marquee_${pkgName}_${channelId}", "default")
                             val defaultMarquee = ConfigManager.getBoolean("pref_default_marquee", false)
                             val enabled = when (marqueeRaw) {
                                 "on" -> true
                                 "off" -> false
                                 else -> defaultMarquee
                             }
-                            traverseAndApplyMarquee(islandView, enabled)
-                        } catch (_: Exception) {}
+                            
+                            if (!enabled || isOngoing) {
+                                return@intercept result
+                            }
+                            
+                            log("Marquee triggered for package: $pkgName")
+                            traverseAndApplyMarquee(islandView, true)
+                        } catch (e: Exception) {
+                            logError("Error in updateBigIslandView hook: ${e.message}")
+                        }
                         result
                     }
                     hookedContentView = true
-                    module.log(Log.DEBUG, TAG, "hooked updateBigIslandView on $className")
+                    module.log("Hooked updateBigIslandView on $className")
                 }
             } catch (_: Exception) {}
         }

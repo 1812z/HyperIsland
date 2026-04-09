@@ -4,8 +4,8 @@ import android.app.Application
 import android.provider.Settings
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.hyperisland.HyperIslandApp
-import io.github.hyperisland.HyperIslandHelper
+import io.github.hyperisland.XposedPrefsSyncApp
+import io.github.hyperisland.core.helper.HyperIslandHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,8 +29,8 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
 
     fun refreshStatus() {
         viewModelScope.launch(Dispatchers.IO) {
-            val ready = HyperIslandApp.awaitReady()
-            val apiVersion = if (ready) HyperIslandApp.getApiVersion() else 0
+            val ready = XposedPrefsSyncApp.awaitReady()
+            val apiVersion = if (ready) XposedPrefsSyncApp.getApiVersion() else 0
             val active = ready && apiVersion >= 101
             val focusProtocol = Settings.System.getInt(
                 getApplication<Application>().contentResolver,

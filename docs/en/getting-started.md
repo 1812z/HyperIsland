@@ -34,6 +34,7 @@
 
 1. Open **HyperCeiler**, go to "System UI" or "Xiaomi Services Framework" settings
 2. Find **"Remove Focus Notification Whitelist"** and **"Unlock Focus Notification Whitelist Verification"**
+   ![Whitelist Bypass](../images/focus_whitelist_en.png){style="width: 50%;"}
 3. Enable and restart the scope
 
 ::: danger Built-in Bypass

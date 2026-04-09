@@ -2,13 +2,16 @@ package io.github.hyperisland.xposed.hook
 
 import android.app.KeyguardManager
 import android.app.Notification
+import android.graphics.drawable.Icon
 import android.service.notification.StatusBarNotification
-import io.github.hyperisland.getAppIcon
+import io.github.hyperisland.utils.getAppIcon
+import io.github.hyperisland.utils.resolveDynamicHighlightColor
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.IslandDispatcher
 import io.github.hyperisland.xposed.NotifData
 import io.github.hyperisland.xposed.TemplateRegistry
 import io.github.hyperisland.xposed.templates.NotificationIslandNotification
+import io.github.hyperisland.xposed.toRounded
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import io.github.libxposed.api.XposedModule
@@ -193,18 +196,19 @@ object GenericProgressHook : BaseHook() {
             if (allowedChannels.isNotEmpty() && channelId !in allowedChannels) return
 
             val extras = notif.extras ?: return
+            extras.putString("hyperisland_channel_id", channelId)
 
             if (isMediaNotification(notif, extras)) return
 
             val defaultRestoreLockscreen = loadBooleanSetting("global:default_restore_lockscreen", "pref_default_restore_lockscreen", false)
             val restoreLockscreenRaw = loadChannelStringSetting("restore_lockscreen:$pkg/$channelId", "pref_channel_restore_lockscreen_${pkg}_$channelId", "default")
             val restoreLockscreen = resolveTriOpt(restoreLockscreenRaw, defaultRestoreLockscreen)
-            log(module, "restoreLockscreen raw=$restoreLockscreenRaw, resolved=$restoreLockscreen, default=$defaultRestoreLockscreen")
 
             if (restoreLockscreen == "on" && shouldRedactPrivateContentOnLockscreen(context, notif, module)) {
+                log(module, "restoreLockscreen raw=$restoreLockscreenRaw, resolved=$restoreLockscreen, default=$defaultRestoreLockscreen")
                 log(module, "skipping due to lockscreen restore")
                 extras.remove("miui.focus.param")
-                extras.remove("hyperisland_generic_processed")
+                extras.remove("hyperisland_processed")
                 return
             }
 
@@ -216,7 +220,6 @@ object GenericProgressHook : BaseHook() {
 
             if (hasProgressBar) {
                 if (extras.getBoolean("hyperisland_processed", false)) return
-                if (extras.getBoolean("hyperisland_generic_processed", false)) return
             }
 
             val cacheKey = "$pkg#${sbn.id}"
@@ -253,6 +256,8 @@ object GenericProgressHook : BaseHook() {
             val defaultEnableFloat       = loadBooleanSetting("global:default_enable_float",       "pref_default_enable_float",       false)
             val defaultMarquee           = loadBooleanSetting("global:default_marquee",            "pref_default_marquee",            false)
             val defaultFocusNotif        = loadBooleanSetting("global:default_focus_notif",        "pref_default_focus_notif",        true)
+            val defaultDynamicHighlightColor = loadBooleanSetting("global:default_dynamic_highlight_color", "pref_default_dynamic_highlight_color", false)
+            val defaultOuterGlow = loadBooleanSetting("global:default_outer_glow", "pref_default_outer_glow", false)
             val defaultPreserveSmallIcon = loadBooleanSetting("global:default_preserve_small_icon","pref_default_preserve_small_icon", false)
             val defaultShowIslandIcon    = loadBooleanSetting("global:default_show_island_icon",   "pref_default_show_island_icon",   true)
 
@@ -290,12 +295,40 @@ object GenericProgressHook : BaseHook() {
             val highlightColor = loadChannelStringSetting(
                 "highlight_color:$pkg/$channelId", "pref_channel_highlight_color_${pkg}_$channelId", ""
             ).takeIf { it.isNotBlank() }
+            val dynamicHighlightColorRaw = loadChannelStringSetting(
+                "dynamic_highlight_color:$pkg/$channelId",
+                "pref_channel_dynamic_highlight_color_${pkg}_$channelId",
+                "default"
+            )
+            val dynamicHighlightColorMode = when (dynamicHighlightColorRaw) {
+                "on", "off", "dark", "darker" -> dynamicHighlightColorRaw
+                else -> if (defaultDynamicHighlightColor) "on" else "off"
+            }
+            val resolvedHighlightColor = resolveHighlightColor(
+                context = context,
+                iconMode = iconMode,
+                notifIcon = notif.smallIcon,
+                largeIcon = largeIcon,
+                appIconRaw = appIconRaw,
+                manualHighlightColor = highlightColor,
+                dynamicMode = dynamicHighlightColorMode,
+            )
             val showLeftHighlight = loadChannelStringSetting(
                 "show_left_highlight:$pkg/$channelId", "pref_channel_show_left_highlight_${pkg}_$channelId", "off"
             ) == "on"
             val showRightHighlight = loadChannelStringSetting(
                 "show_right_highlight:$pkg/$channelId", "pref_channel_show_right_highlight_${pkg}_$channelId", "off"
             ) == "on"
+            val showLeftNarrowFont = loadChannelStringSetting(
+                "show_left_narrow_font:$pkg/$channelId", "pref_channel_show_left_narrow_font_${pkg}_$channelId", "off"
+            ) == "on"
+            val showRightNarrowFont = loadChannelStringSetting(
+                "show_right_narrow_font:$pkg/$channelId", "pref_channel_show_right_narrow_font_${pkg}_$channelId", "off"
+            ) == "on"
+            val outerGlowRaw = loadChannelStringSetting(
+                "outer_glow:$pkg/$channelId", "pref_channel_outer_glow_${pkg}_$channelId", "default"
+            )
+            val outerGlow = resolveTriOpt(outerGlowRaw, defaultOuterGlow) == "on"
 
             log(module, "$pkg/$channelId | $title |  template=$template")
 //            log(module, "$pkg/$channelId | $title | $progressPercent% | template=$template | buttons=${actions.size} | largeIcon=${largeIcon != null} | preserveSmallIcon=$preserveStatusBarSmallIcon")
@@ -326,18 +359,44 @@ object GenericProgressHook : BaseHook() {
                     isOngoing       = isOngoing,
                     contentIntent   = notif.contentIntent,
                     renderer        = renderer,
-                    highlightColor  = highlightColor,
+                    highlightColor  = resolvedHighlightColor,
                     showLeftHighlightColor = showLeftHighlight,
                     showRightHighlightColor = showRightHighlight,
+                    showLeftNarrowFont = showLeftNarrowFont,
+                    showRightNarrowFont = showRightNarrowFont,
+                    outerGlow = outerGlow,
                 ),
             )
 
-            extras.putBoolean("hyperisland_generic_processed", true)
             trackedForCancel["$pkg#${sbn.id}"] = IslandDispatcher.NOTIF_ID
 
         } catch (e: Throwable) {
             logError(module, "handleSbn error: ${e.message}")
         }
+    }
+
+    private fun resolveHighlightColor(
+        context: android.content.Context,
+        iconMode: String,
+        notifIcon: Icon?,
+        largeIcon: Icon?,
+        appIconRaw: Icon?,
+        manualHighlightColor: String?,
+        dynamicMode: String,
+    ): String? {
+        val mode = dynamicMode.trim().lowercase()
+        if (mode != "on" && mode != "dark" && mode != "darker") {
+            return manualHighlightColor
+        }
+        val fallback = Icon.createWithResource(context, android.R.drawable.ic_dialog_info)
+        val iconForColor = when (iconMode) {
+            "notif_small" -> notifIcon ?: fallback
+            "notif_large" -> largeIcon ?: notifIcon ?: fallback
+            "app_icon" -> appIconRaw ?: fallback
+            else -> largeIcon ?: notifIcon ?: fallback
+        }.toRounded(context)
+
+        return iconForColor.resolveDynamicHighlightColor(context, mode) ?: manualHighlightColor
     }
 
     private fun shouldRedactPrivateContentOnLockscreen(

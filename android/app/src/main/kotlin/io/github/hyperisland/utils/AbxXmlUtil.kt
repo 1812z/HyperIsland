@@ -1,4 +1,4 @@
-package io.github.hyperisland
+package io.github.hyperisland.utils
 
 import java.io.BufferedInputStream
 import java.io.ByteArrayInputStream

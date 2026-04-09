@@ -20,7 +20,7 @@
 
     <application
         android:label="HyperIsland"
-        android:name=".HyperIslandApp"
+        android:name=".XposedPrefsSyncApp"
         android:description="@string/module_description"
         android:icon="@mipmap/ic_launcher">
         <activity

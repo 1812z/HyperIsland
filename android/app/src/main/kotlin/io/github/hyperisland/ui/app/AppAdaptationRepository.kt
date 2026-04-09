@@ -6,8 +6,8 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import io.github.hyperisland.NotificationChannelReader
-import io.github.hyperisland.toBitmap
 import io.github.hyperisland.data.prefs.PrefKeys
+import io.github.hyperisland.utils.toBitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll

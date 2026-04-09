@@ -209,6 +209,10 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
     );
     queueExtra('highlight_color', widget.controller.setChannelHighlightColor);
     queueExtra(
+      'dynamic_highlight_color',
+      widget.controller.setChannelDynamicHighlightColor,
+    );
+    queueExtra(
       'show_left_highlight',
       widget.controller.setChannelShowLeftHighlight,
     );
@@ -216,6 +220,15 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
       'show_right_highlight',
       widget.controller.setChannelShowRightHighlight,
     );
+    queueExtra(
+      'show_left_narrow_font',
+      widget.controller.setChannelShowLeftNarrowFont,
+    );
+    queueExtra(
+      'show_right_narrow_font',
+      widget.controller.setChannelShowRightNarrowFont,
+    );
+    queueExtra('outer_glow', widget.controller.setChannelOuterGlow);
 
     if (templateChanged || extrasChanged) {
       setState(() {
@@ -493,10 +506,17 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                         restoreLockscreen:
                             extras['restore_lockscreen'] ?? kTriOptDefault,
                         highlightColor: extras['highlight_color'] ?? '',
+                        dynamicHighlightColor:
+                            extras['dynamic_highlight_color'] ?? kTriOptDefault,
                         showLeftHighlight:
                             extras['show_left_highlight'] ?? kTriOptOff,
                         showRightHighlight:
                             extras['show_right_highlight'] ?? kTriOptOff,
+                        showLeftNarrowFont:
+                            extras['show_left_narrow_font'] ?? kTriOptOff,
+                        showRightNarrowFont:
+                            extras['show_right_narrow_font'] ?? kTriOptOff,
+                        outerGlow: extras['outer_glow'] ?? kTriOptDefault,
                         onToggle: (v) => _toggle(ch.id, v),
                         onSettingsApplied: (s) =>
                             _applyChannelSettings(ch.id, s),
@@ -605,8 +625,12 @@ class _ChannelTile extends StatelessWidget {
     required this.marquee,
     required this.restoreLockscreen,
     required this.highlightColor,
+    required this.dynamicHighlightColor,
     required this.showLeftHighlight,
     required this.showRightHighlight,
+    required this.showLeftNarrowFont,
+    required this.showRightNarrowFont,
+    required this.outerGlow,
     required this.onToggle,
     required this.onSettingsApplied,
   });
@@ -631,8 +655,12 @@ class _ChannelTile extends StatelessWidget {
   final String marquee;
   final String restoreLockscreen;
   final String highlightColor;
+  final String dynamicHighlightColor;
   final String showLeftHighlight;
   final String showRightHighlight;
+  final String showLeftNarrowFont;
+  final String showRightNarrowFont;
+  final String outerGlow;
   final ValueChanged<bool> onToggle;
   final ValueChanged<Map<String, String?>> onSettingsApplied;
 
@@ -654,8 +682,12 @@ class _ChannelTile extends StatelessWidget {
         marquee: marquee,
         restoreLockscreen: restoreLockscreen,
         highlightColor: highlightColor,
+        dynamicHighlightColor: dynamicHighlightColor,
         showLeftHighlight: showLeftHighlight,
         showRightHighlight: showRightHighlight,
+        showLeftNarrowFont: showLeftNarrowFont,
+        showRightNarrowFont: showRightNarrowFont,
+        outerGlow: outerGlow,
       ),
       templateLabels: templateLabels,
       rendererLabels: rendererLabels,
@@ -739,13 +771,6 @@ class _ChannelTile extends StatelessWidget {
             ),
           ),
         ),
-        if (!isLast)
-          Divider(
-            height: 1,
-            thickness: 1,
-            indent: 16,
-            color: cs.outlineVariant.withValues(alpha: 0.4),
-          ),
       ],
     );
   }

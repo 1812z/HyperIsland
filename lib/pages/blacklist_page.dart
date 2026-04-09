@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../controllers/blacklist_controller.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../services/interaction_haptics.dart';
 import '../services/app_cache_service.dart';
 import '../widgets/app_list_widgets.dart';
 
@@ -94,7 +95,7 @@ class _BlacklistPageState extends State<BlacklistPage> {
                     tooltip: l10n.presetGamesTitle,
                     onPressed: _ctrl.loading
                         ? null
-                        : () async {
+                        : InteractionHaptics.interceptButton(() async {
                             final count = await _ctrl.applyGamePreset();
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -103,7 +104,7 @@ class _BlacklistPageState extends State<BlacklistPage> {
                                 ),
                               );
                             }
-                          },
+                          }),
                   ),
                   AppBarOverflowMenuButton(
                     onSelected: (value) => handleAppListOverflowMenuSelection(
@@ -176,13 +177,15 @@ class _BlacklistPageState extends State<BlacklistPage> {
                         key: ValueKey(pkg),
                         app: app,
                         enabled: _ctrl.blacklistedPackages.contains(pkg),
-                        onChanged: (v) => _ctrl.setBlacklisted(pkg, v ?? false),
-                        onTap: () {
+                        onChanged: InteractionHaptics.interceptCheckbox(
+                          (v) => _ctrl.setBlacklisted(pkg, v),
+                        )!,
+                        onTap: InteractionHaptics.interceptButton(() {
                           _ctrl.setBlacklisted(
                             pkg,
                             !_ctrl.blacklistedPackages.contains(pkg),
                           );
-                        },
+                        })!,
                         isFirst: index == 0,
                         isLast: index == apps.length - 1,
                       );

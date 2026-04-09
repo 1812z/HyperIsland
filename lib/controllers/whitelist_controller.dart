@@ -282,7 +282,7 @@ class WhitelistController extends ChangeNotifier {
 
   // ── 渠道级额外设置（图标、焦点通知、初次展开、更新展开）────────────────────
 
-  /// 批量读取各渠道的额外设置，返回 channelId → {icon, focus_icon, focus, preserve_small_icon, first_float, enable_float, timeout, marquee, highlight_color}。
+  /// 批量读取各渠道的额外设置，返回 channelId → {icon, focus_icon, focus, preserve_small_icon, first_float, enable_float, timeout, marquee, highlight_color, dynamic_highlight_color, outer_glow}。
   Future<Map<String, Map<String, String>>> getChannelExtraSettings(
     String packageName,
     List<String> channelIds,
@@ -329,6 +329,11 @@ class WhitelistController extends ChangeNotifier {
                 'pref_channel_highlight_color_${packageName}_$id',
               ) ??
               '',
+          'dynamic_highlight_color':
+              prefs.getString(
+                'pref_channel_dynamic_highlight_color_${packageName}_$id',
+              ) ??
+              kTriOptDefault,
           'show_left_highlight':
               prefs.getString(
                 'pref_channel_show_left_highlight_${packageName}_$id',
@@ -339,6 +344,19 @@ class WhitelistController extends ChangeNotifier {
                 'pref_channel_show_right_highlight_${packageName}_$id',
               ) ??
               kTriOptOff,
+          'show_left_narrow_font':
+              prefs.getString(
+                'pref_channel_show_left_narrow_font_${packageName}_$id',
+              ) ??
+              kTriOptOff,
+          'show_right_narrow_font':
+              prefs.getString(
+                'pref_channel_show_right_narrow_font_${packageName}_$id',
+              ) ??
+              kTriOptOff,
+          'outer_glow':
+              prefs.getString('pref_channel_outer_glow_${packageName}_$id') ??
+              kTriOptDefault,
         }),
       ),
     );
@@ -487,6 +505,18 @@ class WhitelistController extends ChangeNotifier {
     }
   }
 
+  Future<void> setChannelDynamicHighlightColor(
+    String packageName,
+    String channelId,
+    String value,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      'pref_channel_dynamic_highlight_color_${packageName}_$channelId',
+      value,
+    );
+  }
+
   Future<void> setChannelShowLeftHighlight(
     String packageName,
     String channelId,
@@ -507,6 +537,42 @@ class WhitelistController extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
       'pref_channel_show_right_highlight_${packageName}_$channelId',
+      value,
+    );
+  }
+
+  Future<void> setChannelShowLeftNarrowFont(
+    String packageName,
+    String channelId,
+    String value,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      'pref_channel_show_left_narrow_font_${packageName}_$channelId',
+      value,
+    );
+  }
+
+  Future<void> setChannelShowRightNarrowFont(
+    String packageName,
+    String channelId,
+    String value,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      'pref_channel_show_right_narrow_font_${packageName}_$channelId',
+      value,
+    );
+  }
+
+  Future<void> setChannelOuterGlow(
+    String packageName,
+    String channelId,
+    String value,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      'pref_channel_outer_glow_${packageName}_$channelId',
       value,
     );
   }
@@ -534,8 +600,12 @@ class WhitelistController extends ChangeNotifier {
       'marquee': 'pref_channel_marquee',
       'restore_lockscreen': 'pref_channel_restore_lockscreen',
       'highlight_color': 'pref_channel_highlight_color',
+      'dynamic_highlight_color': 'pref_channel_dynamic_highlight_color',
       'show_left_highlight': 'pref_channel_show_left_highlight',
       'show_right_highlight': 'pref_channel_show_right_highlight',
+      'show_left_narrow_font': 'pref_channel_show_left_narrow_font',
+      'show_right_narrow_font': 'pref_channel_show_right_narrow_font',
+      'outer_glow': 'pref_channel_outer_glow',
     };
     final futures = <Future<bool>>[];
     for (final id in channelIds) {

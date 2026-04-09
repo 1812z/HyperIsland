@@ -45,7 +45,6 @@ object InProcessController {
 
     @Volatile private var registered = false
     @Volatile private var resumeNotificationEnabled = true
-    @Volatile var useHookAppIconEnabled = true
     @Volatile private var module: XposedModule? = null
 
     data class DownloadNotifSnapshot(
@@ -64,8 +63,7 @@ object InProcessController {
 
     private fun loadSettings() {
         resumeNotificationEnabled = ConfigManager.getBoolean("pref_resume_notification", true)
-        useHookAppIconEnabled = ConfigManager.getBoolean("pref_use_hook_app_icon", true)
-        module?.log("$TAG: settings loaded — resumeNotification=$resumeNotificationEnabled useHookAppIcon=$useHookAppIconEnabled")
+        module?.log("$TAG: settings loaded — resumeNotification=$resumeNotificationEnabled")
     }
 
     fun ensureRegistered(context: Context, xposedModule: XposedModule) {
@@ -371,20 +369,6 @@ object InProcessController {
             context.getSystemService(NotificationManager::class.java)?.cancel(PAUSED_OVERLAY_ID)
         } catch (e: Exception) {
             module?.logError("$TAG: cancelPausedOverlay failed: ${e.message}")
-        }
-    }
-
-    @Suppress("unused")
-    private fun callDmMethod(context: Context, methodName: String, downloadId: Long): Boolean {
-        return try {
-            val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) ?: return false
-            val method = dm.javaClass.getMethod(methodName, LongArray::class.java)
-            method.isAccessible = true
-            method.invoke(dm, longArrayOf(downloadId))
-            true
-        } catch (e: Exception) {
-            module?.logError("$TAG: $methodName reflection failed: ${e.message}")
-            false
         }
     }
 }

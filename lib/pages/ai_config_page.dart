@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../controllers/settings_controller.dart';
@@ -85,7 +84,6 @@ class _AiConfigPageState extends State<AiConfigPage> {
   }
 
   Future<void> _save() async {
-    await InteractionHaptics.button();
     final nextUrl = _urlCtrl.text.trim();
     final nextKey = _keyCtrl.text.trim();
     final nextModel = _modelCtrl.text.trim();
@@ -147,20 +145,17 @@ class _AiConfigPageState extends State<AiConfigPage> {
 
   Future<void> _onAiEnabledChanged(bool value) async {
     if (_aiEnabledValue == value) return;
-    await InteractionHaptics.toggle();
     setState(() => _aiEnabledValue = value);
     await _ctrl.setAiEnabled(value);
   }
 
   Future<void> _onAiPromptInUserChanged(bool value) async {
     if (_aiPromptInUserValue == value) return;
-    await InteractionHaptics.toggle();
     setState(() => _aiPromptInUserValue = value);
     await _ctrl.setAiPromptInUser(value);
   }
 
   Future<void> _test() async {
-    await InteractionHaptics.button();
     final url = _urlCtrl.text.trim();
     final key = _keyCtrl.text.trim();
     final model = _modelCtrl.text.trim();
@@ -322,7 +317,9 @@ class _AiConfigPageState extends State<AiConfigPage> {
                     title: Text(l10n.aiEnabledTitle),
                     subtitle: Text(l10n.aiEnabledSubtitle),
                     value: _aiEnabledValue,
-                    onChanged: _onAiEnabledChanged,
+                    onChanged: InteractionHaptics.interceptToggle(
+                      _onAiEnabledChanged,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -360,10 +357,9 @@ class _AiConfigPageState extends State<AiConfigPage> {
                                   : FontAwesomeIcons.eye,
                               size: 16,
                             ),
-                            onPressed: () async {
-                              await InteractionHaptics.button();
+                            onPressed: InteractionHaptics.interceptButton(() {
                               setState(() => _keyObscured = !_keyObscured);
-                            },
+                            }),
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -388,7 +384,9 @@ class _AiConfigPageState extends State<AiConfigPage> {
                           title: Text(l10n.aiPromptInUserTitle),
                           subtitle: Text(l10n.aiPromptInUserSubtitle),
                           value: _aiPromptInUserValue,
-                          onChanged: _onAiPromptInUserChanged,
+                          onChanged: InteractionHaptics.interceptToggle(
+                            _onAiPromptInUserChanged,
+                          ),
                         ),
                         const SizedBox(height: 24),
                         Row(
@@ -423,10 +421,9 @@ class _AiConfigPageState extends State<AiConfigPage> {
                             max: 15,
                             divisions: 13,
                             label: '${_aiTimeoutDraft}s',
-                            onChanged: (v) async {
-                              await InteractionHaptics.sliderTick();
-                              _onTimeoutChanged(v);
-                            },
+                            onChanged: InteractionHaptics.interceptSlider(
+                              _onTimeoutChanged,
+                            ),
                             onChangeEnd: _persistTimeout,
                           ),
                         ),
@@ -473,10 +470,9 @@ class _AiConfigPageState extends State<AiConfigPage> {
                             max: 1,
                             divisions: 10,
                             label: _aiTemperatureDraft.toStringAsFixed(1),
-                            onChanged: (v) async {
-                              await InteractionHaptics.sliderTick();
-                              _onTemperatureChanged(v);
-                            },
+                            onChanged: InteractionHaptics.interceptSlider(
+                              _onTemperatureChanged,
+                            ),
                             onChangeEnd: _persistTemperature,
                           ),
                         ),
@@ -520,10 +516,9 @@ class _AiConfigPageState extends State<AiConfigPage> {
                             max: 100,
                             divisions: 80,
                             label: '$_aiMaxTokensDraft',
-                            onChanged: (v) async {
-                              await InteractionHaptics.sliderTick();
-                              _onMaxTokensChanged(v);
-                            },
+                            onChanged: InteractionHaptics.interceptSlider(
+                              _onMaxTokensChanged,
+                            ),
                             onChangeEnd: _persistMaxTokens,
                           ),
                         ),
@@ -533,7 +528,9 @@ class _AiConfigPageState extends State<AiConfigPage> {
                           children: [
                             Expanded(
                               child: OutlinedButton.icon(
-                                onPressed: _testing ? null : _test,
+                                onPressed: _testing
+                                    ? null
+                                    : InteractionHaptics.interceptButton(_test),
                                 icon: _testing
                                     ? const SizedBox(
                                         width: 16,
@@ -560,7 +557,9 @@ class _AiConfigPageState extends State<AiConfigPage> {
                             const SizedBox(width: 12),
                             Expanded(
                               child: FilledButton.icon(
-                                onPressed: _save,
+                                onPressed: InteractionHaptics.interceptButton(
+                                  _save,
+                                ),
                                 icon: const FaIcon(
                                   FontAwesomeIcons.floppyDisk,
                                   size: 16,
