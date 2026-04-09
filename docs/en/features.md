@@ -56,6 +56,7 @@ Choose the appropriate Super Island template for each app/channel:
 - **Message Scroll**: Toggle text scrolling within the island
 - **Auto Dismiss**: Set seconds before Super Island auto-hides
 - **Highlight Color**: Custom highlight color (supports HEX values)
+- **Dynamic Highlight Color Extraction**: Dynamically extract the highlight color from the Super Island icon.
 - **Text Highlight**: Choose left or right text to display with highlight color
 - **Narrow Font**: When enabled, switch the Dynamic Island to the narrow font (this will cause “.” to be converted to “:”)
 
