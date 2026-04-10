@@ -86,6 +86,27 @@ import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 import kotlinx.coroutines.delay
 
 @Composable
+private fun sectionCardModifier(
+    modifier: Modifier = Modifier,
+    shape: RoundedCornerShape = RoundedCornerShape(18.dp),
+): Modifier {
+    val isDarkTheme = isSystemInDarkTheme()
+    return modifier
+        .clip(shape)
+        .then(
+            if (isDarkTheme) {
+                Modifier.border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.34f),
+                    shape = shape,
+                )
+            } else {
+                Modifier
+            },
+        )
+}
+
+@Composable
 fun AppsScreen(
     state: AppsUiState,
     onRefresh: () -> Unit,
@@ -367,7 +388,7 @@ fun AppChannelsScreen(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         item {
-            MiuixCard(modifier = Modifier.fillMaxWidth()) {
+            MiuixCard(modifier = sectionCardModifier(Modifier.fillMaxWidth())) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -426,7 +447,7 @@ fun AppChannelsScreen(
 
         if (!state.appEnabled) {
             item {
-                MiuixCard(modifier = Modifier.fillMaxWidth()) {
+                MiuixCard(modifier = sectionCardModifier(Modifier.fillMaxWidth())) {
                     Text(
                         text = "请先开启应用总开关后再配置通知渠道",
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
@@ -457,7 +478,7 @@ fun AppChannelsScreen(
             }
         } else {
             item {
-                MiuixCard(modifier = Modifier.fillMaxWidth()) {
+                MiuixCard(modifier = sectionCardModifier(Modifier.fillMaxWidth())) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         channels.forEach { channel ->
                             val enabled = state.enabledChannels.isEmpty() || state.enabledChannels.contains(channel.id)
@@ -831,24 +852,7 @@ private fun ChannelSectionTitle(title: String) {
 
 @Composable
 private fun ChannelSectionCard(content: @Composable () -> Unit) {
-    val isDarkTheme = isSystemInDarkTheme()
-    val cardShape = RoundedCornerShape(18.dp)
-    MiuixCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(cardShape)
-            .then(
-                if (isDarkTheme) {
-                    Modifier.border(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.34f),
-                        shape = cardShape,
-                    )
-                } else {
-                    Modifier
-                },
-            ),
-    ) {
+    MiuixCard(modifier = sectionCardModifier(Modifier.fillMaxWidth())) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -1233,11 +1237,12 @@ private fun AppItemRow(
     selected: Boolean,
     onSelectedChange: (Boolean) -> Unit,
 ) {
+    val cardShape = RoundedCornerShape(18.dp)
     MiuixCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp)
-            .clip(RoundedCornerShape(18.dp))
+            .then(sectionCardModifier(shape = cardShape))
             .pressable(interactionSource = remember { MutableInteractionSource() })
             .clickable { onClick() },
     ) {

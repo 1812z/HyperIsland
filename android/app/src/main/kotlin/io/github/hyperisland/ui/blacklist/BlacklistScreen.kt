@@ -1,8 +1,10 @@
 package io.github.hyperisland.ui.blacklist
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,6 +43,27 @@ import top.yukonga.miuix.kmp.basic.rememberPullToRefreshState
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.pressable
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
+
+@Composable
+private fun blacklistCardModifier(
+    modifier: Modifier = Modifier,
+    shape: RoundedCornerShape = RoundedCornerShape(18.dp),
+): Modifier {
+    val isDarkTheme = isSystemInDarkTheme()
+    return modifier
+        .clip(shape)
+        .then(
+            if (isDarkTheme) {
+                Modifier.border(
+                    1.dp,
+                    MaterialTheme.colorScheme.outline.copy(alpha = 0.34f),
+                    shape,
+                )
+            } else {
+                Modifier
+            },
+        )
+}
 
 @Composable
 fun BlacklistScreen(
@@ -143,7 +166,7 @@ private fun EmptyBlacklistState(
     query: String,
     onClearQuery: () -> Unit,
 ) {
-    MiuixCard(modifier = Modifier.fillMaxWidth()) {
+    MiuixCard(modifier = blacklistCardModifier(Modifier.fillMaxWidth())) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -178,7 +201,7 @@ private fun BlacklistAppRow(
     MiuixCard(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
+            .then(blacklistCardModifier())
             .pressable(interactionSource = remember { MutableInteractionSource() })
             .clickable { onEnabledChange(!enabled) },
     ) {

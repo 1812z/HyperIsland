@@ -1,6 +1,7 @@
 package io.github.hyperisland.ui.ai
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -51,6 +53,27 @@ private const val DEFAULT_AI_TEMPERATURE = 0.1
 private const val DEFAULT_AI_MAX_TOKENS = 50
 
 @Composable
+private fun aiCardModifier(
+    modifier: Modifier = Modifier,
+    shape: RoundedCornerShape = RoundedCornerShape(18.dp),
+): Modifier {
+    val isDarkTheme = isSystemInDarkTheme()
+    return modifier
+        .clip(shape)
+        .then(
+            if (isDarkTheme) {
+                Modifier.border(
+                    1.dp,
+                    MaterialTheme.colorScheme.outline.copy(alpha = 0.34f),
+                    shape,
+                )
+            } else {
+                Modifier
+            },
+        )
+}
+
+@Composable
 fun AiConfigScreen(
     state: AiConfigState,
     onUpdate: (AiConfigState) -> Unit,
@@ -81,7 +104,7 @@ fun AiConfigScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text("AI 增强", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            MiuixCard(modifier = Modifier.fillMaxWidth()) {
+            MiuixCard(modifier = aiCardModifier(Modifier.fillMaxWidth())) {
                 Row(
                     modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).padding(16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -102,7 +125,7 @@ fun AiConfigScreen(
 
             if (state.enabled) {
                 Text("API 参数", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                MiuixCard(modifier = Modifier.fillMaxWidth()) {
+                MiuixCard(modifier = aiCardModifier(Modifier.fillMaxWidth())) {
                     Column(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         MiuixTextField(
                             value = state.url,
@@ -213,7 +236,7 @@ fun AiConfigScreen(
                 }
             }
 
-            MiuixCard(modifier = Modifier.fillMaxWidth()) {
+            MiuixCard(modifier = aiCardModifier(Modifier.fillMaxWidth())) {
                 Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                     Text(
                         "AI 会接收每条通知的应用包名、标题、正文，并返回短左文案（来源）与短右文案（内容）。兼容 OpenAI 格式 API（如 DeepSeek、Claude）。无响应时会自动回退默认逻辑。",

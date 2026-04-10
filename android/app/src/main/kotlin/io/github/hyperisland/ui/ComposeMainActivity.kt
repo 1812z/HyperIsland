@@ -480,6 +480,7 @@ private fun HyperCeilerNavigationSwitchBar(
     backdrop: LayerBackdrop? = null,
 ) {
     val isDarkTheme = isSystemInDarkTheme()
+    val colorScheme = MaterialTheme.colorScheme
     val navBottomInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     AnimatedContent(
         targetState = style.floating,
@@ -528,8 +529,8 @@ private fun HyperCeilerNavigationSwitchBar(
                         .shadow(
                             elevation = style.floatingShadowElevation,
                             shape = androidx.compose.foundation.shape.RoundedCornerShape(style.floatingCornerRadius),
-                            ambientColor = Color.Black.copy(alpha = if (isDarkTheme) 0.34f else 0.10f),
-                            spotColor = Color.Black.copy(alpha = if (isDarkTheme) 0.42f else 0.12f),
+                            ambientColor = colorScheme.onSurface.copy(alpha = if (isDarkTheme) 0.34f else 0.10f),
+                            spotColor = colorScheme.outline.copy(alpha = if (isDarkTheme) 0.42f else 0.12f),
                             clip = false,
                         )
                         .clip(androidx.compose.foundation.shape.RoundedCornerShape(style.floatingCornerRadius))
@@ -538,9 +539,9 @@ private fun HyperCeilerNavigationSwitchBar(
                             brush = Brush.verticalGradient(
                                 colors = if (isDarkTheme) {
                                     listOf(
-                                        MaterialTheme.colorScheme.surface.copy(alpha = if (backdrop != null) 0.78f else 0.96f),
-                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = if (backdrop != null) 0.70f else 0.90f),
-                                        MaterialTheme.colorScheme.surface.copy(alpha = if (backdrop != null) 0.66f else 0.86f),
+                                        colorScheme.surface.copy(alpha = if (backdrop != null) 0.78f else 0.96f),
+                                        colorScheme.surfaceVariant.copy(alpha = if (backdrop != null) 0.70f else 0.90f),
+                                        colorScheme.surface.copy(alpha = if (backdrop != null) 0.66f else 0.86f),
                                     )
                                 } else {
                                     listOf(
@@ -564,10 +565,10 @@ private fun HyperCeilerNavigationSwitchBar(
                             val outerStrokeBrush = if (isDarkTheme) {
                                 Brush.linearGradient(
                                     colors = listOf(
-                                        Color.White.copy(alpha = 0.22f),
-                                        Color.White.copy(alpha = 0.10f),
-                                        Color.Black.copy(alpha = 0.14f),
-                                        Color.White.copy(alpha = 0.18f),
+                                        colorScheme.outline.copy(alpha = 0.44f),
+                                        colorScheme.onSurface.copy(alpha = 0.22f),
+                                        colorScheme.surfaceVariant.copy(alpha = 0.26f),
+                                        colorScheme.outline.copy(alpha = 0.34f),
                                     ),
                                     start = Offset(halfW - dx, halfH - dy),
                                     end = Offset(halfW + dx, halfH + dy),
@@ -587,8 +588,8 @@ private fun HyperCeilerNavigationSwitchBar(
                             val innerStrokeBrush = if (isDarkTheme) {
                                 Brush.verticalGradient(
                                     colors = listOf(
-                                        Color.White.copy(alpha = 0.22f),
-                                        Color.White.copy(alpha = 0.08f),
+                                        colorScheme.onSurface.copy(alpha = 0.20f),
+                                        colorScheme.outline.copy(alpha = 0.10f),
                                         Color.Transparent,
                                     ),
                                     startY = 0f,
@@ -684,6 +685,27 @@ private fun routeTitle(route: String?): String {
         route == "ai_config" -> "AI 配置"
         else -> "HyperIsland"
     }
+}
+
+@Composable
+private fun primaryCardModifier(
+    modifier: Modifier = Modifier,
+    shape: RoundedCornerShape = RoundedCornerShape(18.dp),
+): Modifier {
+    val isDarkTheme = isSystemInDarkTheme()
+    return modifier
+        .clip(shape)
+        .then(
+            if (isDarkTheme) {
+                Modifier.border(
+                    1.dp,
+                    MaterialTheme.colorScheme.outline.copy(alpha = 0.34f),
+                    shape,
+                )
+            } else {
+                Modifier
+            },
+        )
 }
 
 @Composable
@@ -1970,7 +1992,7 @@ private fun HomeScreen(
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         item {
-            MiuixCard(modifier = Modifier.fillMaxWidth()) {
+            MiuixCard(modifier = primaryCardModifier(Modifier.fillMaxWidth())) {
                 Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("模块状态", style = MaterialTheme.typography.titleMedium)
                     val statusText = when (uiState.moduleActive) {
@@ -1998,7 +2020,7 @@ private fun HomeScreen(
             MiuixSmallTitle(text = "注意事项")
         }
         item {
-            MiuixCard(modifier = Modifier.fillMaxWidth()) {
+            MiuixCard(modifier = primaryCardModifier(Modifier.fillMaxWidth())) {
                 Column(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -2801,7 +2823,7 @@ private fun SectionTitle(title: String) {
 
 @Composable
 private fun SettingsGroupCard(content: @Composable () -> Unit) {
-    MiuixCard(modifier = Modifier.fillMaxWidth()) {
+    MiuixCard(modifier = primaryCardModifier(Modifier.fillMaxWidth())) {
         Column(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp))) {
             content()
         }
