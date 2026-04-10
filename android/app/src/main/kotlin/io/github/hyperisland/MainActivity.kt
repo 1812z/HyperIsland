@@ -11,6 +11,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import io.github.hyperisland.core.data.NotificationChannelRepository
 import io.github.hyperisland.core.service.AppService
+import io.github.hyperisland.xposed.template.core.customization.FocusCustomizationEngine
 import io.github.hyperisland.utils.InteractionHaptics
 import io.github.hyperisland.utils.getAppIcon
 import io.flutter.embedding.android.FlutterActivity
@@ -99,6 +100,34 @@ class MainActivity : FlutterActivity() {
                         val bytes = appService.getAppIconBytes(packageManager, pkg)
                         runOnUiThread { result.success(bytes) }
                     }.start()
+                }
+
+                "getFocusCustomizationSchema" -> {
+                    val templateId = call.argument<String>("templateId") ?: "notification_island"
+                    val rendererId = call.argument<String>("rendererId") ?: "image_text_with_buttons_4"
+                    val schema = FocusCustomizationEngine.buildSchema(templateId, rendererId)
+                    result.success(schema)
+                }
+
+                "mergeFocusCustomizationDefaults" -> {
+                    val templateId = call.argument<String>("templateId") ?: "notification_island"
+                    val rendererId = call.argument<String>("rendererId") ?: "image_text_with_buttons_4"
+                    val rawConfig = call.argument<String>("config")
+                    val merged = FocusCustomizationEngine.mergeWithDefaults(templateId, rendererId, rawConfig)
+                    result.success(merged)
+                }
+
+                "getIslandCustomizationSchema" -> {
+                    val templateId = call.argument<String>("templateId") ?: "notification_island"
+                    val schema = FocusCustomizationEngine.buildIslandSchema(templateId)
+                    result.success(schema)
+                }
+
+                "mergeIslandCustomizationDefaults" -> {
+                    val templateId = call.argument<String>("templateId") ?: "notification_island"
+                    val rawConfig = call.argument<String>("config")
+                    val merged = FocusCustomizationEngine.mergeIslandWithDefaults(templateId, rawConfig)
+                    result.success(merged)
                 }
 
                 "restartProcesses" -> {

@@ -17,6 +17,7 @@ import io.github.hyperisland.xposed.logError
 import io.github.hyperisland.xposed.logWarn
 import io.github.hyperisland.xposed.islanddispatch.IslandRequest
 import io.github.hyperisland.xposed.template.core.contracts.IslandTemplate
+import io.github.hyperisland.xposed.template.core.customization.FocusCustomizationEngine
 import io.github.hyperisland.xposed.template.core.models.NotifData
 import io.github.hyperisland.xposed.template.core.models.IslandViewModel
 import io.github.hyperisland.xposed.utils.toRounded
@@ -213,11 +214,16 @@ $userPrompt
         try {
             val fallbackIcon = Icon.createWithResource(context, android.R.drawable.ic_dialog_info)
             val displayIcon  = resolveIcon(data, data.iconMode, fallbackIcon).toRounded(context)
+            val islandText = FocusCustomizationEngine.resolveIslandText(
+                data = data,
+                defaultLeft = leftText,
+                defaultRight = rightText,
+            )
             IslandDispatcher.post(
                 context,
                 IslandRequest(
-                    title            = leftText,
-                    content          = rightText,
+                    title            = islandText.first,
+                    content          = islandText.second,
                     icon             = displayIcon,
                     timeoutSecs      = data.islandTimeout,
                     firstFloat       = data.firstFloat == "on",
@@ -244,10 +250,10 @@ $userPrompt
     ): IslandViewModel {
         val fallbackIcon     = Icon.createWithResource(context, android.R.drawable.ic_dialog_info)
         val islandIcon       = resolveIcon(data, data.iconMode,      fallbackIcon).toRounded(context)
-        val focusIcon        = resolveIcon(data, data.focusIconMode,  fallbackIcon).toRounded(context)
+        val focusIcon        = (data.largeIcon ?: data.appIconRaw ?: data.notifIcon ?: fallbackIcon).toRounded(context)
         val showNotification = data.focusNotif != "off"
 
-        return IslandViewModel(
+        val baseVm = IslandViewModel(
             templateId        = TEMPLATE_ID,
             leftTitle         = leftText,
             rightTitle        = rightText,
@@ -274,6 +280,7 @@ $userPrompt
             showRightNarrowFont = data.showRightNarrowFont,
             outerGlow = data.outerGlow,
         )
+        return FocusCustomizationEngine.applyIsland(data, FocusCustomizationEngine.apply(context, data, baseVm))
     }
 
     // ── 图标解析 ──────────────────────────────────────────────────────────────

@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.util.Log
 import io.github.hyperisland.R
 import io.github.hyperisland.xposed.template.core.contracts.IslandTemplate
+import io.github.hyperisland.xposed.template.core.customization.FocusCustomizationEngine
 import io.github.hyperisland.xposed.template.core.models.NotifData
 import io.github.hyperisland.xposed.template.core.models.IslandViewModel
 import io.github.hyperisland.xposed.utils.toRounded
@@ -134,14 +135,9 @@ object GenericDownloadIslandNotification : IslandTemplate {
             else          -> data.notifIcon ?: data.largeIcon ?: fallback
         }.toRounded(context)
 
-        val focusIcon = when (data.focusIconMode) {
-            "notif_small" -> data.notifIcon ?: data.appIconRaw ?: fallback
-            "notif_large" -> data.largeIcon ?: data.appIconRaw ?: data.notifIcon ?: fallback
-            "app_icon"    -> data.appIconRaw ?: fallback
-            else          -> data.largeIcon ?: data.appIconRaw ?: data.notifIcon ?: fallback
-        }.toRounded(context)
+        val focusIcon = (data.largeIcon ?: data.appIconRaw ?: data.notifIcon ?: fallback).toRounded(context)
 
-        return IslandViewModel(
+        val baseVm = IslandViewModel(
             templateId        = TEMPLATE_ID,
             leftTitle         = stateLabel,
             rightTitle        = pickContent(data.title, data.subtitle),
@@ -168,5 +164,6 @@ object GenericDownloadIslandNotification : IslandTemplate {
             showRightNarrowFont = data.showRightNarrowFont,
             outerGlow = data.outerGlow,
         )
+        return FocusCustomizationEngine.applyIsland(data, FocusCustomizationEngine.apply(context, data, baseVm))
     }
 }

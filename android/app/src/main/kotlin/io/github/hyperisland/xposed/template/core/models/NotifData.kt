@@ -22,8 +22,6 @@ data class NotifData(
     val appIconRaw: Icon? = null,
     /** 超级岛区域图标来源（bigIslandArea / smallIslandArea）: "auto" / "notif_small" / "notif_large" / "app_icon" */
     val iconMode: String = "auto",
-    /** 焦点图标来源（iconTextInfo）: "auto" / "notif_small" / "notif_large" / "app_icon" */
-    val focusIconMode: String = "auto",
     /** 焦点通知（island 块）: "default" / "off" */
     val focusNotif: String = "default",
     /** 是否保留状态栏左上角小图标: "default" / "on" / "off" */
@@ -54,4 +52,8 @@ data class NotifData(
     val showRightNarrowFont: Boolean = false,
     /** 是否开启大岛外圈光效（outEffectSrc=outer_glow）。 */
     val outerGlow: Boolean = false,
+    /** 焦点通知自定义配置（JSON 字符串），由模板占位符 + 渲染器槽位共同决定。 */
+    val focusCustomizationJson: String? = null,
+    /** 超级岛文本自定义配置（JSON 字符串），仅控制左右文本。 */
+    val islandCustomizationJson: String? = null,
 )

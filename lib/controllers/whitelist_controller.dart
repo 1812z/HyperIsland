@@ -282,7 +282,7 @@ class WhitelistController extends ChangeNotifier {
 
   // ── 渠道级额外设置（图标、焦点通知、初次展开、更新展开）────────────────────
 
-  /// 批量读取各渠道的额外设置，返回 channelId → {icon, focus_icon, focus, preserve_small_icon, first_float, enable_float, timeout, marquee, highlight_color, dynamic_highlight_color, outer_glow}。
+  /// 批量读取各渠道的额外设置，返回 channelId → {icon, focus, preserve_small_icon, first_float, enable_float, timeout, marquee, highlight_color, dynamic_highlight_color, outer_glow}。
   Future<Map<String, Map<String, String>>> getChannelExtraSettings(
     String packageName,
     List<String> channelIds,
@@ -293,9 +293,6 @@ class WhitelistController extends ChangeNotifier {
         (id) => MapEntry(id, {
           'icon':
               prefs.getString('pref_channel_icon_${packageName}_$id') ??
-              kIconModeAuto,
-          'focus_icon':
-              prefs.getString('pref_channel_focus_icon_${packageName}_$id') ??
               kIconModeAuto,
           'focus':
               prefs.getString('pref_channel_focus_${packageName}_$id') ??
@@ -357,9 +354,85 @@ class WhitelistController extends ChangeNotifier {
           'outer_glow':
               prefs.getString('pref_channel_outer_glow_${packageName}_$id') ??
               kTriOptDefault,
+          'focus_custom':
+              prefs.getString('pref_channel_focus_custom_${packageName}_$id') ??
+              '',
+          'island_custom':
+              prefs.getString(
+                'pref_channel_island_custom_${packageName}_$id',
+              ) ??
+              '',
         }),
       ),
     );
+  }
+
+  Future<Map<String, dynamic>?> getFocusCustomizationSchema(
+    String templateId,
+    String rendererId,
+  ) async {
+    try {
+      final raw = await _channel.invokeMethod<dynamic>(
+        'getFocusCustomizationSchema',
+        {'templateId': templateId, 'rendererId': rendererId},
+      );
+      if (raw is Map) {
+        return Map<String, dynamic>.from(raw.cast<String, dynamic>());
+      }
+    } catch (e) {
+      debugPrint('getFocusCustomizationSchema error: $e');
+    }
+    return null;
+  }
+
+  Future<String> mergeFocusCustomizationDefaults(
+    String templateId,
+    String rendererId,
+    String? config,
+  ) async {
+    try {
+      final merged = await _channel.invokeMethod<String>(
+        'mergeFocusCustomizationDefaults',
+        {'templateId': templateId, 'rendererId': rendererId, 'config': config},
+      );
+      return merged ?? '{}';
+    } catch (e) {
+      debugPrint('mergeFocusCustomizationDefaults error: $e');
+      return config?.isNotEmpty == true ? config! : '{}';
+    }
+  }
+
+  Future<Map<String, dynamic>?> getIslandCustomizationSchema(
+    String templateId,
+  ) async {
+    try {
+      final raw = await _channel.invokeMethod<dynamic>(
+        'getIslandCustomizationSchema',
+        {'templateId': templateId},
+      );
+      if (raw is Map) {
+        return Map<String, dynamic>.from(raw.cast<String, dynamic>());
+      }
+    } catch (e) {
+      debugPrint('getIslandCustomizationSchema error: $e');
+    }
+    return null;
+  }
+
+  Future<String> mergeIslandCustomizationDefaults(
+    String templateId,
+    String? config,
+  ) async {
+    try {
+      final merged = await _channel.invokeMethod<String>(
+        'mergeIslandCustomizationDefaults',
+        {'templateId': templateId, 'config': config},
+      );
+      return merged ?? '{}';
+    } catch (e) {
+      debugPrint('mergeIslandCustomizationDefaults error: $e');
+      return config?.isNotEmpty == true ? config! : '{}';
+    }
   }
 
   Future<void> setChannelIconMode(
@@ -369,18 +442,6 @@ class WhitelistController extends ChangeNotifier {
   ) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('pref_channel_icon_${packageName}_$channelId', value);
-  }
-
-  Future<void> setChannelFocusIconMode(
-    String packageName,
-    String channelId,
-    String value,
-  ) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      'pref_channel_focus_icon_${packageName}_$channelId',
-      value,
-    );
   }
 
   Future<void> setChannelFocusNotif(
@@ -577,6 +638,34 @@ class WhitelistController extends ChangeNotifier {
     );
   }
 
+  Future<void> setChannelFocusCustomization(
+    String packageName,
+    String channelId,
+    String value,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'pref_channel_focus_custom_${packageName}_$channelId';
+    if (value.isEmpty) {
+      await prefs.remove(key);
+    } else {
+      await prefs.setString(key, value);
+    }
+  }
+
+  Future<void> setChannelIslandCustomization(
+    String packageName,
+    String channelId,
+    String value,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'pref_channel_island_custom_${packageName}_$channelId';
+    if (value.isEmpty) {
+      await prefs.remove(key);
+    } else {
+      await prefs.setString(key, value);
+    }
+  }
+
   /// 批量应用渠道配置到指定渠道列表。
   /// [settings] 中 null 值的 key 表示不更改该项。
   Future<void> batchApplyChannelSettings(
@@ -590,7 +679,6 @@ class WhitelistController extends ChangeNotifier {
       'template': 'pref_channel_template',
       'renderer': 'pref_channel_renderer',
       'icon': 'pref_channel_icon',
-      'focus_icon': 'pref_channel_focus_icon',
       'focus': 'pref_channel_focus',
       'preserve_small_icon': 'pref_channel_preserve_small_icon',
       'show_island_icon': 'pref_channel_show_island_icon',
@@ -606,6 +694,8 @@ class WhitelistController extends ChangeNotifier {
       'show_left_narrow_font': 'pref_channel_show_left_narrow_font',
       'show_right_narrow_font': 'pref_channel_show_right_narrow_font',
       'outer_glow': 'pref_channel_outer_glow',
+      'focus_custom': 'pref_channel_focus_custom',
+      'island_custom': 'pref_channel_island_custom',
     };
     final futures = <Future<bool>>[];
     for (final id in channelIds) {

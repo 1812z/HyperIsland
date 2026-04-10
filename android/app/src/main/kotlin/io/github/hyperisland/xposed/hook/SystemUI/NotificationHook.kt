@@ -285,13 +285,20 @@ object GenericProgressHook : BaseHook() {
                 "timeout:$pkg/$channelId", "pref_channel_timeout_${pkg}_$channelId", "5"
             )
             val islandTimeout = islandTimeoutStr.toIntOrNull() ?: 5
-            val focusIconMode = loadChannelStringSetting(
-                "focus_icon:$pkg/$channelId", "pref_channel_focus_icon_${pkg}_$channelId", "auto"
-            )
             val isOngoing = (notif.flags and Notification.FLAG_ONGOING_EVENT) != 0
             val renderer = loadChannelStringSetting(
                 "renderer:$pkg/$channelId", "pref_channel_renderer_${pkg}_$channelId", "image_text_with_buttons_4"
             )
+            val focusCustomizationJson = loadChannelStringSetting(
+                "focus_custom:$pkg/$channelId",
+                "pref_channel_focus_custom_${pkg}_$channelId",
+                ""
+            ).takeIf { it.isNotBlank() }
+            val islandCustomizationJson = loadChannelStringSetting(
+                "island_custom:$pkg/$channelId",
+                "pref_channel_island_custom_${pkg}_$channelId",
+                ""
+            ).takeIf { it.isNotBlank() }
             val highlightColor = loadChannelStringSetting(
                 "highlight_color:$pkg/$channelId", "pref_channel_highlight_color_${pkg}_$channelId", ""
             ).takeIf { it.isNotBlank() }
@@ -349,7 +356,6 @@ object GenericProgressHook : BaseHook() {
                     largeIcon       = largeIcon,
                     appIconRaw      = appIconRaw,
                     iconMode        = iconMode,
-                    focusIconMode   = focusIconMode,
                     focusNotif      = focusNotif,
                     preserveStatusBarSmallIcon = preserveStatusBarSmallIcon,
                     showIslandIcon  = showIslandIcon,
@@ -365,6 +371,8 @@ object GenericProgressHook : BaseHook() {
                     showLeftNarrowFont = showLeftNarrowFont,
                     showRightNarrowFont = showRightNarrowFont,
                     outerGlow = outerGlow,
+                    focusCustomizationJson = focusCustomizationJson,
+                    islandCustomizationJson = islandCustomizationJson,
                 ),
             )
 

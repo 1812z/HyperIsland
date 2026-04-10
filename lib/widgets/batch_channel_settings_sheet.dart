@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:convert';
 import '../controllers/settings_controller.dart';
 import '../controllers/whitelist_controller.dart';
 import '../l10n/generated/app_localizations.dart';
@@ -18,7 +19,6 @@ class SingleChannelMode extends ChannelSettingsMode {
     required this.template,
     required this.renderer,
     required this.iconMode,
-    required this.focusIconMode,
     required this.focusNotif,
     required this.preserveSmallIcon,
     required this.showIslandIcon,
@@ -34,13 +34,14 @@ class SingleChannelMode extends ChannelSettingsMode {
     required this.showLeftNarrowFont,
     required this.showRightNarrowFont,
     required this.outerGlow,
+    required this.focusCustom,
+    required this.islandCustom,
   });
 
   final String channelName;
   final String template;
   final String renderer;
   final String iconMode;
-  final String focusIconMode;
   final String focusNotif;
   final String preserveSmallIcon;
   final String showIslandIcon;
@@ -56,6 +57,8 @@ class SingleChannelMode extends ChannelSettingsMode {
   final String showLeftNarrowFont;
   final String showRightNarrowFont;
   final String outerGlow;
+  final String focusCustom;
+  final String islandCustom;
 }
 
 /// 批量模式：对多个渠道批量操作，字段默认"不更改"。
@@ -113,17 +116,20 @@ class BatchChannelSettingsSheet extends StatefulWidget {
     required this.mode,
     required this.templateLabels,
     required this.rendererLabels,
+    required this.controller,
   });
 
   final ChannelSettingsMode mode;
   final Map<String, String> templateLabels;
   final Map<String, String> rendererLabels;
+  final WhitelistController controller;
 
   static Future<BatchApplyResult?> show(
     BuildContext context, {
     required ChannelSettingsMode mode,
     required Map<String, String> templateLabels,
     required Map<String, String> rendererLabels,
+    required WhitelistController controller,
   }) {
     return showModalBottomSheet<BatchApplyResult>(
       context: context,
@@ -136,6 +142,7 @@ class BatchChannelSettingsSheet extends StatefulWidget {
         mode: mode,
         templateLabels: templateLabels,
         rendererLabels: rendererLabels,
+        controller: controller,
       ),
     );
   }
@@ -155,7 +162,6 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
   String? _template;
   String? _renderer;
   String? _iconMode;
-  String? _focusIconMode;
   String? _focusNotif;
   String? _preserveSmallIcon;
   String? _showIslandIcon;
@@ -171,6 +177,17 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
   bool? _showLeftNarrowFont;
   bool? _showRightNarrowFont;
   String? _outerGlow;
+  String? _focusCustom;
+  String? _islandCustom;
+
+  Map<String, dynamic>? _focusSchema;
+  Map<String, dynamic>? _islandSchema;
+  bool _loadingFocusSchema = false;
+  bool _focusCustomExpanded = false;
+  final Map<String, TextEditingController> _focusControllers = {};
+  bool _loadingIslandSchema = false;
+  bool _islandCustomExpanded = false;
+  final Map<String, TextEditingController> _islandControllers = {};
 
   // 仅 BatchChannelMode + SingleAppScope 下使用
   bool _onlyEnabled = false;
@@ -193,7 +210,6 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
       _template = m.template;
       _renderer = m.renderer;
       _iconMode = m.iconMode;
-      _focusIconMode = m.focusIconMode;
       _focusNotif = m.focusNotif;
       _preserveSmallIcon = m.preserveSmallIcon;
       _showIslandIcon = m.showIslandIcon;
@@ -209,19 +225,330 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
       _showLeftNarrowFont = m.showLeftNarrowFont == kTriOptOn;
       _showRightNarrowFont = m.showRightNarrowFont == kTriOptOn;
       _outerGlow = m.outerGlow;
+      _focusCustom = m.focusCustom;
+      _islandCustom = m.islandCustom;
       _timeoutController = TextEditingController(text: m.islandTimeout);
       _highlightColorController = TextEditingController(text: m.highlightColor);
     } else {
       _timeoutController = TextEditingController();
       _highlightColorController = TextEditingController();
     }
+    _loadFocusSchema();
   }
 
   @override
   void dispose() {
     _timeoutController.dispose();
     _highlightColorController.dispose();
+    for (final c in _focusControllers.values) {
+      c.dispose();
+    }
+    for (final c in _islandControllers.values) {
+      c.dispose();
+    }
     super.dispose();
+  }
+
+  Future<void> _loadFocusSchema() async {
+    final template = _template;
+    final renderer = _renderer;
+    if (template == null || renderer == null) return;
+    setState(() => _loadingFocusSchema = true);
+    final schema = await widget.controller.getFocusCustomizationSchema(
+      template,
+      renderer,
+    );
+    if (!mounted) return;
+    final merged = await widget.controller.mergeFocusCustomizationDefaults(
+      template,
+      renderer,
+      _focusCustom,
+    );
+    if (!mounted) return;
+
+    final json = _decodeJson(merged);
+    _rebuildFocusControllers(schema, json);
+
+    setState(() {
+      _focusSchema = schema;
+      _focusCustom = merged;
+      _loadingFocusSchema = false;
+    });
+    _loadIslandSchema();
+  }
+
+  Future<void> _loadIslandSchema() async {
+    final template = _template;
+    if (template == null) return;
+    setState(() => _loadingIslandSchema = true);
+    final schema = await widget.controller.getIslandCustomizationSchema(
+      template,
+    );
+    if (!mounted) return;
+    final merged = await widget.controller.mergeIslandCustomizationDefaults(
+      template,
+      _islandCustom,
+    );
+    if (!mounted) return;
+
+    final json = _decodeJson(merged);
+    _rebuildIslandControllers(schema, json);
+    setState(() {
+      _islandSchema = schema;
+      _islandCustom = merged;
+      _loadingIslandSchema = false;
+    });
+  }
+
+  Map<String, dynamic> _decodeJson(String raw) {
+    try {
+      final decoded = raw.isEmpty ? {} : (jsonDecode(raw) as Map);
+      return decoded.cast<String, dynamic>();
+    } catch (_) {
+      return <String, dynamic>{};
+    }
+  }
+
+  void _rebuildFocusControllers(
+    Map<String, dynamic>? schema,
+    Map<String, dynamic> json,
+  ) {
+    for (final c in _focusControllers.values) {
+      c.dispose();
+    }
+    _focusControllers.clear();
+
+    final fields = (schema?['fields'] as List?)?.cast<Map>() ?? const [];
+    for (final field in fields) {
+      final type = (field['type'] ?? '').toString();
+      final key = (field['key'] ?? '').toString();
+      if (key.isEmpty) continue;
+      if (type == 'text_expr' ||
+          type == 'text' ||
+          type == 'regex' ||
+          type == 'number' ||
+          type == 'select') {
+        final def = (field['defaultValue'] ?? '').toString();
+        final value = (json[key] ?? def).toString();
+        _focusControllers[key] = TextEditingController(text: value);
+      }
+    }
+  }
+
+  void _syncFocusCustomFromControllers() {
+    final map = <String, dynamic>{};
+    _focusControllers.forEach((key, ctl) {
+      map[key] = ctl.text;
+    });
+    _focusCustom = jsonEncode(map);
+  }
+
+  void _rebuildIslandControllers(
+    Map<String, dynamic>? schema,
+    Map<String, dynamic> json,
+  ) {
+    for (final c in _islandControllers.values) {
+      c.dispose();
+    }
+    _islandControllers.clear();
+    final fields = (schema?['fields'] as List?)?.cast<Map>() ?? const [];
+    for (final field in fields) {
+      final key = (field['key'] ?? '').toString();
+      if (key.isEmpty) continue;
+      final def = (field['defaultValue'] ?? '').toString();
+      final value = (json[key] ?? def).toString();
+      _islandControllers[key] = TextEditingController(text: value);
+    }
+  }
+
+  void _syncIslandCustomFromControllers() {
+    final map = <String, dynamic>{};
+    _islandControllers.forEach((key, ctl) {
+      map[key] = ctl.text;
+    });
+    _islandCustom = jsonEncode(map);
+  }
+
+  Widget _buildFocusCustomizationFields() {
+    final schema = _focusSchema;
+    if (schema == null) {
+      return const SizedBox.shrink();
+    }
+
+    final placeholders =
+        (schema['placeholders'] as List?)?.cast<Map>() ?? const <Map>[];
+    final functions =
+        (schema['functions'] as List?)?.cast<Map>() ?? const <Map>[];
+    final fields = (schema['fields'] as List?)?.cast<Map>() ?? const <Map>[];
+
+    if (fields.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final children = <Widget>[];
+
+    if (placeholders.isNotEmpty) {
+      final tips = placeholders
+          .map((p) {
+            final key = (p['key'] ?? '').toString();
+            final label = (p['label'] ?? key).toString();
+            if (key.isEmpty) return null;
+            return '\${$key} ($label)';
+          })
+          .whereType<String>()
+          .join('  |  ');
+      children.add(_SettingField(label: '可用占位符', child: SelectableText(tips)));
+      children.add(const SizedBox(height: 10));
+    }
+
+    if (functions.isNotEmpty) {
+      final tips = functions
+          .map((f) => (f['example'] ?? '').toString())
+          .where((e) => e.isNotEmpty)
+          .join('  |  ');
+      if (tips.isNotEmpty) {
+        children.add(
+          _SettingField(label: '表达式函数', child: SelectableText(tips)),
+        );
+        children.add(const SizedBox(height: 10));
+      }
+    }
+
+    for (final field in fields) {
+      final key = (field['key'] ?? '').toString();
+      final label = (field['label'] ?? key).toString();
+      final type = (field['type'] ?? '').toString();
+      if (key.isEmpty) continue;
+
+      if (type == 'select') {
+        final options =
+            (field['options'] as List?)?.cast<Map>() ?? const <Map>[];
+        final items = options
+            .map(
+              (o) => DropdownMenuItem<String?>(
+                value: (o['value'] ?? '').toString(),
+                child: Text((o['label'] ?? o['value'] ?? '').toString()),
+              ),
+            )
+            .toList();
+        final ctl = _focusControllers.putIfAbsent(
+          key,
+          () => TextEditingController(
+            text: (field['defaultValue'] ?? '').toString(),
+          ),
+        );
+        children.add(
+          _BatchSettingRow(
+            label: label,
+            value: ctl.text,
+            showNotChange: false,
+            items: items,
+            onChanged: (v) {
+              setState(() {
+                ctl.text = v ?? '';
+                _syncFocusCustomFromControllers();
+              });
+            },
+          ),
+        );
+      } else {
+        final ctl = _focusControllers.putIfAbsent(
+          key,
+          () => TextEditingController(
+            text: (field['defaultValue'] ?? '').toString(),
+          ),
+        );
+        final isNumber = type == 'number';
+        children.add(
+          _SettingField(
+            label: label,
+            child: TextFormField(
+              controller: ctl,
+              keyboardType: isNumber
+                  ? TextInputType.number
+                  : TextInputType.text,
+              inputFormatters: isNumber
+                  ? [FilteringTextInputFormatter.digitsOnly]
+                  : null,
+              decoration: _fieldDecoration(context),
+              onChanged: (_) {
+                setState(_syncFocusCustomFromControllers);
+              },
+            ),
+          ),
+        );
+      }
+      children.add(const SizedBox(height: 10));
+    }
+
+    if (children.isNotEmpty) {
+      children.removeLast();
+    }
+
+    return Column(children: children);
+  }
+
+  Widget _buildIslandCustomizationFields() {
+    final schema = _islandSchema;
+    if (schema == null) return const SizedBox.shrink();
+    final placeholders =
+        (schema['placeholders'] as List?)?.cast<Map>() ?? const <Map>[];
+    final functions =
+        (schema['functions'] as List?)?.cast<Map>() ?? const <Map>[];
+    final fields = (schema['fields'] as List?)?.cast<Map>() ?? const <Map>[];
+    if (fields.isEmpty) return const SizedBox.shrink();
+
+    final children = <Widget>[];
+    if (placeholders.isNotEmpty) {
+      final tips = placeholders
+          .map((p) {
+            final key = (p['key'] ?? '').toString();
+            final label = (p['label'] ?? key).toString();
+            if (key.isEmpty) return null;
+            return '\${$key} ($label)';
+          })
+          .whereType<String>()
+          .join('  |  ');
+      children.add(_SettingField(label: '可用占位符', child: SelectableText(tips)));
+      children.add(const SizedBox(height: 10));
+    }
+    if (functions.isNotEmpty) {
+      final tips = functions
+          .map((f) => (f['example'] ?? '').toString())
+          .where((e) => e.isNotEmpty)
+          .join('  |  ');
+      if (tips.isNotEmpty) {
+        children.add(
+          _SettingField(label: '表达式函数', child: SelectableText(tips)),
+        );
+        children.add(const SizedBox(height: 10));
+      }
+    }
+
+    for (final field in fields) {
+      final key = (field['key'] ?? '').toString();
+      final label = (field['label'] ?? key).toString();
+      if (key.isEmpty) continue;
+      final ctl = _islandControllers.putIfAbsent(
+        key,
+        () => TextEditingController(
+          text: (field['defaultValue'] ?? '').toString(),
+        ),
+      );
+      children.add(
+        _SettingField(
+          label: label,
+          child: TextFormField(
+            controller: ctl,
+            decoration: _fieldDecoration(context),
+            onChanged: (_) => setState(_syncIslandCustomFromControllers),
+          ),
+        ),
+      );
+      children.add(const SizedBox(height: 10));
+    }
+    if (children.isNotEmpty) children.removeLast();
+    return Column(children: children);
   }
 
   Color? _parseColor(String? hex) {
@@ -329,7 +656,6 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
       _template != null ||
       _renderer != null ||
       _iconMode != null ||
-      _focusIconMode != null ||
       _focusNotif != null ||
       _preserveSmallIcon != null ||
       _showIslandIcon != null ||
@@ -344,7 +670,9 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
       _showRightHighlight != null ||
       _showLeftNarrowFont != null ||
       _showRightNarrowFont != null ||
-      _outerGlow != null;
+      _outerGlow != null ||
+      _focusCustom != null ||
+      _islandCustom != null;
 
   String _title(AppLocalizations l10n) => switch (widget.mode) {
     SingleChannelMode m => m.channelName,
@@ -370,7 +698,6 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
           'template': _template,
           'renderer': _renderer,
           'icon': _iconMode,
-          'focus_icon': _focusIconMode,
           'focus': _focusNotif,
           'preserve_small_icon': _focusNotif == kTriOptOff
               ? kTriOptOff
@@ -400,6 +727,8 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
               ? null
               : (_showRightNarrowFont! ? kTriOptOn : kTriOptOff),
           'outer_glow': _isSingle ? (_outerGlow ?? kTriOptDefault) : _outerGlow,
+          'focus_custom': _focusCustom,
+          'island_custom': _islandCustom,
         },
         onlyEnabled: switch (widget.mode) {
           BatchChannelMode(scope: SingleAppScope()) => _onlyEnabled,
@@ -512,7 +841,10 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                           ),
                         )
                         .toList(),
-                    onChanged: (v) => setState(() => _template = v),
+                    onChanged: (v) {
+                      setState(() => _template = v);
+                      _loadFocusSchema();
+                    },
                   ),
                   SizedBox(height: rowGap),
                   _BatchSettingRow(
@@ -527,8 +859,61 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                           ),
                         )
                         .toList(),
-                    onChanged: (v) => setState(() => _renderer = v),
+                    onChanged: (v) {
+                      setState(() => _renderer = v);
+                      _loadFocusSchema();
+                    },
                   ),
+                  if (_isSingle) ...[
+                    SizedBox(height: rowGap),
+                    _SectionLabel('焦点自定义'),
+                    SizedBox(height: sectionTitleGap),
+                    OutlinedButton.icon(
+                      onPressed: () => setState(
+                        () => _focusCustomExpanded = !_focusCustomExpanded,
+                      ),
+                      icon: Icon(
+                        _focusCustomExpanded
+                            ? Icons.expand_less_rounded
+                            : Icons.expand_more_rounded,
+                      ),
+                      label: Text(_focusCustomExpanded ? '收起' : '展开'),
+                    ),
+                    if (_focusCustomExpanded) ...[
+                      SizedBox(height: rowGap),
+                      if (_loadingFocusSchema)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          child: LinearProgressIndicator(minHeight: 2),
+                        )
+                      else
+                        _buildFocusCustomizationFields(),
+                    ],
+                    SizedBox(height: rowGap),
+                    _SectionLabel('超级岛文本自定义'),
+                    SizedBox(height: sectionTitleGap),
+                    OutlinedButton.icon(
+                      onPressed: () => setState(
+                        () => _islandCustomExpanded = !_islandCustomExpanded,
+                      ),
+                      icon: Icon(
+                        _islandCustomExpanded
+                            ? Icons.expand_less_rounded
+                            : Icons.expand_more_rounded,
+                      ),
+                      label: Text(_islandCustomExpanded ? '收起' : '展开'),
+                    ),
+                    if (_islandCustomExpanded) ...[
+                      SizedBox(height: rowGap),
+                      if (_loadingIslandSchema)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          child: LinearProgressIndicator(minHeight: 2),
+                        )
+                      else
+                        _buildIslandCustomizationFields(),
+                    ],
+                  ],
                   SizedBox(height: blockGap),
 
                   // ── 超级岛 ─────────────────────────────────────────────
@@ -862,31 +1247,6 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                   // ── 焦点通知 ───────────────────────────────────────────
                   _SectionLabel(l10n.focusNotificationLabel),
                   SizedBox(height: sectionTitleGap),
-                  _BatchSettingRow(
-                    label: l10n.focusIconLabel,
-                    value: _focusIconMode,
-                    showNotChange: !_isSingle,
-                    items: [
-                      DropdownMenuItem(
-                        value: kIconModeAuto,
-                        child: Text(l10n.iconModeAuto),
-                      ),
-                      DropdownMenuItem(
-                        value: kIconModeNotifSmall,
-                        child: Text(l10n.iconModeNotifSmall),
-                      ),
-                      DropdownMenuItem(
-                        value: kIconModeNotifLarge,
-                        child: Text(l10n.iconModeNotifLarge),
-                      ),
-                      DropdownMenuItem(
-                        value: kIconModeAppIcon,
-                        child: Text(l10n.iconModeAppIcon),
-                      ),
-                    ],
-                    onChanged: (v) => setState(() => _focusIconMode = v),
-                  ),
-                  SizedBox(height: rowGap),
                   _BatchSettingRow(
                     label: l10n.focusNotificationLabel,
                     value: _focusNotif,
