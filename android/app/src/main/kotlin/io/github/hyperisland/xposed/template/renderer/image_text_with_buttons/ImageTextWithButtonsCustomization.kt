@@ -37,12 +37,6 @@ object ImageTextWithButtonsCustomization : RendererCustomizationContributor {
     private const val KEY_ACTION_2_TITLE_COLOR = "action_2_title_color"
     private const val KEY_ACTION_2_TITLE_COLOR_DARK = "action_2_title_color_dark"
 
-    // 兼容旧配置（单套颜色）
-    private const val LEGACY_ACTION_BG_COLOR = "action_bg_color"
-    private const val LEGACY_ACTION_BG_COLOR_DARK = "action_bg_color_dark"
-    private const val LEGACY_ACTION_TITLE_COLOR = "action_title_color"
-    private const val LEGACY_ACTION_TITLE_COLOR_DARK = "action_title_color_dark"
-
     override val fields: List<FocusCustomizationFieldSpec> = listOf(
         colorField(slot = SLOT_ACTION_1_BG_COLOR, key = KEY_ACTION_1_BG_COLOR),
         colorField(slot = SLOT_ACTION_1_BG_COLOR_DARK, key = KEY_ACTION_1_BG_COLOR_DARK),
@@ -59,19 +53,14 @@ object ImageTextWithButtonsCustomization : RendererCustomizationContributor {
         template: IslandTemplate?,
         env: FocusCustomizationApplyEnv,
     ): RendererPayload {
-        val legacyBg = readColor(config, LEGACY_ACTION_BG_COLOR, env)
-        val legacyBgDark = readColor(config, LEGACY_ACTION_BG_COLOR_DARK, env)
-        val legacyTitle = readColor(config, LEGACY_ACTION_TITLE_COLOR, env)
-        val legacyTitleDark = readColor(config, LEGACY_ACTION_TITLE_COLOR_DARK, env)
-
-        val action1Bg = readColor(config, KEY_ACTION_1_BG_COLOR, env) ?: legacyBg
-        val action1BgDark = readColor(config, KEY_ACTION_1_BG_COLOR_DARK, env) ?: legacyBgDark
-        val action1Title = readColor(config, KEY_ACTION_1_TITLE_COLOR, env) ?: legacyTitle
-        val action1TitleDark = readColor(config, KEY_ACTION_1_TITLE_COLOR_DARK, env) ?: legacyTitleDark
-        val action2Bg = readColor(config, KEY_ACTION_2_BG_COLOR, env) ?: legacyBg
-        val action2BgDark = readColor(config, KEY_ACTION_2_BG_COLOR_DARK, env) ?: legacyBgDark
-        val action2Title = readColor(config, KEY_ACTION_2_TITLE_COLOR, env) ?: legacyTitle
-        val action2TitleDark = readColor(config, KEY_ACTION_2_TITLE_COLOR_DARK, env) ?: legacyTitleDark
+        val action1Bg = readColor(config, KEY_ACTION_1_BG_COLOR, env)
+        val action1BgDark = readColor(config, KEY_ACTION_1_BG_COLOR_DARK, env)
+        val action1Title = readColor(config, KEY_ACTION_1_TITLE_COLOR, env)
+        val action1TitleDark = readColor(config, KEY_ACTION_1_TITLE_COLOR_DARK, env)
+        val action2Bg = readColor(config, KEY_ACTION_2_BG_COLOR, env)
+        val action2BgDark = readColor(config, KEY_ACTION_2_BG_COLOR_DARK, env)
+        val action2Title = readColor(config, KEY_ACTION_2_TITLE_COLOR, env)
+        val action2TitleDark = readColor(config, KEY_ACTION_2_TITLE_COLOR_DARK, env)
 
         return ImageTextWithButtonsPayload(
             action1BgColor = action1Bg,
