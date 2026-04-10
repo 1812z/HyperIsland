@@ -28,10 +28,6 @@ data class IslandViewModel(
     val islandIcon: Icon,
     /** 焦点通知图标（iconTextInfo 区域）。 */
     val focusIcon: Icon,
-    /** 渲染器私有图标槽位（按 slot key 索引）。 */
-    val rendererIconSlots: Map<String, Icon> = emptyMap(),
-    /** 渲染器私有字符串槽位（按 slot key 索引）。 */
-    val rendererStringSlots: Map<String, String> = emptyMap(),
 
     // ── 可选环形进度 ────────────────────────────────────────────────────────
     /** 进度值 0–100；非 null 时大岛右侧显示环形进度，同时小岛显示进度环。 */
@@ -66,4 +62,6 @@ data class IslandViewModel(
     val showRightNarrowFont: Boolean = false,
     /** 是否开启大岛外圈光效（outEffectSrc=outer_glow）。 */
     val outerGlow: Boolean = false,
+    /** 大岛外圈光效颜色，十六进制字符串如 "#E040FB"，null 表示不设置。 */
+    val outEffectColor: String? = null,
 )

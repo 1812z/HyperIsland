@@ -1,13 +1,20 @@
-package io.github.hyperisland.xposed.renderer
+package io.github.hyperisland.xposed.renderer.image_text_with_progress
 
 import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import io.github.d4viddf.hyperisland_kit.HyperPicture
 import io.github.hyperisland.xposed.hook.FocusNotifStatusBarIconHook
+import io.github.hyperisland.xposed.renderer.IslandRenderer
+import io.github.hyperisland.xposed.renderer.RendererContext
+import io.github.hyperisland.xposed.renderer.fixTextButtonJson
+import io.github.hyperisland.xposed.renderer.flattenActionsToExtras
+import io.github.hyperisland.xposed.renderer.injectHighlightColor
+import io.github.hyperisland.xposed.renderer.injectOutEffectColor
+import io.github.hyperisland.xposed.renderer.injectOuterGlow
+import io.github.hyperisland.xposed.renderer.injectUpdatable
 import io.github.hyperisland.xposed.template.core.customization.FocusCustomizationFieldRegistry
 import io.github.hyperisland.xposed.template.core.customization.FocusCustomizationFieldSpec
-import io.github.hyperisland.xposed.template.core.models.IslandViewModel
 
 /**
  * IM图文组件 + 进度组件2 渲染器。
@@ -26,24 +33,23 @@ object ImageTextWithProgressRenderer : IslandRenderer {
     override val focusCustomizationFields: List<FocusCustomizationFieldSpec> = listOf(
         FocusCustomizationFieldRegistry.focusTitleExpr,
         FocusCustomizationFieldRegistry.focusContentExpr,
-        FocusCustomizationFieldRegistry.focusPicProfileMode,
-        FocusCustomizationFieldRegistry.focusAppIconPkg,
-        FocusCustomizationFieldRegistry.chatTitleColor,
-        FocusCustomizationFieldRegistry.chatTitleColorDark,
-        FocusCustomizationFieldRegistry.chatContentColor,
-        FocusCustomizationFieldRegistry.chatContentColorDark,
     )
+    override val customizationContributor = ImageTextWithProgressCustomization
 
-    override fun render(context: Context, extras: Bundle, vm: IslandViewModel) {
+    override fun render(context: Context, extras: Bundle, ctx: RendererContext) {
         try {
+            val vm = ctx.vm
             val islandIconKey = "key_${vm.templateId}_island"
             val profileKey = "key_${vm.templateId}_profile"
-            val profileIcon = vm.rendererIconSlots[FocusCustomizationFieldRegistry.SLOT_FOCUS_PIC_PROFILE] ?: vm.focusIcon
-            val appPkg = vm.rendererStringSlots[FocusCustomizationFieldRegistry.SLOT_FOCUS_APP_ICON_PKG]
-            val titleColor = vm.rendererStringSlots[FocusCustomizationFieldRegistry.SLOT_CHAT_TITLE_COLOR] ?: "#000000"
-            val titleColorDark = vm.rendererStringSlots[FocusCustomizationFieldRegistry.SLOT_CHAT_TITLE_COLOR_DARK] ?: "#FFFFFF"
-            val contentColor = vm.rendererStringSlots[FocusCustomizationFieldRegistry.SLOT_CHAT_CONTENT_COLOR] ?: "#666666"
-            val contentColorDark = vm.rendererStringSlots[FocusCustomizationFieldRegistry.SLOT_CHAT_CONTENT_COLOR_DARK] ?: "#B3B3B3"
+            val payload = ctx.payload as? ImageTextWithProgressPayload
+            val profileIcon = payload?.picProfileIcon ?: vm.focusIcon
+            val appPkg = payload?.appIconPkg
+            val titleColor = payload?.chatTitleColor ?: "#000000"
+            val titleColorDark = payload?.chatTitleColorDark ?: "#FFFFFF"
+            val contentColor = payload?.chatContentColor ?: "#666666"
+            val contentColorDark = payload?.chatContentColorDark ?: "#B3B3B3"
+            val progressBarColor = payload?.progressBarColor ?: "#34C759"
+            val progressBarColorEnd = payload?.progressBarColorEnd ?: "#30B0C7"
 
             val builder = io.github.d4viddf.hyperisland_kit.HyperIslandNotification.Builder(
                 context,
@@ -68,6 +74,17 @@ object ImageTextWithProgressRenderer : IslandRenderer {
             builder.setEnableFloat(vm.enableFloat)
             builder.setShowNotification(vm.showNotification)
             builder.setIslandConfig(timeout = vm.timeoutSecs)
+
+            val progress = vm.circularProgress
+            if (progress != null) {
+                builder.setProgressBar(
+                    progress = progress.coerceIn(0, 100),
+                    color = progressBarColor,
+                    colorEnd = progressBarColorEnd,
+                    picForwardKey = "",
+                    picEndKey = "",
+                )
+            }
 
             builder.setSmallIsland(islandIconKey)
 
@@ -111,6 +128,7 @@ object ImageTextWithProgressRenderer : IslandRenderer {
             jsonParam = injectUpdatable(jsonParam, vm.updatable)
             jsonParam = injectHighlightColor(jsonParam, vm.highlightColor)
             jsonParam = injectOuterGlow(jsonParam, vm.outerGlow)
+            jsonParam = injectOutEffectColor(jsonParam, vm.outEffectColor)
             extras.putString("miui.focus.param", jsonParam)
 
             if (vm.setFocusProxy && vm.showNotification) {

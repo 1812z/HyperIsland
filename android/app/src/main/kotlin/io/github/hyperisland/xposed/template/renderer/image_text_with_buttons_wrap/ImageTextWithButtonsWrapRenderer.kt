@@ -1,9 +1,12 @@
-package io.github.hyperisland.xposed.renderer
+package io.github.hyperisland.xposed.renderer.image_text_with_buttons_wrap
 
 import android.content.Context
 import android.os.Bundle
+import io.github.hyperisland.xposed.renderer.IslandRenderer
+import io.github.hyperisland.xposed.renderer.RendererContext
+import io.github.hyperisland.xposed.renderer.image_text_with_buttons.ImageTextWithButtonsCustomization
+import io.github.hyperisland.xposed.renderer.image_text_with_buttons.ImageTextWithButtonsRenderer
 import io.github.hyperisland.xposed.template.core.customization.FocusCustomizationFieldSpec
-import io.github.hyperisland.xposed.template.core.models.IslandViewModel
 
 /**
  * 新图文组件+按钮组件4·换行 渲染器。
@@ -22,8 +25,9 @@ object ImageTextWithButtonsWrapRenderer : IslandRenderer {
     override val id = RENDERER_ID
     override val focusCustomizationFields: List<FocusCustomizationFieldSpec> =
         ImageTextWithButtonsRenderer.focusCustomizationFields
+    override val customizationContributor = ImageTextWithButtonsCustomization
 
-    override fun render(context: Context, extras: Bundle, vm: IslandViewModel) {
-        ImageTextWithButtonsRenderer.renderWith(context, extras, vm, applyWrap = true)
+    override fun render(context: Context, extras: Bundle, ctx: RendererContext) {
+        ImageTextWithButtonsRenderer.renderWith(context, extras, ctx, applyWrap = true)
     }
 }

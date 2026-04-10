@@ -1,6 +1,8 @@
 package io.github.hyperisland.xposed.template.core.customization
 
 import android.content.Context
+import io.github.hyperisland.xposed.renderer.EmptyRendererPayload
+import io.github.hyperisland.xposed.renderer.RendererPayload
 import io.github.hyperisland.xposed.renderer.resolveRenderer
 import io.github.hyperisland.xposed.template.core.TemplateRegistry
 import io.github.hyperisland.xposed.template.core.contracts.TemplatePlaceholder
@@ -11,9 +13,14 @@ import org.json.JSONObject
 
 object FocusCustomizationEngine {
 
+    data class ApplyResult(
+        val vm: IslandViewModel,
+        val rendererPayload: RendererPayload = EmptyRendererPayload,
+    )
+
     fun buildSchema(templateId: String, rendererId: String): Map<String, Any?> {
         val template = TemplateRegistry.getTemplate(templateId)
-        val focusFields = resolveFocusFields(templateId, rendererId)
+        val focusFields = resolveFocusFields(rendererId)
         val slots = focusFields.map { it.slot }.distinct()
         val fields = focusFields.map { it.toSchemaField(template) }
 
@@ -47,18 +54,20 @@ object FocusCustomizationEngine {
         )
     }
 
-    fun apply(context: Context, data: NotifData, vm: IslandViewModel): IslandViewModel {
+    fun apply(context: Context, data: NotifData, vm: IslandViewModel): ApplyResult {
         val raw = data.focusCustomizationJson?.trim().orEmpty()
-        if (raw.isEmpty()) return vm
+        if (raw.isEmpty()) return ApplyResult(vm = vm)
 
         val template = TemplateRegistry.getTemplate(vm.templateId)
-        val focusFields = resolveFocusFields(vm.templateId, data.renderer)
-        if (focusFields.isEmpty()) return vm
+        val renderer = resolveRenderer(data.renderer)
+        val focusFields = renderer.focusCustomizationFields
+        val contributor = renderer.customizationContributor
+        if (focusFields.isEmpty() && contributor == null) return ApplyResult(vm = vm)
 
         val config = try {
             JSONObject(raw)
         } catch (_: Exception) {
-            return vm
+            return ApplyResult(vm = vm)
         }
 
         val vars = buildFocusVars(data, vm, template)
@@ -75,7 +84,8 @@ object FocusCustomizationEngine {
             out = spec.apply(config, template, env, out)
         }
 
-        return out
+        val rendererPayload = contributor?.buildPayload(config, template, env) ?: EmptyRendererPayload
+        return ApplyResult(vm = out, rendererPayload = rendererPayload)
     }
 
     fun applyIsland(data: NotifData, vm: IslandViewModel): IslandViewModel {
@@ -239,9 +249,9 @@ object FocusCustomizationEngine {
     private fun readString(config: JSONObject, key: String): String =
         config.optString(key, "").trim()
 
-    private fun resolveFocusFields(templateId: String, rendererId: String): List<FocusCustomizationFieldSpec> {
-        return resolveRenderer(rendererId)
-            .focusCustomizationFields
+    private fun resolveFocusFields(rendererId: String): List<FocusCustomizationFieldSpec> {
+        val renderer = resolveRenderer(rendererId)
+        return (renderer.focusCustomizationFields + (renderer.customizationContributor?.fields ?: emptyList()))
             .distinctBy { it.key }
     }
 

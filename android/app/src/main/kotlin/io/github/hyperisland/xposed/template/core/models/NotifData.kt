@@ -52,6 +52,8 @@ data class NotifData(
     val showRightNarrowFont: Boolean = false,
     /** 是否开启大岛外圈光效（outEffectSrc=outer_glow）。 */
     val outerGlow: Boolean = false,
+    /** 大岛外圈光效颜色，十六进制字符串如 "#E040FB"，null 表示不设置。 */
+    val outEffectColor: String? = null,
     /** 焦点通知自定义配置（JSON 字符串），由模板占位符 + 渲染器槽位共同决定。 */
     val focusCustomizationJson: String? = null,
     /** 超级岛文本自定义配置（JSON 字符串），仅控制左右文本。 */

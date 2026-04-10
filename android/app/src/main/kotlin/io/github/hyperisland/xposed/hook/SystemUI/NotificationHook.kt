@@ -336,6 +336,11 @@ object GenericProgressHook : BaseHook() {
                 "outer_glow:$pkg/$channelId", "pref_channel_outer_glow_${pkg}_$channelId", "default"
             )
             val outerGlow = resolveTriOpt(outerGlowRaw, defaultOuterGlow) == "on"
+            val outEffectColor = loadChannelStringSetting(
+                "out_effect_color:$pkg/$channelId",
+                "pref_channel_out_effect_color_${pkg}_$channelId",
+                ""
+            ).takeIf { it.isNotBlank() }
 
             log(module, "$pkg/$channelId | $title |  template=$template")
 //            log(module, "$pkg/$channelId | $title | $progressPercent% | template=$template | buttons=${actions.size} | largeIcon=${largeIcon != null} | preserveSmallIcon=$preserveStatusBarSmallIcon")
@@ -371,6 +376,7 @@ object GenericProgressHook : BaseHook() {
                     showLeftNarrowFont = showLeftNarrowFont,
                     showRightNarrowFont = showRightNarrowFont,
                     outerGlow = outerGlow,
+                    outEffectColor = outEffectColor,
                     focusCustomizationJson = focusCustomizationJson,
                     islandCustomizationJson = islandCustomizationJson,
                 ),

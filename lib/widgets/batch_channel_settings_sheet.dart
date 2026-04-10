@@ -35,6 +35,7 @@ class SingleChannelMode extends ChannelSettingsMode {
     required this.showLeftNarrowFont,
     required this.showRightNarrowFont,
     required this.outerGlow,
+    required this.outEffectColor,
     required this.focusCustom,
     required this.islandCustom,
   });
@@ -58,6 +59,7 @@ class SingleChannelMode extends ChannelSettingsMode {
   final String showLeftNarrowFont;
   final String showRightNarrowFont;
   final String outerGlow;
+  final String outEffectColor;
   final String focusCustom;
   final String islandCustom;
 }
@@ -178,6 +180,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
   bool? _showLeftNarrowFont;
   bool? _showRightNarrowFont;
   String? _outerGlow;
+  String? _outEffectColor;
   String? _focusCustom;
   String? _islandCustom;
 
@@ -195,6 +198,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
 
   late final TextEditingController _timeoutController;
   late final TextEditingController _highlightColorController;
+  late final TextEditingController _outEffectColorController;
 
   bool get _isSingle => widget.mode is SingleChannelMode;
   bool get _dynamicHighlightEnabled =>
@@ -226,13 +230,16 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
       _showLeftNarrowFont = m.showLeftNarrowFont == kTriOptOn;
       _showRightNarrowFont = m.showRightNarrowFont == kTriOptOn;
       _outerGlow = m.outerGlow;
+      _outEffectColor = m.outEffectColor;
       _focusCustom = m.focusCustom;
       _islandCustom = m.islandCustom;
       _timeoutController = TextEditingController(text: m.islandTimeout);
       _highlightColorController = TextEditingController(text: m.highlightColor);
+      _outEffectColorController = TextEditingController(text: m.outEffectColor);
     } else {
       _timeoutController = TextEditingController();
       _highlightColorController = TextEditingController();
+      _outEffectColorController = TextEditingController();
     }
     _loadFocusSchema();
   }
@@ -241,6 +248,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
   void dispose() {
     _timeoutController.dispose();
     _highlightColorController.dispose();
+    _outEffectColorController.dispose();
     for (final c in _focusControllers.values) {
       c.dispose();
     }
@@ -664,10 +672,20 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
       'focus_app_icon_pkg' => l10n.focusAppIconPkgLabel,
       'focus_app_icon_pkg_mode' => l10n.focusSecondaryIconSourceLabel,
       'progress_color' => l10n.progressColorLabel,
+      'progress_bar_color' => l10n.progressBarColorLabel,
+      'progress_bar_color_end' => l10n.progressBarColorEndLabel,
       'chat_title_color' => l10n.chatTitleColorLabel,
       'chat_title_color_dark' => l10n.chatTitleColorDarkLabel,
       'chat_content_color' => l10n.chatContentColorLabel,
       'chat_content_color_dark' => l10n.chatContentColorDarkLabel,
+      'action_1_bg_color' => l10n.action1BgColorLabel,
+      'action_1_bg_color_dark' => l10n.action1BgColorDarkLabel,
+      'action_1_title_color' => l10n.action1TitleColorLabel,
+      'action_1_title_color_dark' => l10n.action1TitleColorDarkLabel,
+      'action_2_bg_color' => l10n.action2BgColorLabel,
+      'action_2_bg_color_dark' => l10n.action2BgColorDarkLabel,
+      'action_2_title_color' => l10n.action2TitleColorLabel,
+      'action_2_title_color_dark' => l10n.action2TitleColorDarkLabel,
       'island_left_expr' => l10n.islandLeftExprLabel,
       'island_right_expr' => l10n.islandRightExprLabel,
       _ => fallback,
@@ -698,10 +716,13 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
     return fallback;
   }
 
-  Future<Color?> _showColorPicker(BuildContext context) async {
+  Future<Color?> _showColorPicker(
+    BuildContext context, {
+    String? initialHex,
+  }) async {
     final l10n = AppLocalizations.of(context)!;
     final initialColor =
-        _parseColor(_highlightColor) ?? Theme.of(context).colorScheme.primary;
+        _parseColor(initialHex) ?? Theme.of(context).colorScheme.primary;
     final hsv = HSVColor.fromColor(initialColor);
 
     HSVColor selectedColor = hsv;
@@ -809,6 +830,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
       _showLeftNarrowFont != null ||
       _showRightNarrowFont != null ||
       _outerGlow != null ||
+      _outEffectColor != null ||
       _focusCustom != null ||
       _islandCustom != null;
 
@@ -865,6 +887,9 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
               ? null
               : (_showRightNarrowFont! ? kTriOptOn : kTriOptOff),
           'outer_glow': _isSingle ? (_outerGlow ?? kTriOptDefault) : _outerGlow,
+          'out_effect_color': _isSingle
+              ? (_outEffectColor ?? '')
+              : _outEffectColor,
           'focus_custom': _focusCustom,
           'island_custom': _islandCustom,
         },
@@ -1188,7 +1213,10 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                         setState(() => _highlightColor = null);
                       },
                       onPickColor: () async {
-                        final color = await _showColorPicker(context);
+                        final color = await _showColorPicker(
+                          context,
+                          initialHex: _highlightColor,
+                        );
                         if (color != null) {
                           final hex = _toHexColor(color);
                           _highlightColorController.text = hex;
@@ -1428,6 +1456,42 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                       ),
                     ],
                     onChanged: (v) => setState(() => _outerGlow = v),
+                  ),
+                  SizedBox(height: rowGap),
+                  _SettingField(
+                    label: l10n.outEffectColorLabel,
+                    child: ColorValueField(
+                      controller: _outEffectColorController,
+                      decoration: _fieldDecoration(
+                        context,
+                        hintText: _isSingle
+                            ? l10n.highlightColorHint
+                            : l10n.noChange,
+                      ),
+                      previewColor: _parseColor(_outEffectColor),
+                      previewFallbackColor: cs.primary,
+                      onChanged: (v) {
+                        final trimmed = v.trim();
+                        setState(() {
+                          _outEffectColor = trimmed.isNotEmpty ? trimmed : null;
+                        });
+                      },
+                      onClear: () {
+                        _outEffectColorController.clear();
+                        setState(() => _outEffectColor = null);
+                      },
+                      onPickColor: () async {
+                        final color = await _showColorPicker(
+                          context,
+                          initialHex: _outEffectColor,
+                        );
+                        if (color != null) {
+                          final hex = _toHexColor(color);
+                          _outEffectColorController.text = hex;
+                          setState(() => _outEffectColor = hex);
+                        }
+                      },
+                    ),
                   ),
                   if (_isSingle) ...[
                     SizedBox(height: rowGap),

@@ -569,6 +569,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get progressColorLabel => '进度条颜色';
 
   @override
+  String get progressBarColorLabel => '进度条颜色';
+
+  @override
+  String get progressBarColorEndLabel => '进度条结束颜色';
+
+  @override
   String get placeholderTitle => '通知标题';
 
   @override
@@ -656,7 +662,46 @@ class AppLocalizationsZh extends AppLocalizations {
   String get outerGlowLabel => '外圈光效';
 
   @override
+  String get outEffectColorLabel => '外圈光效颜色';
+
+  @override
   String get highlightColorHint => '#RRGGBB 格式，留空使用默认';
+
+  @override
+  String get actionBgColorLabel => '按钮背景色';
+
+  @override
+  String get actionBgColorDarkLabel => '按钮背景色（暗色）';
+
+  @override
+  String get actionTitleColorLabel => '按钮文字颜色';
+
+  @override
+  String get actionTitleColorDarkLabel => '按钮文字颜色（暗色）';
+
+  @override
+  String get action1BgColorLabel => '按钮1背景色';
+
+  @override
+  String get action1BgColorDarkLabel => '按钮1背景色（暗色）';
+
+  @override
+  String get action1TitleColorLabel => '按钮1文字颜色';
+
+  @override
+  String get action1TitleColorDarkLabel => '按钮1文字颜色（暗色）';
+
+  @override
+  String get action2BgColorLabel => '按钮2背景色';
+
+  @override
+  String get action2BgColorDarkLabel => '按钮2背景色（暗色）';
+
+  @override
+  String get action2TitleColorLabel => '按钮2文字颜色';
+
+  @override
+  String get action2TitleColorDarkLabel => '按钮2文字颜色（暗色）';
 
   @override
   String get textHighlightLabel => '文本高亮';

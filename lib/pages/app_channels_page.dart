@@ -228,6 +228,7 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
       widget.controller.setChannelShowRightNarrowFont,
     );
     queueExtra('outer_glow', widget.controller.setChannelOuterGlow);
+    queueExtra('out_effect_color', widget.controller.setChannelOutEffectColor);
     queueExtra('focus_custom', widget.controller.setChannelFocusCustomization);
     queueExtra(
       'island_custom',
@@ -516,6 +517,7 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                       showRightNarrowFont:
                           extras['show_right_narrow_font'] ?? kTriOptOff,
                       outerGlow: extras['outer_glow'] ?? kTriOptDefault,
+                      outEffectColor: extras['out_effect_color'] ?? '',
                       focusCustom: extras['focus_custom'] ?? '',
                       islandCustom: extras['island_custom'] ?? '',
                       controller: widget.controller,
@@ -633,6 +635,7 @@ class _ChannelTile extends StatelessWidget {
     required this.showLeftNarrowFont,
     required this.showRightNarrowFont,
     required this.outerGlow,
+    required this.outEffectColor,
     required this.focusCustom,
     required this.islandCustom,
     required this.controller,
@@ -666,6 +669,7 @@ class _ChannelTile extends StatelessWidget {
   final String showLeftNarrowFont;
   final String showRightNarrowFont;
   final String outerGlow;
+  final String outEffectColor;
   final String focusCustom;
   final String islandCustom;
   final WhitelistController controller;
@@ -695,6 +699,7 @@ class _ChannelTile extends StatelessWidget {
         showLeftNarrowFont: showLeftNarrowFont,
         showRightNarrowFont: showRightNarrowFont,
         outerGlow: outerGlow,
+        outEffectColor: outEffectColor,
         focusCustom: focusCustom,
         islandCustom: islandCustom,
       ),

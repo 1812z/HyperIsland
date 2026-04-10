@@ -1128,6 +1128,18 @@ abstract class AppLocalizations {
   /// **'进度条颜色'**
   String get progressColorLabel;
 
+  /// No description provided for @progressBarColorLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'进度条颜色'**
+  String get progressBarColorLabel;
+
+  /// No description provided for @progressBarColorEndLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'进度条结束颜色'**
+  String get progressBarColorEndLabel;
+
   /// No description provided for @placeholderTitle.
   ///
   /// In zh, this message translates to:
@@ -1302,11 +1314,89 @@ abstract class AppLocalizations {
   /// **'外圈光效'**
   String get outerGlowLabel;
 
+  /// No description provided for @outEffectColorLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'外圈光效颜色'**
+  String get outEffectColorLabel;
+
   /// No description provided for @highlightColorHint.
   ///
   /// In zh, this message translates to:
   /// **'#RRGGBB 格式，留空使用默认'**
   String get highlightColorHint;
+
+  /// No description provided for @actionBgColorLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'按钮背景色'**
+  String get actionBgColorLabel;
+
+  /// No description provided for @actionBgColorDarkLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'按钮背景色（暗色）'**
+  String get actionBgColorDarkLabel;
+
+  /// No description provided for @actionTitleColorLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'按钮文字颜色'**
+  String get actionTitleColorLabel;
+
+  /// No description provided for @actionTitleColorDarkLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'按钮文字颜色（暗色）'**
+  String get actionTitleColorDarkLabel;
+
+  /// No description provided for @action1BgColorLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'按钮1背景色'**
+  String get action1BgColorLabel;
+
+  /// No description provided for @action1BgColorDarkLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'按钮1背景色（暗色）'**
+  String get action1BgColorDarkLabel;
+
+  /// No description provided for @action1TitleColorLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'按钮1文字颜色'**
+  String get action1TitleColorLabel;
+
+  /// No description provided for @action1TitleColorDarkLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'按钮1文字颜色（暗色）'**
+  String get action1TitleColorDarkLabel;
+
+  /// No description provided for @action2BgColorLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'按钮2背景色'**
+  String get action2BgColorLabel;
+
+  /// No description provided for @action2BgColorDarkLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'按钮2背景色（暗色）'**
+  String get action2BgColorDarkLabel;
+
+  /// No description provided for @action2TitleColorLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'按钮2文字颜色'**
+  String get action2TitleColorLabel;
+
+  /// No description provided for @action2TitleColorDarkLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'按钮2文字颜色（暗色）'**
+  String get action2TitleColorDarkLabel;
 
   /// No description provided for @textHighlightLabel.
   ///

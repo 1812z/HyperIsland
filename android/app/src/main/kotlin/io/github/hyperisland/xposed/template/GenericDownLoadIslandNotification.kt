@@ -12,6 +12,7 @@ import io.github.hyperisland.xposed.template.core.models.IslandViewModel
 import io.github.hyperisland.xposed.utils.toRounded
 import io.github.hyperisland.xposed.utils.moduleContext
 import io.github.hyperisland.xposed.logError
+import io.github.hyperisland.xposed.renderer.RendererContext
 import io.github.hyperisland.xposed.renderer.resolveRenderer
 
 /**
@@ -38,8 +39,8 @@ object GenericDownloadIslandNotification : IslandTemplate {
     override val defaultIslandRightExpr: String = "${'$'}{subtitle_or_title}"
     override fun inject(context: Context, extras: Bundle, data: NotifData) {
         try {
-            val vm = process(context, data)
-            resolveRenderer(data.renderer).render(context, extras, vm)
+            val ctx = process(context, data)
+            resolveRenderer(data.renderer).render(context, extras, ctx)
         } catch (e: Exception) {
             logError("$TAG: injection error: ${e.message}")
         }
@@ -90,7 +91,7 @@ object GenericDownloadIslandNotification : IslandTemplate {
         }
     }
 
-    fun process(context: Context, data: NotifData): IslandViewModel {
+    fun process(context: Context, data: NotifData): RendererContext {
         val combined   = "${data.title} ${data.subtitle} "
         val isComplete = data.progress >= 100 ||
             combined.contains("完成") || combined.contains("成功") ||
@@ -164,8 +165,11 @@ object GenericDownloadIslandNotification : IslandTemplate {
             showLeftNarrowFont = data.showLeftNarrowFont,
             showRightNarrowFont = data.showRightNarrowFont,
             outerGlow = data.outerGlow,
+            outEffectColor = data.outEffectColor,
         )
-        return FocusCustomizationEngine.applyIsland(data, FocusCustomizationEngine.apply(context, data, baseVm))
+        val applyResult = FocusCustomizationEngine.apply(context, data, baseVm)
+        val vm = FocusCustomizationEngine.applyIsland(data, applyResult.vm)
+        return RendererContext(vm = vm, payload = applyResult.rendererPayload)
     }
 
     override fun focusExpressionVars(data: NotifData, vm: IslandViewModel): Map<String, String> {

@@ -1,4 +1,4 @@
-package io.github.hyperisland.xposed.renderer
+package io.github.hyperisland.xposed.renderer.image_text_with_buttons
 
 import android.content.Context
 import android.os.Bundle
@@ -12,10 +12,21 @@ import io.github.d4viddf.hyperisland_kit.models.ImageTextInfoRight
 import io.github.d4viddf.hyperisland_kit.models.PicInfo
 import io.github.d4viddf.hyperisland_kit.models.ProgressTextInfo
 import io.github.d4viddf.hyperisland_kit.models.TextInfo
-import io.github.hyperisland.xposed.template.core.models.IslandViewModel
 import io.github.hyperisland.xposed.hook.FocusNotifStatusBarIconHook
+import io.github.hyperisland.xposed.renderer.IslandRenderer
+import io.github.hyperisland.xposed.renderer.RendererContext
+import io.github.hyperisland.xposed.renderer.fixTextButtonJson
+import io.github.hyperisland.xposed.renderer.flattenActionsToExtras
+import io.github.hyperisland.xposed.renderer.injectHighlightColor
+import io.github.hyperisland.xposed.renderer.injectOutEffectColor
+import io.github.hyperisland.xposed.renderer.injectOuterGlow
+import io.github.hyperisland.xposed.renderer.injectUpdatable
+import io.github.hyperisland.xposed.renderer.wrapLongTextJson
+import io.github.hyperisland.xposed.renderer.image_text_with_buttons_wrap.ImageTextWithButtonsWrapRenderer
+import io.github.hyperisland.xposed.renderer.image_text_with_right_text_button.ImageTextWithRightTextButtonRenderer
 import io.github.hyperisland.xposed.template.core.customization.FocusCustomizationFieldRegistry
 import io.github.hyperisland.xposed.template.core.customization.FocusCustomizationFieldSpec
+import io.github.hyperisland.xposed.template.core.models.IslandViewModel
 
 /**
  * 新图文组件+按钮组件4 渲染器。
@@ -38,14 +49,17 @@ object ImageTextWithButtonsRenderer : IslandRenderer {
         FocusCustomizationFieldRegistry.focusContentExpr,
         FocusCustomizationFieldRegistry.focusIconMode,
     )
+    override val customizationContributor = ImageTextWithButtonsCustomization
 
-    override fun render(context: Context, extras: Bundle, vm: IslandViewModel) {
-        renderWith(context, extras, vm, applyWrap = false)
+    override fun render(context: Context, extras: Bundle, ctx: RendererContext) {
+        renderWith(context, extras, ctx, applyWrap = false)
     }
 
     /** 供 [ImageTextWithButtonsWrapRenderer] 和 [ImageTextWithRightTextButtonRenderer] 复用，避免重复布局代码。 */
-    internal fun renderWith(context: Context, extras: Bundle, vm: IslandViewModel, applyWrap: Boolean, maxButtons: Int = 2, useActionsButton: Boolean = false) {
+    internal fun renderWith(context: Context, extras: Bundle, ctx: RendererContext, applyWrap: Boolean, maxButtons: Int = 2, useActionsButton: Boolean = false) {
         try {
+            val vm = ctx.vm
+            val payload = ctx.payload as? ImageTextWithButtonsPayload
             val iconKey      = "key_${vm.templateId}_island"
             val focusIconKey = "key_${vm.templateId}_focus"
 
@@ -110,15 +124,27 @@ object ImageTextWithButtonsRenderer : IslandRenderer {
                         title            = action.title ?: "",
                         pendingIntent    = action.actionIntent,
                         actionIntentType = 2,
+                        bgColor = payload?.action1BgColor,
+                        bgColorDark = payload?.action1BgColorDark,
+                        titleColor = payload?.action1TitleColor,
+                        titleColorDark = payload?.action1TitleColorDark,
                     ))
                 } else {
                     // 按钮组件4：textButton，最多 maxButtons 个
                     val hyperActions = effectiveActions.mapIndexed { index, action ->
+                        val bgColor = if (index == 0) payload?.action1BgColor else payload?.action2BgColor
+                        val bgColorDark = if (index == 0) payload?.action1BgColorDark else payload?.action2BgColorDark
+                        val titleColor = if (index == 0) payload?.action1TitleColor else payload?.action2TitleColor
+                        val titleColorDark = if (index == 0) payload?.action1TitleColorDark else payload?.action2TitleColorDark
                         HyperAction(
                             key              = "action_${vm.templateId}_$index",
                             title            = action.title ?: "",
                             pendingIntent    = action.actionIntent,
                             actionIntentType = 2,
+                            bgColor = bgColor,
+                            bgColorDark = bgColorDark,
+                            titleColor = titleColor,
+                            titleColorDark = titleColorDark,
                         )
                     }
                     hyperActions.forEach { builder.addHiddenAction(it) }
@@ -136,6 +162,7 @@ object ImageTextWithButtonsRenderer : IslandRenderer {
             jsonParam = injectUpdatable(jsonParam, vm.updatable)
             jsonParam = injectHighlightColor(jsonParam, vm.highlightColor)
             jsonParam = injectOuterGlow(jsonParam, vm.outerGlow)
+            jsonParam = injectOutEffectColor(jsonParam, vm.outEffectColor)
             extras.putString("miui.focus.param", jsonParam)
 
             if (vm.setFocusProxy && vm.showNotification) {

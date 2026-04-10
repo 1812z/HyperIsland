@@ -291,7 +291,7 @@ class WhitelistController extends ChangeNotifier {
 
   // ── 渠道级额外设置（图标、焦点通知、初次展开、更新展开）────────────────────
 
-  /// 批量读取各渠道的额外设置，返回 channelId → {icon, focus, preserve_small_icon, first_float, enable_float, timeout, marquee, highlight_color, dynamic_highlight_color, outer_glow}。
+  /// 批量读取各渠道的额外设置，返回 channelId → {icon, focus, preserve_small_icon, first_float, enable_float, timeout, marquee, highlight_color, dynamic_highlight_color, outer_glow, out_effect_color}。
   Future<Map<String, Map<String, String>>> getChannelExtraSettings(
     String packageName,
     List<String> channelIds,
@@ -363,6 +363,11 @@ class WhitelistController extends ChangeNotifier {
           'outer_glow':
               prefs.getString('pref_channel_outer_glow_${packageName}_$id') ??
               kTriOptDefault,
+          'out_effect_color':
+              prefs.getString(
+                'pref_channel_out_effect_color_${packageName}_$id',
+              ) ??
+              '',
           'focus_custom':
               prefs.getString('pref_channel_focus_custom_${packageName}_$id') ??
               '',
@@ -647,6 +652,20 @@ class WhitelistController extends ChangeNotifier {
     );
   }
 
+  Future<void> setChannelOutEffectColor(
+    String packageName,
+    String channelId,
+    String value,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'pref_channel_out_effect_color_${packageName}_$channelId';
+    if (value.isEmpty) {
+      await prefs.remove(key);
+    } else {
+      await prefs.setString(key, value);
+    }
+  }
+
   Future<void> setChannelFocusCustomization(
     String packageName,
     String channelId,
@@ -703,6 +722,7 @@ class WhitelistController extends ChangeNotifier {
       'show_left_narrow_font': 'pref_channel_show_left_narrow_font',
       'show_right_narrow_font': 'pref_channel_show_right_narrow_font',
       'outer_glow': 'pref_channel_outer_glow',
+      'out_effect_color': 'pref_channel_out_effect_color',
       'focus_custom': 'pref_channel_focus_custom',
       'island_custom': 'pref_channel_island_custom',
     };

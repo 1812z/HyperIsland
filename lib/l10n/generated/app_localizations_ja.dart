@@ -575,6 +575,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get progressColorLabel => '进度条颜色';
 
   @override
+  String get progressBarColorLabel => '进度条颜色';
+
+  @override
+  String get progressBarColorEndLabel => '进度条结束颜色';
+
+  @override
   String get placeholderTitle => '通知标题';
 
   @override
@@ -663,7 +669,46 @@ class AppLocalizationsJa extends AppLocalizations {
   String get outerGlowLabel => '外側グロー';
 
   @override
+  String get outEffectColorLabel => '外側グロー色';
+
+  @override
   String get highlightColorHint => '#RRGGBB 形式、空白でデフォルト';
+
+  @override
+  String get actionBgColorLabel => 'ボタン背景色';
+
+  @override
+  String get actionBgColorDarkLabel => 'ボタン背景色（ダーク）';
+
+  @override
+  String get actionTitleColorLabel => 'ボタン文字色';
+
+  @override
+  String get actionTitleColorDarkLabel => 'ボタン文字色（ダーク）';
+
+  @override
+  String get action1BgColorLabel => 'ボタン1背景色';
+
+  @override
+  String get action1BgColorDarkLabel => 'ボタン1背景色（ダーク）';
+
+  @override
+  String get action1TitleColorLabel => 'ボタン1文字色';
+
+  @override
+  String get action1TitleColorDarkLabel => 'ボタン1文字色（ダーク）';
+
+  @override
+  String get action2BgColorLabel => 'ボタン2背景色';
+
+  @override
+  String get action2BgColorDarkLabel => 'ボタン2背景色（ダーク）';
+
+  @override
+  String get action2TitleColorLabel => 'ボタン2文字色';
+
+  @override
+  String get action2TitleColorDarkLabel => 'ボタン2文字色（ダーク）';
 
   @override
   String get textHighlightLabel => 'テキストハイライト';

@@ -596,6 +596,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get progressColorLabel => '进度条颜色';
 
   @override
+  String get progressBarColorLabel => '进度条颜色';
+
+  @override
+  String get progressBarColorEndLabel => '进度条结束颜色';
+
+  @override
   String get placeholderTitle => '通知标题';
 
   @override
@@ -686,8 +692,47 @@ class AppLocalizationsTr extends AppLocalizations {
   String get outerGlowLabel => 'Dış parlama';
 
   @override
+  String get outEffectColorLabel => 'Dış parlama rengi';
+
+  @override
   String get highlightColorHint =>
       '#RRGGBB formatı, varsayılan için boş bırakın';
+
+  @override
+  String get actionBgColorLabel => 'Düğme arka plan rengi';
+
+  @override
+  String get actionBgColorDarkLabel => 'Düğme arka plan rengi (koyu)';
+
+  @override
+  String get actionTitleColorLabel => 'Düğme yazı rengi';
+
+  @override
+  String get actionTitleColorDarkLabel => 'Düğme yazı rengi (koyu)';
+
+  @override
+  String get action1BgColorLabel => 'Düğme 1 arka plan rengi';
+
+  @override
+  String get action1BgColorDarkLabel => 'Düğme 1 arka plan rengi (koyu)';
+
+  @override
+  String get action1TitleColorLabel => 'Düğme 1 yazı rengi';
+
+  @override
+  String get action1TitleColorDarkLabel => 'Düğme 1 yazı rengi (koyu)';
+
+  @override
+  String get action2BgColorLabel => 'Düğme 2 arka plan rengi';
+
+  @override
+  String get action2BgColorDarkLabel => 'Düğme 2 arka plan rengi (koyu)';
+
+  @override
+  String get action2TitleColorLabel => 'Düğme 2 yazı rengi';
+
+  @override
+  String get action2TitleColorDarkLabel => 'Düğme 2 yazı rengi (koyu)';
 
   @override
   String get textHighlightLabel => 'Metin vurgusu';

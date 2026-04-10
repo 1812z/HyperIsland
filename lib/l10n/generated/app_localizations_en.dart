@@ -593,6 +593,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get progressColorLabel => 'Progress color';
 
   @override
+  String get progressBarColorLabel => 'Progress bar color';
+
+  @override
+  String get progressBarColorEndLabel => 'Progress bar end color';
+
+  @override
   String get placeholderTitle => 'Notification title';
 
   @override
@@ -682,7 +688,46 @@ class AppLocalizationsEn extends AppLocalizations {
   String get outerGlowLabel => 'Outer glow';
 
   @override
+  String get outEffectColorLabel => 'Outer glow color';
+
+  @override
   String get highlightColorHint => '#RRGGBB format, leave empty for default';
+
+  @override
+  String get actionBgColorLabel => 'Action background color';
+
+  @override
+  String get actionBgColorDarkLabel => 'Action background color (dark)';
+
+  @override
+  String get actionTitleColorLabel => 'Action title color';
+
+  @override
+  String get actionTitleColorDarkLabel => 'Action title color (dark)';
+
+  @override
+  String get action1BgColorLabel => 'Action 1 background color';
+
+  @override
+  String get action1BgColorDarkLabel => 'Action 1 background color (dark)';
+
+  @override
+  String get action1TitleColorLabel => 'Action 1 title color';
+
+  @override
+  String get action1TitleColorDarkLabel => 'Action 1 title color (dark)';
+
+  @override
+  String get action2BgColorLabel => 'Action 2 background color';
+
+  @override
+  String get action2BgColorDarkLabel => 'Action 2 background color (dark)';
+
+  @override
+  String get action2TitleColorLabel => 'Action 2 title color';
+
+  @override
+  String get action2TitleColorDarkLabel => 'Action 2 title color (dark)';
 
   @override
   String get textHighlightLabel => 'Text highlight';
