@@ -4,7 +4,7 @@ import android.app.Notification
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
-import io.github.hyperisland.xposed.IslandViewModel
+import io.github.hyperisland.xposed.template.core.models.IslandViewModel
 
 /**
  * 灵动岛渲染器接口。

@@ -4,14 +4,14 @@ import android.content.Context
 import android.graphics.drawable.Icon
 import android.os.Bundle
 import android.util.Log
-import io.github.hyperisland.xposed.IslandTemplate
-import io.github.hyperisland.xposed.IslandViewModel
-import io.github.hyperisland.xposed.NotifData
+import io.github.hyperisland.xposed.template.core.contracts.IslandTemplate
+import io.github.hyperisland.xposed.template.core.models.NotifData
+import io.github.hyperisland.xposed.template.core.models.IslandViewModel
+import io.github.hyperisland.xposed.utils.toRounded
 import io.github.hyperisland.xposed.logError
 import io.github.hyperisland.xposed.renderer.ImageTextWithButtonsRenderer
 import io.github.hyperisland.xposed.renderer.resolveRenderer
 import io.github.hyperisland.xposed.renderer.ImageTextWithRightTextButtonRenderer
-import io.github.hyperisland.xposed.toRounded
 
 /**
  * 下载 Lite 灵动岛通知构建器。

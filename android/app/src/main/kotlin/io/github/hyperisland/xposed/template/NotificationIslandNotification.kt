@@ -3,17 +3,17 @@ package io.github.hyperisland.xposed.templates
 import android.content.Context
 import android.graphics.drawable.Icon
 import android.os.Bundle
-import io.github.hyperisland.xposed.IslandDispatcher
+import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
 import io.github.hyperisland.xposed.log
 import io.github.hyperisland.xposed.logError
-import io.github.hyperisland.xposed.IslandRequest
-import io.github.hyperisland.xposed.IslandTemplate
-import io.github.hyperisland.xposed.IslandViewModel
-import io.github.hyperisland.xposed.NotifData
+import io.github.hyperisland.xposed.islanddispatch.IslandRequest
+import io.github.hyperisland.xposed.template.core.contracts.IslandTemplate
+import io.github.hyperisland.xposed.template.core.models.NotifData
+import io.github.hyperisland.xposed.template.core.models.IslandViewModel
+import io.github.hyperisland.xposed.utils.toRounded
 import io.github.hyperisland.xposed.hook.FocusNotifStatusBarIconHook
 import io.github.hyperisland.xposed.renderer.ImageTextWithButtonsRenderer
 import io.github.hyperisland.xposed.renderer.resolveRenderer
-import io.github.hyperisland.xposed.toRounded
 
 /**
  * 通知超级岛通知构建器。

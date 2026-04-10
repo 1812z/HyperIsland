@@ -42,7 +42,7 @@ class MainActivity : FlutterActivity() {
 
             val icon = packageManager.getAppIcon(packageName)
             sendIslandWithReset(
-                io.github.hyperisland.xposed.IslandRequest(
+                io.github.hyperisland.xposed.islanddispatch.IslandRequest(
                     title            = getString(R.string.island_welcome_title),
                     content          = "HyperIsland",
                     icon             = icon,
@@ -253,7 +253,7 @@ class MainActivity : FlutterActivity() {
         try {
             val icon = packageManager.getAppIcon(packageName)
             sendIslandWithReset(
-                io.github.hyperisland.xposed.IslandRequest(
+                io.github.hyperisland.xposed.islanddispatch.IslandRequest(
                     title            = getString(R.string.island_welcome_title),
                     content          = "HyperIsland",
                     icon             = icon,
@@ -269,19 +269,19 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    private fun sendIslandWithReset(request: io.github.hyperisland.xposed.IslandRequest) {
-        val cancelIntent = Intent(io.github.hyperisland.xposed.IslandDispatcher.ACTION_CANCEL).apply {
+    private fun sendIslandWithReset(request: io.github.hyperisland.xposed.islanddispatch.IslandRequest) {
+        val cancelIntent = Intent(io.github.hyperisland.xposed.islanddispatch.IslandDispatcher.ACTION_CANCEL).apply {
             putExtra(
-                io.github.hyperisland.xposed.IslandDispatcher.EXTRA_NOTIF_ID,
+                io.github.hyperisland.xposed.islanddispatch.IslandDispatcher.EXTRA_NOTIF_ID,
                 request.notifId
             )
         }
         sendOrderedBroadcast(
             cancelIntent,
-            io.github.hyperisland.xposed.IslandDispatcher.PERM,
+            io.github.hyperisland.xposed.islanddispatch.IslandDispatcher.PERM,
             object : BroadcastReceiver() {
                 override fun onReceive(context: Context?, intent: Intent?) {
-                    io.github.hyperisland.xposed.IslandDispatcher.sendBroadcast(this@MainActivity, request)
+                    io.github.hyperisland.xposed.islanddispatch.IslandDispatcher.sendBroadcast(this@MainActivity, request)
                 }
             },
             null,

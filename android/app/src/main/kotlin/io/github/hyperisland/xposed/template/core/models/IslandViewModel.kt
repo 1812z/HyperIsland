@@ -1,4 +1,4 @@
-package io.github.hyperisland.xposed
+package io.github.hyperisland.xposed.template.core.models
 
 import android.app.Notification
 import android.graphics.drawable.Icon

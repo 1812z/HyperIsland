@@ -1,7 +1,11 @@
-package io.github.hyperisland.xposed
+package io.github.hyperisland.xposed.template.core
 
 import android.content.Context
 import android.os.Bundle
+import io.github.hyperisland.xposed.logWarn
+import io.github.hyperisland.xposed.template.core.contracts.IslandTemplate
+import io.github.hyperisland.xposed.template.core.filters.BlacklistFilter
+import io.github.hyperisland.xposed.template.core.models.NotifData
 import io.github.hyperisland.xposed.templates.AINotificationIslandNotification
 import io.github.hyperisland.xposed.templates.DownloadLiteIslandNotification
 import io.github.hyperisland.xposed.templates.GenericDownloadIslandNotification

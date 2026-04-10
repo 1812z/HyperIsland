@@ -12,7 +12,7 @@ import io.github.d4viddf.hyperisland_kit.models.ImageTextInfoRight
 import io.github.d4viddf.hyperisland_kit.models.PicInfo
 import io.github.d4viddf.hyperisland_kit.models.ProgressTextInfo
 import io.github.d4viddf.hyperisland_kit.models.TextInfo
-import io.github.hyperisland.xposed.IslandViewModel
+import io.github.hyperisland.xposed.template.core.models.IslandViewModel
 import io.github.hyperisland.xposed.hook.FocusNotifStatusBarIconHook
 
 /**

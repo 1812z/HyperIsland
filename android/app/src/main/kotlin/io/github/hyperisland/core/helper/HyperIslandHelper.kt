@@ -3,8 +3,8 @@ package io.github.hyperisland.core.helper
 import android.content.Context
 import android.util.Log
 import io.github.hyperisland.utils.getAppIcon
-import io.github.hyperisland.xposed.IslandDispatcher
-import io.github.hyperisland.xposed.IslandRequest
+import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
+import io.github.hyperisland.xposed.islanddispatch.IslandRequest
 
 object HyperIslandHelper {
     private const val TAG = "HyperIslandHelper"

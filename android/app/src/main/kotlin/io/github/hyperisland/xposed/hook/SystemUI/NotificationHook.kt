@@ -7,11 +7,11 @@ import android.service.notification.StatusBarNotification
 import io.github.hyperisland.utils.getAppIcon
 import io.github.hyperisland.utils.resolveDynamicHighlightColor
 import io.github.hyperisland.xposed.ConfigManager
-import io.github.hyperisland.xposed.IslandDispatcher
-import io.github.hyperisland.xposed.NotifData
-import io.github.hyperisland.xposed.TemplateRegistry
+import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
+import io.github.hyperisland.xposed.template.core.TemplateRegistry
+import io.github.hyperisland.xposed.template.core.models.NotifData
+import io.github.hyperisland.xposed.utils.toRounded
 import io.github.hyperisland.xposed.templates.NotificationIslandNotification
-import io.github.hyperisland.xposed.toRounded
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import io.github.libxposed.api.XposedModule

@@ -1,8 +1,10 @@
-package io.github.hyperisland.xposed
+package io.github.hyperisland.xposed.template.core.filters
 
 import android.app.ActivityManager
 import android.content.Context
 import android.util.Log
+import io.github.hyperisland.xposed.ConfigManager
+import io.github.hyperisland.xposed.template.core.models.NotifData
 
 /**
  * 应用黑名单过滤器。

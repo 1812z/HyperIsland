@@ -108,7 +108,7 @@ class SettingsController extends ChangeNotifier {
   bool marqueeFeature = false;
   int marqueeSpeed = 100;
   bool bigIslandMaxWidthEnabled = false;
-  int bigIslandMaxWidth = 600;
+  int bigIslandMaxWidth = 200;
   bool unlockAllFocus = false;
   bool unlockFocusAuth = false;
   bool checkUpdateOnLaunch = true;
@@ -258,7 +258,7 @@ class SettingsController extends ChangeNotifier {
   }
 
   Future<void> setBigIslandMaxWidth(int value) async {
-    final clamped = value.clamp(100, 500);
+    final clamped = value.clamp(50, 500);
     if (bigIslandMaxWidth == clamped) return;
     final prefs = await _getPrefs();
     await prefs.setInt(kPrefBigIslandMaxWidth, clamped);

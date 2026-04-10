@@ -1,7 +1,7 @@
 package io.github.hyperisland.xposed.hook
 
 import io.github.hyperisland.xposed.ConfigManager
-import io.github.hyperisland.xposed.IslandDispatcher
+import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import io.github.libxposed.api.XposedModule
 
