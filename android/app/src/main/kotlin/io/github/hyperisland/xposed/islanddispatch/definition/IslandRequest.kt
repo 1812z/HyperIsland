@@ -17,6 +17,7 @@ data class IslandRequest(
     val showNotification: Boolean = true,
     val preserveStatusBarSmallIcon: Boolean = true,
     val highlightColor: String? = null,
+    val outerGlow: Boolean = false,
     val dismissIsland: Boolean = false,
     val contentIntent: android.app.PendingIntent? = null,
     val isOngoing: Boolean = false,
@@ -33,6 +34,7 @@ data class IslandRequest(
         putBoolean(KEY_SHOW_NOTIF, showNotification)
         putBoolean(KEY_PRESERVE_SMALL_ICON, preserveStatusBarSmallIcon)
         putString(KEY_HIGHLIGHT, highlightColor)
+        putBoolean(KEY_OUTER_GLOW, outerGlow)
         putBoolean(KEY_DISMISS, dismissIsland)
         putParcelable(KEY_CONTENT_INTENT, contentIntent)
         putBoolean(KEY_ONGOING, isOngoing)
@@ -50,6 +52,7 @@ data class IslandRequest(
         private const val KEY_SHOW_NOTIF = "showNotification"
         private const val KEY_PRESERVE_SMALL_ICON = "preserveStatusBarSmallIcon"
         private const val KEY_HIGHLIGHT = "highlightColor"
+        private const val KEY_OUTER_GLOW = "outerGlow"
         private const val KEY_DISMISS = "dismissIsland"
         private const val KEY_CONTENT_INTENT = "contentIntent"
         private const val KEY_ONGOING = "isOngoing"
@@ -66,6 +69,7 @@ data class IslandRequest(
             showNotification = b.getBoolean(KEY_SHOW_NOTIF, true),
             preserveStatusBarSmallIcon = b.getBoolean(KEY_PRESERVE_SMALL_ICON, true),
             highlightColor = b.getString(KEY_HIGHLIGHT),
+            outerGlow = b.getBoolean(KEY_OUTER_GLOW, false),
             dismissIsland = b.getBoolean(KEY_DISMISS, false),
             contentIntent = pendingIntentFromBundle(b),
             isOngoing = b.getBoolean(KEY_ONGOING, false),

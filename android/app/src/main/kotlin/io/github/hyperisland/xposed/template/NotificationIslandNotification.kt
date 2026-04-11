@@ -80,6 +80,7 @@ object NotificationIslandNotification : IslandTemplate {
                     preserveStatusBarSmallIcon = data.preserveStatusBarSmallIcon != "off",
                     contentIntent    = data.contentIntent,
                     isOngoing        = data.isOngoing,
+                    outerGlow        = data.outerGlow,
                     actions          = data.actions.take(2),
                 ),
             )
@@ -131,7 +132,7 @@ object NotificationIslandNotification : IslandTemplate {
             showLeftNarrowFont = data.showLeftNarrowFont,
             showRightNarrowFont = data.showRightNarrowFont,
             outerGlow = data.outerGlow,
-            outEffectColor = data.outEffectColor,
+            outEffectColor = null,
         )
         val applyResult = FocusCustomizationEngine.apply(context, data, baseVm)
         val vm = FocusCustomizationEngine.applyIsland(data, applyResult.vm)

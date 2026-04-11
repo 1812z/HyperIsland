@@ -246,6 +246,7 @@ $userPrompt
                     preserveStatusBarSmallIcon = data.preserveStatusBarSmallIcon != "off",
                     contentIntent    = data.contentIntent,
                     isOngoing        = data.isOngoing,
+                    outerGlow        = data.outerGlow,
                     actions          = data.actions.take(2),
                 ),
             )

@@ -108,7 +108,14 @@ internal object IslandDispatcherNotifier {
 
             val jsonParam = islandBuilder.buildJsonParam()
                 .let { fixTextButtonJson(it) }
-                .let { injectIslandAppearance(it, request.highlightColor, request.dismissIsland) }
+                .let {
+                    injectIslandAppearance(
+                        jsonParam = it,
+                        highlightColor = request.highlightColor,
+                        outerGlow = request.outerGlow,
+                        dismissIsland = request.dismissIsland,
+                    )
+                }
             notif.extras.putString("miui.focus.param", jsonParam)
 
             if (request.showNotification) {
@@ -192,9 +199,10 @@ internal object IslandDispatcherNotifier {
     private fun injectIslandAppearance(
         jsonParam: String,
         highlightColor: String?,
+        outerGlow: Boolean,
         dismissIsland: Boolean,
     ): String {
-        if (highlightColor == null && !dismissIsland) return jsonParam
+        if (highlightColor == null && !outerGlow && !dismissIsland) return jsonParam
         return try {
             val json = org.json.JSONObject(jsonParam)
             val pv2 = json.optJSONObject("param_v2") ?: return jsonParam
@@ -202,6 +210,7 @@ internal object IslandDispatcherNotifier {
             highlightColor?.let { paramIsland.put("highlightColor", it) }
             if (dismissIsland) paramIsland.put("dismissIsland", true)
             pv2.put("param_island", paramIsland)
+            if (outerGlow) pv2.put("outEffectSrc", "outer_glow")
             json.toString()
         } catch (_: Exception) {
             jsonParam
