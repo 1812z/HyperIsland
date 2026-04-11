@@ -23,7 +23,6 @@ data class AppChannelsUiState(
 
 data class ChannelExtraSettings(
     val icon: String = "auto",
-    val focusIcon: String = "auto",
     val focus: String = "default",
     val preserveSmallIcon: String = "default",
     val showIslandIcon: String = "default",

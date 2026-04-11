@@ -162,7 +162,6 @@ class AppAdaptationRepository(private val context: Context) {
     fun getChannelExtras(packageName: String, channelId: String): ChannelExtraSettings {
         return ChannelExtraSettings(
             icon = prefs.getString("pref_channel_icon_${packageName}_$channelId", "auto") ?: "auto",
-            focusIcon = prefs.getString("pref_channel_focus_icon_${packageName}_$channelId", "auto") ?: "auto",
             focus = prefs.getString("pref_channel_focus_${packageName}_$channelId", "default") ?: "default",
             preserveSmallIcon = prefs.getString(
                 "pref_channel_preserve_small_icon_${packageName}_$channelId",
@@ -228,7 +227,6 @@ class AppAdaptationRepository(private val context: Context) {
     fun setChannelSetting(packageName: String, channelId: String, setting: String, value: String) {
         val key = when (setting) {
             "icon" -> "pref_channel_icon_${packageName}_$channelId"
-            "focus_icon" -> "pref_channel_focus_icon_${packageName}_$channelId"
             "focus" -> "pref_channel_focus_${packageName}_$channelId"
             "preserve_small_icon" -> "pref_channel_preserve_small_icon_${packageName}_$channelId"
             "show_island_icon" -> "pref_channel_show_island_icon_${packageName}_$channelId"
@@ -275,7 +273,6 @@ class AppAdaptationRepository(private val context: Context) {
                     "template" -> "pref_channel_template_${packageName}_$channelId"
                     "timeout" -> "pref_channel_timeout_${packageName}_$channelId"
                     "icon" -> "pref_channel_icon_${packageName}_$channelId"
-                    "focus_icon" -> "pref_channel_focus_icon_${packageName}_$channelId"
                     "focus" -> "pref_channel_focus_${packageName}_$channelId"
                     "preserve_small_icon" -> "pref_channel_preserve_small_icon_${packageName}_$channelId"
                     "show_island_icon" -> "pref_channel_show_island_icon_${packageName}_$channelId"

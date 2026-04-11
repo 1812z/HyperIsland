@@ -750,8 +750,6 @@ private fun ChannelSettingsContent(
     val templateOptions = listOf(
         "generic_progress" to textOf("下载", "Download"),
         "notification_island" to textOf("通知超级岛", "Notification Island"),
-        "notification_island_lite" to textOf("通知超级岛 | 精简", "Notification Island|Lite"),
-        "download_lite" to textOf("下载|Lite", "Download|Lite"),
         "ai_notification_island" to textOf("AI 通知超级岛", "AI Notification Island"),
     )
     val iconModeOptions = listOf(
@@ -779,6 +777,7 @@ private fun ChannelSettingsContent(
         "image_text_with_buttons_4" to textOf("新图文组件 + 底部文本按钮", "Image+Text+Bottom Text Buttons"),
         "image_text_with_buttons_4_wrap" to textOf("封面组件 + 自动换行", "Cover Info+Auto Wrap"),
         "image_text_with_right_text_button" to textOf("新图文组件 + 右侧文本按钮", "Image+Text+Right Text Button"),
+        "image_text_with_progress" to textOf("IM 图文组件 + 进度条", "IM Chat Info + Progress"),
     )
     var highlightDraft by remember(extras.highlightColor) { mutableStateOf(extras.highlightColor) }
 
@@ -900,9 +899,6 @@ private fun ChannelSettingsContent(
             verticalPadding = 0.dp,
             itemSpacing = 0.dp,
         ) {
-            SettingsDropdownRow(textOf("焦点图标", "Focus Icon"), iconModeOptions, extras.focusIcon, true, largeText = true) {
-                onSetSetting("focus_icon", it)
-            }
             SettingsDropdownRow(textOf("焦点通知", "Focus Notification"), focusOptions, extras.focus, true, largeText = true) {
                 onSetSetting("focus", it)
                 if (it == "off" && extras.preserveSmallIcon != "off") {
@@ -1204,8 +1200,6 @@ private fun BatchApplyDialog(
         noChange to "不更改",
         "generic_progress" to "下载",
         "notification_island" to "通知超级岛",
-        "notification_island_lite" to "通知超级岛 | 精简",
-        "download_lite" to "下载|Lite",
         "ai_notification_island" to "AI 通知超级岛",
     )
     val rendererOptions = listOf(
@@ -1213,6 +1207,7 @@ private fun BatchApplyDialog(
         "image_text_with_buttons_4" to "新图文组件 + 底部文本按钮",
         "image_text_with_buttons_4_wrap" to "封面组件 + 自动换行",
         "image_text_with_right_text_button" to "新图文组件 + 右侧文本按钮",
+        "image_text_with_progress" to "IM 图文组件 + 进度条",
     )
     val dynamicHighlightOptions = listOf(
         noChange to "不更改",
@@ -1227,7 +1222,6 @@ private fun BatchApplyDialog(
     var renderer by remember { mutableStateOf(noChange) }
     var timeout by remember { mutableStateOf("") }
     var icon by remember { mutableStateOf(noChange) }
-    var focusIcon by remember { mutableStateOf(noChange) }
     var focus by remember { mutableStateOf(noChange) }
     var preserveSmallIcon by remember { mutableStateOf(noChange) }
     var showIslandIcon by remember { mutableStateOf(noChange) }
@@ -1281,7 +1275,6 @@ private fun BatchApplyDialog(
                     putIfChanged("template", template)
                     putIfChanged("renderer", renderer)
                     putIfChanged("icon", icon)
-                    putIfChanged("focus_icon", focusIcon)
                     putIfChanged("focus", focus)
                     putIfChanged("preserve_small_icon", preserveSmallIconValue)
                     putIfChanged("show_island_icon", showIslandIcon)
@@ -1402,7 +1395,6 @@ private fun BatchApplyDialog(
 
                 ChannelSectionTitle("焦点通知")
                 BatchSheetSectionCard {
-                    SettingsDropdownRow("焦点图标", iconModeOptions, focusIcon, true, largeText = true) { focusIcon = it }
                     SettingsDropdownRow("焦点通知", triStateOptions, focus, true, largeText = true) {
                         focus = it
                         if (it == "off") {
@@ -1642,7 +1634,6 @@ private fun ChannelSettingsScreenPreview() {
                     channelExtras = mapOf(
                         channelId to ChannelExtraSettings(
                             icon = "app_icon",
-                            focusIcon = "notif_small",
                             focus = "on",
                             preserveSmallIcon = "off",
                             showIslandIcon = "on",

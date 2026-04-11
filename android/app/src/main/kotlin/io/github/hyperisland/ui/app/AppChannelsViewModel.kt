@@ -122,7 +122,6 @@ class AppChannelsViewModel(
         val current = _uiState.value.channelExtras[channelId] ?: return
         val next = when (setting) {
             "icon" -> current.copy(icon = value)
-            "focus_icon" -> current.copy(focusIcon = value)
             "focus" -> {
                 if (value == "off") {
                     repo.setChannelSetting(packageName, channelId, "preserve_small_icon", "off")
