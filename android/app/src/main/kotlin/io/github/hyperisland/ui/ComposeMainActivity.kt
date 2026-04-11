@@ -410,7 +410,7 @@ private const val GITHUB_REPO_URL = "https://github.com/1812z/HyperIsland"
 private const val GITHUB_RELEASE_URL = "https://github.com/1812z/HyperIsland/releases/latest"
 private const val QQ_GROUP_NUMBER = "1045114341"
 private const val DEFAULT_MARQUEE_SPEED = 100
-private const val DEFAULT_BIG_ISLAND_MAX_WIDTH = 600
+private const val DEFAULT_BIG_ISLAND_MAX_WIDTH = 200
 private const val BAR_BLUR_RADIUS = 28f
 private const val BAR_BLUR_NOISE = 0.016f
 
@@ -1368,7 +1368,7 @@ private fun HyperIslandComposeApp() {
                     val vm: AppChannelsViewModel = viewModel()
                     val state by vm.uiState.collectAsStateWithLifecycle()
                     LaunchedEffect(scene.packageName) {
-                        vm.setPackageNameIfEmpty(scene.packageName)
+                        vm.setPackageName(scene.packageName)
                     }
                     AppChannelsScreen(
                         state = state,
@@ -1395,7 +1395,7 @@ private fun HyperIslandComposeApp() {
                     val vm: AppChannelsViewModel = viewModel()
                     val state by vm.uiState.collectAsStateWithLifecycle()
                     LaunchedEffect(scene.packageName) {
-                        vm.setPackageNameIfEmpty(scene.packageName)
+                        vm.setPackageName(scene.packageName)
                     }
                     ChannelSettingsScreen(
                         state = state,
@@ -1462,7 +1462,7 @@ private fun HyperIslandComposeApp() {
                                     MiuixIconButton(onClick = { handleNavigationBack() }) {
                                         Icon(
                                             imageVector = MiuixIcons.Basic.ArrowRight,
-                                            contentDescription = "返回",
+                                            contentDescription = textOf(uiLanguage, "返回", "Back"),
                                             modifier = Modifier.rotate(180f),
                                             tint = MaterialTheme.colorScheme.onSurface,
                                         )
@@ -1472,7 +1472,7 @@ private fun HyperIslandComposeApp() {
                                     MiuixIconButton(onClick = { appsExitSelectionRequestId += 1 }) {
                                         FaIcon(
                                             glyph = FaGlyph.Times,
-                                            contentDescription = "退出多选",
+                                            contentDescription = textOf(uiLanguage, "退出多选", "Exit multi-select"),
                                             tint = MaterialTheme.colorScheme.onSurface,
                                         )
                                     }
@@ -1494,7 +1494,7 @@ private fun HyperIslandComposeApp() {
                                                 MiuixIconButton(onClick = { showAppChannelsMenu = true }) {
                                                     Icon(
                                                         imageVector = MiuixIcons.Regular.MoreCircle,
-                                                        contentDescription = "渠道页更多操作",
+                                                        contentDescription = textOf(uiLanguage, "渠道页更多操作", "More channel actions"),
                                                         tint = MaterialTheme.colorScheme.onSurface,
                                                     )
                                                 }
@@ -1505,11 +1505,11 @@ private fun HyperIslandComposeApp() {
                                                     onDismissFinished = {},
                                                 ) {
                                                     val menuItems = listOf(
-                                                        "启用全部渠道" to {
+                                                        textOf(uiLanguage, "启用全部渠道", "Enable all channels") to {
                                                             showAppChannelsMenu = false
                                                             appChannelsEnableAllRequestId += 1
                                                         },
-                                                        "批量设置渠道配置" to {
+                                                        textOf(uiLanguage, "批量设置渠道配置", "Batch edit channel settings") to {
                                                             showAppChannelsMenu = false
                                                             appChannelsBatchRequestId += 1
                                                         },
@@ -1542,7 +1542,7 @@ private fun HyperIslandComposeApp() {
                                             ) {
                                                 Icon(
                                                     imageVector = MiuixIcons.Regular.Search,
-                                                    contentDescription = "搜索",
+                                                    contentDescription = textOf(uiLanguage, "搜索", "Search"),
                                                     tint = MaterialTheme.colorScheme.onSurface,
                                                 )
                                             }
@@ -1553,7 +1553,7 @@ private fun HyperIslandComposeApp() {
                                                 MiuixIconButton(onClick = { showBlacklistMenu = true }) {
                                                     Icon(
                                                         imageVector = MiuixIcons.Regular.MoreCircle,
-                                                        contentDescription = "黑名单页更多操作",
+                                                        contentDescription = textOf(uiLanguage, "黑名单页更多操作", "More blacklist actions"),
                                                         tint = MaterialTheme.colorScheme.onSurface,
                                                     )
                                                 }
@@ -1564,23 +1564,27 @@ private fun HyperIslandComposeApp() {
                                                     onDismissFinished = {},
                                                 ) {
                                                     val menuItems = listOf(
-                                                        "游戏预设" to {
+                                                        textOf(uiLanguage, "游戏预设", "Game preset") to {
                                                             showBlacklistMenu = false
                                                             blacklistVm.applyGamePreset()
                                                         },
-                                                        "全部加入" to {
+                                                        textOf(uiLanguage, "全部加入", "Add all visible") to {
                                                             showBlacklistMenu = false
                                                             blacklistVm.enableAllVisible()
                                                         },
-                                                        "全部移除" to {
+                                                        textOf(uiLanguage, "全部移除", "Remove all visible") to {
                                                             showBlacklistMenu = false
                                                             blacklistVm.disableAllVisible()
                                                         },
-                                                        (if (blacklistState.showSystemApps) "隐藏系统应用" else "显示系统应用") to {
+                                                        (if (blacklistState.showSystemApps) {
+                                                            textOf(uiLanguage, "隐藏系统应用", "Hide system apps")
+                                                        } else {
+                                                            textOf(uiLanguage, "显示系统应用", "Show system apps")
+                                                        }) to {
                                                             showBlacklistMenu = false
                                                             blacklistVm.setShowSystemApps(!blacklistState.showSystemApps)
                                                         },
-                                                        "刷新" to {
+                                                        textOf(uiLanguage, "刷新", "Refresh") to {
                                                             showBlacklistMenu = false
                                                             blacklistVm.refresh()
                                                         },
@@ -1605,21 +1609,21 @@ private fun HyperIslandComposeApp() {
                                     MiuixIconButton(onClick = { openExternalUrl(context, DOCUMENTATION_URL) }) {
                                         Icon(
                                             imageVector = MiuixIcons.Regular.Info,
-                                            contentDescription = "文档",
+                                            contentDescription = textOf(uiLanguage, "文档", "Documentation"),
                                             tint = MaterialTheme.colorScheme.onSurface,
                                         )
                                     }
                                     MiuixIconButton(onClick = { showSponsorDialog = true }) {
                                         Icon(
                                             imageVector = MiuixIcons.Regular.Create,
-                                            contentDescription = "赞助",
+                                            contentDescription = textOf(uiLanguage, "赞助", "Sponsor"),
                                             tint = MaterialTheme.colorScheme.onSurface,
                                         )
                                     }
                                     MiuixIconButton(onClick = { showRestartDialog = true }) {
                                         Icon(
                                             imageVector = MiuixIcons.Regular.Refresh,
-                                            contentDescription = "重启作用域",
+                                            contentDescription = textOf(uiLanguage, "重启作用域", "Restart scopes"),
                                             tint = MaterialTheme.colorScheme.onSurface,
                                         )
                                     }
@@ -1638,7 +1642,7 @@ private fun HyperIslandComposeApp() {
                                     ) {
                                         Icon(
                                             imageVector = MiuixIcons.Regular.Search,
-                                            contentDescription = "搜索",
+                                            contentDescription = textOf(uiLanguage, "搜索", "Search"),
                                             tint = MaterialTheme.colorScheme.onSurface,
                                         )
                                     }
@@ -1646,7 +1650,7 @@ private fun HyperIslandComposeApp() {
                                         MiuixIconButton(onClick = { appsSelectionRequestId += 1 }) {
                                             Icon(
                                                 imageVector = MiuixIcons.Regular.SelectAll,
-                                                contentDescription = "进入多选",
+                                                contentDescription = textOf(uiLanguage, "进入多选", "Enter multi-select"),
                                                 tint = MaterialTheme.colorScheme.onSurface,
                                             )
                                         }
@@ -1658,7 +1662,7 @@ private fun HyperIslandComposeApp() {
                                         MiuixIconButton(onClick = { showAppsMenu = true }) {
                                             Icon(
                                                 imageVector = MiuixIcons.Regular.MoreCircle,
-                                                contentDescription = "更多操作",
+                                                contentDescription = textOf(uiLanguage, "更多操作", "More actions"),
                                                 tint = MaterialTheme.colorScheme.onSurface,
                                             )
                                         }
@@ -1670,42 +1674,50 @@ private fun HyperIslandComposeApp() {
                                         ) {
                                             val menuItems = if (appsSelectionMode) {
                                                 listOf(
-                                                    (if (appsState.showSystemApps) "隐藏系统应用" else "显示系统应用") to {
+                                                    (if (appsState.showSystemApps) {
+                                                        textOf(uiLanguage, "隐藏系统应用", "Hide system apps")
+                                                    } else {
+                                                        textOf(uiLanguage, "显示系统应用", "Show system apps")
+                                                    }) to {
                                                         showAppsMenu = false
                                                         appsVm.setShowSystemApps(!appsState.showSystemApps)
                                                     },
-                                                    "开启已选" to {
+                                                    textOf(uiLanguage, "开启已选", "Enable selected") to {
                                                         showAppsMenu = false
                                                         appsEnableSelectedRequestId += 1
                                                     },
-                                                    "关闭已选" to {
+                                                    textOf(uiLanguage, "关闭已选", "Disable selected") to {
                                                         showAppsMenu = false
                                                         appsDisableSelectedRequestId += 1
                                                     },
-                                                    "选中已启用" to {
+                                                    textOf(uiLanguage, "选中已启用", "Select enabled") to {
                                                         showAppsMenu = false
                                                         appsSelectEnabledRequestId += 1
                                                     },
-                                                    "批量设置渠道配置" to {
+                                                    textOf(uiLanguage, "批量设置渠道配置", "Batch edit channel settings") to {
                                                         showAppsMenu = false
                                                         appsBatchSelectedRequestId += 1
                                                     },
                                                 )
                                             } else {
                                                 listOf(
-                                                    (if (appsState.showSystemApps) "隐藏系统应用" else "显示系统应用") to {
+                                                    (if (appsState.showSystemApps) {
+                                                        textOf(uiLanguage, "隐藏系统应用", "Hide system apps")
+                                                    } else {
+                                                        textOf(uiLanguage, "显示系统应用", "Show system apps")
+                                                    }) to {
                                                         showAppsMenu = false
                                                         appsVm.setShowSystemApps(!appsState.showSystemApps)
                                                     },
-                                                    "一键开启全部" to {
+                                                    textOf(uiLanguage, "一键开启全部", "Enable all") to {
                                                         showAppsMenu = false
                                                         appsEnableAllRequestId += 1
                                                     },
-                                                    "一键关闭全部" to {
+                                                    textOf(uiLanguage, "一键关闭全部", "Disable all") to {
                                                         showAppsMenu = false
                                                         appsDisableAllRequestId += 1
                                                     },
-                                                    "刷新" to {
+                                                    textOf(uiLanguage, "刷新", "Refresh") to {
                                                         showAppsMenu = false
                                                         appsVm.refresh()
                                                     },
@@ -1750,7 +1762,7 @@ private fun HyperIslandComposeApp() {
                                         appsSearchFieldValue = it
                                         appsVm.setQuery(it.text)
                                     },
-                                    label = "搜索应用 / 包名",
+                                    label = textOf(uiLanguage, "搜索应用 / 包名", "Search app / package"),
                                     useLabelAsPlaceholder = true,
                                     modifier = Modifier
                                         .focusRequester(appsSearchFocusRequester)
@@ -1789,7 +1801,11 @@ private fun HyperIslandComposeApp() {
                                         MaterialTheme.colorScheme.onSurfaceVariant
                                     }
                                     Text(
-                                        "已选择 ${appsState.selectedPackages.size} 项",
+                                        textOf(
+                                            uiLanguage,
+                                            "已选择 ${appsState.selectedPackages.size} 项",
+                                            "Selected ${appsState.selectedPackages.size}",
+                                        ),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = selectedTextColor,
                                     )
@@ -1827,7 +1843,7 @@ private fun HyperIslandComposeApp() {
                                         blacklistSearchFieldValue = it
                                         blacklistVm.setQuery(it.text)
                                     },
-                                    label = "搜索应用 / 包名",
+                                    label = textOf(uiLanguage, "搜索应用 / 包名", "Search app / package"),
                                     useLabelAsPlaceholder = true,
                                     modifier = Modifier
                                         .focusRequester(blacklistSearchFocusRequester)
@@ -2535,7 +2551,7 @@ private fun SettingsScreen(
                     valueText = "${state.bigIslandMaxWidth} dp",
                     value = state.bigIslandMaxWidth.toFloat(),
                     defaultValue = DEFAULT_BIG_ISLAND_MAX_WIDTH.toFloat(),
-                    valueRange = 500f..1000f,
+                    valueRange = 50f..500f,
                     steps = 54,
                     onCheckedChange = { onToggle(PrefKeys.BIG_ISLAND_MAX_WIDTH_ENABLED, it) },
                     onValueChange = { onBigIslandWidth(it.toInt()) },
@@ -2665,7 +2681,7 @@ private fun MainActivityPreview() {
                 marqueeFeature = true,
                 marqueeSpeed = 120,
                 bigIslandMaxWidthEnabled = true,
-                bigIslandMaxWidth = 680,
+                bigIslandMaxWidth = 320,
                 useFloatingNavigationBar = true,
                 defaultFirstFloat = false,
                 defaultEnableFloat = true,
@@ -3099,7 +3115,7 @@ private fun SliderResetButton(
         ) {
             Icon(
                 imageVector = MiuixIcons.Regular.Refresh,
-                contentDescription = "恢复默认值",
+                contentDescription = textOf("恢复默认值", "Reset to default"),
                 modifier = Modifier.size(13.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )

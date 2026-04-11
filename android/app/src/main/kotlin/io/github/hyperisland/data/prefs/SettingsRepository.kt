@@ -29,7 +29,7 @@ class SettingsRepository(private val context: Context) {
             marqueeFeature = prefs.getBoolean(PrefKeys.MARQUEE_FEATURE, false),
             marqueeSpeed = prefs.getInt(PrefKeys.MARQUEE_SPEED, 100).coerceIn(20, 500),
             bigIslandMaxWidthEnabled = prefs.getBoolean(PrefKeys.BIG_ISLAND_MAX_WIDTH_ENABLED, false),
-            bigIslandMaxWidth = prefs.getInt(PrefKeys.BIG_ISLAND_MAX_WIDTH, 600).coerceIn(500, 1000),
+            bigIslandMaxWidth = prefs.getInt(PrefKeys.BIG_ISLAND_MAX_WIDTH, 200).coerceIn(50, 500),
             useFloatingNavigationBar = prefs.getBoolean(PrefKeys.USE_FLOATING_NAVIGATION_BAR, false),
             unlockAllFocus = prefs.getBoolean(PrefKeys.UNLOCK_ALL_FOCUS, false),
             unlockFocusAuth = prefs.getBoolean(PrefKeys.UNLOCK_FOCUS_AUTH, false),
@@ -59,7 +59,7 @@ class SettingsRepository(private val context: Context) {
     }
 
     fun setBigIslandMaxWidth(value: Int) {
-        prefs.edit().putInt(PrefKeys.BIG_ISLAND_MAX_WIDTH, value.coerceIn(500, 1000)).apply()
+        prefs.edit().putInt(PrefKeys.BIG_ISLAND_MAX_WIDTH, value.coerceIn(50, 500)).apply()
     }
 
     fun setDesktopIconHidden(hidden: Boolean) {

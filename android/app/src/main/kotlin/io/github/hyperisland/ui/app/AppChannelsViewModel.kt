@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,6 +17,7 @@ class AppChannelsViewModel(
 ) : AndroidViewModel(app) {
     private val repo = AppAdaptationRepository(app)
     private var packageName: String = savedStateHandle["packageName"] ?: ""
+    private var refreshJob: Job? = null
 
     private val _uiState = MutableStateFlow(AppChannelsUiState(packageName = packageName))
     val uiState: StateFlow<AppChannelsUiState> = _uiState.asStateFlow()
@@ -24,10 +26,11 @@ class AppChannelsViewModel(
         refresh()
     }
 
-    fun setPackageNameIfEmpty(value: String) {
-        if (packageName.isNotBlank() || value.isBlank()) return
+    fun setPackageName(value: String) {
+        if (value.isBlank() || value == packageName) return
         packageName = value
-        _uiState.update { it.copy(packageName = value, error = null) }
+        savedStateHandle["packageName"] = value
+        _uiState.value = AppChannelsUiState(packageName = value, loading = true)
         refresh()
     }
 
@@ -36,36 +39,41 @@ class AppChannelsViewModel(
             _uiState.update { it.copy(loading = false, error = "包名为空") }
             return
         }
-        viewModelScope.launch {
+        val currentPackage = packageName
+        refreshJob?.cancel()
+        refreshJob = viewModelScope.launch {
             _uiState.update { it.copy(loading = true, error = null) }
-            val channelsResult = runCatching { repo.loadChannels(packageName) }
+            val channelsResult = runCatching { repo.loadChannels(currentPackage) }
             val channels = channelsResult.getOrNull()
             if (channels == null) {
                 _uiState.update {
                     it.copy(
                         loading = false,
+                        packageName = currentPackage,
                         error = "无法读取通知渠道，请确认 Root 权限",
                     )
                 }
                 return@launch
             }
 
-            val enabled = repo.getEnabledChannels(packageName)
-            val appItem = repo.loadAppItem(packageName)
-            val appEnabled = repo.isAppEnabled(packageName)
+            val enabled = repo.getEnabledChannels(currentPackage)
+            val appItem = repo.loadAppItem(currentPackage)
+            val appEnabled = repo.isAppEnabled(currentPackage)
             val templateMap = channels.associate { ch ->
-                ch.id to repo.getChannelTemplate(packageName, ch.id)
+                ch.id to repo.getChannelTemplate(currentPackage, ch.id)
             }
             val timeoutMap = channels.associate { ch ->
-                ch.id to repo.getChannelTimeout(packageName, ch.id)
+                ch.id to repo.getChannelTimeout(currentPackage, ch.id)
             }
             val extrasMap = channels.associate { ch ->
-                ch.id to repo.getChannelExtras(packageName, ch.id)
+                ch.id to repo.getChannelExtras(currentPackage, ch.id)
             }
+            if (currentPackage != packageName) return@launch
             _uiState.update {
                 it.copy(
+                    packageName = currentPackage,
                     loading = false,
-                    appName = appItem?.appName ?: packageName,
+                    appName = appItem?.appName ?: currentPackage,
                     appIcon = appItem?.icon ?: byteArrayOf(),
                     appEnabled = appEnabled,
                     channels = channels,

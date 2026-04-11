@@ -47,6 +47,7 @@ import top.yukonga.miuix.kmp.icon.extended.Show
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 import io.github.hyperisland.ui.isAppInDarkTheme
+import io.github.hyperisland.ui.textOf
 
 private const val DEFAULT_AI_TIMEOUT = 3
 private const val DEFAULT_AI_TEMPERATURE = 0.1
@@ -104,7 +105,7 @@ fun AiConfigScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
-                "AI 增强",
+                textOf("AI 增强", "AI Enhancement"),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onBackground,
@@ -116,10 +117,13 @@ fun AiConfigScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                        Text("启用 AI 摘要", color = MaterialTheme.colorScheme.onBackground)
+                        Text(textOf("启用 AI 摘要", "Enable AI Summary"), color = MaterialTheme.colorScheme.onBackground)
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            "由 AI 生成超级岛左右文本，超时或失败时自动回退",
+                            textOf(
+                                "由 AI 生成超级岛左右文本，超时或失败时自动回退",
+                                "Use AI to generate left/right Dynamic Island text, with automatic fallback on timeout or failure",
+                            ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -134,7 +138,7 @@ fun AiConfigScreen(
 
             if (state.enabled) {
                 Text(
-                    "API 参数",
+                    textOf("API 参数", "API Parameters"),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onBackground,
@@ -144,7 +148,7 @@ fun AiConfigScreen(
                         MiuixTextField(
                             value = state.url,
                             onValueChange = { onUpdate(state.copy(url = it)) },
-                            label = "API 地址（必须完整）",
+                            label = textOf("API 地址（必须完整）", "API URL (full endpoint required)"),
                             useLabelAsPlaceholder = true,
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
@@ -152,7 +156,7 @@ fun AiConfigScreen(
                         MiuixTextField(
                             value = state.apiKey,
                             onValueChange = { onUpdate(state.copy(apiKey = it)) },
-                            label = "API 密钥",
+                            label = textOf("API 密钥", "API Key"),
                             useLabelAsPlaceholder = true,
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
@@ -161,7 +165,7 @@ fun AiConfigScreen(
                                 MiuixIconButton(onClick = { keyObscured = !keyObscured }) {
                             Icon(
                                 imageVector = if (keyObscured) MiuixIcons.Regular.Show else MiuixIcons.Regular.Hide,
-                                contentDescription = if (keyObscured) "显示密钥" else "隐藏密钥",
+                                contentDescription = if (keyObscured) textOf("显示密钥", "Show key") else textOf("隐藏密钥", "Hide key"),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
@@ -170,7 +174,7 @@ fun AiConfigScreen(
                         MiuixTextField(
                             value = state.model,
                             onValueChange = { onUpdate(state.copy(model = it)) },
-                            label = "模型",
+                            label = textOf("模型", "Model"),
                             useLabelAsPlaceholder = true,
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth(),
@@ -178,7 +182,7 @@ fun AiConfigScreen(
                         MiuixTextField(
                             value = state.prompt,
                             onValueChange = { onUpdate(state.copy(prompt = it)) },
-                            label = "系统提示词",
+                            label = textOf("系统提示词", "System Prompt"),
                             useLabelAsPlaceholder = true,
                             modifier = Modifier.fillMaxWidth(),
                             minLines = 2,
@@ -191,10 +195,13 @@ fun AiConfigScreen(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                                Text("提示词放在用户消息", color = MaterialTheme.colorScheme.onBackground)
+                                Text(textOf("提示词放在用户消息", "Put prompt in user message"), color = MaterialTheme.colorScheme.onBackground)
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    "某些模型不支持系统指令，开启后将提示词放在用户消息中",
+                                    textOf(
+                                        "某些模型不支持系统指令，开启后将提示词放在用户消息中",
+                                        "Some models do not support system instructions; when enabled, the prompt is moved into the user message",
+                                    ),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -206,7 +213,7 @@ fun AiConfigScreen(
                         }
 
                         SliderItem(
-                            title = "AI 响应超时",
+                            title = textOf("AI 响应超时", "AI Response Timeout"),
                             subtitle = "",
                             valueText = "${state.timeout}s",
                             value = state.timeout.toFloat(),
@@ -217,8 +224,8 @@ fun AiConfigScreen(
                             onResetToDefault = { onUpdate(state.copy(timeout = DEFAULT_AI_TIMEOUT)) },
                         )
                         SliderItem(
-                            title = "采样温度 (Temperature)",
-                            subtitle = "控制回答的随机性。0 为准确，1 则更具创意",
+                            title = textOf("采样温度 (Temperature)", "Sampling Temperature"),
+                            subtitle = textOf("控制回答的随机性。0 为准确，1 则更具创意", "Controls randomness. 0 is more deterministic; 1 is more creative"),
                             valueText = String.format("%.1f", state.temperature),
                             value = state.temperature.toFloat(),
                             defaultValue = DEFAULT_AI_TEMPERATURE.toFloat(),
@@ -228,8 +235,8 @@ fun AiConfigScreen(
                             onResetToDefault = { onUpdate(state.copy(temperature = DEFAULT_AI_TEMPERATURE)) },
                         )
                         SliderItem(
-                            title = "最大 Token 数 (Max Tokens)",
-                            subtitle = "限制 AI 生成回答的最大长度",
+                            title = textOf("最大 Token 数 (Max Tokens)", "Max Tokens"),
+                            subtitle = textOf("限制 AI 生成回答的最大长度", "Limits the maximum response length"),
                             valueText = state.maxTokens.toString(),
                             value = state.maxTokens.toFloat(),
                             defaultValue = DEFAULT_AI_MAX_TOKENS.toFloat(),
@@ -242,12 +249,12 @@ fun AiConfigScreen(
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
                             MiuixButton(onClick = onTest, enabled = !state.testing, modifier = Modifier.weight(1f)) {
                                 Text(
-                                    if (state.testing) "测试中..." else "测试连接",
+                                    if (state.testing) textOf("测试中...", "Testing...") else textOf("测试连接", "Test Connection"),
                                     color = MaterialTheme.colorScheme.onBackground,
                                 )
                             }
                             MiuixButton(onClick = onSave, modifier = Modifier.weight(1f)) {
-                                Text("保存", color = MaterialTheme.colorScheme.onBackground)
+                                Text(textOf("保存", "Save"), color = MaterialTheme.colorScheme.onBackground)
                             }
                         }
 
@@ -261,7 +268,10 @@ fun AiConfigScreen(
             MiuixCard(modifier = aiCardModifier(Modifier.fillMaxWidth())) {
                 Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                     Text(
-                        "AI 会接收每条通知的应用包名、标题、正文，并返回短左文案（来源）与短右文案（内容）。兼容 OpenAI 格式 API（如 DeepSeek、Claude）。无响应时会自动回退默认逻辑。",
+                        textOf(
+                            "AI 会接收每条通知的应用包名、标题、正文，并返回短左文案（来源）与短右文案（内容）。兼容 OpenAI 格式 API（如 DeepSeek、Claude）。无响应时会自动回退默认逻辑。",
+                            "AI receives each notification's package name, title, and body, then returns short left (source) and right (content) copy. Compatible with OpenAI-style APIs (e.g., DeepSeek, Claude). Falls back automatically when no response is returned.",
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -343,7 +353,7 @@ private fun SliderResetButton(
         ) {
             Icon(
                 imageVector = MiuixIcons.Regular.Refresh,
-                contentDescription = "恢复默认值",
+                contentDescription = textOf("恢复默认值", "Reset to default"),
                 modifier = Modifier.size(13.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -371,7 +381,11 @@ private fun TestResultCard(text: String) {
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Text(if (isSuccess) "测试结果（成功）" else "测试结果（失败）", color = fg, fontWeight = FontWeight.SemiBold)
+        Text(
+            if (isSuccess) textOf("测试结果（成功）", "Test Result (Success)") else textOf("测试结果（失败）", "Test Result (Failed)"),
+            color = fg,
+            fontWeight = FontWeight.SemiBold,
+        )
         Text(text, color = fg, style = MaterialTheme.typography.bodySmall)
     }
 }

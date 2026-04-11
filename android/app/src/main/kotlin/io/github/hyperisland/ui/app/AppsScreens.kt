@@ -61,6 +61,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import io.github.hyperisland.data.prefs.PrefKeys
 import io.github.hyperisland.ui.FaGlyph
 import io.github.hyperisland.ui.FaIcon
+import io.github.hyperisland.ui.LocalUiLanguage
 import io.github.hyperisland.ui.isAppInDarkTheme
 import io.github.hyperisland.ui.textOf
 import top.yukonga.miuix.kmp.basic.Button as MiuixButton
@@ -861,6 +862,15 @@ private fun ChannelSettingsContent(
                 enableColorPalette = true,
                 onConfirm = { onSetSetting("out_effect_color", it.trim()) },
             )
+            InputDialogRow(
+                title = textOf("超级岛高级自定义", "Advanced Island Customization"),
+                subtitle = textOf("点击后输入 JSON，留空可清空", "Tap to enter JSON, or leave blank to clear"),
+                value = extras.islandCustom,
+                emptyValueText = textOf("未设置", "Not Set"),
+                dialogTitle = textOf("修改超级岛高级自定义", "Edit Advanced Island Customization"),
+                dialogDescription = textOf("请输入 JSON 字符串，留空可清空", "Enter a JSON string, or leave blank to clear"),
+                onConfirm = { onSetSetting("island_custom", it.trim()) },
+            )
             SwitchSettingRow(
                 title = textOf("左侧高亮", "Left Highlight"),
                 checked = extras.showLeftHighlight == "on",
@@ -919,22 +929,13 @@ private fun ChannelSettingsContent(
                 onSetSetting("outer_glow", it)
             }
             InputDialogRow(
-                title = textOf("焦点表达式自定义", "Custom Focus Expression"),
+                title = textOf("焦点高级自定义", "Advanced Focus Customization"),
                 subtitle = textOf("点击后输入 JSON，留空可清空", "Tap to enter JSON, or leave blank to clear"),
                 value = extras.focusCustom,
                 emptyValueText = textOf("未设置", "Not Set"),
-                dialogTitle = textOf("修改焦点表达式自定义", "Edit Custom Focus Expression"),
+                dialogTitle = textOf("修改焦点高级自定义", "Edit Advanced Focus Customization"),
                 dialogDescription = textOf("请输入 JSON 字符串，留空可清空", "Enter a JSON string, or leave blank to clear"),
                 onConfirm = { onSetSetting("focus_custom", it.trim()) },
-            )
-            InputDialogRow(
-                title = textOf("岛表达式自定义", "Custom Island Expression"),
-                subtitle = textOf("点击后输入 JSON，留空可清空", "Tap to enter JSON, or leave blank to clear"),
-                value = extras.islandCustom,
-                emptyValueText = textOf("未设置", "Not Set"),
-                dialogTitle = textOf("修改岛表达式自定义", "Edit Custom Island Expression"),
-                dialogDescription = textOf("请输入 JSON 字符串，留空可清空", "Enter a JSON string, or leave blank to clear"),
-                onConfirm = { onSetSetting("island_custom", it.trim()) },
             )
         }
     }
@@ -1146,7 +1147,7 @@ private fun InputDialogRow(
                     onClick = { showDialog = false },
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text("取消", color = MaterialTheme.colorScheme.onBackground)
+                    Text(textOf("取消", "Cancel"), color = MaterialTheme.colorScheme.onBackground)
                 }
                 MiuixButton(
                     onClick = {
@@ -1157,7 +1158,7 @@ private fun InputDialogRow(
                     colors = MiuixButtonDefaults.buttonColorsPrimary(),
                 ) {
                     Text(
-                        text = "确认",
+                        text = textOf("确认", "Confirm"),
                         color = MiuixTheme.colorScheme.onPrimary,
                     )
                 }
@@ -1173,49 +1174,50 @@ private fun BatchApplyDialog(
     onApply: (Map<String, String>) -> Unit,
 ) {
     val noChange = "__NO_CHANGE__"
+    val uiLanguage = LocalUiLanguage.current
     val context = LocalContext.current
     val defaultDynamicHighlightEnabled = remember(context) {
         context.getSharedPreferences(PrefKeys.PREFS_NAME, Context.MODE_PRIVATE)
             .getBoolean(PrefKeys.DEFAULT_DYNAMIC_HIGHLIGHT_COLOR, false)
     }
     val triStateOptions = listOf(
-        noChange to "不更改",
-        "default" to "默认",
-        "on" to "开启",
-        "off" to "关闭",
+        noChange to textOf(uiLanguage, "不更改", "No Change"),
+        "default" to textOf(uiLanguage, "默认", "Default"),
+        "on" to textOf(uiLanguage, "开启", "On"),
+        "off" to textOf(uiLanguage, "关闭", "Off"),
     )
     val toggleOptions = listOf(
-        noChange to "不更改",
-        "on" to "开启",
-        "off" to "关闭",
+        noChange to textOf(uiLanguage, "不更改", "No Change"),
+        "on" to textOf(uiLanguage, "开启", "On"),
+        "off" to textOf(uiLanguage, "关闭", "Off"),
     )
     val iconModeOptions = listOf(
-        noChange to "不更改",
-        "auto" to "自动",
-        "notif_small" to "通知小图标",
-        "notif_large" to "通知大图标",
-        "app_icon" to "应用图标",
+        noChange to textOf(uiLanguage, "不更改", "No Change"),
+        "auto" to textOf(uiLanguage, "自动", "Auto"),
+        "notif_small" to textOf(uiLanguage, "通知小图标", "Small Notification Icon"),
+        "notif_large" to textOf(uiLanguage, "通知大图标", "Large Notification Icon"),
+        "app_icon" to textOf(uiLanguage, "应用图标", "App Icon"),
     )
     val templateOptions = listOf(
-        noChange to "不更改",
-        "generic_progress" to "下载",
-        "notification_island" to "通知超级岛",
-        "ai_notification_island" to "AI 通知超级岛",
+        noChange to textOf(uiLanguage, "不更改", "No Change"),
+        "generic_progress" to textOf(uiLanguage, "下载", "Download"),
+        "notification_island" to textOf(uiLanguage, "通知超级岛", "Notification Island"),
+        "ai_notification_island" to textOf(uiLanguage, "AI 通知超级岛", "AI Notification Island"),
     )
     val rendererOptions = listOf(
-        noChange to "不更改",
-        "image_text_with_buttons_4" to "新图文组件 + 底部文本按钮",
-        "image_text_with_buttons_4_wrap" to "封面组件 + 自动换行",
-        "image_text_with_right_text_button" to "新图文组件 + 右侧文本按钮",
-        "image_text_with_progress" to "IM 图文组件 + 进度条",
+        noChange to textOf(uiLanguage, "不更改", "No Change"),
+        "image_text_with_buttons_4" to textOf(uiLanguage, "新图文组件 + 底部文本按钮", "Image+Text+Bottom Text Buttons"),
+        "image_text_with_buttons_4_wrap" to textOf(uiLanguage, "封面组件 + 自动换行", "Cover Info+Auto Wrap"),
+        "image_text_with_right_text_button" to textOf(uiLanguage, "新图文组件 + 右侧文本按钮", "Image+Text+Right Text Button"),
+        "image_text_with_progress" to textOf(uiLanguage, "IM 图文组件 + 进度条", "IM Chat Info + Progress"),
     )
     val dynamicHighlightOptions = listOf(
-        noChange to "不更改",
-        "default" to "默认",
-        "on" to "开启",
-        "off" to "关闭",
-        "dark" to "暗",
-        "darker" to "更暗",
+        noChange to textOf(uiLanguage, "不更改", "No Change"),
+        "default" to textOf(uiLanguage, "默认", "Default"),
+        "on" to textOf(uiLanguage, "开启", "On"),
+        "off" to textOf(uiLanguage, "关闭", "Off"),
+        "dark" to textOf(uiLanguage, "暗", "Dark"),
+        "darker" to textOf(uiLanguage, "更暗", "Darker"),
     )
 
     var template by remember { mutableStateOf(noChange) }
@@ -1259,7 +1261,7 @@ private fun BatchApplyDialog(
             MiuixIconButton(onClick = onDismiss) {
                 FaIcon(
                     glyph = FaGlyph.Times,
-                    contentDescription = "取消",
+                    contentDescription = textOf(uiLanguage, "取消", "Cancel"),
                     tint = MaterialTheme.colorScheme.onBackground,
                 )
             }
@@ -1311,7 +1313,7 @@ private fun BatchApplyDialog(
             ) {
                 FaIcon(
                     glyph = FaGlyph.Check,
-                    contentDescription = "应用",
+                    contentDescription = textOf(uiLanguage, "应用", "Apply"),
                     tint = MaterialTheme.colorScheme.onBackground,
                 )
             }
@@ -1325,108 +1327,112 @@ private fun BatchApplyDialog(
                     .overScrollVertical()
                     .scrollEndHaptic(),
             ) {
-                ChannelSectionTitle("模板")
+                ChannelSectionTitle(textOf(uiLanguage, "模板", "Template"))
                 BatchSheetSectionCard {
-                    SettingsDropdownRow("模板", templateOptions, template, true, largeText = true) { template = it }
-                    SettingsDropdownRow("样式", rendererOptions, renderer, true, largeText = true) { renderer = it }
+                    SettingsDropdownRow(textOf(uiLanguage, "模板", "Template"), templateOptions, template, true, largeText = true) { template = it }
+                    SettingsDropdownRow(textOf(uiLanguage, "样式", "Style"), rendererOptions, renderer, true, largeText = true) { renderer = it }
                 }
 
-                ChannelSectionTitle("岛")
+                ChannelSectionTitle(textOf(uiLanguage, "岛", "Island"))
                 BatchSheetSectionCard {
-                    SettingsDropdownRow("超级岛图标", iconModeOptions, icon, true, largeText = true) { icon = it }
-                    SettingsDropdownRow("大岛图标", triStateOptions, showIslandIcon, true, largeText = true) {
+                    SettingsDropdownRow(textOf(uiLanguage, "超级岛图标", "Dynamic Island Icon"), iconModeOptions, icon, true, largeText = true) { icon = it }
+                    SettingsDropdownRow(textOf(uiLanguage, "大岛图标", "Large Island Icon"), triStateOptions, showIslandIcon, true, largeText = true) {
                         showIslandIcon = it
                     }
-                    SettingsDropdownRow("初次展开", triStateOptions, firstFloat, true, largeText = true) {
+                    SettingsDropdownRow(textOf(uiLanguage, "初次展开", "Expand on First Arrival"), triStateOptions, firstFloat, true, largeText = true) {
                         firstFloat = it
                     }
-                    SettingsDropdownRow("更新展开", triStateOptions, enableFloat, true, largeText = true) {
+                    SettingsDropdownRow(textOf(uiLanguage, "更新展开", "Expand on Update"), triStateOptions, enableFloat, true, largeText = true) {
                         enableFloat = it
                     }
-                    SettingsDropdownRow("消息滚动速度", triStateOptions, marquee, true, largeText = true) {
+                    SettingsDropdownRow(textOf(uiLanguage, "消息滚动速度", "Marquee Speed"), triStateOptions, marquee, true, largeText = true) {
                         marquee = it
                     }
                     InputDialogRow(
-                        title = "自动消失时长",
-                        subtitle = "点击后在对话框中输入，留空表示不更改",
+                        title = textOf(uiLanguage, "自动消失时长", "Auto Dismiss Timeout"),
+                        subtitle = textOf(uiLanguage, "点击后在对话框中输入，留空表示不更改", "Tap to enter a value in the dialog. Leave blank for no change"),
                         value = timeout,
-                        emptyValueText = "不更改",
-                        dialogTitle = "修改自动消失时长",
-                        dialogDescription = "值应该大于等于 1 并小于等于 30，留空表示不更改",
+                        emptyValueText = textOf(uiLanguage, "不更改", "No Change"),
+                        dialogTitle = textOf(uiLanguage, "修改自动消失时长", "Edit Auto Dismiss Timeout"),
+                        dialogDescription = textOf(uiLanguage, "值应该大于等于 1 并小于等于 30，留空表示不更改", "Value must be between 1 and 30. Leave blank for no change"),
                         onConfirm = { timeout = it.trim() },
                     )
                     InputDialogRow(
-                        title = "高亮颜色",
-                        subtitle = if (dynamicHighlightEnabled) "动态取色开启时不可编辑" else "点击后输入 #RRGGBB，留空表示不更改",
+                        title = textOf(uiLanguage, "高亮颜色", "Highlight Color"),
+                        subtitle = if (dynamicHighlightEnabled) {
+                            textOf(uiLanguage, "动态取色开启时不可编辑", "Disabled while dynamic highlight is enabled")
+                        } else {
+                            textOf(uiLanguage, "点击后输入 #RRGGBB，留空表示不更改", "Tap to enter #RRGGBB. Leave blank for no change")
+                        },
                         value = highlightColor,
-                        emptyValueText = "不更改",
-                        dialogTitle = "修改高亮颜色",
-                        dialogDescription = "请输入 #RRGGBB 格式，留空表示不更改",
+                        emptyValueText = textOf(uiLanguage, "不更改", "No Change"),
+                        dialogTitle = textOf(uiLanguage, "修改高亮颜色", "Edit Highlight Color"),
+                        dialogDescription = textOf(uiLanguage, "请输入 #RRGGBB 格式，留空表示不更改", "Enter a color in #RRGGBB format. Leave blank for no change"),
                         enableColorPalette = true,
                         enabled = !dynamicHighlightEnabled,
                         onConfirm = { highlightColor = it.trim() },
                     )
                     InputDialogRow(
-                        title = "外圈光效颜色",
-                        subtitle = "点击后输入 #RRGGBB，留空表示不更改",
+                        title = textOf(uiLanguage, "外圈光效颜色", "Outer Glow Color"),
+                        subtitle = textOf(uiLanguage, "点击后输入 #RRGGBB，留空表示不更改", "Tap to enter #RRGGBB. Leave blank for no change"),
                         value = outEffectColor,
-                        emptyValueText = "不更改",
-                        dialogTitle = "修改外圈光效颜色",
-                        dialogDescription = "请输入 #RRGGBB 格式，留空表示不更改",
+                        emptyValueText = textOf(uiLanguage, "不更改", "No Change"),
+                        dialogTitle = textOf(uiLanguage, "修改外圈光效颜色", "Edit Outer Glow Color"),
+                        dialogDescription = textOf(uiLanguage, "请输入 #RRGGBB 格式，留空表示不更改", "Enter a color in #RRGGBB format. Leave blank for no change"),
                         enableColorPalette = true,
                         onConfirm = { outEffectColor = it.trim() },
                     )
-                    SettingsDropdownRow("高亮动态取色", dynamicHighlightOptions, dynamicHighlightColor, true, largeText = true) {
+                    InputDialogRow(
+                        title = textOf(uiLanguage, "超级岛高级自定义", "Advanced Island Customization"),
+                        subtitle = textOf(uiLanguage, "点击后输入 JSON，留空表示不更改", "Tap to enter JSON. Leave blank for no change"),
+                        value = islandCustom,
+                        emptyValueText = textOf(uiLanguage, "不更改", "No Change"),
+                        dialogTitle = textOf(uiLanguage, "修改超级岛高级自定义", "Edit Advanced Island Customization"),
+                        dialogDescription = textOf(uiLanguage, "请输入 JSON 字符串，留空表示不更改", "Enter a JSON string. Leave blank for no change"),
+                        onConfirm = { islandCustom = it.trim() },
+                    )
+                    SettingsDropdownRow(textOf(uiLanguage, "高亮动态取色", "Dynamic Highlight Color"), dynamicHighlightOptions, dynamicHighlightColor, true, largeText = true) {
                         dynamicHighlightColor = it
                     }
-                    SettingsDropdownRow("左侧高亮", toggleOptions, showLeftHighlight, hasHighlightColor, largeText = true) {
+                    SettingsDropdownRow(textOf(uiLanguage, "左侧高亮", "Left Highlight"), toggleOptions, showLeftHighlight, hasHighlightColor, largeText = true) {
                         showLeftHighlight = it
                     }
-                    SettingsDropdownRow("右侧高亮", toggleOptions, showRightHighlight, hasHighlightColor, largeText = true) {
+                    SettingsDropdownRow(textOf(uiLanguage, "右侧高亮", "Right Highlight"), toggleOptions, showRightHighlight, hasHighlightColor, largeText = true) {
                         showRightHighlight = it
                     }
-                    SettingsDropdownRow("左侧窄字体", toggleOptions, showLeftNarrowFont, true, largeText = true) {
+                    SettingsDropdownRow(textOf(uiLanguage, "左侧窄字体", "Left Narrow Font"), toggleOptions, showLeftNarrowFont, true, largeText = true) {
                         showLeftNarrowFont = it
                     }
-                    SettingsDropdownRow("右侧窄字体", toggleOptions, showRightNarrowFont, true, largeText = true) {
+                    SettingsDropdownRow(textOf(uiLanguage, "右侧窄字体", "Right Narrow Font"), toggleOptions, showRightNarrowFont, true, largeText = true) {
                         showRightNarrowFont = it
                     }
                 }
 
-                ChannelSectionTitle("焦点通知")
+                ChannelSectionTitle(textOf(uiLanguage, "焦点通知", "Focus Notification"))
                 BatchSheetSectionCard {
-                    SettingsDropdownRow("焦点通知", triStateOptions, focus, true, largeText = true) {
+                    SettingsDropdownRow(textOf(uiLanguage, "焦点通知", "Focus Notification"), triStateOptions, focus, true, largeText = true) {
                         focus = it
                         if (it == "off") {
                             preserveSmallIcon = "off"
                         }
                     }
-                    SettingsDropdownRow("状态栏图标", triStateOptions, preserveSmallIconValue, !focusDisabled, largeText = true) {
+                    SettingsDropdownRow(textOf(uiLanguage, "状态栏图标", "Status Bar Icon"), triStateOptions, preserveSmallIconValue, !focusDisabled, largeText = true) {
                         preserveSmallIcon = it
                     }
-                    SettingsDropdownRow("锁屏通知恢复", triStateOptions, restoreLockscreen, true, largeText = true) {
+                    SettingsDropdownRow(textOf(uiLanguage, "锁屏通知恢复", "Restore on Lock Screen"), triStateOptions, restoreLockscreen, true, largeText = true) {
                         restoreLockscreen = it
                     }
-                    SettingsDropdownRow("外圈光效", triStateOptions, outerGlow, true, largeText = true) {
+                    SettingsDropdownRow(textOf(uiLanguage, "外圈光效", "Outer Glow"), triStateOptions, outerGlow, true, largeText = true) {
                         outerGlow = it
                     }
                     InputDialogRow(
-                        title = "焦点表达式自定义",
-                        subtitle = "点击后输入 JSON，留空表示不更改",
+                        title = textOf(uiLanguage, "焦点高级自定义", "Advanced Focus Customization"),
+                        subtitle = textOf(uiLanguage, "点击后输入 JSON，留空表示不更改", "Tap to enter JSON. Leave blank for no change"),
                         value = focusCustom,
-                        emptyValueText = "不更改",
-                        dialogTitle = "修改焦点表达式自定义",
-                        dialogDescription = "请输入 JSON 字符串，留空表示不更改",
+                        emptyValueText = textOf(uiLanguage, "不更改", "No Change"),
+                        dialogTitle = textOf(uiLanguage, "修改焦点高级自定义", "Edit Advanced Focus Customization"),
+                        dialogDescription = textOf(uiLanguage, "请输入 JSON 字符串，留空表示不更改", "Enter a JSON string. Leave blank for no change"),
                         onConfirm = { focusCustom = it.trim() },
-                    )
-                    InputDialogRow(
-                        title = "岛表达式自定义",
-                        subtitle = "点击后输入 JSON，留空表示不更改",
-                        value = islandCustom,
-                        emptyValueText = "不更改",
-                        dialogTitle = "修改岛表达式自定义",
-                        dialogDescription = "请输入 JSON 字符串，留空表示不更改",
-                        onConfirm = { islandCustom = it.trim() },
                     )
                 }
             }

@@ -81,7 +81,7 @@ class SettingsViewModel(app: Application) : AndroidViewModel(app) {
 
     fun updateBigIslandMaxWidth(value: Int) {
         repo.setBigIslandMaxWidth(value)
-        _uiState.update { it.copy(bigIslandMaxWidth = value.coerceIn(500, 1000)) }
+        _uiState.update { it.copy(bigIslandMaxWidth = value.coerceIn(50, 500)) }
     }
 
     fun setDesktopIconHidden(hidden: Boolean) {
