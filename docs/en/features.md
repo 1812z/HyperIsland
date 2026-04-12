@@ -72,6 +72,49 @@ Choose the appropriate Super Island template for each app/channel:
 - **Lock Screen Restore**: Restore normal notification style on lock screen to use system's built-in privacy management
 - **Outer Ring Glow Effect**: When enabled, a dynamic glow effect appears around focus notifications
 
+### Expression Customization (Advanced)
+
+In **Advanced Focus Customization** and **Advanced Island Customization**, you can use expressions to rebuild display text.
+
+- Placeholder format: `${variable}`
+- Function format: `${function(arg1, arg2, ...)}`
+- Expression length limit is about 320 characters; keep it concise
+- Regex syntax follows Kotlin `Regex`; escape backslashes (for example `\\d`)
+
+**Common placeholders**
+
+- `${title}`: current title
+- `${subtitle}`: current subtitle/content
+- `${subtitle_or_title}`: fallback to title when subtitle is empty
+- `${raw_title}` / `${raw_subtitle}`: original notification title/content
+- `${pkg}`: app package name
+- `${channel_id}`: notification channel ID
+- `${progress}`: progress value (0-100, useful for download templates)
+
+**Built-in functions**
+
+- `trim(text)`: remove leading/trailing whitespace
+- `regex(text, pattern, group)`: regex extraction; `group` defaults to 0
+- `replace(text, pattern, replacement)`: regex replacement
+
+**Examples**
+
+- Remove group-chat prefix and keep message body only:
+  - `${replace(subtitle_or_title, "^\[\d+条]\s*[^:：]+[:：]\s*", "")}`
+- Extract order ID (for example `id12345`):
+  - `${regex(subtitle, "(id\d+)", 1)}`
+- Trim surrounding whitespace:
+  - `${trim(subtitle_or_title)}`
+- Combine app + channel:
+  - `${pkg} · ${channel_id}`
+- Show download progress:
+  - `${progress_text}%`
+
+**Troubleshooting**
+
+- If an expression is invalid, output falls back to empty or original text; first check paired parentheses and quotes
+- Start with plain placeholders (like `${title}`), then add functions step by step
+
 ::: warning
 When Focus Notification is disabled, the Super Island is sent by **System UI** on behalf of the app, which may have compatibility issues.
 :::
