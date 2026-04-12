@@ -336,7 +336,7 @@
   "islandExpressionCustomizationSection": "超级岛高级自定义",
   "expandCustomization": "展开",
   "collapseCustomization": "收起",
-  "availablePlaceholdersLabel": "可用占位符",
+  "availablePlaceholdersLabel": "可用占位符(点击复制)",
   "expressionFunctionsLabel": "表达式函数",
   "focusTitleExprLabel": "焦点标题表达式",
   "focusContentExprLabel": "焦点正文表达式",

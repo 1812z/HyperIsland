@@ -194,7 +194,7 @@
   "islandExpressionCustomizationSection": "Island advanced customization",
   "expandCustomization": "Expand",
   "collapseCustomization": "Collapse",
-  "availablePlaceholdersLabel": "Available placeholders",
+  "availablePlaceholdersLabel": "Available placeholders(Click to copy)",
   "expressionFunctionsLabel": "Expression functions",
   "focusTitleExprLabel": "Focus title expression",
   "focusContentExprLabel": "Focus content expression",

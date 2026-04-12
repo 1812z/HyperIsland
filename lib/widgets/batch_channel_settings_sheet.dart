@@ -406,11 +406,11 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
             return _formatPlaceholderTip(key);
           })
           .whereType<String>()
-          .join('  |  ');
+          .toList();
       children.add(
         _SettingField(
           label: l10n.availablePlaceholdersLabel,
-          child: SelectableText(tips),
+          child: _buildPlaceholderButtons(tips),
         ),
       );
       children.add(const SizedBox(height: 10));
@@ -418,9 +418,9 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
 
     if (functions.isNotEmpty) {
       final tips = functions
-          .map((f) => (f['example'] ?? '').toString())
+          .map((f) => _formatFunctionExample((f['example'] ?? '').toString()))
           .where((e) => e.isNotEmpty)
-          .join('  |  ');
+          .join('\n');
       if (tips.isNotEmpty) {
         children.add(
           _SettingField(
@@ -588,20 +588,20 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
             return _formatPlaceholderTip(key);
           })
           .whereType<String>()
-          .join('  |  ');
+          .toList();
       children.add(
         _SettingField(
           label: l10n.availablePlaceholdersLabel,
-          child: SelectableText(tips),
+          child: _buildPlaceholderButtons(tips),
         ),
       );
       children.add(const SizedBox(height: 10));
     }
     if (functions.isNotEmpty) {
       final tips = functions
-          .map((f) => (f['example'] ?? '').toString())
+          .map((f) => _formatFunctionExample((f['example'] ?? '').toString()))
           .where((e) => e.isNotEmpty)
-          .join('  |  ');
+          .join('\n');
       if (tips.isNotEmpty) {
         children.add(
           _SettingField(
@@ -657,6 +657,52 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
 
   String _formatPlaceholderTip(String key) {
     return '\${$key}';
+  }
+
+  Widget _buildPlaceholderButtons(List<String> placeholders) {
+    if (placeholders.isEmpty) return const SizedBox.shrink();
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: placeholders
+          .map(
+            (placeholder) => OutlinedButton(
+              onPressed: () => _copyToClipboard(placeholder),
+              style: OutlinedButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+              ),
+              child: Text(placeholder),
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  Future<void> _copyToClipboard(String text) async {
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(_l10n(context).configCopied),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
+  String _formatFunctionExample(String raw) {
+    return raw
+        .replaceAll('\\\\', '\\')
+        .replaceAll(r'\${', r'${')
+        .replaceAll(r'\(', '(')
+        .replaceAll(r'\)', ')')
+        .replaceAll(r'\,', ',')
+        .replaceAll(r'\"', '"')
+        .replaceAll(r"\'", "'")
+        .trim();
   }
 
   String _localizedFieldLabel(
