@@ -5,6 +5,7 @@ import '../controllers/whitelist_controller.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../widgets/batch_channel_settings_sheet.dart';
 import '../widgets/app_list_widgets.dart';
+import '../routes/card_push_route.dart';
 import 'app_channels_page.dart';
 import '../services/app_cache_service.dart';
 import '../services/interaction_haptics.dart';
@@ -356,21 +357,58 @@ class WhitelistPageState extends State<WhitelistPage> {
                     ],
             ),
 
-            // 说明 + 搜索栏
+            // 说明文本（随列表滚动，不吸顶）
             SliverToBoxAdapter(
-              child: Container(
+              child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                child: AppListSearchHeader(
-                  countText: _ctrl.showSystemApps
+                child: Text(
+                  _ctrl.showSystemApps
                       ? l10n.enabledAppsCountWithSystem(enabledCount)
                       : l10n.enabledAppsCount(enabledCount),
-                  showCountText: true,
-                  searchController: _searchCtrl,
-                  searchFocusNode: _searchFocus,
-                  hintText: l10n.searchApps,
-                  onChanged: _ctrl.setSearch,
-                  onClear: _clearSearch,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
                 ),
+              ),
+            ),
+
+            // 搜索栏（仅搜索框吸顶）
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: FixedSliverHeaderDelegate(
+                height: 60,
+                minHeight: 60,
+                builder: (context, overlapsContent, collapseProgress) {
+                  final appBarTheme = Theme.of(context).appBarTheme;
+                  final elevation = appBarTheme.scrolledUnderElevation ?? 3.0;
+                  final pinnedBg = overlapsContent
+                      ? ElevationOverlay.applySurfaceTint(
+                          cs.surface,
+                          cs.surfaceTint,
+                          elevation,
+                        )
+                      : cs.surface;
+                  return Material(
+                      color: pinnedBg,
+                      surfaceTintColor: Theme.of(context).colorScheme.surfaceTint,
+                      elevation: 0,
+                      child: Container(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                        child: AppListSearchHeader(
+                          countText: '',
+                          showCountText: false,
+                          searchController: _searchCtrl,
+                          searchFocusNode: _searchFocus,
+                          hintText: l10n.searchApps,
+                          searchBarBackgroundColor: overlapsContent
+                              ? cs.surface
+                              : cs.surfaceContainerHighest,
+                          onChanged: _ctrl.setSearch,
+                          onClear: _clearSearch,
+                        ),
+                      ),
+                    );
+                },
               ),
             ),
 
@@ -412,7 +450,7 @@ class WhitelistPageState extends State<WhitelistPage> {
                           ? () => _toggleSelection(pkg)
                           : () => Navigator.push(
                               context,
-                              MaterialPageRoute(
+                              buildCardPushRoute(
                                 builder: (_) => AppChannelsPage(
                                   app: app,
                                   controller: _ctrl,

@@ -84,9 +84,10 @@ class _BlacklistPageState extends State<BlacklistPage> {
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
-              SliverAppBar.large(
+              SliverAppBar(
                 backgroundColor: cs.surface,
                 centerTitle: false,
+                pinned: true,
                 title: Text(l10n.navBlacklist),
                 actions: [
                   IconButton(

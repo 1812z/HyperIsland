@@ -22,11 +22,26 @@
         android:label="HyperIsland"
         android:name=".XposedPrefsSyncApp"
         android:description="@string/module_description"
-        android:extractNativeLibs="true"
         android:icon="@mipmap/ic_launcher">
+        <activity
+            android:name=".ui.ComposeMainActivity"
+            android:exported="true"
+            android:enableOnBackInvokedCallback="false"
+            android:launchMode="singleTop"
+            android:taskAffinity=""
+            android:theme="@style/ComposeTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="de.robv.android.xposed.category.MODULE_SETTINGS"/>
+            </intent-filter>
+        </activity>
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:enableOnBackInvokedCallback="false"
             android:launchMode="singleTop"
             android:taskAffinity=""
             android:theme="@style/LaunchTheme"
@@ -41,14 +56,10 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="de.robv.android.xposed.category.MODULE_SETTINGS"/>
-            </intent-filter>
         </activity>
         <activity-alias
             android:name=".MainActivityAlias"
-            android:targetActivity=".MainActivity"
+            android:targetActivity=".ui.ComposeMainActivity"
             android:enabled="true"
             android:exported="true"
             android:label="HyperIsland"

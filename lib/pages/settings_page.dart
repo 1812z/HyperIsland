@@ -9,6 +9,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../services/interaction_haptics.dart';
 import '../widgets/section_label.dart';
 import '../widgets/modern_slider.dart';
+import '../routes/card_push_route.dart';
 import 'ai_config_page.dart';
 import 'blacklist_page.dart';
 
@@ -352,7 +353,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => Navigator.push(
                           context,
-                          MaterialPageRoute(
+                          buildCardPushRoute(
                             builder: (context) => const AiConfigPage(),
                           ),
                         ),
@@ -387,7 +388,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
+                            buildCardPushRoute(
                               builder: (context) => const BlacklistPage(),
                             ),
                           );
@@ -767,8 +768,11 @@ class _SettingsPageState extends State<SettingsPage> {
                                 ),
                                 Text(
                                   l10n.marqueeSpeedLabel(_marqueeSpeedDraft),
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(color: cs.onSurfaceVariant),
+                                  style: Theme.of(context).textTheme.bodyLarge
+                                      ?.copyWith(
+                                        color: cs.primary,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                 ),
                                 if (_marqueeSpeedDraft != 100)
                                   SizedBox(
@@ -845,12 +849,33 @@ class _SettingsPageState extends State<SettingsPage> {
                               ),
                               child: Row(
                                 children: [
+                                  Expanded(
+                                    child: SliderTheme(
+                                      data: ModernSliderTheme.theme(context),
+                                      child: Slider(
+                                        value: _bigIslandMaxWidthDraft
+                                            .toDouble(),
+                                        min: 50,
+                                        max: 500,
+                                        divisions: 54,
+                                        onChanged:
+                                            InteractionHaptics.interceptSlider(
+                                              _onBigIslandMaxWidthChanged,
+                                            ),
+                                        onChangeEnd: _persistBigIslandMaxWidth,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
                                   Text(
                                     l10n.bigIslandMaxWidthLabel(
                                       _bigIslandMaxWidthDraft,
                                     ),
-                                    style: Theme.of(context).textTheme.bodySmall
-                                        ?.copyWith(color: cs.onSurfaceVariant),
+                                    style: Theme.of(context).textTheme.bodyLarge
+                                        ?.copyWith(
+                                          color: cs.primary,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                   ),
                                   if (_bigIslandMaxWidthDraft != 200)
                                     SizedBox(
@@ -876,23 +901,6 @@ class _SettingsPageState extends State<SettingsPage> {
                                             ),
                                       ),
                                     ),
-                                  Expanded(
-                                    child: SliderTheme(
-                                      data: ModernSliderTheme.theme(context),
-                                      child: Slider(
-                                        value: _bigIslandMaxWidthDraft
-                                            .toDouble(),
-                                        min: 50,
-                                        max: 500,
-                                        divisions: 54,
-                                        onChanged:
-                                            InteractionHaptics.interceptSlider(
-                                              _onBigIslandMaxWidthChanged,
-                                            ),
-                                        onChangeEnd: _persistBigIslandMaxWidth,
-                                      ),
-                                    ),
-                                  ),
                                 ],
                               ),
                             ),

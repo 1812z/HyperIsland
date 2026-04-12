@@ -4,6 +4,7 @@ import 'dart:convert';
 import '../controllers/settings_controller.dart';
 import '../controllers/whitelist_controller.dart';
 import '../l10n/generated/app_localizations.dart';
+import 'section_label.dart';
 import 'color_value_field.dart';
 
 // ── 操作模式（sealed class）──────────────────────────────────────────────────
@@ -137,6 +138,7 @@ class BatchChannelSettingsSheet extends StatefulWidget {
     return showModalBottomSheet<BatchApplyResult>(
       context: context,
       isScrollControlled: true,
+      enableDrag: false,
       useSafeArea: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
@@ -842,12 +844,24 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
             ],
           ),
           actions: [
-            TextButton(
+            OutlinedButton(
               onPressed: () => Navigator.pop(ctx),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(88, 40),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
               child: Text(l10n.cancel),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, selectedColor.toColor()),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(88, 40),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
               child: Text(l10n.apply),
             ),
           ],
@@ -955,9 +969,9 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
     final titleBottomPadding = 12.0;
     final contentTopPadding = 12.0;
     final contentBottomPadding = 4.0;
-    final sectionTitleGap = 6.0;
+    final sectionTitleGap = 8.0;
     final rowGap = 10.0;
-    final blockGap = 16.0;
+    final blockGap = 8.0;
     final scopeGap = 12.0;
     final endGap = 20.0;
     final hasHighlightColor =
@@ -1036,7 +1050,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                   ],
 
                   // ── 模板 & 样式设置 ────────────────────────────────────
-                  _SectionLabel(l10n.template),
+                  SectionLabel(l10n.template),
                   SizedBox(height: sectionTitleGap),
                   _BatchSettingRow(
                     label: l10n.template,
@@ -1076,7 +1090,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                   SizedBox(height: blockGap),
 
                   // ── 超级岛 ─────────────────────────────────────────────
-                  _SectionLabel(l10n.islandSection),
+                  SectionLabel(l10n.islandSection),
                   SizedBox(height: sectionTitleGap),
                   _BatchSettingRow(
                     label: l10n.islandIcon,
@@ -1366,7 +1380,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                   ),
                   if (_isSingle) ...[
                     SizedBox(height: rowGap),
-                    _SectionLabel(l10n.islandExpressionCustomizationSection),
+                    SectionLabel(l10n.islandExpressionCustomizationSection),
                     SizedBox(height: sectionTitleGap),
                     OutlinedButton.icon(
                       onPressed: () => setState(
@@ -1397,7 +1411,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                   SizedBox(height: blockGap),
 
                   // ── 焦点通知 ───────────────────────────────────────────
-                  _SectionLabel(l10n.focusNotificationLabel),
+                  SectionLabel(l10n.focusNotificationLabel),
                   SizedBox(height: sectionTitleGap),
                   _BatchSettingRow(
                     label: l10n.focusNotificationLabel,
@@ -1505,7 +1519,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                   ),
                   if (_isSingle) ...[
                     SizedBox(height: rowGap),
-                    _SectionLabel(l10n.focusExpressionCustomizationSection),
+                    SectionLabel(l10n.focusExpressionCustomizationSection),
                     SizedBox(height: sectionTitleGap),
                     OutlinedButton.icon(
                       onPressed: () => setState(
@@ -1596,28 +1610,6 @@ class _KeyboardInsetPadding extends StatelessWidget {
       curve: Curves.easeOut,
       padding: EdgeInsets.only(bottom: bottomInset),
       child: child,
-    );
-  }
-}
-
-// ── 分组标题 ──────────────────────────────────────────────────────────────────
-
-class _SectionLabel extends StatelessWidget {
-  const _SectionLabel(this.label);
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          color: cs.primary,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
     );
   }
 }

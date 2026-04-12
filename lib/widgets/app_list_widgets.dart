@@ -9,6 +9,7 @@ class AppListSearchHeader extends StatelessWidget {
     super.key,
     required this.countText,
     this.showCountText = true,
+    this.searchBarBackgroundColor,
     required this.searchController,
     required this.searchFocusNode,
     required this.hintText,
@@ -18,6 +19,7 @@ class AppListSearchHeader extends StatelessWidget {
 
   final String countText;
   final bool showCountText;
+  final Color? searchBarBackgroundColor;
   final TextEditingController searchController;
   final FocusNode searchFocusNode;
   final String hintText;
@@ -55,7 +57,9 @@ class AppListSearchHeader extends StatelessWidget {
             EdgeInsets.symmetric(horizontal: 16),
           ),
           elevation: const WidgetStatePropertyAll(0),
-          backgroundColor: WidgetStatePropertyAll(cs.surfaceContainerHighest),
+          backgroundColor: WidgetStatePropertyAll(
+            searchBarBackgroundColor ?? cs.surfaceContainerHighest,
+          ),
           constraints: const BoxConstraints(minHeight: 48, maxHeight: 48),
         ),
       ],
