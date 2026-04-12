@@ -104,6 +104,12 @@ object FocusNotifStatusBarIconHook : BaseHook() {
         if (fragment == null) return
         try {
             val oldModel = getObjectFieldOrNull(fragment, "mLastModifiedVisibility") ?: return
+            if (getObjectFieldOrNull(oldModel, "showNotificationIcons") is Boolean) {
+                setFieldValue(oldModel, "showNotificationIcons", true)
+                setFieldValue(fragment, "mLastModifiedVisibility", oldModel)
+                return
+            }
+
             val modelClass = fragment.javaClass.classLoader!!.loadClass(VISIBILITY_MODEL_CLASS)
             val newModel = newInstance(
                 modelClass,
@@ -113,7 +119,7 @@ object FocusNotifStatusBarIconHook : BaseHook() {
                 getBooleanFieldValue(oldModel, "showSecondaryOngoingActivityChip"),
                 getBooleanFieldValue(oldModel, "showSystemInfo"),
                 getBooleanFieldValue(oldModel, "showNotifPromptView")
-            )
+            ) ?: return
             setFieldValue(fragment, "mLastModifiedVisibility", newModel)
         } catch (e: Throwable) {
             logError(module, "forceShowNotificationIconsModel failed — ${e.message}")
