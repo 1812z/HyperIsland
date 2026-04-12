@@ -554,7 +554,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get collapseCustomization => 'Collapse';
 
   @override
-  String get availablePlaceholdersLabel => 'Available placeholders';
+  String get availablePlaceholdersLabel =>
+      'Available placeholders(Click to copy)';
 
   @override
   String get expressionFunctionsLabel => 'Expression functions';

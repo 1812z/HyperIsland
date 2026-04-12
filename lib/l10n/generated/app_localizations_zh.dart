@@ -530,7 +530,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get collapseCustomization => '收起';
 
   @override
-  String get availablePlaceholdersLabel => '可用占位符';
+  String get availablePlaceholdersLabel => '可用占位符(点击复制)';
 
   @override
   String get expressionFunctionsLabel => '表达式函数';

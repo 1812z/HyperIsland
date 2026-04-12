@@ -1053,7 +1053,7 @@ abstract class AppLocalizations {
   /// No description provided for @availablePlaceholdersLabel.
   ///
   /// In zh, this message translates to:
-  /// **'可用占位符'**
+  /// **'可用占位符(点击复制)'**
   String get availablePlaceholdersLabel;
 
   /// No description provided for @expressionFunctionsLabel.
