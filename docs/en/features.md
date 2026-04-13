@@ -79,7 +79,6 @@ In **Advanced Focus Customization** and **Advanced Island Customization**, you c
 - Placeholder format: `${variable}`
 - Function format: `${function(arg1, arg2, ...)}`
 - Expression length limit is about 320 characters; keep it concise
-- Regex syntax follows Kotlin `Regex`; escape backslashes (for example `\\d`)
 
 **Common placeholders**
 
