@@ -14,6 +14,20 @@ Enable Super Island functionality for any app, with individual configuration per
 
 ![App Adaptation](../images/Screenshot_2026-04-05-00-00-06-698_io.github.hype.jpg){style="width: 50%;"}
 
+### Toast Interception
+
+Switch to **Toast** mode at the top of the adaptation page to intercept and handle standard text toasts per app:
+
+- **Forward Standard Toast**: convert app toast text to HyperIsland Focus Notification + Super Island
+- **Block Original Toast**: suppress the system's original toast popup after forwarding (enabled by default)
+- **Show as Notification**: keep forwarded content visible in Notification Center
+- **Show Super Island Icon**: control the left-side icon on the large island
+- **Batch Settings**: select multiple apps and apply toast rules from the top-right action
+
+::: tip Notes
+Only standard text toasts are handled; custom toast views are ignored.
+:::
+
 ### Notification Channel Management
 
 For apps supporting multiple notification channels (like QQ), configure each channel separately:
