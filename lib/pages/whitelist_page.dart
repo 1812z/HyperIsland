@@ -29,9 +29,11 @@ class WhitelistPageState extends State<WhitelistPage> {
   final _searchFocus = FocusNode();
   final _scrollController = ScrollController();
   final Set<String> _selectedPackages = {};
+  final Map<int, Map<String, int>> _modeRank = {};
   bool _inSelectionMode = false;
   bool _showBackToTop = false;
   double _lastOffset = 0;
+  bool _wasLoading = true;
   int _adaptationMode = 0;
 
   bool get _isToastMode => _adaptationMode == 1;
@@ -40,8 +42,15 @@ class WhitelistPageState extends State<WhitelistPage> {
   void initState() {
     super.initState();
     _ctrl = WhitelistController();
+    _wasLoading = _ctrl.loading;
     _ctrl.addListener(() {
-      if (mounted) setState(() {});
+      if (!mounted) return;
+      final finishedLoading = _wasLoading && !_ctrl.loading;
+      _wasLoading = _ctrl.loading;
+      if (finishedLoading) {
+        _rebuildModeRank(_adaptationMode, _ctrl.filteredApps);
+      }
+      setState(() {});
     });
     _scrollController.addListener(_handleScroll);
   }
@@ -83,16 +92,41 @@ class WhitelistPageState extends State<WhitelistPage> {
 
   bool get _selectionMode => _inSelectionMode;
 
-  List<AppInfo> _sortedAppsForCurrentMode(Iterable<AppInfo> source) {
+  void _rebuildModeRank(int mode, Iterable<AppInfo> source) {
     final apps = List<AppInfo>.from(source);
     apps.sort((a, b) {
-      final aEnabled = _isToastMode
+      final isToastMode = mode == 1;
+      final aEnabled = isToastMode
           ? _ctrl.isToastForwardEnabledSync(a.packageName)
           : _ctrl.enabledPackages.contains(a.packageName);
-      final bEnabled = _isToastMode
+      final bEnabled = isToastMode
           ? _ctrl.isToastForwardEnabledSync(b.packageName)
           : _ctrl.enabledPackages.contains(b.packageName);
       if (aEnabled != bEnabled) return aEnabled ? -1 : 1;
+      return a.appName.compareTo(b.appName);
+    });
+
+    _modeRank[mode] = {
+      for (var i = 0; i < apps.length; i++) apps[i].packageName: i,
+    };
+  }
+
+  List<AppInfo> _sortedAppsForCurrentMode(Iterable<AppInfo> source) {
+    final apps = List<AppInfo>.from(source);
+    final rank = _modeRank.putIfAbsent(_adaptationMode, () {
+      _rebuildModeRank(_adaptationMode, source);
+      return _modeRank[_adaptationMode] ?? <String, int>{};
+    });
+
+    var nextRank = rank.length;
+    for (final app in apps) {
+      rank.putIfAbsent(app.packageName, () => nextRank++);
+    }
+
+    apps.sort((a, b) {
+      final aRank = rank[a.packageName] ?? 1 << 30;
+      final bRank = rank[b.packageName] ?? 1 << 30;
+      if (aRank != bRank) return aRank.compareTo(bRank);
       return a.appName.compareTo(b.appName);
     });
     return apps;
@@ -457,9 +491,12 @@ class WhitelistPageState extends State<WhitelistPage> {
                   ],
                   selected: {_adaptationMode},
                   onSelectionChanged: (selection) {
+                    final newMode = selection.first;
+                    if (newMode == _adaptationMode) return;
                     setState(() {
-                      _adaptationMode = selection.first;
+                      _adaptationMode = newMode;
                     });
+                    _rebuildModeRank(newMode, _ctrl.filteredApps);
                   },
                 ),
               ),
