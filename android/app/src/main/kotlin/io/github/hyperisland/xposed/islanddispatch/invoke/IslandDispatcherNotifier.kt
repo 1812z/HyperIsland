@@ -50,12 +50,20 @@ internal object IslandDispatcherNotifier {
             islandBuilder.setShowNotification(request.showNotification)
             islandBuilder.setIslandConfig(timeout = request.timeoutSecs)
             islandBuilder.setSmallIsland("key_island_icon")
-            islandBuilder.setBigIslandInfo(
-                left = ImageTextInfoLeft(
+            val bigIslandLeft = if (request.showIslandIcon) {
+                ImageTextInfoLeft(
                     type = 1,
                     picInfo = PicInfo(type = 1, pic = "key_island_icon"),
                     textInfo = TextInfo(title = request.title),
-                ),
+                )
+            } else {
+                ImageTextInfoLeft(
+                    type = 1,
+                    textInfo = TextInfo(title = request.title),
+                )
+            }
+            islandBuilder.setBigIslandInfo(
+                left = bigIslandLeft,
                 right = ImageTextInfoRight(
                     type = 2,
                     textInfo = TextInfo(title = request.content, narrowFont = true),
@@ -131,17 +139,12 @@ internal object IslandDispatcherNotifier {
                 "${IslandDispatchContract.TAG}: preserve marker=$shouldPreserveStatusBarSmallIcon title=${request.title} | notifId=${request.notifId} | showNotification=${request.showNotification}",
             )
 
-            val isFirstPost = !IslandDispatchState.postedIds.contains(request.notifId)
-            if (isFirstPost) {
-                nm.cancel(request.notifId)
-                nm.notify(request.notifId, notif)
-                IslandDispatchState.postedIds.add(request.notifId)
-            } else {
-                nm.notify(request.notifId, notif)
-            }
+            nm.cancel(request.notifId)
+            nm.notify(request.notifId, notif)
+            IslandDispatchState.postedIds.add(request.notifId)
 
             IslandDispatchState.module?.log(
-                "${IslandDispatchContract.TAG}: posted(first=$isFirstPost): ${request.title} | ${request.content} | highlight=${request.highlightColor} | dismiss=${request.dismissIsland}",
+                "${IslandDispatchContract.TAG}: posted: ${request.title} | ${request.content} | highlight=${request.highlightColor} | dismiss=${request.dismissIsland}",
             )
         } catch (e: Exception) {
             IslandDispatchState.module?.logError("${IslandDispatchContract.TAG}: post error: ${e.message}")

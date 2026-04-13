@@ -22,6 +22,7 @@ data class IslandRequest(
     val contentIntent: android.app.PendingIntent? = null,
     val isOngoing: Boolean = false,
     val actions: List<Notification.Action> = emptyList(),
+    val showIslandIcon: Boolean = true,
 ) {
     fun toBundle(): Bundle = Bundle().apply {
         putString(KEY_TITLE, title)
@@ -38,6 +39,7 @@ data class IslandRequest(
         putBoolean(KEY_DISMISS, dismissIsland)
         putParcelable(KEY_CONTENT_INTENT, contentIntent)
         putBoolean(KEY_ONGOING, isOngoing)
+        putBoolean(KEY_SHOW_ISLAND_ICON, showIslandIcon)
         if (actions.isNotEmpty()) putParcelableArray(KEY_ACTIONS, actions.toTypedArray())
     }
 
@@ -57,6 +59,7 @@ data class IslandRequest(
         private const val KEY_CONTENT_INTENT = "contentIntent"
         private const val KEY_ONGOING = "isOngoing"
         private const val KEY_ACTIONS = "actions"
+        private const val KEY_SHOW_ISLAND_ICON = "showIslandIcon"
 
         fun fromBundle(b: Bundle) = IslandRequest(
             title = b.getString(KEY_TITLE, ""),
@@ -74,6 +77,7 @@ data class IslandRequest(
             contentIntent = pendingIntentFromBundle(b),
             isOngoing = b.getBoolean(KEY_ONGOING, false),
             actions = actionsFromBundle(b),
+            showIslandIcon = b.getBoolean(KEY_SHOW_ISLAND_ICON, true),
         )
 
         private fun iconFromBundle(b: Bundle): Icon? =

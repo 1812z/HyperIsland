@@ -445,6 +445,34 @@ class AppLocalizationsZh extends AppLocalizations {
   String get channelSettings => '渠道设置';
 
   @override
+  String get toastForwardTitle => '转发标准 Toast';
+
+  @override
+  String get toastForwardSubtitle =>
+      '将此应用的标准 Toast 文本转为 HyperIsland 焦点通知与超级岛代发';
+
+  @override
+  String get toastBlockOriginalTitle => '拦截原始 Toast';
+
+  @override
+  String get toastBlockOriginalSubtitle => '转发后同时拦截此应用原始标准 Toast 弹窗';
+
+  @override
+  String get toastShowNotificationTitle => '显示为通知';
+
+  @override
+  String get toastShowNotificationSubtitle => '开启后此转发内容会在通知中心保留为可见通知';
+
+  @override
+  String get toastShowIslandIconTitle => '显示超级岛图标';
+
+  @override
+  String get toastShowIslandIconSubtitle => '控制转发 Toast 时大岛左侧是否显示图标';
+
+  @override
+  String get toastStandardOnlyHint => '仅处理标准文本 Toast，自定义 Toast 视图将被忽略。';
+
+  @override
   String get importanceNone => '无';
 
   @override

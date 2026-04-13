@@ -6,6 +6,14 @@ import '../services/app_cache_service.dart';
 
 const _channel = MethodChannel('io.github.hyperisland/test');
 const kPrefGenericWhitelist = 'pref_generic_whitelist';
+String _prefToastForwardKey(String packageName) =>
+    'pref_toast_forward_$packageName';
+String _prefToastBlockKey(String packageName) =>
+    'pref_toast_block_$packageName';
+String _prefToastShowNotificationKey(String packageName) =>
+    'pref_toast_show_notification_$packageName';
+String _prefToastShowIslandIconKey(String packageName) =>
+    'pref_toast_show_island_icon_$packageName';
 
 /// 可用的灵动岛通知模板标识符。
 const kTemplateGenericProgress = 'generic_progress';
@@ -242,6 +250,49 @@ class WhitelistController extends ChangeNotifier {
   ) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('pref_channels_$packageName', channelIds.join(','));
+  }
+
+  Future<bool> getToastForwardEnabled(String packageName) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_prefToastForwardKey(packageName)) ?? false;
+  }
+
+  Future<void> setToastForwardEnabled(String packageName, bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_prefToastForwardKey(packageName), enabled);
+  }
+
+  Future<bool> getToastBlockOriginal(String packageName) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_prefToastBlockKey(packageName)) ?? false;
+  }
+
+  Future<void> setToastBlockOriginal(String packageName, bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_prefToastBlockKey(packageName), enabled);
+  }
+
+  Future<bool> getToastShowNotification(String packageName) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_prefToastShowNotificationKey(packageName)) ?? false;
+  }
+
+  Future<void> setToastShowNotification(
+    String packageName,
+    bool enabled,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_prefToastShowNotificationKey(packageName), enabled);
+  }
+
+  Future<bool> getToastShowIslandIcon(String packageName) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_prefToastShowIslandIconKey(packageName)) ?? true;
+  }
+
+  Future<void> setToastShowIslandIcon(String packageName, bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_prefToastShowIslandIconKey(packageName), enabled);
   }
 
   /// 返回所有可用模板的 id → 显示名称 映射（从 ARB 本地化字符串构建）。

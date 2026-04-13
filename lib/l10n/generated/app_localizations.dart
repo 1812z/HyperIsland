@@ -888,6 +888,60 @@ abstract class AppLocalizations {
   /// **'渠道设置'**
   String get channelSettings;
 
+  /// No description provided for @toastForwardTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'转发标准 Toast'**
+  String get toastForwardTitle;
+
+  /// No description provided for @toastForwardSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'将此应用的标准 Toast 文本转为 HyperIsland 焦点通知与超级岛代发'**
+  String get toastForwardSubtitle;
+
+  /// No description provided for @toastBlockOriginalTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'拦截原始 Toast'**
+  String get toastBlockOriginalTitle;
+
+  /// No description provided for @toastBlockOriginalSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'转发后同时拦截此应用原始标准 Toast 弹窗'**
+  String get toastBlockOriginalSubtitle;
+
+  /// No description provided for @toastShowNotificationTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'显示为通知'**
+  String get toastShowNotificationTitle;
+
+  /// No description provided for @toastShowNotificationSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'开启后此转发内容会在通知中心保留为可见通知'**
+  String get toastShowNotificationSubtitle;
+
+  /// No description provided for @toastShowIslandIconTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'显示超级岛图标'**
+  String get toastShowIslandIconTitle;
+
+  /// No description provided for @toastShowIslandIconSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'控制转发 Toast 时大岛左侧是否显示图标'**
+  String get toastShowIslandIconSubtitle;
+
+  /// No description provided for @toastStandardOnlyHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'仅处理标准文本 Toast，自定义 Toast 视图将被忽略。'**
+  String get toastStandardOnlyHint;
+
   /// No description provided for @importanceNone.
   ///
   /// In zh, this message translates to:

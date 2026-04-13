@@ -464,6 +464,38 @@ class AppLocalizationsEn extends AppLocalizations {
   String get channelSettings => 'Channel settings';
 
   @override
+  String get toastForwardTitle => 'Forward standard toast';
+
+  @override
+  String get toastForwardSubtitle =>
+      'Convert this app\'s standard toast text to HyperIsland focus notification and super island';
+
+  @override
+  String get toastBlockOriginalTitle => 'Block original toast';
+
+  @override
+  String get toastBlockOriginalSubtitle =>
+      'After forwarding, block this app\'s original standard toast popup';
+
+  @override
+  String get toastShowNotificationTitle => 'Show in notification center';
+
+  @override
+  String get toastShowNotificationSubtitle =>
+      'Keep this forwarded toast as a visible notification in the shade';
+
+  @override
+  String get toastShowIslandIconTitle => 'Show island icon';
+
+  @override
+  String get toastShowIslandIconSubtitle =>
+      'Show icon on the left side of the large island for forwarded toast';
+
+  @override
+  String get toastStandardOnlyHint =>
+      'Only standard text toast is handled; custom toast views are ignored.';
+
+  @override
   String get importanceNone => 'None';
 
   @override

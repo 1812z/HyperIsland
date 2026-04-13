@@ -469,6 +469,38 @@ class AppLocalizationsTr extends AppLocalizations {
   String get channelSettings => 'Kanal Ayarları';
 
   @override
+  String get toastForwardTitle => 'Standart Toast\'u yönlendir';
+
+  @override
+  String get toastForwardSubtitle =>
+      'Bu uygulamanın standart Toast metnini HyperIsland odak bildirimi ve super island olarak ilet';
+
+  @override
+  String get toastBlockOriginalTitle => 'Orijinal Toast\'u engelle';
+
+  @override
+  String get toastBlockOriginalSubtitle =>
+      'Yönlendirdikten sonra bu uygulamanın orijinal standart Toast penceresini engelle';
+
+  @override
+  String get toastShowNotificationTitle => 'Bildirim olarak göster';
+
+  @override
+  String get toastShowNotificationSubtitle =>
+      'Açıkken yönlendirilen Toast, bildirim merkezinde görünür kalır';
+
+  @override
+  String get toastShowIslandIconTitle => 'Super island simgesini göster';
+
+  @override
+  String get toastShowIslandIconSubtitle =>
+      'Yönlendirilen Toast için büyük adanın sol simgesini göster';
+
+  @override
+  String get toastStandardOnlyHint =>
+      'Yalnızca standart metin Toast işlenir; özel Toast görünümleri yok sayılır.';
+
+  @override
   String get importanceNone => 'Yok';
 
   @override

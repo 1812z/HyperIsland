@@ -450,6 +450,35 @@ class AppLocalizationsJa extends AppLocalizations {
   String get channelSettings => 'チャンネルの設定';
 
   @override
+  String get toastForwardTitle => '標準 Toast を転送';
+
+  @override
+  String get toastForwardSubtitle =>
+      'このアプリの標準 Toast テキストを HyperIsland のフォーカス通知とスーパーアイランドに転送します';
+
+  @override
+  String get toastBlockOriginalTitle => '元の Toast をブロック';
+
+  @override
+  String get toastBlockOriginalSubtitle => '転送後にこのアプリの標準 Toast ポップアップをブロックします';
+
+  @override
+  String get toastShowNotificationTitle => '通知として表示';
+
+  @override
+  String get toastShowNotificationSubtitle => '有効時、転送された Toast は通知センターに表示されます';
+
+  @override
+  String get toastShowIslandIconTitle => 'スーパーアイランドのアイコンを表示';
+
+  @override
+  String get toastShowIslandIconSubtitle => '転送 Toast の大きな島の左側アイコン表示を制御します';
+
+  @override
+  String get toastStandardOnlyHint =>
+      '標準テキスト Toast のみ処理します。カスタム Toast ビューは無視されます。';
+
+  @override
   String get importanceNone => 'なし';
 
   @override
