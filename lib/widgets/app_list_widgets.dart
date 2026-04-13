@@ -50,6 +50,9 @@ class AppListSearchHeader extends StatelessWidget {
               IconButton(icon: const Icon(Icons.clear), onPressed: onClear),
           ],
           onChanged: onChanged,
+          onTapOutside: (_) {
+            FocusManager.instance.primaryFocus?.unfocus();
+          },
           onSubmitted: (_) => searchFocusNode.unfocus(),
           padding: const WidgetStatePropertyAll(
             EdgeInsets.symmetric(horizontal: 16),
