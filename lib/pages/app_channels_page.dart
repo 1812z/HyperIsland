@@ -35,10 +35,6 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
   Map<String, Map<String, String>> _channelExtras = {};
   bool _loading = true;
   late bool _appEnabled;
-  bool _toastForwardEnabled = false;
-  bool _toastBlockOriginal = false;
-  bool _toastShowNotification = false;
-  bool _toastShowIslandIcon = true;
 
   @override
   void initState() {
@@ -78,17 +74,6 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
     }
 
     final enabled = await widget.controller.getEnabledChannels(pkg);
-    final toastForwardEnabled = await widget.controller.getToastForwardEnabled(
-      pkg,
-    );
-    final toastBlockOriginal = await widget.controller.getToastBlockOriginal(
-      pkg,
-    );
-    final toastShowNotification = await widget.controller
-        .getToastShowNotification(pkg);
-    final toastShowIslandIcon = await widget.controller.getToastShowIslandIcon(
-      pkg,
-    );
     if (!mounted) return;
     final l10nForLabels = AppLocalizations.of(context)!;
     final templateLabels = widget.controller.getTemplates(l10nForLabels);
@@ -110,10 +95,6 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
         _templateLabels = templateLabels;
         _rendererLabels = rendererLabels;
         _channelExtras = channelExtras;
-        _toastForwardEnabled = toastForwardEnabled;
-        _toastBlockOriginal = toastBlockOriginal;
-        _toastShowNotification = toastShowNotification;
-        _toastShowIslandIcon = toastShowIslandIcon;
         _loading = false;
       });
       if (rootError) {
@@ -171,48 +152,6 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
 
   Future<void> _setAppEnabled(bool value) async {
     await widget.controller.setEnabled(widget.app.packageName, value);
-  }
-
-  Future<void> _setToastForwardEnabled(bool value) async {
-    setState(() => _toastForwardEnabled = value);
-    await widget.controller.setToastForwardEnabled(
-      widget.app.packageName,
-      value,
-    );
-    if (!value && _toastBlockOriginal) {
-      setState(() => _toastBlockOriginal = false);
-      await widget.controller.setToastBlockOriginal(
-        widget.app.packageName,
-        false,
-      );
-    }
-  }
-
-  Future<void> _setToastBlockOriginal(bool value) async {
-    if (!_toastForwardEnabled && value) return;
-    setState(() => _toastBlockOriginal = value);
-    await widget.controller.setToastBlockOriginal(
-      widget.app.packageName,
-      value,
-    );
-  }
-
-  Future<void> _setToastShowNotification(bool value) async {
-    if (!_toastForwardEnabled && value) return;
-    setState(() => _toastShowNotification = value);
-    await widget.controller.setToastShowNotification(
-      widget.app.packageName,
-      value,
-    );
-  }
-
-  Future<void> _setToastShowIslandIcon(bool value) async {
-    if (!_toastForwardEnabled) return;
-    setState(() => _toastShowIslandIcon = value);
-    await widget.controller.setToastShowIslandIcon(
-      widget.app.packageName,
-      value,
-    );
   }
 
   Future<void> _applyChannelSettings(
@@ -475,23 +414,6 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                       ),
                     ],
                   ),
-                ),
-              ),
-            ),
-
-          if (!_loading)
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              sliver: SliverToBoxAdapter(
-                child: _ToastHookCard(
-                  forwardEnabled: _toastForwardEnabled,
-                  blockOriginal: _toastBlockOriginal,
-                  showNotification: _toastShowNotification,
-                  showIslandIcon: _toastShowIslandIcon,
-                  onForwardChanged: _setToastForwardEnabled,
-                  onBlockChanged: _setToastBlockOriginal,
-                  onShowNotificationChanged: _setToastShowNotification,
-                  onShowIslandIconChanged: _setToastShowIslandIcon,
                 ),
               ),
             ),
@@ -883,107 +805,6 @@ class _ChannelTile extends StatelessWidget {
             color: cs.outlineVariant.withValues(alpha: 0.4),
           ),
       ],
-    );
-  }
-}
-
-class _ToastHookCard extends StatelessWidget {
-  const _ToastHookCard({
-    required this.forwardEnabled,
-    required this.blockOriginal,
-    required this.showNotification,
-    required this.showIslandIcon,
-    required this.onForwardChanged,
-    required this.onBlockChanged,
-    required this.onShowNotificationChanged,
-    required this.onShowIslandIconChanged,
-  });
-
-  final bool forwardEnabled;
-  final bool blockOriginal;
-  final bool showNotification;
-  final bool showIslandIcon;
-  final ValueChanged<bool> onForwardChanged;
-  final ValueChanged<bool> onBlockChanged;
-  final ValueChanged<bool> onShowNotificationChanged;
-  final ValueChanged<bool> onShowIslandIconChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final l10n = AppLocalizations.of(context)!;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        children: [
-          SwitchListTile(
-            value: forwardEnabled,
-            onChanged: onForwardChanged,
-            title: Text(l10n.toastForwardTitle),
-            subtitle: Text(l10n.toastForwardSubtitle),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-          ),
-          Divider(
-            height: 1,
-            thickness: 1,
-            indent: 12,
-            endIndent: 12,
-            color: cs.outlineVariant.withValues(alpha: 0.4),
-          ),
-          SwitchListTile(
-            value: blockOriginal,
-            onChanged: forwardEnabled ? onBlockChanged : null,
-            title: Text(l10n.toastBlockOriginalTitle),
-            subtitle: Text(l10n.toastBlockOriginalSubtitle),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-          ),
-          Divider(
-            height: 1,
-            thickness: 1,
-            indent: 12,
-            endIndent: 12,
-            color: cs.outlineVariant.withValues(alpha: 0.4),
-          ),
-          SwitchListTile(
-            value: showNotification,
-            onChanged: forwardEnabled ? onShowNotificationChanged : null,
-            title: Text(l10n.toastShowNotificationTitle),
-            subtitle: Text(l10n.toastShowNotificationSubtitle),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-          ),
-          Divider(
-            height: 1,
-            thickness: 1,
-            indent: 12,
-            endIndent: 12,
-            color: cs.outlineVariant.withValues(alpha: 0.4),
-          ),
-          SwitchListTile(
-            value: showIslandIcon,
-            onChanged: forwardEnabled ? onShowIslandIconChanged : null,
-            title: Text(l10n.toastShowIslandIconTitle),
-            subtitle: Text(l10n.toastShowIslandIconSubtitle),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                l10n.toastStandardOnlyHint,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: cs.onSurfaceVariant,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

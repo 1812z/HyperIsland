@@ -133,6 +133,11 @@
   "importFailed": "Import failed: {error}",
 
   "appAdaptation": "App Adaptation",
+  "toastAdaptation": "Toast Adaptation",
+  "adaptationModeNotification": "Notification",
+  "adaptationModeToast": "Toast",
+  "toastEnabledAppsCount": "Toast intercept enabled for {count} apps",
+  "toastEnabledAppsCountWithSystem": "Toast intercept enabled for {count} apps (including system apps)",
   "selectedAppsCount": "{count} apps selected",
   "cancelSelection": "Cancel selection",
   "deselectAll": "Deselect all",

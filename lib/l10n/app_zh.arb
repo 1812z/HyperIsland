@@ -180,6 +180,11 @@
   },
 
   "appAdaptation": "应用适配",
+  "toastAdaptation": "Toast 适配",
+  "adaptationModeNotification": "通知",
+  "adaptationModeToast": "Toast",
+  "toastEnabledAppsCount": "已启用 {count} 个应用的 Toast 拦截",
+  "toastEnabledAppsCountWithSystem": "已启用 {count} 个应用的 Toast 拦截（含系统应用）",
   "selectedAppsCount": "已选 {count} 个应用",
   "@selectedAppsCount": {
     "placeholders": {

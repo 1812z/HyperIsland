@@ -73,6 +73,7 @@ class WhitelistController extends ChangeNotifier {
   bool loading = true;
   String _searchQuery = '';
   bool showSystemApps = false;
+  final Map<String, bool> _toastForwardEnabled = {};
 
   WhitelistController() {
     _load();
@@ -120,6 +121,16 @@ class WhitelistController extends ChangeNotifier {
           : csv.split(',').where((s) => s.isNotEmpty).toSet();
 
       _allApps = await AppCacheService.instance.getApps();
+      _toastForwardEnabled
+        ..clear()
+        ..addEntries(
+          _allApps.map(
+            (app) => MapEntry(
+              app.packageName,
+              prefs.getBool(_prefToastForwardKey(app.packageName)) ?? false,
+            ),
+          ),
+        );
       _resort();
     } catch (e) {
       debugPrint('WhitelistController._load error: $e');
@@ -253,18 +264,58 @@ class WhitelistController extends ChangeNotifier {
   }
 
   Future<bool> getToastForwardEnabled(String packageName) async {
+    final cached = _toastForwardEnabled[packageName];
+    if (cached != null) return cached;
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_prefToastForwardKey(packageName)) ?? false;
+    final value = prefs.getBool(_prefToastForwardKey(packageName)) ?? false;
+    _toastForwardEnabled[packageName] = value;
+    return value;
+  }
+
+  bool isToastForwardEnabledSync(String packageName) {
+    return _toastForwardEnabled[packageName] ?? false;
   }
 
   Future<void> setToastForwardEnabled(String packageName, bool enabled) async {
+    _toastForwardEnabled[packageName] = enabled;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_prefToastForwardKey(packageName), enabled);
+    notifyListeners();
+  }
+
+  int get toastEnabledCount {
+    return _allApps
+        .where((a) => isToastForwardEnabledSync(a.packageName))
+        .length;
+  }
+
+  Future<void> setToastEnabledBatch(List<String> packages, bool enabled) async {
+    if (packages.isEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+    for (final pkg in packages) {
+      _toastForwardEnabled[pkg] = enabled;
+      await prefs.setBool(_prefToastForwardKey(pkg), enabled);
+    }
+    notifyListeners();
+  }
+
+  Future<void> enableAllToast() async {
+    await setToastEnabledBatch(
+      filteredApps.map((a) => a.packageName).toList(),
+      true,
+    );
+  }
+
+  Future<void> disableAllToast() async {
+    await setToastEnabledBatch(
+      filteredApps.map((a) => a.packageName).toList(),
+      false,
+    );
   }
 
   Future<bool> getToastBlockOriginal(String packageName) async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_prefToastBlockKey(packageName)) ?? false;
+    return prefs.getBool(_prefToastBlockKey(packageName)) ?? true;
   }
 
   Future<void> setToastBlockOriginal(String packageName, bool enabled) async {
@@ -293,6 +344,38 @@ class WhitelistController extends ChangeNotifier {
   Future<void> setToastShowIslandIcon(String packageName, bool enabled) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_prefToastShowIslandIconKey(packageName), enabled);
+  }
+
+  Future<void> setToastSettingsBatch(
+    List<String> packages, {
+    bool? forwardEnabled,
+    bool? blockOriginal,
+    bool? showNotification,
+    bool? showIslandIcon,
+  }) async {
+    if (packages.isEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+    for (final pkg in packages) {
+      if (forwardEnabled != null) {
+        _toastForwardEnabled[pkg] = forwardEnabled;
+        await prefs.setBool(_prefToastForwardKey(pkg), forwardEnabled);
+      }
+      if (blockOriginal != null) {
+        await prefs.setBool(_prefToastBlockKey(pkg), blockOriginal);
+      }
+      if (showNotification != null) {
+        await prefs.setBool(
+          _prefToastShowNotificationKey(pkg),
+          showNotification,
+        );
+      }
+      if (showIslandIcon != null) {
+        await prefs.setBool(_prefToastShowIslandIconKey(pkg), showIslandIcon);
+      }
+    }
+    if (forwardEnabled != null) {
+      notifyListeners();
+    }
   }
 
   /// 返回所有可用模板的 id → 显示名称 映射（从 ARB 本地化字符串构建）。

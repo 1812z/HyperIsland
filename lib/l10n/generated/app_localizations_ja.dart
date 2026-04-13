@@ -330,6 +330,25 @@ class AppLocalizationsJa extends AppLocalizations {
   String get appAdaptation => 'アプリのアダプティブ表示';
 
   @override
+  String get toastAdaptation => 'Toast のアダプティブ表示';
+
+  @override
+  String get adaptationModeNotification => '通知';
+
+  @override
+  String get adaptationModeToast => 'Toast';
+
+  @override
+  String toastEnabledAppsCount(Object count) {
+    return '$count 個のアプリで Toast インターセプトが有効です';
+  }
+
+  @override
+  String toastEnabledAppsCountWithSystem(Object count) {
+    return '$count 個のアプリで Toast インターセプトが有効です（システムアプリを含む）';
+  }
+
+  @override
   String selectedAppsCount(int count) {
     return '$count 個のアプリを選択済み';
   }

@@ -5,7 +5,9 @@ import '../controllers/whitelist_controller.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../widgets/batch_channel_settings_sheet.dart';
 import '../widgets/app_list_widgets.dart';
+import '../widgets/toast_settings_panel.dart';
 import 'app_channels_page.dart';
+import 'toast_app_settings_page.dart';
 import '../services/app_cache_service.dart';
 import '../services/interaction_haptics.dart';
 
@@ -30,6 +32,9 @@ class WhitelistPageState extends State<WhitelistPage> {
   bool _inSelectionMode = false;
   bool _showBackToTop = false;
   double _lastOffset = 0;
+  int _adaptationMode = 0;
+
+  bool get _isToastMode => _adaptationMode == 1;
 
   @override
   void initState() {
@@ -77,6 +82,21 @@ class WhitelistPageState extends State<WhitelistPage> {
   }
 
   bool get _selectionMode => _inSelectionMode;
+
+  List<AppInfo> _sortedAppsForCurrentMode(Iterable<AppInfo> source) {
+    final apps = List<AppInfo>.from(source);
+    apps.sort((a, b) {
+      final aEnabled = _isToastMode
+          ? _ctrl.isToastForwardEnabledSync(a.packageName)
+          : _ctrl.enabledPackages.contains(a.packageName);
+      final bEnabled = _isToastMode
+          ? _ctrl.isToastForwardEnabledSync(b.packageName)
+          : _ctrl.enabledPackages.contains(b.packageName);
+      if (aEnabled != bEnabled) return aEnabled ? -1 : 1;
+      return a.appName.compareTo(b.appName);
+    });
+    return apps;
+  }
 
   void _clearSearch() {
     _searchCtrl.clear();
@@ -145,11 +165,16 @@ class WhitelistPageState extends State<WhitelistPage> {
 
   Future<void> _setSelectedEnabled(bool enabled) async {
     if (_selectedPackages.isEmpty) return;
-    await _ctrl.setEnabledBatch(_selectedPackages.toList(), enabled);
+    if (_isToastMode) {
+      await _ctrl.setToastEnabledBatch(_selectedPackages.toList(), enabled);
+    } else {
+      await _ctrl.setEnabledBatch(_selectedPackages.toList(), enabled);
+    }
   }
 
   /// 对已选应用的已启用渠道批量应用配置。
   Future<void> _batchApplySelected() async {
+    if (_isToastMode) return;
     if (_selectedPackages.isEmpty) return;
     if (!mounted) return;
 
@@ -211,12 +236,40 @@ class WhitelistPageState extends State<WhitelistPage> {
     }
   }
 
+  Future<void> _batchApplySelectedToast() async {
+    if (!_isToastMode) return;
+    if (_selectedPackages.isEmpty) return;
+    if (!mounted) return;
+
+    final result = await _BatchToastSettingsSheet.show(context);
+    if (result == null) return;
+
+    await _ctrl.setToastSettingsBatch(
+      _selectedPackages.toList(),
+      forwardEnabled: result.forwardEnabled,
+      blockOriginal: result.blockOriginal,
+      showNotification: result.showNotification,
+      showIslandIcon: result.showIslandIcon,
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          AppLocalizations.of(context)!.batchApplied(_selectedPackages.length),
+        ),
+      ),
+    );
+    _clearSelection();
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
-    final apps = _ctrl.filteredApps;
-    final enabledCount = _ctrl.enabledPackages.length;
+    final apps = _sortedAppsForCurrentMode(_ctrl.filteredApps);
+    final enabledCount = _isToastMode
+        ? _ctrl.toastEnabledCount
+        : _ctrl.enabledPackages.length;
     final allSelected =
         apps.isNotEmpty &&
         apps.every((a) => _selectedPackages.contains(a.packageName));
@@ -257,7 +310,9 @@ class WhitelistPageState extends State<WhitelistPage> {
                   : null,
               title: _selectionMode
                   ? Text(l10n.selectedAppsCount(_selectedPackages.length))
-                  : Text(l10n.appAdaptation),
+                  : Text(
+                      _isToastMode ? l10n.toastAdaptation : l10n.appAdaptation,
+                    ),
               actions: _selectionMode
                   ? [
                       // 全选 / 全不选
@@ -278,7 +333,9 @@ class WhitelistPageState extends State<WhitelistPage> {
                         tooltip: l10n.batchChannelSettings,
                         onPressed: _selectedPackages.isNotEmpty
                             ? InteractionHaptics.interceptButton(
-                                _batchApplySelected,
+                                _isToastMode
+                                    ? _batchApplySelectedToast
+                                    : _batchApplySelected,
                               )
                             : null,
                       ),
@@ -338,8 +395,12 @@ class WhitelistPageState extends State<WhitelistPage> {
                                 _ctrl.setShowSystemApps(!_ctrl.showSystemApps);
                               },
                               onRefresh: _ctrl.refresh,
-                              onEnableAll: _ctrl.enableAll,
-                              onDisableAll: _ctrl.disableAll,
+                              onEnableAll: _isToastMode
+                                  ? _ctrl.enableAllToast
+                                  : _ctrl.enableAll,
+                              onDisableAll: _isToastMode
+                                  ? _ctrl.disableAllToast
+                                  : _ctrl.disableAll,
                             ),
                         itemBuilder: (ctx) {
                           final ml = AppLocalizations.of(ctx)!;
@@ -362,14 +423,44 @@ class WhitelistPageState extends State<WhitelistPage> {
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                 child: AppListSearchHeader(
                   countText: _ctrl.showSystemApps
-                      ? l10n.enabledAppsCountWithSystem(enabledCount)
-                      : l10n.enabledAppsCount(enabledCount),
+                      ? (_isToastMode
+                            ? l10n.toastEnabledAppsCountWithSystem(enabledCount)
+                            : l10n.enabledAppsCountWithSystem(enabledCount))
+                      : (_isToastMode
+                            ? l10n.toastEnabledAppsCount(enabledCount)
+                            : l10n.enabledAppsCount(enabledCount)),
                   showCountText: true,
                   searchController: _searchCtrl,
                   searchFocusNode: _searchFocus,
                   hintText: l10n.searchApps,
                   onChanged: _ctrl.setSearch,
                   onClear: _clearSearch,
+                ),
+              ),
+            ),
+
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: SegmentedButton<int>(
+                  segments: [
+                    ButtonSegment<int>(
+                      value: 0,
+                      icon: const Icon(Icons.notifications_active_outlined),
+                      label: Text(l10n.adaptationModeNotification),
+                    ),
+                    ButtonSegment<int>(
+                      value: 1,
+                      icon: const Icon(Icons.chat_bubble_outline_rounded),
+                      label: Text(l10n.adaptationModeToast),
+                    ),
+                  ],
+                  selected: {_adaptationMode},
+                  onSelectionChanged: (selection) {
+                    setState(() {
+                      _adaptationMode = selection.first;
+                    });
+                  },
                 ),
               ),
             ),
@@ -404,22 +495,30 @@ class WhitelistPageState extends State<WhitelistPage> {
                     return _AppTile(
                       key: ValueKey(pkg),
                       app: app,
-                      enabled: _ctrl.enabledPackages.contains(pkg),
+                      enabled: _isToastMode
+                          ? _ctrl.isToastForwardEnabledSync(pkg)
+                          : _ctrl.enabledPackages.contains(pkg),
                       onChanged: _selectionMode
                           ? null
-                          : (v) => _ctrl.setEnabled(pkg, v),
+                          : (v) => _isToastMode
+                                ? _ctrl.setToastForwardEnabled(pkg, v)
+                                : _ctrl.setEnabled(pkg, v),
                       onTap: _selectionMode
                           ? () => _toggleSelection(pkg)
                           : () => Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => AppChannelsPage(
-                                  app: app,
-                                  controller: _ctrl,
-                                  appEnabled: _ctrl.enabledPackages.contains(
-                                    pkg,
-                                  ),
-                                ),
+                                builder: (_) => _isToastMode
+                                    ? ToastAppSettingsPage(
+                                        app: app,
+                                        controller: _ctrl,
+                                      )
+                                    : AppChannelsPage(
+                                        app: app,
+                                        controller: _ctrl,
+                                        appEnabled: _ctrl.enabledPackages
+                                            .contains(pkg),
+                                      ),
                               ),
                             ),
                       onLongPress: _selectionMode
@@ -491,6 +590,124 @@ class _AppTile extends StatelessWidget {
                 Icon(Icons.chevron_right, color: cs.onSurfaceVariant, size: 20),
               ],
             ),
+    );
+  }
+}
+
+class _BatchToastSettings {
+  const _BatchToastSettings({
+    required this.forwardEnabled,
+    required this.blockOriginal,
+    required this.showNotification,
+    required this.showIslandIcon,
+  });
+
+  final bool forwardEnabled;
+  final bool blockOriginal;
+  final bool showNotification;
+  final bool showIslandIcon;
+}
+
+class _BatchToastSettingsSheet extends StatefulWidget {
+  const _BatchToastSettingsSheet();
+
+  static Future<_BatchToastSettings?> show(BuildContext context) {
+    return showModalBottomSheet<_BatchToastSettings>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => const _BatchToastSettingsSheet(),
+    );
+  }
+
+  @override
+  State<_BatchToastSettingsSheet> createState() =>
+      _BatchToastSettingsSheetState();
+}
+
+class _BatchToastSettingsSheetState extends State<_BatchToastSettingsSheet> {
+  bool _forwardEnabled = false;
+  bool _blockOriginal = true;
+  bool _showNotification = false;
+  bool _showIslandIcon = true;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final viewInsets = MediaQuery.viewInsetsOf(context);
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: viewInsets.bottom),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                l10n.toastAdaptation,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 12),
+              ToastSettingsPanel(
+                forwardEnabled: _forwardEnabled,
+                blockOriginal: _blockOriginal,
+                showNotification: _showNotification,
+                showIslandIcon: _showIslandIcon,
+                onForwardEnabledChanged: (value) {
+                  setState(() {
+                    _forwardEnabled = value;
+                    if (!value && _blockOriginal) {
+                      _blockOriginal = false;
+                    }
+                  });
+                },
+                onBlockOriginalChanged: (value) {
+                  if (!_forwardEnabled && value) return;
+                  setState(() => _blockOriginal = value);
+                },
+                onShowNotificationChanged: (value) {
+                  if (!_forwardEnabled && value) return;
+                  setState(() => _showNotification = value);
+                },
+                onShowIslandIconChanged: (value) {
+                  if (!_forwardEnabled) return;
+                  setState(() => _showIslandIcon = value);
+                },
+                showHint: false,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: InteractionHaptics.interceptButton(() {
+                      Navigator.pop(context);
+                    }),
+                    child: Text(l10n.cancel),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    onPressed: InteractionHaptics.interceptButton(() {
+                      Navigator.pop(
+                        context,
+                        _BatchToastSettings(
+                          forwardEnabled: _forwardEnabled,
+                          blockOriginal: _blockOriginal,
+                          showNotification: _showNotification,
+                          showIslandIcon: _showIslandIcon,
+                        ),
+                      );
+                    }),
+                    child: Text(l10n.apply),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

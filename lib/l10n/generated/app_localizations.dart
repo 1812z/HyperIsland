@@ -690,6 +690,36 @@ abstract class AppLocalizations {
   /// **'应用适配'**
   String get appAdaptation;
 
+  /// No description provided for @toastAdaptation.
+  ///
+  /// In zh, this message translates to:
+  /// **'Toast 适配'**
+  String get toastAdaptation;
+
+  /// No description provided for @adaptationModeNotification.
+  ///
+  /// In zh, this message translates to:
+  /// **'通知'**
+  String get adaptationModeNotification;
+
+  /// No description provided for @adaptationModeToast.
+  ///
+  /// In zh, this message translates to:
+  /// **'Toast'**
+  String get adaptationModeToast;
+
+  /// No description provided for @toastEnabledAppsCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'已启用 {count} 个应用的 Toast 拦截'**
+  String toastEnabledAppsCount(Object count);
+
+  /// No description provided for @toastEnabledAppsCountWithSystem.
+  ///
+  /// In zh, this message translates to:
+  /// **'已启用 {count} 个应用的 Toast 拦截（含系统应用）'**
+  String toastEnabledAppsCountWithSystem(Object count);
+
   /// No description provided for @selectedAppsCount.
   ///
   /// In zh, this message translates to:

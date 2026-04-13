@@ -341,6 +341,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appAdaptation => 'App Adaptation';
 
   @override
+  String get toastAdaptation => 'Toast Adaptation';
+
+  @override
+  String get adaptationModeNotification => 'Notification';
+
+  @override
+  String get adaptationModeToast => 'Toast';
+
+  @override
+  String toastEnabledAppsCount(Object count) {
+    return 'Toast intercept enabled for $count apps';
+  }
+
+  @override
+  String toastEnabledAppsCountWithSystem(Object count) {
+    return 'Toast intercept enabled for $count apps (including system apps)';
+  }
+
+  @override
   String selectedAppsCount(int count) {
     return '$count apps selected';
   }

@@ -346,6 +346,25 @@ class AppLocalizationsTr extends AppLocalizations {
   String get appAdaptation => 'Uygulama Listesi';
 
   @override
+  String get toastAdaptation => 'Toast 适配';
+
+  @override
+  String get adaptationModeNotification => '通知';
+
+  @override
+  String get adaptationModeToast => 'Toast';
+
+  @override
+  String toastEnabledAppsCount(Object count) {
+    return '已启用 $count 个应用的 Toast 拦截';
+  }
+
+  @override
+  String toastEnabledAppsCountWithSystem(Object count) {
+    return '已启用 $count 个应用的 Toast 拦截（含系统应用）';
+  }
+
+  @override
   String selectedAppsCount(int count) {
     return '$count uygulama seçildi';
   }
