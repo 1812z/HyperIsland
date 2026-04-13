@@ -89,7 +89,7 @@ In **Advanced Focus Customization** and **Advanced Island Customization**, you c
 - `${raw_title}` / `${raw_subtitle}`: original notification title/content
 - `${pkg}`: app package name
 - `${channel_id}`: notification channel ID
-- `${progress}`: progress value (0-100, useful for download templates)
+- `${progress_text}%`: progress value (0-100, useful for download templates)
 
 **Built-in functions**
 

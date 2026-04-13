@@ -87,7 +87,7 @@ HyperIsland 为澎湃 OS3 提供了丰富的超级岛通知增强功能，让你
 - `${raw_title}` / `${raw_subtitle}`：原始通知标题/正文
 - `${pkg}`：应用包名
 - `${channel_id}`：通知渠道 ID
-- `${progress}`：进度（0-100，下载模板常用）
+- `${progress_text}%`：进度（0-100，下载模板常用）
 
 **内置函数**
 
