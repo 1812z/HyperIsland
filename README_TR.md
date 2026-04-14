@@ -52,6 +52,20 @@ Yapılandırma değişiklikleri **yeniden başlatmaya gerek kalmadan** anında g
 
 </td>
 </tr>
+<tr>
+<td width="50%">
+
+### 🤖 AI Ozeti
+OpenAI uyumlu protokole sahip buyuk modelleri destekler; bildirim icerigini akilli bicimde kisaltir ve temel bilgileri cikarir.
+
+</td>
+<td width="50%">
+
+### 🍞 Toast Engelleme
+Rahatsiz edici Toast bildirimlerini yakalar ve Super Ada gorunumune donusturur; daha temiz ve tutarli bir deneyim sunar.
+
+</td>
+</tr>
 </table>
 
 ---

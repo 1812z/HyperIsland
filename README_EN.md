@@ -50,6 +50,20 @@ Configuration changes take effect **without restarting**. Only scope restarts ar
 
 </td>
 </tr>
+<tr>
+<td width="50%">
+
+### 🤖 AI Summary
+Supports OpenAI-compatible large models to intelligently condense notification content and extract key points.
+
+</td>
+<td width="50%">
+
+### 🍞 Toast Interception
+Intercepts annoying Toast notifications and converts them into Dynamic Island display for a cleaner, unified experience.
+
+</td>
+</tr>
 </table>
 
 ---
