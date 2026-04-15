@@ -81,6 +81,8 @@ object NotificationIslandNotification : IslandTemplate {
                     contentIntent    = data.contentIntent,
                     isOngoing        = data.isOngoing,
                     outerGlow        = data.outerGlow,
+                    sourcePackage    = data.pkg,
+                    sourceChannelId  = data.channelId,
                     actions          = data.actions.take(2),
                 ),
             )

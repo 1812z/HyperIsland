@@ -1,6 +1,7 @@
 package io.github.hyperisland.xposed.hook
 
 import android.service.notification.StatusBarNotification
+import android.os.SystemClock
 import android.view.Choreographer
 import android.view.View
 import android.view.ViewGroup
@@ -8,6 +9,7 @@ import android.widget.TextView
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.log
 import io.github.hyperisland.xposed.logError
+import io.github.hyperisland.xposed.islanddispatch.definition.IslandDispatchContract
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
@@ -19,6 +21,9 @@ import java.util.WeakHashMap
 object MarqueeHook : BaseHook() {
 
     private const val TAG = "HyperIsland[Marquee]"
+    private const val SELF_PKG = "io.github.hyperisland"
+    private const val SYSTEM_UI_PKG = "com.android.systemui"
+    private const val DIRECT_PROXY_CHANNEL = IslandDispatchContract.CHANNEL_ID
 
     override fun getTag() = TAG
 
@@ -205,6 +210,37 @@ object MarqueeHook : BaseHook() {
     private val targetPkg = java.util.Collections.synchronizedMap(WeakHashMap<View, String>())
     private val targetChannel = java.util.Collections.synchronizedMap(WeakHashMap<View, String>())
     @Volatile private var cachedWhitelist: Map<String, Set<String>>? = null
+    private val directProxyExpireAt =
+        java.util.Collections.synchronizedMap(mutableMapOf<String, Long>())
+
+    fun markDirectProxyPosted(pkg: String, channelId: String) {
+        if (pkg.isBlank()) return
+        val safeChannel = channelId.ifBlank { "toast" }
+        val key = "$pkg#$safeChannel"
+        directProxyExpireAt[key] = SystemClock.elapsedRealtime() + 10_000L
+    }
+
+    private fun takeRecentDirectProxySource(): Pair<String, String>? {
+        val now = SystemClock.elapsedRealtime()
+        val iterator = directProxyExpireAt.entries.iterator()
+        var candidate: Pair<String, String>? = null
+        var bestExpire = 0L
+        while (iterator.hasNext()) {
+            val entry = iterator.next()
+            if (entry.value <= now) {
+                iterator.remove()
+                continue
+            }
+            if (entry.value > bestExpire) {
+                val parts = entry.key.split('#', limit = 2)
+                if (parts.size == 2 && parts[0].isNotBlank()) {
+                    candidate = parts[0] to parts[1]
+                    bestExpire = entry.value
+                }
+            }
+        }
+        return candidate
+    }
 
     private fun loadWhitelist(): Map<String, Set<String>> {
         cachedWhitelist?.let { return it }
@@ -257,6 +293,29 @@ object MarqueeHook : BaseHook() {
                                     }
                                     pkgName = sbn?.packageName ?: ""
                                     channelId = sbn?.notification?.channelId ?: ""
+                                    val sourcePkg = sbn?.notification?.extras
+                                        ?.getString("hyperisland_source_pkg")
+                                        ?.trim()
+                                        .orEmpty()
+                                    val sourceChannel = sbn?.notification?.extras
+                                        ?.getString("hyperisland_source_channel")
+                                        ?.trim()
+                                        .orEmpty()
+                                    if (sourcePkg.isNotEmpty()) {
+                                        pkgName = sourcePkg
+                                        channelId = sourceChannel.ifEmpty {
+                                            if (channelId.isNotEmpty()) channelId else "toast"
+                                        }
+                                    } else if (
+                                        (pkgName == SELF_PKG || pkgName == SYSTEM_UI_PKG) &&
+                                            channelId == DIRECT_PROXY_CHANNEL
+                                    ) {
+                                        val recent = takeRecentDirectProxySource()
+                                        if (recent != null) {
+                                            pkgName = recent.first
+                                            channelId = recent.second
+                                        }
+                                    }
                                     isOngoing = (sbn?.notification?.flags ?: 0) and android.app.Notification.FLAG_ONGOING_EVENT != 0
                                     targetPkg[islandView] = pkgName
                                     targetChannel[islandView] = channelId
@@ -270,25 +329,32 @@ object MarqueeHook : BaseHook() {
                             }
                             if (pkgName.isEmpty()) return@intercept result
                             
-                            val whitelist = loadWhitelist()
-                            val allowedChannels = whitelist[pkgName]
-                            if (allowedChannels == null) {
-                                traverseAndApplyMarquee(islandView, false)
-                                return@intercept result
+                            val isToastSource = channelId == "toast"
+                            if (!isToastSource) {
+                                val whitelist = loadWhitelist()
+                                val allowedChannels = whitelist[pkgName]
+                                if (allowedChannels == null) {
+                                    traverseAndApplyMarquee(islandView, false)
+                                    return@intercept result
+                                }
+
+                                if (allowedChannels.isNotEmpty() && channelId.isEmpty()) {
+                                    traverseAndApplyMarquee(islandView, false)
+                                    return@intercept result
+                                }
+
+                                if (allowedChannels.isNotEmpty() && channelId.isNotEmpty() && channelId !in allowedChannels) {
+                                    traverseAndApplyMarquee(islandView, false)
+                                    return@intercept result
+                                }
                             }
 
-                            if (allowedChannels.isNotEmpty() && channelId.isEmpty()) {
-                                traverseAndApplyMarquee(islandView, false)
-                                return@intercept result
+                            val marqueeRaw = if (isToastSource) {
+                                ConfigManager.getString("pref_toast_marquee_$pkgName", "default")
+                            } else {
+                                val marqueeKey = "pref_channel_marquee_${pkgName}_${channelId}"
+                                ConfigManager.getString(marqueeKey, "default")
                             }
-                            
-                            if (allowedChannels.isNotEmpty() && channelId.isNotEmpty() && channelId !in allowedChannels) {
-                                traverseAndApplyMarquee(islandView, false)
-                                return@intercept result
-                            }
-                            
-                            val marqueeKey = "pref_channel_marquee_${pkgName}_${channelId}"
-                            val marqueeRaw = ConfigManager.getString(marqueeKey, "default")
                             val defaultMarquee = ConfigManager.getBoolean("pref_default_marquee", false)
                             val enabled = when (marqueeRaw) {
                                 "on" -> true
