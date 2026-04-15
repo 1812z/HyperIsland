@@ -25,9 +25,21 @@ export const donors: DonorItem[] = [
     message: '支持创作~'
   },
   {
+    name: '୧⍤⃝   呵呵',
+    amount: '20',
+    date: '2026-04-10',
+    message: ''
+  },
+  {
     name: '残心晓梦',
     amount: '5.20',
     date: '2026-04-15',
     message: '支持创作~'
+  },
+  {
+    name: 'distance',
+    amount: '6.6',
+    date: '2026-04-15',
+    message: ''
   }
 ]
