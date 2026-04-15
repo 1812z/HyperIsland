@@ -828,6 +828,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get colorBrightness => 'Brightness';
 
   @override
+  String get colorOpacity => 'Opacity';
+
+  @override
   String get onlyEnabledChannels => 'Only apply to enabled channels';
 
   @override

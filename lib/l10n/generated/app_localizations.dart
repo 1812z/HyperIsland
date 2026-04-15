@@ -1566,6 +1566,12 @@ abstract class AppLocalizations {
   /// **'亮度'**
   String get colorBrightness;
 
+  /// No description provided for @colorOpacity.
+  ///
+  /// In zh, this message translates to:
+  /// **'透明度'**
+  String get colorOpacity;
+
   /// No description provided for @onlyEnabledChannels.
   ///
   /// In zh, this message translates to:

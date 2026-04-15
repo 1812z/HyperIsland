@@ -239,6 +239,7 @@
   "colorHue": "色相",
   "colorSaturation": "彩度",
   "colorBrightness": "明度",
+  "colorOpacity": "不透明度",
   "onlyEnabledChannels": "有効なチャンネルにのみ適用されます",
   "enabledChannelsCount": "{enabled} / {total} 個のチャンネルが有効",
   "iconModeAuto": "自動",

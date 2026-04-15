@@ -7,6 +7,8 @@ import '../controllers/settings_controller.dart';
 import '../controllers/update_controller.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../services/interaction_haptics.dart';
+import '../widgets/color_picker_dialog.dart';
+import '../widgets/color_value_field.dart';
 import '../widgets/section_label.dart';
 import '../widgets/modern_slider.dart';
 import 'ai_config_page.dart';
@@ -39,11 +41,14 @@ class _SettingsPageState extends State<SettingsPage> {
     _ctrl.defaultMarquee,
     _ctrl.defaultDynamicHighlightColor,
     _ctrl.defaultOuterGlow,
+    _ctrl.defaultIslandOuterGlow,
     _ctrl.defaultFocusNotif,
     _ctrl.defaultPreserveSmallIcon,
     _ctrl.defaultRestoreLockscreen,
     _ctrl.fullscreenBehavior,
     _ctrl.defaultShowIslandIcon,
+    _ctrl.defaultOutEffectColor,
+    _ctrl.defaultIslandOuterGlowColor,
     _ctrl.roundIcon,
     _ctrl.marqueeSpeed,
     _ctrl.bigIslandMaxWidthEnabled,
@@ -252,6 +257,157 @@ class _SettingsPageState extends State<SettingsPage> {
       'expand' => l10n.fullscreenBehaviorExpand,
       _ => l10n.fullscreenBehaviorOff,
     };
+  }
+
+  String _boolLabel(AppLocalizations l10n, bool value) {
+    return value ? l10n.optOn : l10n.optOff;
+  }
+
+  String _outerGlowDefaultsSubtitle(AppLocalizations l10n) {
+    return 'Focus ${_boolLabel(l10n, _ctrl.defaultOuterGlow)} · '
+        'Island ${_boolLabel(l10n, _ctrl.defaultIslandOuterGlow)}';
+  }
+
+  Future<void> _showOuterGlowDefaultsDialog(AppLocalizations l10n) async {
+    final focusColorController = TextEditingController(
+      text: _ctrl.defaultOutEffectColor,
+    );
+    final islandColorController = TextEditingController(
+      text: _ctrl.defaultIslandOuterGlowColor,
+    );
+    var focusOuterGlow = _ctrl.defaultOuterGlow;
+    var islandOuterGlow = _ctrl.defaultIslandOuterGlow;
+    var focusColor = _ctrl.defaultOutEffectColor;
+    var islandColor = _ctrl.defaultIslandOuterGlowColor;
+
+    Future<void> pickColor({
+      required bool isIsland,
+      required StateSetter setDialogState,
+    }) async {
+      final color = await showColorPickerDialog(
+        context,
+        title: isIsland
+            ? '${l10n.outEffectColorLabel} (Island)'
+            : '${l10n.outEffectColorLabel} (Focus)',
+        initialHex: isIsland ? islandColor : focusColor,
+        enableAlpha: true,
+      );
+      if (color == null) return;
+      final hex = colorToArgbHex(color);
+      setDialogState(() {
+        if (isIsland) {
+          islandColor = hex;
+          islandColorController.text = hex;
+        } else {
+          focusColor = hex;
+          focusColorController.text = hex;
+        }
+      });
+    }
+
+    final shouldSave = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(l10n.outerGlowLabel),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('Focus'),
+                  value: focusOuterGlow,
+                  onChanged: (value) =>
+                      setDialogState(() => focusOuterGlow = value),
+                ),
+                const SizedBox(height: 8),
+                ColorValueField(
+                  controller: focusColorController,
+                  decoration: _dialogFieldDecoration(
+                    context,
+                    hintText: '#AARRGGBB / #RRGGBB',
+                  ),
+                  previewColor: parseHexColor(focusColor),
+                  previewFallbackColor: Theme.of(context).colorScheme.primary,
+                  onChanged: (value) =>
+                      setDialogState(() => focusColor = value.trim()),
+                  onClear: () => setDialogState(() {
+                    focusColor = '';
+                    focusColorController.clear();
+                  }),
+                  onPickColor: () => pickColor(
+                    isIsland: false,
+                    setDialogState: setDialogState,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('Island'),
+                  value: islandOuterGlow,
+                  onChanged: (value) =>
+                      setDialogState(() => islandOuterGlow = value),
+                ),
+                const SizedBox(height: 8),
+                ColorValueField(
+                  controller: islandColorController,
+                  decoration: _dialogFieldDecoration(
+                    context,
+                    hintText: '#AARRGGBB / #RRGGBB',
+                  ),
+                  previewColor: parseHexColor(islandColor),
+                  previewFallbackColor: Theme.of(context).colorScheme.primary,
+                  onChanged: (value) =>
+                      setDialogState(() => islandColor = value.trim()),
+                  onClear: () => setDialogState(() {
+                    islandColor = '';
+                    islandColorController.clear();
+                  }),
+                  onPickColor: () =>
+                      pickColor(isIsland: true, setDialogState: setDialogState),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(l10n.apply),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    focusColorController.dispose();
+    islandColorController.dispose();
+
+    if (shouldSave != true) return;
+    await _ctrl.setDefaultOuterGlow(focusOuterGlow);
+    await _ctrl.setDefaultIslandOuterGlow(islandOuterGlow);
+    await _ctrl.setDefaultOutEffectColor(focusColor);
+    await _ctrl.setDefaultIslandOuterGlowColor(islandColor);
+  }
+
+  InputDecoration _dialogFieldDecoration(
+    BuildContext context, {
+    String? hintText,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    return InputDecoration(
+      hintText: hintText,
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      filled: true,
+      fillColor: cs.surfaceContainerHighest,
+    );
   }
 
   Future<void> _showThemeModeDialog(AppLocalizations l10n) async {
@@ -680,15 +836,16 @@ class _SettingsPageState extends State<SettingsPage> {
                             ),
                           ),
                           const Divider(height: 1, indent: 16, endIndent: 16),
-                          SwitchListTile(
+                          ListTile(
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 16,
                               vertical: 4,
                             ),
                             title: Text(l10n.outerGlowLabel, style: titleStyle),
-                            value: _ctrl.defaultOuterGlow,
-                            onChanged: InteractionHaptics.interceptToggle(
-                              (value) => _ctrl.setDefaultOuterGlow(value),
+                            subtitle: Text(_outerGlowDefaultsSubtitle(l10n)),
+                            trailing: const Icon(Icons.chevron_right),
+                            onTap: InteractionHaptics.interceptButton(
+                              () => _showOuterGlowDefaultsDialog(l10n),
                             ),
                           ),
                           const Divider(height: 1, indent: 16, endIndent: 16),

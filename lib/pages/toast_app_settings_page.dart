@@ -5,6 +5,7 @@ import '../controllers/settings_controller.dart';
 import '../controllers/whitelist_controller.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../services/app_cache_service.dart';
+import '../widgets/color_picker_dialog.dart';
 import '../widgets/color_value_field.dart';
 import '../widgets/toast_settings_panel.dart';
 
@@ -232,109 +233,7 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
     return enabled ? l10n.optDefaultOn : l10n.optDefaultOff;
   }
 
-  Color? _parseColor(String? hex) {
-    if (hex == null || hex.trim().isEmpty) return null;
-    final cleaned = hex.trim().replaceFirst('#', '');
-    if (cleaned.length != 6) return null;
-    final value = int.tryParse(cleaned, radix: 16);
-    if (value == null) return null;
-    return Color(value).withAlpha(255);
-  }
-
-  String _toHexColor(Color color) {
-    return '#${color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
-  }
-
-  Future<Color?> _showColorPicker(
-    BuildContext context, {
-    String? initialHex,
-  }) async {
-    final l10n = AppLocalizations.of(context)!;
-    final initialColor =
-        _parseColor(initialHex) ?? Theme.of(context).colorScheme.primary;
-    var selected = HSVColor.fromColor(initialColor);
-
-    return showDialog<Color>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(l10n.highlightColorLabel),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: selected.toColor(),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Theme.of(ctx).colorScheme.outline),
-                ),
-              ),
-              const SizedBox(height: 16),
-              _ColorSlider(
-                label: l10n.colorHue,
-                value: selected.hue,
-                max: 360,
-                onChanged: (v) =>
-                    setDialogState(() => selected = selected.withHue(v)),
-                gradientColors: List.generate(
-                  7,
-                  (i) => HSVColor.fromAHSV(1, i * 60, 1, 1).toColor(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              _ColorSlider(
-                label: l10n.colorSaturation,
-                value: selected.saturation * 100,
-                max: 100,
-                onChanged: (v) => setDialogState(
-                  () => selected = selected.withSaturation(v / 100),
-                ),
-                gradientColors: [
-                  HSVColor.fromAHSV(1, selected.hue, 0, 1).toColor(),
-                  HSVColor.fromAHSV(1, selected.hue, 1, 1).toColor(),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _ColorSlider(
-                label: l10n.colorBrightness,
-                value: selected.value * 100,
-                max: 100,
-                onChanged: (v) => setDialogState(
-                  () => selected = selected.withValue(v / 100),
-                ),
-                gradientColors: [
-                  HSVColor.fromAHSV(
-                    1,
-                    selected.hue,
-                    selected.saturation,
-                    0,
-                  ).toColor(),
-                  HSVColor.fromAHSV(
-                    1,
-                    selected.hue,
-                    selected.saturation,
-                    1,
-                  ).toColor(),
-                ],
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text(l10n.cancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, selected.toColor()),
-              child: Text(l10n.apply),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Color? _parseColor(String? hex) => parseHexColor(hex);
 
   @override
   Widget build(BuildContext context) {
@@ -434,12 +333,14 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
                           _setHighlightColor('');
                         },
                         onPickColor: () async {
-                          final color = await _showColorPicker(
+                          final color = await showColorPickerDialog(
                             context,
                             initialHex: _highlightColor,
+                            title: l10n.highlightColorLabel,
+                            enableAlpha: true,
                           );
                           if (color == null) return;
-                          final hex = _toHexColor(color);
+                          final hex = colorToArgbHex(color);
                           _highlightColorController.text = hex;
                           await _setHighlightColor(hex);
                         },
@@ -653,54 +554,4 @@ InputDecoration _fieldDecoration(
     filled: true,
     fillColor: cs.surface,
   );
-}
-
-class _ColorSlider extends StatelessWidget {
-  const _ColorSlider({
-    required this.label,
-    required this.value,
-    required this.max,
-    required this.onChanged,
-    required this.gradientColors,
-  });
-
-  final String label;
-  final double value;
-  final double max;
-  final ValueChanged<double> onChanged;
-  final List<Color> gradientColors;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label),
-        const SizedBox(height: 4),
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            Container(
-              height: 24,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                gradient: LinearGradient(colors: gradientColors),
-              ),
-            ),
-            SliderTheme(
-              data: SliderThemeData(
-                trackHeight: 24,
-                thumbColor: Colors.white,
-                overlayColor: Colors.white.withValues(alpha: 0.12),
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12),
-                activeTrackColor: Colors.transparent,
-                inactiveTrackColor: Colors.transparent,
-              ),
-              child: Slider(value: value, max: max, onChanged: onChanged),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
 }

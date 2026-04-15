@@ -803,6 +803,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get colorBrightness => '明度';
 
   @override
+  String get colorOpacity => '不透明度';
+
+  @override
   String get onlyEnabledChannels => '有効なチャンネルにのみ適用されます';
 
   @override

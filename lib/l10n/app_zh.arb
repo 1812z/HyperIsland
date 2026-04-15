@@ -429,6 +429,7 @@
   "colorHue": "色相",
   "colorSaturation": "饱和度",
   "colorBrightness": "亮度",
+  "colorOpacity": "透明度",
   "onlyEnabledChannels": "仅应用到已启用渠道",
   "enabledChannelsCount": "已启用 {enabled} / {total} 个渠道",
   "@enabledChannelsCount": {

@@ -833,6 +833,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get colorBrightness => 'Parlaklık';
 
   @override
+  String get colorOpacity => 'Opaklık';
+
+  @override
   String get onlyEnabledChannels => 'Yalnızca Etkin Kanallara Uygula';
 
   @override

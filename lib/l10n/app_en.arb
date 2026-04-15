@@ -286,6 +286,7 @@
   "colorHue": "Hue",
   "colorSaturation": "Saturation",
   "colorBrightness": "Brightness",
+  "colorOpacity": "Opacity",
   "onlyEnabledChannels": "Only apply to enabled channels",
   "enabledChannelsCount": "{enabled} / {total} channels enabled",
   "iconModeAuto": "Auto",

@@ -4,6 +4,7 @@ import 'dart:convert';
 import '../controllers/settings_controller.dart';
 import '../controllers/whitelist_controller.dart';
 import '../l10n/generated/app_localizations.dart';
+import 'color_picker_dialog.dart';
 import 'color_value_field.dart';
 
 // ── 操作模式（sealed class）──────────────────────────────────────────────────
@@ -529,9 +530,9 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
               previewFallbackColor: Theme.of(context).colorScheme.primary,
               onChanged: (_) => setState(_syncFocusCustomFromControllers),
               onPickColor: () async {
-                final color = await _showColorPicker(context);
+                final color = await showColorPickerDialog(context);
                 if (color != null) {
-                  ctl.text = _toHexColor(color);
+                  ctl.text = colorToHex(color);
                   setState(_syncFocusCustomFromControllers);
                 }
               },
@@ -657,20 +658,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
     return Column(children: children);
   }
 
-  Color? _parseColor(String? hex) {
-    if (hex == null || hex.isEmpty) return null;
-    final cleaned = hex.replaceFirst('#', '');
-    if (cleaned.length != 6 && cleaned.length != 8) return null;
-    final value = int.tryParse(cleaned, radix: 16);
-    if (value == null) return null;
-    return cleaned.length == 6 ? Color(value).withAlpha(255) : Color(value);
-  }
-
-  String _toHexColor(Color color) =>
-      '#${color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
-
-  String _toArgbHexColor(Color color) =>
-      '#${color.toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase()}';
+  Color? _parseColor(String? hex) => parseHexColor(hex);
 
   String _formatPlaceholderTip(String key) {
     return '\${$key}';
@@ -777,100 +765,6 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
       }
     }
     return fallback;
-  }
-
-  Future<Color?> _showColorPicker(
-    BuildContext context, {
-    String? initialHex,
-  }) async {
-    final l10n = AppLocalizations.of(context)!;
-    final initialColor =
-        _parseColor(initialHex) ?? Theme.of(context).colorScheme.primary;
-    final hsv = HSVColor.fromColor(initialColor);
-
-    HSVColor selectedColor = hsv;
-
-    return showDialog<Color>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(l10n.highlightColorLabel),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: selectedColor.toColor(),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Theme.of(ctx).colorScheme.outline),
-                ),
-              ),
-              const SizedBox(height: 16),
-              _ColorSlider(
-                label: l10n.colorHue,
-                value: selectedColor.hue,
-                max: 360,
-                onChanged: (v) => setDialogState(
-                  () => selectedColor = selectedColor.withHue(v),
-                ),
-                gradientColors: List.generate(
-                  7,
-                  (i) => HSVColor.fromAHSV(1, i * 60, 1, 1).toColor(),
-                ),
-              ),
-              const SizedBox(height: 12),
-              _ColorSlider(
-                label: l10n.colorSaturation,
-                value: selectedColor.saturation * 100,
-                max: 100,
-                onChanged: (v) => setDialogState(
-                  () => selectedColor = selectedColor.withSaturation(v / 100),
-                ),
-                gradientColors: [
-                  HSVColor.fromAHSV(1, selectedColor.hue, 0, 1).toColor(),
-                  HSVColor.fromAHSV(1, selectedColor.hue, 1, 1).toColor(),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _ColorSlider(
-                label: l10n.colorBrightness,
-                value: selectedColor.value * 100,
-                max: 100,
-                onChanged: (v) => setDialogState(
-                  () => selectedColor = selectedColor.withValue(v / 100),
-                ),
-                gradientColors: [
-                  HSVColor.fromAHSV(
-                    1,
-                    selectedColor.hue,
-                    selectedColor.saturation,
-                    0,
-                  ).toColor(),
-                  HSVColor.fromAHSV(
-                    1,
-                    selectedColor.hue,
-                    selectedColor.saturation,
-                    1,
-                  ).toColor(),
-                ],
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text(l10n.cancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, selectedColor.toColor()),
-              child: Text(l10n.apply),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   bool get _hasAnyChange =>
@@ -1254,6 +1148,69 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                     ),
                   ),
                   SizedBox(height: rowGap),
+                  _BatchSettingRow(
+                    label: '${l10n.outerGlowLabel}',
+                    value: _islandOuterGlow,
+                    showNotChange: !_isSingle,
+                    items: [
+                      DropdownMenuItem(
+                        value: kTriOptDefault,
+                        child: Text(
+                          _defaultLabel(context, _ctrl.defaultOuterGlow),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOn,
+                        child: Text(l10n.optOn),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOff,
+                        child: Text(l10n.optOff),
+                      ),
+                    ],
+                    onChanged: (v) => setState(() => _islandOuterGlow = v),
+                  ),
+                  SizedBox(height: rowGap),
+                  _SettingField(
+                    label: '${l10n.outEffectColorLabel}',
+                    child: ColorValueField(
+                      controller: _islandOuterGlowColorController,
+                      decoration: _fieldDecoration(
+                        context,
+                        hintText: _isSingle
+                            ? '#AARRGGBB / #RRGGBB'
+                            : l10n.noChange,
+                      ),
+                      previewColor: _parseColor(_islandOuterGlowColor),
+                      previewFallbackColor: cs.primary,
+                      onChanged: (v) {
+                        final trimmed = v.trim();
+                        setState(() {
+                          _islandOuterGlowColor = trimmed.isNotEmpty
+                              ? trimmed
+                              : null;
+                        });
+                      },
+                      onClear: () {
+                        _islandOuterGlowColorController.clear();
+                        setState(() => _islandOuterGlowColor = null);
+                      },
+                      onPickColor: () async {
+                        final color = await showColorPickerDialog(
+                          context,
+                          title: '${l10n.outEffectColorLabel} (Island)',
+                          initialHex: _islandOuterGlowColor,
+                          enableAlpha: true,
+                        );
+                        if (color != null) {
+                          final hex = colorToArgbHex(color);
+                          _islandOuterGlowColorController.text = hex;
+                          setState(() => _islandOuterGlowColor = hex);
+                        }
+                      },
+                    ),
+                  ),
+                  SizedBox(height: rowGap),
                   // 高亮颜色
                   _SettingField(
                     label: l10n.highlightColorLabel,
@@ -1284,12 +1241,14 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                         setState(() => _highlightColor = null);
                       },
                       onPickColor: () async {
-                        final color = await _showColorPicker(
+                        final color = await showColorPickerDialog(
                           context,
                           initialHex: _highlightColor,
+                          title: l10n.highlightColorLabel,
+                          enableAlpha: true,
                         );
                         if (color != null) {
-                          final hex = _toHexColor(color);
+                          final hex = colorToArgbHex(color);
                           _highlightColorController.text = hex;
                           setState(() => _highlightColor = hex);
                         }
@@ -1529,69 +1488,8 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                     onChanged: (v) => setState(() => _outerGlow = v),
                   ),
                   SizedBox(height: rowGap),
-                  _BatchSettingRow(
-                    label: '${l10n.outerGlowLabel} (Super Island)',
-                    value: _islandOuterGlow,
-                    showNotChange: !_isSingle,
-                    items: [
-                      DropdownMenuItem(
-                        value: kTriOptDefault,
-                        child: Text(
-                          _defaultLabel(context, _ctrl.defaultOuterGlow),
-                        ),
-                      ),
-                      DropdownMenuItem(
-                        value: kTriOptOn,
-                        child: Text(l10n.optOn),
-                      ),
-                      DropdownMenuItem(
-                        value: kTriOptOff,
-                        child: Text(l10n.optOff),
-                      ),
-                    ],
-                    onChanged: (v) => setState(() => _islandOuterGlow = v),
-                  ),
-                  SizedBox(height: rowGap),
                   _SettingField(
-                    label: '${l10n.outEffectColorLabel} (Island)',
-                    child: ColorValueField(
-                      controller: _islandOuterGlowColorController,
-                      decoration: _fieldDecoration(
-                        context,
-                        hintText: _isSingle
-                            ? '#AARRGGBB / #RRGGBB'
-                            : l10n.noChange,
-                      ),
-                      previewColor: _parseColor(_islandOuterGlowColor),
-                      previewFallbackColor: cs.primary,
-                      onChanged: (v) {
-                        final trimmed = v.trim();
-                        setState(() {
-                          _islandOuterGlowColor = trimmed.isNotEmpty
-                              ? trimmed
-                              : null;
-                        });
-                      },
-                      onClear: () {
-                        _islandOuterGlowColorController.clear();
-                        setState(() => _islandOuterGlowColor = null);
-                      },
-                      onPickColor: () async {
-                        final color = await _showColorPicker(
-                          context,
-                          initialHex: _islandOuterGlowColor,
-                        );
-                        if (color != null) {
-                          final hex = _toArgbHexColor(color);
-                          _islandOuterGlowColorController.text = hex;
-                          setState(() => _islandOuterGlowColor = hex);
-                        }
-                      },
-                    ),
-                  ),
-                  SizedBox(height: rowGap),
-                  _SettingField(
-                    label: '${l10n.outEffectColorLabel} (Focus)',
+                    label: '${l10n.outEffectColorLabel}',
                     child: ColorValueField(
                       controller: _outEffectColorController,
                       decoration: _fieldDecoration(
@@ -1613,12 +1511,14 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                         setState(() => _outEffectColor = null);
                       },
                       onPickColor: () async {
-                        final color = await _showColorPicker(
+                        final color = await showColorPickerDialog(
                           context,
                           initialHex: _outEffectColor,
+                          title: '${l10n.outEffectColorLabel} (Focus)',
+                          enableAlpha: true,
                         );
                         if (color != null) {
-                          final hex = _toArgbHexColor(color);
+                          final hex = colorToArgbHex(color);
                           _outEffectColorController.text = hex;
                           setState(() => _outEffectColor = hex);
                         }
@@ -1888,56 +1788,6 @@ InputDecoration _fieldDecoration(
     filled: true,
     fillColor: cs.surfaceContainerHighest,
   );
-}
-
-class _ColorSlider extends StatelessWidget {
-  const _ColorSlider({
-    required this.label,
-    required this.value,
-    required this.max,
-    required this.onChanged,
-    required this.gradientColors,
-  });
-
-  final String label;
-  final double value;
-  final double max;
-  final ValueChanged<double> onChanged;
-  final List<Color> gradientColors;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label),
-        const SizedBox(height: 4),
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            Container(
-              height: 24,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                gradient: LinearGradient(colors: gradientColors),
-              ),
-            ),
-            SliderTheme(
-              data: SliderThemeData(
-                trackHeight: 24,
-                thumbColor: Colors.white,
-                overlayColor: Colors.white.withValues(alpha: 0.12),
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12),
-                activeTrackColor: Colors.transparent,
-                inactiveTrackColor: Colors.transparent,
-              ),
-              child: Slider(value: value, max: max, onChanged: onChanged),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
 }
 
 class _HighlightSwitch extends StatelessWidget {

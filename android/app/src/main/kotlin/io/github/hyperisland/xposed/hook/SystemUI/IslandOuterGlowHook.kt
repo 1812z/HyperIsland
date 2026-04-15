@@ -213,10 +213,13 @@ object IslandOuterGlowHook : BaseHook() {
             GLOW_MODE_STATUS -> GlowConfig(
                 effectEnabled = resolveTriOpt(
                     ConfigManager.getString("pref_channel_island_outer_glow_${pkg}_$channelId", "default"),
-                    ConfigManager.getBoolean("pref_default_outer_glow", false),
+                    ConfigManager.getBoolean("pref_default_island_outer_glow", false),
                 ),
                 colorArgb = parseArgbColor(
-                    ConfigManager.getString("pref_channel_island_outer_glow_color_${pkg}_$channelId", ""),
+                    ConfigManager.getString(
+                        "pref_channel_island_outer_glow_color_${pkg}_$channelId",
+                        ConfigManager.getString("pref_default_island_outer_glow_color", ""),
+                    ),
                 ),
             )
             GLOW_MODE_EXPAND -> GlowConfig(
@@ -225,7 +228,10 @@ object IslandOuterGlowHook : BaseHook() {
                     ConfigManager.getBoolean("pref_default_outer_glow", false),
                 ),
                 colorArgb = parseArgbColor(
-                    ConfigManager.getString("pref_channel_out_effect_color_${pkg}_$channelId", ""),
+                    ConfigManager.getString(
+                        "pref_channel_out_effect_color_${pkg}_$channelId",
+                        ConfigManager.getString("pref_default_out_effect_color", ""),
+                    ),
                 ),
             )
             else -> GlowConfig(false, null)

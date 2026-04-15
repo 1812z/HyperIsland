@@ -26,6 +26,9 @@ const kPrefDefaultFocusNotif = 'pref_default_focus_notif';
 const kPrefDefaultDynamicHighlightColor =
     'pref_default_dynamic_highlight_color';
 const kPrefDefaultOuterGlow = 'pref_default_outer_glow';
+const kPrefDefaultIslandOuterGlow = 'pref_default_island_outer_glow';
+const kPrefDefaultOutEffectColor = 'pref_default_out_effect_color';
+const kPrefDefaultIslandOuterGlowColor = 'pref_default_island_outer_glow_color';
 const kPrefDefaultRestoreLockscreen = 'pref_default_restore_lockscreen';
 const kPrefDefaultPreserveSmallIcon = 'pref_default_preserve_small_icon';
 const kPrefFullscreenBehavior = 'pref_fullscreen_behavior';
@@ -121,9 +124,12 @@ class SettingsController extends ChangeNotifier {
   bool defaultFocusNotif = true;
   bool defaultDynamicHighlightColor = false;
   bool defaultOuterGlow = false;
+  bool defaultIslandOuterGlow = false;
   bool hideDesktopIcon = false;
   bool defaultRestoreLockscreen = false;
   bool defaultPreserveSmallIcon = false;
+  String defaultOutEffectColor = '';
+  String defaultIslandOuterGlowColor = '';
   String fullscreenBehavior = 'off';
   bool aiEnabled = false;
   String aiUrl = '';
@@ -171,12 +177,17 @@ class SettingsController extends ChangeNotifier {
     defaultDynamicHighlightColor =
         prefs.getBool(kPrefDefaultDynamicHighlightColor) ?? false;
     defaultOuterGlow = prefs.getBool(kPrefDefaultOuterGlow) ?? false;
+    defaultIslandOuterGlow =
+        prefs.getBool(kPrefDefaultIslandOuterGlow) ?? false;
     hideDesktopIcon = prefs.getBool(kPrefHideDesktopIcon) ?? false;
     defaultShowIslandIcon = prefs.getBool(kPrefDefaultShowIslandIcon) ?? true;
     defaultRestoreLockscreen =
         prefs.getBool(kPrefDefaultRestoreLockscreen) ?? false;
     defaultPreserveSmallIcon =
         prefs.getBool(kPrefDefaultPreserveSmallIcon) ?? false;
+    defaultOutEffectColor = prefs.getString(kPrefDefaultOutEffectColor) ?? '';
+    defaultIslandOuterGlowColor =
+        prefs.getString(kPrefDefaultIslandOuterGlowColor) ?? '';
     fullscreenBehavior = prefs.getString(kPrefFullscreenBehavior) ?? 'off';
     aiEnabled = prefs.getBool(kPrefAiEnabled) ?? false;
     aiUrl = prefs.getString(kPrefAiUrl) ?? '';
@@ -349,6 +360,40 @@ class SettingsController extends ChangeNotifier {
     final prefs = await _getPrefs();
     await prefs.setBool(kPrefDefaultOuterGlow, value);
     defaultOuterGlow = value;
+    notifyListeners();
+  }
+
+  Future<void> setDefaultIslandOuterGlow(bool value) async {
+    if (defaultIslandOuterGlow == value) return;
+    final prefs = await _getPrefs();
+    await prefs.setBool(kPrefDefaultIslandOuterGlow, value);
+    defaultIslandOuterGlow = value;
+    notifyListeners();
+  }
+
+  Future<void> setDefaultOutEffectColor(String value) async {
+    final normalized = value.trim();
+    if (defaultOutEffectColor == normalized) return;
+    final prefs = await _getPrefs();
+    if (normalized.isEmpty) {
+      await prefs.remove(kPrefDefaultOutEffectColor);
+    } else {
+      await prefs.setString(kPrefDefaultOutEffectColor, normalized);
+    }
+    defaultOutEffectColor = normalized;
+    notifyListeners();
+  }
+
+  Future<void> setDefaultIslandOuterGlowColor(String value) async {
+    final normalized = value.trim();
+    if (defaultIslandOuterGlowColor == normalized) return;
+    final prefs = await _getPrefs();
+    if (normalized.isEmpty) {
+      await prefs.remove(kPrefDefaultIslandOuterGlowColor);
+    } else {
+      await prefs.setString(kPrefDefaultIslandOuterGlowColor, normalized);
+    }
+    defaultIslandOuterGlowColor = normalized;
     notifyListeners();
   }
 

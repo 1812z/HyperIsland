@@ -795,6 +795,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get colorBrightness => '亮度';
 
   @override
+  String get colorOpacity => '透明度';
+
+  @override
   String get onlyEnabledChannels => '仅应用到已启用渠道';
 
   @override

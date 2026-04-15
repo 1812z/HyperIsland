@@ -269,6 +269,11 @@ object GenericProgressHook : BaseHook() {
             val defaultFocusNotif        = loadBooleanSetting("global:default_focus_notif",        "pref_default_focus_notif",        true)
             val defaultDynamicHighlightColor = loadBooleanSetting("global:default_dynamic_highlight_color", "pref_default_dynamic_highlight_color", false)
             val defaultOuterGlow = loadBooleanSetting("global:default_outer_glow", "pref_default_outer_glow", false)
+            val defaultIslandOuterGlow = loadBooleanSetting(
+                "global:default_island_outer_glow",
+                "pref_default_island_outer_glow",
+                false,
+            )
             val defaultPreserveSmallIcon = loadBooleanSetting("global:default_preserve_small_icon","pref_default_preserve_small_icon", false)
             val defaultShowIslandIcon    = loadBooleanSetting("global:default_show_island_icon",   "pref_default_show_island_icon",   true)
 
@@ -366,19 +371,19 @@ object GenericProgressHook : BaseHook() {
                 "pref_channel_island_outer_glow_${pkg}_$channelId",
                 "default"
             )
-            val islandOuterGlow = resolveTriOpt(islandOuterGlowRaw, defaultOuterGlow) == "on"
+            val resolvedIslandOuterGlow = resolveTriOpt(islandOuterGlowRaw, defaultIslandOuterGlow) == "on"
             val islandOuterGlowColor = loadChannelStringSetting(
                 "island_outer_glow_color:$pkg/$channelId",
                 "pref_channel_island_outer_glow_color_${pkg}_$channelId",
-                ""
+                ConfigManager.getString("pref_default_island_outer_glow_color", ""),
             ).takeIf { it.isNotBlank() }
             val outEffectColor = loadChannelStringSetting(
                 "out_effect_color:$pkg/$channelId",
                 "pref_channel_out_effect_color_${pkg}_$channelId",
-                ""
+                ConfigManager.getString("pref_default_out_effect_color", ""),
             ).takeIf { it.isNotBlank() }
 
-            if (islandOuterGlow) {
+            if (resolvedIslandOuterGlow) {
                 extras.putString("miui.bigIsland.effect.src", EFFECT_SRC)
                 extras.putString("miui.effect.src", EFFECT_SRC)
             } else {
@@ -420,7 +425,7 @@ object GenericProgressHook : BaseHook() {
                     showLeftNarrowFont = showLeftNarrowFont,
                     showRightNarrowFont = showRightNarrowFont,
                     outerGlow = outerGlow,
-                    islandOuterGlow = islandOuterGlow,
+                    islandOuterGlow = resolvedIslandOuterGlow,
                     islandOuterGlowColor = islandOuterGlowColor,
                     outEffectColor = outEffectColor,
                     focusCustomizationJson = focusCustomizationJson,

@@ -325,6 +325,7 @@
   "colorHue": "Ton",
   "colorSaturation": "Doygunluk",
   "colorBrightness": "Parlaklık",
+  "colorOpacity": "Opaklık",
   "onlyEnabledChannels": "Yalnızca Etkin Kanallara Uygula",
   "enabledChannelsCount": "{enabled} / {total} kanal etkin",
   "@enabledChannelsCount": {
