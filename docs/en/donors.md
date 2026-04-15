@@ -8,11 +8,10 @@ Thanks to everyone supporting HyperIsland!
 
 > Actually, starring the repository makes me happy for a long time :)
 
+## QR Code
+
+![WeChat QR Code](../images/wechat.jpg){style="width: 260px; max-width: 100%; border-radius: 12px;"}
+
 ## List
 
 <DonorsTable name-label="Name" amount-label="Amount" date-label="Date" message-label="Message" />
-
-## Notes
-
-- If someone prefers privacy, use `Anonymous`.
-- Keep the list in reverse chronological order.

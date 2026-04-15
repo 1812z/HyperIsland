@@ -8,11 +8,10 @@ import DonorsTable from './.vitepress/components/DonorsTable.vue'
 
 > 其实点一个Star UP就会开心很久(
 
+## 收款码
+
+![微信收款码](./images/wechat.jpg){style="width: 260px; max-width: 100%; border-radius: 12px;"}
+
 ## 名单
 
 <DonorsTable />
-
-## 说明
-
-- 若你希望匿名展示，可写为 `匿名用户`。
-- 建议按时间倒序更新，最新捐赠放在最上方。
