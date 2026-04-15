@@ -34,6 +34,9 @@ import io.github.libxposed.api.XposedModule
 object GenericProgressHook : BaseHook() {
 
     private const val TAG = "HyperIsland[Generic]"
+    private const val EXTRA_OWNER = "hyperisland.owner"
+    private const val OWNER_MARKER = "io.github.hyperisland"
+    private const val EFFECT_SRC = "outer_glow"
 
     override fun getTag() = TAG
 
@@ -202,7 +205,9 @@ object GenericProgressHook : BaseHook() {
             if (allowedChannels.isNotEmpty() && channelId !in allowedChannels) return
 
             val extras = notif.extras ?: return
+            extras.putString("hyperisland_source_pkg", pkg)
             extras.putString("hyperisland_channel_id", channelId)
+            extras.putString(EXTRA_OWNER, OWNER_MARKER)
 
             if (isMediaNotification(notif, extras)) return
 
@@ -356,11 +361,30 @@ object GenericProgressHook : BaseHook() {
                 "outer_glow:$pkg/$channelId", "pref_channel_outer_glow_${pkg}_$channelId", "default"
             )
             val outerGlow = resolveTriOpt(outerGlowRaw, defaultOuterGlow) == "on"
+            val islandOuterGlowRaw = loadChannelStringSetting(
+                "island_outer_glow:$pkg/$channelId",
+                "pref_channel_island_outer_glow_${pkg}_$channelId",
+                "default"
+            )
+            val islandOuterGlow = resolveTriOpt(islandOuterGlowRaw, defaultOuterGlow) == "on"
+            val islandOuterGlowColor = loadChannelStringSetting(
+                "island_outer_glow_color:$pkg/$channelId",
+                "pref_channel_island_outer_glow_color_${pkg}_$channelId",
+                ""
+            ).takeIf { it.isNotBlank() }
             val outEffectColor = loadChannelStringSetting(
                 "out_effect_color:$pkg/$channelId",
                 "pref_channel_out_effect_color_${pkg}_$channelId",
                 ""
             ).takeIf { it.isNotBlank() }
+
+            if (islandOuterGlow) {
+                extras.putString("miui.bigIsland.effect.src", EFFECT_SRC)
+                extras.putString("miui.effect.src", EFFECT_SRC)
+            } else {
+                extras.remove("miui.bigIsland.effect.src")
+                extras.remove("miui.effect.src")
+            }
 
             log(module, "$pkg/$channelId | $title |  template=$template")
 //            log(module, "$pkg/$channelId | $title | $progressPercent% | template=$template | buttons=${actions.size} | largeIcon=${largeIcon != null} | preserveSmallIcon=$preserveStatusBarSmallIcon")
@@ -396,6 +420,8 @@ object GenericProgressHook : BaseHook() {
                     showLeftNarrowFont = showLeftNarrowFont,
                     showRightNarrowFont = showRightNarrowFont,
                     outerGlow = outerGlow,
+                    islandOuterGlow = islandOuterGlow,
+                    islandOuterGlowColor = islandOuterGlowColor,
                     outEffectColor = outEffectColor,
                     focusCustomizationJson = focusCustomizationJson,
                     islandCustomizationJson = islandCustomizationJson,

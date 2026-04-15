@@ -707,6 +707,16 @@ class WhitelistController extends ChangeNotifier {
           'outer_glow':
               prefs.getString('pref_channel_outer_glow_${packageName}_$id') ??
               kTriOptDefault,
+          'island_outer_glow':
+              prefs.getString(
+                'pref_channel_island_outer_glow_${packageName}_$id',
+              ) ??
+              kTriOptDefault,
+          'island_outer_glow_color':
+              prefs.getString(
+                'pref_channel_island_outer_glow_color_${packageName}_$id',
+              ) ??
+              '',
           'out_effect_color':
               prefs.getString(
                 'pref_channel_out_effect_color_${packageName}_$id',
@@ -996,6 +1006,18 @@ class WhitelistController extends ChangeNotifier {
     );
   }
 
+  Future<void> setChannelIslandOuterGlow(
+    String packageName,
+    String channelId,
+    String value,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      'pref_channel_island_outer_glow_${packageName}_$channelId',
+      value,
+    );
+  }
+
   Future<void> setChannelOutEffectColor(
     String packageName,
     String channelId,
@@ -1003,6 +1025,21 @@ class WhitelistController extends ChangeNotifier {
   ) async {
     final prefs = await SharedPreferences.getInstance();
     final key = 'pref_channel_out_effect_color_${packageName}_$channelId';
+    if (value.isEmpty) {
+      await prefs.remove(key);
+    } else {
+      await prefs.setString(key, value);
+    }
+  }
+
+  Future<void> setChannelIslandOuterGlowColor(
+    String packageName,
+    String channelId,
+    String value,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key =
+        'pref_channel_island_outer_glow_color_${packageName}_$channelId';
     if (value.isEmpty) {
       await prefs.remove(key);
     } else {
@@ -1066,6 +1103,8 @@ class WhitelistController extends ChangeNotifier {
       'show_left_narrow_font': 'pref_channel_show_left_narrow_font',
       'show_right_narrow_font': 'pref_channel_show_right_narrow_font',
       'outer_glow': 'pref_channel_outer_glow',
+      'island_outer_glow': 'pref_channel_island_outer_glow',
+      'island_outer_glow_color': 'pref_channel_island_outer_glow_color',
       'out_effect_color': 'pref_channel_out_effect_color',
       'focus_custom': 'pref_channel_focus_custom',
       'island_custom': 'pref_channel_island_custom',

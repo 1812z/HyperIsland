@@ -35,6 +35,8 @@ class SingleChannelMode extends ChannelSettingsMode {
     required this.showLeftNarrowFont,
     required this.showRightNarrowFont,
     required this.outerGlow,
+    required this.islandOuterGlow,
+    required this.islandOuterGlowColor,
     required this.outEffectColor,
     required this.focusCustom,
     required this.islandCustom,
@@ -59,6 +61,8 @@ class SingleChannelMode extends ChannelSettingsMode {
   final String showLeftNarrowFont;
   final String showRightNarrowFont;
   final String outerGlow;
+  final String islandOuterGlow;
+  final String islandOuterGlowColor;
   final String outEffectColor;
   final String focusCustom;
   final String islandCustom;
@@ -180,6 +184,8 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
   bool? _showLeftNarrowFont;
   bool? _showRightNarrowFont;
   String? _outerGlow;
+  String? _islandOuterGlow;
+  String? _islandOuterGlowColor;
   String? _outEffectColor;
   String? _focusCustom;
   String? _islandCustom;
@@ -198,6 +204,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
 
   late final TextEditingController _timeoutController;
   late final TextEditingController _highlightColorController;
+  late final TextEditingController _islandOuterGlowColorController;
   late final TextEditingController _outEffectColorController;
 
   bool get _isSingle => widget.mode is SingleChannelMode;
@@ -230,15 +237,21 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
       _showLeftNarrowFont = m.showLeftNarrowFont == kTriOptOn;
       _showRightNarrowFont = m.showRightNarrowFont == kTriOptOn;
       _outerGlow = m.outerGlow;
+      _islandOuterGlow = m.islandOuterGlow;
+      _islandOuterGlowColor = m.islandOuterGlowColor;
       _outEffectColor = m.outEffectColor;
       _focusCustom = m.focusCustom;
       _islandCustom = m.islandCustom;
       _timeoutController = TextEditingController(text: m.islandTimeout);
       _highlightColorController = TextEditingController(text: m.highlightColor);
+      _islandOuterGlowColorController = TextEditingController(
+        text: m.islandOuterGlowColor,
+      );
       _outEffectColorController = TextEditingController(text: m.outEffectColor);
     } else {
       _timeoutController = TextEditingController();
       _highlightColorController = TextEditingController();
+      _islandOuterGlowColorController = TextEditingController();
       _outEffectColorController = TextEditingController();
     }
     _loadFocusSchema();
@@ -248,6 +261,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
   void dispose() {
     _timeoutController.dispose();
     _highlightColorController.dispose();
+    _islandOuterGlowColorController.dispose();
     _outEffectColorController.dispose();
     for (final c in _focusControllers.values) {
       c.dispose();
@@ -646,14 +660,17 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
   Color? _parseColor(String? hex) {
     if (hex == null || hex.isEmpty) return null;
     final cleaned = hex.replaceFirst('#', '');
-    if (cleaned.length != 6) return null;
+    if (cleaned.length != 6 && cleaned.length != 8) return null;
     final value = int.tryParse(cleaned, radix: 16);
     if (value == null) return null;
-    return Color(value).withAlpha(255);
+    return cleaned.length == 6 ? Color(value).withAlpha(255) : Color(value);
   }
 
   String _toHexColor(Color color) =>
       '#${color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
+
+  String _toArgbHexColor(Color color) =>
+      '#${color.toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase()}';
 
   String _formatPlaceholderTip(String key) {
     return '\${$key}';
@@ -876,6 +893,8 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
       _showLeftNarrowFont != null ||
       _showRightNarrowFont != null ||
       _outerGlow != null ||
+      _islandOuterGlow != null ||
+      _islandOuterGlowColor != null ||
       _outEffectColor != null ||
       _focusCustom != null ||
       _islandCustom != null;
@@ -933,6 +952,12 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
               ? null
               : (_showRightNarrowFont! ? kTriOptOn : kTriOptOff),
           'outer_glow': _isSingle ? (_outerGlow ?? kTriOptDefault) : _outerGlow,
+          'island_outer_glow': _isSingle
+              ? (_islandOuterGlow ?? kTriOptDefault)
+              : _islandOuterGlow,
+          'island_outer_glow_color': _isSingle
+              ? (_islandOuterGlowColor ?? '')
+              : _islandOuterGlowColor,
           'out_effect_color': _isSingle
               ? (_outEffectColor ?? '')
               : _outEffectColor,
@@ -1502,6 +1527,103 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                       ),
                     ],
                     onChanged: (v) => setState(() => _outerGlow = v),
+                  ),
+                  SizedBox(height: rowGap),
+                  _BatchSettingRow(
+                    label: '${l10n.outerGlowLabel} (Super Island)',
+                    value: _islandOuterGlow,
+                    showNotChange: !_isSingle,
+                    items: [
+                      DropdownMenuItem(
+                        value: kTriOptDefault,
+                        child: Text(
+                          _defaultLabel(context, _ctrl.defaultOuterGlow),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOn,
+                        child: Text(l10n.optOn),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOff,
+                        child: Text(l10n.optOff),
+                      ),
+                    ],
+                    onChanged: (v) => setState(() => _islandOuterGlow = v),
+                  ),
+                  SizedBox(height: rowGap),
+                  _SettingField(
+                    label: '${l10n.outEffectColorLabel} (Super Island)',
+                    child: ColorValueField(
+                      controller: _islandOuterGlowColorController,
+                      decoration: _fieldDecoration(
+                        context,
+                        hintText: _isSingle
+                            ? '#AARRGGBB / #RRGGBB'
+                            : l10n.noChange,
+                      ),
+                      previewColor: _parseColor(_islandOuterGlowColor),
+                      previewFallbackColor: cs.primary,
+                      onChanged: (v) {
+                        final trimmed = v.trim();
+                        setState(() {
+                          _islandOuterGlowColor = trimmed.isNotEmpty
+                              ? trimmed
+                              : null;
+                        });
+                      },
+                      onClear: () {
+                        _islandOuterGlowColorController.clear();
+                        setState(() => _islandOuterGlowColor = null);
+                      },
+                      onPickColor: () async {
+                        final color = await _showColorPicker(
+                          context,
+                          initialHex: _islandOuterGlowColor,
+                        );
+                        if (color != null) {
+                          final hex = _toArgbHexColor(color);
+                          _islandOuterGlowColorController.text = hex;
+                          setState(() => _islandOuterGlowColor = hex);
+                        }
+                      },
+                    ),
+                  ),
+                  SizedBox(height: rowGap),
+                  _SettingField(
+                    label: '${l10n.outEffectColorLabel} (Focus)',
+                    child: ColorValueField(
+                      controller: _outEffectColorController,
+                      decoration: _fieldDecoration(
+                        context,
+                        hintText: _isSingle
+                            ? '#AARRGGBB / #RRGGBB'
+                            : l10n.noChange,
+                      ),
+                      previewColor: _parseColor(_outEffectColor),
+                      previewFallbackColor: cs.primary,
+                      onChanged: (v) {
+                        final trimmed = v.trim();
+                        setState(() {
+                          _outEffectColor = trimmed.isNotEmpty ? trimmed : null;
+                        });
+                      },
+                      onClear: () {
+                        _outEffectColorController.clear();
+                        setState(() => _outEffectColor = null);
+                      },
+                      onPickColor: () async {
+                        final color = await _showColorPicker(
+                          context,
+                          initialHex: _outEffectColor,
+                        );
+                        if (color != null) {
+                          final hex = _toArgbHexColor(color);
+                          _outEffectColorController.text = hex;
+                          setState(() => _outEffectColor = hex);
+                        }
+                      },
+                    ),
                   ),
                   if (_isSingle) ...[
                     SizedBox(height: rowGap),

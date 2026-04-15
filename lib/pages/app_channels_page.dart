@@ -228,6 +228,14 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
       widget.controller.setChannelShowRightNarrowFont,
     );
     queueExtra('outer_glow', widget.controller.setChannelOuterGlow);
+    queueExtra(
+      'island_outer_glow',
+      widget.controller.setChannelIslandOuterGlow,
+    );
+    queueExtra(
+      'island_outer_glow_color',
+      widget.controller.setChannelIslandOuterGlowColor,
+    );
     queueExtra('out_effect_color', widget.controller.setChannelOutEffectColor);
     queueExtra('focus_custom', widget.controller.setChannelFocusCustomization);
     queueExtra(
@@ -517,6 +525,10 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                       showRightNarrowFont:
                           extras['show_right_narrow_font'] ?? kTriOptOff,
                       outerGlow: extras['outer_glow'] ?? kTriOptDefault,
+                      islandOuterGlow:
+                          extras['island_outer_glow'] ?? kTriOptDefault,
+                      islandOuterGlowColor:
+                          extras['island_outer_glow_color'] ?? '',
                       outEffectColor: extras['out_effect_color'] ?? '',
                       focusCustom: extras['focus_custom'] ?? '',
                       islandCustom: extras['island_custom'] ?? '',
@@ -635,6 +647,8 @@ class _ChannelTile extends StatelessWidget {
     required this.showLeftNarrowFont,
     required this.showRightNarrowFont,
     required this.outerGlow,
+    required this.islandOuterGlow,
+    required this.islandOuterGlowColor,
     required this.outEffectColor,
     required this.focusCustom,
     required this.islandCustom,
@@ -669,6 +683,8 @@ class _ChannelTile extends StatelessWidget {
   final String showLeftNarrowFont;
   final String showRightNarrowFont;
   final String outerGlow;
+  final String islandOuterGlow;
+  final String islandOuterGlowColor;
   final String outEffectColor;
   final String focusCustom;
   final String islandCustom;
@@ -699,6 +715,8 @@ class _ChannelTile extends StatelessWidget {
         showLeftNarrowFont: showLeftNarrowFont,
         showRightNarrowFont: showRightNarrowFont,
         outerGlow: outerGlow,
+        islandOuterGlow: islandOuterGlow,
+        islandOuterGlowColor: islandOuterGlowColor,
         outEffectColor: outEffectColor,
         focusCustom: focusCustom,
         islandCustom: islandCustom,

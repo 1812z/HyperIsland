@@ -69,7 +69,7 @@ object NotificationIslandNotification : IslandTemplate {
 
             IslandDispatcher.post(
                 context,
-                IslandRequest(
+            IslandRequest(
                     title            = islandText.first,
                     content          = islandText.second,
                     icon             = displayIcon,
@@ -80,7 +80,7 @@ object NotificationIslandNotification : IslandTemplate {
                     preserveStatusBarSmallIcon = data.preserveStatusBarSmallIcon != "off",
                     contentIntent    = data.contentIntent,
                     isOngoing        = data.isOngoing,
-                    outerGlow        = data.outerGlow,
+                    outerGlow        = data.islandOuterGlow,
                     sourcePackage    = data.pkg,
                     sourceChannelId  = data.channelId,
                     actions          = data.actions.take(2),
@@ -134,6 +134,7 @@ object NotificationIslandNotification : IslandTemplate {
             showLeftNarrowFont = data.showLeftNarrowFont,
             showRightNarrowFont = data.showRightNarrowFont,
             outerGlow = data.outerGlow,
+            islandOuterGlow = data.islandOuterGlow,
             outEffectColor = null,
         )
         val applyResult = FocusCustomizationEngine.apply(context, data, baseVm)

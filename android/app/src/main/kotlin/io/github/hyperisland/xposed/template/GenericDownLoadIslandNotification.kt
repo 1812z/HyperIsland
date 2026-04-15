@@ -165,6 +165,8 @@ object GenericDownloadIslandNotification : IslandTemplate {
             showLeftNarrowFont = data.showLeftNarrowFont,
             showRightNarrowFont = data.showRightNarrowFont,
             outerGlow = data.outerGlow,
+            islandOuterGlow = data.islandOuterGlow,
+            islandOuterGlowColor = data.islandOuterGlowColor,
             outEffectColor = data.outEffectColor,
         )
         val applyResult = FocusCustomizationEngine.apply(context, data, baseVm)

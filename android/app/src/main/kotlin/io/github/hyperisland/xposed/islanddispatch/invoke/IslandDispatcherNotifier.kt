@@ -27,6 +27,10 @@ import io.github.hyperisland.xposed.utils.toRounded
 
 internal object IslandDispatcherNotifier {
 
+    private const val EXTRA_OWNER = "hyperisland.owner"
+    private const val OWNER_MARKER = "io.github.hyperisland"
+    private const val EFFECT_SRC = "outer_glow"
+
     fun post(context: Context, request: IslandRequest) {
         try {
             val fullscreenMode = FullscreenBehavior.mode()
@@ -165,6 +169,14 @@ internal object IslandDispatcherNotifier {
             request.sourcePackage?.let { notif.extras.putString("hyperisland_source_pkg", it) }
             request.sourceChannelId?.let {
                 notif.extras.putString("hyperisland_source_channel", it)
+            }
+            notif.extras.putString(EXTRA_OWNER, OWNER_MARKER)
+            if (request.outerGlow) {
+                notif.extras.putString("miui.bigIsland.effect.src", EFFECT_SRC)
+                notif.extras.putString("miui.effect.src", EFFECT_SRC)
+            } else {
+                notif.extras.remove("miui.bigIsland.effect.src")
+                notif.extras.remove("miui.effect.src")
             }
 
             if (request.showNotification) {
