@@ -16,6 +16,7 @@ import io.github.d4viddf.hyperisland_kit.models.PicInfo
 import io.github.d4viddf.hyperisland_kit.models.TextInfo
 import io.github.hyperisland.utils.getAppIcon
 import io.github.hyperisland.xposed.hook.FocusNotifStatusBarIconHook
+import io.github.hyperisland.xposed.hook.MarqueeHook
 import io.github.hyperisland.xposed.islanddispatch.core.IslandDispatchState
 import io.github.hyperisland.xposed.islanddispatch.definition.IslandDispatchContract
 import io.github.hyperisland.xposed.islanddispatch.definition.IslandRequest
@@ -54,19 +55,29 @@ internal object IslandDispatcherNotifier {
                 ImageTextInfoLeft(
                     type = 1,
                     picInfo = PicInfo(type = 1, pic = "key_island_icon"),
-                    textInfo = TextInfo(title = request.title),
+                    textInfo = TextInfo(
+                        title = request.title,
+                        showHighlightColor = request.showLeftHighlightColor,
+                    ),
                 )
             } else {
                 ImageTextInfoLeft(
                     type = 1,
-                    textInfo = TextInfo(title = request.title),
+                    textInfo = TextInfo(
+                        title = request.title,
+                        showHighlightColor = request.showLeftHighlightColor,
+                    ),
                 )
             }
             islandBuilder.setBigIslandInfo(
                 left = bigIslandLeft,
                 right = ImageTextInfoRight(
                     type = 2,
-                    textInfo = TextInfo(title = request.content, narrowFont = true),
+                    textInfo = TextInfo(
+                        title = request.content,
+                        narrowFont = true,
+                        showHighlightColor = request.showRightHighlightColor,
+                    ),
                 ),
             )
 
@@ -121,10 +132,15 @@ internal object IslandDispatcherNotifier {
                         jsonParam = it,
                         highlightColor = request.highlightColor,
                         outerGlow = request.outerGlow,
+                        outEffectColor = request.outEffectColor,
                         dismissIsland = request.dismissIsland,
                     )
                 }
             notif.extras.putString("miui.focus.param", jsonParam)
+            request.sourcePackage?.let { notif.extras.putString("hyperisland_source_pkg", it) }
+            request.sourceChannelId?.let {
+                notif.extras.putString("hyperisland_source_channel", it)
+            }
 
             if (request.showNotification) {
                 notif.extras.putBoolean("hyperisland_focus_proxy", true)
@@ -142,6 +158,9 @@ internal object IslandDispatcherNotifier {
             nm.cancel(request.notifId)
             nm.notify(request.notifId, notif)
             IslandDispatchState.postedIds.add(request.notifId)
+            request.sourcePackage?.let { pkg ->
+                MarqueeHook.markDirectProxyPosted(pkg, request.sourceChannelId ?: "toast")
+            }
 
             IslandDispatchState.module?.log(
                 "${IslandDispatchContract.TAG}: posted: ${request.title} | ${request.content} | highlight=${request.highlightColor} | dismiss=${request.dismissIsland}",
@@ -203,9 +222,12 @@ internal object IslandDispatcherNotifier {
         jsonParam: String,
         highlightColor: String?,
         outerGlow: Boolean,
+        outEffectColor: String?,
         dismissIsland: Boolean,
     ): String {
-        if (highlightColor == null && !outerGlow && !dismissIsland) return jsonParam
+        if (highlightColor == null && !outerGlow && outEffectColor.isNullOrBlank() && !dismissIsland) {
+            return jsonParam
+        }
         return try {
             val json = org.json.JSONObject(jsonParam)
             val pv2 = json.optJSONObject("param_v2") ?: return jsonParam
@@ -214,6 +236,7 @@ internal object IslandDispatcherNotifier {
             if (dismissIsland) paramIsland.put("dismissIsland", true)
             pv2.put("param_island", paramIsland)
             if (outerGlow) pv2.put("outEffectSrc", "outer_glow")
+            if (!outEffectColor.isNullOrBlank()) pv2.put("outEffectColor", outEffectColor)
             json.toString()
         } catch (_: Exception) {
             jsonParam

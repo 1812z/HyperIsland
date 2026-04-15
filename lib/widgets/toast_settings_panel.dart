@@ -14,6 +14,7 @@ class ToastSettingsPanel extends StatelessWidget {
     this.onShowNotificationChanged,
     this.onShowIslandIconChanged,
     this.showHint = true,
+    this.allowIndependentBlockOriginal = false,
   });
 
   final bool forwardEnabled;
@@ -25,6 +26,7 @@ class ToastSettingsPanel extends StatelessWidget {
   final ValueChanged<bool>? onShowNotificationChanged;
   final ValueChanged<bool>? onShowIslandIconChanged;
   final bool showHint;
+  final bool allowIndependentBlockOriginal;
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +49,9 @@ class ToastSettingsPanel extends StatelessWidget {
           _Divider(cs: cs),
           SwitchListTile(
             value: blockOriginal,
-            onChanged: forwardEnabled ? onBlockOriginalChanged : null,
+            onChanged: allowIndependentBlockOriginal
+                ? onBlockOriginalChanged
+                : (forwardEnabled ? onBlockOriginalChanged : null),
             title: Text(l10n.toastBlockOriginalTitle),
             subtitle: Text(l10n.toastBlockOriginalSubtitle),
           ),

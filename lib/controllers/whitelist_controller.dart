@@ -14,6 +14,28 @@ String _prefToastShowNotificationKey(String packageName) =>
     'pref_toast_show_notification_$packageName';
 String _prefToastShowIslandIconKey(String packageName) =>
     'pref_toast_show_island_icon_$packageName';
+String _prefToastFirstFloatKey(String packageName) =>
+    'pref_toast_first_float_$packageName';
+String _prefToastEnableFloatKey(String packageName) =>
+    'pref_toast_enable_float_$packageName';
+String _prefToastPreserveSmallIconKey(String packageName) =>
+    'pref_toast_preserve_small_icon_$packageName';
+String _prefToastMarqueeKey(String packageName) =>
+    'pref_toast_marquee_$packageName';
+String _prefToastTimeoutKey(String packageName) =>
+    'pref_toast_timeout_$packageName';
+String _prefToastHighlightColorKey(String packageName) =>
+    'pref_toast_highlight_color_$packageName';
+String _prefToastDynamicHighlightColorKey(String packageName) =>
+    'pref_toast_dynamic_highlight_color_$packageName';
+String _prefToastShowLeftHighlightKey(String packageName) =>
+    'pref_toast_show_left_highlight_$packageName';
+String _prefToastShowRightHighlightKey(String packageName) =>
+    'pref_toast_show_right_highlight_$packageName';
+String _prefToastOuterGlowKey(String packageName) =>
+    'pref_toast_outer_glow_$packageName';
+String _prefToastOutEffectColorKey(String packageName) =>
+    'pref_toast_out_effect_color_$packageName';
 
 /// 可用的灵动岛通知模板标识符。
 const kTemplateGenericProgress = 'generic_progress';
@@ -346,12 +368,162 @@ class WhitelistController extends ChangeNotifier {
     await prefs.setBool(_prefToastShowIslandIconKey(packageName), enabled);
   }
 
+  Future<String> getToastFirstFloat(String packageName) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_prefToastFirstFloatKey(packageName)) ??
+        kTriOptDefault;
+  }
+
+  Future<void> setToastFirstFloat(String packageName, String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_prefToastFirstFloatKey(packageName), value);
+  }
+
+  Future<String> getToastEnableFloat(String packageName) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_prefToastEnableFloatKey(packageName)) ??
+        kTriOptDefault;
+  }
+
+  Future<void> setToastEnableFloat(String packageName, String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_prefToastEnableFloatKey(packageName), value);
+  }
+
+  Future<String> getToastPreserveSmallIcon(String packageName) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_prefToastPreserveSmallIconKey(packageName)) ??
+        kTriOptDefault;
+  }
+
+  Future<void> setToastPreserveSmallIcon(
+    String packageName,
+    String value,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_prefToastPreserveSmallIconKey(packageName), value);
+  }
+
+  Future<String> getToastMarquee(String packageName) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_prefToastMarqueeKey(packageName)) ?? kTriOptDefault;
+  }
+
+  Future<void> setToastMarquee(String packageName, String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_prefToastMarqueeKey(packageName), value);
+  }
+
+  Future<String> getToastTimeout(String packageName) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_prefToastTimeoutKey(packageName)) ?? '5';
+  }
+
+  Future<void> setToastTimeout(String packageName, String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_prefToastTimeoutKey(packageName), value);
+  }
+
+  Future<String> getToastHighlightColor(String packageName) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_prefToastHighlightColorKey(packageName)) ?? '';
+  }
+
+  Future<void> setToastHighlightColor(String packageName, String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = _prefToastHighlightColorKey(packageName);
+    if (value.isEmpty) {
+      await prefs.remove(key);
+    } else {
+      await prefs.setString(key, value);
+    }
+  }
+
+  Future<String> getToastDynamicHighlightColor(String packageName) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_prefToastDynamicHighlightColorKey(packageName)) ??
+        kTriOptDefault;
+  }
+
+  Future<void> setToastDynamicHighlightColor(
+    String packageName,
+    String value,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      _prefToastDynamicHighlightColorKey(packageName),
+      value,
+    );
+  }
+
+  Future<String> getToastShowLeftHighlight(String packageName) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_prefToastShowLeftHighlightKey(packageName)) ??
+        kTriOptOff;
+  }
+
+  Future<void> setToastShowLeftHighlight(
+    String packageName,
+    String value,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_prefToastShowLeftHighlightKey(packageName), value);
+  }
+
+  Future<String> getToastShowRightHighlight(String packageName) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_prefToastShowRightHighlightKey(packageName)) ??
+        kTriOptOff;
+  }
+
+  Future<void> setToastShowRightHighlight(
+    String packageName,
+    String value,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_prefToastShowRightHighlightKey(packageName), value);
+  }
+
+  Future<String> getToastOuterGlow(String packageName) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_prefToastOuterGlowKey(packageName)) ??
+        kTriOptDefault;
+  }
+
+  Future<void> setToastOuterGlow(String packageName, String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_prefToastOuterGlowKey(packageName), value);
+  }
+
+  Future<String> getToastOutEffectColor(String packageName) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_prefToastOutEffectColorKey(packageName)) ?? '';
+  }
+
+  Future<void> setToastOutEffectColor(String packageName, String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = _prefToastOutEffectColorKey(packageName);
+    if (value.isEmpty) {
+      await prefs.remove(key);
+    } else {
+      await prefs.setString(key, value);
+    }
+  }
+
   Future<void> setToastSettingsBatch(
     List<String> packages, {
     bool? forwardEnabled,
     bool? blockOriginal,
     bool? showNotification,
     bool? showIslandIcon,
+    String? firstFloat,
+    String? marquee,
+    String? timeout,
+    String? highlightColor,
+    String? dynamicHighlightColor,
+    String? showLeftHighlight,
+    String? showRightHighlight,
+    String? outerGlow,
   }) async {
     if (packages.isEmpty) return;
     final prefs = await SharedPreferences.getInstance();
@@ -371,6 +543,44 @@ class WhitelistController extends ChangeNotifier {
       }
       if (showIslandIcon != null) {
         await prefs.setBool(_prefToastShowIslandIconKey(pkg), showIslandIcon);
+      }
+      if (firstFloat != null) {
+        await prefs.setString(_prefToastFirstFloatKey(pkg), firstFloat);
+      }
+      if (marquee != null) {
+        await prefs.setString(_prefToastMarqueeKey(pkg), marquee);
+      }
+      if (timeout != null) {
+        await prefs.setString(_prefToastTimeoutKey(pkg), timeout);
+      }
+      if (highlightColor != null) {
+        final key = _prefToastHighlightColorKey(pkg);
+        if (highlightColor.isEmpty) {
+          await prefs.remove(key);
+        } else {
+          await prefs.setString(key, highlightColor);
+        }
+      }
+      if (dynamicHighlightColor != null) {
+        await prefs.setString(
+          _prefToastDynamicHighlightColorKey(pkg),
+          dynamicHighlightColor,
+        );
+      }
+      if (showLeftHighlight != null) {
+        await prefs.setString(
+          _prefToastShowLeftHighlightKey(pkg),
+          showLeftHighlight,
+        );
+      }
+      if (showRightHighlight != null) {
+        await prefs.setString(
+          _prefToastShowRightHighlightKey(pkg),
+          showRightHighlight,
+        );
+      }
+      if (outerGlow != null) {
+        await prefs.setString(_prefToastOuterGlowKey(pkg), outerGlow);
       }
     }
     if (forwardEnabled != null) {

@@ -17,7 +17,12 @@ data class IslandRequest(
     val showNotification: Boolean = true,
     val preserveStatusBarSmallIcon: Boolean = true,
     val highlightColor: String? = null,
+    val showLeftHighlightColor: Boolean = false,
+    val showRightHighlightColor: Boolean = false,
     val outerGlow: Boolean = false,
+    val outEffectColor: String? = null,
+    val sourcePackage: String? = null,
+    val sourceChannelId: String? = null,
     val dismissIsland: Boolean = false,
     val contentIntent: android.app.PendingIntent? = null,
     val isOngoing: Boolean = false,
@@ -35,7 +40,12 @@ data class IslandRequest(
         putBoolean(KEY_SHOW_NOTIF, showNotification)
         putBoolean(KEY_PRESERVE_SMALL_ICON, preserveStatusBarSmallIcon)
         putString(KEY_HIGHLIGHT, highlightColor)
+        putBoolean(KEY_LEFT_HIGHLIGHT, showLeftHighlightColor)
+        putBoolean(KEY_RIGHT_HIGHLIGHT, showRightHighlightColor)
         putBoolean(KEY_OUTER_GLOW, outerGlow)
+        putString(KEY_OUT_EFFECT_COLOR, outEffectColor)
+        putString(KEY_SOURCE_PACKAGE, sourcePackage)
+        putString(KEY_SOURCE_CHANNEL_ID, sourceChannelId)
         putBoolean(KEY_DISMISS, dismissIsland)
         putParcelable(KEY_CONTENT_INTENT, contentIntent)
         putBoolean(KEY_ONGOING, isOngoing)
@@ -54,7 +64,12 @@ data class IslandRequest(
         private const val KEY_SHOW_NOTIF = "showNotification"
         private const val KEY_PRESERVE_SMALL_ICON = "preserveStatusBarSmallIcon"
         private const val KEY_HIGHLIGHT = "highlightColor"
+        private const val KEY_LEFT_HIGHLIGHT = "showLeftHighlightColor"
+        private const val KEY_RIGHT_HIGHLIGHT = "showRightHighlightColor"
         private const val KEY_OUTER_GLOW = "outerGlow"
+        private const val KEY_OUT_EFFECT_COLOR = "outEffectColor"
+        private const val KEY_SOURCE_PACKAGE = "sourcePackage"
+        private const val KEY_SOURCE_CHANNEL_ID = "sourceChannelId"
         private const val KEY_DISMISS = "dismissIsland"
         private const val KEY_CONTENT_INTENT = "contentIntent"
         private const val KEY_ONGOING = "isOngoing"
@@ -72,7 +87,12 @@ data class IslandRequest(
             showNotification = b.getBoolean(KEY_SHOW_NOTIF, true),
             preserveStatusBarSmallIcon = b.getBoolean(KEY_PRESERVE_SMALL_ICON, true),
             highlightColor = b.getString(KEY_HIGHLIGHT),
+            showLeftHighlightColor = b.getBoolean(KEY_LEFT_HIGHLIGHT, false),
+            showRightHighlightColor = b.getBoolean(KEY_RIGHT_HIGHLIGHT, false),
             outerGlow = b.getBoolean(KEY_OUTER_GLOW, false),
+            outEffectColor = b.getString(KEY_OUT_EFFECT_COLOR),
+            sourcePackage = b.getString(KEY_SOURCE_PACKAGE),
+            sourceChannelId = b.getString(KEY_SOURCE_CHANNEL_ID),
             dismissIsland = b.getBoolean(KEY_DISMISS, false),
             contentIntent = pendingIntentFromBundle(b),
             isOngoing = b.getBoolean(KEY_ONGOING, false),

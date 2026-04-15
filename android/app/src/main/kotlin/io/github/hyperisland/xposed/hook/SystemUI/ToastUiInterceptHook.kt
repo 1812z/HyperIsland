@@ -3,6 +3,7 @@ package io.github.hyperisland.xposed.hook
 import android.content.Context
 import android.os.SystemClock
 import io.github.hyperisland.utils.getAppIcon
+import io.github.hyperisland.utils.resolveDynamicHighlightColor
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
 import io.github.hyperisland.xposed.islanddispatch.IslandRequest
@@ -29,6 +30,12 @@ object ToastUiInterceptHook : BaseHook() {
         val blockOriginal: Boolean,
         val showNotification: Boolean,
         val showIslandIcon: Boolean,
+        val firstFloat: Boolean,
+        val timeoutSecs: Int,
+        val highlightColor: String?,
+        val showLeftHighlightColor: Boolean,
+        val showRightHighlightColor: Boolean,
+        val outerGlow: Boolean,
     )
 
     private val cachedRules = ConcurrentHashMap<String, ToastRule>()
@@ -122,7 +129,10 @@ object ToastUiInterceptHook : BaseHook() {
         if (pkg.isBlank() || normalizedText.isEmpty() || pkg == SELF_PKG) return false
 
         val rule = loadRule(pkg)
-        if (!rule.forwardEnabled) return false
+
+        if (!rule.forwardEnabled) {
+            return rule.blockOriginal
+        }
 
         val dedupeKey = "$pkg|$normalizedText"
         val now = SystemClock.elapsedRealtime()
@@ -166,7 +176,7 @@ object ToastUiInterceptHook : BaseHook() {
     private fun loadRule(pkg: String): ToastRule {
         cachedRules[pkg]?.let { return it }
         val forward = ConfigManager.getBoolean("pref_toast_forward_$pkg", false)
-        val block = forward && ConfigManager.getBoolean("pref_toast_block_$pkg", true)
+        val block = ConfigManager.getBoolean("pref_toast_block_$pkg", true)
         val showNotification = ConfigManager.getBoolean(
             "pref_toast_show_notification_$pkg",
             false,
@@ -175,14 +185,81 @@ object ToastUiInterceptHook : BaseHook() {
             "pref_toast_show_island_icon_$pkg",
             true,
         )
+        val defaultFirstFloat = ConfigManager.getBoolean("pref_default_first_float", false)
+        val defaultDynamicHighlightColor = ConfigManager.getBoolean(
+            "pref_default_dynamic_highlight_color",
+            false,
+        )
+        val defaultOuterGlow = ConfigManager.getBoolean("pref_default_outer_glow", false)
+
+        val firstFloat = resolveTriOpt(
+            ConfigManager.getString("pref_toast_first_float_$pkg", "default"),
+            defaultFirstFloat,
+        )
+        val timeout = ConfigManager.getInt("pref_toast_timeout_$pkg", 5).coerceIn(1, 20)
+
+        val manualHighlightColor = ConfigManager.getString("pref_toast_highlight_color_$pkg", "")
+            .trim()
+            .ifBlank { null }
+        val dynamicHighlightRaw = ConfigManager.getString(
+            "pref_toast_dynamic_highlight_color_$pkg",
+            "default",
+        )
+        val dynamicHighlightMode = when (dynamicHighlightRaw) {
+            "on", "off", "dark", "darker" -> dynamicHighlightRaw
+            else -> if (defaultDynamicHighlightColor) "on" else "off"
+        }
+        val showLeftHighlight = ConfigManager.getString(
+            "pref_toast_show_left_highlight_$pkg",
+            "off",
+        ) == "on"
+        val showRightHighlight = ConfigManager.getString(
+            "pref_toast_show_right_highlight_$pkg",
+            "off",
+        ) == "on"
+
+        val outerGlow = resolveTriOpt(
+            ConfigManager.getString("pref_toast_outer_glow_$pkg", "default"),
+            defaultOuterGlow,
+        )
         return ToastRule(
             forwardEnabled = forward,
             blockOriginal = block,
             showNotification = showNotification,
             showIslandIcon = showIslandIcon,
+            firstFloat = firstFloat,
+            timeoutSecs = timeout,
+            highlightColor = manualHighlightColor,
+            showLeftHighlightColor = showLeftHighlight,
+            showRightHighlightColor = showRightHighlight,
+            outerGlow = outerGlow,
         ).also {
             cachedRules[pkg] = it
         }
+    }
+
+    private fun resolveTriOpt(value: String?, defaultValue: Boolean): Boolean {
+        return when (value?.trim()?.lowercase()) {
+            "on" -> true
+            "off" -> false
+            else -> defaultValue
+        }
+    }
+
+    private fun resolveHighlightColor(
+        context: Context?,
+        icon: android.graphics.drawable.Icon?,
+        manualHighlightColor: String?,
+        dynamicMode: String,
+    ): String? {
+        val mode = dynamicMode.trim().lowercase()
+        if (mode != "on" && mode != "dark" && mode != "darker") {
+            return manualHighlightColor
+        }
+        val source = icon ?: return manualHighlightColor
+        val safeContext = context ?: return manualHighlightColor
+        return source.resolveDynamicHighlightColor(safeContext, mode)
+            ?: manualHighlightColor
     }
 
     private fun forwardAsIsland(
@@ -202,12 +279,25 @@ object ToastUiInterceptHook : BaseHook() {
                 pm.getAppIcon(pkg)?.toRounded(context)
             }.getOrNull()
 
-            val timeout = ConfigManager.getInt("pref_channel_timeout_${pkg}_toast", 5)
-                .coerceIn(3, 20)
-            val firstFloat = ConfigManager.getBoolean("pref_default_first_float", false)
-            val enableFloat = ConfigManager.getBoolean("pref_default_enable_float", false)
-            val preserveSmallIcon = ConfigManager.getBoolean("pref_default_preserve_small_icon", false)
-            val outerGlow = ConfigManager.getBoolean("pref_default_outer_glow", false)
+            val resolvedHighlightColor = resolveHighlightColor(
+                context = context,
+                icon = icon,
+                manualHighlightColor = rule.highlightColor,
+                dynamicMode = ConfigManager.getString(
+                    "pref_toast_dynamic_highlight_color_$pkg",
+                    "default",
+                ).let {
+                    if (it == "default") {
+                        if (ConfigManager.getBoolean("pref_default_dynamic_highlight_color", false)) {
+                            "on"
+                        } else {
+                            "off"
+                        }
+                    } else {
+                        it
+                    }
+                },
+            )
 
             IslandDispatcher.post(
                 context,
@@ -215,13 +305,18 @@ object ToastUiInterceptHook : BaseHook() {
                     title = appName,
                     content = text,
                     icon = icon,
-                    timeoutSecs = timeout,
-                    firstFloat = firstFloat,
-                    enableFloat = enableFloat,
+                    timeoutSecs = rule.timeoutSecs,
+                    firstFloat = rule.firstFloat,
+                    enableFloat = false,
                     showNotification = rule.showNotification,
                     showIslandIcon = rule.showIslandIcon,
-                    preserveStatusBarSmallIcon = preserveSmallIcon,
-                    outerGlow = outerGlow,
+                    preserveStatusBarSmallIcon = false,
+                    highlightColor = resolvedHighlightColor,
+                    showLeftHighlightColor = rule.showLeftHighlightColor,
+                    showRightHighlightColor = rule.showRightHighlightColor,
+                    outerGlow = rule.outerGlow,
+                    sourcePackage = pkg,
+                    sourceChannelId = "toast",
                 ),
             )
             log(module, "toast forwarded in SystemUI: pkg=$pkg")
