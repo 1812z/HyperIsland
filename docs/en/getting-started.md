@@ -51,9 +51,7 @@ Download Island is disabled by default. Go to the app and enable **"Show System 
 :::
 
 - **Notification Super Island**: Convert any notification to Focus Notification + Super Island display
-- **Notification Super Island - Lite**: Automatically remove "x new messages" and duplicate fields
 - **Download**: Auto-detect download status and convert to Focus Notification + Super Island
-- **Download - Lite**: Super Island shows only icon + progress ring
 - **AI Notification Super Island**: AI simplifies left and right sides of the Super Island
 
 ### AI Summary Configuration

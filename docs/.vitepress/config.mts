@@ -20,6 +20,7 @@ export default defineConfig({
     'en/features.md': 'en/features.md',
     'en/build.md': 'en/build.md',
     'en/contribute.md': 'en/contribute.md',
+    'en/donors.md': 'en/donors.md',
     'en/index.md': 'en/index.md'
   },
 
@@ -72,7 +73,8 @@ function nav(lang: string) {
         text: '更多',
         items: [
           { text: '构建指南', link: '/build' },
-          { text: '贡献指南', link: '/contribute' }
+          { text: '贡献指南', link: '/contribute' },
+          { text: '捐赠名单', link: '/donors' }
         ]
       }
     ]
@@ -84,7 +86,8 @@ function nav(lang: string) {
       text: 'More',
       items: [
         { text: 'Build Guide', link: '/en/build' },
-        { text: 'Contributing', link: '/en/contribute' }
+        { text: 'Contributing', link: '/en/contribute' },
+        { text: 'Donors', link: '/en/donors' }
       ]
     }
   ]
@@ -104,7 +107,8 @@ function sidebar(lang: string) {
         text: '深入了解',
         items: [
           { text: '构建指南', link: '/build' },
-          { text: '贡献指南', link: '/contribute' }
+          { text: '贡献指南', link: '/contribute' },
+          { text: '捐赠名单', link: '/donors' }
         ]
       }
     ]
@@ -121,7 +125,8 @@ function sidebar(lang: string) {
       text: 'Deep Dive',
       items: [
         { text: 'Build Guide', link: '/en/build' },
-        { text: 'Contributing', link: '/en/contribute' }
+        { text: 'Contributing', link: '/en/contribute' },
+        { text: 'Donors', link: '/en/donors' }
       ]
     }
   ]
