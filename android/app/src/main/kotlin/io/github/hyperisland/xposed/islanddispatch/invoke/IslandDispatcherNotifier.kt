@@ -209,10 +209,6 @@ internal object IslandDispatcherNotifier {
             request.sourcePackage?.let { pkg ->
                 MarqueeHook.markDirectProxyPosted(pkg, request.sourceChannelId ?: "toast")
             }
-
-            IslandDispatchState.module?.log(
-                "${IslandDispatchContract.TAG}: posted: ${request.title} | ${request.content} | highlight=${request.highlightColor} | focusGlow=${request.outerGlow}/${request.outEffectColor} | islandGlow=${request.islandOuterGlow}/${request.islandOuterGlowColor} | dismiss=${request.dismissIsland}",
-            )
         } catch (e: Exception) {
             IslandDispatchState.module?.logError("${IslandDispatchContract.TAG}: post error: ${e.message}")
         }

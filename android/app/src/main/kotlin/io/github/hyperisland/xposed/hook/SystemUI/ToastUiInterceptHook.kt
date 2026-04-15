@@ -329,10 +329,6 @@ object ToastUiInterceptHook : BaseHook() {
                 "follow_dynamic" -> resolvedHighlightColor
                 else -> rule.islandOuterGlowColor
             }
-            log(
-                module,
-                "toast glow resolved: pkg=$pkg dyn=${rule.dynamicHighlightMode} focusMode=${rule.outerGlowMode} islandMode=${rule.islandOuterGlowMode} highlight=$resolvedHighlightColor focusColor=$resolvedOutEffectColor islandColor=$resolvedIslandOuterGlowColor",
-            )
 
             IslandDispatcher.post(
                 context,

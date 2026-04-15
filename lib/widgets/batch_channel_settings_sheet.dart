@@ -1181,7 +1181,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                   ),
                   SizedBox(height: rowGap),
                   _BatchSettingRow(
-                    label: '${l10n.outerGlowLabel}',
+                    label: l10n.outerGlowLabel,
                     value: _islandOuterGlow,
                     showNotChange: !_isSingle,
                     items: _outerGlowItems(
@@ -1192,7 +1192,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                   ),
                   SizedBox(height: rowGap),
                   _SettingField(
-                    label: '${l10n.outEffectColorLabel}',
+                    label: l10n.outEffectColorLabel,
                     child: ColorValueField(
                       controller: _islandOuterGlowColorController,
                       decoration: _fieldDecoration(
@@ -1505,7 +1505,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                   ),
                   SizedBox(height: rowGap),
                   _SettingField(
-                    label: '${l10n.outEffectColorLabel}',
+                    label: l10n.outEffectColorLabel,
                     child: ColorValueField(
                       controller: _outEffectColorController,
                       decoration: _fieldDecoration(

@@ -285,6 +285,8 @@ class _SettingsPageState extends State<SettingsPage> {
     var focusColor = _ctrl.defaultOutEffectColor;
     var islandColor = _ctrl.defaultIslandOuterGlowColor;
 
+    bool isFollowDynamic(String value) => value == kTriOptFollowDynamic;
+
     Future<void> pickColor({
       required bool isIsland,
       required StateSetter setDialogState,
@@ -338,6 +340,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 const SizedBox(height: 8),
                 ColorValueField(
                   controller: focusColorController,
+                  enabled: !isFollowDynamic(focusOuterGlow),
+                  readOnly: isFollowDynamic(focusOuterGlow),
                   decoration: _dialogFieldDecoration(
                     context,
                     hintText: '#AARRGGBB / #RRGGBB',
@@ -374,6 +378,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 const SizedBox(height: 8),
                 ColorValueField(
                   controller: islandColorController,
+                  enabled: !isFollowDynamic(islandOuterGlow),
+                  readOnly: isFollowDynamic(islandOuterGlow),
                   decoration: _dialogFieldDecoration(
                     context,
                     hintText: '#AARRGGBB / #RRGGBB',
