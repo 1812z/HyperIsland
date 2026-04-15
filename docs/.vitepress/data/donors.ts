@@ -13,7 +13,7 @@ export const donors: DonorItem[] = [
     message: '支持创作~'
   },
   {
-    name: ' ',
+    name: 'KT',
     amount: '18.88',
     date: '2026-03-18',
     message: '支持创作~'
@@ -22,6 +22,12 @@ export const donors: DonorItem[] = [
     name: '陆',
     amount: '2',
     date: '2026-03-30',
+    message: '支持创作~'
+  },
+  {
+    name: '残心晓梦',
+    amount: '5.20',
+    date: '2026-04-15',
     message: '支持创作~'
   }
 ]
