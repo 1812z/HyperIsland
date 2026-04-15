@@ -36,6 +36,10 @@ String _prefToastOuterGlowKey(String packageName) =>
     'pref_toast_outer_glow_$packageName';
 String _prefToastOutEffectColorKey(String packageName) =>
     'pref_toast_out_effect_color_$packageName';
+String _prefToastIslandOuterGlowKey(String packageName) =>
+    'pref_toast_island_outer_glow_$packageName';
+String _prefToastIslandOuterGlowColorKey(String packageName) =>
+    'pref_toast_island_outer_glow_color_$packageName';
 
 /// 可用的灵动岛通知模板标识符。
 const kTemplateGenericProgress = 'generic_progress';
@@ -511,6 +515,36 @@ class WhitelistController extends ChangeNotifier {
     }
   }
 
+  Future<String> getToastIslandOuterGlow(String packageName) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_prefToastIslandOuterGlowKey(packageName)) ??
+        kTriOptDefault;
+  }
+
+  Future<void> setToastIslandOuterGlow(String packageName, String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_prefToastIslandOuterGlowKey(packageName), value);
+  }
+
+  Future<String> getToastIslandOuterGlowColor(String packageName) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_prefToastIslandOuterGlowColorKey(packageName)) ??
+        '';
+  }
+
+  Future<void> setToastIslandOuterGlowColor(
+    String packageName,
+    String value,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = _prefToastIslandOuterGlowColorKey(packageName);
+    if (value.isEmpty) {
+      await prefs.remove(key);
+    } else {
+      await prefs.setString(key, value);
+    }
+  }
+
   Future<void> setToastSettingsBatch(
     List<String> packages, {
     bool? forwardEnabled,
@@ -526,6 +560,8 @@ class WhitelistController extends ChangeNotifier {
     String? showRightHighlight,
     String? outerGlow,
     String? outEffectColor,
+    String? islandOuterGlow,
+    String? islandOuterGlowColor,
   }) async {
     if (packages.isEmpty) return;
     final prefs = await SharedPreferences.getInstance();
@@ -590,6 +626,20 @@ class WhitelistController extends ChangeNotifier {
           await prefs.remove(key);
         } else {
           await prefs.setString(key, outEffectColor);
+        }
+      }
+      if (islandOuterGlow != null) {
+        await prefs.setString(
+          _prefToastIslandOuterGlowKey(pkg),
+          islandOuterGlow,
+        );
+      }
+      if (islandOuterGlowColor != null) {
+        final key = _prefToastIslandOuterGlowColorKey(pkg);
+        if (islandOuterGlowColor.isEmpty) {
+          await prefs.remove(key);
+        } else {
+          await prefs.setString(key, islandOuterGlowColor);
         }
       }
     }

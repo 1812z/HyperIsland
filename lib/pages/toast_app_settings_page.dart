@@ -37,6 +37,8 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
   String _timeout = '5';
   String _highlightColor = '';
   String _outEffectColor = '';
+  String _islandOuterGlow = kTriOptDefault;
+  String _islandOuterGlowColor = '';
   String _dynamicHighlightColor = kTriOptDefault;
   bool _showLeftHighlight = false;
   bool _showRightHighlight = false;
@@ -45,6 +47,7 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
   late final TextEditingController _timeoutController;
   late final TextEditingController _highlightColorController;
   late final TextEditingController _outEffectColorController;
+  late final TextEditingController _islandOuterGlowColorController;
 
   bool get _dynamicHighlightEnabled {
     return resolvesDynamicColorMode(
@@ -63,12 +66,19 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
             _ctrl.defaultOuterGlow == kTriOptFollowDynamic);
   }
 
+  bool get _islandOuterGlowFollowDynamic {
+    return _islandOuterGlow == kTriOptFollowDynamic ||
+        (_islandOuterGlow == kTriOptDefault &&
+            _ctrl.defaultIslandOuterGlow == kTriOptFollowDynamic);
+  }
+
   @override
   void initState() {
     super.initState();
     _timeoutController = TextEditingController();
     _highlightColorController = TextEditingController();
     _outEffectColorController = TextEditingController();
+    _islandOuterGlowColorController = TextEditingController();
     _load();
   }
 
@@ -77,6 +87,7 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
     _timeoutController.dispose();
     _highlightColorController.dispose();
     _outEffectColorController.dispose();
+    _islandOuterGlowColorController.dispose();
     super.dispose();
   }
 
@@ -101,6 +112,11 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
         .getToastShowRightHighlight(pkg);
     final outerGlowFuture = widget.controller.getToastOuterGlow(pkg);
     final outEffectColorFuture = widget.controller.getToastOutEffectColor(pkg);
+    final islandOuterGlowFuture = widget.controller.getToastIslandOuterGlow(
+      pkg,
+    );
+    final islandOuterGlowColorFuture = widget.controller
+        .getToastIslandOuterGlowColor(pkg);
 
     final forwardEnabled = await forwardEnabledFuture;
     final blockOriginal = await blockOriginalFuture;
@@ -115,6 +131,8 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
     final showRightHighlight = await showRightHighlightFuture;
     final outerGlow = await outerGlowFuture;
     final outEffectColor = await outEffectColorFuture;
+    final islandOuterGlow = await islandOuterGlowFuture;
+    final islandOuterGlowColor = await islandOuterGlowColorFuture;
 
     await widget.controller.setToastEnableFloat(pkg, kTriOptOff);
     await widget.controller.setToastPreserveSmallIcon(pkg, kTriOptOff);
@@ -134,9 +152,12 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
       _showRightHighlight = showRightHighlight == kTriOptOn;
       _outerGlow = outerGlow;
       _outEffectColor = outEffectColor;
+      _islandOuterGlow = islandOuterGlow;
+      _islandOuterGlowColor = islandOuterGlowColor;
       _timeoutController.text = timeout;
       _highlightColorController.text = highlightColor;
       _outEffectColorController.text = outEffectColor;
+      _islandOuterGlowColorController.text = islandOuterGlowColor;
       _loading = false;
     });
   }
@@ -246,6 +267,24 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
     if (normalized == _outEffectColor) return;
     setState(() => _outEffectColor = normalized);
     await widget.controller.setToastOutEffectColor(
+      widget.app.packageName,
+      normalized,
+    );
+  }
+
+  Future<void> _setIslandOuterGlow(String value) async {
+    setState(() => _islandOuterGlow = value);
+    await widget.controller.setToastIslandOuterGlow(
+      widget.app.packageName,
+      value,
+    );
+  }
+
+  Future<void> _setIslandOuterGlowColor(String value) async {
+    final normalized = value.trim();
+    if (normalized == _islandOuterGlowColor) return;
+    setState(() => _islandOuterGlowColor = normalized);
+    await widget.controller.setToastIslandOuterGlowColor(
       widget.app.packageName,
       normalized,
     );
@@ -498,6 +537,63 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
                           final hex = colorToArgbHex(color);
                           _outEffectColorController.text = hex;
                           await _setOutEffectColor(hex);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _SectionCard(
+                  title: '${l10n.outerGlowLabel} (${l10n.islandSection})',
+                  children: [
+                    _TriOptSegmented(
+                      label: '${l10n.outerGlowLabel} (${l10n.islandSection})',
+                      value: _islandOuterGlow,
+                      enabled: controlsEnabled,
+                      defaultLabel: _outerGlowDefaultLabel(
+                        context,
+                        _ctrl.defaultIslandOuterGlow,
+                      ),
+                      extraOptions: [
+                        ButtonSegment<String>(
+                          value: kTriOptFollowDynamic,
+                          label: Text(l10n.followDynamicColorLabel),
+                        ),
+                      ],
+                      onChanged: _setIslandOuterGlow,
+                    ),
+                    const SizedBox(height: 10),
+                    _SettingField(
+                      label:
+                          '${l10n.outEffectColorLabel} (${l10n.islandSection})',
+                      child: ColorValueField(
+                        controller: _islandOuterGlowColorController,
+                        enabled:
+                            controlsEnabled && !_islandOuterGlowFollowDynamic,
+                        readOnly: _islandOuterGlowFollowDynamic,
+                        decoration: _fieldDecoration(
+                          context,
+                          hintText: '#AARRGGBB / #RRGGBB',
+                        ),
+                        previewColor: _parseColor(_islandOuterGlowColor),
+                        previewFallbackColor: cs.primary,
+                        onChanged: _setIslandOuterGlowColor,
+                        onClear: () {
+                          _islandOuterGlowColorController.clear();
+                          _setIslandOuterGlowColor('');
+                        },
+                        onPickColor: () async {
+                          final color = await showColorPickerDialog(
+                            context,
+                            initialHex: _islandOuterGlowColor,
+                            title:
+                                '${l10n.outEffectColorLabel} (${l10n.islandSection})',
+                            enableAlpha: true,
+                          );
+                          if (color == null) return;
+                          final hex = colorToArgbHex(color);
+                          _islandOuterGlowColorController.text = hex;
+                          await _setIslandOuterGlowColor(hex);
                         },
                       ),
                     ),

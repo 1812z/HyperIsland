@@ -20,6 +20,8 @@ data class IslandRequest(
     val showLeftHighlightColor: Boolean = false,
     val showRightHighlightColor: Boolean = false,
     val outerGlow: Boolean = false,
+    val islandOuterGlow: Boolean = false,
+    val islandOuterGlowColor: String? = null,
     val outEffectColor: String? = null,
     val sourcePackage: String? = null,
     val sourceChannelId: String? = null,
@@ -43,6 +45,8 @@ data class IslandRequest(
         putBoolean(KEY_LEFT_HIGHLIGHT, showLeftHighlightColor)
         putBoolean(KEY_RIGHT_HIGHLIGHT, showRightHighlightColor)
         putBoolean(KEY_OUTER_GLOW, outerGlow)
+        putBoolean(KEY_ISLAND_OUTER_GLOW, islandOuterGlow)
+        putString(KEY_ISLAND_OUTER_GLOW_COLOR, islandOuterGlowColor)
         putString(KEY_OUT_EFFECT_COLOR, outEffectColor)
         putString(KEY_SOURCE_PACKAGE, sourcePackage)
         putString(KEY_SOURCE_CHANNEL_ID, sourceChannelId)
@@ -67,6 +71,8 @@ data class IslandRequest(
         private const val KEY_LEFT_HIGHLIGHT = "showLeftHighlightColor"
         private const val KEY_RIGHT_HIGHLIGHT = "showRightHighlightColor"
         private const val KEY_OUTER_GLOW = "outerGlow"
+        private const val KEY_ISLAND_OUTER_GLOW = "islandOuterGlow"
+        private const val KEY_ISLAND_OUTER_GLOW_COLOR = "islandOuterGlowColor"
         private const val KEY_OUT_EFFECT_COLOR = "outEffectColor"
         private const val KEY_SOURCE_PACKAGE = "sourcePackage"
         private const val KEY_SOURCE_CHANNEL_ID = "sourceChannelId"
@@ -90,6 +96,8 @@ data class IslandRequest(
             showLeftHighlightColor = b.getBoolean(KEY_LEFT_HIGHLIGHT, false),
             showRightHighlightColor = b.getBoolean(KEY_RIGHT_HIGHLIGHT, false),
             outerGlow = b.getBoolean(KEY_OUTER_GLOW, false),
+            islandOuterGlow = b.getBoolean(KEY_ISLAND_OUTER_GLOW, false),
+            islandOuterGlowColor = b.getString(KEY_ISLAND_OUTER_GLOW_COLOR),
             outEffectColor = b.getString(KEY_OUT_EFFECT_COLOR),
             sourcePackage = b.getString(KEY_SOURCE_PACKAGE),
             sourceChannelId = b.getString(KEY_SOURCE_CHANNEL_ID),

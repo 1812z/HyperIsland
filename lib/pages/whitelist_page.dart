@@ -296,6 +296,8 @@ class WhitelistPageState extends State<WhitelistPage> {
       showRightHighlight: result.showRightHighlight,
       outerGlow: result.outerGlow,
       outEffectColor: result.outEffectColor,
+      islandOuterGlow: result.islandOuterGlow,
+      islandOuterGlowColor: result.islandOuterGlowColor,
     );
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -658,6 +660,8 @@ class _BatchToastSettings {
     this.showRightHighlight,
     this.outerGlow,
     this.outEffectColor,
+    this.islandOuterGlow,
+    this.islandOuterGlowColor,
   });
 
   final bool forwardEnabled;
@@ -673,6 +677,8 @@ class _BatchToastSettings {
   final String? showRightHighlight;
   final String? outerGlow;
   final String? outEffectColor;
+  final String? islandOuterGlow;
+  final String? islandOuterGlowColor;
 }
 
 class _BatchToastSettingsSheet extends StatefulWidget {
@@ -696,6 +702,7 @@ class _BatchToastSettingsSheetState extends State<_BatchToastSettingsSheet> {
   final _timeoutController = TextEditingController();
   final _highlightColorController = TextEditingController();
   final _outEffectColorController = TextEditingController();
+  final _islandOuterGlowColorController = TextEditingController();
 
   bool _forwardEnabled = false;
   bool _blockOriginal = true;
@@ -711,12 +718,15 @@ class _BatchToastSettingsSheetState extends State<_BatchToastSettingsSheet> {
   bool? _showRightHighlight;
   String? _outerGlow;
   String? _outEffectColor;
+  String? _islandOuterGlow;
+  String? _islandOuterGlowColor;
 
   @override
   void dispose() {
     _timeoutController.dispose();
     _highlightColorController.dispose();
     _outEffectColorController.dispose();
+    _islandOuterGlowColorController.dispose();
     super.dispose();
   }
 
@@ -944,6 +954,49 @@ class _BatchToastSettingsSheetState extends State<_BatchToastSettingsSheet> {
                   },
                 ),
               ),
+              const SizedBox(height: 10),
+              _BatchTriOptTile(
+                label: '${l10n.outerGlowLabel} (${l10n.islandSection})',
+                value: _islandOuterGlow,
+                defaultLabel: l10n.noChange,
+                includeFollowDynamic: true,
+                onChanged: (v) => setState(() => _islandOuterGlow = v),
+              ),
+              const SizedBox(height: 10),
+              _BatchField(
+                label: '${l10n.outEffectColorLabel} (${l10n.islandSection})',
+                child: ColorValueField(
+                  controller: _islandOuterGlowColorController,
+                  decoration: _batchFieldDecoration(
+                    context,
+                    hintText: l10n.noChange,
+                  ),
+                  previewColor: parseHexColor(_islandOuterGlowColor),
+                  previewFallbackColor: cs.primary,
+                  onChanged: (v) => setState(
+                    () => _islandOuterGlowColor = v.trim().isEmpty
+                        ? null
+                        : v.trim(),
+                  ),
+                  onClear: () {
+                    _islandOuterGlowColorController.clear();
+                    setState(() => _islandOuterGlowColor = '');
+                  },
+                  onPickColor: () async {
+                    final color = await showColorPickerDialog(
+                      context,
+                      initialHex: _islandOuterGlowColor,
+                      title:
+                          '${l10n.outEffectColorLabel} (${l10n.islandSection})',
+                      enableAlpha: true,
+                    );
+                    if (color == null) return;
+                    final hex = colorToArgbHex(color);
+                    _islandOuterGlowColorController.text = hex;
+                    setState(() => _islandOuterGlowColor = hex);
+                  },
+                ),
+              ),
               const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -977,6 +1030,8 @@ class _BatchToastSettingsSheetState extends State<_BatchToastSettingsSheet> {
                               : (_showRightHighlight! ? kTriOptOn : kTriOptOff),
                           outerGlow: _outerGlow,
                           outEffectColor: _outEffectColor,
+                          islandOuterGlow: _islandOuterGlow,
+                          islandOuterGlowColor: _islandOuterGlowColor,
                         ),
                       );
                     }),
@@ -1078,56 +1133,6 @@ InputDecoration _batchFieldDecoration(
     filled: true,
     fillColor: cs.surfaceContainerHighest,
   );
-}
-
-class _SimpleColorSlider extends StatelessWidget {
-  const _SimpleColorSlider({
-    required this.label,
-    required this.value,
-    required this.max,
-    required this.onChanged,
-    required this.gradientColors,
-  });
-
-  final String label;
-  final double value;
-  final double max;
-  final ValueChanged<double> onChanged;
-  final List<Color> gradientColors;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label),
-        const SizedBox(height: 4),
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            Container(
-              height: 24,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                gradient: LinearGradient(colors: gradientColors),
-              ),
-            ),
-            SliderTheme(
-              data: SliderThemeData(
-                trackHeight: 24,
-                thumbColor: Colors.white,
-                overlayColor: Colors.white.withValues(alpha: 0.12),
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12),
-                activeTrackColor: Colors.transparent,
-                inactiveTrackColor: Colors.transparent,
-              ),
-              child: Slider(value: value, max: max, onChanged: onChanged),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
 }
 
 // ── 全局批量进度对话框 ────────────────────────────────────────────────────────

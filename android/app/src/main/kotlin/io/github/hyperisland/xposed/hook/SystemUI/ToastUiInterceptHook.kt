@@ -38,6 +38,8 @@ object ToastUiInterceptHook : BaseHook() {
         val showLeftHighlightColor: Boolean,
         val showRightHighlightColor: Boolean,
         val outerGlowMode: String,
+        val islandOuterGlowMode: String,
+        val islandOuterGlowColor: String?,
         val outEffectColor: String?,
     )
 
@@ -199,6 +201,7 @@ object ToastUiInterceptHook : BaseHook() {
             false,
         )
         val defaultOuterGlow = ConfigManager.getString("pref_default_outer_glow", "off")
+        val defaultIslandOuterGlow = ConfigManager.getString("pref_default_island_outer_glow", "off")
 
         val firstFloat = resolveTriOpt(
             ConfigManager.getString("pref_toast_first_float_$pkg", "default"),
@@ -233,7 +236,15 @@ object ToastUiInterceptHook : BaseHook() {
             ConfigManager.getString("pref_toast_outer_glow_$pkg", "default"),
             defaultOuterGlow,
         )
+        val islandOuterGlowMode = resolveGlowMode(
+            ConfigManager.getString("pref_toast_island_outer_glow_$pkg", "default"),
+            defaultIslandOuterGlow,
+        )
         val outEffectColor = ConfigManager.getString("pref_toast_out_effect_color_$pkg", "")
+            .trim()
+            .ifBlank { null }
+        val islandOuterGlowColor = ConfigManager
+            .getString("pref_toast_island_outer_glow_color_$pkg", "")
             .trim()
             .ifBlank { null }
         return ToastRule(
@@ -248,6 +259,8 @@ object ToastUiInterceptHook : BaseHook() {
             showLeftHighlightColor = showLeftHighlight,
             showRightHighlightColor = showRightHighlight,
             outerGlowMode = outerGlowMode,
+            islandOuterGlowMode = islandOuterGlowMode,
+            islandOuterGlowColor = islandOuterGlowColor,
             outEffectColor = outEffectColor,
         ).also {
             cachedRules[pkg] = it
@@ -312,6 +325,14 @@ object ToastUiInterceptHook : BaseHook() {
                 "follow_dynamic" -> resolvedHighlightColor
                 else -> rule.outEffectColor
             }
+            val resolvedIslandOuterGlowColor = when (rule.islandOuterGlowMode) {
+                "follow_dynamic" -> resolvedHighlightColor
+                else -> rule.islandOuterGlowColor
+            }
+            log(
+                module,
+                "toast glow resolved: pkg=$pkg dyn=${rule.dynamicHighlightMode} focusMode=${rule.outerGlowMode} islandMode=${rule.islandOuterGlowMode} highlight=$resolvedHighlightColor focusColor=$resolvedOutEffectColor islandColor=$resolvedIslandOuterGlowColor",
+            )
 
             IslandDispatcher.post(
                 context,
@@ -336,6 +357,8 @@ object ToastUiInterceptHook : BaseHook() {
                     showLeftHighlightColor = rule.showLeftHighlightColor,
                     showRightHighlightColor = rule.showRightHighlightColor,
                     outerGlow = rule.outerGlowMode != "off",
+                    islandOuterGlow = rule.islandOuterGlowMode != "off",
+                    islandOuterGlowColor = resolvedIslandOuterGlowColor,
                     outEffectColor = resolvedOutEffectColor,
                     sourcePackage = pkg,
                     sourceChannelId = "toast",

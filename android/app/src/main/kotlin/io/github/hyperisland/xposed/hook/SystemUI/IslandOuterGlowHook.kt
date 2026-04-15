@@ -1,6 +1,7 @@
 package io.github.hyperisland.xposed.hook
 
 import android.graphics.Color
+import android.util.Log
 import android.os.Bundle
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.utils.HookUtils
@@ -43,6 +44,10 @@ object IslandOuterGlowHook : BaseHook() {
         val pkg: String,
         val channelId: String,
         val mode: Int,
+        val focusGlowEnabled: Boolean,
+        val islandGlowEnabled: Boolean,
+        val focusOutEffectColor: String?,
+        val islandOuterGlowColor: String?,
         val createdAt: Long,
     )
 
@@ -113,7 +118,15 @@ object IslandOuterGlowHook : BaseHook() {
                                 pkg = pkg,
                                 channelId = channelId,
                                 mode = mode,
+                                focusGlowEnabled = extras.getString(EFFECT_KEY) == EFFECT_VALUE,
+                                islandGlowEnabled = extras.getString(BIG_EFFECT_KEY) == EFFECT_VALUE,
+                                focusOutEffectColor = extras.getString("hyperisland_focus_out_effect_color"),
+                                islandOuterGlowColor = extras.getString("hyperisland_island_outer_glow_color"),
                                 createdAt = System.currentTimeMillis(),
+                            )
+                            log(
+                                module,
+                                "capture owned glow: mode=$mode pkg=$pkg channel=$channelId focusEnabled=${extras.getString(EFFECT_KEY) == EFFECT_VALUE} islandEnabled=${extras.getString(BIG_EFFECT_KEY) == EFFECT_VALUE} focusColor=${extras.getString("hyperisland_focus_out_effect_color")} islandColor=${extras.getString("hyperisland_island_outer_glow_color")}",
                             )
                         }
                     }
@@ -190,6 +203,8 @@ object IslandOuterGlowHook : BaseHook() {
             "hyperisland_source_pkg",
             "hyperisland_channel_id",
             "hyperisland_source_channel",
+            "hyperisland_focus_out_effect_color",
+            "hyperisland_island_outer_glow_color",
         )) {
             source.getString(key)?.let { target.putString(key, it) }
         }
@@ -208,15 +223,21 @@ object IslandOuterGlowHook : BaseHook() {
         }
     }
 
-    private fun resolveGlowColorConfig(mode: Int, pkg: String, channelId: String): GlowConfig {
+    private fun resolveGlowColorConfig(mode: Int, target: OwnedGlowTarget): GlowConfig {
+        val pkg = target.pkg
+        val channelId = target.channelId
         return when (mode) {
             GLOW_MODE_STATUS -> GlowConfig(
-                effectEnabled = resolveGlowEnabled(
-                    ConfigManager.getString("pref_channel_island_outer_glow_${pkg}_$channelId", "default"),
-                    ConfigManager.getString("pref_default_island_outer_glow", "off"),
-                ),
+                effectEnabled = if (channelId == "toast") {
+                    target.islandGlowEnabled
+                } else {
+                    resolveGlowEnabled(
+                        ConfigManager.getString("pref_channel_island_outer_glow_${pkg}_$channelId", "default"),
+                        ConfigManager.getString("pref_default_island_outer_glow", "off"),
+                    )
+                },
                 colorArgb = parseArgbColor(
-                    resolveGlowColorValue(
+                    target.islandOuterGlowColor ?: resolveGlowColorValue(
                         mode = ConfigManager.getString("pref_channel_island_outer_glow_${pkg}_$channelId", "default"),
                         fallbackMode = ConfigManager.getString("pref_default_island_outer_glow", "off"),
                         manualColor = ConfigManager.getString(
@@ -231,12 +252,16 @@ object IslandOuterGlowHook : BaseHook() {
                 ),
             )
             GLOW_MODE_EXPAND -> GlowConfig(
-                effectEnabled = resolveGlowEnabled(
-                    ConfigManager.getString("pref_channel_outer_glow_${pkg}_$channelId", "default"),
-                    ConfigManager.getString("pref_default_outer_glow", "off"),
-                ),
+                effectEnabled = if (channelId == "toast") {
+                    target.focusGlowEnabled
+                } else {
+                    resolveGlowEnabled(
+                        ConfigManager.getString("pref_channel_outer_glow_${pkg}_$channelId", "default"),
+                        ConfigManager.getString("pref_default_outer_glow", "off"),
+                    )
+                },
                 colorArgb = parseArgbColor(
-                    resolveGlowColorValue(
+                    target.focusOutEffectColor ?: resolveGlowColorValue(
                         mode = ConfigManager.getString("pref_channel_outer_glow_${pkg}_$channelId", "default"),
                         fallbackMode = ConfigManager.getString("pref_default_outer_glow", "off"),
                         manualColor = ConfigManager.getString(
@@ -261,7 +286,11 @@ object IslandOuterGlowHook : BaseHook() {
         if (mode == GLOW_MODE_AUTO || target.mode != mode) return
         if (System.currentTimeMillis() - target.createdAt > RECENT_TTL_MS) return
 
-        val cfg = resolveGlowColorConfig(mode, target.pkg, target.channelId)
+        val cfg = resolveGlowColorConfig(mode, target)
+        Log.d(
+            TAG,
+            "apply owned glow: mode=$mode pkg=${target.pkg} channel=${target.channelId} focusColor=${target.focusOutEffectColor} islandColor=${target.islandOuterGlowColor} enabled=${cfg.effectEnabled} argb=${cfg.colorArgb}",
+        )
         val shader = resolveLightBgShader(glowView) ?: return
         val runtimeShader = resolveRuntimeShader(shader) ?: return
         val shaderClass = shader.javaClass

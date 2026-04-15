@@ -161,6 +161,8 @@ internal object IslandDispatcherNotifier {
                         jsonParam = it,
                         highlightColor = request.highlightColor,
                         outerGlow = request.outerGlow,
+                        islandOuterGlow = request.islandOuterGlow,
+                        islandOuterGlowColor = request.islandOuterGlowColor,
                         outEffectColor = request.outEffectColor,
                         dismissIsland = request.dismissIsland,
                     )
@@ -170,12 +172,21 @@ internal object IslandDispatcherNotifier {
             request.sourceChannelId?.let {
                 notif.extras.putString("hyperisland_source_channel", it)
             }
+            request.outEffectColor?.let {
+                notif.extras.putString("hyperisland_focus_out_effect_color", it)
+            }
+            request.islandOuterGlowColor?.let {
+                notif.extras.putString("hyperisland_island_outer_glow_color", it)
+            }
             notif.extras.putString(EXTRA_OWNER, OWNER_MARKER)
-            if (request.outerGlow) {
+            if (request.islandOuterGlow) {
                 notif.extras.putString("miui.bigIsland.effect.src", EFFECT_SRC)
-                notif.extras.putString("miui.effect.src", EFFECT_SRC)
             } else {
                 notif.extras.remove("miui.bigIsland.effect.src")
+            }
+            if (request.outerGlow) {
+                notif.extras.putString("miui.effect.src", EFFECT_SRC)
+            } else {
                 notif.extras.remove("miui.effect.src")
             }
 
@@ -200,7 +211,7 @@ internal object IslandDispatcherNotifier {
             }
 
             IslandDispatchState.module?.log(
-                "${IslandDispatchContract.TAG}: posted: ${request.title} | ${request.content} | highlight=${request.highlightColor} | dismiss=${request.dismissIsland}",
+                "${IslandDispatchContract.TAG}: posted: ${request.title} | ${request.content} | highlight=${request.highlightColor} | focusGlow=${request.outerGlow}/${request.outEffectColor} | islandGlow=${request.islandOuterGlow}/${request.islandOuterGlowColor} | dismiss=${request.dismissIsland}",
             )
         } catch (e: Exception) {
             IslandDispatchState.module?.logError("${IslandDispatchContract.TAG}: post error: ${e.message}")
@@ -259,10 +270,12 @@ internal object IslandDispatcherNotifier {
         jsonParam: String,
         highlightColor: String?,
         outerGlow: Boolean,
+        islandOuterGlow: Boolean,
+        islandOuterGlowColor: String?,
         outEffectColor: String?,
         dismissIsland: Boolean,
     ): String {
-        if (highlightColor == null && !outerGlow && outEffectColor.isNullOrBlank() && !dismissIsland) {
+        if (highlightColor == null && !outerGlow && !islandOuterGlow && islandOuterGlowColor.isNullOrBlank() && outEffectColor.isNullOrBlank() && !dismissIsland) {
             return jsonParam
         }
         return try {
@@ -271,8 +284,10 @@ internal object IslandDispatcherNotifier {
             val paramIsland = pv2.optJSONObject("param_island") ?: org.json.JSONObject()
             highlightColor?.let { paramIsland.put("highlightColor", it) }
             if (dismissIsland) paramIsland.put("dismissIsland", true)
+            if (!islandOuterGlowColor.isNullOrBlank()) paramIsland.put("outEffectColor", islandOuterGlowColor)
             pv2.put("param_island", paramIsland)
             if (outerGlow) pv2.put("outEffectSrc", "outer_glow")
+            if (islandOuterGlow) paramIsland.put("outEffectSrc", "outer_glow")
             if (!outEffectColor.isNullOrBlank()) pv2.put("outEffectColor", outEffectColor)
             json.toString()
         } catch (_: Exception) {
