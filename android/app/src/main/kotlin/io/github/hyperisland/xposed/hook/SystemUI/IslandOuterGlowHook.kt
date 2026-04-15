@@ -228,8 +228,7 @@ object IslandOuterGlowHook : BaseHook() {
         if (extras.getString(OWNER_KEY) != OWNER_VALUE) return false
         return when (mode) {
             GLOW_MODE_STATUS ->
-                extras.getString(BIG_EFFECT_KEY) == EFFECT_VALUE ||
-                    extras.getString(EFFECT_KEY) == EFFECT_VALUE
+                extras.getString(BIG_EFFECT_KEY) == EFFECT_VALUE
             GLOW_MODE_EXPAND ->
                 extras.getString(BIG_EFFECT_KEY) == EFFECT_VALUE ||
                     extras.getString(EFFECT_KEY) == EFFECT_VALUE
