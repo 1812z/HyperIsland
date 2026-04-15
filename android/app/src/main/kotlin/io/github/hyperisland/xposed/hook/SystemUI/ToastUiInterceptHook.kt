@@ -202,7 +202,10 @@ object ToastUiInterceptHook : BaseHook() {
             ConfigManager.getString("pref_toast_first_float_$pkg", "default"),
             defaultFirstFloat,
         )
-        val timeout = ConfigManager.getInt("pref_toast_timeout_$pkg", 5).coerceIn(1, 20)
+        val clampedTimeout = ConfigManager.getString("pref_toast_timeout_$pkg", "5")
+            .toIntOrNull()
+            ?.coerceIn(1, 20)
+            ?: 5
 
         val manualHighlightColor = ConfigManager.getString("pref_toast_highlight_color_$pkg", "")
             .trim()
@@ -234,7 +237,7 @@ object ToastUiInterceptHook : BaseHook() {
             showNotification = showNotification,
             showIslandIcon = showIslandIcon,
             firstFloat = firstFloat,
-            timeoutSecs = timeout,
+            timeoutSecs = clampedTimeout,
             highlightColor = manualHighlightColor,
             showLeftHighlightColor = showLeftHighlight,
             showRightHighlightColor = showRightHighlight,
