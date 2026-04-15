@@ -1410,6 +1410,12 @@ abstract class AppLocalizations {
   /// **'开启后默认使用图标自动取色'**
   String get dynamicHighlightColorLabelSubtitle;
 
+  /// No description provided for @followDynamicColorLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'跟随动态取色'**
+  String get followDynamicColorLabel;
+
   /// No description provided for @dynamicHighlightModeDark.
   ///
   /// In zh, this message translates to:

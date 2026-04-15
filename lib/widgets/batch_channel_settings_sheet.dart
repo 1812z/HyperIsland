@@ -167,6 +167,16 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
   String _defaultLabel(BuildContext context, bool value) =>
       value ? _l10n(context).optDefaultOn : _l10n(context).optDefaultOff;
 
+  String _outerGlowDefaultLabel(BuildContext context, String value) {
+    final l10n = _l10n(context);
+    return switch (value) {
+      kTriOptOn => l10n.optDefaultOn,
+      kTriOptFollowDynamic =>
+        '${l10n.optDefault} (${l10n.followDynamicColorLabel})',
+      _ => l10n.optDefaultOff,
+    };
+  }
+
   String? _template;
   String? _renderer;
   String? _iconMode;
@@ -209,12 +219,34 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
   late final TextEditingController _outEffectColorController;
 
   bool get _isSingle => widget.mode is SingleChannelMode;
-  bool get _dynamicHighlightEnabled =>
-      (_dynamicHighlightColor == kTriOptDefault &&
-          _ctrl.defaultDynamicHighlightColor) ||
-      _dynamicHighlightColor == 'on' ||
-      _dynamicHighlightColor == 'dark' ||
-      _dynamicHighlightColor == 'darker';
+  bool get _dynamicHighlightEnabled => resolvesDynamicColorMode(
+    _dynamicHighlightColor,
+    _ctrl.defaultDynamicHighlightColor,
+  );
+
+  bool _isFollowDynamicGlow(String? mode, String defaultMode) {
+    return mode == kTriOptFollowDynamic ||
+        (mode == kTriOptDefault && defaultMode == kTriOptFollowDynamic);
+  }
+
+  List<DropdownMenuItem<String?>> _outerGlowItems(
+    BuildContext context, {
+    required String defaultMode,
+  }) {
+    final l10n = _l10n(context);
+    return [
+      DropdownMenuItem<String?>(
+        value: kTriOptDefault,
+        child: Text(_outerGlowDefaultLabel(context, defaultMode)),
+      ),
+      DropdownMenuItem<String?>(value: kTriOptOn, child: Text(l10n.optOn)),
+      DropdownMenuItem<String?>(value: kTriOptOff, child: Text(l10n.optOff)),
+      DropdownMenuItem<String?>(
+        value: kTriOptFollowDynamic,
+        child: Text(l10n.followDynamicColorLabel),
+      ),
+    ];
+  }
 
   @override
   void initState() {
@@ -1152,22 +1184,10 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                     label: '${l10n.outerGlowLabel}',
                     value: _islandOuterGlow,
                     showNotChange: !_isSingle,
-                    items: [
-                      DropdownMenuItem(
-                        value: kTriOptDefault,
-                        child: Text(
-                          _defaultLabel(context, _ctrl.defaultOuterGlow),
-                        ),
-                      ),
-                      DropdownMenuItem(
-                        value: kTriOptOn,
-                        child: Text(l10n.optOn),
-                      ),
-                      DropdownMenuItem(
-                        value: kTriOptOff,
-                        child: Text(l10n.optOff),
-                      ),
-                    ],
+                    items: _outerGlowItems(
+                      context,
+                      defaultMode: _ctrl.defaultIslandOuterGlow,
+                    ),
                     onChanged: (v) => setState(() => _islandOuterGlow = v),
                   ),
                   SizedBox(height: rowGap),
@@ -1183,6 +1203,14 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                       ),
                       previewColor: _parseColor(_islandOuterGlowColor),
                       previewFallbackColor: cs.primary,
+                      enabled: !_isFollowDynamicGlow(
+                        _islandOuterGlow,
+                        _ctrl.defaultIslandOuterGlow,
+                      ),
+                      readOnly: _isFollowDynamicGlow(
+                        _islandOuterGlow,
+                        _ctrl.defaultIslandOuterGlow,
+                      ),
                       onChanged: (v) {
                         final trimmed = v.trim();
                         setState(() {
@@ -1469,22 +1497,10 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                     label: l10n.outerGlowLabel,
                     value: _outerGlow,
                     showNotChange: !_isSingle,
-                    items: [
-                      DropdownMenuItem(
-                        value: kTriOptDefault,
-                        child: Text(
-                          _defaultLabel(context, _ctrl.defaultOuterGlow),
-                        ),
-                      ),
-                      DropdownMenuItem(
-                        value: kTriOptOn,
-                        child: Text(l10n.optOn),
-                      ),
-                      DropdownMenuItem(
-                        value: kTriOptOff,
-                        child: Text(l10n.optOff),
-                      ),
-                    ],
+                    items: _outerGlowItems(
+                      context,
+                      defaultMode: _ctrl.defaultOuterGlow,
+                    ),
                     onChanged: (v) => setState(() => _outerGlow = v),
                   ),
                   SizedBox(height: rowGap),
@@ -1500,6 +1516,14 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                       ),
                       previewColor: _parseColor(_outEffectColor),
                       previewFallbackColor: cs.primary,
+                      enabled: !_isFollowDynamicGlow(
+                        _outerGlow,
+                        _ctrl.defaultOuterGlow,
+                      ),
+                      readOnly: _isFollowDynamicGlow(
+                        _outerGlow,
+                        _ctrl.defaultOuterGlow,
+                      ),
                       onChanged: (v) {
                         final trimmed = v.trim();
                         setState(() {

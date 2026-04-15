@@ -260,6 +260,7 @@
   "highlightColorLabel": "Highlight color",
   "dynamicHighlightColorLabel": "Dynamic highlight color",
   "dynamicHighlightColorLabelSubtitle": "Use icon-based dynamic color by default",
+  "followDynamicColorLabel": "Follow dynamic color",
   "dynamicHighlightModeDark": "Dark",
   "dynamicHighlightModeDarker": "Darker",
   "outerGlowLabel": "Outer glow",

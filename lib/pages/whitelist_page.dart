@@ -6,6 +6,7 @@ import '../controllers/whitelist_controller.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../widgets/batch_channel_settings_sheet.dart';
 import '../widgets/app_list_widgets.dart';
+import '../widgets/color_picker_dialog.dart';
 import '../widgets/color_value_field.dart';
 import '../widgets/toast_settings_panel.dart';
 import 'app_channels_page.dart';
@@ -294,6 +295,7 @@ class WhitelistPageState extends State<WhitelistPage> {
       showLeftHighlight: result.showLeftHighlight,
       showRightHighlight: result.showRightHighlight,
       outerGlow: result.outerGlow,
+      outEffectColor: result.outEffectColor,
     );
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -655,6 +657,7 @@ class _BatchToastSettings {
     this.showLeftHighlight,
     this.showRightHighlight,
     this.outerGlow,
+    this.outEffectColor,
   });
 
   final bool forwardEnabled;
@@ -669,6 +672,7 @@ class _BatchToastSettings {
   final String? showLeftHighlight;
   final String? showRightHighlight;
   final String? outerGlow;
+  final String? outEffectColor;
 }
 
 class _BatchToastSettingsSheet extends StatefulWidget {
@@ -691,6 +695,7 @@ class _BatchToastSettingsSheet extends StatefulWidget {
 class _BatchToastSettingsSheetState extends State<_BatchToastSettingsSheet> {
   final _timeoutController = TextEditingController();
   final _highlightColorController = TextEditingController();
+  final _outEffectColorController = TextEditingController();
 
   bool _forwardEnabled = false;
   bool _blockOriginal = true;
@@ -705,11 +710,13 @@ class _BatchToastSettingsSheetState extends State<_BatchToastSettingsSheet> {
   bool? _showLeftHighlight;
   bool? _showRightHighlight;
   String? _outerGlow;
+  String? _outEffectColor;
 
   @override
   void dispose() {
     _timeoutController.dispose();
     _highlightColorController.dispose();
+    _outEffectColorController.dispose();
     super.dispose();
   }
 
@@ -806,7 +813,7 @@ class _BatchToastSettingsSheetState extends State<_BatchToastSettingsSheet> {
                     context,
                     hintText: l10n.noChange,
                   ),
-                  previewColor: _parseHexColor(_highlightColor),
+                  previewColor: parseHexColor(_highlightColor),
                   previewFallbackColor: cs.primary,
                   onChanged: (v) => setState(
                     () => _highlightColor = v.trim().isEmpty ? null : v.trim(),
@@ -816,9 +823,14 @@ class _BatchToastSettingsSheetState extends State<_BatchToastSettingsSheet> {
                     setState(() => _highlightColor = '');
                   },
                   onPickColor: () async {
-                    final color = await _showColorPicker(context);
+                    final color = await showColorPickerDialog(
+                      context,
+                      initialHex: _highlightColor,
+                      title: l10n.highlightColorLabel,
+                      enableAlpha: true,
+                    );
                     if (color == null) return;
-                    final hex = _toHexColor(color);
+                    final hex = colorToArgbHex(color);
                     _highlightColorController.text = hex;
                     setState(() => _highlightColor = hex);
                   },
@@ -828,7 +840,7 @@ class _BatchToastSettingsSheetState extends State<_BatchToastSettingsSheet> {
               _BatchField(
                 label: l10n.dynamicHighlightColorLabel,
                 child: DropdownButtonFormField<String?>(
-                  value: _dynamicHighlightColor,
+                  initialValue: _dynamicHighlightColor,
                   decoration: _batchFieldDecoration(context),
                   items: [
                     DropdownMenuItem<String?>(
@@ -897,7 +909,40 @@ class _BatchToastSettingsSheetState extends State<_BatchToastSettingsSheet> {
                 label: l10n.outerGlowLabel,
                 value: _outerGlow,
                 defaultLabel: l10n.noChange,
+                includeFollowDynamic: true,
                 onChanged: (v) => setState(() => _outerGlow = v),
+              ),
+              const SizedBox(height: 10),
+              _BatchField(
+                label: l10n.outEffectColorLabel,
+                child: ColorValueField(
+                  controller: _outEffectColorController,
+                  decoration: _batchFieldDecoration(
+                    context,
+                    hintText: l10n.noChange,
+                  ),
+                  previewColor: parseHexColor(_outEffectColor),
+                  previewFallbackColor: cs.primary,
+                  onChanged: (v) => setState(
+                    () => _outEffectColor = v.trim().isEmpty ? null : v.trim(),
+                  ),
+                  onClear: () {
+                    _outEffectColorController.clear();
+                    setState(() => _outEffectColor = '');
+                  },
+                  onPickColor: () async {
+                    final color = await showColorPickerDialog(
+                      context,
+                      initialHex: _outEffectColor,
+                      title: l10n.outEffectColorLabel,
+                      enableAlpha: true,
+                    );
+                    if (color == null) return;
+                    final hex = colorToArgbHex(color);
+                    _outEffectColorController.text = hex;
+                    setState(() => _outEffectColor = hex);
+                  },
+                ),
               ),
               const SizedBox(height: 12),
               Row(
@@ -931,6 +976,7 @@ class _BatchToastSettingsSheetState extends State<_BatchToastSettingsSheet> {
                               ? null
                               : (_showRightHighlight! ? kTriOptOn : kTriOptOff),
                           outerGlow: _outerGlow,
+                          outEffectColor: _outEffectColor,
                         ),
                       );
                     }),
@@ -977,12 +1023,14 @@ class _BatchTriOptTile extends StatelessWidget {
     required this.value,
     required this.defaultLabel,
     required this.onChanged,
+    this.includeFollowDynamic = false,
   });
 
   final String label;
   final String? value;
   final String defaultLabel;
   final ValueChanged<String?> onChanged;
+  final bool includeFollowDynamic;
 
   @override
   Widget build(BuildContext context) {
@@ -990,7 +1038,7 @@ class _BatchTriOptTile extends StatelessWidget {
     return _BatchField(
       label: label,
       child: DropdownButtonFormField<String?>(
-        value: value,
+        initialValue: value,
         decoration: _batchFieldDecoration(context),
         items: [
           DropdownMenuItem<String?>(value: null, child: Text(defaultLabel)),
@@ -1003,6 +1051,11 @@ class _BatchTriOptTile extends StatelessWidget {
             value: kTriOptOff,
             child: Text(l10n.optOff),
           ),
+          if (includeFollowDynamic)
+            DropdownMenuItem<String?>(
+              value: kTriOptFollowDynamic,
+              child: Text(l10n.followDynamicColorLabel),
+            ),
         ],
         onChanged: onChanged,
       ),
@@ -1024,108 +1077,6 @@ InputDecoration _batchFieldDecoration(
     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
     filled: true,
     fillColor: cs.surfaceContainerHighest,
-  );
-}
-
-Color? _parseHexColor(String? hex) {
-  if (hex == null || hex.trim().isEmpty) return null;
-  final cleaned = hex.trim().replaceFirst('#', '');
-  if (cleaned.length != 6) return null;
-  final value = int.tryParse(cleaned, radix: 16);
-  if (value == null) return null;
-  return Color(value).withAlpha(255);
-}
-
-String _toHexColor(Color color) =>
-    '#${color.toARGB32().toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}';
-
-Future<Color?> _showColorPicker(
-  BuildContext context, {
-  String? initialHex,
-}) async {
-  final l10n = AppLocalizations.of(context)!;
-  final initialColor =
-      _parseHexColor(initialHex) ?? Theme.of(context).colorScheme.primary;
-  var selected = HSVColor.fromColor(initialColor);
-
-  return showDialog<Color>(
-    context: context,
-    builder: (ctx) => StatefulBuilder(
-      builder: (context, setDialogState) => AlertDialog(
-        title: Text(l10n.highlightColorLabel),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: selected.toColor(),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Theme.of(ctx).colorScheme.outline),
-              ),
-            ),
-            const SizedBox(height: 16),
-            _SimpleColorSlider(
-              label: l10n.colorHue,
-              value: selected.hue,
-              max: 360,
-              onChanged: (v) =>
-                  setDialogState(() => selected = selected.withHue(v)),
-              gradientColors: List.generate(
-                7,
-                (i) => HSVColor.fromAHSV(1, i * 60, 1, 1).toColor(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            _SimpleColorSlider(
-              label: l10n.colorSaturation,
-              value: selected.saturation * 100,
-              max: 100,
-              onChanged: (v) => setDialogState(
-                () => selected = selected.withSaturation(v / 100),
-              ),
-              gradientColors: [
-                HSVColor.fromAHSV(1, selected.hue, 0, 1).toColor(),
-                HSVColor.fromAHSV(1, selected.hue, 1, 1).toColor(),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _SimpleColorSlider(
-              label: l10n.colorBrightness,
-              value: selected.value * 100,
-              max: 100,
-              onChanged: (v) =>
-                  setDialogState(() => selected = selected.withValue(v / 100)),
-              gradientColors: [
-                HSVColor.fromAHSV(
-                  1,
-                  selected.hue,
-                  selected.saturation,
-                  0,
-                ).toColor(),
-                HSVColor.fromAHSV(
-                  1,
-                  selected.hue,
-                  selected.saturation,
-                  1,
-                ).toColor(),
-              ],
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, selected.toColor()),
-            child: Text(l10n.apply),
-          ),
-        ],
-      ),
-    ),
   );
 }
 

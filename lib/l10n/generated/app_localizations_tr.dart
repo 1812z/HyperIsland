@@ -754,6 +754,9 @@ class AppLocalizationsTr extends AppLocalizations {
       'Varsayılan olarak simgeden dinamik renk kullan';
 
   @override
+  String get followDynamicColorLabel => 'Dinamik rengi takip et';
+
+  @override
   String get dynamicHighlightModeDark => 'Koyu';
 
   @override

@@ -717,6 +717,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get dynamicHighlightColorLabelSubtitle => '开启后默认使用图标自动取色';
 
   @override
+  String get followDynamicColorLabel => '跟随动态取色';
+
+  @override
   String get dynamicHighlightModeDark => '暗';
 
   @override

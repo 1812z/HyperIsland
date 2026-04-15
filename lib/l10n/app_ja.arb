@@ -213,6 +213,7 @@
   "highlightColorLabel": "ハイライト色",
   "dynamicHighlightColorLabel": "ハイライトの動的色取得",
   "dynamicHighlightColorLabelSubtitle": "有効時はデフォルトでアイコンから動的に色を取得します",
+  "followDynamicColorLabel": "動的色取得に追従",
   "dynamicHighlightModeDark": "暗め",
   "dynamicHighlightModeDarker": "さらに暗め",
   "outerGlowLabel": "外側グロー",

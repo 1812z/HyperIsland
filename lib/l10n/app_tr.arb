@@ -299,6 +299,7 @@
   "highlightColorLabel": "Vurgu Rengi",
   "dynamicHighlightColorLabel": "Dinamik vurgu rengi",
   "dynamicHighlightColorLabelSubtitle": "Varsayılan olarak simgeden dinamik renk kullan",
+  "followDynamicColorLabel": "Dinamik rengi takip et",
   "dynamicHighlightModeDark": "Koyu",
   "dynamicHighlightModeDarker": "Daha koyu",
   "outerGlowLabel": "Dış parlama",

@@ -1,6 +1,19 @@
 import 'package:flutter/material.dart';
 
 import '../l10n/generated/app_localizations.dart';
+import '../controllers/whitelist_controller.dart';
+
+const kDynamicLabelFocus = 'focus';
+const kDynamicLabelIsland = 'island';
+
+bool isDynamicColorMode(String? value) {
+  return value == kTriOptOn || value == 'dark' || value == 'darker';
+}
+
+bool resolvesDynamicColorMode(String? value, bool defaultEnabled) {
+  if (value == kTriOptDefault) return defaultEnabled;
+  return isDynamicColorMode(value);
+}
 
 Color? parseHexColor(String? hex) {
   if (hex == null || hex.trim().isEmpty) return null;

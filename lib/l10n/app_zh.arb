@@ -403,6 +403,7 @@
   "highlightColorLabel": "高亮颜色",
   "dynamicHighlightColorLabel": "高亮动态取色",
   "dynamicHighlightColorLabelSubtitle": "开启后默认使用图标自动取色",
+  "followDynamicColorLabel": "跟随动态取色",
   "dynamicHighlightModeDark": "暗",
   "dynamicHighlightModeDarker": "更暗",
   "outerGlowLabel": "外圈光效",

@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../controllers/config_io_controller.dart';
 import '../controllers/settings_controller.dart';
 import '../controllers/update_controller.dart';
+import '../controllers/whitelist_controller.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../services/interaction_haptics.dart';
 import '../widgets/color_picker_dialog.dart';
@@ -259,13 +260,17 @@ class _SettingsPageState extends State<SettingsPage> {
     };
   }
 
-  String _boolLabel(AppLocalizations l10n, bool value) {
-    return value ? l10n.optOn : l10n.optOff;
+  String _outerGlowModeLabel(AppLocalizations l10n, String value) {
+    return switch (value) {
+      kTriOptOn => l10n.optOn,
+      kTriOptFollowDynamic => l10n.followDynamicColorLabel,
+      _ => l10n.optOff,
+    };
   }
 
   String _outerGlowDefaultsSubtitle(AppLocalizations l10n) {
-    return 'Focus ${_boolLabel(l10n, _ctrl.defaultOuterGlow)} · '
-        'Island ${_boolLabel(l10n, _ctrl.defaultIslandOuterGlow)}';
+    return '${l10n.focusNotificationLabel} ${_outerGlowModeLabel(l10n, _ctrl.defaultOuterGlow)} · '
+        '${l10n.islandSection} ${_outerGlowModeLabel(l10n, _ctrl.defaultIslandOuterGlow)}';
   }
 
   Future<void> _showOuterGlowDefaultsDialog(AppLocalizations l10n) async {
@@ -315,12 +320,20 @@ class _SettingsPageState extends State<SettingsPage> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text('Focus'),
-                  value: focusOuterGlow,
-                  onChanged: (value) =>
-                      setDialogState(() => focusOuterGlow = value),
+                const SizedBox(height: 16),
+                Text(
+                  l10n.focusNotificationLabel,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                DropdownButtonFormField<String>(
+                  initialValue: focusOuterGlow,
+                  decoration: _dialogFieldDecoration(context),
+                  items: _outerGlowModeItems(l10n, includeDefault: false),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setDialogState(() => focusOuterGlow = value);
+                    }
+                  },
                 ),
                 const SizedBox(height: 8),
                 ColorValueField(
@@ -343,12 +356,20 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text('Island'),
-                  value: islandOuterGlow,
-                  onChanged: (value) =>
-                      setDialogState(() => islandOuterGlow = value),
+                Text(
+                  l10n.islandSection,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  initialValue: islandOuterGlow,
+                  decoration: _dialogFieldDecoration(context),
+                  items: _outerGlowModeItems(l10n, includeDefault: false),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setDialogState(() => islandOuterGlow = value);
+                    }
+                  },
                 ),
                 const SizedBox(height: 8),
                 ColorValueField(
@@ -408,6 +429,30 @@ class _SettingsPageState extends State<SettingsPage> {
       filled: true,
       fillColor: cs.surfaceContainerHighest,
     );
+  }
+
+  List<DropdownMenuItem<String>> _outerGlowModeItems(
+    AppLocalizations l10n, {
+    required bool includeDefault,
+  }) {
+    final items = <DropdownMenuItem<String>>[];
+    if (includeDefault) {
+      items.add(
+        DropdownMenuItem<String>(
+          value: kTriOptDefault,
+          child: Text(l10n.optDefault),
+        ),
+      );
+    }
+    items.addAll([
+      DropdownMenuItem<String>(value: kTriOptOn, child: Text(l10n.optOn)),
+      DropdownMenuItem<String>(value: kTriOptOff, child: Text(l10n.optOff)),
+      DropdownMenuItem<String>(
+        value: kTriOptFollowDynamic,
+        child: Text(l10n.followDynamicColorLabel),
+      ),
+    ]);
+    return items;
   }
 
   Future<void> _showThemeModeDialog(AppLocalizations l10n) async {

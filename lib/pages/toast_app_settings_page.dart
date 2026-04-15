@@ -36,6 +36,7 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
   String _marquee = kTriOptDefault;
   String _timeout = '5';
   String _highlightColor = '';
+  String _outEffectColor = '';
   String _dynamicHighlightColor = kTriOptDefault;
   bool _showLeftHighlight = false;
   bool _showRightHighlight = false;
@@ -43,17 +44,23 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
 
   late final TextEditingController _timeoutController;
   late final TextEditingController _highlightColorController;
+  late final TextEditingController _outEffectColorController;
 
   bool get _dynamicHighlightEnabled {
-    final mode = _dynamicHighlightColor;
-    return (mode == kTriOptDefault && _ctrl.defaultDynamicHighlightColor) ||
-        mode == kTriOptOn ||
-        mode == 'dark' ||
-        mode == 'darker';
+    return resolvesDynamicColorMode(
+      _dynamicHighlightColor,
+      _ctrl.defaultDynamicHighlightColor,
+    );
   }
 
   bool get _hasHighlightSource {
     return _dynamicHighlightEnabled || _highlightColor.trim().isNotEmpty;
+  }
+
+  bool get _outerGlowFollowDynamic {
+    return _outerGlow == kTriOptFollowDynamic ||
+        (_outerGlow == kTriOptDefault &&
+            _ctrl.defaultOuterGlow == kTriOptFollowDynamic);
   }
 
   @override
@@ -61,6 +68,7 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
     super.initState();
     _timeoutController = TextEditingController();
     _highlightColorController = TextEditingController();
+    _outEffectColorController = TextEditingController();
     _load();
   }
 
@@ -68,6 +76,7 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
   void dispose() {
     _timeoutController.dispose();
     _highlightColorController.dispose();
+    _outEffectColorController.dispose();
     super.dispose();
   }
 
@@ -91,6 +100,7 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
     final showRightHighlightFuture = widget.controller
         .getToastShowRightHighlight(pkg);
     final outerGlowFuture = widget.controller.getToastOuterGlow(pkg);
+    final outEffectColorFuture = widget.controller.getToastOutEffectColor(pkg);
 
     final forwardEnabled = await forwardEnabledFuture;
     final blockOriginal = await blockOriginalFuture;
@@ -104,6 +114,7 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
     final showLeftHighlight = await showLeftHighlightFuture;
     final showRightHighlight = await showRightHighlightFuture;
     final outerGlow = await outerGlowFuture;
+    final outEffectColor = await outEffectColorFuture;
 
     await widget.controller.setToastEnableFloat(pkg, kTriOptOff);
     await widget.controller.setToastPreserveSmallIcon(pkg, kTriOptOff);
@@ -122,8 +133,10 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
       _showLeftHighlight = showLeftHighlight == kTriOptOn;
       _showRightHighlight = showRightHighlight == kTriOptOn;
       _outerGlow = outerGlow;
+      _outEffectColor = outEffectColor;
       _timeoutController.text = timeout;
       _highlightColorController.text = highlightColor;
+      _outEffectColorController.text = outEffectColor;
       _loading = false;
     });
   }
@@ -226,6 +239,16 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
   Future<void> _setOuterGlow(String value) async {
     setState(() => _outerGlow = value);
     await widget.controller.setToastOuterGlow(widget.app.packageName, value);
+  }
+
+  Future<void> _setOutEffectColor(String value) async {
+    final normalized = value.trim();
+    if (normalized == _outEffectColor) return;
+    setState(() => _outEffectColor = normalized);
+    await widget.controller.setToastOutEffectColor(
+      widget.app.packageName,
+      normalized,
+    );
   }
 
   String _defaultLabel(BuildContext context, bool enabled) {
@@ -351,7 +374,7 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
                       label:
                           '${l10n.dynamicHighlightColorLabel}\n${l10n.dynamicHighlightColorLabelSubtitle}',
                       child: DropdownButtonFormField<String>(
-                        value: _dynamicHighlightColor,
+                        initialValue: _dynamicHighlightColor,
                         decoration: _fieldDecoration(context),
                         items: [
                           DropdownMenuItem(
@@ -434,11 +457,49 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
                       label: l10n.outerGlowLabel,
                       value: _outerGlow,
                       enabled: controlsEnabled,
-                      defaultLabel: _defaultLabel(
+                      defaultLabel: _outerGlowDefaultLabel(
                         context,
                         _ctrl.defaultOuterGlow,
                       ),
+                      extraOptions: [
+                        ButtonSegment<String>(
+                          value: kTriOptFollowDynamic,
+                          label: Text(l10n.followDynamicColorLabel),
+                        ),
+                      ],
                       onChanged: _setOuterGlow,
+                    ),
+                    const SizedBox(height: 10),
+                    _SettingField(
+                      label: l10n.outEffectColorLabel,
+                      child: ColorValueField(
+                        controller: _outEffectColorController,
+                        enabled: controlsEnabled && !_outerGlowFollowDynamic,
+                        readOnly: _outerGlowFollowDynamic,
+                        decoration: _fieldDecoration(
+                          context,
+                          hintText: '#AARRGGBB / #RRGGBB',
+                        ),
+                        previewColor: _parseColor(_outEffectColor),
+                        previewFallbackColor: cs.primary,
+                        onChanged: _setOutEffectColor,
+                        onClear: () {
+                          _outEffectColorController.clear();
+                          _setOutEffectColor('');
+                        },
+                        onPickColor: () async {
+                          final color = await showColorPickerDialog(
+                            context,
+                            initialHex: _outEffectColor,
+                            title: l10n.outEffectColorLabel,
+                            enableAlpha: true,
+                          );
+                          if (color == null) return;
+                          final hex = colorToArgbHex(color);
+                          _outEffectColorController.text = hex;
+                          await _setOutEffectColor(hex);
+                        },
+                      ),
                     ),
                   ],
                 ),
@@ -508,6 +569,7 @@ class _TriOptSegmented extends StatelessWidget {
     required this.defaultLabel,
     required this.onChanged,
     this.subtitle,
+    this.extraOptions = const [],
   });
 
   final String label;
@@ -516,6 +578,7 @@ class _TriOptSegmented extends StatelessWidget {
   final bool enabled;
   final String defaultLabel;
   final ValueChanged<String> onChanged;
+  final List<ButtonSegment<String>> extraOptions;
 
   @override
   Widget build(BuildContext context) {
@@ -530,6 +593,7 @@ class _TriOptSegmented extends StatelessWidget {
           ),
           ButtonSegment<String>(value: kTriOptOn, label: Text(l10n.optOn)),
           ButtonSegment<String>(value: kTriOptOff, label: Text(l10n.optOff)),
+          ...extraOptions,
         ],
         selected: {value},
         showSelectedIcon: false,
@@ -554,4 +618,14 @@ InputDecoration _fieldDecoration(
     filled: true,
     fillColor: cs.surface,
   );
+}
+
+String _outerGlowDefaultLabel(BuildContext context, String value) {
+  final l10n = AppLocalizations.of(context)!;
+  return switch (value) {
+    kTriOptOn => l10n.optDefaultOn,
+    kTriOptFollowDynamic =>
+      '${l10n.optDefault} (${l10n.followDynamicColorLabel})',
+    _ => l10n.optDefaultOff,
+  };
 }

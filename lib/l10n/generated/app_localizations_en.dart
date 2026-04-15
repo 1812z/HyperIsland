@@ -750,6 +750,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Use icon-based dynamic color by default';
 
   @override
+  String get followDynamicColorLabel => 'Follow dynamic color';
+
+  @override
   String get dynamicHighlightModeDark => 'Dark';
 
   @override

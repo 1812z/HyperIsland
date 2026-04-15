@@ -80,6 +80,12 @@ object GenericProgressHook : BaseHook() {
             else  -> if (globalDefault) "on" else "off"
         }
 
+    private fun resolveGlowMode(channelValue: String, globalDefault: String): String =
+        when (channelValue) {
+            "on", "off", "follow_dynamic" -> channelValue
+            else -> globalDefault
+        }
+
     private fun clearAllCaches() {
         cachedWhitelist = null
         cachedTemplates.clear()
@@ -268,11 +274,10 @@ object GenericProgressHook : BaseHook() {
             val defaultMarquee           = loadBooleanSetting("global:default_marquee",            "pref_default_marquee",            false)
             val defaultFocusNotif        = loadBooleanSetting("global:default_focus_notif",        "pref_default_focus_notif",        true)
             val defaultDynamicHighlightColor = loadBooleanSetting("global:default_dynamic_highlight_color", "pref_default_dynamic_highlight_color", false)
-            val defaultOuterGlow = loadBooleanSetting("global:default_outer_glow", "pref_default_outer_glow", false)
-            val defaultIslandOuterGlow = loadBooleanSetting(
-                "global:default_island_outer_glow",
+            val defaultOuterGlow = ConfigManager.getString("pref_default_outer_glow", "off")
+            val defaultIslandOuterGlow = ConfigManager.getString(
                 "pref_default_island_outer_glow",
-                false,
+                "off",
             )
             val defaultPreserveSmallIcon = loadBooleanSetting("global:default_preserve_small_icon","pref_default_preserve_small_icon", false)
             val defaultShowIslandIcon    = loadBooleanSetting("global:default_show_island_icon",   "pref_default_show_island_icon",   true)
@@ -365,13 +370,13 @@ object GenericProgressHook : BaseHook() {
             val outerGlowRaw = loadChannelStringSetting(
                 "outer_glow:$pkg/$channelId", "pref_channel_outer_glow_${pkg}_$channelId", "default"
             )
-            val outerGlow = resolveTriOpt(outerGlowRaw, defaultOuterGlow) == "on"
+            val resolvedOuterGlowMode = resolveGlowMode(outerGlowRaw, defaultOuterGlow)
             val islandOuterGlowRaw = loadChannelStringSetting(
                 "island_outer_glow:$pkg/$channelId",
                 "pref_channel_island_outer_glow_${pkg}_$channelId",
                 "default"
             )
-            val resolvedIslandOuterGlow = resolveTriOpt(islandOuterGlowRaw, defaultIslandOuterGlow) == "on"
+            val resolvedIslandOuterGlowMode = resolveGlowMode(islandOuterGlowRaw, defaultIslandOuterGlow)
             val islandOuterGlowColor = loadChannelStringSetting(
                 "island_outer_glow_color:$pkg/$channelId",
                 "pref_channel_island_outer_glow_color_${pkg}_$channelId",
@@ -382,8 +387,16 @@ object GenericProgressHook : BaseHook() {
                 "pref_channel_out_effect_color_${pkg}_$channelId",
                 ConfigManager.getString("pref_default_out_effect_color", ""),
             ).takeIf { it.isNotBlank() }
+            val resolvedOutEffectColor = when (resolvedOuterGlowMode) {
+                "follow_dynamic" -> resolvedHighlightColor
+                else -> outEffectColor
+            }
+            val resolvedIslandOuterGlowColor = when (resolvedIslandOuterGlowMode) {
+                "follow_dynamic" -> resolvedHighlightColor
+                else -> islandOuterGlowColor
+            }
 
-            if (resolvedIslandOuterGlow) {
+            if (resolvedIslandOuterGlowMode != "off") {
                 extras.putString("miui.bigIsland.effect.src", EFFECT_SRC)
                 extras.putString("miui.effect.src", EFFECT_SRC)
             } else {
@@ -424,10 +437,10 @@ object GenericProgressHook : BaseHook() {
                     showRightHighlightColor = showRightHighlight,
                     showLeftNarrowFont = showLeftNarrowFont,
                     showRightNarrowFont = showRightNarrowFont,
-                    outerGlow = outerGlow,
-                    islandOuterGlow = resolvedIslandOuterGlow,
-                    islandOuterGlowColor = islandOuterGlowColor,
-                    outEffectColor = outEffectColor,
+                    outerGlow = resolvedOuterGlowMode != "off",
+                    islandOuterGlow = resolvedIslandOuterGlowMode != "off",
+                    islandOuterGlowColor = resolvedIslandOuterGlowColor,
+                    outEffectColor = resolvedOutEffectColor,
                     focusCustomizationJson = focusCustomizationJson,
                     islandCustomizationJson = islandCustomizationJson,
                 ),

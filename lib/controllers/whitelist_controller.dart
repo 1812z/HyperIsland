@@ -60,6 +60,7 @@ const kIconModeAppIcon = 'app_icon';
 const kTriOptDefault = 'default';
 const kTriOptOn = 'on';
 const kTriOptOff = 'off';
+const kTriOptFollowDynamic = 'follow_dynamic';
 
 class ChannelInfo {
   final String id;
@@ -524,6 +525,7 @@ class WhitelistController extends ChangeNotifier {
     String? showLeftHighlight,
     String? showRightHighlight,
     String? outerGlow,
+    String? outEffectColor,
   }) async {
     if (packages.isEmpty) return;
     final prefs = await SharedPreferences.getInstance();
@@ -581,6 +583,14 @@ class WhitelistController extends ChangeNotifier {
       }
       if (outerGlow != null) {
         await prefs.setString(_prefToastOuterGlowKey(pkg), outerGlow);
+      }
+      if (outEffectColor != null) {
+        final key = _prefToastOutEffectColorKey(pkg);
+        if (outEffectColor.isEmpty) {
+          await prefs.remove(key);
+        } else {
+          await prefs.setString(key, outEffectColor);
+        }
       }
     }
     if (forwardEnabled != null) {

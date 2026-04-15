@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'whitelist_controller.dart';
+
 const kPrefShowWelcome = 'pref_show_welcome';
 const kPrefResumeNotification = 'pref_resume_notification';
 const kPrefUseHookAppIcon = 'pref_use_hook_app_icon';
@@ -123,8 +125,8 @@ class SettingsController extends ChangeNotifier {
   bool defaultMarquee = false;
   bool defaultFocusNotif = true;
   bool defaultDynamicHighlightColor = false;
-  bool defaultOuterGlow = false;
-  bool defaultIslandOuterGlow = false;
+  String defaultOuterGlow = kTriOptOff;
+  String defaultIslandOuterGlow = kTriOptOff;
   bool hideDesktopIcon = false;
   bool defaultRestoreLockscreen = false;
   bool defaultPreserveSmallIcon = false;
@@ -176,9 +178,16 @@ class SettingsController extends ChangeNotifier {
     defaultFocusNotif = prefs.getBool(kPrefDefaultFocusNotif) ?? true;
     defaultDynamicHighlightColor =
         prefs.getBool(kPrefDefaultDynamicHighlightColor) ?? false;
-    defaultOuterGlow = prefs.getBool(kPrefDefaultOuterGlow) ?? false;
-    defaultIslandOuterGlow =
-        prefs.getBool(kPrefDefaultIslandOuterGlow) ?? false;
+    defaultOuterGlow = _readOuterGlowMode(
+      prefs,
+      modeKey: kPrefDefaultOuterGlow,
+      legacyBoolKey: kPrefDefaultOuterGlow,
+    );
+    defaultIslandOuterGlow = _readOuterGlowMode(
+      prefs,
+      modeKey: kPrefDefaultIslandOuterGlow,
+      legacyBoolKey: kPrefDefaultIslandOuterGlow,
+    );
     hideDesktopIcon = prefs.getBool(kPrefHideDesktopIcon) ?? false;
     defaultShowIslandIcon = prefs.getBool(kPrefDefaultShowIslandIcon) ?? true;
     defaultRestoreLockscreen =
@@ -355,18 +364,36 @@ class SettingsController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setDefaultOuterGlow(bool value) async {
+  String _readOuterGlowMode(
+    SharedPreferences prefs, {
+    required String modeKey,
+    required String legacyBoolKey,
+  }) {
+    final stored = prefs.getString(modeKey);
+    if (stored == kTriOptOn ||
+        stored == kTriOptOff ||
+        stored == kTriOptFollowDynamic) {
+      return stored!;
+    }
+    final legacy = prefs.getBool(legacyBoolKey);
+    if (legacy != null) {
+      return legacy ? kTriOptOn : kTriOptOff;
+    }
+    return kTriOptOff;
+  }
+
+  Future<void> setDefaultOuterGlow(String value) async {
     if (defaultOuterGlow == value) return;
     final prefs = await _getPrefs();
-    await prefs.setBool(kPrefDefaultOuterGlow, value);
+    await prefs.setString(kPrefDefaultOuterGlow, value);
     defaultOuterGlow = value;
     notifyListeners();
   }
 
-  Future<void> setDefaultIslandOuterGlow(bool value) async {
+  Future<void> setDefaultIslandOuterGlow(String value) async {
     if (defaultIslandOuterGlow == value) return;
     final prefs = await _getPrefs();
-    await prefs.setBool(kPrefDefaultIslandOuterGlow, value);
+    await prefs.setString(kPrefDefaultIslandOuterGlow, value);
     defaultIslandOuterGlow = value;
     notifyListeners();
   }

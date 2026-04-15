@@ -211,26 +211,42 @@ object IslandOuterGlowHook : BaseHook() {
     private fun resolveGlowColorConfig(mode: Int, pkg: String, channelId: String): GlowConfig {
         return when (mode) {
             GLOW_MODE_STATUS -> GlowConfig(
-                effectEnabled = resolveTriOpt(
+                effectEnabled = resolveGlowEnabled(
                     ConfigManager.getString("pref_channel_island_outer_glow_${pkg}_$channelId", "default"),
-                    ConfigManager.getBoolean("pref_default_island_outer_glow", false),
+                    ConfigManager.getString("pref_default_island_outer_glow", "off"),
                 ),
                 colorArgb = parseArgbColor(
-                    ConfigManager.getString(
-                        "pref_channel_island_outer_glow_color_${pkg}_$channelId",
-                        ConfigManager.getString("pref_default_island_outer_glow_color", ""),
+                    resolveGlowColorValue(
+                        mode = ConfigManager.getString("pref_channel_island_outer_glow_${pkg}_$channelId", "default"),
+                        fallbackMode = ConfigManager.getString("pref_default_island_outer_glow", "off"),
+                        manualColor = ConfigManager.getString(
+                            "pref_channel_island_outer_glow_color_${pkg}_$channelId",
+                            ConfigManager.getString("pref_default_island_outer_glow_color", ""),
+                        ),
+                        dynamicColor = ConfigManager.getString(
+                            "pref_channel_highlight_color_${pkg}_$channelId",
+                            "",
+                        ),
                     ),
                 ),
             )
             GLOW_MODE_EXPAND -> GlowConfig(
-                effectEnabled = resolveTriOpt(
+                effectEnabled = resolveGlowEnabled(
                     ConfigManager.getString("pref_channel_outer_glow_${pkg}_$channelId", "default"),
-                    ConfigManager.getBoolean("pref_default_outer_glow", false),
+                    ConfigManager.getString("pref_default_outer_glow", "off"),
                 ),
                 colorArgb = parseArgbColor(
-                    ConfigManager.getString(
-                        "pref_channel_out_effect_color_${pkg}_$channelId",
-                        ConfigManager.getString("pref_default_out_effect_color", ""),
+                    resolveGlowColorValue(
+                        mode = ConfigManager.getString("pref_channel_outer_glow_${pkg}_$channelId", "default"),
+                        fallbackMode = ConfigManager.getString("pref_default_outer_glow", "off"),
+                        manualColor = ConfigManager.getString(
+                            "pref_channel_out_effect_color_${pkg}_$channelId",
+                            ConfigManager.getString("pref_default_out_effect_color", ""),
+                        ),
+                        dynamicColor = ConfigManager.getString(
+                            "pref_channel_highlight_color_${pkg}_$channelId",
+                            "",
+                        ),
                     ),
                 ),
             )
@@ -266,12 +282,28 @@ object IslandOuterGlowHook : BaseHook() {
         return target.mode == mode
     }
 
-    private fun resolveTriOpt(value: String?, defaultValue: Boolean): Boolean {
+    private fun resolveGlowEnabled(value: String?, defaultValue: String): Boolean {
         return when (value?.trim()?.lowercase()) {
-            "on" -> true
+            "on", "follow_dynamic" -> true
             "off" -> false
-            else -> defaultValue
+            else -> when (defaultValue.trim().lowercase()) {
+                "on", "follow_dynamic" -> true
+                else -> false
+            }
         }
+    }
+
+    private fun resolveGlowColorValue(
+        mode: String?,
+        fallbackMode: String,
+        manualColor: String?,
+        dynamicColor: String?,
+    ): String? {
+        val resolvedMode = when (mode?.trim()?.lowercase()) {
+            "on", "off", "follow_dynamic" -> mode.trim().lowercase()
+            else -> fallbackMode.trim().lowercase()
+        }
+        return if (resolvedMode == "follow_dynamic") dynamicColor else manualColor
     }
 
     private fun parseArgbColor(raw: String?): Int? {
