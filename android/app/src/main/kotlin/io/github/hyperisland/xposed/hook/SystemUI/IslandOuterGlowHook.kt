@@ -24,8 +24,7 @@ object IslandOuterGlowHook : BaseHook() {
     private const val ANIMATION_CONTROLLER_CLASS = "miui.systemui.dynamicisland.anim.DynamicIslandAnimationController"
     private const val GLOW_VIEW_CLASS = "miui.systemui.dynamicisland.view.DynamicGlowEffectView"
     private const val FOCUS_CONTROLLER_CLASS = "miui.systemui.notification.focus.FocusNotificationController"
-    private const val LIGHT_BG_SHADER_CLASS = "com.mi.widget.shader.LightBgShader"
-
+    private const val LIGHT_BG_SHADER_FIELD = "U_LIGHT_COLORS"
     private const val BIG_VIEW_MARKER = "DynamicIslandBigIslandView"
     private const val EXPANDED_VIEW_MARKER = "DynamicIslandExpandedView"
     private const val LIGHT_COLOR_ARRAY_SIZE = 33
@@ -51,7 +50,6 @@ object IslandOuterGlowHook : BaseHook() {
     private val hookedAnimationClassLoaders = ConcurrentHashMap.newKeySet<Int>()
     private val hookedFeatureClassLoaders = ConcurrentHashMap.newKeySet<Int>()
     private val hookedFocusClassLoaders = ConcurrentHashMap.newKeySet<Int>()
-    private val hookedShaderClassLoaders = ConcurrentHashMap.newKeySet<Int>()
     private val defaultShaderColors = WeakHashMap<Class<*>, FloatArray>()
 
     @Volatile private var recentOwnedTarget: OwnedGlowTarget? = null
@@ -64,11 +62,9 @@ object IslandOuterGlowHook : BaseHook() {
         hookAnimationController(module, param.defaultClassLoader)
         hookGlowView(module, param.defaultClassLoader)
         hookFocusExtrasBridge(module, param.defaultClassLoader)
-        hookLightBgShaderDefaults(module, param.defaultClassLoader)
     }
 
     override fun onConfigChanged() {
-        recentOwnedTarget = null
         synchronized(defaultShaderColors) {
             defaultShaderColors.clear()
         }
@@ -80,7 +76,6 @@ object IslandOuterGlowHook : BaseHook() {
             hookAnimationController(module, cl)
             hookGlowView(module, cl)
             hookFocusExtrasBridge(module, cl)
-            hookLightBgShaderDefaults(module, cl)
         }
     }
 
@@ -106,7 +101,6 @@ object IslandOuterGlowHook : BaseHook() {
             val methods = clazz.declaredMethods.filter { it.name == "onStateChange" && it.parameterCount >= 1 }
             methods.forEach { method ->
                 module.hook(method).intercept { chain ->
-                    val result = chain.proceed()
                     val stateObj = chain.args.getOrNull(0)
                     val mode = resolveStrictGlowMode(stateObj)
                     val extras = extractExtrasFromAnimationState(stateObj)
@@ -123,6 +117,8 @@ object IslandOuterGlowHook : BaseHook() {
                             )
                         }
                     }
+
+                    val result = chain.proceed()
 
                     val bigView = invokeNoArg(stateObj ?: return@intercept result, "getBigIslandView")
                     when {
@@ -151,7 +147,7 @@ object IslandOuterGlowHook : BaseHook() {
             }
             methods.forEach { method ->
                 module.hook(method).intercept { chain ->
-                    applyOwnedGlowColor(chain.thisObject)
+                    applyOwnedGlowColor(chain.thisObject, resolveGlowModeFromGlowView(chain.thisObject))
                     chain.proceed()
                 }
             }
@@ -182,30 +178,6 @@ object IslandOuterGlowHook : BaseHook() {
                 }
             }
             if (methods.isNotEmpty()) log(module, "hooked focus extras bridge on ${clazz.name}")
-        } catch (_: Throwable) {
-        }
-    }
-
-    private fun hookLightBgShaderDefaults(module: XposedModule, classLoader: ClassLoader) {
-        val clId = System.identityHashCode(classLoader)
-        if (!hookedShaderClassLoaders.add(clId)) return
-        try {
-            val clazz = classLoader.loadClass(LIGHT_BG_SHADER_CLASS)
-            clazz.declaredConstructors.forEach { ctor ->
-                module.hook(ctor).intercept { chain ->
-                    val result = chain.proceed()
-                    val target = recentOwnedTarget
-                    if (target != null && System.currentTimeMillis() - target.createdAt <= RECENT_TTL_MS) {
-                        resolveGlowColorConfig(target.mode, target.pkg, target.channelId).colorArgb?.let { argb ->
-                            val field = findLightColorField(clazz, preferStatic = true)
-                            val base = readStaticLightColors(field) ?: normalizeTemplatePalette(FloatArray(0))
-                            field?.set(null, rebuildLightShaderArray(base, argb))
-                        }
-                    }
-                    result
-                }
-            }
-            log(module, "hooked LightBgShader defaults on ${clazz.name}")
         } catch (_: Throwable) {
         }
     }
@@ -260,22 +232,32 @@ object IslandOuterGlowHook : BaseHook() {
         }
     }
 
-    private fun applyOwnedGlowColor(glowView: Any?) {
+    private fun applyOwnedGlowColor(glowView: Any?, mode: Int) {
         if (glowView == null) return
-        val mode = resolveGlowModeFromGlowView(glowView)
+        if (!shouldApplyOwnedGlowForMode(mode)) return
         val target = recentOwnedTarget ?: return
         if (mode == GLOW_MODE_AUTO || target.mode != mode) return
         if (System.currentTimeMillis() - target.createdAt > RECENT_TTL_MS) return
 
         val cfg = resolveGlowColorConfig(mode, target.pkg, target.channelId)
-        if (!cfg.effectEnabled || cfg.colorArgb == null) return
-
         val shader = resolveLightBgShader(glowView) ?: return
         val runtimeShader = resolveRuntimeShader(shader) ?: return
         val shaderClass = shader.javaClass
         val base = obtainDefaultLightColors(shaderClass) ?: readInstanceLightColors(shader) ?: return
         cacheDefaultLightColors(shaderClass, base)
-        setRuntimeShaderLightColors(runtimeShader, rebuildLightShaderArray(base, cfg.colorArgb))
+        val targetColors = if (!cfg.effectEnabled || cfg.colorArgb == null) {
+            base
+        } else {
+            rebuildLightShaderArray(base, cfg.colorArgb)
+        }
+        setRuntimeShaderLightColors(runtimeShader, targetColors)
+    }
+
+    private fun shouldApplyOwnedGlowForMode(mode: Int): Boolean {
+        if (mode == GLOW_MODE_AUTO) return false
+        val target = recentOwnedTarget ?: return false
+        if (System.currentTimeMillis() - target.createdAt > RECENT_TTL_MS) return false
+        return target.mode == mode
     }
 
     private fun resolveTriOpt(value: String?, defaultValue: Boolean): Boolean {
@@ -381,6 +363,15 @@ object IslandOuterGlowHook : BaseHook() {
     }
 
     private fun resolveRuntimeShader(shader: Any): Any? {
+        invokeNoArg(shader, "getMTextureShader")?.let { return it }
+        shader.javaClass.declaredMethods.forEach { method ->
+            if (method.parameterCount == 0 && method.name.contains("getMTextureShader")) {
+                runCatching {
+                    method.isAccessible = true
+                    method.invoke(shader)
+                }.getOrNull()?.let { return it }
+            }
+        }
         invokeNoArg(shader, "getRuntimeShader")?.let { return it }
         invokeNoArg(shader, "getMRuntimeShader")?.let { return it }
         return readFieldValue(shader, "mRuntimeShader")
@@ -412,6 +403,11 @@ object IslandOuterGlowHook : BaseHook() {
     }
 
     private fun findLightColorField(clazz: Class<*>, preferStatic: Boolean): Field? {
+        runCatching {
+            val exact = clazz.getDeclaredField(LIGHT_BG_SHADER_FIELD)
+            exact.isAccessible = true
+            return exact
+        }
         val fields = clazz.declaredFields.filter {
             it.type == FloatArray::class.java && it.name.contains("LIGHT", ignoreCase = true)
         }
@@ -420,10 +416,11 @@ object IslandOuterGlowHook : BaseHook() {
     }
 
     private fun setRuntimeShaderLightColors(runtimeShader: Any, colors: FloatArray) {
-        val method = runtimeShader.javaClass.declaredMethods.firstOrNull {
-            it.parameterCount == 2 &&
+        val method = (runtimeShader.javaClass.methods + runtimeShader.javaClass.declaredMethods).firstOrNull {
+            it.name == "setFloatUniform" &&
+                it.parameterCount == 2 &&
                 it.parameterTypes.getOrNull(0) == String::class.java &&
-                it.parameterTypes.getOrNull(1) == FloatArray::class.java
+                it.parameterTypes.getOrNull(1)?.isArray == true
         } ?: return
         runCatching {
             method.isAccessible = true

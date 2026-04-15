@@ -1553,7 +1553,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                   ),
                   SizedBox(height: rowGap),
                   _SettingField(
-                    label: '${l10n.outEffectColorLabel} (Super Island)',
+                    label: '${l10n.outEffectColorLabel} (Island)',
                     child: ColorValueField(
                       controller: _islandOuterGlowColorController,
                       decoration: _fieldDecoration(
