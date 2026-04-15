@@ -192,6 +192,12 @@ abstract class AppLocalizations {
   /// **'赞助作者'**
   String get sponsorAuthor;
 
+  /// No description provided for @donorList.
+  ///
+  /// In zh, this message translates to:
+  /// **'捐赠名单'**
+  String get donorList;
+
   /// No description provided for @documentation.
   ///
   /// In zh, this message translates to:

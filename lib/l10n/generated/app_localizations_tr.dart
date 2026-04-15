@@ -58,6 +58,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get sponsorAuthor => 'Sponsor Ol';
 
   @override
+  String get donorList => 'Bagiscilar Listesi';
+
+  @override
   String get documentation => 'Dokümantasyon';
 
   @override

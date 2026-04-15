@@ -34,6 +34,7 @@
   "goUpdate": "Update",
   "sponsorSupport": "Support the Author",
   "sponsorAuthor": "Sponsor",
+  "donorList": "Donor List",
   "documentation": "Documentation",
   "versionUpdatedTitle": "Updated to {version}",
   "@versionUpdatedTitle": {

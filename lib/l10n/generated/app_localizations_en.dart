@@ -58,6 +58,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sponsorAuthor => 'Sponsor';
 
   @override
+  String get donorList => 'Donor List';
+
+  @override
   String get documentation => 'Documentation';
 
   @override

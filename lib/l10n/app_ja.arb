@@ -31,6 +31,7 @@
   "goUpdate": "更新",
   "sponsorSupport": "作者をサポートする",
   "sponsorAuthor": "スポンサー",
+  "donorList": "寄付者一覧",
   "documentation": "ドキュメント",
   "versionUpdatedTitle": "{version} に更新されました",
   "@versionUpdatedTitle": {

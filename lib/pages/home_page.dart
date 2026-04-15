@@ -50,6 +50,7 @@ class _HomePageState extends State<HomePage> {
 
   void _showSponsorDialog() {
     final l10n = AppLocalizations.of(context)!;
+    const donorsUrl = 'https://hyperisland.1812z.top/donors.html';
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
@@ -81,9 +82,22 @@ class _HomePageState extends State<HomePage> {
               borderRadius: const BorderRadius.vertical(
                 bottom: Radius.circular(16),
               ),
-              child: Image.asset(
-                'assets/images/wechat.jpg',
-                fit: BoxFit.contain,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Image.asset('assets/images/wechat.jpg', fit: BoxFit.contain),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => launchUrl(Uri.parse(donorsUrl)),
+                        icon: const Icon(Icons.format_list_bulleted),
+                        label: Text(l10n.donorList),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

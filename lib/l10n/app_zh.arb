@@ -32,6 +32,7 @@
   "goUpdate": "前往更新",
   "sponsorSupport": "赞助支持",
   "sponsorAuthor": "赞助作者",
+  "donorList": "捐赠名单",
   "documentation": "文档",
   "versionUpdatedTitle": "已更新至 {version}",
   "@versionUpdatedTitle": {

@@ -34,6 +34,7 @@
   "goUpdate": "Güncelle",
   "sponsorSupport": "Geliştiriciyi Destekle",
   "sponsorAuthor": "Sponsor Ol",
+  "donorList": "Bagiscilar Listesi",
   "documentation": "Dokümantasyon",
   "versionUpdatedTitle": "{version} sürümüne güncellendi",
   "@versionUpdatedTitle": {
