@@ -322,6 +322,11 @@
   "marqueeChannelTitleSubtitle": "Whether to scroll long messages on Island",
   "focusNotificationLabelSubtitle": "Replace notification with focus notification (shows original notification when disabled)",
   "preserveStatusBarSmallIconLabelSubtitle": "Whether to force keep status bar icon when focus notification is displayed",
+  "fullscreenBehaviorTitle": "Fullscreen behavior",
+  "fullscreenBehaviorSubtitle": "Notification strategy when landscape/fullscreen is detected",
+  "fullscreenBehaviorOff": "Off",
+  "fullscreenBehaviorFallback": "Fallback to normal notification",
+  "fullscreenBehaviorExpand": "Auto expand notification",
 
   "aiConfigSection": "AI Enhancement",
   "aiConfigTitle": "AI Notification Summary",

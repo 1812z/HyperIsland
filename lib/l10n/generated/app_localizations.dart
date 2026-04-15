@@ -1722,6 +1722,36 @@ abstract class AppLocalizations {
   /// **'焦点通知打开时，是否强制保留状态栏小图标'**
   String get preserveStatusBarSmallIconLabelSubtitle;
 
+  /// No description provided for @fullscreenBehaviorTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'全屏时行为'**
+  String get fullscreenBehaviorTitle;
+
+  /// No description provided for @fullscreenBehaviorSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'检测到横屏/全屏时的通知处理策略'**
+  String get fullscreenBehaviorSubtitle;
+
+  /// No description provided for @fullscreenBehaviorOff.
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭'**
+  String get fullscreenBehaviorOff;
+
+  /// No description provided for @fullscreenBehaviorFallback.
+  ///
+  /// In zh, this message translates to:
+  /// **'回退普通通知'**
+  String get fullscreenBehaviorFallback;
+
+  /// No description provided for @fullscreenBehaviorExpand.
+  ///
+  /// In zh, this message translates to:
+  /// **'自动展开通知'**
+  String get fullscreenBehaviorExpand;
+
   /// No description provided for @aiConfigSection.
   ///
   /// In zh, this message translates to:

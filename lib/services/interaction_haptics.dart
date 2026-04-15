@@ -71,6 +71,18 @@ class InteractionHaptics {
     };
   }
 
+  static ValueChanged<T?>? interceptDropdown<T>(
+    FutureOr<void> Function(T? value)? onChanged, {
+    bool force = false,
+  }) {
+    if (onChanged == null) return null;
+    return (value) {
+      unawaited(toggle(force: force));
+      final result = onChanged(value);
+      if (result is Future<void>) unawaited(result);
+    };
+  }
+
   static ValueChanged<double>? interceptSlider(
     ValueChanged<double>? onChanged, {
     bool force = false,

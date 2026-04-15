@@ -891,6 +891,21 @@ class AppLocalizationsJa extends AppLocalizations {
       'フォーカス通知を表示時にステータスバーアイコンを強制的に保持します';
 
   @override
+  String get fullscreenBehaviorTitle => '全画面時の動作';
+
+  @override
+  String get fullscreenBehaviorSubtitle => '横画面/全画面を検出したときの通知処理方式';
+
+  @override
+  String get fullscreenBehaviorOff => 'オフ';
+
+  @override
+  String get fullscreenBehaviorFallback => '通常通知へフォールバック';
+
+  @override
+  String get fullscreenBehaviorExpand => '通知を自動展開';
+
+  @override
   String get aiConfigSection => 'AI エンハンスメント';
 
   @override

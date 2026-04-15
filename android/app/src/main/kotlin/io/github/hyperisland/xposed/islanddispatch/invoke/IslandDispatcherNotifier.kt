@@ -22,12 +22,22 @@ import io.github.hyperisland.xposed.islanddispatch.definition.IslandDispatchCont
 import io.github.hyperisland.xposed.islanddispatch.definition.IslandRequest
 import io.github.hyperisland.xposed.log
 import io.github.hyperisland.xposed.logError
+import io.github.hyperisland.xposed.utils.FullscreenBehavior
 import io.github.hyperisland.xposed.utils.toRounded
 
 internal object IslandDispatcherNotifier {
 
     fun post(context: Context, request: IslandRequest) {
         try {
+            val fullscreenMode = FullscreenBehavior.mode()
+            val fullscreenDetected = FullscreenBehavior.isFullscreenLike(context)
+            if (fullscreenDetected && fullscreenMode == FullscreenBehavior.MODE_FALLBACK) {
+                IslandDispatchState.module?.log(
+                    "${IslandDispatchContract.TAG}: skip dispatcher post in fullscreen fallback",
+                )
+                return
+            }
+
             val nm = context.getSystemService(NotificationManager::class.java) ?: return
             ensureChannel(context)
 
@@ -46,8 +56,23 @@ internal object IslandDispatcherNotifier {
                 title = request.title,
                 content = request.content,
             )
-            islandBuilder.setIslandFirstFloat(request.firstFloat)
-            islandBuilder.setEnableFloat(request.enableFloat)
+            val effectiveFirstFloat = if (
+                fullscreenDetected && fullscreenMode == FullscreenBehavior.MODE_EXPAND
+            ) {
+                true
+            } else {
+                request.firstFloat
+            }
+            val effectiveEnableFloat = if (
+                fullscreenDetected && fullscreenMode == FullscreenBehavior.MODE_EXPAND
+            ) {
+                true
+            } else {
+                request.enableFloat
+            }
+
+            islandBuilder.setIslandFirstFloat(effectiveFirstFloat)
+            islandBuilder.setEnableFloat(effectiveEnableFloat)
             islandBuilder.setShowNotification(request.showNotification)
             islandBuilder.setIslandConfig(timeout = request.timeoutSecs)
             islandBuilder.setSmallIsland("key_island_icon")

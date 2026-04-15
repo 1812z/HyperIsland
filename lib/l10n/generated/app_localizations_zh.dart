@@ -881,6 +881,21 @@ class AppLocalizationsZh extends AppLocalizations {
   String get preserveStatusBarSmallIconLabelSubtitle => '焦点通知打开时，是否强制保留状态栏小图标';
 
   @override
+  String get fullscreenBehaviorTitle => '全屏时行为';
+
+  @override
+  String get fullscreenBehaviorSubtitle => '检测到横屏/全屏时的通知处理策略';
+
+  @override
+  String get fullscreenBehaviorOff => '关闭';
+
+  @override
+  String get fullscreenBehaviorFallback => '回退普通通知';
+
+  @override
+  String get fullscreenBehaviorExpand => '自动展开通知';
+
+  @override
   String get aiConfigSection => 'AI 增强';
 
   @override

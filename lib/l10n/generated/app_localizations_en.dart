@@ -920,6 +920,22 @@ class AppLocalizationsEn extends AppLocalizations {
       'Whether to force keep status bar icon when focus notification is displayed';
 
   @override
+  String get fullscreenBehaviorTitle => 'Fullscreen behavior';
+
+  @override
+  String get fullscreenBehaviorSubtitle =>
+      'Notification strategy when landscape/fullscreen is detected';
+
+  @override
+  String get fullscreenBehaviorOff => 'Off';
+
+  @override
+  String get fullscreenBehaviorFallback => 'Fallback to normal notification';
+
+  @override
+  String get fullscreenBehaviorExpand => 'Auto expand notification';
+
+  @override
   String get aiConfigSection => 'AI Enhancement';
 
   @override

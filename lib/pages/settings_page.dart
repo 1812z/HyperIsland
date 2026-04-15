@@ -42,6 +42,7 @@ class _SettingsPageState extends State<SettingsPage> {
     _ctrl.defaultFocusNotif,
     _ctrl.defaultPreserveSmallIcon,
     _ctrl.defaultRestoreLockscreen,
+    _ctrl.fullscreenBehavior,
     _ctrl.defaultShowIslandIcon,
     _ctrl.roundIcon,
     _ctrl.marqueeSpeed,
@@ -116,6 +117,11 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _onHideDesktopIconChanged(bool value) async {
     await _ctrl.setHideDesktopIcon(value);
+  }
+
+  Future<void> _onFullscreenBehaviorChanged(String? value) async {
+    if (value == null) return;
+    await _ctrl.setFullscreenBehavior(value);
   }
 
   void _onMarqueeSpeedChanged(double value) {
@@ -237,6 +243,14 @@ class _SettingsPageState extends State<SettingsPage> {
       'ja' => l10n.languageJa,
       'tr' => l10n.languageTr,
       _ => _ctrl.locale!.languageCode,
+    };
+  }
+
+  String _fullscreenBehaviorLabel(AppLocalizations l10n, String value) {
+    return switch (value) {
+      'fallback' => l10n.fullscreenBehaviorFallback,
+      'expand' => l10n.fullscreenBehaviorExpand,
+      _ => l10n.fullscreenBehaviorOff,
     };
   }
 
@@ -408,6 +422,58 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                       child: Column(
                         children: [
+                          ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
+                            title: Text(
+                              l10n.fullscreenBehaviorTitle,
+                              style: titleStyle,
+                            ),
+                            subtitle: Text(
+                              l10n.fullscreenBehaviorSubtitle,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: cs.onSurfaceVariant),
+                            ),
+                            trailing: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: _ctrl.fullscreenBehavior,
+                                onChanged: InteractionHaptics.interceptDropdown(
+                                  _onFullscreenBehaviorChanged,
+                                ),
+                                items: [
+                                  DropdownMenuItem<String>(
+                                    value: 'off',
+                                    child: Text(
+                                      _fullscreenBehaviorLabel(l10n, 'off'),
+                                    ),
+                                  ),
+                                  DropdownMenuItem<String>(
+                                    value: 'fallback',
+                                    child: Text(
+                                      _fullscreenBehaviorLabel(
+                                        l10n,
+                                        'fallback',
+                                      ),
+                                    ),
+                                  ),
+                                  DropdownMenuItem<String>(
+                                    value: 'expand',
+                                    child: Text(
+                                      _fullscreenBehaviorLabel(l10n, 'expand'),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(16),
+                              ),
+                            ),
+                          ),
+                          const Divider(height: 1, indent: 16, endIndent: 16),
                           SwitchListTile(
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 16,
@@ -422,11 +488,6 @@ class _SettingsPageState extends State<SettingsPage> {
                             onChanged: InteractionHaptics.interceptToggle(
                               (value) => _ctrl.setInteractionHaptics(value),
                               force: true,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(
-                                top: Radius.circular(16),
-                              ),
                             ),
                           ),
                           const Divider(height: 1, indent: 16, endIndent: 16),

@@ -377,6 +377,11 @@
   "marqueeChannelTitleSubtitle": "Bu ayar açık olduğunda uzun metin Ada üzerinde kayarak gösterilir.",
   "focusNotificationLabelSubtitle": "Bu ayar açık olduğunda normal bildirim yerine odak bildirimi gösterilir. Kapalıysa normal bildirim gösterilir.",
   "preserveStatusBarSmallIconLabelSubtitle": "Bu ayar açık olduğunda odak bildirimi sırasında durum çubuğu küçük simgesi görünür kalır.",
+  "fullscreenBehaviorTitle": "Tam ekran davranışı",
+  "fullscreenBehaviorSubtitle": "Yatay/tam ekran algılandığında bildirim stratejisi",
+  "fullscreenBehaviorOff": "Kapalı",
+  "fullscreenBehaviorFallback": "Normal bildirime dön",
+  "fullscreenBehaviorExpand": "Bildirimi otomatik genişlet",
 
   "aiConfigSection": "AI Geliştirmeleri",
   "aiConfigTitle": "AI Bildirim Özeti",

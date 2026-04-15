@@ -489,6 +489,11 @@
   "marqueeChannelTitleSubtitle": "超级岛消息过长是否滚动显示",
   "focusNotificationLabelSubtitle": "替换通知为焦点通知（关闭后显示原始通知）",
   "preserveStatusBarSmallIconLabelSubtitle": "焦点通知打开时，是否强制保留状态栏小图标",
+  "fullscreenBehaviorTitle": "全屏时行为",
+  "fullscreenBehaviorSubtitle": "检测到横屏/全屏时的通知处理策略",
+  "fullscreenBehaviorOff": "关闭",
+  "fullscreenBehaviorFallback": "回退普通通知",
+  "fullscreenBehaviorExpand": "自动展开通知",
 
   "aiConfigSection": "AI 增强",
   "aiConfigTitle": "AI 通知摘要",

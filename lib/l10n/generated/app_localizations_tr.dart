@@ -925,6 +925,22 @@ class AppLocalizationsTr extends AppLocalizations {
       'Bu ayar açık olduğunda odak bildirimi sırasında durum çubuğu küçük simgesi görünür kalır.';
 
   @override
+  String get fullscreenBehaviorTitle => 'Tam ekran davranışı';
+
+  @override
+  String get fullscreenBehaviorSubtitle =>
+      'Yatay/tam ekran algılandığında bildirim stratejisi';
+
+  @override
+  String get fullscreenBehaviorOff => 'Kapalı';
+
+  @override
+  String get fullscreenBehaviorFallback => 'Normal bildirime dön';
+
+  @override
+  String get fullscreenBehaviorExpand => 'Bildirimi otomatik genişlet';
+
+  @override
   String get aiConfigSection => 'AI Geliştirmeleri';
 
   @override

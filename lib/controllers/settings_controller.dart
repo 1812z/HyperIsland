@@ -28,6 +28,7 @@ const kPrefDefaultDynamicHighlightColor =
 const kPrefDefaultOuterGlow = 'pref_default_outer_glow';
 const kPrefDefaultRestoreLockscreen = 'pref_default_restore_lockscreen';
 const kPrefDefaultPreserveSmallIcon = 'pref_default_preserve_small_icon';
+const kPrefFullscreenBehavior = 'pref_fullscreen_behavior';
 const kPrefHideDesktopIcon = 'pref_hide_desktop_icon';
 const kPrefAiEnabled = 'pref_ai_enabled';
 const kPrefAiUrl = 'pref_ai_url';
@@ -123,6 +124,7 @@ class SettingsController extends ChangeNotifier {
   bool hideDesktopIcon = false;
   bool defaultRestoreLockscreen = false;
   bool defaultPreserveSmallIcon = false;
+  String fullscreenBehavior = 'off';
   bool aiEnabled = false;
   String aiUrl = '';
   String aiApiKey = '';
@@ -175,6 +177,7 @@ class SettingsController extends ChangeNotifier {
         prefs.getBool(kPrefDefaultRestoreLockscreen) ?? false;
     defaultPreserveSmallIcon =
         prefs.getBool(kPrefDefaultPreserveSmallIcon) ?? false;
+    fullscreenBehavior = prefs.getString(kPrefFullscreenBehavior) ?? 'off';
     aiEnabled = prefs.getBool(kPrefAiEnabled) ?? false;
     aiUrl = prefs.getString(kPrefAiUrl) ?? '';
     aiApiKey = prefs.getString(kPrefAiApiKey) ?? '';
@@ -354,6 +357,14 @@ class SettingsController extends ChangeNotifier {
     final prefs = await _getPrefs();
     await prefs.setBool(kPrefDefaultPreserveSmallIcon, value);
     defaultPreserveSmallIcon = value;
+    notifyListeners();
+  }
+
+  Future<void> setFullscreenBehavior(String value) async {
+    if (fullscreenBehavior == value) return;
+    final prefs = await _getPrefs();
+    await prefs.setString(kPrefFullscreenBehavior, value);
+    fullscreenBehavior = value;
     notifyListeners();
   }
 
