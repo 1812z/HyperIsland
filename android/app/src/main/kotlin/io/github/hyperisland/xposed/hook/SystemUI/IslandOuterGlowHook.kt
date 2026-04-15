@@ -126,11 +126,11 @@ object IslandOuterGlowHook : BaseHook() {
 
                     val bigView = invokeNoArg(stateObj ?: return@intercept result, "getBigIslandView")
                     when {
-                        isBigIslandState(stateObj) && hasOwnedGlowRequest(extras, GLOW_MODE_STATUS) -> {
-                            invokeStartGlowEffect(bigView)
+                        isStateTag(stateObj, "BigIsland") && hasOwnedGlowRequest(extras, GLOW_MODE_STATUS) -> {
+                            invokeGlowEffectMethod(bigView, "startGlowEffect")
                         }
-                        isDeletedState(stateObj) -> {
-                            invokeStopGlowEffect(bigView)
+                        isStateTag(stateObj, "Deleted") -> {
+                            invokeGlowEffectMethod(bigView, "stopGlowEffect")
                         }
                     }
                     result
@@ -211,16 +211,16 @@ object IslandOuterGlowHook : BaseHook() {
     }
 
     private fun bridgeEffectExtras(source: Bundle, target: Bundle) {
-        copyStringIfPresent(source, target, BIG_EFFECT_KEY)
-        copyStringIfPresent(source, target, EFFECT_KEY)
-        copyStringIfPresent(source, target, OWNER_KEY)
-        copyStringIfPresent(source, target, "hyperisland_source_pkg")
-        copyStringIfPresent(source, target, "hyperisland_channel_id")
-        copyStringIfPresent(source, target, "hyperisland_source_channel")
-    }
-
-    private fun copyStringIfPresent(source: Bundle, target: Bundle, key: String) {
-        source.getString(key)?.let { target.putString(key, it) }
+        for (key in arrayOf(
+            BIG_EFFECT_KEY,
+            EFFECT_KEY,
+            OWNER_KEY,
+            "hyperisland_source_pkg",
+            "hyperisland_channel_id",
+            "hyperisland_source_channel",
+        )) {
+            source.getString(key)?.let { target.putString(key, it) }
+        }
     }
 
     private fun hasOwnedGlowRequest(extras: Bundle?, mode: Int): Boolean {
@@ -301,18 +301,11 @@ object IslandOuterGlowHook : BaseHook() {
         }
     }
 
-    private fun isBigIslandState(stateObj: Any?): Boolean {
-        val text = invokeNoArg(stateObj ?: return false, "getState")?.toString() ?: return false
-        return text.contains("BigIsland")
-    }
-
-    private fun isDeletedState(stateObj: Any?): Boolean {
-        val text = invokeNoArg(stateObj ?: return false, "getState")?.toString() ?: return false
-        return text.contains("Deleted")
-    }
+    private fun isStateTag(stateObj: Any?, tag: String): Boolean =
+        readStateText(stateObj)?.contains(tag) == true
 
     private fun resolveStrictGlowMode(stateObj: Any?): Int {
-        val text = invokeNoArg(stateObj ?: return GLOW_MODE_AUTO, "getState")?.toString() ?: return GLOW_MODE_AUTO
+        val text = readStateText(stateObj) ?: return GLOW_MODE_AUTO
         val isBig = text.contains("BigIsland")
         val isExpand = text.contains("Expand")
         return when {
@@ -347,38 +340,20 @@ object IslandOuterGlowHook : BaseHook() {
         return null
     }
 
-    private fun invokeStartGlowEffect(view: Any?) {
-        if (view == null) return
-        findNoArgMethod(view.javaClass, "startGlowEffect")?.let {
-            runCatching {
-                it.isAccessible = true
-                it.invoke(view)
-            }
-            return
-        }
-        findNoArgMethod(view.javaClass, "startGlowEffect\$miui_dynamicisland_release")?.let {
-            runCatching {
-                it.isAccessible = true
-                it.invoke(view)
-            }
-            return
-        }
-        invokeNoArg(view, "getGlowEffectView")?.let {
-            invokeStartGlowEffect(it)
-            return
-        }
+    private fun readStateText(stateObj: Any?): String? {
+        return invokeNoArg(stateObj ?: return null, "getState")?.toString()
     }
 
-    private fun invokeStopGlowEffect(view: Any?) {
+    private fun invokeGlowEffectMethod(view: Any?, baseMethodName: String) {
         if (view == null) return
-        findNoArgMethod(view.javaClass, "stopGlowEffect")?.let {
+        findNoArgMethod(view.javaClass, baseMethodName)?.let {
             runCatching {
                 it.isAccessible = true
                 it.invoke(view)
             }
             return
         }
-        findNoArgMethod(view.javaClass, "stopGlowEffect\$miui_dynamicisland_release")?.let {
+        findNoArgMethod(view.javaClass, "$baseMethodName\$miui_dynamicisland_release")?.let {
             runCatching {
                 it.isAccessible = true
                 it.invoke(view)
@@ -386,7 +361,7 @@ object IslandOuterGlowHook : BaseHook() {
             return
         }
         invokeNoArg(view, "getGlowEffectView")?.let {
-            invokeStopGlowEffect(it)
+            invokeGlowEffectMethod(it, baseMethodName)
             return
         }
     }
