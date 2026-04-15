@@ -198,6 +198,30 @@ abstract class AppLocalizations {
   /// **'文档'**
   String get documentation;
 
+  /// No description provided for @versionUpdatedTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'已更新至 {version}'**
+  String versionUpdatedTitle(String version);
+
+  /// No description provided for @versionUpdatedContent.
+  ///
+  /// In zh, this message translates to:
+  /// **'更新后请重启作用域'**
+  String get versionUpdatedContent;
+
+  /// No description provided for @versionUpdatedChangelog.
+  ///
+  /// In zh, this message translates to:
+  /// **'更新日志：点击查看'**
+  String get versionUpdatedChangelog;
+
+  /// No description provided for @versionUpdatedStarHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'如果觉得软件好用请帮忙点一个免费的Star'**
+  String get versionUpdatedStarHint;
+
   /// No description provided for @restartScope.
   ///
   /// In zh, this message translates to:

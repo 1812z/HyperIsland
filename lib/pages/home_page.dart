@@ -29,8 +29,13 @@ class _HomePageState extends State<HomePage> {
     _ctrl.addListener(() {
       if (mounted) setState(() {});
     });
-    PackageInfo.fromPlatform().then((info) {
+    PackageInfo.fromPlatform().then((info) async {
       if (mounted) setState(() => _version = 'v${info.version}');
+      final shouldShowUpdateDialog = await SettingsController.instance
+          .syncConfigAppVersion(info.version);
+      if (mounted && shouldShowUpdateDialog) {
+        await _showVersionUpdatedDialog(info.version);
+      }
       if (SettingsController.instance.checkUpdateOnLaunch && mounted) {
         UpdateController.checkAndShow(context, info.version);
       }
@@ -171,6 +176,52 @@ class _HomePageState extends State<HomePage> {
     } finally {
       if (mounted) setState(() => _restarting = false);
     }
+  }
+
+  Future<void> _showVersionUpdatedDialog(String version) async {
+    final l10n = AppLocalizations.of(context)!;
+    const changelogUrl = 'https://hyperisland.1812z.top/CHANGELOG.html';
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          title: Text(l10n.versionUpdatedTitle(version)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l10n.versionUpdatedContent),
+              const SizedBox(height: 10),
+              InkWell(
+                onTap: () => launchUrl(Uri.parse(changelogUrl)),
+                child: Text(
+                  l10n.versionUpdatedChangelog,
+                  style: TextStyle(decoration: TextDecoration.underline),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(l10n.versionUpdatedStarHint),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _showRestartDialog();
+              },
+              child: Text(l10n.restartScope),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(l10n.confirm),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override

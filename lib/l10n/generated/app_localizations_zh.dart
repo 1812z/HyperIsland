@@ -61,6 +61,20 @@ class AppLocalizationsZh extends AppLocalizations {
   String get documentation => '文档';
 
   @override
+  String versionUpdatedTitle(String version) {
+    return '已更新至 $version';
+  }
+
+  @override
+  String get versionUpdatedContent => '更新后请重启作用域';
+
+  @override
+  String get versionUpdatedChangelog => '更新日志：点击查看';
+
+  @override
+  String get versionUpdatedStarHint => '如果觉得软件好用请帮忙点一个免费的Star';
+
+  @override
   String get restartScope => '重启作用域';
 
   @override

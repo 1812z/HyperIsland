@@ -34,6 +34,16 @@
   "goUpdate": "Güncelle",
   "sponsorSupport": "Geliştiriciyi Destekle",
   "sponsorAuthor": "Sponsor Ol",
+  "documentation": "Dokümantasyon",
+  "versionUpdatedTitle": "{version} sürümüne güncellendi",
+  "@versionUpdatedTitle": {
+    "placeholders": {
+      "version": { "type": "String" }
+    }
+  },
+  "versionUpdatedContent": "Güncellemeden sonra lütfen etki alanını yeniden başlatın",
+  "versionUpdatedChangelog": "Değişiklik günlüğü: Görmek için dokunun",
+  "versionUpdatedStarHint": "Uygulamayı beğendiyseniz lütfen ücretsiz bir Star verin",
   "restartScope": "Etki Alanını Yeniden Başlat",
   "systemUI": "Sistem Arayüzü",
   "downloadManager": "İndirme Yöneticisi",

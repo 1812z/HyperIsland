@@ -39,6 +39,7 @@ const kPrefAiTimeout = 'pref_ai_timeout';
 const kPrefAiTemperature = 'pref_ai_temperature';
 const kPrefAiMaxTokens = 'pref_ai_max_tokens';
 const kPrefAiLastLogJson = 'pref_ai_last_log_json';
+const kPrefConfigAppVersion = 'pref_config_app_version';
 
 class AiLogEntry {
   const AiLogEntry({
@@ -132,6 +133,7 @@ class SettingsController extends ChangeNotifier {
   double aiTemperature = 0.1;
   int aiMaxTokens = 50;
   AiLogEntry? aiLastLog;
+  String configAppVersion = '';
   ThemeMode themeMode = ThemeMode.system;
   Locale? locale;
   bool loading = true;
@@ -183,6 +185,7 @@ class SettingsController extends ChangeNotifier {
     aiTemperature = prefs.getDouble(kPrefAiTemperature) ?? 0.1;
     aiMaxTokens = prefs.getInt(kPrefAiMaxTokens) ?? 50;
     aiLastLog = _parseAiLog(prefs.getString(kPrefAiLastLogJson));
+    configAppVersion = prefs.getString(kPrefConfigAppVersion) ?? '';
     themeMode = switch (prefs.getString(kPrefThemeMode)) {
       'light' => ThemeMode.light,
       'dark' => ThemeMode.dark,
@@ -503,6 +506,43 @@ class SettingsController extends ChangeNotifier {
     }
     locale = loc;
     notifyListeners();
+  }
+
+  Future<bool> syncConfigAppVersion(String currentVersion) async {
+    final version = currentVersion.trim();
+    if (version.isEmpty) return false;
+    final prefs = await _getPrefs();
+    final stored = (prefs.getString(kPrefConfigAppVersion) ?? '').trim();
+    final shouldUpdate =
+        stored.isEmpty || compareVersionStrings(version, stored) > 0;
+    if (shouldUpdate) {
+      await prefs.setString(kPrefConfigAppVersion, version);
+      configAppVersion = version;
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  static int compareVersionStrings(String a, String b) {
+    final aParts = _parseVersionParts(a);
+    final bParts = _parseVersionParts(b);
+    final maxLen = aParts.length > bParts.length
+        ? aParts.length
+        : bParts.length;
+    for (int i = 0; i < maxLen; i++) {
+      final av = i < aParts.length ? aParts[i] : 0;
+      final bv = i < bParts.length ? bParts[i] : 0;
+      if (av != bv) return av > bv ? 1 : -1;
+    }
+    return 0;
+  }
+
+  static List<int> _parseVersionParts(String version) {
+    final core = version.split('+').first.trim();
+    final matches = RegExp(r'\d+').allMatches(core);
+    if (matches.isEmpty) return const [0];
+    return matches.map((m) => int.tryParse(m.group(0) ?? '0') ?? 0).toList();
   }
 
   AiLogEntry? _parseAiLog(String? raw) {

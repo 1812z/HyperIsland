@@ -61,6 +61,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get documentation => 'Documentation';
 
   @override
+  String versionUpdatedTitle(String version) {
+    return 'Updated to $version';
+  }
+
+  @override
+  String get versionUpdatedContent =>
+      'Please restart the scope apps after updating';
+
+  @override
+  String get versionUpdatedChangelog => 'Changelog: Tap to view';
+
+  @override
+  String get versionUpdatedStarHint =>
+      'If you like this app, please give it a free Star';
+
+  @override
   String get restartScope => 'Restart Scope';
 
   @override

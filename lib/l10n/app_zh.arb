@@ -33,6 +33,17 @@
   "sponsorSupport": "赞助支持",
   "sponsorAuthor": "赞助作者",
   "documentation": "文档",
+  "versionUpdatedTitle": "已更新至 {version}",
+  "@versionUpdatedTitle": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "versionUpdatedContent": "更新后请重启作用域",
+  "versionUpdatedChangelog": "更新日志：点击查看",
+  "versionUpdatedStarHint": "如果觉得软件好用请帮忙点一个免费的Star",
   "restartScope": "重启作用域",
   "systemUI": "系统界面",
   "downloadManager": "下载管理器",

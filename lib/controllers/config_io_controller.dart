@@ -3,8 +3,11 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/services.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'settings_controller.dart';
 
 enum ConfigIOError {
   invalidFormat,
@@ -23,13 +26,16 @@ class ConfigIOController {
   /// 将所有 pref_ 开头的设置序列化为 JSON 字符串。
   static Future<String> exportToJson() async {
     final prefs = await SharedPreferences.getInstance();
+    final packageInfo = await PackageInfo.fromPlatform();
     final keys = prefs.getKeys().where((k) => k.startsWith('pref_'));
     final Map<String, dynamic> settings = {};
     for (final key in keys) {
       settings[key] = prefs.get(key);
     }
+    settings[kPrefConfigAppVersion] = packageInfo.version;
     return const JsonEncoder.withIndent('  ').convert({
       'version': 1,
+      'appVersion': packageInfo.version,
       'settings': settings,
     });
   }
@@ -37,10 +43,18 @@ class ConfigIOController {
   /// 从 JSON 字符串恢复所有设置，返回写入的条目数。
   static Future<int> importFromJson(String json) async {
     final dynamic decoded = jsonDecode(json);
-    if (decoded is! Map) throw const ConfigIOException(ConfigIOError.invalidFormat);
+    if (decoded is! Map) {
+      throw const ConfigIOException(ConfigIOError.invalidFormat);
+    }
     final settings = decoded['settings'];
-    if (settings is! Map) throw const ConfigIOException(ConfigIOError.invalidFormat);
+    if (settings is! Map) {
+      throw const ConfigIOException(ConfigIOError.invalidFormat);
+    }
     final prefs = await SharedPreferences.getInstance();
+    final appVersion = decoded['appVersion'];
+    if (appVersion is String && appVersion.trim().isNotEmpty) {
+      await prefs.setString(kPrefConfigAppVersion, appVersion.trim());
+    }
     int count = 0;
     for (final entry in settings.entries) {
       final key = entry.key as String;
@@ -63,7 +77,9 @@ class ConfigIOController {
   static Future<String> exportToFile() async {
     final json = await exportToJson();
     final dir = await getExternalStorageDirectory();
-    if (dir == null) throw const ConfigIOException(ConfigIOError.noStorageDirectory);
+    if (dir == null) {
+      throw const ConfigIOException(ConfigIOError.noStorageDirectory);
+    }
     final file = File('${dir.path}/hyperisland_config.json');
     await file.writeAsString(json);
     return file.path;

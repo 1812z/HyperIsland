@@ -1,6 +1,5 @@
 {
   "ja": [
-    "documentation",
     "bigIslandMaxWidthTitle",
     "bigIslandMaxWidthLabel",
     "bigIslandMaxWidthSubtitle",
@@ -42,7 +41,6 @@
   ],
 
   "tr": [
-    "documentation",
     "bigIslandMaxWidthTitle",
     "bigIslandMaxWidthLabel",
     "bigIslandMaxWidthSubtitle",

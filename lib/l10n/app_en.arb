@@ -35,6 +35,15 @@
   "sponsorSupport": "Support the Author",
   "sponsorAuthor": "Sponsor",
   "documentation": "Documentation",
+  "versionUpdatedTitle": "Updated to {version}",
+  "@versionUpdatedTitle": {
+    "placeholders": {
+      "version": { "type": "String" }
+    }
+  },
+  "versionUpdatedContent": "Please restart the scope apps after updating",
+  "versionUpdatedChangelog": "Changelog: Tap to view",
+  "versionUpdatedStarHint": "If you like this app, please give it a free Star",
   "restartScope": "Restart Scope",
   "systemUI": "System UI",
   "downloadManager": "Download Manager",

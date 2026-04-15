@@ -58,7 +58,21 @@ class AppLocalizationsJa extends AppLocalizations {
   String get sponsorAuthor => 'スポンサー';
 
   @override
-  String get documentation => '文档';
+  String get documentation => 'ドキュメント';
+
+  @override
+  String versionUpdatedTitle(String version) {
+    return '$version に更新されました';
+  }
+
+  @override
+  String get versionUpdatedContent => '更新後にスコープを再起動してください';
+
+  @override
+  String get versionUpdatedChangelog => '更新ログ：クリックして表示';
+
+  @override
+  String get versionUpdatedStarHint => 'このソフトが気に入ったら無料のStarをお願いします';
 
   @override
   String get restartScope => 'スコープを再起動';

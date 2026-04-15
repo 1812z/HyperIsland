@@ -31,6 +31,16 @@
   "goUpdate": "更新",
   "sponsorSupport": "作者をサポートする",
   "sponsorAuthor": "スポンサー",
+  "documentation": "ドキュメント",
+  "versionUpdatedTitle": "{version} に更新されました",
+  "@versionUpdatedTitle": {
+    "placeholders": {
+      "version": { "type": "String" }
+    }
+  },
+  "versionUpdatedContent": "更新後にスコープを再起動してください",
+  "versionUpdatedChangelog": "更新ログ：クリックして表示",
+  "versionUpdatedStarHint": "このソフトが気に入ったら無料のStarをお願いします",
   "restartScope": "スコープを再起動",
   "systemUI": "システム UI",
   "downloadManager": "ダウンロードマネージャー",

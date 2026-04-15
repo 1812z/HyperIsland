@@ -58,7 +58,24 @@ class AppLocalizationsTr extends AppLocalizations {
   String get sponsorAuthor => 'Sponsor Ol';
 
   @override
-  String get documentation => '文档';
+  String get documentation => 'Dokümantasyon';
+
+  @override
+  String versionUpdatedTitle(String version) {
+    return '$version sürümüne güncellendi';
+  }
+
+  @override
+  String get versionUpdatedContent =>
+      'Güncellemeden sonra lütfen etki alanını yeniden başlatın';
+
+  @override
+  String get versionUpdatedChangelog =>
+      'Değişiklik günlüğü: Görmek için dokunun';
+
+  @override
+  String get versionUpdatedStarHint =>
+      'Uygulamayı beğendiyseniz lütfen ücretsiz bir Star verin';
 
   @override
   String get restartScope => 'Etki Alanını Yeniden Başlat';
