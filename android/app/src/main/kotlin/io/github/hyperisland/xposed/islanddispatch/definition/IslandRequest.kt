@@ -30,6 +30,7 @@ data class IslandRequest(
     val isOngoing: Boolean = false,
     val actions: List<Notification.Action> = emptyList(),
     val showIslandIcon: Boolean = true,
+    val clearBeforePost: Boolean = false,
 ) {
     fun toBundle(): Bundle = Bundle().apply {
         putString(KEY_TITLE, title)
@@ -55,6 +56,7 @@ data class IslandRequest(
         putBoolean(KEY_ONGOING, isOngoing)
         putBoolean(KEY_SHOW_ISLAND_ICON, showIslandIcon)
         if (actions.isNotEmpty()) putParcelableArray(KEY_ACTIONS, actions.toTypedArray())
+        putBoolean(KEY_CLEAR_BEFORE_POST, clearBeforePost)
     }
 
     companion object {
@@ -81,6 +83,7 @@ data class IslandRequest(
         private const val KEY_ONGOING = "isOngoing"
         private const val KEY_ACTIONS = "actions"
         private const val KEY_SHOW_ISLAND_ICON = "showIslandIcon"
+        private const val KEY_CLEAR_BEFORE_POST = "clearBeforePost"
 
         fun fromBundle(b: Bundle) = IslandRequest(
             title = b.getString(KEY_TITLE, ""),
@@ -106,6 +109,7 @@ data class IslandRequest(
             isOngoing = b.getBoolean(KEY_ONGOING, false),
             actions = actionsFromBundle(b),
             showIslandIcon = b.getBoolean(KEY_SHOW_ISLAND_ICON, true),
+            clearBeforePost = b.getBoolean(KEY_CLEAR_BEFORE_POST, false),
         )
 
         private fun iconFromBundle(b: Bundle): Icon? =

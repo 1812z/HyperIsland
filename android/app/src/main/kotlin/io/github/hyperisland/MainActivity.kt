@@ -322,14 +322,11 @@ class MainActivity : FlutterActivity() {
                 icon             = icon,
                 firstFloat       = false,
                 enableFloat      = enableFloat,
+                clearBeforePost  = clearPrevious,
                 highlightColor   = "#E040FB",
                 showNotification = true,
             )
-            if (clearPrevious) {
-                sendIslandWithReset(request)
-            } else {
-                io.github.hyperisland.xposed.islanddispatch.IslandDispatcher.sendBroadcast(this, request)
-            }
+            io.github.hyperisland.xposed.islanddispatch.IslandDispatcher.sendBroadcast(this, request)
             result.success(true)
         } catch (e: Exception) {
             Log.e(TAG, "Error showing custom test notification", e)

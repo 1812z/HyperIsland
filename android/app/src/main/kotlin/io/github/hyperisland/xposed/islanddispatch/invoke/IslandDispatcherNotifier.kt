@@ -203,7 +203,9 @@ internal object IslandDispatcherNotifier {
                 "${IslandDispatchContract.TAG}: preserve marker=$shouldPreserveStatusBarSmallIcon title=${request.title} | notifId=${request.notifId} | showNotification=${request.showNotification}",
             )
 
-            nm.cancel(request.notifId)
+            if (request.clearBeforePost) {
+                nm.cancel(request.notifId)
+            }
             nm.notify(request.notifId, notif)
             IslandDispatchState.postedIds.add(request.notifId)
             request.sourcePackage?.let { pkg ->
