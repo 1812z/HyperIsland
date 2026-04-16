@@ -46,7 +46,28 @@ class HomeController extends ChangeNotifier {
     try {
       await _platform.invokeMethod('showTest');
     } on PlatformException catch (_) {
-      // ignore
+    } finally {
+      isSending = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> sendCustomTest({
+    String? title,
+    String? content,
+    bool clearPrevious = true,
+    bool enableFloat = true,
+  }) async {
+    isSending = true;
+    notifyListeners();
+    try {
+      await _platform.invokeMethod('showCustomTest', {
+        'title': title ?? '',
+        'content': content ?? '',
+        'clearPrevious': clearPrevious,
+        'enableFloat': enableFloat,
+      });
+    } on PlatformException catch (_) {
     } finally {
       isSending = false;
       notifyListeners();

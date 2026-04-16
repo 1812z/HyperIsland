@@ -192,6 +192,78 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  void _showCustomTestDialog() {
+    final l10n = AppLocalizations.of(context)!;
+    String title = '';
+    String content = '';
+    bool clearPrevious = true;
+    bool enableFloat = true;
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text(l10n.customTestNotification),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                decoration: InputDecoration(
+                  labelText: l10n.customTestTitle,
+                  hintText: l10n.customTestTitleHint,
+                ),
+                onChanged: (v) => title = v,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                decoration: InputDecoration(
+                  labelText: l10n.customTestContent,
+                  hintText: l10n.customTestContentHint,
+                ),
+                onChanged: (v) => content = v,
+              ),
+              const SizedBox(height: 8),
+              CheckboxListTile(
+                title: Text(l10n.clearPreviousNotification),
+                subtitle: Text(l10n.clearPreviousNotificationSubtitle),
+                value: clearPrevious,
+                onChanged: (v) =>
+                    setDialogState(() => clearPrevious = v ?? true),
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
+              ),
+              CheckboxListTile(
+                title: Text(l10n.enableFloatNotification),
+                subtitle: Text(l10n.enableFloatNotificationSubtitle),
+                value: enableFloat,
+                onChanged: (v) => setDialogState(() => enableFloat = v ?? true),
+                controlAffinity: ListTileControlAffinity.leading,
+                contentPadding: EdgeInsets.zero,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () {
+                _ctrl.sendCustomTest(
+                  title: title,
+                  content: content,
+                  clearPrevious: clearPrevious,
+                  enableFloat: enableFloat,
+                );
+              },
+              child: Text(l10n.sendTestNotification),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _showVersionUpdatedDialog(String version) async {
     final l10n = AppLocalizations.of(context)!;
     const changelogUrl = 'https://hyperisland.1812z.top/CHANGELOG.html';
@@ -311,6 +383,7 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(height: 8),
                 FilledButton.icon(
                   onPressed: _ctrl.isSending ? null : _ctrl.sendTest,
+                  onLongPress: _ctrl.isSending ? null : _showCustomTestDialog,
                   icon: const Icon(Icons.notifications_active_outlined),
                   label: Text(l10n.sendTestNotification),
                   style: FilledButton.styleFrom(

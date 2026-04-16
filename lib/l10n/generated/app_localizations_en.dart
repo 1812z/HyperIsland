@@ -98,6 +98,35 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sendTestNotification => 'Send Test Notification';
 
   @override
+  String get customTestNotification => 'Custom Test Notification';
+
+  @override
+  String get customTestTitle => 'Title';
+
+  @override
+  String get customTestTitleHint => 'Leave empty for default title';
+
+  @override
+  String get customTestContent => 'Content';
+
+  @override
+  String get customTestContentHint => 'Leave empty for default content';
+
+  @override
+  String get clearPreviousNotification => 'Clear previous notification';
+
+  @override
+  String get clearPreviousNotificationSubtitle =>
+      'Cancel existing island notification before sending';
+
+  @override
+  String get enableFloatNotification => 'Auto expand notification';
+
+  @override
+  String get enableFloatNotificationSubtitle =>
+      'Automatically expand as focus notification when received';
+
+  @override
   String get notes => 'Notes';
 
   @override

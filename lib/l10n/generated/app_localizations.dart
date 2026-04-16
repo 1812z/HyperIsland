@@ -264,6 +264,60 @@ abstract class AppLocalizations {
   /// **'发送测试通知'**
   String get sendTestNotification;
 
+  /// No description provided for @customTestNotification.
+  ///
+  /// In zh, this message translates to:
+  /// **'自定义测试通知'**
+  String get customTestNotification;
+
+  /// No description provided for @customTestTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'标题'**
+  String get customTestTitle;
+
+  /// No description provided for @customTestTitleHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'留空使用默认标题'**
+  String get customTestTitleHint;
+
+  /// No description provided for @customTestContent.
+  ///
+  /// In zh, this message translates to:
+  /// **'内容'**
+  String get customTestContent;
+
+  /// No description provided for @customTestContentHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'留空使用默认内容'**
+  String get customTestContentHint;
+
+  /// No description provided for @clearPreviousNotification.
+  ///
+  /// In zh, this message translates to:
+  /// **'清除之前通知'**
+  String get clearPreviousNotification;
+
+  /// No description provided for @clearPreviousNotificationSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'发送前先取消已有的超级岛通知'**
+  String get clearPreviousNotificationSubtitle;
+
+  /// No description provided for @enableFloatNotification.
+  ///
+  /// In zh, this message translates to:
+  /// **'自动展开通知'**
+  String get enableFloatNotification;
+
+  /// No description provided for @enableFloatNotificationSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'收到通知后自动展开为焦点通知'**
+  String get enableFloatNotificationSubtitle;
+
   /// No description provided for @notes.
   ///
   /// In zh, this message translates to:

@@ -62,8 +62,15 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "showTest" -> {
-                    // 通过广播由 SystemUI 发送，无需本地通知权限
                     handleShowTest(result)
+                }
+
+                "showCustomTest" -> {
+                    val title = call.argument<String>("title") ?: ""
+                    val content = call.argument<String>("content") ?: ""
+                    val clearPrevious = call.argument<Boolean>("clearPrevious") ?: true
+                    val enableFloat = call.argument<Boolean>("enableFloat") ?: true
+                    handleShowCustomTest(result, title, content, clearPrevious, enableFloat)
                 }
 
                 "getInstalledApps" -> {
@@ -294,6 +301,38 @@ class MainActivity : FlutterActivity() {
             result.success(true)
         } catch (e: Exception) {
             Log.e(TAG, "Error showing test notification", e)
+            result.error("ERROR", e.message, null)
+        }
+    }
+
+    private fun handleShowCustomTest(
+        result: MethodChannel.Result,
+        customTitle: String,
+        customContent: String,
+        clearPrevious: Boolean,
+        enableFloat: Boolean,
+    ) {
+        try {
+            val icon = packageManager.getAppIcon(packageName)
+            val title = customTitle.ifEmpty { getString(R.string.island_welcome_title) }
+            val content = customContent.ifEmpty { "HyperIsland" }
+            val request = io.github.hyperisland.xposed.islanddispatch.IslandRequest(
+                title            = title,
+                content          = content,
+                icon             = icon,
+                firstFloat       = false,
+                enableFloat      = enableFloat,
+                highlightColor   = "#E040FB",
+                showNotification = true,
+            )
+            if (clearPrevious) {
+                sendIslandWithReset(request)
+            } else {
+                io.github.hyperisland.xposed.islanddispatch.IslandDispatcher.sendBroadcast(this, request)
+            }
+            result.success(true)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error showing custom test notification", e)
             result.error("ERROR", e.message, null)
         }
     }

@@ -96,6 +96,33 @@ class AppLocalizationsJa extends AppLocalizations {
   String get sendTestNotification => 'テスト通知を送信';
 
   @override
+  String get customTestNotification => 'カスタムテスト通知';
+
+  @override
+  String get customTestTitle => 'タイトル';
+
+  @override
+  String get customTestTitleHint => '空欄でデフォルトタイトル';
+
+  @override
+  String get customTestContent => '内容';
+
+  @override
+  String get customTestContentHint => '空欄でデフォルト内容';
+
+  @override
+  String get clearPreviousNotification => '前の通知をクリア';
+
+  @override
+  String get clearPreviousNotificationSubtitle => '送信前に既存の Island 通知をキャンセル';
+
+  @override
+  String get enableFloatNotification => '通知を自動展開';
+
+  @override
+  String get enableFloatNotificationSubtitle => '通知を受信時にフォーカス通知として自動展開';
+
+  @override
   String get notes => '説明';
 
   @override

@@ -99,6 +99,35 @@ class AppLocalizationsTr extends AppLocalizations {
   String get sendTestNotification => 'Test Bildirimi Gönder';
 
   @override
+  String get customTestNotification => 'Özel Test Bildirimi';
+
+  @override
+  String get customTestTitle => 'Başlık';
+
+  @override
+  String get customTestTitleHint => 'Varsayılan başlık için boş bırakın';
+
+  @override
+  String get customTestContent => 'İçerik';
+
+  @override
+  String get customTestContentHint => 'Varsayılan içerik için boş bırakın';
+
+  @override
+  String get clearPreviousNotification => 'Önceki bildirimi temizle';
+
+  @override
+  String get clearPreviousNotificationSubtitle =>
+      'Göndermeden önce mevcut ada bildirimini iptal et';
+
+  @override
+  String get enableFloatNotification => 'Bildirimi otomatik genişlet';
+
+  @override
+  String get enableFloatNotificationSubtitle =>
+      'Bildirim alındığında odak bildirimi olarak otomatik genişlet';
+
+  @override
   String get notes => 'Notlar';
 
   @override

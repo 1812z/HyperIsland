@@ -96,6 +96,33 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sendTestNotification => '发送测试通知';
 
   @override
+  String get customTestNotification => '自定义测试通知';
+
+  @override
+  String get customTestTitle => '标题';
+
+  @override
+  String get customTestTitleHint => '留空使用默认标题';
+
+  @override
+  String get customTestContent => '内容';
+
+  @override
+  String get customTestContentHint => '留空使用默认内容';
+
+  @override
+  String get clearPreviousNotification => '清除之前通知';
+
+  @override
+  String get clearPreviousNotificationSubtitle => '发送前先取消已有的超级岛通知';
+
+  @override
+  String get enableFloatNotification => '自动展开通知';
+
+  @override
+  String get enableFloatNotificationSubtitle => '收到通知后自动展开为焦点通知';
+
+  @override
   String get notes => '注意事项';
 
   @override
