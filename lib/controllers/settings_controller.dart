@@ -369,15 +369,21 @@ class SettingsController extends ChangeNotifier {
     required String modeKey,
     required String legacyBoolKey,
   }) {
-    final stored = prefs.getString(modeKey);
-    if (stored == kTriOptOn ||
-        stored == kTriOptOff ||
-        stored == kTriOptFollowDynamic) {
-      return stored!;
+    final raw = prefs.get(modeKey);
+    if (raw is String) {
+      if (raw == kTriOptOn ||
+          raw == kTriOptOff ||
+          raw == kTriOptFollowDynamic) {
+        return raw;
+      }
+    } else if (raw is bool) {
+      return raw ? kTriOptOn : kTriOptOff;
     }
-    final legacy = prefs.getBool(legacyBoolKey);
-    if (legacy != null) {
-      return legacy ? kTriOptOn : kTriOptOff;
+    if (legacyBoolKey != modeKey) {
+      final legacy = prefs.getBool(legacyBoolKey);
+      if (legacy != null) {
+        return legacy ? kTriOptOn : kTriOptOff;
+      }
     }
     return kTriOptOff;
   }
