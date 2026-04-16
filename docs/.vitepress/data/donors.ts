@@ -41,5 +41,11 @@ export const donors: DonorItem[] = [
     amount: '6.6',
     date: '2026-04-15',
     message: ''
+  },
+  {
+    name: '匿名',
+    amount: '5.20',
+    date: '2026-04-16',
+    message: '我喜欢你'
   }
 ]
