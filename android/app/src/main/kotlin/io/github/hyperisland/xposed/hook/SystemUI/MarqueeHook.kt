@@ -37,7 +37,8 @@ object MarqueeHook : BaseHook() {
     private val scrollerMap = WeakHashMap<TextView, MarqueeController>()
     private val observedViews = WeakHashMap<TextView, TextViewListeners>()
     private val islandMarqueeState = WeakHashMap<ViewGroup, Boolean>()
-    private val forcedSingleLineMaxLines = WeakHashMap<TextView, Int>()
+    private val pendingRefreshCallbacks = WeakHashMap<TextView, Runnable>()
+    private val hierarchyRefreshPending = WeakHashMap<TextView, Boolean>()
 
     @Volatile private var cachedSpeed: Int? = null
 
@@ -76,9 +77,11 @@ object MarqueeHook : BaseHook() {
     private fun stopAllMarquees() {
         val textViews = observedViews.keys.toList()
         textViews.forEach { unobserveTextView(it) }
+        pendingRefreshCallbacks.forEach { (view, runnable) -> view.removeCallbacks(runnable) }
+        pendingRefreshCallbacks.clear()
+        hierarchyRefreshPending.clear()
         scrollerMap.values.forEach { it.stop() }
         scrollerMap.clear()
-        forcedSingleLineMaxLines.clear()
         islandMarqueeState.clear()
     }
 
@@ -89,14 +92,9 @@ object MarqueeHook : BaseHook() {
             stopMarquee(textView)
             return
         }
-        if (textView.maxLines != 1) {
-            if (!forcedSingleLineMaxLines.containsKey(textView)) {
-                forcedSingleLineMaxLines[textView] = textView.maxLines
-            }
-            textView.setSingleLine(true)
-        }
         if (fullText != cleanText) {
             textView.text = cleanText
+            return
         }
         val measuredW = textView.paint.measureText(cleanText)
         val visibleW = resolveVisibleWidth(textView)
@@ -107,20 +105,16 @@ object MarqueeHook : BaseHook() {
             val speed = getMarqueeSpeed()
             val controller = scrollerMap.getOrPut(textView) { MarqueeController(textView, speed) }
             controller.speedPxPerSec = speed
-            controller.start()
+            controller.start(cleanText, availableW)
         } else {
             stopMarquee(textView)
         }
     }
 
     fun stopMarquee(textView: TextView) {
+        pendingRefreshCallbacks.remove(textView)?.let { textView.removeCallbacks(it) }
         val controller = scrollerMap.remove(textView)
         controller?.stop()
-        val originalMaxLines = forcedSingleLineMaxLines.remove(textView)
-        if (originalMaxLines != null) {
-            textView.setSingleLine(false)
-            textView.maxLines = originalMaxLines
-        }
         val fullText = textView.text?.toString() ?: ""
         val cleanText = normalizeText(fullText)
         if (fullText != cleanText) {
@@ -129,13 +123,41 @@ object MarqueeHook : BaseHook() {
     }
 
     private fun resolveVisibleWidth(view: View): Int {
-        var visibleW = if (view.width > 0) view.width else Int.MAX_VALUE
+        var visibleW = Int.MAX_VALUE
         var p = view.parent
         while (p is ViewGroup) {
             if (p.width > 0 && p.width < visibleW) visibleW = p.width
             p = p.parent
         }
-        return if (visibleW == Int.MAX_VALUE) 0 else visibleW
+        if (visibleW != Int.MAX_VALUE) return visibleW
+        return if (view.width > 0) view.width else 0
+    }
+
+    private fun refreshIslandLayout(anchor: View) {
+        val islandView = findBigIslandView(anchor) ?: return
+        try {
+            islandView.javaClass.getDeclaredMethod("inheritWidth").apply {
+                isAccessible = true
+            }.invoke(islandView)
+        } catch (_: Exception) {}
+        try {
+            islandView.javaClass.getMethod("calculateBigIslandWidth").invoke(islandView)
+        } catch (_: Exception) {}
+    }
+
+    private fun scheduleMarqueeUpdate(view: TextView, needsHierarchyRefresh: Boolean = false) {
+        if (needsHierarchyRefresh) hierarchyRefreshPending[view] = true
+        pendingRefreshCallbacks.remove(view)?.let { view.removeCallbacks(it) }
+        val runnable = Runnable {
+            pendingRefreshCallbacks.remove(view)
+            if (isInExpandedView(view)) return@Runnable
+            val shouldRefresh = hierarchyRefreshPending.remove(view) == true
+            if (shouldRefresh) refreshIslandLayout(view)
+            if (isMarqueeEnabledFor(view)) startMarquee(view)
+            else stopMarquee(view)
+        }
+        pendingRefreshCallbacks[view] = runnable
+        view.post(runnable)
     }
 
     fun traverseAndApplyMarquee(bigIslandView: ViewGroup, enabled: Boolean) {
@@ -180,9 +202,7 @@ object MarqueeHook : BaseHook() {
         val listeners = ArrayList<View.OnLayoutChangeListener>()
         val layoutListener = View.OnLayoutChangeListener { v, _, _, _, _, _, _, _, _ ->
             val tv = v as TextView
-            if (isInExpandedView(tv)) return@OnLayoutChangeListener
-            if (isMarqueeEnabledFor(tv)) startMarquee(tv)
-            else stopMarquee(tv)
+            scheduleMarqueeUpdate(tv, needsHierarchyRefresh = false)
         }
         listeners.add(layoutListener)
         view.addOnLayoutChangeListener(layoutListener)
@@ -191,9 +211,7 @@ object MarqueeHook : BaseHook() {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: android.text.Editable?) {
-                if (isInExpandedView(view)) return
-                if (isMarqueeEnabledFor(view)) startMarquee(view)
-                else stopMarquee(view)
+                scheduleMarqueeUpdate(view, needsHierarchyRefresh = true)
             }
         }
         view.addTextChangedListener(textWatcher)
@@ -201,6 +219,7 @@ object MarqueeHook : BaseHook() {
     }
 
     private fun unobserveTextView(view: TextView) {
+        pendingRefreshCallbacks.remove(view)?.let { view.removeCallbacks(it) }
         val listeners = observedViews.remove(view) ?: return
         listeners.layoutListeners.forEach { view.removeOnLayoutChangeListener(it) }
         view.removeTextChangedListener(listeners.textWatcher)
@@ -406,36 +425,55 @@ object MarqueeHook : BaseHook() {
         private val choreographer = Choreographer.getInstance()
         private var state = 0
         private var currentText = ""
+        private var currentAvailableWidth = 0
 
-        fun start() {
-            val textNow = normalizeText(view.text.toString())
-            if (isRunning && currentText == textNow) return
+        fun start(textNow: String = normalizeText(view.text.toString()), availableWidth: Int = getAvailableWidth()) {
+            if (availableWidth <= 0) return
+            if (isRunning && currentText == textNow && currentAvailableWidth == availableWidth) return
             currentText = textNow
+            currentAvailableWidth = availableWidth
             isRunning = true
             currentScrollX = 0f
             state = 0
             startTimeNanos = 0
+            lastFrameTimeNanos = 0
             choreographer.removeFrameCallback(this)
+            resetScrollPosition()
             choreographer.postFrameCallback(this)
         }
 
         fun stop() {
             isRunning = false
             choreographer.removeFrameCallback(this)
+            resetScrollPosition()
+        }
+
+        fun prepareForRestart() {
+            choreographer.removeFrameCallback(this)
+            isRunning = false
+            startTimeNanos = 0L
+            lastFrameTimeNanos = 0L
+            state = 0
+            resetScrollPosition()
+        }
+
+        private fun resetScrollPosition() {
+            currentScrollX = 0f
             view.scrollTo(0, 0)
+            if (view.translationX != 0f) {
+                view.translationX = 0f
+            }
+        }
+
+        private fun getAvailableWidth(): Int {
+            val visibleW = resolveVisibleWidth(view)
+            return (visibleW - view.paddingLeft - view.paddingRight).coerceAtLeast(0)
         }
 
         private fun getRealMaxScroll(): Float {
             val textWidth = view.paint.measureText(currentText)
-            var visibleW = if (view.width > 0) view.width else Int.MAX_VALUE
-            var p = view.parent
-            while (p is ViewGroup) {
-                if (p.width > 0 && p.width < visibleW) visibleW = p.width
-                p = p.parent
-            }
-            if (visibleW == Int.MAX_VALUE) visibleW = 0
-            val availableW = visibleW - view.paddingLeft - view.paddingRight
-            return kotlin.math.max(0f, textWidth - availableW.toFloat())
+            currentAvailableWidth = getAvailableWidth()
+            return kotlin.math.max(0f, textWidth - currentAvailableWidth.toFloat())
         }
 
         override fun doFrame(frameTimeNanos: Long) {
@@ -463,8 +501,7 @@ object MarqueeHook : BaseHook() {
                     view.scrollTo(currentScrollX.toInt(), 0)
                 }
                 2 -> if (elapsedMs > PAUSE_AT_END_MS) {
-                    currentScrollX = 0f
-                    view.scrollTo(0, 0)
+                    resetScrollPosition()
                     state = 0
                     startTimeNanos = frameTimeNanos
                 }

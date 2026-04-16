@@ -186,7 +186,7 @@ object ToastUiInterceptHook : BaseHook() {
     private fun loadRule(pkg: String): ToastRule {
         cachedRules[pkg]?.let { return it }
         val forward = ConfigManager.getBoolean("pref_toast_forward_$pkg", false)
-        val block = ConfigManager.getBoolean("pref_toast_block_$pkg", true)
+        val block = ConfigManager.getBoolean("pref_toast_block_$pkg", false)
         val showNotification = ConfigManager.getBoolean(
             "pref_toast_show_notification_$pkg",
             false,

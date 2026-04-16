@@ -28,7 +28,7 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
 
   bool _loading = true;
   bool _forwardEnabled = false;
-  bool _blockOriginal = true;
+  bool _blockOriginal = false;
   bool _showNotification = false;
   bool _showIslandIcon = true;
 

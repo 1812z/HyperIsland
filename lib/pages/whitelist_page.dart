@@ -705,7 +705,7 @@ class _BatchToastSettingsSheetState extends State<_BatchToastSettingsSheet> {
   final _islandOuterGlowColorController = TextEditingController();
 
   bool _forwardEnabled = false;
-  bool _blockOriginal = true;
+  bool _blockOriginal = false;
   bool _showNotification = false;
   bool _showIslandIcon = true;
 

@@ -342,7 +342,7 @@ class WhitelistController extends ChangeNotifier {
 
   Future<bool> getToastBlockOriginal(String packageName) async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_prefToastBlockKey(packageName)) ?? true;
+    return prefs.getBool(_prefToastBlockKey(packageName)) ?? false;
   }
 
   Future<void> setToastBlockOriginal(String packageName, bool enabled) async {
