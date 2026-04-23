@@ -2217,7 +2217,7 @@ abstract class AppLocalizations {
   /// No description provided for @keywordFilterPriority.
   ///
   /// In zh, this message translates to:
-  /// **'白名单优先：启用白名单后，仅白名单匹配的通知显示，黑名单仍生效'**
+  /// **'白名单优先：仅白名单匹配的通知显示，但黑名单仍可否决'**
   String get keywordFilterPriority;
 }
 

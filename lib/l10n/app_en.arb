@@ -416,5 +416,5 @@
   "addKeyword": "Add keyword",
   "keywordHint": "Enter keyword",
   "removeKeyword": "Remove",
-  "keywordFilterPriority": "Whitelist takes priority: when whitelist is enabled, only whitelist-matched notifications are shown, blacklist is ignored"
+  "keywordFilterPriority": "Whitelist takes priority: only whitelist-matched notifications are shown, but blacklist can still veto"
 }

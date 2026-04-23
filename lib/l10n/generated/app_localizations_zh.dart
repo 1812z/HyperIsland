@@ -1131,5 +1131,5 @@ class AppLocalizationsZh extends AppLocalizations {
   String get removeKeyword => '移除';
 
   @override
-  String get keywordFilterPriority => '白名单优先：启用白名单后，仅白名单匹配的通知显示，黑名单仍生效';
+  String get keywordFilterPriority => '白名单优先：仅白名单匹配的通知显示，但黑名单仍可否决';
 }

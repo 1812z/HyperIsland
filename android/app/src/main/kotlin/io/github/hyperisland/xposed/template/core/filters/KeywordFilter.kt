@@ -41,7 +41,7 @@ object KeywordFilter {
         val matchesBlacklist = blacklistKeywords.any { kw -> text.contains(kw.lowercase()) }
 
         val result = when (mode) {
-            "whitelist" -> !matchesWhitelist
+            "whitelist" -> !matchesWhitelist || matchesBlacklist
             else -> matchesBlacklist
         }
 

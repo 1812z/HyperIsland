@@ -1184,5 +1184,5 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get keywordFilterPriority =>
-      'Whitelist takes priority: when whitelist is enabled, only whitelist-matched notifications are shown, blacklist is ignored';
+      'Whitelist takes priority: only whitelist-matched notifications are shown, but blacklist can still veto';
 }
