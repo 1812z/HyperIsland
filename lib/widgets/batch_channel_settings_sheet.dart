@@ -204,11 +204,14 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
   Map<String, dynamic>? _focusSchema;
   Map<String, dynamic>? _islandSchema;
   bool _loadingFocusSchema = false;
-  bool _focusCustomExpanded = false;
   final Map<String, TextEditingController> _focusControllers = {};
   bool _loadingIslandSchema = false;
-  bool _islandCustomExpanded = false;
   final Map<String, TextEditingController> _islandControllers = {};
+
+  bool _islandExpanded = false;
+  bool _islandCustomExpanded = false;
+  bool _focusExpanded = false;
+  bool _focusCustomExpanded = false;
 
   // 仅 BatchChannelMode + SingleAppScope 下使用
   bool _onlyEnabled = false;
@@ -1026,559 +1029,548 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                   ),
                   SizedBox(height: blockGap),
 
-                  // ── 超级岛 ─────────────────────────────────────────────
-                  _SectionLabel(l10n.islandSection),
-                  SizedBox(height: sectionTitleGap),
-                  _BatchSettingRow(
-                    label: l10n.islandIcon,
-                    value: _iconMode,
-                    showNotChange: !_isSingle,
-                    items: [
-                      DropdownMenuItem(
-                        value: kIconModeAuto,
-                        child: Text(l10n.iconModeAuto),
-                      ),
-                      DropdownMenuItem(
-                        value: kIconModeNotifSmall,
-                        child: Text(l10n.iconModeNotifSmall),
-                      ),
-                      DropdownMenuItem(
-                        value: kIconModeNotifLarge,
-                        child: Text(l10n.iconModeNotifLarge),
-                      ),
-                      DropdownMenuItem(
-                        value: kIconModeAppIcon,
-                        child: Text(l10n.iconModeAppIcon),
-                      ),
-                    ],
-                    onChanged: (v) => setState(() => _iconMode = v),
-                  ),
-                  SizedBox(height: rowGap),
-                  _BatchSettingRow(
-                    label: l10n.islandIconLabel,
-                    value: _showIslandIcon,
-                    showNotChange: !_isSingle,
-                    items: [
-                      DropdownMenuItem(
-                        value: kTriOptDefault,
-                        child: Text(
-                          _defaultLabel(context, _ctrl.defaultShowIslandIcon),
-                        ),
-                      ),
-                      DropdownMenuItem(
-                        value: kTriOptOn,
-                        child: Text(l10n.optOn),
-                      ),
-                      DropdownMenuItem(
-                        value: kTriOptOff,
-                        child: Text(l10n.optOff),
-                      ),
-                    ],
-                    onChanged: (v) => setState(() => _showIslandIcon = v),
-                  ),
-                  SizedBox(height: rowGap),
-                  _BatchSettingRow(
-                    label: l10n.firstFloatLabel,
-                    value: _firstFloat,
-                    showNotChange: !_isSingle,
-                    items: [
-                      DropdownMenuItem(
-                        value: kTriOptDefault,
-                        child: Text(
-                          _defaultLabel(context, _ctrl.defaultFirstFloat),
-                        ),
-                      ),
-                      DropdownMenuItem(
-                        value: kTriOptOn,
-                        child: Text(l10n.optOn),
-                      ),
-                      DropdownMenuItem(
-                        value: kTriOptOff,
-                        child: Text(l10n.optOff),
-                      ),
-                    ],
-                    onChanged: (v) => setState(() => _firstFloat = v),
-                  ),
-                  SizedBox(height: rowGap),
-                  _BatchSettingRow(
-                    label: l10n.updateFloatLabel,
-                    value: _enableFloat,
-                    showNotChange: !_isSingle,
-                    items: [
-                      DropdownMenuItem(
-                        value: kTriOptDefault,
-                        child: Text(
-                          _defaultLabel(context, _ctrl.defaultEnableFloat),
-                        ),
-                      ),
-                      DropdownMenuItem(
-                        value: kTriOptOn,
-                        child: Text(l10n.optOn),
-                      ),
-                      DropdownMenuItem(
-                        value: kTriOptOff,
-                        child: Text(l10n.optOff),
-                      ),
-                    ],
-                    onChanged: (v) => setState(() => _enableFloat = v),
-                  ),
-                  SizedBox(height: rowGap),
-                  _BatchSettingRow(
-                    label: l10n.marqueeChannelTitle,
-                    value: _marquee,
-                    showNotChange: !_isSingle,
-                    items: [
-                      DropdownMenuItem(
-                        value: kTriOptDefault,
-                        child: Text(
-                          _defaultLabel(context, _ctrl.defaultMarquee),
-                        ),
-                      ),
-                      DropdownMenuItem(
-                        value: kTriOptOn,
-                        child: Text(l10n.optOn),
-                      ),
-                      DropdownMenuItem(
-                        value: kTriOptOff,
-                        child: Text(l10n.optOff),
-                      ),
-                    ],
-                    onChanged: (v) => setState(() => _marquee = v),
-                  ),
-                  SizedBox(height: rowGap),
-                  // 自动消失
-                  _SettingField(
-                    label: l10n.autoDisappear,
-                    child: TextFormField(
-                      controller: _timeoutController,
-                      keyboardType: TextInputType.number,
-                      textInputAction: TextInputAction.done,
-                      scrollPadding: EdgeInsets.zero,
-                      onTapOutside: (_) {
-                        FocusManager.instance.primaryFocus?.unfocus();
-                      },
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      decoration: _fieldDecoration(
-                        context,
-                        hintText: _isSingle ? null : l10n.noChange,
-                        suffixText: _islandTimeout != null
-                            ? l10n.seconds
-                            : null,
-                      ),
-                      onChanged: (v) {
-                        final trimmed = v.trim();
-                        final n = int.tryParse(trimmed);
-                        final valid = trimmed.isNotEmpty && n != null && n >= 1;
-                        setState(() {
-                          if (valid) {
-                            _islandTimeout = trimmed;
-                          } else if (!_isSingle) {
-                            _islandTimeout = null;
-                          }
-                        });
-                      },
-                    ),
-                  ),
-                  SizedBox(height: rowGap),
-                  _BatchSettingRow(
-                    label: l10n.outerGlowLabel,
-                    value: _islandOuterGlow,
-                    showNotChange: !_isSingle,
-                    items: _outerGlowItems(
-                      context,
-                      defaultMode: _ctrl.defaultIslandOuterGlow,
-                    ),
-                    onChanged: (v) => setState(() => _islandOuterGlow = v),
-                  ),
-                  SizedBox(height: rowGap),
-                  _SettingField(
-                    label: l10n.outEffectColorLabel,
-                    child: ColorValueField(
-                      controller: _islandOuterGlowColorController,
-                      decoration: _fieldDecoration(
-                        context,
-                        hintText: _isSingle
-                            ? '#AARRGGBB / #RRGGBB'
-                            : l10n.noChange,
-                      ),
-                      previewColor: _parseColor(_islandOuterGlowColor),
-                      previewFallbackColor: cs.primary,
-                      enabled: !_isFollowDynamicGlow(
-                        _islandOuterGlow,
-                        _ctrl.defaultIslandOuterGlow,
-                      ),
-                      readOnly: _isFollowDynamicGlow(
-                        _islandOuterGlow,
-                        _ctrl.defaultIslandOuterGlow,
-                      ),
-                      onChanged: (v) {
-                        final trimmed = v.trim();
-                        setState(() {
-                          _islandOuterGlowColor = trimmed.isNotEmpty
-                              ? trimmed
-                              : null;
-                        });
-                      },
-                      onClear: () {
-                        _islandOuterGlowColorController.clear();
-                        setState(() => _islandOuterGlowColor = null);
-                      },
-                      onPickColor: () async {
-                        final color = await showColorPickerDialog(
-                          context,
-                          title: '${l10n.outEffectColorLabel} (Island)',
-                          initialHex: _islandOuterGlowColor,
-                          enableAlpha: true,
-                        );
-                        if (color != null) {
-                          final hex = colorToArgbHex(color);
-                          _islandOuterGlowColorController.text = hex;
-                          setState(() => _islandOuterGlowColor = hex);
-                        }
-                      },
-                    ),
-                  ),
-                  SizedBox(height: rowGap),
-                  // 高亮颜色
-                  _SettingField(
-                    label: l10n.highlightColorLabel,
-                    child: ColorValueField(
-                      controller: _highlightColorController,
-                      enabled: !_dynamicHighlightEnabled,
-                      readOnly: _dynamicHighlightEnabled,
-                      decoration: _fieldDecoration(
-                        context,
-                        hintText: _isSingle
-                            ? l10n.highlightColorHint
-                            : l10n.noChange,
-                      ),
-                      previewColor: _parseColor(_highlightColor),
-                      previewFallbackColor: cs.primary,
-                      onChanged: _dynamicHighlightEnabled
-                          ? null
-                          : (v) {
-                              final trimmed = v.trim();
-                              setState(() {
-                                _highlightColor = trimmed.isNotEmpty
-                                    ? trimmed
-                                    : null;
-                              });
-                            },
-                      onClear: () {
-                        _highlightColorController.clear();
-                        setState(() => _highlightColor = null);
-                      },
-                      onPickColor: () async {
-                        final color = await showColorPickerDialog(
-                          context,
-                          initialHex: _highlightColor,
-                          title: l10n.highlightColorLabel,
-                          enableAlpha: true,
-                        );
-                        if (color != null) {
-                          final hex = colorToArgbHex(color);
-                          _highlightColorController.text = hex;
-                          setState(() => _highlightColor = hex);
-                        }
-                      },
-                    ),
-                  ),
-                  SizedBox(height: rowGap),
-                  _BatchSettingRow(
-                    label: l10n.dynamicHighlightColorLabel,
-                    value: _dynamicHighlightColor,
-                    showNotChange: !_isSingle,
-                    items: [
-                      DropdownMenuItem(
-                        value: kTriOptDefault,
-                        child: Text(
-                          _defaultLabel(
-                            context,
-                            _ctrl.defaultDynamicHighlightColor,
-                          ),
-                        ),
-                      ),
-                      DropdownMenuItem(
-                        value: kTriOptOff,
-                        child: Text(l10n.optOff),
-                      ),
-                      DropdownMenuItem(
-                        value: kTriOptOn,
-                        child: Text(l10n.optOn),
-                      ),
-                      DropdownMenuItem(
-                        value: 'dark',
-                        child: Text(l10n.dynamicHighlightModeDark),
-                      ),
-                      DropdownMenuItem(
-                        value: 'darker',
-                        child: Text(l10n.dynamicHighlightModeDarker),
-                      ),
-                    ],
-                    onChanged: (v) => setState(() {
-                      _dynamicHighlightColor = v;
-                    }),
-                  ),
-                  SizedBox(height: rowGap),
-                  // 文本高亮
-                  _SettingField(
-                    label: l10n.textHighlightLabel,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _HighlightSwitch(
-                            label: l10n.showLeftHighlightShort,
-                            value: _showLeftHighlight,
-                            showNotChange: !_isSingle,
-                            onChanged: hasHighlightColor
-                                ? (v) => setState(() => _showLeftHighlight = v)
-                                : null,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _HighlightSwitch(
-                            label: l10n.showRightHighlightShort,
-                            value: _showRightHighlight,
-                            showNotChange: !_isSingle,
-                            onChanged: hasHighlightColor
-                                ? (v) => setState(() => _showRightHighlight = v)
-                                : null,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: rowGap),
-                  _SettingField(
-                    label: l10n.narrowFontLabel,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _HighlightSwitch(
-                            label: l10n.showLeftHighlightShort,
-                            value: _showLeftNarrowFont,
-                            showNotChange: !_isSingle,
-                            onChanged: (v) =>
-                                setState(() => _showLeftNarrowFont = v),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _HighlightSwitch(
-                            label: l10n.showRightHighlightShort,
-                            value: _showRightNarrowFont,
-                            showNotChange: !_isSingle,
-                            onChanged: (v) =>
-                                setState(() => _showRightNarrowFont = v),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (_isSingle) ...[
-                    SizedBox(height: rowGap),
-                    _SectionLabel(l10n.islandExpressionCustomizationSection),
-                    SizedBox(height: sectionTitleGap),
-                    OutlinedButton.icon(
-                      onPressed: () => setState(
-                        () => _islandCustomExpanded = !_islandCustomExpanded,
-                      ),
-                      icon: Icon(
-                        _islandCustomExpanded
-                            ? Icons.expand_less_rounded
-                            : Icons.expand_more_rounded,
-                      ),
-                      label: Text(
-                        _islandCustomExpanded
-                            ? l10n.collapseCustomization
-                            : l10n.expandCustomization,
-                      ),
-                    ),
-                    if (_islandCustomExpanded) ...[
-                      SizedBox(height: rowGap),
-                      if (_loadingIslandSchema)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8),
-                          child: LinearProgressIndicator(minHeight: 2),
-                        )
-                      else
-                        _buildIslandCustomizationFields(),
-                    ],
-                  ],
                   SizedBox(height: blockGap),
 
-                  // ── 焦点通知 ───────────────────────────────────────────
-                  _SectionLabel(l10n.focusNotificationLabel),
-                  SizedBox(height: sectionTitleGap),
-                  _BatchSettingRow(
-                    label: l10n.focusNotificationLabel,
-                    value: _focusNotif,
-                    showNotChange: !_isSingle,
-                    items: [
-                      DropdownMenuItem(
-                        value: kTriOptDefault,
-                        child: Text(
-                          _defaultLabel(context, _ctrl.defaultFocusNotif),
-                        ),
-                      ),
-                      DropdownMenuItem(
-                        value: kTriOptOn,
-                        child: Text(l10n.optOn),
-                      ),
-                      DropdownMenuItem(
-                        value: kTriOptOff,
-                        child: Text(l10n.optOff),
-                      ),
-                    ],
-                    onChanged: (v) => setState(() {
-                      _focusNotif = v;
-                      if (v == kTriOptOff) _preserveSmallIcon = kTriOptOff;
-                    }),
-                  ),
-                  SizedBox(height: rowGap),
-                  _BatchSettingRow(
-                    label: l10n.preserveStatusBarSmallIconLabel,
-                    value: _focusNotif == kTriOptOff
-                        ? kTriOptOff
-                        : _preserveSmallIcon,
-                    showNotChange: !_isSingle,
-                    items: [
-                      DropdownMenuItem(
-                        value: kTriOptDefault,
-                        child: Text(
-                          _defaultLabel(
-                            context,
-                            _ctrl.defaultPreserveSmallIcon,
+                  _ExpandableSection(
+                    title: l10n.islandSection,
+                    icon: Icons.smart_display_rounded,
+                    expanded: _islandExpanded,
+                    onToggle: () => setState(() => _islandExpanded = !_islandExpanded),
+                    children: [
+                      SizedBox(height: sectionTitleGap),
+                      _BatchSettingRow(
+                        label: l10n.islandIcon,
+                        value: _iconMode,
+                        showNotChange: !_isSingle,
+                        items: [
+                          DropdownMenuItem(
+                            value: kIconModeAuto,
+                            child: Text(l10n.iconModeAuto),
                           ),
-                        ),
-                      ),
-                      DropdownMenuItem(
-                        value: kTriOptOn,
-                        child: Text(l10n.optOn),
-                      ),
-                      DropdownMenuItem(
-                        value: kTriOptOff,
-                        child: Text(l10n.optOff),
-                      ),
-                    ],
-                    onChanged: _focusNotif == kTriOptOff
-                        ? null
-                        : (v) => setState(() => _preserveSmallIcon = v),
-                  ),
-                  SizedBox(height: rowGap),
-                  _BatchSettingRow(
-                    label: l10n.restoreLockscreenTitle,
-                    value: _restoreLockscreen,
-                    showNotChange: !_isSingle,
-                    items: [
-                      DropdownMenuItem(
-                        value: kTriOptDefault,
-                        child: Text(
-                          _defaultLabel(
-                            context,
-                            _ctrl.defaultRestoreLockscreen,
+                          DropdownMenuItem(
+                            value: kIconModeNotifSmall,
+                            child: Text(l10n.iconModeNotifSmall),
                           ),
-                        ),
+                          DropdownMenuItem(
+                            value: kIconModeNotifLarge,
+                            child: Text(l10n.iconModeNotifLarge),
+                          ),
+                          DropdownMenuItem(
+                            value: kIconModeAppIcon,
+                            child: Text(l10n.iconModeAppIcon),
+                          ),
+                        ],
+                        onChanged: (v) => setState(() => _iconMode = v),
                       ),
-                      DropdownMenuItem(
-                        value: kTriOptOn,
-                        child: Text(l10n.optOn),
-                      ),
-                      DropdownMenuItem(
-                        value: kTriOptOff,
-                        child: Text(l10n.optOff),
-                      ),
-                    ],
-                    onChanged: (v) => setState(() => _restoreLockscreen = v),
-                  ),
-                  SizedBox(height: rowGap),
-                  _BatchSettingRow(
-                    label: l10n.outerGlowLabel,
-                    value: _outerGlow,
-                    showNotChange: !_isSingle,
-                    items: _outerGlowItems(
-                      context,
-                      defaultMode: _ctrl.defaultOuterGlow,
-                    ),
-                    onChanged: (v) => setState(() => _outerGlow = v),
-                  ),
-                  SizedBox(height: rowGap),
-                  _SettingField(
-                    label: l10n.outEffectColorLabel,
-                    child: ColorValueField(
-                      controller: _outEffectColorController,
-                      decoration: _fieldDecoration(
-                        context,
-                        hintText: _isSingle
-                            ? '#AARRGGBB / #RRGGBB'
-                            : l10n.noChange,
-                      ),
-                      previewColor: _parseColor(_outEffectColor),
-                      previewFallbackColor: cs.primary,
-                      enabled: !_isFollowDynamicGlow(
-                        _outerGlow,
-                        _ctrl.defaultOuterGlow,
-                      ),
-                      readOnly: _isFollowDynamicGlow(
-                        _outerGlow,
-                        _ctrl.defaultOuterGlow,
-                      ),
-                      onChanged: (v) {
-                        final trimmed = v.trim();
-                        setState(() {
-                          _outEffectColor = trimmed.isNotEmpty ? trimmed : null;
-                        });
-                      },
-                      onClear: () {
-                        _outEffectColorController.clear();
-                        setState(() => _outEffectColor = null);
-                      },
-                      onPickColor: () async {
-                        final color = await showColorPickerDialog(
-                          context,
-                          initialHex: _outEffectColor,
-                          title: '${l10n.outEffectColorLabel} (Focus)',
-                          enableAlpha: true,
-                        );
-                        if (color != null) {
-                          final hex = colorToArgbHex(color);
-                          _outEffectColorController.text = hex;
-                          setState(() => _outEffectColor = hex);
-                        }
-                      },
-                    ),
-                  ),
-                  if (_isSingle) ...[
-                    SizedBox(height: rowGap),
-                    _SectionLabel(l10n.focusExpressionCustomizationSection),
-                    SizedBox(height: sectionTitleGap),
-                    OutlinedButton.icon(
-                      onPressed: () => setState(
-                        () => _focusCustomExpanded = !_focusCustomExpanded,
-                      ),
-                      icon: Icon(
-                        _focusCustomExpanded
-                            ? Icons.expand_less_rounded
-                            : Icons.expand_more_rounded,
-                      ),
-                      label: Text(
-                        _focusCustomExpanded
-                            ? l10n.collapseCustomization
-                            : l10n.expandCustomization,
-                      ),
-                    ),
-                    if (_focusCustomExpanded) ...[
                       SizedBox(height: rowGap),
-                      if (_loadingFocusSchema)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8),
-                          child: LinearProgressIndicator(minHeight: 2),
-                        )
-                      else
-                        _buildFocusCustomizationFields(),
+                      _BatchSettingRow(
+                        label: l10n.islandIconLabel,
+                        value: _showIslandIcon,
+                        showNotChange: !_isSingle,
+                        items: [
+                          DropdownMenuItem(
+                            value: kTriOptDefault,
+                            child: Text(
+                              _defaultLabel(context, _ctrl.defaultShowIslandIcon),
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: kTriOptOn,
+                            child: Text(l10n.optOn),
+                          ),
+                          DropdownMenuItem(
+                            value: kTriOptOff,
+                            child: Text(l10n.optOff),
+                          ),
+                        ],
+                        onChanged: (v) => setState(() => _showIslandIcon = v),
+                      ),
+                      SizedBox(height: rowGap),
+                      _BatchSettingRow(
+                        label: l10n.firstFloatLabel,
+                        value: _firstFloat,
+                        showNotChange: !_isSingle,
+                        items: [
+                          DropdownMenuItem(
+                            value: kTriOptDefault,
+                            child: Text(
+                              _defaultLabel(context, _ctrl.defaultFirstFloat),
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: kTriOptOn,
+                            child: Text(l10n.optOn),
+                          ),
+                          DropdownMenuItem(
+                            value: kTriOptOff,
+                            child: Text(l10n.optOff),
+                          ),
+                        ],
+                        onChanged: (v) => setState(() => _firstFloat = v),
+                      ),
+                      SizedBox(height: rowGap),
+                      _BatchSettingRow(
+                        label: l10n.updateFloatLabel,
+                        value: _enableFloat,
+                        showNotChange: !_isSingle,
+                        items: [
+                          DropdownMenuItem(
+                            value: kTriOptDefault,
+                            child: Text(
+                              _defaultLabel(context, _ctrl.defaultEnableFloat),
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: kTriOptOn,
+                            child: Text(l10n.optOn),
+                          ),
+                          DropdownMenuItem(
+                            value: kTriOptOff,
+                            child: Text(l10n.optOff),
+                          ),
+                        ],
+                        onChanged: (v) => setState(() => _enableFloat = v),
+                      ),
+                      SizedBox(height: rowGap),
+                      _BatchSettingRow(
+                        label: l10n.marqueeChannelTitle,
+                        value: _marquee,
+                        showNotChange: !_isSingle,
+                        items: [
+                          DropdownMenuItem(
+                            value: kTriOptDefault,
+                            child: Text(
+                              _defaultLabel(context, _ctrl.defaultMarquee),
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: kTriOptOn,
+                            child: Text(l10n.optOn),
+                          ),
+                          DropdownMenuItem(
+                            value: kTriOptOff,
+                            child: Text(l10n.optOff),
+                          ),
+                        ],
+                        onChanged: (v) => setState(() => _marquee = v),
+                      ),
+                      SizedBox(height: rowGap),
+                      _SettingField(
+                        label: l10n.autoDisappear,
+                        child: TextFormField(
+                          controller: _timeoutController,
+                          keyboardType: TextInputType.number,
+                          textInputAction: TextInputAction.done,
+                          scrollPadding: EdgeInsets.zero,
+                          onTapOutside: (_) {
+                            FocusManager.instance.primaryFocus?.unfocus();
+                          },
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          decoration: _fieldDecoration(
+                            context,
+                            hintText: _isSingle ? null : l10n.noChange,
+                            suffixText: _islandTimeout != null
+                                ? l10n.seconds
+                                : null,
+                          ),
+                          onChanged: (v) {
+                            final trimmed = v.trim();
+                            final n = int.tryParse(trimmed);
+                            final valid = trimmed.isNotEmpty && n != null && n >= 1;
+                            setState(() {
+                              if (valid) {
+                                _islandTimeout = trimmed;
+                              } else if (!_isSingle) {
+                                _islandTimeout = null;
+                              }
+                            });
+                          },
+                        ),
+                      ),
+                      SizedBox(height: rowGap),
+                      _BatchSettingRow(
+                        label: l10n.outerGlowLabel,
+                        value: _islandOuterGlow,
+                        showNotChange: !_isSingle,
+                        items: _outerGlowItems(
+                          context,
+                          defaultMode: _ctrl.defaultIslandOuterGlow,
+                        ),
+                        onChanged: (v) => setState(() => _islandOuterGlow = v),
+                      ),
+                      SizedBox(height: rowGap),
+                      _SettingField(
+                        label: l10n.outEffectColorLabel,
+                        child: ColorValueField(
+                          controller: _islandOuterGlowColorController,
+                          decoration: _fieldDecoration(
+                            context,
+                            hintText: _isSingle
+                                ? '#AARRGGBB / #RRGGBB'
+                                : l10n.noChange,
+                          ),
+                          previewColor: _parseColor(_islandOuterGlowColor),
+                          previewFallbackColor: cs.primary,
+                          enabled: !_isFollowDynamicGlow(
+                            _islandOuterGlow,
+                            _ctrl.defaultIslandOuterGlow,
+                          ),
+                          readOnly: _isFollowDynamicGlow(
+                            _islandOuterGlow,
+                            _ctrl.defaultIslandOuterGlow,
+                          ),
+                          onChanged: (v) {
+                            final trimmed = v.trim();
+                            setState(() {
+                              _islandOuterGlowColor = trimmed.isNotEmpty
+                                  ? trimmed
+                                  : null;
+                            });
+                          },
+                          onClear: () {
+                            _islandOuterGlowColorController.clear();
+                            setState(() => _islandOuterGlowColor = null);
+                          },
+                          onPickColor: () async {
+                            final color = await showColorPickerDialog(
+                              context,
+                              title: '${l10n.outEffectColorLabel} (Island)',
+                              initialHex: _islandOuterGlowColor,
+                              enableAlpha: true,
+                            );
+                            if (color != null) {
+                              final hex = colorToArgbHex(color);
+                              _islandOuterGlowColorController.text = hex;
+                              setState(() => _islandOuterGlowColor = hex);
+                            }
+                          },
+                        ),
+                      ),
+                      SizedBox(height: rowGap),
+                      _SettingField(
+                        label: l10n.highlightColorLabel,
+                        child: ColorValueField(
+                          controller: _highlightColorController,
+                          enabled: !_dynamicHighlightEnabled,
+                          readOnly: _dynamicHighlightEnabled,
+                          decoration: _fieldDecoration(
+                            context,
+                            hintText: _isSingle
+                                ? l10n.highlightColorHint
+                                : l10n.noChange,
+                          ),
+                          previewColor: _parseColor(_highlightColor),
+                          previewFallbackColor: cs.primary,
+                          onChanged: _dynamicHighlightEnabled
+                              ? null
+                              : (v) {
+                                  final trimmed = v.trim();
+                                  setState(() {
+                                    _highlightColor = trimmed.isNotEmpty
+                                        ? trimmed
+                                        : null;
+                                  });
+                                },
+                          onClear: () {
+                            _highlightColorController.clear();
+                            setState(() => _highlightColor = null);
+                          },
+                          onPickColor: () async {
+                            final color = await showColorPickerDialog(
+                              context,
+                              initialHex: _highlightColor,
+                              title: l10n.highlightColorLabel,
+                              enableAlpha: true,
+                            );
+                            if (color != null) {
+                              final hex = colorToArgbHex(color);
+                              _highlightColorController.text = hex;
+                              setState(() => _highlightColor = hex);
+                            }
+                          },
+                        ),
+                      ),
+                      SizedBox(height: rowGap),
+                      _BatchSettingRow(
+                        label: l10n.dynamicHighlightColorLabel,
+                        value: _dynamicHighlightColor,
+                        showNotChange: !_isSingle,
+                        items: [
+                          DropdownMenuItem(
+                            value: kTriOptDefault,
+                            child: Text(
+                              _defaultLabel(
+                                context,
+                                _ctrl.defaultDynamicHighlightColor,
+                              ),
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: kTriOptOff,
+                            child: Text(l10n.optOff),
+                          ),
+                          DropdownMenuItem(
+                            value: kTriOptOn,
+                            child: Text(l10n.optOn),
+                          ),
+                          DropdownMenuItem(
+                            value: 'dark',
+                            child: Text(l10n.dynamicHighlightModeDark),
+                          ),
+                          DropdownMenuItem(
+                            value: 'darker',
+                            child: Text(l10n.dynamicHighlightModeDarker),
+                          ),
+                        ],
+                        onChanged: (v) => setState(() {
+                          _dynamicHighlightColor = v;
+                        }),
+                      ),
+                      SizedBox(height: rowGap),
+                      _SettingField(
+                        label: l10n.textHighlightLabel,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: _HighlightSwitch(
+                                label: l10n.showLeftHighlightShort,
+                                value: _showLeftHighlight,
+                                showNotChange: !_isSingle,
+                                onChanged: hasHighlightColor
+                                    ? (v) => setState(() => _showLeftHighlight = v)
+                                    : null,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _HighlightSwitch(
+                                label: l10n.showRightHighlightShort,
+                                value: _showRightHighlight,
+                                showNotChange: !_isSingle,
+                                onChanged: hasHighlightColor
+                                    ? (v) => setState(() => _showRightHighlight = v)
+                                    : null,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: rowGap),
+                      _SettingField(
+                        label: l10n.narrowFontLabel,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: _HighlightSwitch(
+                                label: l10n.showLeftHighlightShort,
+                                value: _showLeftNarrowFont,
+                                showNotChange: !_isSingle,
+                                onChanged: (v) =>
+                                    setState(() => _showLeftNarrowFont = v),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _HighlightSwitch(
+                                label: l10n.showRightHighlightShort,
+                                value: _showRightNarrowFont,
+                                showNotChange: !_isSingle,
+                                onChanged: (v) =>
+                                    setState(() => _showRightNarrowFont = v),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
-                  ],
+                  ),
+                  SizedBox(height: blockGap),
+
+                  if (_isSingle)
+                    _ExpandableSection(
+                      title: l10n.islandExpressionCustomizationSection,
+                      icon: Icons.code_rounded,
+                      expanded: _islandCustomExpanded,
+                      onToggle: () => setState(() => _islandCustomExpanded = !_islandCustomExpanded),
+                      children: [
+                        SizedBox(height: sectionTitleGap),
+                        if (_loadingIslandSchema)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8),
+                            child: LinearProgressIndicator(minHeight: 2),
+                          )
+                        else
+                          _buildIslandCustomizationFields(),
+                      ],
+                    ),
+                  if (_isSingle) SizedBox(height: blockGap),
+
+                  _ExpandableSection(
+                    title: l10n.focusNotificationLabel,
+                    icon: Icons.notifications_rounded,
+                    expanded: _focusExpanded,
+                    onToggle: () => setState(() => _focusExpanded = !_focusExpanded),
+                    children: [
+                      SizedBox(height: sectionTitleGap),
+                      _BatchSettingRow(
+                        label: l10n.focusNotificationLabel,
+                        value: _focusNotif,
+                        showNotChange: !_isSingle,
+                        items: [
+                          DropdownMenuItem(
+                            value: kTriOptDefault,
+                            child: Text(
+                              _defaultLabel(context, _ctrl.defaultFocusNotif),
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: kTriOptOn,
+                            child: Text(l10n.optOn),
+                          ),
+                          DropdownMenuItem(
+                            value: kTriOptOff,
+                            child: Text(l10n.optOff),
+                          ),
+                        ],
+                        onChanged: (v) => setState(() {
+                          _focusNotif = v;
+                          if (v == kTriOptOff) _preserveSmallIcon = kTriOptOff;
+                        }),
+                      ),
+                      SizedBox(height: rowGap),
+                      _BatchSettingRow(
+                        label: l10n.preserveStatusBarSmallIconLabel,
+                        value: _focusNotif == kTriOptOff
+                            ? kTriOptOff
+                            : _preserveSmallIcon,
+                        showNotChange: !_isSingle,
+                        items: [
+                          DropdownMenuItem(
+                            value: kTriOptDefault,
+                            child: Text(
+                              _defaultLabel(
+                                context,
+                                _ctrl.defaultPreserveSmallIcon,
+                              ),
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: kTriOptOn,
+                            child: Text(l10n.optOn),
+                          ),
+                          DropdownMenuItem(
+                            value: kTriOptOff,
+                            child: Text(l10n.optOff),
+                          ),
+                        ],
+                        onChanged: _focusNotif == kTriOptOff
+                            ? null
+                            : (v) => setState(() => _preserveSmallIcon = v),
+                      ),
+                      SizedBox(height: rowGap),
+                      _BatchSettingRow(
+                        label: l10n.restoreLockscreenTitle,
+                        value: _restoreLockscreen,
+                        showNotChange: !_isSingle,
+                        items: [
+                          DropdownMenuItem(
+                            value: kTriOptDefault,
+                            child: Text(
+                              _defaultLabel(
+                                context,
+                                _ctrl.defaultRestoreLockscreen,
+                              ),
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: kTriOptOn,
+                            child: Text(l10n.optOn),
+                          ),
+                          DropdownMenuItem(
+                            value: kTriOptOff,
+                            child: Text(l10n.optOff),
+                          ),
+                        ],
+                        onChanged: (v) => setState(() => _restoreLockscreen = v),
+                      ),
+                      SizedBox(height: rowGap),
+                      _BatchSettingRow(
+                        label: l10n.outerGlowLabel,
+                        value: _outerGlow,
+                        showNotChange: !_isSingle,
+                        items: _outerGlowItems(
+                          context,
+                          defaultMode: _ctrl.defaultOuterGlow,
+                        ),
+                        onChanged: (v) => setState(() => _outerGlow = v),
+                      ),
+                      SizedBox(height: rowGap),
+                      _SettingField(
+                        label: l10n.outEffectColorLabel,
+                        child: ColorValueField(
+                          controller: _outEffectColorController,
+                          decoration: _fieldDecoration(
+                            context,
+                            hintText: _isSingle
+                                ? '#AARRGGBB / #RRGGBB'
+                                : l10n.noChange,
+                          ),
+                          previewColor: _parseColor(_outEffectColor),
+                          previewFallbackColor: cs.primary,
+                          enabled: !_isFollowDynamicGlow(
+                            _outerGlow,
+                            _ctrl.defaultOuterGlow,
+                          ),
+                          readOnly: _isFollowDynamicGlow(
+                            _outerGlow,
+                            _ctrl.defaultOuterGlow,
+                          ),
+                          onChanged: (v) {
+                            final trimmed = v.trim();
+                            setState(() {
+                              _outEffectColor = trimmed.isNotEmpty ? trimmed : null;
+                            });
+                          },
+                          onClear: () {
+                            _outEffectColorController.clear();
+                            setState(() => _outEffectColor = null);
+                          },
+                          onPickColor: () async {
+                            final color = await showColorPickerDialog(
+                              context,
+                              initialHex: _outEffectColor,
+                              title: '${l10n.outEffectColorLabel} (Focus)',
+                              enableAlpha: true,
+                            );
+                            if (color != null) {
+                              final hex = colorToArgbHex(color);
+                              _outEffectColorController.text = hex;
+                              setState(() => _outEffectColor = hex);
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: blockGap),
+
+                  if (_isSingle)
+                    _ExpandableSection(
+                      title: l10n.focusExpressionCustomizationSection,
+                      icon: Icons.data_object_rounded,
+                      expanded: _focusCustomExpanded,
+                      onToggle: () => setState(() => _focusCustomExpanded = !_focusCustomExpanded),
+                      children: [
+                        SizedBox(height: sectionTitleGap),
+                        if (_loadingFocusSchema)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8),
+                            child: LinearProgressIndicator(minHeight: 2),
+                          )
+                        else
+                          _buildFocusCustomizationFields(),
+                      ],
+                    ),
                   SizedBox(height: endGap),
                 ],
               ),
@@ -1663,6 +1655,148 @@ class _SectionLabel extends StatelessWidget {
           color: cs.primary,
           fontWeight: FontWeight.w600,
         ),
+      ),
+    );
+  }
+}
+
+// ── 可折叠分组 ──────────────────────────────────────────────────────────────────
+
+class _ExpandableSection extends StatefulWidget {
+  const _ExpandableSection({
+    required this.title,
+    required this.icon,
+    required this.expanded,
+    required this.onToggle,
+    required this.children,
+  });
+
+  final String title;
+  final IconData icon;
+  final bool expanded;
+  final VoidCallback onToggle;
+  final List<Widget> children;
+
+  @override
+  State<_ExpandableSection> createState() => _ExpandableSectionState();
+}
+
+class _ExpandableSectionState extends State<_ExpandableSection>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _heightFactor;
+  late final Animation<double> _fade;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _heightFactor = CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic);
+    _fade = CurvedAnimation(
+      parent: _ctrl,
+      curve: Interval(0.2, 1.0, curve: Curves.easeOutCubic),
+    );
+    if (widget.expanded) _ctrl.value = 1.0;
+  }
+
+  @override
+  void didUpdateWidget(covariant _ExpandableSection old) {
+    super.didUpdateWidget(old);
+    if (widget.expanded != old.expanded) {
+      if (widget.expanded) {
+        _ctrl.forward();
+      } else {
+        _ctrl.reverse();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.vertical(
+              top: const Radius.circular(16),
+              bottom: widget.expanded ? Radius.zero : const Radius.circular(16),
+            ),
+            child: InkWell(
+              borderRadius: BorderRadius.vertical(
+                top: const Radius.circular(16),
+                bottom: widget.expanded ? Radius.zero : const Radius.circular(16),
+              ),
+              onTap: widget.onToggle,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+                child: Row(
+                  children: [
+                    Icon(widget.icon, color: cs.primary, size: 20),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        widget.title,
+                        style: text.titleSmall?.copyWith(
+                          color: cs.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    AnimatedRotation(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeOutCubic,
+                      turns: widget.expanded ? 0.5 : 0,
+                      child: Icon(
+                        Icons.expand_more_rounded,
+                        color: cs.primary,
+                        size: 22,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          ClipRect(
+            child: AnimatedBuilder(
+              animation: _heightFactor,
+              builder: (_, child) {
+                return Align(
+                  alignment: Alignment.topCenter,
+                  heightFactor: _heightFactor.value,
+                  child: child,
+                );
+              },
+              child: FadeTransition(
+                opacity: _fade,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: widget.children,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
