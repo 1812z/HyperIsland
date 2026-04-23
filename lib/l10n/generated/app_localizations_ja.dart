@@ -1110,4 +1110,40 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get hideDesktopIconSubtitle =>
       'アプリのアイコンをランチャーから非表示にします。非表示後は、LSPosed Manager 経由で開くことができます。';
+
+  @override
+  String get filterRulesSection => '过滤规则';
+
+  @override
+  String get filterModeLabel => '过滤模式';
+
+  @override
+  String get filterModeBlacklist => '黑名单';
+
+  @override
+  String get filterModeWhitelist => '白名单';
+
+  @override
+  String get filterModeBlacklistDesc => '匹配关键词的通知将被过滤';
+
+  @override
+  String get filterModeWhitelistDesc => '仅匹配关键词的通知会显示';
+
+  @override
+  String get whitelistKeywordsLabel => '白名单关键词';
+
+  @override
+  String get blacklistKeywordsLabel => '黑名单关键词';
+
+  @override
+  String get addKeyword => '添加关键词';
+
+  @override
+  String get keywordHint => '输入关键词';
+
+  @override
+  String get removeKeyword => '移除';
+
+  @override
+  String get keywordFilterPriority => '白名单优先：启用白名单后，仅白名单匹配的通知显示，黑名单仍生效';
 }

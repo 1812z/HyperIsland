@@ -568,5 +568,18 @@
   "templateAiNotificationIslandName": "AI 通知超级岛",
 
   "hideDesktopIconTitle": "隐藏桌面图标",
-  "hideDesktopIconSubtitle": "隐藏启动器中的应用图标，隐藏后可通过 LSPosed 管理器打开"
+  "hideDesktopIconSubtitle": "隐藏启动器中的应用图标，隐藏后可通过 LSPosed 管理器打开",
+
+  "filterRulesSection": "过滤规则",
+  "filterModeLabel": "过滤模式",
+  "filterModeBlacklist": "黑名单",
+  "filterModeWhitelist": "白名单",
+  "filterModeBlacklistDesc": "匹配关键词的通知将被过滤",
+  "filterModeWhitelistDesc": "仅匹配关键词的通知会显示",
+  "whitelistKeywordsLabel": "白名单关键词",
+  "blacklistKeywordsLabel": "黑名单关键词",
+  "addKeyword": "添加关键词",
+  "keywordHint": "输入关键词",
+  "removeKeyword": "移除",
+  "keywordFilterPriority": "白名单优先：启用白名单后，仅白名单匹配的通知显示，黑名单仍生效"
 }

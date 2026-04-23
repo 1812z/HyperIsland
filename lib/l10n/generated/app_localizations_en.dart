@@ -1146,4 +1146,43 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get hideDesktopIconSubtitle =>
       'Hide the app icon from launcher. Open via LSPosed Manager after hiding';
+
+  @override
+  String get filterRulesSection => 'Filter Rules';
+
+  @override
+  String get filterModeLabel => 'Filter Mode';
+
+  @override
+  String get filterModeBlacklist => 'Blacklist';
+
+  @override
+  String get filterModeWhitelist => 'Whitelist';
+
+  @override
+  String get filterModeBlacklistDesc =>
+      'Notifications matching keywords will be filtered';
+
+  @override
+  String get filterModeWhitelistDesc =>
+      'Only notifications matching keywords will be shown';
+
+  @override
+  String get whitelistKeywordsLabel => 'Whitelist Keywords';
+
+  @override
+  String get blacklistKeywordsLabel => 'Blacklist Keywords';
+
+  @override
+  String get addKeyword => 'Add keyword';
+
+  @override
+  String get keywordHint => 'Enter keyword';
+
+  @override
+  String get removeKeyword => 'Remove';
+
+  @override
+  String get keywordFilterPriority =>
+      'Whitelist takes priority: when whitelist is enabled, only whitelist-matched notifications are shown, blacklist is ignored';
 }

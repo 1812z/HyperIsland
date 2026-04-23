@@ -37,7 +37,19 @@
     "placeholderRawSubtitle",
     "placeholderRawSubtitleOrTitle",
     "islandLeftExprLabel",
-    "islandRightExprLabel"
+    "islandRightExprLabel",
+    "filterRulesSection",
+    "filterModeLabel",
+    "filterModeBlacklist",
+    "filterModeWhitelist",
+    "filterModeBlacklistDesc",
+    "filterModeWhitelistDesc",
+    "whitelistKeywordsLabel",
+    "blacklistKeywordsLabel",
+    "addKeyword",
+    "keywordHint",
+    "removeKeyword",
+    "keywordFilterPriority"
   ],
 
   "tr": [
@@ -83,6 +95,18 @@
     "placeholderRawSubtitle",
     "placeholderRawSubtitleOrTitle",
     "islandLeftExprLabel",
-    "islandRightExprLabel"
+    "islandRightExprLabel",
+    "filterRulesSection",
+    "filterModeLabel",
+    "filterModeBlacklist",
+    "filterModeWhitelist",
+    "filterModeBlacklistDesc",
+    "filterModeWhitelistDesc",
+    "whitelistKeywordsLabel",
+    "blacklistKeywordsLabel",
+    "addKeyword",
+    "keywordHint",
+    "removeKeyword",
+    "keywordFilterPriority"
   ]
 }

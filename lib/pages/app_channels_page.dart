@@ -242,6 +242,15 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
       'island_custom',
       widget.controller.setChannelIslandCustomization,
     );
+    queueExtra('filter_mode', widget.controller.setChannelFilterMode);
+    queueExtra(
+      'whitelist_keywords',
+      widget.controller.setChannelWhitelistKeywords,
+    );
+    queueExtra(
+      'blacklist_keywords',
+      widget.controller.setChannelBlacklistKeywords,
+    );
 
     if (templateChanged || extrasChanged) {
       setState(() {
@@ -532,6 +541,9 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                       outEffectColor: extras['out_effect_color'] ?? '',
                       focusCustom: extras['focus_custom'] ?? '',
                       islandCustom: extras['island_custom'] ?? '',
+                      filterMode: extras['filter_mode'] ?? 'blacklist',
+                      whitelistKeywords: (extras['whitelist_keywords'] ?? '').isEmpty ? [] : (extras['whitelist_keywords'] ?? '').split(','),
+                      blacklistKeywords: (extras['blacklist_keywords'] ?? '').isEmpty ? [] : (extras['blacklist_keywords'] ?? '').split(','),
                       controller: widget.controller,
                       onToggle: (v) => _toggle(ch.id, v),
                       onSettingsApplied: (s) => _applyChannelSettings(ch.id, s),
@@ -652,6 +664,9 @@ class _ChannelTile extends StatelessWidget {
     required this.outEffectColor,
     required this.focusCustom,
     required this.islandCustom,
+    required this.filterMode,
+    required this.whitelistKeywords,
+    required this.blacklistKeywords,
     required this.controller,
     required this.onToggle,
     required this.onSettingsApplied,
@@ -688,6 +703,9 @@ class _ChannelTile extends StatelessWidget {
   final String outEffectColor;
   final String focusCustom;
   final String islandCustom;
+  final String filterMode;
+  final List<String> whitelistKeywords;
+  final List<String> blacklistKeywords;
   final WhitelistController controller;
   final ValueChanged<bool> onToggle;
   final ValueChanged<Map<String, String?>> onSettingsApplied;
@@ -720,6 +738,9 @@ class _ChannelTile extends StatelessWidget {
         outEffectColor: outEffectColor,
         focusCustom: focusCustom,
         islandCustom: islandCustom,
+        filterMode: filterMode,
+        whitelistKeywords: whitelistKeywords,
+        blacklistKeywords: blacklistKeywords,
       ),
       templateLabels: templateLabels,
       rendererLabels: rendererLabels,

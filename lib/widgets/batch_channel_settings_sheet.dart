@@ -41,6 +41,9 @@ class SingleChannelMode extends ChannelSettingsMode {
     required this.outEffectColor,
     required this.focusCustom,
     required this.islandCustom,
+    required this.filterMode,
+    required this.whitelistKeywords,
+    required this.blacklistKeywords,
   });
 
   final String channelName;
@@ -67,6 +70,9 @@ class SingleChannelMode extends ChannelSettingsMode {
   final String outEffectColor;
   final String focusCustom;
   final String islandCustom;
+  final String filterMode;
+  final List<String> whitelistKeywords;
+  final List<String> blacklistKeywords;
 }
 
 /// 批量模式：对多个渠道批量操作，字段默认"不更改"。
@@ -201,6 +207,12 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
   String? _focusCustom;
   String? _islandCustom;
 
+  String? _filterMode;
+  List<String> _whitelistKeywords = [];
+  List<String> _blacklistKeywords = [];
+
+  String get effectiveFilterMode => _filterMode ?? (_isSingle ? 'blacklist' : 'blacklist');
+
   Map<String, dynamic>? _focusSchema;
   Map<String, dynamic>? _islandSchema;
   bool _loadingFocusSchema = false;
@@ -212,6 +224,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
   bool _islandCustomExpanded = false;
   bool _focusExpanded = false;
   bool _focusCustomExpanded = false;
+  bool _filterExpanded = false;
 
   // 仅 BatchChannelMode + SingleAppScope 下使用
   bool _onlyEnabled = false;
@@ -278,6 +291,9 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
       _outEffectColor = m.outEffectColor;
       _focusCustom = m.focusCustom;
       _islandCustom = m.islandCustom;
+      _filterMode = m.filterMode;
+      _whitelistKeywords = List.from(m.whitelistKeywords);
+      _blacklistKeywords = List.from(m.blacklistKeywords);
       _timeoutController = TextEditingController(text: m.islandTimeout);
       _highlightColorController = TextEditingController(text: m.highlightColor);
       _islandOuterGlowColorController = TextEditingController(
@@ -826,7 +842,10 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
       _islandOuterGlowColor != null ||
       _outEffectColor != null ||
       _focusCustom != null ||
-      _islandCustom != null;
+      _islandCustom != null ||
+      _filterMode != null ||
+      _whitelistKeywords.isNotEmpty ||
+      _blacklistKeywords.isNotEmpty;
 
   String _title(AppLocalizations l10n) => switch (widget.mode) {
     SingleChannelMode m => m.channelName,
@@ -892,6 +911,9 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
               : _outEffectColor,
           'focus_custom': _focusCustom,
           'island_custom': _islandCustom,
+          'filter_mode': _isSingle ? (_filterMode ?? 'blacklist') : _filterMode,
+          'whitelist_keywords': _isSingle ? _whitelistKeywords.join(',') : (_whitelistKeywords.isNotEmpty ? _whitelistKeywords.join(',') : null),
+          'blacklist_keywords': _isSingle ? _blacklistKeywords.join(',') : (_blacklistKeywords.isNotEmpty ? _blacklistKeywords.join(',') : null),
         },
         onlyEnabled: switch (widget.mode) {
           BatchChannelMode(scope: SingleAppScope()) => _onlyEnabled,
@@ -1571,6 +1593,62 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                           _buildFocusCustomizationFields(),
                       ],
                     ),
+                  SizedBox(height: blockGap),
+
+                  _ExpandableSection(
+                    title: l10n.filterRulesSection,
+                    icon: Icons.filter_list_rounded,
+                    expanded: _filterExpanded,
+                    onToggle: () => setState(() => _filterExpanded = !_filterExpanded),
+                    children: [
+                      SizedBox(height: sectionTitleGap),
+                      _BatchSettingRow(
+                        label: l10n.filterModeLabel,
+                        value: _filterMode ?? (_isSingle ? 'blacklist' : null),
+                        showNotChange: !_isSingle,
+                        items: [
+                          DropdownMenuItem(
+                            value: 'blacklist',
+                            child: Text(l10n.filterModeBlacklist),
+                          ),
+                          DropdownMenuItem(
+                            value: 'whitelist',
+                            child: Text(l10n.filterModeWhitelist),
+                          ),
+                        ],
+                        onChanged: (v) => setState(() => _filterMode = v),
+                      ),
+                      SizedBox(height: rowGap),
+                      _KeywordListEditor(
+                        label: l10n.whitelistKeywordsLabel,
+                        keywords: _whitelistKeywords,
+                        enabled: effectiveFilterMode == 'whitelist',
+                        onAdd: (kw) => setState(() => _whitelistKeywords = [..._whitelistKeywords, kw]),
+                        onRemove: (kw) => setState(() => _whitelistKeywords = _whitelistKeywords.where((k) => k != kw).toList()),
+                        hintText: l10n.addKeyword,
+                      ),
+                      SizedBox(height: rowGap),
+                      _KeywordListEditor(
+                        label: l10n.blacklistKeywordsLabel,
+                        keywords: _blacklistKeywords,
+                        enabled: true,
+                        onAdd: (kw) => setState(() => _blacklistKeywords = [..._blacklistKeywords, kw]),
+                        onRemove: (kw) => setState(() => _blacklistKeywords = _blacklistKeywords.where((k) => k != kw).toList()),
+                        hintText: l10n.addKeyword,
+                      ),
+                      SizedBox(height: rowGap),
+                      if (effectiveFilterMode == 'whitelist')
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            l10n.keywordFilterPriority,
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                   SizedBox(height: endGap),
                 ],
               ),
@@ -1946,6 +2024,111 @@ InputDecoration _fieldDecoration(
     filled: true,
     fillColor: cs.surfaceContainerHighest,
   );
+}
+
+class _KeywordListEditor extends StatefulWidget {
+  const _KeywordListEditor({
+    required this.label,
+    required this.keywords,
+    required this.enabled,
+    required this.onAdd,
+    required this.onRemove,
+    required this.hintText,
+  });
+
+  final String label;
+  final List<String> keywords;
+  final bool enabled;
+  final ValueChanged<String> onAdd;
+  final ValueChanged<String> onRemove;
+  final String hintText;
+
+  @override
+  State<_KeywordListEditor> createState() => _KeywordListEditorState();
+}
+
+class _KeywordListEditorState extends State<_KeywordListEditor> {
+  late final TextEditingController _addController;
+
+  @override
+  void initState() {
+    super.initState();
+    _addController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _addController.dispose();
+    super.dispose();
+  }
+
+void _addKeyword() {
+    if (!widget.enabled) return;
+    final kw = _addController.text.trim();
+    if (kw.isEmpty) return;
+    if (widget.keywords.contains(kw)) return;
+    widget.onAdd(kw);
+    _addController.clear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    final enabled = widget.enabled;
+
+    return _SettingField(
+      label: widget.label,
+      child: Opacity(
+        opacity: enabled ? 1.0 : 0.45,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _addController,
+                    enabled: enabled,
+                    decoration: _fieldDecoration(
+                      context,
+                      hintText: widget.hintText,
+                    ),
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: enabled ? (_) => _addKeyword() : null,
+                  ),
+                ),
+                const SizedBox(width: 8),
+IconButton(
+                  onPressed: enabled ? _addKeyword : null,
+                  icon: const Icon(Icons.add_rounded),
+                  style: IconButton.styleFrom(
+                    backgroundColor: cs.primaryContainer,
+                    foregroundColor: cs.onPrimaryContainer,
+                  ),
+                ),
+              ],
+            ),
+            if (widget.keywords.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: widget.keywords.map((kw) {
+                  return InputChip(
+                    label: Text(kw, style: text.bodySmall),
+                    onDeleted: enabled ? () => widget.onRemove(kw) : null,
+                    deleteIconColor: cs.error,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  );
+                }).toList(),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _HighlightSwitch extends StatelessWidget {

@@ -9,6 +9,7 @@ import io.github.hyperisland.utils.resolveDynamicHighlightColor
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
 import io.github.hyperisland.xposed.template.core.TemplateRegistry
+import io.github.hyperisland.xposed.template.core.filters.KeywordFilter
 import io.github.hyperisland.xposed.template.core.models.NotifData
 import io.github.hyperisland.xposed.utils.FullscreenBehavior
 import io.github.hyperisland.xposed.utils.toRounded

@@ -782,14 +782,27 @@ class WhitelistController extends ChangeNotifier {
                 'pref_channel_out_effect_color_${packageName}_$id',
               ) ??
               '',
-          'focus_custom':
-              prefs.getString('pref_channel_focus_custom_${packageName}_$id') ??
-              '',
-          'island_custom':
-              prefs.getString(
-                'pref_channel_island_custom_${packageName}_$id',
-              ) ??
-              '',
+'focus_custom':
+               prefs.getString('pref_channel_focus_custom_${packageName}_$id') ??
+               '',
+           'island_custom':
+               prefs.getString(
+                 'pref_channel_island_custom_${packageName}_$id',
+               ) ??
+               '',
+           'filter_mode':
+               prefs.getString('pref_channel_filter_mode_${packageName}_$id') ??
+               'blacklist',
+           'whitelist_keywords':
+               prefs.getString(
+                 'pref_channel_filter_whitelist_keywords_${packageName}_$id',
+               ) ??
+               '',
+           'blacklist_keywords':
+               prefs.getString(
+                 'pref_channel_filter_blacklist_keywords_${packageName}_$id',
+               ) ??
+               '',
         }),
       ),
     );
@@ -1135,6 +1148,46 @@ class WhitelistController extends ChangeNotifier {
     }
   }
 
+  Future<void> setChannelFilterMode(
+    String packageName,
+    String channelId,
+    String value,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(
+      'pref_channel_filter_mode_${packageName}_$channelId',
+      value,
+    );
+  }
+
+  Future<void> setChannelWhitelistKeywords(
+    String packageName,
+    String channelId,
+    String value,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'pref_channel_filter_whitelist_keywords_${packageName}_$channelId';
+    if (value.isEmpty) {
+      await prefs.remove(key);
+    } else {
+      await prefs.setString(key, value);
+    }
+  }
+
+  Future<void> setChannelBlacklistKeywords(
+    String packageName,
+    String channelId,
+    String value,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'pref_channel_filter_blacklist_keywords_${packageName}_$channelId';
+    if (value.isEmpty) {
+      await prefs.remove(key);
+    } else {
+      await prefs.setString(key, value);
+    }
+  }
+
   /// 批量应用渠道配置到指定渠道列表。
   /// [settings] 中 null 值的 key 表示不更改该项。
   Future<void> batchApplyChannelSettings(
@@ -1168,6 +1221,9 @@ class WhitelistController extends ChangeNotifier {
       'out_effect_color': 'pref_channel_out_effect_color',
       'focus_custom': 'pref_channel_focus_custom',
       'island_custom': 'pref_channel_island_custom',
+      'filter_mode': 'pref_channel_filter_mode',
+      'whitelist_keywords': 'pref_channel_filter_whitelist_keywords',
+      'blacklist_keywords': 'pref_channel_filter_blacklist_keywords',
     };
     final futures = <Future<bool>>[];
     for (final id in channelIds) {

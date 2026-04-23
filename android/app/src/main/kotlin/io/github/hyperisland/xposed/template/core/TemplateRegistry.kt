@@ -5,6 +5,7 @@ import android.os.Bundle
 import io.github.hyperisland.xposed.logWarn
 import io.github.hyperisland.xposed.template.core.contracts.IslandTemplate
 import io.github.hyperisland.xposed.template.core.filters.BlacklistFilter
+import io.github.hyperisland.xposed.template.core.filters.KeywordFilter
 import io.github.hyperisland.xposed.template.core.models.NotifData
 import io.github.hyperisland.xposed.templates.AINotificationIslandNotification
 import io.github.hyperisland.xposed.templates.GenericDownloadIslandNotification
@@ -42,6 +43,7 @@ object TemplateRegistry {
         }
         // 通知进入黑名单处理
         val filteredData = BlacklistFilter.applyTo(context, data) ?: return
+        if (KeywordFilter.shouldBlock(filteredData)) return
         template.inject(context, extras, filteredData)
     }
 }

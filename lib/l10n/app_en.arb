@@ -403,5 +403,18 @@
   "hideDesktopIconSubtitle": "Hide the app icon from launcher. Open via LSPosed Manager after hiding",
 
   "restoreLockscreenTitle": "Restore Lockscreen Notification",
-  "restoreLockscreenSubtitle": "Skip focus notification processing on lockscreen, keep original privacy behavior"
+  "restoreLockscreenSubtitle": "Skip focus notification processing on lockscreen, keep original privacy behavior",
+
+  "filterRulesSection": "Filter Rules",
+  "filterModeLabel": "Filter Mode",
+  "filterModeBlacklist": "Blacklist",
+  "filterModeWhitelist": "Whitelist",
+  "filterModeBlacklistDesc": "Notifications matching keywords will be filtered",
+  "filterModeWhitelistDesc": "Only notifications matching keywords will be shown",
+  "whitelistKeywordsLabel": "Whitelist Keywords",
+  "blacklistKeywordsLabel": "Blacklist Keywords",
+  "addKeyword": "Add keyword",
+  "keywordHint": "Enter keyword",
+  "removeKeyword": "Remove",
+  "keywordFilterPriority": "Whitelist takes priority: when whitelist is enabled, only whitelist-matched notifications are shown, blacklist is ignored"
 }

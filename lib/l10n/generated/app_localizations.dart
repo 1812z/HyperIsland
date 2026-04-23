@@ -2147,6 +2147,78 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'隐藏启动器中的应用图标，隐藏后可通过 LSPosed 管理器打开'**
   String get hideDesktopIconSubtitle;
+
+  /// No description provided for @filterRulesSection.
+  ///
+  /// In zh, this message translates to:
+  /// **'过滤规则'**
+  String get filterRulesSection;
+
+  /// No description provided for @filterModeLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'过滤模式'**
+  String get filterModeLabel;
+
+  /// No description provided for @filterModeBlacklist.
+  ///
+  /// In zh, this message translates to:
+  /// **'黑名单'**
+  String get filterModeBlacklist;
+
+  /// No description provided for @filterModeWhitelist.
+  ///
+  /// In zh, this message translates to:
+  /// **'白名单'**
+  String get filterModeWhitelist;
+
+  /// No description provided for @filterModeBlacklistDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'匹配关键词的通知将被过滤'**
+  String get filterModeBlacklistDesc;
+
+  /// No description provided for @filterModeWhitelistDesc.
+  ///
+  /// In zh, this message translates to:
+  /// **'仅匹配关键词的通知会显示'**
+  String get filterModeWhitelistDesc;
+
+  /// No description provided for @whitelistKeywordsLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'白名单关键词'**
+  String get whitelistKeywordsLabel;
+
+  /// No description provided for @blacklistKeywordsLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'黑名单关键词'**
+  String get blacklistKeywordsLabel;
+
+  /// No description provided for @addKeyword.
+  ///
+  /// In zh, this message translates to:
+  /// **'添加关键词'**
+  String get addKeyword;
+
+  /// No description provided for @keywordHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'输入关键词'**
+  String get keywordHint;
+
+  /// No description provided for @removeKeyword.
+  ///
+  /// In zh, this message translates to:
+  /// **'移除'**
+  String get removeKeyword;
+
+  /// No description provided for @keywordFilterPriority.
+  ///
+  /// In zh, this message translates to:
+  /// **'白名单优先：启用白名单后，仅白名单匹配的通知显示，黑名单仍生效'**
+  String get keywordFilterPriority;
 }
 
 class _AppLocalizationsDelegate
