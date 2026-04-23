@@ -51,6 +51,7 @@ class MainActivity : FlutterActivity() {
                     enableFloat      = false,
                     highlightColor   = "#E040FB",
                     showNotification = false,
+                    islandOuterGlow  = true
                 )
             )
         }.start()
@@ -296,6 +297,7 @@ class MainActivity : FlutterActivity() {
                     firstFloat       = false,
                     highlightColor   = "#E040FB",
                     showNotification = true,
+                    islandOuterGlow  = true
                 )
             )
             result.success(true)
