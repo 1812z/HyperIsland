@@ -83,7 +83,7 @@ Please confirm:
 - Try restarting System UI
 :::
 
-::: What if both floating notifications and focus notifications appear simultaneously?
+::: details What if both floating notifications and focus notifications appear simultaneously?
 - Please try disabling floating notifications in the system's native notification settings.
 :::
 
