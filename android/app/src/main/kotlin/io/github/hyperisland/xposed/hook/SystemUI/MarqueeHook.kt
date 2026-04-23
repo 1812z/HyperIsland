@@ -181,8 +181,10 @@ object MarqueeHook : BaseHook() {
         val layoutListener = View.OnLayoutChangeListener { v, _, _, _, _, _, _, _, _ ->
             val tv = v as TextView
             if (isInExpandedView(tv)) return@OnLayoutChangeListener
-            if (isMarqueeEnabledFor(tv)) startMarquee(tv)
-            else stopMarquee(tv)
+            tv.post {
+                if (isMarqueeEnabledFor(tv)) startMarquee(tv)
+                else stopMarquee(tv)
+            }
         }
         listeners.add(layoutListener)
         view.addOnLayoutChangeListener(layoutListener)
@@ -192,8 +194,10 @@ object MarqueeHook : BaseHook() {
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: android.text.Editable?) {
                 if (isInExpandedView(view)) return
-                if (isMarqueeEnabledFor(view)) startMarquee(view)
-                else stopMarquee(view)
+                view.post {
+                    if (isMarqueeEnabledFor(view)) startMarquee(view)
+                    else stopMarquee(view)
+                }
             }
         }
         view.addTextChangedListener(textWatcher)
