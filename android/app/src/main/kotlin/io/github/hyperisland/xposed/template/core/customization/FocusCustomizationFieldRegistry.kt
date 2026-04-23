@@ -70,10 +70,12 @@ object FocusCustomizationFieldRegistry {
         type = "text_expr",
         defaultProvider = { it?.defaultFocusTitleExpr ?: "${'$'}{focus_title}" },
         required = true,
-        fallbackWhenEmpty = true,
         applier = { value, env, vm ->
-            val title = env.resolveExpr(value, env.vars).ifEmpty { vm.focusTitle }
-            vm.copy(focusTitle = title)
+            if (value.isBlank()) vm.copy(focusTitle = "")
+            else {
+                val title = env.resolveExpr(value, env.vars).ifEmpty { vm.focusTitle }
+                vm.copy(focusTitle = title)
+            }
         },
     )
 
@@ -84,10 +86,12 @@ object FocusCustomizationFieldRegistry {
         type = "text_expr",
         defaultProvider = { it?.defaultFocusContentExpr ?: "${'$'}{focus_content}" },
         required = true,
-        fallbackWhenEmpty = true,
         applier = { value, env, vm ->
-            val content = env.resolveExpr(value, env.vars).ifEmpty { vm.focusContent }
-            vm.copy(focusContent = content)
+            if (value.isBlank()) vm.copy(focusContent = "")
+            else {
+                val content = env.resolveExpr(value, env.vars).ifEmpty { vm.focusContent }
+                vm.copy(focusContent = content)
+            }
         },
     )
 

@@ -58,8 +58,8 @@ object IslandCustomizationFieldRegistry {
         val rightSpec = specs.first { it.key == IslandCustomizationFieldKeys.rightExpr }
         val leftExpr = config.optString(leftSpec.key, leftSpec.defaultProvider(template)).trim()
         val rightExpr = config.optString(rightSpec.key, rightSpec.defaultProvider(template)).trim()
-        val left = ExpressionResolver.resolve(leftExpr, vars).ifEmpty { defaultLeft }
-        val right = ExpressionResolver.resolve(rightExpr, vars).ifEmpty { defaultRight }
+        val left = if (leftExpr.isBlank()) "" else ExpressionResolver.resolve(leftExpr, vars).ifEmpty { defaultLeft }
+        val right = if (rightExpr.isBlank()) "" else ExpressionResolver.resolve(rightExpr, vars).ifEmpty { defaultRight }
         return left to right
     }
 }
