@@ -112,7 +112,8 @@ HyperIsland 为澎湃 OS3 提供了丰富的超级岛通知增强功能，让你
 **使用示例**
 
 - 去掉群聊前缀，只保留消息正文：
-  - `${replace(subtitle_or_title, "^\[\d+条]\s*[^:：]+[:：]\s*", "")}`
+  - VX: `${replace(subtitle_or_title, "^\[\d+条]\s*[^:：]+[:：]\s*", "")}`
+  - QQ: `${replace(title, "\(\d+条新消息\)", "")}` 
 - 提取订单号（如 `id12345`）：
   - `${regex(subtitle, "(id\d+)", 1)}`
 - 统一清理两端空白：
