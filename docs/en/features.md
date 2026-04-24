@@ -132,7 +132,7 @@ In **Advanced Focus Customization** and **Advanced Island Customization**, you c
 When Focus Notification is disabled, the Super Island is sent by **System UI** on behalf of the app, which may have compatibility issues.
 :::
 
-### Focus Notification Bypass
+## Focus Notification Bypass
 
 ::: danger Built-in Bypass
 The app includes a built-in whitelist bypass. It doesn't support safe mode and may cause System UI to crash infinitely. Make sure you can recover your device before enabling.
@@ -142,6 +142,14 @@ Through HyperCeiler or built-in bypass, you can:
 - Remove Focus Notification whitelist restrictions
 - Unlock Focus Notification whitelist verification
 - Enable any app's notifications to display as Focus Notifications
+
+## Notification Filtering Rules
+Used to control whether notifications appear on the island.
+Supports blacklist mode and whitelist mode.
+
+- **Blacklist Mode:** Notifications containing keywords will not be displayed as a super island.
+- **Whitelist Mode:** Notifications will only appear as a super island if they contain the specified keywords.
+- **Blacklist-Whitelist Mode:** The blacklist is processed first, and then notifications are displayed based on the whitelist criteria.
 
 ## Download Manager Extension
 
