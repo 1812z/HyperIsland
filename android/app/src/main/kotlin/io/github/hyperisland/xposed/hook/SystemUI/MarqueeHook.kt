@@ -211,7 +211,6 @@ object MarqueeHook : BaseHook() {
         view.removeTextChangedListener(listeners.textWatcher)
     }
 
-    private var hookedContentView = false
     private val hookedClassLoaders = ConcurrentHashMap.newKeySet<Int>()
     private val targetPkg = java.util.Collections.synchronizedMap(WeakHashMap<View, String>())
     private val targetChannel = java.util.Collections.synchronizedMap(WeakHashMap<View, String>())
@@ -381,7 +380,6 @@ object MarqueeHook : BaseHook() {
                         }
                         result
                     }
-                    hookedContentView = true
                     module.log("Hooked updateBigIslandView on $className (classLoader=${System.identityHashCode(classLoader)})")
                 }
             } catch (_: Exception) {}
