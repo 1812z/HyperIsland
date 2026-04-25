@@ -14,6 +14,7 @@ import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.util.WeakHashMap
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Hook SystemUI 中超级岛大岛视图的 TextView，实现自定义跑马灯（文字横向滚动）效果。
@@ -29,7 +30,7 @@ object MarqueeHook : BaseHook() {
 
     override fun onConfigChanged() {
         cachedSpeed = null
-        hookedContentView = false
+        hookedClassLoaders.clear()
         cachedWhitelist = null
         stopAllMarquees()
     }
@@ -211,6 +212,7 @@ object MarqueeHook : BaseHook() {
     }
 
     private var hookedContentView = false
+    private val hookedClassLoaders = ConcurrentHashMap.newKeySet<Int>()
     private val targetPkg = java.util.Collections.synchronizedMap(WeakHashMap<View, String>())
     private val targetChannel = java.util.Collections.synchronizedMap(WeakHashMap<View, String>())
     @Volatile private var cachedWhitelist: Map<String, Set<String>>? = null
@@ -267,7 +269,8 @@ object MarqueeHook : BaseHook() {
     }
 
     private fun hookContentViewClasses(module: XposedModule, classLoader: ClassLoader) {
-        if (hookedContentView) return
+        // 按 ClassLoader identityHashCode 去重
+        if (!hookedClassLoaders.add(System.identityHashCode(classLoader))) return
         val classNames = arrayOf(
             "miui.systemui.dynamicisland.window.content.DynamicIslandContentView"
         )
@@ -371,7 +374,7 @@ object MarqueeHook : BaseHook() {
                                 return@intercept result
                             }
                             
-                            log("Marquee triggered for package: $pkgName")
+                            //log("Marquee triggered for package: $pkgName")
                             traverseAndApplyMarquee(islandView, true)
                         } catch (e: Exception) {
                             logError("Error in updateBigIslandView hook: ${e.message}")
@@ -379,7 +382,7 @@ object MarqueeHook : BaseHook() {
                         result
                     }
                     hookedContentView = true
-                    module.log("Hooked updateBigIslandView on $className")
+                    module.log("Hooked updateBigIslandView on $className (classLoader=${System.identityHashCode(classLoader)})")
                 }
             } catch (_: Exception) {}
         }
@@ -387,9 +390,7 @@ object MarqueeHook : BaseHook() {
 
     private fun hookDynamicClassLoaders(module: XposedModule) {
         HookUtils.hookDynamicClassLoaders(module, ClassLoader.getSystemClassLoader()) { cl ->
-            if (!hookedContentView) {
-                hookContentViewClasses(module, cl)
-            }
+            hookContentViewClasses(module, cl)
         }
     }
 
@@ -444,6 +445,11 @@ object MarqueeHook : BaseHook() {
 
         override fun doFrame(frameTimeNanos: Long) {
             if (!isRunning) return
+            // View 已离开窗口（岛消失/被回收），立即停止
+            if (!view.isAttachedToWindow) {
+                stop()
+                return
+            }
             if (startTimeNanos == 0L) {
                 startTimeNanos = frameTimeNanos
                 lastFrameTimeNanos = frameTimeNanos

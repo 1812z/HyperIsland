@@ -27,6 +27,9 @@ object FocusNotifStatusBarIconHook : BaseHook() {
 
     @Volatile private var cachedDirectProxyActiveUntilElapsed = 0L
     @Volatile private var hooked = false
+    /** 上次执行 icon 恢复操作的时间戳（elapsedRealtime），用于节流 */
+    @Volatile private var lastRestoreElapsed = 0L
+    private const val RESTORE_THROTTLE_MS = 200L
 
     override fun getTag() = TAG
 
@@ -40,6 +43,7 @@ object FocusNotifStatusBarIconHook : BaseHook() {
     @JvmStatic
     internal fun clearDirectProxyPosted() {
         cachedDirectProxyActiveUntilElapsed = 0L
+        lastRestoreElapsed = 0L
     }
 
     private fun isDirectProxyActive(): Boolean =
@@ -87,10 +91,15 @@ object FocusNotifStatusBarIconHook : BaseHook() {
                 val result = chain.proceed()
                 val fragment = chain.thisObject
                 if (isDirectProxyActive()) {
-                    forceShowNotificationIconsModel(module, fragment)
-                    restoreNotificationIconArea(fragment)
-                    refreshNotificationIconArea(module, fragment)
-                    log(module, "icon area restored")
+                    // 节流：200ms 内只执行一次，避免高频状态栏刷新时重复做反射+UI操作
+                    val now = SystemClock.elapsedRealtime()
+                    if (now - lastRestoreElapsed >= RESTORE_THROTTLE_MS) {
+                        lastRestoreElapsed = now
+                        forceShowNotificationIconsModel(module, fragment)
+                        restoreNotificationIconArea(fragment)
+                        refreshNotificationIconArea(module, fragment)
+                        log(module, "icon area restored")
+                    }
                 }
                 result
             }

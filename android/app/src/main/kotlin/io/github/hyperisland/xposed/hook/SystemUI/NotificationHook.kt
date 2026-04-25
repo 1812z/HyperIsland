@@ -46,11 +46,27 @@ object GenericProgressHook : BaseHook() {
     }
 
     @Volatile private var cachedWhitelist: Map<String, Set<String>>? = null
-    private val cachedTemplates = mutableMapOf<String, String>()
-    private val cachedChannelSettings = mutableMapOf<String, String>()
+
+    /**
+     * LRU 缓存：accessOrder=true 时，get/put 都会将被访问的条目移到尾部，
+     * 超过容量时自动淘汰头部（最久未访问）的条目，无需整清空。
+     */
+    private val cachedTemplates = object : LinkedHashMap<String, String>(256, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>?): Boolean = size > MAX_TEMPLATES_SIZE
+    }
+    private val cachedChannelSettings = object : LinkedHashMap<String, String>(256, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>?): Boolean = size > MAX_CHANNEL_SETTINGS_SIZE
+    }
 
     private val lastProgressCache = mutableMapOf<String, Int>()
     private val trackedForCancel = mutableMapOf<String, Int>()
+
+    /** LRU 缓存上限（超限自动淘汰最久未访问的条目） */
+    private const val MAX_TEMPLATES_SIZE = 5000
+    private const val MAX_CHANNEL_SETTINGS_SIZE = 5000
+    /** 非 LRU 缓存上限（超限时整体清空再写入） */
+    private const val MAX_PROGRESS_CACHE_SIZE = 500
+    private const val MAX_TRACKED_CANCEL_SIZE = 500
 
     private fun loadChannelStringSetting(cacheKey: String, prefKey: String, default: String): String {
         cachedChannelSettings[cacheKey]?.let { return it }
@@ -91,6 +107,8 @@ object GenericProgressHook : BaseHook() {
         cachedWhitelist = null
         cachedTemplates.clear()
         cachedChannelSettings.clear()
+        lastProgressCache.clear()
+        trackedForCancel.clear()
     }
 
     fun loadChannelTemplate(pkg: String, channelId: String): String {
@@ -246,7 +264,10 @@ object GenericProgressHook : BaseHook() {
                 val progressRaw = extras.getInt(Notification.EXTRA_PROGRESS, -1)
                 if (progressRaw < 0) return
                 progressPercent = (progressRaw * 100 / progressMax).coerceIn(0, 100)
-                if (progressPercent in 0..99) lastProgressCache[cacheKey] = progressPercent
+                if (progressPercent in 0..99) {
+                    if (lastProgressCache.size >= MAX_PROGRESS_CACHE_SIZE) lastProgressCache.clear()
+                    lastProgressCache[cacheKey] = progressPercent
+                }
             } else {
                 progressPercent = lastProgressCache[cacheKey] ?: -1
             }
@@ -447,6 +468,7 @@ object GenericProgressHook : BaseHook() {
                 ),
             )
 
+            if (trackedForCancel.size >= MAX_TRACKED_CANCEL_SIZE) trackedForCancel.clear()
             trackedForCancel["$pkg#${sbn.id}"] = IslandDispatcher.NOTIF_ID
 
         } catch (e: Throwable) {
