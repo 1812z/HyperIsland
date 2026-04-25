@@ -80,6 +80,9 @@ object IslandBackgroundHook : BaseHook() {
     @Volatile
     private var hasAnyCustomBg = false
 
+    /** 记录每个 backgroundView 的 stokeWidth（供 RoundedClippingDrawable 计算内容区域） */
+    private val bgViewStrokes = java.util.WeakHashMap<View, Int>()
+
     override fun getTag() = TAG
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
@@ -193,6 +196,21 @@ object IslandBackgroundHook : BaseHook() {
                             val drawableField = bgViewClass.getDeclaredField("drawable")
                             drawableField.isAccessible = true
                             drawableField.set(chain.thisObject, customDrawable)
+
+                            // 获取并记录 stokeWidth（供 RoundedClippingDrawable 计算内容区域）
+                            // 同时设置 callback 供 drawable 查询 stokeWidth
+                            if (bgView != null) {
+                                try {
+                                    val stokeField = bgViewClass.getDeclaredField("stokeWidth")
+                                    stokeField.isAccessible = true
+                                    val stokeWidth = stokeField.getInt(bgView)
+                                    synchronized(bgViewStrokes) {
+                                        bgViewStrokes[bgView] = stokeWidth
+                                    }
+                                    // 设置 callback，让 RoundedClippingDrawable 能通过 callback 找到 bgView
+                                    customDrawable.callback = bgView
+                                } catch (_: Exception) {}
+                            }
 
                             log(module, "Replaced drawable for $type via reflection")
                         } catch (e: Exception) {
@@ -585,9 +603,11 @@ object IslandBackgroundHook : BaseHook() {
                         hasAnyCustomBg = true  // 通知 updateBackgroundBg hook 清除暗色覆盖
                         log(module, "Loaded $type background from ${file.absolutePath} (${file.length()} bytes)")
                     }
-                    // 回收旧 drawable 的 bitmap
+                    // 回收旧 drawable
                     if (old is RoundedClippingDrawable) {
-                        old.innerDrawable?.bitmap?.recycle()
+                        if (!old.bitmap.isRecycled) {
+                            old.bitmap.recycle()
+                        }
                     } else if (old is BitmapDrawable) {
                         old.bitmap?.recycle()
                     }
@@ -624,14 +644,8 @@ object IslandBackgroundHook : BaseHook() {
             // 获取圆角半径
             val cornerRadius = getCornerRadius(context)
 
-            val bitmapDrawable = if (context != null) {
-                BitmapDrawable(context.resources, bitmap)
-            } else {
-                BitmapDrawable(null, bitmap)
-            }
-
-            // 用圆角裁剪包装器包裹，draw 时 canvas.clipPath 实时裁剪
-            RoundedClippingDrawable(bitmapDrawable, cornerRadius)
+            // 用圆角裁剪包装器包裹 bitmap，直接 canvas.drawBitmap 绘制确保完全填充
+            RoundedClippingDrawable(bitmap, cornerRadius)
         } catch (e: Exception) {
             logError(module, "Failed to decode background: ${e.message}")
             null
@@ -680,7 +694,9 @@ object IslandBackgroundHook : BaseHook() {
 
             cachedDrawables.values.forEach { drawable ->
                 if (drawable is RoundedClippingDrawable) {
-                    drawable.innerDrawable?.bitmap?.recycle()
+                    if (!drawable.bitmap.isRecycled) {
+                        drawable.bitmap.recycle()
+                    }
                 } else if (drawable is BitmapDrawable) {
                     drawable.bitmap?.recycle()
                 }
@@ -698,44 +714,86 @@ object IslandBackgroundHook : BaseHook() {
      * 系统的 DynamicIslandBackgroundView.onDraw() 会 setBounds + draw，
      * 原始 GradientDrawable 自身就是圆角形状，但 BitmapDrawable 是矩形。
      * 此包装器在 draw 时用 canvas.clipPath 裁剪成圆角，确保不溢出岛外形。
+     *
+     * 使用 canvas.drawBitmap 直接绘制 bitmap，确保图片填满到内容区域
+     *（不含 stokeWidth 边框扩展），不覆盖边框外的光效。
      */
     private class RoundedClippingDrawable(
-        val innerDrawable: BitmapDrawable,
+        val bitmap: Bitmap,
         private val cornerRadius: Float
     ) : Drawable() {
 
         private val clipPath = Path()
         private val rect = RectF()
+        private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            isFilterBitmap = true  // 启用双线性过滤，抗锯齿
+        }
 
         override fun draw(canvas: Canvas) {
             val bounds = getBounds()
-            if (bounds.isEmpty) return
+            if (bounds.isEmpty || bitmap.isRecycled) return
 
-            // 构建 clip path
-            rect.set(bounds)
+            // bounds 是系统 onDraw 设置的：(actualLeft - stoke, actualTop - stoke, actualLeft + actualWidth + stoke, actualTop + actualHeight + stoke)
+            // 需要知道 stokeWidth 才能计算内容区域 (actualLeft, actualTop, actualLeft + actualWidth, actualTop + actualHeight)
+            // stokeWidth 通过 backgroundView 的弱引用从 bgViewStrokes 查询
+            var stoke = getStokeWidth()
+            if (stoke <= 0) stoke = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                4f,
+                android.content.res.Resources.getSystem().displayMetrics
+            ).toInt()
+
+            // 计算内容区域（去除 stokeWidth 边框扩展），统一使用 Float
+            val s = stoke.toFloat()
+            val contentLeft = (bounds.left + s).coerceAtLeast(bounds.left.toFloat())
+            val contentTop = (bounds.top + s).coerceAtLeast(bounds.top.toFloat())
+            val contentRight = (bounds.right - s).coerceAtMost(bounds.right.toFloat())
+            val contentBottom = (bounds.bottom - s).coerceAtMost(bounds.bottom.toFloat())
+
+            // 确保内容区域有效
+            if (contentRight > contentLeft && contentBottom > contentTop) {
+                rect.set(contentLeft, contentTop, contentRight, contentBottom)
+            } else {
+                rect.set(bounds.left.toFloat(), bounds.top.toFloat(), bounds.right.toFloat(), bounds.bottom.toFloat())
+            }
+
+            // 构建 clip path（圆角矩形）
             clipPath.reset()
             clipPath.addRoundRect(rect, cornerRadius, cornerRadius, Path.Direction.CW)
 
-            // 保存 canvas 状态，clip 后绘制，再恢复
+            // 保存 canvas 状态，clip 后绘制 bitmap，再恢复
             val save = canvas.save()
             canvas.clipPath(clipPath)
-            innerDrawable.bounds = bounds
-            innerDrawable.draw(canvas)
+
+            // 绘制 bitmap 到内容区域（而非整个 bounds）
+            canvas.drawBitmap(bitmap, null, rect, paint)
             canvas.restoreToCount(save)
         }
 
-        override fun setAlpha(alpha: Int) {
-            innerDrawable.alpha = alpha
+        private fun getStokeWidth(): Int {
+            // 尝试通过 bounds 查找对应的 backgroundView 获取 stokeWidth
+            // 从 Drawable 的 callback 获取 owner View
+            val callback = callback
+            if (callback is View) {
+                synchronized(bgViewStrokes) {
+                    return bgViewStrokes[callback] ?: 0
+                }
+            }
+            return 0
         }
 
-        override fun getOpacity(): Int = innerDrawable.opacity
+        override fun setAlpha(alpha: Int) {
+            paint.alpha = alpha
+        }
+
+        override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
 
         override fun setColorFilter(colorFilter: ColorFilter?) {
-            innerDrawable.colorFilter = colorFilter
+            paint.colorFilter = colorFilter
         }
 
-        override fun getIntrinsicWidth(): Int = innerDrawable.intrinsicWidth
+        override fun getIntrinsicWidth(): Int = bitmap.width
 
-        override fun getIntrinsicHeight(): Int = innerDrawable.intrinsicHeight
+        override fun getIntrinsicHeight(): Int = bitmap.height
     }
 }
