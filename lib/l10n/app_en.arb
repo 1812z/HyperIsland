@@ -416,5 +416,31 @@
   "addKeyword": "Add keyword",
   "keywordHint": "Enter keyword",
   "removeKeyword": "Remove",
-  "keywordFilterPriority": "Whitelist takes priority: only whitelist-matched notifications are shown, but blacklist can still veto"
+  "keywordFilterPriority": "Whitelist takes priority: only whitelist-matched notifications are shown, but blacklist can still veto",
+
+  "exportChannelsToClipboard": "Export Channel Settings",
+  "importChannelsFromClipboard": "Import Channel Settings",
+  "exportChannelsSuccess": "Channel settings copied to clipboard",
+  "importChannelsSuccess": "Imported {count} channel settings",
+  "@importChannelsSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importChannelsFailed": "Import failed: {error}",
+  "@importChannelsFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+
+  "importErrorEmptyClipboard": "Clipboard is empty. Please copy channel settings first",
+  "importErrorNotJson": "Clipboard content is not valid JSON",
+  "importErrorMissingChannels": "Invalid data format: missing channel list",
+  "importErrorNoMatch": "No channels matched the current app. Please verify the data source",
+  "importErrorUnknown": "Import failed. Please check clipboard data"
 }

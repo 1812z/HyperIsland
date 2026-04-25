@@ -2219,6 +2219,66 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'白名单优先：仅白名单匹配的通知显示，但黑名单仍可否决'**
   String get keywordFilterPriority;
+
+  /// No description provided for @exportChannelsToClipboard.
+  ///
+  /// In zh, this message translates to:
+  /// **'导出渠道设置'**
+  String get exportChannelsToClipboard;
+
+  /// No description provided for @importChannelsFromClipboard.
+  ///
+  /// In zh, this message translates to:
+  /// **'导入渠道设置'**
+  String get importChannelsFromClipboard;
+
+  /// No description provided for @exportChannelsSuccess.
+  ///
+  /// In zh, this message translates to:
+  /// **'渠道设置已复制到剪贴板'**
+  String get exportChannelsSuccess;
+
+  /// No description provided for @importChannelsSuccess.
+  ///
+  /// In zh, this message translates to:
+  /// **'导入成功，共 {count} 个渠道设置已恢复'**
+  String importChannelsSuccess(int count);
+
+  /// No description provided for @importChannelsFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'导入失败：{error}'**
+  String importChannelsFailed(String error);
+
+  /// No description provided for @importErrorEmptyClipboard.
+  ///
+  /// In zh, this message translates to:
+  /// **'剪贴板为空，请先复制渠道设置数据'**
+  String get importErrorEmptyClipboard;
+
+  /// No description provided for @importErrorNotJson.
+  ///
+  /// In zh, this message translates to:
+  /// **'剪贴板内容不是有效的 JSON 数据'**
+  String get importErrorNotJson;
+
+  /// No description provided for @importErrorMissingChannels.
+  ///
+  /// In zh, this message translates to:
+  /// **'数据格式不正确，缺少渠道列表'**
+  String get importErrorMissingChannels;
+
+  /// No description provided for @importErrorNoMatch.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有与当前应用匹配的渠道，请确认数据来源正确'**
+  String get importErrorNoMatch;
+
+  /// No description provided for @importErrorUnknown.
+  ///
+  /// In zh, this message translates to:
+  /// **'导入失败，请检查剪贴板数据是否正确'**
+  String get importErrorUnknown;
 }
 
 class _AppLocalizationsDelegate

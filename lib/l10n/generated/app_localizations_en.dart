@@ -1185,4 +1185,41 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get keywordFilterPriority =>
       'Whitelist takes priority: only whitelist-matched notifications are shown, but blacklist can still veto';
+
+  @override
+  String get exportChannelsToClipboard => 'Export Channel Settings';
+
+  @override
+  String get importChannelsFromClipboard => 'Import Channel Settings';
+
+  @override
+  String get exportChannelsSuccess => 'Channel settings copied to clipboard';
+
+  @override
+  String importChannelsSuccess(int count) {
+    return 'Imported $count channel settings';
+  }
+
+  @override
+  String importChannelsFailed(String error) {
+    return 'Import failed: $error';
+  }
+
+  @override
+  String get importErrorEmptyClipboard =>
+      'Clipboard is empty. Please copy channel settings first';
+
+  @override
+  String get importErrorNotJson => 'Clipboard content is not valid JSON';
+
+  @override
+  String get importErrorMissingChannels =>
+      'Invalid data format: missing channel list';
+
+  @override
+  String get importErrorNoMatch =>
+      'No channels matched the current app. Please verify the data source';
+
+  @override
+  String get importErrorUnknown => 'Import failed. Please check clipboard data';
 }

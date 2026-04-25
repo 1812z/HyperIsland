@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../controllers/whitelist_controller.dart';
@@ -26,6 +28,8 @@ class AppChannelsPage extends StatefulWidget {
 class _AppChannelsPageState extends State<AppChannelsPage> {
   static const String _batchAction = 'batch';
   static const String _enableAllChannelsAction = 'enable_all';
+  static const String _exportChannelsAction = 'export_channels';
+  static const String _importChannelsAction = 'import_channels';
 
   List<ChannelInfo>? _channels;
   Set<String> _enabledChannels = {};
@@ -322,6 +326,144 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
     await widget.controller.setEnabledChannels(widget.app.packageName, {});
   }
 
+  Future<void> _exportChannelsToClipboard() async {
+    final channels = _channels ?? [];
+    if (channels.isEmpty) return;
+    final pkg = widget.app.packageName;
+
+    final List<Map<String, dynamic>> channelList = [];
+    for (final ch in channels) {
+      final enabled = _isEnabled(ch.id);
+      final template = _channelTemplates[ch.id] ?? kTemplateNotificationIsland;
+      final extras = _channelExtras[ch.id] ?? {};
+      channelList.add({
+        'id': ch.id,
+        'name': ch.name,
+        'enabled': enabled,
+        'template': template,
+        'settings': extras,
+      });
+    }
+
+    final data = {
+      'version': 1,
+      'app': widget.app.appName,
+      'package': pkg,
+      'channels': channelList,
+    };
+
+    await Clipboard.setData(
+      ClipboardData(text: const JsonEncoder.withIndent('  ').convert(data)),
+    );
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(l10n.exportChannelsSuccess)),
+    );
+  }
+
+  Future<void> _importChannelsFromClipboard() async {
+    final l10n = AppLocalizations.of(context)!;
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    if (data?.text == null || data!.text!.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.importErrorEmptyClipboard)),
+      );
+      return;
+    }
+
+    try {
+      final decoded = jsonDecode(data.text!);
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException('not_json');
+      }
+      final channelsData = decoded['channels'];
+      if (channelsData is! List) {
+        throw const FormatException('missing_channels');
+      }
+
+      final channels = _channels ?? [];
+      final channelMap = {for (final ch in channels) ch.id: ch};
+      final pkg = widget.app.packageName;
+
+      final newEnabled = <String>{};
+      int appliedCount = 0;
+      int totalInData = 0;
+
+      for (final entry in channelsData) {
+        if (entry is! Map<String, dynamic>) continue;
+        totalInData++;
+        final id = entry['id'] as String?;
+        if (id == null || !channelMap.containsKey(id)) continue;
+
+        final enabled = entry['enabled'] as bool? ?? true;
+        if (enabled) newEnabled.add(id);
+
+        final template = entry['template'] as String?;
+        if (template != null) {
+          await widget.controller.setChannelTemplate(pkg, id, template);
+        }
+
+        // 额外设置：通过 batchApplyChannelSettings 通用写入，自动支持未来新增字段
+        final settings = entry['settings'];
+        if (settings is Map<String, dynamic>) {
+          final settingsMap = settings.map(
+            (k, v) => MapEntry(k, v?.toString()),
+          );
+          await widget.controller.batchApplyChannelSettings(
+            pkg,
+            [id],
+            settingsMap,
+          );
+        }
+        appliedCount++;
+      }
+
+      if (appliedCount == 0) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.importErrorNoMatch)),
+        );
+        return;
+      }
+
+      // 启用当前应用
+      await widget.controller.setEnabled(pkg, true);
+      await widget.controller.setEnabledChannels(pkg, newEnabled);
+
+      if (!mounted) return;
+      setState(() {
+        _appEnabled = true;
+        _enabledChannels = newEnabled;
+      });
+      await _reloadSettings();
+
+      if (!mounted) return;
+      final suffix = appliedCount < totalInData
+          ? '（共 ${totalInData} 个，已匹配 $appliedCount 个）'
+          : '';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${l10n.importChannelsSuccess(appliedCount)}$suffix'),
+        ),
+      );
+    } on FormatException catch (e) {
+      if (!mounted) return;
+      final msg = e.message == 'not_json'
+          ? l10n.importErrorNotJson
+          : l10n.importErrorMissingChannels;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.importErrorUnknown)),
+      );
+    }
+  }
+
   String _importanceLabel(int importance, AppLocalizations l10n) =>
       switch (importance) {
         0 => l10n.importanceNone,
@@ -383,6 +525,10 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                         _batchApply();
                       case _enableAllChannelsAction:
                         _enableAllChannels();
+                      case _exportChannelsAction:
+                        _exportChannelsToClipboard();
+                      case _importChannelsAction:
+                        _importChannelsFromClipboard();
                     }
                   },
                   itemBuilder: (ctx) {
@@ -392,6 +538,17 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                         value: _batchAction,
                         icon: Icons.tune_rounded,
                         label: ml.batchChannelSettings,
+                      ),
+                      const PopupMenuDivider(height: 8),
+                      buildAppPopupMenuItem(
+                        value: _exportChannelsAction,
+                        icon: Icons.copy_rounded,
+                        label: ml.exportChannelsToClipboard,
+                      ),
+                      buildAppPopupMenuItem(
+                        value: _importChannelsAction,
+                        icon: Icons.paste_rounded,
+                        label: ml.importChannelsFromClipboard,
                       ),
                       const PopupMenuDivider(height: 8),
                       buildAppPopupMenuItem(

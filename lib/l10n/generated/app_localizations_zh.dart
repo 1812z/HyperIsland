@@ -1132,4 +1132,38 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get keywordFilterPriority => '白名单优先：仅白名单匹配的通知显示，但黑名单仍可否决';
+
+  @override
+  String get exportChannelsToClipboard => '导出渠道设置';
+
+  @override
+  String get importChannelsFromClipboard => '导入渠道设置';
+
+  @override
+  String get exportChannelsSuccess => '渠道设置已复制到剪贴板';
+
+  @override
+  String importChannelsSuccess(int count) {
+    return '导入成功，共 $count 个渠道设置已恢复';
+  }
+
+  @override
+  String importChannelsFailed(String error) {
+    return '导入失败：$error';
+  }
+
+  @override
+  String get importErrorEmptyClipboard => '剪贴板为空，请先复制渠道设置数据';
+
+  @override
+  String get importErrorNotJson => '剪贴板内容不是有效的 JSON 数据';
+
+  @override
+  String get importErrorMissingChannels => '数据格式不正确，缺少渠道列表';
+
+  @override
+  String get importErrorNoMatch => '没有与当前应用匹配的渠道，请确认数据来源正确';
+
+  @override
+  String get importErrorUnknown => '导入失败，请检查剪贴板数据是否正确';
 }
