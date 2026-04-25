@@ -3,7 +3,6 @@ package io.github.hyperisland.xposed.hook
 import android.graphics.*
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
-import android.graphics.drawable.GradientDrawable
 import android.util.Log
 import android.util.TypedValue
 import android.view.View
@@ -80,8 +79,11 @@ object IslandBackgroundHook : BaseHook() {
     @Volatile
     private var hasAnyCustomBg = false
 
-    /** 记录每个 backgroundView 的 stokeWidth（供 RoundedClippingDrawable 计算内容区域） */
-    private val bgViewStrokes = java.util.WeakHashMap<View, Int>()
+    /** hasAnyCustomBgFile 的短期缓存（避免高频方法中反复做文件 I/O） */
+    @Volatile
+    private var hasAnyCustomBgCached = false
+    private var hasAnyCustomBgCheckTime = 0L
+    private const val CUSTOM_BG_CHECK_TTL = 5000L // 5 秒缓存
 
     override fun getTag() = TAG
 
@@ -151,7 +153,8 @@ object IslandBackgroundHook : BaseHook() {
             }
 
         } catch (e: Throwable) {
-            // 静默忽略，不要影响其他功能
+            logError(module, "Hook setup failed for CL: ${e.message}")
+            hookedClassLoaders.remove(clId) // 允许后续重试
         }
     }
 
@@ -188,7 +191,17 @@ object IslandBackgroundHook : BaseHook() {
                         bgView?.context
                     } catch (_: Exception) { null }
 
-                    val customDrawable = loadCustomDrawable(type, context, module)
+                    // 获取 stokeWidth，直接传给 loadCustomDrawable
+                    var stokeWidth = 0
+                    if (bgView != null) {
+                        try {
+                            val stokeField = bgViewClass.getDeclaredField("stokeWidth")
+                            stokeField.isAccessible = true
+                            stokeWidth = stokeField.getInt(bgView)
+                        } catch (_: Exception) {}
+                    }
+
+                    val customDrawable = loadCustomDrawable(type, context, module, stokeWidth)
 
                     if (customDrawable != null) {
                         try {
@@ -196,21 +209,6 @@ object IslandBackgroundHook : BaseHook() {
                             val drawableField = bgViewClass.getDeclaredField("drawable")
                             drawableField.isAccessible = true
                             drawableField.set(chain.thisObject, customDrawable)
-
-                            // 获取并记录 stokeWidth（供 RoundedClippingDrawable 计算内容区域）
-                            // 同时设置 callback 供 drawable 查询 stokeWidth
-                            if (bgView != null) {
-                                try {
-                                    val stokeField = bgViewClass.getDeclaredField("stokeWidth")
-                                    stokeField.isAccessible = true
-                                    val stokeWidth = stokeField.getInt(bgView)
-                                    synchronized(bgViewStrokes) {
-                                        bgViewStrokes[bgView] = stokeWidth
-                                    }
-                                    // 设置 callback，让 RoundedClippingDrawable 能通过 callback 找到 bgView
-                                    customDrawable.callback = bgView
-                                } catch (_: Exception) {}
-                            }
 
                             log(module, "Replaced drawable for $type via reflection")
                         } catch (e: Exception) {
@@ -354,58 +352,30 @@ object IslandBackgroundHook : BaseHook() {
     }
 
     /**
-     * 清除 contentView 及其 container 子 View 的暗色/模糊背景。
+     * 清除 contentView 及其直接子 View 的背景和模糊效果。
      *
-     * 系统的遮挡层来自多个来源：
-     * 1. updateBackgroundBg() 给 bigIslandView/smallIslandView/expandedView 设置 dynamic_island_background
-     * 2. containerScheduleUpdate() 给 container (R.id.container) 设置暗色背景
-     * 3. MiBlurCompat 的 blend colors 模糊效果
-     *
-     * 这些遮挡层都会覆盖 backgroundView.onDraw() 绘制的自定义背景图片，需要全部清除。
+     * 遮挡层来源：updateBackgroundBg() 设置在 bigIslandView/smallIslandView/expandedView 上，
+     * 以及 containerScheduleUpdate() 设置在 R.id.container 上。
+     * 只清除背景非 null 的 View，不暴力递归整棵 View 树，避免误杀。
      */
     private fun clearChildBackgrounds(viewGroup: ViewGroup, module: XposedModule) {
-        // 遍历直接子 View（主要是 contentView）
-        for (i in 0 until viewGroup.childCount) {
-            val child = viewGroup.getChildAt(i) as? ViewGroup ?: continue
-            clearViewAndContainerBg(child, module)
-        }
-    }
-
-    /**
-     * 清除指定 View 及其 container 子 View 的背景和模糊效果。
-     */
-    private fun clearViewAndContainerBg(view: View, module: XposedModule) {
-        // 清除 View 自身的背景
-        if (view.background != null) {
-            log(module, "[DEBUG] clearViewBg: clearing bg of ${view.javaClass.simpleName}@${System.identityHashCode(view)}")
-            view.background = null
-        }
-        // 清除模糊效果
-        clearBlurEffect(view)
-
-        // 如果是 ViewGroup，遍历子 View 寻找 container 和岛内容 View
-        val viewGroup = view as? ViewGroup ?: return
         for (i in 0 until viewGroup.childCount) {
             val child = viewGroup.getChildAt(i)
-            val childName = child.javaClass.simpleName
-
-            // 清除已知的遮挡层 View：container、bigIslandView、smallIslandView、expandedView
-            if (childName == "FrameLayout" ||  // container 是 FrameLayout
-                childName.contains("BigIsland") ||
-                childName.contains("SmallIsland") ||
-                childName.contains("Expanded") ||
-                child.background != null
-            ) {
-                if (child.background != null) {
-                    log(module, "[DEBUG] clearChildBg: clearing bg of $childName@${System.identityHashCode(child)}")
-                    child.background = null
-                }
-                clearBlurEffect(child)
+            if (child.background != null) {
+                log(module, "[DEBUG] clearChildBg: clearing bg of ${child.javaClass.simpleName}@${System.identityHashCode(child)}")
+                child.background = null
             }
-
-            // 递归进入子 ViewGroup
+            clearBlurEffect(child)
+            // 递归一层子 View（container 在 contentView 的子 View 下）
             if (child is ViewGroup) {
-                clearViewAndContainerBg(child, module)
+                for (j in 0 until child.childCount) {
+                    val grandChild = child.getChildAt(j)
+                    if (grandChild.background != null) {
+                        log(module, "[DEBUG] clearGrandChildBg: clearing bg of ${grandChild.javaClass.simpleName}@${System.identityHashCode(grandChild)}")
+                        grandChild.background = null
+                    }
+                    clearBlurEffect(grandChild)
+                }
             }
         }
     }
@@ -544,9 +514,20 @@ object IslandBackgroundHook : BaseHook() {
 
     /**
      * 检查是否存在任何自定义背景文件。
-     * 直接检查文件系统，不依赖缓存标志，避免时序问题。
+     * 带短期 TTL 缓存（5 秒），避免在 updateBackgroundBg 等高频方法中反复做文件 I/O。
      */
     private fun hasAnyCustomBgFile(): Boolean {
+        val now = System.currentTimeMillis()
+        if (now - hasAnyCustomBgCheckTime < CUSTOM_BG_CHECK_TTL) return hasAnyCustomBgCached
+        hasAnyCustomBgCached = checkCustomBgFilesExist()
+        hasAnyCustomBgCheckTime = now
+        return hasAnyCustomBgCached
+    }
+
+    /**
+     * 实际检查自定义背景文件是否存在。
+     */
+    private fun checkCustomBgFilesExist(): Boolean {
         for (type in IslandType.entries) {
             val configPath = when (type) {
                 IslandType.SMALL -> ConfigManager.getString(KEY_SMALL_BG)
@@ -570,7 +551,8 @@ object IslandBackgroundHook : BaseHook() {
     private fun loadCustomDrawable(
         type: IslandType,
         context: android.content.Context?,
-        module: XposedModule
+        module: XposedModule,
+        stokeWidth: Int = 0
     ): Drawable? {
         val configPath = when (type) {
             IslandType.SMALL -> ConfigManager.getString(KEY_SMALL_BG)
@@ -595,7 +577,7 @@ object IslandBackgroundHook : BaseHook() {
             synchronized(this) {
                 if (cachedDrawables[type] == null || currentModified != (lastFileModified[type] ?: 0L) || lastConfigPath[type] != configPath) {
                     val old = cachedDrawables[type]
-                    val drawable = decodeFile(file, context, module)
+                    val drawable = decodeFile(file, context, module, stokeWidth)
                     if (drawable != null) {
                         cachedDrawables[type] = drawable
                         lastFileModified[type] = currentModified
@@ -626,7 +608,8 @@ object IslandBackgroundHook : BaseHook() {
     private fun decodeFile(
         file: File,
         context: android.content.Context?,
-        module: XposedModule
+        module: XposedModule,
+        stokeWidth: Int = 0
     ): Drawable? {
         return try {
             val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
@@ -635,8 +618,12 @@ object IslandBackgroundHook : BaseHook() {
             val srcH = options.outHeight
             if (srcW <= 0 || srcH <= 0) return null
 
-            // 采样压缩
-            val maxTargetSize = 512
+            // 采样压缩：动态计算目标尺寸，避免展开态模糊
+            val displayMetrics = android.content.res.Resources.getSystem().displayMetrics
+            val maxTargetSize = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, 200f, displayMetrics
+            ).toInt().coerceAtLeast(512)
+
             val sampleSize = calculateInSampleSize(srcW, srcH, maxTargetSize, maxTargetSize)
             val decodeOpts = BitmapFactory.Options().apply { inSampleSize = sampleSize }
             val bitmap = BitmapFactory.decodeFile(file.absolutePath, decodeOpts) ?: return null
@@ -645,7 +632,7 @@ object IslandBackgroundHook : BaseHook() {
             val cornerRadius = getCornerRadius(context)
 
             // 用圆角裁剪包装器包裹 bitmap，直接 canvas.drawBitmap 绘制确保完全填充
-            RoundedClippingDrawable(bitmap, cornerRadius)
+            RoundedClippingDrawable(bitmap, cornerRadius, stokeWidth)
         } catch (e: Exception) {
             logError(module, "Failed to decode background: ${e.message}")
             null
@@ -705,6 +692,8 @@ object IslandBackgroundHook : BaseHook() {
             lastFileModified.clear()
             lastConfigPath.clear()
             hasAnyCustomBg = false  // 重置，下次 loadCustomDrawable 时重新判断
+            hasAnyCustomBgCached = false
+            hasAnyCustomBgCheckTime = 0L
         }
     }
 
@@ -717,10 +706,15 @@ object IslandBackgroundHook : BaseHook() {
      *
      * 使用 canvas.drawBitmap 直接绘制 bitmap，确保图片填满到内容区域
      *（不含 stokeWidth 边框扩展），不覆盖边框外的光效。
+     *
+     * @param bitmap 背景图片
+     * @param cornerRadius 圆角半径（px）
+     * @param stokeWidth 背景视图的边框宽度（px），用于计算内容区域
      */
     private class RoundedClippingDrawable(
         val bitmap: Bitmap,
-        private val cornerRadius: Float
+        private val cornerRadius: Float,
+        private val stokeWidth: Int = 0
     ) : Drawable() {
 
         private val clipPath = Path()
@@ -729,22 +723,21 @@ object IslandBackgroundHook : BaseHook() {
             isFilterBitmap = true  // 启用双线性过滤，抗锯齿
         }
 
+        // 预计算默认 stokeWidth 回退值（4dp）
+        private val defaultStoke by lazy {
+            TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, 4f,
+                android.content.res.Resources.getSystem().displayMetrics
+            ).toInt()
+        }
+
         override fun draw(canvas: Canvas) {
             val bounds = getBounds()
             if (bounds.isEmpty || bitmap.isRecycled) return
 
             // bounds 是系统 onDraw 设置的：(actualLeft - stoke, actualTop - stoke, actualLeft + actualWidth + stoke, actualTop + actualHeight + stoke)
-            // 需要知道 stokeWidth 才能计算内容区域 (actualLeft, actualTop, actualLeft + actualWidth, actualTop + actualHeight)
-            // stokeWidth 通过 backgroundView 的弱引用从 bgViewStrokes 查询
-            var stoke = getStokeWidth()
-            if (stoke <= 0) stoke = TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP,
-                4f,
-                android.content.res.Resources.getSystem().displayMetrics
-            ).toInt()
-
-            // 计算内容区域（去除 stokeWidth 边框扩展），统一使用 Float
-            val s = stoke.toFloat()
+            // 需要去除 stokeWidth 计算内容区域
+            val s = if (stokeWidth > 0) stokeWidth.toFloat() else defaultStoke.toFloat()
             val contentLeft = (bounds.left + s).coerceAtLeast(bounds.left.toFloat())
             val contentTop = (bounds.top + s).coerceAtLeast(bounds.top.toFloat())
             val contentRight = (bounds.right - s).coerceAtMost(bounds.right.toFloat())
@@ -768,18 +761,6 @@ object IslandBackgroundHook : BaseHook() {
             // 绘制 bitmap 到内容区域（而非整个 bounds）
             canvas.drawBitmap(bitmap, null, rect, paint)
             canvas.restoreToCount(save)
-        }
-
-        private fun getStokeWidth(): Int {
-            // 尝试通过 bounds 查找对应的 backgroundView 获取 stokeWidth
-            // 从 Drawable 的 callback 获取 owner View
-            val callback = callback
-            if (callback is View) {
-                synchronized(bgViewStrokes) {
-                    return bgViewStrokes[callback] ?: 0
-                }
-            }
-            return 0
         }
 
         override fun setAlpha(alpha: Int) {
