@@ -609,6 +609,14 @@
   "importErrorNoMatch": "没有与当前应用匹配的渠道，请确认数据来源正确",
   "importErrorUnknown": "导入失败，请检查剪贴板数据是否正确",
 
+  "islandDimenSection": "岛尺寸设置",
+  "islandDimenHeight": "岛高度",
+  "islandDimenHeightHint": "0=跟随系统",
+  "islandDimenMiniY": "垂直位置",
+  "islandDimenMiniYHint": "距顶部偏移，0=跟随系统",
+  "islandDimenRadius": "圆角半径",
+  "islandDimenRadiusHint": "0=跟随系统",
+
   "islandBgSection": "岛背景设置",
   "islandBgSmallTitle": "小岛背景图",
   "islandBgSmallSubtitle": "点击选择图片",

@@ -17,6 +17,8 @@ object ConfigManager {
     private const val TAG = "HyperIsland[ConfigManager]"
     private const val FLUTTER_KEY_PREFIX = "flutter."
     private const val PREFS_GROUP = "FlutterSharedPreferences"
+    /** Flutter shared_preferences 存储 double 时使用的 Base64 前缀（不需要解码，直接截取）。 */
+    private const val DOUBLE_PREFIX_ENCODED = "VGhpcyBpcyB0aGUgcHJlZml4IGZvciBEb3VibGUu"
 
     @Volatile private var prefs: SharedPreferences? = null
     @Volatile private var initialized = false
@@ -80,8 +82,36 @@ object ConfigManager {
             catch (_: ClassCastException) { default }
         }
 
+    /**
+     * Flutter 的 double 在 Android SharedPreferences 中以特定前缀 + 明文值存储，
+     * 格式为 "VGhpcyBpcyB0aGUgcHJlZml4IGZvciBEb3VibGUu" + value。
+     * 直接截取前缀后的字符串即可获取实际 double 值。
+     */
+    fun getDouble(key: String, default: Double): Double {
+        val raw = try { prefs?.getString(fk(key), null) } catch (_: Throwable) { null }
+            ?: return default
+        return try {
+            if (raw.startsWith(DOUBLE_PREFIX_ENCODED)) {
+                raw.substring(DOUBLE_PREFIX_ENCODED.length).trim().toDoubleOrNull() ?: default
+            } else {
+                raw.toDoubleOrNull() ?: default
+            }
+        } catch (_: Throwable) { default }
+    }
+
+    /**
+     * Flutter 的 double 在 Android SharedPreferences 中以 String 存储，
+     * 优先用 getString 读取再转换，若失败再尝试 getFloat。
+     */
     fun getFloat(key: String, default: Float): Float =
-        try { prefs?.getFloat(fk(key), default) ?: default }
+        try {
+            val raw = prefs?.getString(fk(key), null)
+            if (raw != null && raw.startsWith(DOUBLE_PREFIX_ENCODED)) {
+                raw.substring(DOUBLE_PREFIX_ENCODED.length).trim().toFloatOrNull() ?: default
+            } else {
+                raw?.toFloatOrNull() ?: prefs?.getFloat(fk(key), default) ?: default
+            }
+        }
         catch (_: ClassCastException) { default }
 
     fun contains(key: String): Boolean =

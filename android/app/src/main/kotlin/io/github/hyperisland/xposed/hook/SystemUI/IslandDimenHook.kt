@@ -2,9 +2,6 @@ package io.github.hyperisland.xposed.hook
 
 import android.util.TypedValue
 import android.view.View
-import android.view.ViewGroup
-import android.view.ViewTreeObserver
-import android.widget.TextView
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
@@ -32,7 +29,6 @@ object IslandDimenHook : BaseHook() {
     private const val KEY_HEIGHT = "pref_island_height"
     private const val KEY_MINI_Y = "pref_island_mini_y"
     private const val KEY_RADIUS = "pref_island_radius"
-    private const val KEY_TITLE_SIZE = "pref_island_title_size"
 
     private const val CLAZZ = "miui.systemui.dynamicisland.window.content.DynamicIslandBaseContentView"
 
@@ -40,7 +36,6 @@ object IslandDimenHook : BaseHook() {
     @Volatile private var customHeightDp = 0.0
     @Volatile private var customMiniYDp = 0.0
     @Volatile private var customRadiusDp = 0.0
-    @Volatile private var customTitleSizeDp = 0.0
 
     /** 当前 module 实例（用于 log 调用）*/
     @Volatile private var currentModule: XposedModule? = null
@@ -64,10 +59,9 @@ object IslandDimenHook : BaseHook() {
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
         if (param.packageName != "com.android.systemui") return
         loadConfig()
-        // 诊断：打印 ConfigManager 读取到的值
-        log(module, "onInit loadConfig: heightDp=$customHeightDp, miniYDp=$customMiniYDp, radiusDp=$customRadiusDp, titleSizeDp=$customTitleSizeDp")
-        log(module, "onInit contains: height=${ConfigManager.contains(KEY_HEIGHT)}, miniY=${ConfigManager.contains(KEY_MINI_Y)}, radius=${ConfigManager.contains(KEY_RADIUS)}, titleSize=${ConfigManager.contains(KEY_TITLE_SIZE)}")
-        log(module, "onInit raw string: height='${ConfigManager.getString(KEY_HEIGHT)}', miniY='${ConfigManager.getString(KEY_MINI_Y)}', radius='${ConfigManager.getString(KEY_RADIUS)}', titleSize='${ConfigManager.getString(KEY_TITLE_SIZE)}'")
+        log(module, "onInit loadConfig: heightDp=$customHeightDp, miniYDp=$customMiniYDp, radiusDp=$customRadiusDp")
+        log(module, "onInit contains: height=${ConfigManager.contains(KEY_HEIGHT)}, miniY=${ConfigManager.contains(KEY_MINI_Y)}, radius=${ConfigManager.contains(KEY_RADIUS)}")
+        log(module, "onInit raw string: height='${ConfigManager.getString(KEY_HEIGHT)}', miniY='${ConfigManager.getString(KEY_MINI_Y)}', radius='${ConfigManager.getString(KEY_RADIUS)}'")
         hookDynamicClassLoaders(module)
     }
 
@@ -147,7 +141,7 @@ object IslandDimenHook : BaseHook() {
      * 将自定义 dp 值写入 obj 的字段，并同步更新 View 的 LayoutParams
      */
     private fun apply(obj: Any, module: XposedModule) {
-        if (customHeightDp <= 0.0 && customMiniYDp <= 0.0 && customTitleSizeDp <= 0.0) return
+        if (customHeightDp <= 0.0 && customMiniYDp <= 0.0) return
 
         try {
             val view = obj as View
@@ -173,66 +167,8 @@ object IslandDimenHook : BaseHook() {
                 fIslandViewMarginTop?.setInt(obj, px)
                 log(module, "apply: islandViewMarginTop = ${customMiniYDp}dp → ${px}px")
             }
-
-            // 自定义字体大小 → 等 bind() 完成后遍历 View 树改 textSize
-            if (customTitleSizeDp > 0.0) {
-                applyTitleSize(view, module)
-            }
         } catch (e: Exception) {
             logError(module, "apply failed: ${e.message}")
-        }
-    }
-
-    /**
-     * 通过 ViewTreeObserver 在布局完成后遍历所有 TextView 子视图，修改字体大小。
-     * 因为 bind() 在 reset() 之后执行，ViewStub 在 bind() 里才 inflate，
-     * 所以必须等 onGlobalLayout 才能拿到所有子 View。
-     */
-    private fun applyTitleSize(rootView: View, module: XposedModule) {
-        try {
-            val dm = rootView.resources.displayMetrics
-            val textSizePx = TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_SP, customTitleSizeDp.toFloat(), dm
-            )
-
-            rootView.viewTreeObserver.addOnGlobalLayoutListener(object : ViewTreeObserver.OnGlobalLayoutListener {
-                override fun onGlobalLayout() {
-                    try {
-                        rootView.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                    } catch (_: Exception) {}
-
-                    var count = 0
-                    traverseTextViews(rootView) { tv ->
-                        tv.setTextSize(TypedValue.COMPLEX_UNIT_PX, textSizePx)
-                        count++
-                    }
-                    if (count > 0) {
-                        log(module, "applyTitleSize: set $count TextViews to ${customTitleSizeDp}sp (${textSizePx.toInt()}px)")
-                    }
-                }
-            })
-        } catch (e: Exception) {
-            logError(module, "applyTitleSize failed: ${e.message}")
-        }
-    }
-
-    /**
-     * 递归遍历 View 树，对 id 资源名包含 "island_title" 或 "island_content" 的 TextView 执行 action。
-     */
-    private fun traverseTextViews(view: View, action: (TextView) -> Unit) {
-        if (view is TextView && view.id != View.NO_ID) {
-            try {
-                val entryName = view.resources.getResourceEntryName(view.id)
-                if (entryName.contains("island_title") || entryName.contains("island_content") || entryName.contains("island_front_title")) {
-                    action(view)
-                    return
-                }
-            } catch (_: Exception) {}
-        }
-        if (view is ViewGroup) {
-            for (i in 0 until view.childCount) {
-                traverseTextViews(view.getChildAt(i), action)
-            }
         }
     }
 
@@ -254,6 +190,5 @@ object IslandDimenHook : BaseHook() {
         customHeightDp = ConfigManager.getDouble(KEY_HEIGHT, 0.0)
         customMiniYDp = ConfigManager.getDouble(KEY_MINI_Y, 0.0)
         customRadiusDp = ConfigManager.getDouble(KEY_RADIUS, 0.0)
-        customTitleSizeDp = ConfigManager.getDouble(KEY_TITLE_SIZE, 0.0)
     }
 }

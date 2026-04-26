@@ -31,7 +31,9 @@ class _SettingsPageState extends State<SettingsPage> {
   late int _marqueeSpeedDraft;
   late int _bigIslandMaxWidthDraft;
   late int _uiStateHash;
-  late int _cornerRadiusDraft;
+  late double _islandHeightDraft;
+  late double _islandMiniYDraft;
+  late double _islandRadiusDraft;
 
   int _buildUiStateHash() => Object.hashAll([
     _ctrl.loading,
@@ -66,7 +68,9 @@ class _SettingsPageState extends State<SettingsPage> {
     _ctrl.islandBgSmallPath,
     _ctrl.islandBgBigPath,
     _ctrl.islandBgExpandPath,
-    _ctrl.islandBgCornerRadius,
+    _ctrl.islandHeight,
+    _ctrl.islandMiniY,
+    _ctrl.islandRadius,
   ]);
 
   void _onChanged() {
@@ -74,18 +78,24 @@ class _SettingsPageState extends State<SettingsPage> {
     final nextHash = _buildUiStateHash();
     final nextMarquee = _ctrl.marqueeSpeed;
     final nextMaxWidth = _ctrl.bigIslandMaxWidth;
-    final nextCornerRadius = _ctrl.islandBgCornerRadius;
+    final nextHeight = _ctrl.islandHeight;
+    final nextMiniY = _ctrl.islandMiniY;
+    final nextRadius = _ctrl.islandRadius;
     if (nextHash == _uiStateHash &&
         nextMarquee == _marqueeSpeedDraft &&
         nextMaxWidth == _bigIslandMaxWidthDraft &&
-        nextCornerRadius == _cornerRadiusDraft) {
+        nextHeight == _islandHeightDraft &&
+        nextMiniY == _islandMiniYDraft &&
+        nextRadius == _islandRadiusDraft) {
       return;
     }
     setState(() {
       _uiStateHash = nextHash;
       _marqueeSpeedDraft = nextMarquee;
       _bigIslandMaxWidthDraft = nextMaxWidth;
-      _cornerRadiusDraft = nextCornerRadius;
+      _islandHeightDraft = nextHeight;
+      _islandMiniYDraft = nextMiniY;
+      _islandRadiusDraft = nextRadius;
     });
   }
 
@@ -94,7 +104,9 @@ class _SettingsPageState extends State<SettingsPage> {
     super.initState();
     _marqueeSpeedDraft = _ctrl.marqueeSpeed;
     _bigIslandMaxWidthDraft = _ctrl.bigIslandMaxWidth;
-    _cornerRadiusDraft = _ctrl.islandBgCornerRadius;
+    _islandHeightDraft = _ctrl.islandHeight;
+    _islandMiniYDraft = _ctrl.islandMiniY;
+    _islandRadiusDraft = _ctrl.islandRadius;
     _uiStateHash = _buildUiStateHash();
     _ctrl.addListener(_onChanged);
   }
@@ -166,16 +178,34 @@ class _SettingsPageState extends State<SettingsPage> {
     await _ctrl.setBigIslandMaxWidth(next);
   }
 
-  void _onCornerRadiusChanged(double value) {
-    final next = value.round();
-    if (_cornerRadiusDraft == next) return;
-    setState(() => _cornerRadiusDraft = next);
+  void _onIslandHeightChanged(double value) {
+    if (_islandHeightDraft == value) return;
+    setState(() => _islandHeightDraft = value);
   }
 
-  Future<void> _persistCornerRadius(double value) async {
-    final next = value.round();
-    if (_ctrl.islandBgCornerRadius == next) return;
-    await _ctrl.setIslandBgCornerRadius(next);
+  Future<void> _persistIslandHeight(double value) async {
+    if (_ctrl.islandHeight == value) return;
+    await _ctrl.setIslandHeight(value);
+  }
+
+  void _onIslandMiniYChanged(double value) {
+    if (_islandMiniYDraft == value) return;
+    setState(() => _islandMiniYDraft = value);
+  }
+
+  Future<void> _persistIslandMiniY(double value) async {
+    if (_ctrl.islandMiniY == value) return;
+    await _ctrl.setIslandMiniY(value);
+  }
+
+  void _onIslandRadiusChanged(double value) {
+    if (_islandRadiusDraft == value) return;
+    setState(() => _islandRadiusDraft = value);
+  }
+
+  Future<void> _persistIslandRadius(double value) async {
+    if (_ctrl.islandRadius == value) return;
+    await _ctrl.setIslandRadius(value);
   }
 
   void _showSnack(String msg) {
@@ -1252,6 +1282,60 @@ class _SettingsPageState extends State<SettingsPage> {
                     const SizedBox(height: 8),
                     Padding(
                       padding: const EdgeInsets.only(left: 18),
+                      child: SectionLabel(l10n.islandDimenSection),
+                    ),
+                    const SizedBox(height: 8),
+                    Card(
+                      elevation: 0,
+                      color: cs.surfaceContainerHighest,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        children: [
+                          _DimenTile(
+                            title: l10n.islandDimenHeight,
+                            hint: l10n.islandDimenHeightHint,
+                            value: _islandHeightDraft,
+                            min: 0,
+                            max: 200,
+                            unit: 'dp',
+                            defaultVal: 0,
+                            onChanged: _onIslandHeightChanged,
+                            onPersist: _persistIslandHeight,
+                            isFirst: true,
+                          ),
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          _DimenTile(
+                            title: l10n.islandDimenMiniY,
+                            hint: l10n.islandDimenMiniYHint,
+                            value: _islandMiniYDraft,
+                            min: 0,
+                            max: 200,
+                            unit: 'dp',
+                            defaultVal: 0,
+                            onChanged: _onIslandMiniYChanged,
+                            onPersist: _persistIslandMiniY,
+                          ),
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          _DimenTile(
+                            title: l10n.islandDimenRadius,
+                            hint: l10n.islandDimenRadiusHint,
+                            value: _islandRadiusDraft,
+                            min: 0,
+                            max: 100,
+                            unit: 'dp',
+                            defaultVal: 0,
+                            onChanged: _onIslandRadiusChanged,
+                            onPersist: _persistIslandRadius,
+                            isLast: true,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 18),
                       child: SectionLabel(l10n.islandBgSection),
                     ),
                     const SizedBox(height: 8),
@@ -1294,77 +1378,6 @@ class _SettingsPageState extends State<SettingsPage> {
                             onDelete: _ctrl.islandBgExpandPath.isNotEmpty
                                 ? () => _deleteIslandBackground(IslandBgType.expand)
                                 : null,
-                          ),
-                          const Divider(height: 1, indent: 16, endIndent: 16),
-                          ListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 2,
-                            ),
-                            title: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    l10n.islandBgCornerRadius,
-                                    style: titleStyle,
-                                  ),
-                                ),
-                                Text(
-                                  '${_cornerRadiusDraft} dp',
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(color: cs.onSurfaceVariant),
-                                ),
-                                if (_cornerRadiusDraft != 0)
-                                  SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: IconButton(
-                                      icon: const Icon(Icons.refresh, size: 18),
-                                      padding: EdgeInsets.zero,
-                                      visualDensity: VisualDensity.compact,
-                                      onPressed:
-                                          InteractionHaptics.interceptButton(
-                                        () {
-                                          setState(
-                                            () => _cornerRadiusDraft = 0,
-                                          );
-                                          _ctrl.setIslandBgCornerRadius(0);
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            subtitle: Row(
-                              children: [
-                                Text(
-                                  l10n.islandBgCornerRadiusHint,
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(color: cs.onSurfaceVariant),
-                                ),
-                                Expanded(
-                                  child: SliderTheme(
-                                    data: ModernSliderTheme.theme(context),
-                                    child: Slider(
-                                      value: _cornerRadiusDraft.toDouble(),
-                                      min: 0,
-                                      max: 100,
-                                      divisions: 20,
-                                      onChanged:
-                                          InteractionHaptics.interceptSlider(
-                                        _onCornerRadiusChanged,
-                                      ),
-                                      onChangeEnd: _persistCornerRadius,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            shape: const RoundedRectangleBorder(
-                              borderRadius: BorderRadius.vertical(
-                                bottom: Radius.circular(16),
-                              ),
-                            ),
                           ),
                         ],
                       ),
@@ -1539,6 +1552,101 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DimenTile extends StatelessWidget {
+  const _DimenTile({
+    required this.title,
+    required this.hint,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.unit,
+    required this.defaultVal,
+    required this.onChanged,
+    required this.onPersist,
+    this.isFirst = false,
+    this.isLast = false,
+  });
+
+  final String title;
+  final String hint;
+  final double value;
+  final double min;
+  final double max;
+  final String unit;
+  final double defaultVal;
+  final ValueChanged<double> onChanged;
+  final ValueChanged<double> onPersist;
+  final bool isFirst;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final titleStyle = Theme.of(context).textTheme.titleMedium;
+    final divisions = (max - min).toInt();
+
+    BorderRadius? borderRadius;
+    if (isFirst && isLast) {
+      borderRadius = BorderRadius.circular(16);
+    } else if (isFirst) {
+      borderRadius = const BorderRadius.vertical(top: Radius.circular(16));
+    } else if (isLast) {
+      borderRadius = const BorderRadius.vertical(bottom: Radius.circular(16));
+    }
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      shape: borderRadius != null ? RoundedRectangleBorder(borderRadius: borderRadius) : null,
+      title: Row(
+        children: [
+          Expanded(child: Text(title, style: titleStyle)),
+          Text(
+            value > 0 ? '${value.toStringAsFixed(1)} $unit' : '-',
+            style: Theme.of(context).textTheme.bodySmall
+                ?.copyWith(color: cs.onSurfaceVariant),
+          ),
+          if (value != defaultVal && defaultVal == 0)
+            SizedBox(
+              width: 18,
+              height: 18,
+              child: IconButton(
+                icon: const Icon(Icons.refresh, size: 18),
+                padding: EdgeInsets.zero,
+                visualDensity: VisualDensity.compact,
+                onPressed: InteractionHaptics.interceptButton(() {
+                  onChanged(defaultVal);
+                  onPersist(defaultVal);
+                }),
+              ),
+            ),
+        ],
+      ),
+      subtitle: Row(
+        children: [
+          Text(
+            hint,
+            style: Theme.of(context).textTheme.bodySmall
+                ?.copyWith(color: cs.onSurfaceVariant),
+          ),
+          Expanded(
+            child: SliderTheme(
+              data: ModernSliderTheme.theme(context),
+              child: Slider(
+                value: value.clamp(min, max),
+                min: min,
+                max: max,
+                divisions: divisions > 100 ? 100 : divisions,
+                onChanged: InteractionHaptics.interceptSlider(onChanged),
+                onChangeEnd: onPersist,
+              ),
+            ),
+          ),
         ],
       ),
     );

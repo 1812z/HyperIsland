@@ -1182,6 +1182,27 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importErrorUnknown => '导入失败，请检查剪贴板数据是否正确';
 
   @override
+  String get islandDimenSection => 'アイランドサイズ設定';
+
+  @override
+  String get islandDimenHeight => 'アイランド高さ';
+
+  @override
+  String get islandDimenHeightHint => '0=システムに従う';
+
+  @override
+  String get islandDimenMiniY => '垂直位置';
+
+  @override
+  String get islandDimenMiniYHint => '上部オフセット、0=システムに従う';
+
+  @override
+  String get islandDimenRadius => '角丸半径';
+
+  @override
+  String get islandDimenRadiusHint => '0=システムに従う';
+
+  @override
   String get islandBgSection => 'アイランド背景設定';
 
   @override

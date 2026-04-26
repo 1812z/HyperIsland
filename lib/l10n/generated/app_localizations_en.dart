@@ -1224,6 +1224,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importErrorUnknown => 'Import failed. Please check clipboard data';
 
   @override
+  String get islandDimenSection => 'Island Dimensions';
+
+  @override
+  String get islandDimenHeight => 'Island Height';
+
+  @override
+  String get islandDimenHeightHint => '0=follow system';
+
+  @override
+  String get islandDimenMiniY => 'Vertical Position';
+
+  @override
+  String get islandDimenMiniYHint => 'Top offset, 0=follow system';
+
+  @override
+  String get islandDimenRadius => 'Corner Radius';
+
+  @override
+  String get islandDimenRadiusHint => '0=follow system';
+
+  @override
   String get islandBgSection => 'Island Background';
 
   @override

@@ -351,6 +351,14 @@
 "restoreLockscreenTitle": "ロック画面の通知を復元する",
 "restoreLockscreenSubtitle": "ロック画面でのフォーカス通知処理をスキップし、元のプライバシーに適切な動作を保持します",
 
+"islandDimenSection": "アイランドサイズ設定",
+"islandDimenHeight": "アイランド高さ",
+"islandDimenHeightHint": "0=システムに従う",
+"islandDimenMiniY": "垂直位置",
+"islandDimenMiniYHint": "上部オフセット、0=システムに従う",
+"islandDimenRadius": "角丸半径",
+"islandDimenRadiusHint": "0=システムに従う",
+
 "islandBgSection": "アイランド背景設定",
 "islandBgSmallTitle": "スモールアイランド背景",
 "islandBgSmallSubtitle": "タップして画像を選択",

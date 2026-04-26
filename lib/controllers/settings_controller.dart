@@ -49,7 +49,9 @@ const kPrefConfigAppVersion = 'pref_config_app_version';
 const kPrefIslandBgSmallPath = 'pref_island_bg_small_path';
 const kPrefIslandBgBigPath = 'pref_island_bg_big_path';
 const kPrefIslandBgExpandPath = 'pref_island_bg_expand_path';
-const kPrefIslandBgCornerRadius = 'pref_island_bg_corner_radius';
+const kPrefIslandHeight = 'pref_island_height';
+const kPrefIslandMiniY = 'pref_island_mini_y';
+const kPrefIslandRadius = 'pref_island_radius';
 
 class AiLogEntry {
   const AiLogEntry({
@@ -152,7 +154,9 @@ class SettingsController extends ChangeNotifier {
   String islandBgSmallPath = '';
   String islandBgBigPath = '';
   String islandBgExpandPath = '';
-  int islandBgCornerRadius = 0;
+  double islandHeight = 0;
+  double islandMiniY = 0;
+  double islandRadius = 0;
   Locale? locale;
   bool loading = true;
 
@@ -227,7 +231,9 @@ class SettingsController extends ChangeNotifier {
     islandBgSmallPath = prefs.getString(kPrefIslandBgSmallPath) ?? '';
     islandBgBigPath = prefs.getString(kPrefIslandBgBigPath) ?? '';
     islandBgExpandPath = prefs.getString(kPrefIslandBgExpandPath) ?? '';
-    islandBgCornerRadius = prefs.getInt(kPrefIslandBgCornerRadius) ?? 0;
+    islandHeight = prefs.getDouble(kPrefIslandHeight) ?? 0;
+    islandMiniY = prefs.getDouble(kPrefIslandMiniY) ?? 0;
+    islandRadius = prefs.getDouble(kPrefIslandRadius) ?? 0;
     loading = false;
     notifyListeners();
   }
@@ -648,16 +654,39 @@ class SettingsController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setIslandBgCornerRadius(int value) async {
-    final clamped = value.clamp(0, 100);
-    if (islandBgCornerRadius == clamped) return;
+  Future<void> setIslandHeight(double value) async {
+    if (islandHeight == value) return;
     final prefs = await _getPrefs();
-    if (clamped == 0) {
-      await prefs.remove(kPrefIslandBgCornerRadius);
+    if (value <= 0) {
+      await prefs.remove(kPrefIslandHeight);
     } else {
-      await prefs.setInt(kPrefIslandBgCornerRadius, clamped);
+      await prefs.setDouble(kPrefIslandHeight, value);
     }
-    islandBgCornerRadius = clamped;
+    islandHeight = value;
+    notifyListeners();
+  }
+
+  Future<void> setIslandMiniY(double value) async {
+    if (islandMiniY == value) return;
+    final prefs = await _getPrefs();
+    if (value <= 0) {
+      await prefs.remove(kPrefIslandMiniY);
+    } else {
+      await prefs.setDouble(kPrefIslandMiniY, value);
+    }
+    islandMiniY = value;
+    notifyListeners();
+  }
+
+  Future<void> setIslandRadius(double value) async {
+    if (islandRadius == value) return;
+    final prefs = await _getPrefs();
+    if (value <= 0) {
+      await prefs.remove(kPrefIslandRadius);
+    } else {
+      await prefs.setDouble(kPrefIslandRadius, value);
+    }
+    islandRadius = value;
     notifyListeners();
   }
 

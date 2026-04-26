@@ -444,6 +444,14 @@
   "importErrorNoMatch": "No channels matched the current app. Please verify the data source",
   "importErrorUnknown": "Import failed. Please check clipboard data",
 
+  "islandDimenSection": "Island Dimensions",
+  "islandDimenHeight": "Island Height",
+  "islandDimenHeightHint": "0=follow system",
+  "islandDimenMiniY": "Vertical Position",
+  "islandDimenMiniYHint": "Top offset, 0=follow system",
+  "islandDimenRadius": "Corner Radius",
+  "islandDimenRadiusHint": "0=follow system",
+
   "islandBgSection": "Island Background",
   "islandBgSmallTitle": "Small Island Background",
   "islandBgSmallSubtitle": "Tap to select image",

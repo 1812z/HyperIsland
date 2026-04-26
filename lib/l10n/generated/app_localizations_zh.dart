@@ -1168,6 +1168,27 @@ class AppLocalizationsZh extends AppLocalizations {
   String get importErrorUnknown => '导入失败，请检查剪贴板数据是否正确';
 
   @override
+  String get islandDimenSection => '岛尺寸设置';
+
+  @override
+  String get islandDimenHeight => '岛高度';
+
+  @override
+  String get islandDimenHeightHint => '0=跟随系统';
+
+  @override
+  String get islandDimenMiniY => '垂直位置';
+
+  @override
+  String get islandDimenMiniYHint => '距顶部偏移，0=跟随系统';
+
+  @override
+  String get islandDimenRadius => '圆角半径';
+
+  @override
+  String get islandDimenRadiusHint => '0=跟随系统';
+
+  @override
   String get islandBgSection => '岛背景设置';
 
   @override

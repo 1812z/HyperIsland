@@ -2280,6 +2280,48 @@ abstract class AppLocalizations {
   /// **'导入失败，请检查剪贴板数据是否正确'**
   String get importErrorUnknown;
 
+  /// No description provided for @islandDimenSection.
+  ///
+  /// In zh, this message translates to:
+  /// **'岛尺寸设置'**
+  String get islandDimenSection;
+
+  /// No description provided for @islandDimenHeight.
+  ///
+  /// In zh, this message translates to:
+  /// **'岛高度'**
+  String get islandDimenHeight;
+
+  /// No description provided for @islandDimenHeightHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'0=跟随系统'**
+  String get islandDimenHeightHint;
+
+  /// No description provided for @islandDimenMiniY.
+  ///
+  /// In zh, this message translates to:
+  /// **'垂直位置'**
+  String get islandDimenMiniY;
+
+  /// No description provided for @islandDimenMiniYHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'距顶部偏移，0=跟随系统'**
+  String get islandDimenMiniYHint;
+
+  /// No description provided for @islandDimenRadius.
+  ///
+  /// In zh, this message translates to:
+  /// **'圆角半径'**
+  String get islandDimenRadius;
+
+  /// No description provided for @islandDimenRadiusHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'0=跟随系统'**
+  String get islandDimenRadiusHint;
+
   /// No description provided for @islandBgSection.
   ///
   /// In zh, this message translates to:

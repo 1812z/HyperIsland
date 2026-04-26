@@ -1223,6 +1223,27 @@ class AppLocalizationsTr extends AppLocalizations {
   String get importErrorUnknown => '导入失败，请检查剪贴板数据是否正确';
 
   @override
+  String get islandDimenSection => 'Ada Boyutları';
+
+  @override
+  String get islandDimenHeight => 'Ada Yüksekliği';
+
+  @override
+  String get islandDimenHeightHint => '0=sistem varsayılanı';
+
+  @override
+  String get islandDimenMiniY => 'Dikey Konum';
+
+  @override
+  String get islandDimenMiniYHint => 'Üst uzaklık, 0=sistem varsayılanı';
+
+  @override
+  String get islandDimenRadius => 'Köşe Yarıçapı';
+
+  @override
+  String get islandDimenRadiusHint => '0=sistem varsayılanı';
+
+  @override
   String get islandBgSection => 'Ada Arka Planı';
 
   @override
