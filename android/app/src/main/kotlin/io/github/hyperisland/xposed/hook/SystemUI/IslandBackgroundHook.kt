@@ -3,7 +3,6 @@ package io.github.hyperisland.xposed.hook
 import android.graphics.*
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
-import android.util.Log
 import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
@@ -11,27 +10,48 @@ import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
+import android.os.Handler
+import android.os.Looper
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Hook 超级岛背景视图，替换默认背景 Drawable 为自定义 PNG。
  *
- * 架构分析（来自 JADX 反编译）：
- *   - DynamicIslandBackgroundView：岛外形背景视图
- *     - setDrawable(Drawable)：设置背景 drawable
- *     - onDraw(Canvas)：使用 actualLeft/Top/Width/Height 设置 bounds 并绘制 drawable
- *   - DynamicIslandBaseContentView：岛内容视图
- *     - updateDarkLightMode(DynamicIslandState, String, boolean, boolean)：明暗模式切换时调用
- *       内部会调用 backgroundView.setDrawable(drawable) 设置背景
- *     - updateBackgroundBg(View, boolean)：设置内容子 View 的模糊/纯色背景（不是岛外形！）
- *   - DynamicIslandState：状态类
- *     - SmallIsland / BigIsland / Expanded / AppExpanded / MiniWindowExpanded 等子类
+ * 核心原则：**只对配置了自定义背景的岛类型替换 drawable，绝不影响其他类型的岛外形。**
+ * 但遮罩处理采用"全有或全无"策略——只要有一个类型配了自定义背景（anyCustomBgConfigured），
+ * 所有类型的遮罩都由本 Hook 管理：
+ *   - 有自定义背景的类型 → 清除遮罩（透明，让自定义背景透出）
+ *   - 无自定义背景的类型 → loadCustomDrawable 返回纯黑图片（替代系统遮罩）
+ *   - 无任何自定义背景时 → 完全跟随系统，不做任何修改
  *
- * Hook 策略：
- *   1. Hook updateDarkLightMode → 通过 DynamicIslandState 子类名判断岛类型，存入 ThreadLocal
- *   2. Hook setDrawable → 读取 ThreadLocal 中的类型，替换 drawable 为自定义背景
- *   3. 系统的 onDraw() 自动绘制新 drawable，位置由 actualLeft/Top/Width/Height 控制，不会错位
+ * 原因：container 是共享视图，清除 container 遮罩后，非自定义类型无法依赖系统遮罩，
+ * 必须通过 loadCustomDrawable 返回纯黑图片，走相同渲染管线。
+ *
+ * 架构分析（来自 JADX 反编译）：
+ *   View 层级（来自 DynamicIslandViewBinding）：
+ *     DynamicIslandBackgroundView (rootView, 绘制岛外形)
+ *       └── DynamicIslandContentView (id=island_content)
+ *            ├── smallIslandView (FrameLayout, id=small_island_view)
+ *            ├── bigIslandView (DynamicIslandBigIslandView, id=big_island_view)
+ *            ├── expandedView (DynamicIslandExpandedView, from ViewStub)
+ *            └── container (FrameLayout, id=container)
+ *
+ *   遮罩来源（来自 JADX updateBackgroundBg）：
+ *     - blur 开启时：setMiViewBlurModeCompat(view, 1) + setMiBackgroundBlendColors → 暗色叠加
+ *     - blur 关闭时：view.setBackgroundDrawable(dynamic_island_background) → 黑色遮罩
+ *     - tablet 路径：view.setBackground(null) + clearMiBlurBlendEffect
+ *
+ * Hook 策略（anyCustomBgConfigured=true 时）：
+ *   1. hookUpdateDarkLightMode → 识别岛类型，存入 ThreadLocal + lastIslandType
+ *   2. hookSetDrawable → 替换 drawable（自定义背景 or 纯黑图片）
+ *   3. hookAlphaAnimation → 设 alpha=1.0
+ *   4. hookUpdateBackgroundBg → 拦截所有类型的遮罩设置（清除遮罩）
+ *   5. hookContainerScheduleUpdate → 清除 container 遮罩
+ *
+ * ★ 关键：当任意类型有自定义背景时，所有遮罩都由本 Hook 控制。
+ *   非自定义类型用真正的纯黑图片替代系统遮罩，避免 container 清空后变透明。
+ *   当没有任何自定义背景时，完全跟随系统，不做任何修改。
  */
 object IslandBackgroundHook : BaseHook() {
 
@@ -60,15 +80,16 @@ object IslandBackgroundHook : BaseHook() {
     /** 在 updateDarkLightMode → setDrawable 调用链中传递岛类型 */
     private val islandTypeHolder = ThreadLocal<IslandType>()
 
-    /** 是否有任何自定义背景文件存在（全局标志，供 updateBackgroundBg 判断） */
+    /** 上一次确定的岛类型（在 islandTypeHolder 被清除后供其他 hook 使用） */
     @Volatile
-    private var hasAnyCustomBg = false
+    private var lastIslandType: IslandType? = null
 
-    /** hasAnyCustomBgFile 的短期缓存（避免高频方法中反复做文件 I/O） */
+    /** 缓存的纯黑 Bitmap（512x512），供无自定义背景的岛类型使用 */
     @Volatile
-    private var hasAnyCustomBgCached = false
-    private var hasAnyCustomBgCheckTime = 0L
-    private const val CUSTOM_BG_CHECK_TTL = 5000L // 5 秒缓存
+    private var cachedBlackBitmap: Bitmap? = null
+
+    /** 延迟重试 Handler（用于 ConfigManager 时序问题的延迟重试） */
+    private val bgRetryHandler = Handler(Looper.getMainLooper())
 
     override fun getTag() = TAG
 
@@ -93,24 +114,16 @@ object IslandBackgroundHook : BaseHook() {
         if (!hookedClassLoaders.add(clId)) return
 
         try {
-            // 尝试加载关键类
             val bgViewClass = try {
                 classLoader.loadClass("miui.systemui.dynamicisland.DynamicIslandBackgroundView")
             } catch (_: ClassNotFoundException) {
-                // 不是包含 DynamicIsland 类的 ClassLoader
                 hookedClassLoaders.remove(clId)
                 return
             }
 
-            
-
-            // Hook setDrawable - 替换岛外形背景
             hookSetDrawable(module, bgViewClass)
-
-            // Hook alphaAnimation - 提高背景透明度（系统默认 0.22 太低，自定义图片不可见）
             hookAlphaAnimation(module, bgViewClass)
 
-            // Hook updateDarkLightMode - 获取岛类型
             try {
                 val contentViewClass = classLoader.loadClass(
                     "miui.systemui.dynamicisland.window.content.DynamicIslandBaseContentView"
@@ -119,11 +132,8 @@ object IslandBackgroundHook : BaseHook() {
                     "miui.systemui.dynamicisland.event.DynamicIslandState"
                 )
                 hookUpdateDarkLightMode(module, contentViewClass, stateClass)
-
-                // Hook updateBackgroundBg - 清除内容视图的暗色/模糊背景，防止遮挡自定义背景
                 hookUpdateBackgroundBg(module, contentViewClass)
 
-                // Hook containerScheduleUpdate - 清除动画过程中 container 的暗色背景
                 try {
                     val animDelegateClass = classLoader.loadClass(
                         "miui.systemui.dynamicisland.anim.DynamicIslandAnimationDelegate"
@@ -138,37 +148,37 @@ object IslandBackgroundHook : BaseHook() {
 
         } catch (e: Throwable) {
             logError(module, "Hook setup failed for CL: ${e.message}")
-            hookedClassLoaders.remove(clId) // 允许后续重试
+            hookedClassLoaders.remove(clId)
         }
+    }
+
+    /**
+     * 获取当前岛类型（优先 ThreadLocal，回退到 lastIslandType）。
+     */
+    private fun getCurrentIslandType(): IslandType? {
+        return islandTypeHolder.get() ?: lastIslandType
     }
 
     /**
      * Hook DynamicIslandBackgroundView.setDrawable(Drawable)。
      *
-     * 这是岛外形背景的核心方法。系统调用链：
-     *   updateDarkLightMode() → backgroundView.setDrawable(drawable) → onDraw() 中绘制
-     *
-     * 替换 drawable 后，系统的 onDraw() 会自动使用新 drawable 绘制，
-     * 位置由 actualLeft/Top/Width/Height 控制，不会出现错位问题。
+     * ★ 仅当当前岛类型有自定义背景时替换 drawable，不影响其他类型。
+     * 替换后，精准清除当前类型主视图的遮罩（不遍历所有子 View，避免跨类型干扰）。
+     * 额外的遮罩清除由 hookUpdateBackgroundBg 和 hookContainerScheduleUpdate 处理。
      */
     private fun hookSetDrawable(module: XposedModule, bgViewClass: Class<*>) {
         try {
             val setDrawableMethod = bgViewClass.getDeclaredMethod("setDrawable", Drawable::class.java)
 
             module.hook(setDrawableMethod).intercept { chain ->
-                // 先执行原方法（只是 this.drawable = drawable，无副作用）
                 chain.proceed()
 
-                // 读取 ThreadLocal 中的岛类型
-                val type = islandTypeHolder.get()
+                val type = getCurrentIslandType()
                 val bgView = chain.thisObject as? View
 
-                if (type != null) {
-                    val context = try {
-                        bgView?.context
-                    } catch (_: Exception) { null }
+                if (type != null && anyCustomBgConfigured()) {
+                    val context = try { bgView?.context } catch (_: Exception) { null }
 
-                    // 获取 stokeWidth，直接传给 loadCustomDrawable
                     var stokeWidth = 0
                     if (bgView != null) {
                         try {
@@ -182,46 +192,65 @@ object IslandBackgroundHook : BaseHook() {
 
                     if (customDrawable != null) {
                         try {
-                            // 通过反射替换 drawable 字段
                             val drawableField = bgViewClass.getDeclaredField("drawable")
                             drawableField.isAccessible = true
                             drawableField.set(chain.thisObject, customDrawable)
-
-                            
                         } catch (e: Exception) {
                             logError(module, "Reflection set drawable failed: ${e.message}")
                         }
 
-                        // 清除 contentView 及其子 View 的暗色/模糊背景
-                        // 这些背景会遮挡 backgroundView.onDraw() 绘制的自定义背景
-                        try {
-                            val bgViewGroup = bgView as? ViewGroup
-                            if (bgViewGroup != null && bgViewGroup.childCount > 0) {
-                                clearChildBackgrounds(bgViewGroup)
-                            }
-                        } catch (e: Exception) {
-                            logError(module, "Failed to clear child backgrounds: ${e.message}")
+                        // ★ 精准清除当前类型主视图的遮罩
+                        if (bgView is ViewGroup) {
+                            clearMaskForCurrentType(bgView, type)
                         }
                     }
                 }
 
                 null
             }
-            
+
         } catch (e: Throwable) {
             logError(module, "Failed to hook setDrawable: ${e.message}")
         }
     }
 
     /**
-     * Hook DynamicIslandBaseContentView.updateDarkLightMode(DynamicIslandState, String, boolean, boolean)。
+     * 精准清除当前岛类型主视图的暗色遮罩。
      *
-     * 通过 DynamicIslandState 的子类名判断当前岛的类型：
-     *   - SmallIsland → 小岛
-     *   - BigIsland / ShowOnceBigIsland → 大岛
-     *   - Expanded / AppExpanded / MiniWindowExpanded / SubAppExpanded / SubMiniWindowExpanded → 展开态
+     * ★ 与旧版 clearChildBackgrounds 不同：只清除匹配当前类型的那一个主视图，
+     *   绝不触碰其他类型的视图。container 由 hookContainerScheduleUpdate 单独处理。
      *
-     * 类型存入 ThreadLocal，供 setDrawable hook 读取。
+     * View 层级：
+     *   DynamicIslandBackgroundView (bgView)
+     *     └── DynamicIslandContentView (contentView)
+     *          ├── smallIslandView  → 只在 type=SMALL 时清除
+     *          ├── bigIslandView    → 只在 type=BIG 时清除
+     *          ├── expandedView     → 只在 type=EXPAND 时清除
+     *          └── container        → 不在此处处理，由 hookContainerScheduleUpdate 处理
+     */
+    private fun clearMaskForCurrentType(bgView: ViewGroup, currentType: IslandType) {
+        // 遍历到 DynamicIslandContentView
+        for (i in 0 until bgView.childCount) {
+            val contentView = bgView.getChildAt(i)
+            if (contentView !is ViewGroup) continue
+
+            // 遍历 contentView 的子 View，找匹配当前类型的那个
+            for (j in 0 until contentView.childCount) {
+                val child = contentView.getChildAt(j)
+                val childType = getIslandTypeForView(child)
+
+                // ★ 只清除类型完全匹配的主视图，跳过 container 和不匹配的类型
+                if (childType == currentType) {
+                    clearMaskForView(child)
+                }
+            }
+        }
+    }
+
+    /**
+     * Hook DynamicIslandBaseContentView.updateDarkLightMode。
+     *
+     * 通过 DynamicIslandState 子类名判断岛类型，存入 ThreadLocal + lastIslandType。
      */
     private fun hookUpdateDarkLightMode(
         module: XposedModule,
@@ -238,189 +267,237 @@ object IslandBackgroundHook : BaseHook() {
             )
 
             module.hook(method).intercept { chain ->
-                // 通过 DynamicIslandState 子类名判断岛类型
                 val state = chain.args[0]
                 val stateName = state?.javaClass?.simpleName ?: ""
                 val stateFullName = state?.javaClass?.name ?: ""
 
-                val type = when (stateName) {
-                    "SmallIsland" -> IslandType.SMALL
-                    "BigIsland", "ShowOnceBigIsland" -> IslandType.BIG
-                    "Expanded", "AppExpanded", "MiniWindowExpanded",
-                    "SubAppExpanded", "SubMiniWindowExpanded" -> IslandType.EXPAND
-                    else -> null // Unknown state, don't override
-                }
+                val type = resolveIslandType(stateName, stateFullName)
 
                 if (type != null) {
                     islandTypeHolder.set(type)
+                    lastIslandType = type
                 }
 
-                // 执行原方法（内部会调用 backgroundView.setDrawable）
                 chain.proceed()
 
-                // 清理 ThreadLocal
                 islandTypeHolder.remove()
 
                 null
             }
-            
+
         } catch (e: Throwable) {
             logError(module, "Failed to hook updateDarkLightMode: ${e.message}")
+        }
+    }
+
+    private fun resolveIslandType(simpleName: String, fullName: String): IslandType? {
+        return when (simpleName) {
+            "SmallIsland" -> IslandType.SMALL
+            "BigIsland", "ShowOnceBigIsland" -> IslandType.BIG
+            "Expanded", "AppExpanded", "MiniWindowExpanded",
+            "SubAppExpanded", "SubMiniWindowExpanded" -> IslandType.EXPAND
+            else -> when {
+                fullName.contains("SmallIsland") -> IslandType.SMALL
+                fullName.contains("BigIsland") -> IslandType.BIG
+                fullName.contains("Expanded") -> IslandType.EXPAND
+                else -> null
+            }
         }
     }
 
     /**
      * Hook DynamicIslandBackgroundView.alphaAnimation(float)。
      *
-     * 系统默认 alpha 目标值很低（如 0.22），导致自定义背景图片几乎不可见。
-     * 当有自定义背景时，直接设置 backgroundAlpha=1.0 并调用 scheduleUpdate()，
-     * 跳过原 Folme 动画（因为 chain.args 是不可修改 List，不能改参数值）。
+     * ★ 仅当当前岛类型有自定义背景时设 alpha=1.0 并跳过 Folme 动画。
      */
     private fun hookAlphaAnimation(module: XposedModule, bgViewClass: Class<*>) {
         try {
             val alphaMethod = bgViewClass.getDeclaredMethod("alphaAnimation", Float::class.javaPrimitiveType)
 
             module.hook(alphaMethod).intercept { chain ->
-                val type = islandTypeHolder.get()
+                val type = getCurrentIslandType()
 
-                if (type != null) {
-                    // 有自定义背景，直接设置 backgroundAlpha=1.0，跳过 Folme 动画
+                if (type != null && anyCustomBgConfigured()) {
                     val bgView = chain.thisObject
                     try {
                         val alphaField = bgViewClass.getDeclaredField("backgroundAlpha")
                         alphaField.isAccessible = true
                         alphaField.setFloat(bgView, 1.0f)
 
-                        // 调用 scheduleUpdate() 让 drawable.setAlpha + invalidate 生效
                         val scheduleMethod = bgViewClass.getDeclaredMethod("scheduleUpdate")
                         scheduleMethod.isAccessible = true
                         scheduleMethod.invoke(bgView)
                     } catch (e: Exception) {
-                        logError(module, "alphaAnimation override failed: ${e.message}, falling back to original")
+                        logError(module, "alphaAnimation override failed: ${e.message}, falling back")
                         chain.proceed()
                     }
-                    return@intercept null  // 跳过原方法
+                    return@intercept null
                 }
 
-                // 无自定义背景，执行原方法
                 chain.proceed()
                 null
             }
-            
+
         } catch (e: Throwable) {
             logError(module, "Failed to hook alphaAnimation: ${e.message}")
         }
     }
 
     /**
-     * 清除 contentView 及其直接子 View 的背景和模糊效果。
+     * 通过 View 的类名/资源名判断它属于哪个岛类型。
      *
-     * 遮挡层来源：updateBackgroundBg() 设置在 bigIslandView/smallIslandView/expandedView 上，
-     * 以及 containerScheduleUpdate() 设置在 R.id.container 上。
-     * 只清除背景非 null 的 View，不暴力递归整棵 View 树，避免误杀。
+     * 精确映射（来自 JADX DynamicIslandViewBinding）：
+     *   - DynamicIslandBigIslandView → BIG
+     *   - DynamicIslandExpandedView → EXPAND
+     *   - small_island_view (FrameLayout) → SMALL
+     *   - container → 跟随当前岛类型（lastIslandType）
+     *   - island_content → 无法确定，不处理
+     *   - 其他 → 无法确定，不处理
      */
-    private fun clearChildBackgrounds(viewGroup: ViewGroup) {
-        for (i in 0 until viewGroup.childCount) {
-            val child = viewGroup.getChildAt(i)
-            if (child.background != null) {
-                child.background = null
-            }
-            clearBlurEffect(child)
-            // 递归一层子 View（container 在 contentView 的子 View 下）
-            if (child is ViewGroup) {
-                for (j in 0 until child.childCount) {
-                    val grandChild = child.getChildAt(j)
-                    if (grandChild.background != null) {
-                        grandChild.background = null
-                    }
-                    clearBlurEffect(grandChild)
+    private fun getIslandTypeForView(view: View): IslandType? {
+        val className = view.javaClass.name
+        return when {
+            className.contains("BigIslandView") -> IslandType.BIG
+            className.contains("ExpandedView") -> IslandType.EXPAND
+            else -> {
+                val resName = try {
+                    view.resources?.getResourceEntryName(view.id) ?: ""
+                } catch (_: Exception) { "" }
+                when {
+                    resName.contains("small_island") -> IslandType.SMALL
+                    resName.contains("big_island") -> IslandType.BIG
+                    resName.contains("expanded") -> IslandType.EXPAND
+                    resName.contains("container") -> lastIslandType
+                    else -> null
                 }
             }
         }
     }
 
     /**
-     * 清除 View 的模糊效果。
+     * 清除 View 的暗色遮罩：设置 background=null + blur mode=0 + 清除 blend colors。
+     *
+     * ★ 必须同时设 blur mode=0，否则残留的 blur mode 会导致系统继续施加模糊效果，
+     *   在某些设备上表现为半透明暗色叠加覆盖自定义背景。
      */
-    private fun clearBlurEffect(view: View) {
-        try {
-            val cl = view.javaClass.classLoader
-            if (cl != null) {
-                val miBlurCompatClass = cl.loadClass("miui.util.MiBlurCompat")
-                val clearBlendMethod = miBlurCompatClass.getDeclaredMethod(
-                    "clearMiBackgroundBlendColorCompat", View::class.java
-                )
-                clearBlendMethod.invoke(null, view)
+    private fun clearMaskForView(view: View) {
+        view.background = null
+        disableBlurAndClearBlend(view)
+    }
 
+    /**
+     * 禁用 blur 并清除 blend colors。
+     * blur mode 设为 0 + 清除 blend colors，确保无暗色叠加残留。
+     */
+    private fun disableBlurAndClearBlend(view: View) {
+        try {
+            val cl = view.javaClass.classLoader ?: return
+            val miBlurCompatClass = cl.loadClass("miui.util.MiBlurCompat")
+
+            // 1. 设 blur mode = 0（禁用模糊）
+            try {
                 val setBlurModeMethod = miBlurCompatClass.getDeclaredMethod(
                     "setMiViewBlurModeCompat", View::class.java, Int::class.javaPrimitiveType
                 )
                 setBlurModeMethod.invoke(null, view, 0)
-            }
-        } catch (_: Exception) {
-            // MiBlurCompat 不可用，忽略
+            } catch (_: Exception) {}
+
+            // 2. 清除 blend colors
+            try {
+                val clearBlendMethod = miBlurCompatClass.getDeclaredMethod(
+                    "clearMiBackgroundBlendColorCompat", View::class.java
+                )
+                clearBlendMethod.invoke(null, view)
+            } catch (_: Exception) {}
+        } catch (_: Exception) {}
+    }
+
+    /**
+     * 统一辅助方法：将自定义 drawable 应用到 backgroundView 并安排重绘。
+     *
+     * 1. 通过反射设置 drawable 字段
+     * 2. 设置 backgroundAlpha = 1.0
+     * 3. 取消 Folme 动画（设 backgroundAlpha 直接覆盖）
+     * 4. 调用 scheduleUpdate() 触发重绘
+     * 5. 精准清除当前类型主视图的遮罩
+     */
+    private fun applyDrawableToBgView(
+        bgView: View,
+        bgViewClass: Class<*>,
+        type: IslandType,
+        module: XposedModule,
+        customDrawable: Drawable
+    ) {
+        try {
+            val drawableField = bgViewClass.getDeclaredField("drawable")
+            drawableField.isAccessible = true
+            drawableField.set(bgView, customDrawable)
+        } catch (e: Exception) {
+            logError(module, "applyDrawable failed: ${e.message}")
+        }
+
+        try {
+            val alphaField = bgViewClass.getDeclaredField("backgroundAlpha")
+            alphaField.isAccessible = true
+            alphaField.setFloat(bgView, 1.0f)
+        } catch (_: Exception) {}
+
+        try {
+            val scheduleMethod = bgViewClass.getDeclaredMethod("scheduleUpdate")
+            scheduleMethod.isAccessible = true
+            scheduleMethod.invoke(bgView)
+        } catch (_: Exception) {}
+
+        if (bgView is ViewGroup) {
+            clearMaskForCurrentType(bgView, type)
         }
     }
 
     /**
-     * Hook DynamicIslandAnimationDelegate.containerScheduleUpdate()。
+     * 延迟重试应用自定义背景（解决 ConfigManager 时序问题）。
      *
-     * 系统动画代理在每帧更新时会给 container（contentView 的子 View）设置暗色背景：
-     *   - container.setBackgroundDrawable(dynamic_island_background)
-     *   - container.setBackgroundColor(containerBackgroundColor)
-     * 这些暗色层会遮挡 backgroundView.onDraw() 绘制的自定义背景。
-     *
-     * 当有自定义背景时，在 containerScheduleUpdate 执行后清除 container 的背景。
+     * 当 hasBgFileForType() 在首次调用时因 remote prefs 未加载完成而返回 false，
+     * 延迟 2 秒后重试。如果此时 prefs 已加载且有配置，则应用自定义背景。
      */
-    private fun hookContainerScheduleUpdate(module: XposedModule, animDelegateClass: Class<*>) {
-        try {
-            val method = animDelegateClass.getDeclaredMethod("containerScheduleUpdate")
+    private fun scheduleBgRetry(
+        bgView: View,
+        bgViewClass: Class<*>,
+        type: IslandType,
+        module: XposedModule
+    ) {
+        bgRetryHandler.postDelayed({
+            try {
+                if (!anyCustomBgConfigured()) return@postDelayed
 
-            module.hook(method).intercept { chain ->
-                chain.proceed()
+                val context = try { bgView.context } catch (_: Exception) { null }
+                var stokeWidth = 0
+                try {
+                    val stokeField = bgViewClass.getDeclaredField("stokeWidth")
+                    stokeField.isAccessible = true
+                    stokeWidth = stokeField.getInt(bgView)
+                } catch (_: Exception) {}
 
-                // 检查当前类型是否有自定义背景配置
-                val currentType = islandTypeHolder.get()
-                val hasBgForType = currentType != null && hasBgFileForType(currentType)
-
-                // 只有当前类型有配置时才清除背景
-                if (hasBgForType) {
-                    try {
-                        // 从 animDelegate 获取 view 字段（DynamicIslandBaseContentView）
-                        val viewField = animDelegateClass.getDeclaredField("view")
-                        viewField.isAccessible = true
-                        val contentView = viewField.get(chain.thisObject) as? View ?: return@intercept null
-
-                        // 获取 container 子 View（R.id.container）
-                        val containerResId = contentView.resources.getIdentifier("container", "id", "com.android.systemui")
-                        if (containerResId > 0) {
-                            val container = contentView.findViewById<View>(containerResId)
-                            if (container != null && container.background != null) {
-                                container.background = null
-                                clearBlurEffect(container)
-                            }
-                        }
-                    } catch (e: Exception) {
-                        logError(module, "containerScheduleUpdate clear bg failed: ${e.message}")
+                val customDrawable = loadCustomDrawable(type, context, module, stokeWidth)
+                if (customDrawable != null) {
+                    if (bgView.isAttachedToWindow) {
+                        applyDrawableToBgView(bgView, bgViewClass, type, module, customDrawable)
                     }
                 }
-
-                null
+            } catch (e: Exception) {
+                logError(module, "scheduleBgRetry failed: ${e.message}")
             }
-            
-        } catch (e: Throwable) {
-            logError(module, "Failed to hook containerScheduleUpdate: ${e.message}")
-        }
+        }, 2000L)
     }
 
     /**
      * Hook DynamicIslandBaseContentView.updateBackgroundBg(View, boolean)。
      *
-     * 系统会给内容视图设置暗色/模糊背景（dynamic_island_background 或 blur blend colors），
-     * 这个暗色层遮挡了自定义背景图片。当有自定义背景文件时，清除内容视图的背景和模糊效果。
+     * ★ 根据 View 自身类型判断是否需要跳过原方法：
+     *   - View 属于有自定义背景的类型 → 跳过原方法，清除遮罩（background + blur + blend）
+     *   - View 属于无自定义背景的类型 → 执行原方法，完全跟随系统
      *
-     * 注意：不依赖 hasAnyCustomBg 全局标志，因为 updateBackgroundBg 可能在 setDrawable 之前调用，
-     * 此时 hasAnyCustomBg 还未设为 true。改为直接检查自定义背景文件是否存在。
+     * 这样只配 BIG 背景时，updateBackgroundBg(smallIslandView) 仍走原方法，
+     * smallIslandView 的遮罩正常设置，不会变透明。
      */
     private fun hookUpdateBackgroundBg(module: XposedModule, contentViewClass: Class<*>) {
         try {
@@ -431,59 +508,78 @@ object IslandBackgroundHook : BaseHook() {
             )
 
             module.hook(method).intercept { chain ->
-                // 检查当前类型是否有自定义背景配置
-                val currentType = islandTypeHolder.get()
-                val hasBgForType = currentType != null && hasBgFileForType(currentType)
+                val view = chain.args[0] as? View
+                val viewType = if (view != null) getIslandTypeForView(view) else null
 
-                if (hasBgForType) {
-                    // 当前类型有自定义背景，清除内容视图的暗色/模糊背景
-                    val view = chain.args[0] as? View
-
+                if (viewType != null && anyCustomBgConfigured()) {
+                    // ★ 该 View 所属的岛类型有自定义背景 → 跳过原方法，清除遮罩
                     if (view != null) {
-                        view.background = null
-
-                        // 尝试清除模糊效果（如果存在 MiBlurCompat）
-                        try {
-                            val cl = contentViewClass.classLoader
-                            if (cl != null) {
-                                val miBlurCompatClass = cl.loadClass("miui.util.MiBlurCompat")
-                                val clearBlendMethod = miBlurCompatClass.getDeclaredMethod(
-                                    "clearMiBackgroundBlendColorCompat", View::class.java
-                                )
-                                clearBlendMethod.invoke(null, view)
-
-                                val setBlurModeMethod = miBlurCompatClass.getDeclaredMethod(
-                                    "setMiViewBlurModeCompat", View::class.java, Int::class.javaPrimitiveType
-                                )
-                                setBlurModeMethod.invoke(null, view, 0)
-                            }
-                        } catch (_: Exception) {
-                            // MiBlurCompat 不可用，忽略
-                        }
+                        clearMaskForView(view)
                     }
-                    return@intercept null  // 跳过原方法
+                    return@intercept null
                 }
 
-                // 无自定义背景，执行原方法
+                // 无自定义背景 → 执行原方法
                 chain.proceed()
                 null
             }
-            
+
         } catch (e: Throwable) {
             logError(module, "Failed to hook updateBackgroundBg: ${e.message}")
         }
     }
 
     /**
-     * 检查是否存在任何自定义背景文件。
-     * 带短期 TTL 缓存（5 秒），避免在 updateBackgroundBg 等高频方法中反复做文件 I/O。
+     * Hook DynamicIslandAnimationDelegate.containerScheduleUpdate()。
+     *
+     * ★ 仅当当前岛类型有自定义背景时，清除 container 的遮罩。
+     * 无自定义背景时完全跟随系统。
      */
-    private fun hasAnyCustomBgFile(): Boolean {
-        val now = System.currentTimeMillis()
-        if (now - hasAnyCustomBgCheckTime < CUSTOM_BG_CHECK_TTL) return hasAnyCustomBgCached
-        hasAnyCustomBgCached = checkCustomBgFilesExist()
-        hasAnyCustomBgCheckTime = now
-        return hasAnyCustomBgCached
+    private fun hookContainerScheduleUpdate(module: XposedModule, animDelegateClass: Class<*>) {
+        try {
+            val method = animDelegateClass.getDeclaredMethod("containerScheduleUpdate")
+
+            module.hook(method).intercept { chain ->
+                chain.proceed()
+
+                val type = lastIslandType
+
+                if (type != null && anyCustomBgConfigured()) {
+                    try {
+                        val viewField = animDelegateClass.getDeclaredField("view")
+                        viewField.isAccessible = true
+                        val contentView = viewField.get(chain.thisObject) as? View ?: return@intercept null
+
+                        val containerResId = contentView.resources.getIdentifier("container", "id", "com.android.systemui")
+                        if (containerResId > 0) {
+                            val container = contentView.findViewById<View>(containerResId)
+                            if (container != null) {
+                                clearMaskForView(container)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        logError(module, "containerScheduleUpdate clear bg failed: ${e.message}")
+                    }
+                }
+
+                null
+            }
+
+        } catch (e: Throwable) {
+            logError(module, "Failed to hook containerScheduleUpdate: ${e.message}")
+        }
+    }
+
+    /**
+     * 生成 View 描述字符串（用于错误日志）。
+     */
+    private fun describeView(view: View?): String {
+        if (view == null) return "null"
+        val className = view.javaClass.simpleName
+        val resName = try {
+            view.resources?.getResourceEntryName(view.id) ?: "?"
+        } catch (_: Exception) { "no-id" }
+        return "$className($resName)"
     }
 
     /**
@@ -501,27 +597,9 @@ object IslandBackgroundHook : BaseHook() {
     }
 
     /**
-     * 实际检查自定义背景文件是否存在。
-     * 只有配置路径非空且文件存在时才返回 true，不再回退到默认路径。
-     */
-    private fun checkCustomBgFilesExist(): Boolean {
-        for (type in IslandType.entries) {
-            val configPath = when (type) {
-                IslandType.SMALL -> ConfigManager.getString(KEY_SMALL_BG)
-                IslandType.BIG -> ConfigManager.getString(KEY_BIG_BG)
-                IslandType.EXPAND -> ConfigManager.getString(KEY_EXPAND_BG)
-            }
-            // 配置路径为空时，不使用任何背景
-            if (configPath.isNullOrBlank()) continue
-            val file = File(configPath)
-            if (file.exists() && file.canRead()) return true
-        }
-        return false
-    }
-
-    /**
      * 加载指定类型的自定义背景 BitmapDrawable。
-     * 只有配置路径非空时才加载，不再回退到默认路径。
+     * ★ 只加载该类型的背景，不回退到其他类型。
+     * ★ 当该类型没有自定义背景但其他类型有时，返回纯黑图片（避免 container 清空后变透明）。
      */
     private fun loadCustomDrawable(
         type: IslandType,
@@ -535,11 +613,20 @@ object IslandBackgroundHook : BaseHook() {
             IslandType.EXPAND -> ConfigManager.getString(KEY_EXPAND_BG)
         }
 
-        // 配置路径为空时，不加载任何背景
-        if (configPath.isNullOrBlank()) return null
+        if (configPath.isNullOrBlank()) {
+            if (anyCustomBgConfigured()) {
+                return loadBlackDrawable(context, module, stokeWidth)
+            }
+            return null
+        }
 
         val file = File(configPath)
-        if (!file.exists() || !file.canRead()) return null
+        if (!file.exists() || !file.canRead()) {
+            if (anyCustomBgConfigured()) {
+                return loadBlackDrawable(context, module, stokeWidth)
+            }
+            return null
+        }
 
         val currentModified = file.lastModified()
         val cachedModified = lastFileModified[type] ?: 0L
@@ -554,13 +641,9 @@ object IslandBackgroundHook : BaseHook() {
                         cachedDrawables[type] = drawable
                         lastFileModified[type] = currentModified
                         lastConfigPath[type] = configPath
-                        hasAnyCustomBg = true  // 通知 updateBackgroundBg hook 清除暗色覆盖
                     }
-                    // 回收旧 drawable
                     if (old is RoundedClippingDrawable) {
-                        if (!old.bitmap.isRecycled) {
-                            old.bitmap.recycle()
-                        }
+                        if (!old.bitmap.isRecycled) old.bitmap.recycle()
                     } else if (old is BitmapDrawable) {
                         old.bitmap?.recycle()
                     }
@@ -571,10 +654,50 @@ object IslandBackgroundHook : BaseHook() {
     }
 
     /**
+     * 检查是否至少有一个岛类型配置了自定义背景。
+     */
+    private fun anyCustomBgConfigured(): Boolean {
+        return hasBgFileForType(IslandType.SMALL)
+                || hasBgFileForType(IslandType.BIG)
+                || hasBgFileForType(IslandType.EXPAND)
+    }
+
+    /**
+     * 加载纯黑背景 Drawable（512x512 Bitmap + RoundedClippingDrawable）。
+     * ★ 用于没有自定义背景的岛类型，避免 container 清空后变透明。
+     * ★ Bitmap 缓存复用，每次创建新的 Drawable 实例（Drawable 不可跨 View 共享）。
+     */
+    private fun loadBlackDrawable(
+        context: android.content.Context?,
+        module: XposedModule,
+        stokeWidth: Int = 0
+    ): Drawable? {
+        val bitmap = getOrCreateBlackBitmap(module) ?: return null
+        val cornerRadius = getCornerRadius(context)
+        return RoundedClippingDrawable(bitmap, cornerRadius, stokeWidth)
+    }
+
+    /**
+     * 获取或创建缓存的纯黑 Bitmap（512x512 ARGB_8888）。
+     */
+    private fun getOrCreateBlackBitmap(module: XposedModule): Bitmap? {
+        cachedBlackBitmap?.let { if (!it.isRecycled) return it }
+        synchronized(this) {
+            cachedBlackBitmap?.let { if (!it.isRecycled) return it }
+            return try {
+                val bitmap = Bitmap.createBitmap(512, 512, Bitmap.Config.ARGB_8888)
+                bitmap.eraseColor(Color.BLACK)
+                cachedBlackBitmap = bitmap
+                bitmap
+            } catch (e: Exception) {
+                logError(module, "Failed to create black bitmap: ${e.message}")
+                null
+            }
+        }
+    }
+
+    /**
      * 解码背景文件为圆角裁剪 Drawable。
-     *
-     * 不再使用 createRoundedBitmap 预裁切（bounds 拉伸后比例不对），
-     * 改为 RoundedClippingDrawable 在 draw 时用 canvas.clipPath 实时裁剪。
      */
     private fun decodeFile(
         file: File,
@@ -589,7 +712,6 @@ object IslandBackgroundHook : BaseHook() {
             val srcH = options.outHeight
             if (srcW <= 0 || srcH <= 0) return null
 
-            // 采样压缩：动态计算目标尺寸，避免展开态模糊
             val displayMetrics = android.content.res.Resources.getSystem().displayMetrics
             val maxTargetSize = TypedValue.applyDimension(
                 TypedValue.COMPLEX_UNIT_DIP, 200f, displayMetrics
@@ -599,10 +721,7 @@ object IslandBackgroundHook : BaseHook() {
             val decodeOpts = BitmapFactory.Options().apply { inSampleSize = sampleSize }
             val bitmap = BitmapFactory.decodeFile(file.absolutePath, decodeOpts) ?: return null
 
-            // 获取圆角半径
             val cornerRadius = getCornerRadius(context)
-
-            // 用圆角裁剪包装器包裹 bitmap，直接 canvas.drawBitmap 绘制确保完全填充
             RoundedClippingDrawable(bitmap, cornerRadius, stokeWidth)
         } catch (e: Exception) {
             logError(module, "Failed to decode background: ${e.message}")
@@ -610,9 +729,6 @@ object IslandBackgroundHook : BaseHook() {
         }
     }
 
-    /**
-     * 获取岛圆角半径（px），直接读取系统资源 island_radius。
-     */
     private fun getCornerRadius(context: android.content.Context?): Float {
         if (context != null) {
             try {
@@ -624,10 +740,8 @@ object IslandBackgroundHook : BaseHook() {
                 }
             } catch (_: Exception) {}
         }
-
         return TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_DIP,
-            30f,
+            TypedValue.COMPLEX_UNIT_DIP, 30f,
             android.content.res.Resources.getSystem().displayMetrics
         )
     }
@@ -648,9 +762,7 @@ object IslandBackgroundHook : BaseHook() {
         synchronized(this) {
             cachedDrawables.values.forEach { drawable ->
                 if (drawable is RoundedClippingDrawable) {
-                    if (!drawable.bitmap.isRecycled) {
-                        drawable.bitmap.recycle()
-                    }
+                    if (!drawable.bitmap.isRecycled) drawable.bitmap.recycle()
                 } else if (drawable is BitmapDrawable) {
                     drawable.bitmap?.recycle()
                 }
@@ -658,25 +770,12 @@ object IslandBackgroundHook : BaseHook() {
             cachedDrawables.clear()
             lastFileModified.clear()
             lastConfigPath.clear()
-            hasAnyCustomBg = false  // 重置，下次 loadCustomDrawable 时重新判断
-            hasAnyCustomBgCached = false
-            hasAnyCustomBgCheckTime = 0L
+            cachedBlackBitmap = null
         }
     }
 
     /**
      * 圆角裁剪 Drawable 包装器。
-     *
-     * 系统的 DynamicIslandBackgroundView.onDraw() 会 setBounds + draw，
-     * 原始 GradientDrawable 自身就是圆角形状，但 BitmapDrawable 是矩形。
-     * 此包装器在 draw 时用 canvas.clipPath 裁剪成圆角，确保不溢出岛外形。
-     *
-     * 使用 canvas.drawBitmap 直接绘制 bitmap，确保图片填满到内容区域
-     *（不含 stokeWidth 边框扩展），不覆盖边框外的光效。
-     *
-     * @param bitmap 背景图片
-     * @param cornerRadius 圆角半径（px）
-     * @param stokeWidth 背景视图的边框宽度（px），用于计算内容区域
      */
     private class RoundedClippingDrawable(
         val bitmap: Bitmap,
@@ -687,10 +786,9 @@ object IslandBackgroundHook : BaseHook() {
         private val clipPath = Path()
         private val rect = RectF()
         private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            isFilterBitmap = true  // 启用双线性过滤，抗锯齿
+            isFilterBitmap = true
         }
 
-        // 预计算默认 stokeWidth 回退值（4dp）
         private val defaultStoke by lazy {
             TypedValue.applyDimension(
                 TypedValue.COMPLEX_UNIT_DIP, 4f,
@@ -702,46 +800,31 @@ object IslandBackgroundHook : BaseHook() {
             val bounds = getBounds()
             if (bounds.isEmpty || bitmap.isRecycled) return
 
-            // bounds 是系统 onDraw 设置的：(actualLeft - stoke, actualTop - stoke, actualLeft + actualWidth + stoke, actualTop + actualHeight + stoke)
-            // 需要去除 stokeWidth 计算内容区域
             val s = if (stokeWidth > 0) stokeWidth.toFloat() else defaultStoke.toFloat()
             val contentLeft = (bounds.left + s).coerceAtLeast(bounds.left.toFloat())
             val contentTop = (bounds.top + s).coerceAtLeast(bounds.top.toFloat())
             val contentRight = (bounds.right - s).coerceAtMost(bounds.right.toFloat())
             val contentBottom = (bounds.bottom - s).coerceAtMost(bounds.bottom.toFloat())
 
-            // 确保内容区域有效
             if (contentRight > contentLeft && contentBottom > contentTop) {
                 rect.set(contentLeft, contentTop, contentRight, contentBottom)
             } else {
                 rect.set(bounds.left.toFloat(), bounds.top.toFloat(), bounds.right.toFloat(), bounds.bottom.toFloat())
             }
 
-            // 构建 clip path（圆角矩形）
             clipPath.reset()
             clipPath.addRoundRect(rect, cornerRadius, cornerRadius, Path.Direction.CW)
 
-            // 保存 canvas 状态，clip 后绘制 bitmap，再恢复
             val save = canvas.save()
             canvas.clipPath(clipPath)
-
-            // 绘制 bitmap 到内容区域（而非整个 bounds）
             canvas.drawBitmap(bitmap, null, rect, paint)
             canvas.restoreToCount(save)
         }
 
-        override fun setAlpha(alpha: Int) {
-            paint.alpha = alpha
-        }
-
+        override fun setAlpha(alpha: Int) { paint.alpha = alpha }
         override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
-
-        override fun setColorFilter(colorFilter: ColorFilter?) {
-            paint.colorFilter = colorFilter
-        }
-
+        override fun setColorFilter(colorFilter: ColorFilter?) { paint.colorFilter = colorFilter }
         override fun getIntrinsicWidth(): Int = bitmap.width
-
         override fun getIntrinsicHeight(): Int = bitmap.height
     }
 }
