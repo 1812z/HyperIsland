@@ -206,6 +206,80 @@ class MainActivity : FlutterActivity() {
                         result.error("ERROR", e.message, null)
                     }
                 }
+
+                "getModuleDataDir" -> {
+                    try {
+                        // 使用公共目录，确保其他进程可访问
+                        val publicDir = java.io.File("/sdcard/Pictures/HyperIsland")
+                        if (!publicDir.exists()) publicDir.mkdirs()
+                        result.success(publicDir.absolutePath)
+                    } catch (e: Exception) {
+                        // 回退到私有目录
+                        val dir = getExternalFilesDir(null)?.absolutePath ?: ""
+                        result.success(dir)
+                    }
+                }
+
+                "copyImageToModuleDir" -> {
+                    val sourcePath = call.argument<String>("sourcePath") ?: ""
+                    val destFileName = call.argument<String>("destFileName") ?: ""
+                    if (sourcePath.isEmpty() || destFileName.isEmpty()) {
+                        result.error("INVALID_PARAMS", "sourcePath and destFileName are required", null)
+                        return@setMethodCallHandler
+                    }
+                    Thread {
+                        try {
+                            // 使用公共目录确保跨进程可访问
+                            val publicDir = java.io.File("/sdcard/Pictures/HyperIsland")
+                            if (!publicDir.exists()) publicDir.mkdirs()
+                            publicDir.setReadable(true, false)
+                            publicDir.setExecutable(true, false)
+
+                            val destFile = java.io.File(publicDir, destFileName)
+                            java.io.File(sourcePath).copyTo(destFile, overwrite = true)
+                            destFile.setReadable(true, false)
+                            runOnUiThread { result.success(destFile.absolutePath) }
+                        } catch (e: Exception) {
+                            // 回退到私有目录
+                            try {
+                                val moduleDir = getExternalFilesDir(null)
+                                if (moduleDir == null) {
+                                    runOnUiThread { result.error("ERROR", "Cannot access module directory", null) }
+                                    return@Thread
+                                }
+                                if (!moduleDir.exists()) moduleDir.mkdirs()
+                                moduleDir.setReadable(true, false)
+                                moduleDir.setExecutable(true, false)
+
+                                val destFile = java.io.File(moduleDir, destFileName)
+                                java.io.File(sourcePath).copyTo(destFile, overwrite = true)
+                                destFile.setReadable(true, false)
+                                runOnUiThread { result.success(destFile.absolutePath) }
+                            } catch (e2: Exception) {
+                                runOnUiThread { result.error("ERROR", e2.message, null) }
+                            }
+                        }
+                    }.start()
+                }
+
+                "deleteImageFromModuleDir" -> {
+                    val fileName = call.argument<String>("fileName") ?: ""
+                    if (fileName.isEmpty()) {
+                        result.error("INVALID_PARAMS", "fileName is required", null)
+                        return@setMethodCallHandler
+                    }
+                    Thread {
+                        try {
+                            val publicDir = java.io.File("/sdcard/Pictures/HyperIsland")
+                            val file = java.io.File(publicDir, fileName)
+                            val success = if (file.exists()) file.delete() else true
+                            runOnUiThread { result.success(success) }
+                        } catch (e: Exception) {
+                            runOnUiThread { result.error("ERROR", e.message, null) }
+                        }
+                    }.start()
+                }
+
                 else -> {
                     result.notImplemented()
                 }

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -8,6 +10,7 @@ import '../controllers/update_controller.dart';
 import '../controllers/whitelist_controller.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../services/interaction_haptics.dart';
+import '../services/island_background_service.dart';
 import '../widgets/color_picker_dialog.dart';
 import '../widgets/color_value_field.dart';
 import '../widgets/section_label.dart';
@@ -28,6 +31,7 @@ class _SettingsPageState extends State<SettingsPage> {
   late int _marqueeSpeedDraft;
   late int _bigIslandMaxWidthDraft;
   late int _uiStateHash;
+  late int _cornerRadiusDraft;
 
   int _buildUiStateHash() => Object.hashAll([
     _ctrl.loading,
@@ -59,6 +63,10 @@ class _SettingsPageState extends State<SettingsPage> {
     _ctrl.interactionHaptics,
     _ctrl.showWelcome,
     _ctrl.useHookAppIcon,
+    _ctrl.islandBgSmallPath,
+    _ctrl.islandBgBigPath,
+    _ctrl.islandBgExpandPath,
+    _ctrl.islandBgCornerRadius,
   ]);
 
   void _onChanged() {
@@ -66,15 +74,18 @@ class _SettingsPageState extends State<SettingsPage> {
     final nextHash = _buildUiStateHash();
     final nextMarquee = _ctrl.marqueeSpeed;
     final nextMaxWidth = _ctrl.bigIslandMaxWidth;
+    final nextCornerRadius = _ctrl.islandBgCornerRadius;
     if (nextHash == _uiStateHash &&
         nextMarquee == _marqueeSpeedDraft &&
-        nextMaxWidth == _bigIslandMaxWidthDraft) {
+        nextMaxWidth == _bigIslandMaxWidthDraft &&
+        nextCornerRadius == _cornerRadiusDraft) {
       return;
     }
     setState(() {
       _uiStateHash = nextHash;
       _marqueeSpeedDraft = nextMarquee;
       _bigIslandMaxWidthDraft = nextMaxWidth;
+      _cornerRadiusDraft = nextCornerRadius;
     });
   }
 
@@ -83,6 +94,7 @@ class _SettingsPageState extends State<SettingsPage> {
     super.initState();
     _marqueeSpeedDraft = _ctrl.marqueeSpeed;
     _bigIslandMaxWidthDraft = _ctrl.bigIslandMaxWidth;
+    _cornerRadiusDraft = _ctrl.islandBgCornerRadius;
     _uiStateHash = _buildUiStateHash();
     _ctrl.addListener(_onChanged);
   }
@@ -154,11 +166,51 @@ class _SettingsPageState extends State<SettingsPage> {
     await _ctrl.setBigIslandMaxWidth(next);
   }
 
+  void _onCornerRadiusChanged(double value) {
+    final next = value.round();
+    if (_cornerRadiusDraft == next) return;
+    setState(() => _cornerRadiusDraft = next);
+  }
+
+  Future<void> _persistCornerRadius(double value) async {
+    final next = value.round();
+    if (_ctrl.islandBgCornerRadius == next) return;
+    await _ctrl.setIslandBgCornerRadius(next);
+  }
+
   void _showSnack(String msg) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(msg), duration: const Duration(seconds: 3)),
     );
+  }
+
+  Future<void> _pickIslandBackground(IslandBgType type) async {
+    final l10n = AppLocalizations.of(context)!;
+    final path = await IslandBackgroundService.pickAndCopyImage(type);
+    if (path != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.islandBgImageSelected),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Future<void> _deleteIslandBackground(IslandBgType type) async {
+    final l10n = AppLocalizations.of(context)!;
+    final success = await IslandBackgroundService.deleteImage(type);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success ? l10n.islandBgImageDeleted : l10n.islandBgDeleteFailed,
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   String _localizeConfigIOError(AppLocalizations l10n, ConfigIOError error) {
@@ -1200,6 +1252,126 @@ class _SettingsPageState extends State<SettingsPage> {
                     const SizedBox(height: 8),
                     Padding(
                       padding: const EdgeInsets.only(left: 18),
+                      child: SectionLabel(l10n.islandBgSection),
+                    ),
+                    const SizedBox(height: 8),
+                    Card(
+                      elevation: 0,
+                      color: cs.surfaceContainerHighest,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        children: [
+                          _IslandBgTile(
+                            title: l10n.islandBgSmallTitle,
+                            subtitle: l10n.islandBgSmallSubtitle,
+                            icon: Icons.panorama_vertical,
+                            imagePath: _ctrl.islandBgSmallPath,
+                            onTap: () => _pickIslandBackground(IslandBgType.small),
+                            onDelete: _ctrl.islandBgSmallPath.isNotEmpty
+                                ? () => _deleteIslandBackground(IslandBgType.small)
+                                : null,
+                          ),
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          _IslandBgTile(
+                            title: l10n.islandBgBigTitle,
+                            subtitle: l10n.islandBgBigSubtitle,
+                            icon: Icons.panorama_vertical,
+                            imagePath: _ctrl.islandBgBigPath,
+                            onTap: () => _pickIslandBackground(IslandBgType.big),
+                            onDelete: _ctrl.islandBgBigPath.isNotEmpty
+                                ? () => _deleteIslandBackground(IslandBgType.big)
+                                : null,
+                          ),
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          _IslandBgTile(
+                            title: l10n.islandBgExpandTitle,
+                            subtitle: l10n.islandBgExpandSubtitle,
+                            icon: Icons.panorama_vertical,
+                            imagePath: _ctrl.islandBgExpandPath,
+                            onTap: () => _pickIslandBackground(IslandBgType.expand),
+                            onDelete: _ctrl.islandBgExpandPath.isNotEmpty
+                                ? () => _deleteIslandBackground(IslandBgType.expand)
+                                : null,
+                          ),
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 2,
+                            ),
+                            title: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    l10n.islandBgCornerRadius,
+                                    style: titleStyle,
+                                  ),
+                                ),
+                                Text(
+                                  '${_cornerRadiusDraft} dp',
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(color: cs.onSurfaceVariant),
+                                ),
+                                if (_cornerRadiusDraft != 0)
+                                  SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: IconButton(
+                                      icon: const Icon(Icons.refresh, size: 18),
+                                      padding: EdgeInsets.zero,
+                                      visualDensity: VisualDensity.compact,
+                                      onPressed:
+                                          InteractionHaptics.interceptButton(
+                                        () {
+                                          setState(
+                                            () => _cornerRadiusDraft = 0,
+                                          );
+                                          _ctrl.setIslandBgCornerRadius(0);
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            subtitle: Row(
+                              children: [
+                                Text(
+                                  l10n.islandBgCornerRadiusHint,
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(color: cs.onSurfaceVariant),
+                                ),
+                                Expanded(
+                                  child: SliderTheme(
+                                    data: ModernSliderTheme.theme(context),
+                                    child: Slider(
+                                      value: _cornerRadiusDraft.toDouble(),
+                                      min: 0,
+                                      max: 100,
+                                      divisions: 20,
+                                      onChanged:
+                                          InteractionHaptics.interceptSlider(
+                                        _onCornerRadiusChanged,
+                                      ),
+                                      onChangeEnd: _persistCornerRadius,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            shape: const RoundedRectangleBorder(
+                              borderRadius: BorderRadius.vertical(
+                                bottom: Radius.circular(16),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 18),
                       child: SectionLabel(l10n.configSection),
                     ),
                     const SizedBox(height: 8),
@@ -1369,6 +1541,86 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
         ],
       ),
+    );
+  }
+}
+
+class _IslandBgTile extends StatelessWidget {
+  const _IslandBgTile({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.imagePath,
+    required this.onTap,
+    this.onDelete,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final String imagePath;
+  final VoidCallback onTap;
+  final VoidCallback? onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final hasImage = imagePath.isNotEmpty;
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 4,
+      ),
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: hasImage ? cs.primary : cs.outline.withValues(alpha: 0.3),
+            width: hasImage ? 2 : 1,
+          ),
+        ),
+        child: hasImage
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: Image.file(
+                  File(imagePath),
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Icon(
+                    icon,
+                    color: cs.onSurfaceVariant,
+                    size: 24,
+                  ),
+                ),
+              )
+            : Icon(
+                icon,
+                color: cs.onSurfaceVariant,
+                size: 24,
+              ),
+      ),
+      title: Text(title),
+      subtitle: Text(
+        hasImage ? subtitle : AppLocalizations.of(context)!.islandBgNotSet,
+        style: Theme.of(context).textTheme.bodySmall
+            ?.copyWith(color: cs.onSurfaceVariant),
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (hasImage && onDelete != null)
+            IconButton(
+              icon: Icon(Icons.delete_outline, color: cs.error),
+              onPressed: onDelete,
+              visualDensity: VisualDensity.compact,
+            ),
+          const Icon(Icons.chevron_right),
+        ],
+      ),
+      onTap: onTap,
     );
   }
 }

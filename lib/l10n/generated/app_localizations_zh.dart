@@ -1166,4 +1166,43 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get importErrorUnknown => '导入失败，请检查剪贴板数据是否正确';
+
+  @override
+  String get islandBgSection => '岛背景设置';
+
+  @override
+  String get islandBgSmallTitle => '小岛背景图';
+
+  @override
+  String get islandBgSmallSubtitle => '点击选择图片';
+
+  @override
+  String get islandBgBigTitle => '大岛背景图';
+
+  @override
+  String get islandBgBigSubtitle => '点击选择图片';
+
+  @override
+  String get islandBgExpandTitle => '焦点通知背景图';
+
+  @override
+  String get islandBgExpandSubtitle => '点击选择图片';
+
+  @override
+  String get islandBgNotSet => '未设置';
+
+  @override
+  String get islandBgCornerRadius => '圆角半径';
+
+  @override
+  String get islandBgCornerRadiusHint => '0=跟随系统';
+
+  @override
+  String get islandBgImageSelected => '背景图片已保存';
+
+  @override
+  String get islandBgImageDeleted => '背景图片已删除';
+
+  @override
+  String get islandBgDeleteFailed => '删除失败';
 }

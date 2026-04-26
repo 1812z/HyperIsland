@@ -46,6 +46,10 @@ const kPrefAiTemperature = 'pref_ai_temperature';
 const kPrefAiMaxTokens = 'pref_ai_max_tokens';
 const kPrefAiLastLogJson = 'pref_ai_last_log_json';
 const kPrefConfigAppVersion = 'pref_config_app_version';
+const kPrefIslandBgSmallPath = 'pref_island_bg_small_path';
+const kPrefIslandBgBigPath = 'pref_island_bg_big_path';
+const kPrefIslandBgExpandPath = 'pref_island_bg_expand_path';
+const kPrefIslandBgCornerRadius = 'pref_island_bg_corner_radius';
 
 class AiLogEntry {
   const AiLogEntry({
@@ -145,6 +149,10 @@ class SettingsController extends ChangeNotifier {
   AiLogEntry? aiLastLog;
   String configAppVersion = '';
   ThemeMode themeMode = ThemeMode.system;
+  String islandBgSmallPath = '';
+  String islandBgBigPath = '';
+  String islandBgExpandPath = '';
+  int islandBgCornerRadius = 0;
   Locale? locale;
   bool loading = true;
 
@@ -216,6 +224,10 @@ class SettingsController extends ChangeNotifier {
     };
     final localeStr = prefs.getString(kPrefLocale);
     locale = localeStr != null ? Locale(localeStr) : null;
+    islandBgSmallPath = prefs.getString(kPrefIslandBgSmallPath) ?? '';
+    islandBgBigPath = prefs.getString(kPrefIslandBgBigPath) ?? '';
+    islandBgExpandPath = prefs.getString(kPrefIslandBgExpandPath) ?? '';
+    islandBgCornerRadius = prefs.getInt(kPrefIslandBgCornerRadius) ?? 0;
     loading = false;
     notifyListeners();
   }
@@ -594,6 +606,58 @@ class SettingsController extends ChangeNotifier {
       await prefs.setString(kPrefLocale, loc.languageCode);
     }
     locale = loc;
+    notifyListeners();
+  }
+
+  Future<void> setIslandBgSmallPath(String value) async {
+    final normalized = value.trim();
+    if (islandBgSmallPath == normalized) return;
+    final prefs = await _getPrefs();
+    if (normalized.isEmpty) {
+      await prefs.remove(kPrefIslandBgSmallPath);
+    } else {
+      await prefs.setString(kPrefIslandBgSmallPath, normalized);
+    }
+    islandBgSmallPath = normalized;
+    notifyListeners();
+  }
+
+  Future<void> setIslandBgBigPath(String value) async {
+    final normalized = value.trim();
+    if (islandBgBigPath == normalized) return;
+    final prefs = await _getPrefs();
+    if (normalized.isEmpty) {
+      await prefs.remove(kPrefIslandBgBigPath);
+    } else {
+      await prefs.setString(kPrefIslandBgBigPath, normalized);
+    }
+    islandBgBigPath = normalized;
+    notifyListeners();
+  }
+
+  Future<void> setIslandBgExpandPath(String value) async {
+    final normalized = value.trim();
+    if (islandBgExpandPath == normalized) return;
+    final prefs = await _getPrefs();
+    if (normalized.isEmpty) {
+      await prefs.remove(kPrefIslandBgExpandPath);
+    } else {
+      await prefs.setString(kPrefIslandBgExpandPath, normalized);
+    }
+    islandBgExpandPath = normalized;
+    notifyListeners();
+  }
+
+  Future<void> setIslandBgCornerRadius(int value) async {
+    final clamped = value.clamp(0, 100);
+    if (islandBgCornerRadius == clamped) return;
+    final prefs = await _getPrefs();
+    if (clamped == 0) {
+      await prefs.remove(kPrefIslandBgCornerRadius);
+    } else {
+      await prefs.setInt(kPrefIslandBgCornerRadius, clamped);
+    }
+    islandBgCornerRadius = clamped;
     notifyListeners();
   }
 

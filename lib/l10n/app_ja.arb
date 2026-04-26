@@ -348,6 +348,20 @@
   "aiDefaultPromptFull": "空欄でデフォルトを使用：通知から重要な情報を抽出します。左右それぞれ 6 漢字 12 文字以内とします。",
   "hideDesktopIconTitle": "デスクトップアイコンを非表示にする",
   "hideDesktopIconSubtitle": "アプリのアイコンをランチャーから非表示にします。非表示後は、LSPosed Manager 経由で開くことができます。",
-  "restoreLockscreenTitle": "ロック画面の通知を復元する",
-  "restoreLockscreenSubtitle": "ロック画面でのフォーカス通知処理をスキップし、元のプライバシーに適切な動作を保持します"
+"restoreLockscreenTitle": "ロック画面の通知を復元する",
+"restoreLockscreenSubtitle": "ロック画面でのフォーカス通知処理をスキップし、元のプライバシーに適切な動作を保持します",
+
+"islandBgSection": "アイランド背景設定",
+"islandBgSmallTitle": "スモールアイランド背景",
+"islandBgSmallSubtitle": "タップして画像を選択",
+"islandBgBigTitle": "ラージアイランド背景",
+"islandBgBigSubtitle": "タップして画像を選択",
+"islandBgExpandTitle": "フォーカス通知背景",
+"islandBgExpandSubtitle": "タップして画像を選択",
+"islandBgNotSet": "未設定",
+"islandBgCornerRadius": "角丸半径",
+"islandBgCornerRadiusHint": "0=システムデフォルト",
+"islandBgImageSelected": "背景画像を保存しました",
+"islandBgImageDeleted": "背景画像を削除しました",
+"islandBgDeleteFailed": "削除に失敗しました"
 }

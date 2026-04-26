@@ -607,5 +607,19 @@
   "importErrorNotJson": "剪贴板内容不是有效的 JSON 数据",
   "importErrorMissingChannels": "数据格式不正确，缺少渠道列表",
   "importErrorNoMatch": "没有与当前应用匹配的渠道，请确认数据来源正确",
-  "importErrorUnknown": "导入失败，请检查剪贴板数据是否正确"
+  "importErrorUnknown": "导入失败，请检查剪贴板数据是否正确",
+
+  "islandBgSection": "岛背景设置",
+  "islandBgSmallTitle": "小岛背景图",
+  "islandBgSmallSubtitle": "点击选择图片",
+  "islandBgBigTitle": "大岛背景图",
+  "islandBgBigSubtitle": "点击选择图片",
+  "islandBgExpandTitle": "焦点通知背景图",
+  "islandBgExpandSubtitle": "点击选择图片",
+  "islandBgNotSet": "未设置",
+  "islandBgCornerRadius": "圆角半径",
+  "islandBgCornerRadiusHint": "0=跟随系统",
+  "islandBgImageSelected": "背景图片已保存",
+  "islandBgImageDeleted": "背景图片已删除",
+  "islandBgDeleteFailed": "删除失败"
 }

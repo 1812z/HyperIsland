@@ -1180,4 +1180,43 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get importErrorUnknown => '导入失败，请检查剪贴板数据是否正确';
+
+  @override
+  String get islandBgSection => 'アイランド背景設定';
+
+  @override
+  String get islandBgSmallTitle => 'スモールアイランド背景';
+
+  @override
+  String get islandBgSmallSubtitle => 'タップして画像を選択';
+
+  @override
+  String get islandBgBigTitle => 'ラージアイランド背景';
+
+  @override
+  String get islandBgBigSubtitle => 'タップして画像を選択';
+
+  @override
+  String get islandBgExpandTitle => 'フォーカス通知背景';
+
+  @override
+  String get islandBgExpandSubtitle => 'タップして画像を選択';
+
+  @override
+  String get islandBgNotSet => '未設定';
+
+  @override
+  String get islandBgCornerRadius => '角丸半径';
+
+  @override
+  String get islandBgCornerRadiusHint => '0=システムデフォルト';
+
+  @override
+  String get islandBgImageSelected => '背景画像を保存しました';
+
+  @override
+  String get islandBgImageDeleted => '背景画像を削除しました';
+
+  @override
+  String get islandBgDeleteFailed => '削除に失敗しました';
 }

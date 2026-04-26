@@ -1222,4 +1222,43 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importErrorUnknown => 'Import failed. Please check clipboard data';
+
+  @override
+  String get islandBgSection => 'Island Background';
+
+  @override
+  String get islandBgSmallTitle => 'Small Island Background';
+
+  @override
+  String get islandBgSmallSubtitle => 'Tap to select image';
+
+  @override
+  String get islandBgBigTitle => 'Large Island Background';
+
+  @override
+  String get islandBgBigSubtitle => 'Tap to select image';
+
+  @override
+  String get islandBgExpandTitle => 'Focus Notification Background';
+
+  @override
+  String get islandBgExpandSubtitle => 'Tap to select image';
+
+  @override
+  String get islandBgNotSet => 'Not set';
+
+  @override
+  String get islandBgCornerRadius => 'Corner Radius';
+
+  @override
+  String get islandBgCornerRadiusHint => '0=system default';
+
+  @override
+  String get islandBgImageSelected => 'Background image saved';
+
+  @override
+  String get islandBgImageDeleted => 'Background image deleted';
+
+  @override
+  String get islandBgDeleteFailed => 'Delete failed';
 }

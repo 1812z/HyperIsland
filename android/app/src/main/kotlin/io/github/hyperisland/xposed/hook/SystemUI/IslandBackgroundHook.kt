@@ -41,24 +41,9 @@ object IslandBackgroundHook : BaseHook() {
     private const val KEY_SMALL_BG = "pref_island_bg_small_path"
     private const val KEY_BIG_BG = "pref_island_bg_big_path"
     private const val KEY_EXPAND_BG = "pref_island_bg_expand_path"
-    private const val KEY_CORNER_RADIUS = "pref_island_bg_corner_radius"
-
-    /** 背景图片默认目录 */
-    private const val DEFAULT_BG_DIR = "/sdcard/Download"
-
-    /** 默认 PNG 文件名 */
-    private val DEFAULT_FILE_NAMES = mapOf(
-        IslandType.SMALL to "hyperisland_bg_small.png",
-        IslandType.BIG to "hyperisland_bg_big.png",
-        IslandType.EXPAND to "hyperisland_bg_expand.png"
-    )
 
     /** island 类型枚举 */
     private enum class IslandType { SMALL, BIG, EXPAND }
-
-    /** 自定义圆角半径（px） */
-    @Volatile
-    private var customCornerRadius: Float = 0f
 
     /** 按类型缓存 drawable */
     private val cachedDrawables = ConcurrentHashMap<IslandType, Drawable>()
@@ -88,7 +73,6 @@ object IslandBackgroundHook : BaseHook() {
     override fun getTag() = TAG
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
-        customCornerRadius = ConfigManager.getFloat(KEY_CORNER_RADIUS, 0f)
         hookDynamicClassLoaders(module)
     }
 
@@ -118,7 +102,7 @@ object IslandBackgroundHook : BaseHook() {
                 return
             }
 
-            log(module, "Detected DynamicIsland in ClassLoader: ${classLoader.javaClass.name}")
+            
 
             // Hook setDrawable - 替换岛外形背景
             hookSetDrawable(module, bgViewClass)
@@ -179,13 +163,6 @@ object IslandBackgroundHook : BaseHook() {
                 val type = islandTypeHolder.get()
                 val bgView = chain.thisObject as? View
 
-                // [DEBUG] 详细日志
-                val originalDrawable = chain.args[0] as? Drawable
-                log(module, "[DEBUG] setDrawable called: type=$type, " +
-                    "originalDrawable=${originalDrawable?.javaClass?.simpleName}, " +
-                    "bgView=${bgView?.javaClass?.simpleName}, " +
-                    "thread=${Thread.currentThread().name}")
-
                 if (type != null) {
                     val context = try {
                         bgView?.context
@@ -210,7 +187,7 @@ object IslandBackgroundHook : BaseHook() {
                             drawableField.isAccessible = true
                             drawableField.set(chain.thisObject, customDrawable)
 
-                            log(module, "Replaced drawable for $type via reflection")
+                            
                         } catch (e: Exception) {
                             logError(module, "Reflection set drawable failed: ${e.message}")
                         }
@@ -220,7 +197,7 @@ object IslandBackgroundHook : BaseHook() {
                         try {
                             val bgViewGroup = bgView as? ViewGroup
                             if (bgViewGroup != null && bgViewGroup.childCount > 0) {
-                                clearChildBackgrounds(bgViewGroup, module)
+                                clearChildBackgrounds(bgViewGroup)
                             }
                         } catch (e: Exception) {
                             logError(module, "Failed to clear child backgrounds: ${e.message}")
@@ -230,7 +207,7 @@ object IslandBackgroundHook : BaseHook() {
 
                 null
             }
-            log(module, "Hooked DynamicIslandBackgroundView.setDrawable")
+            
         } catch (e: Throwable) {
             logError(module, "Failed to hook setDrawable: ${e.message}")
         }
@@ -274,15 +251,6 @@ object IslandBackgroundHook : BaseHook() {
                     else -> null // Unknown state, don't override
                 }
 
-                // [DEBUG] 记录所有参数
-                val arg1 = chain.args.getOrNull(1) as? String
-                val arg2 = chain.args.getOrNull(2)
-                val arg3 = chain.args.getOrNull(3)
-                log(module, "[DEBUG] updateDarkLightMode: stateClass=$stateFullName, " +
-                    "stateSimple=$stateName → type=$type, " +
-                    "arg1(str)=$arg1, arg2=$arg2, arg3=$arg3, " +
-                    "thread=${Thread.currentThread().name}")
-
                 if (type != null) {
                     islandTypeHolder.set(type)
                 }
@@ -290,16 +258,12 @@ object IslandBackgroundHook : BaseHook() {
                 // 执行原方法（内部会调用 backgroundView.setDrawable）
                 chain.proceed()
 
-                // [DEBUG] 确认 ThreadLocal 在 setDrawable 后是否已被清理
-                val typeAfter = islandTypeHolder.get()
-                log(module, "[DEBUG] updateDarkLightMode proceed done, ThreadLocal after=$typeAfter")
-
                 // 清理 ThreadLocal
                 islandTypeHolder.remove()
 
                 null
             }
-            log(module, "Hooked updateDarkLightMode for type detection")
+            
         } catch (e: Throwable) {
             logError(module, "Failed to hook updateDarkLightMode: ${e.message}")
         }
@@ -322,7 +286,6 @@ object IslandBackgroundHook : BaseHook() {
                 if (type != null) {
                     // 有自定义背景，直接设置 backgroundAlpha=1.0，跳过 Folme 动画
                     val bgView = chain.thisObject
-                    val originalAlpha = chain.args[0] as Float
                     try {
                         val alphaField = bgViewClass.getDeclaredField("backgroundAlpha")
                         alphaField.isAccessible = true
@@ -332,8 +295,6 @@ object IslandBackgroundHook : BaseHook() {
                         val scheduleMethod = bgViewClass.getDeclaredMethod("scheduleUpdate")
                         scheduleMethod.isAccessible = true
                         scheduleMethod.invoke(bgView)
-
-                        log(module, "[DEBUG] alphaAnimation: type=$type, originalAlpha=$originalAlpha → 1.0 (skipped animation)")
                     } catch (e: Exception) {
                         logError(module, "alphaAnimation override failed: ${e.message}, falling back to original")
                         chain.proceed()
@@ -345,7 +306,7 @@ object IslandBackgroundHook : BaseHook() {
                 chain.proceed()
                 null
             }
-            log(module, "Hooked DynamicIslandBackgroundView.alphaAnimation")
+            
         } catch (e: Throwable) {
             logError(module, "Failed to hook alphaAnimation: ${e.message}")
         }
@@ -358,11 +319,10 @@ object IslandBackgroundHook : BaseHook() {
      * 以及 containerScheduleUpdate() 设置在 R.id.container 上。
      * 只清除背景非 null 的 View，不暴力递归整棵 View 树，避免误杀。
      */
-    private fun clearChildBackgrounds(viewGroup: ViewGroup, module: XposedModule) {
+    private fun clearChildBackgrounds(viewGroup: ViewGroup) {
         for (i in 0 until viewGroup.childCount) {
             val child = viewGroup.getChildAt(i)
             if (child.background != null) {
-                log(module, "[DEBUG] clearChildBg: clearing bg of ${child.javaClass.simpleName}@${System.identityHashCode(child)}")
                 child.background = null
             }
             clearBlurEffect(child)
@@ -371,7 +331,6 @@ object IslandBackgroundHook : BaseHook() {
                 for (j in 0 until child.childCount) {
                     val grandChild = child.getChildAt(j)
                     if (grandChild.background != null) {
-                        log(module, "[DEBUG] clearGrandChildBg: clearing bg of ${grandChild.javaClass.simpleName}@${System.identityHashCode(grandChild)}")
                         grandChild.background = null
                     }
                     clearBlurEffect(grandChild)
@@ -420,8 +379,12 @@ object IslandBackgroundHook : BaseHook() {
             module.hook(method).intercept { chain ->
                 chain.proceed()
 
-                // 当有自定义背景文件时，清除 container 的暗色背景
-                if (hasAnyCustomBgFile()) {
+                // 检查当前类型是否有自定义背景配置
+                val currentType = islandTypeHolder.get()
+                val hasBgForType = currentType != null && hasBgFileForType(currentType)
+
+                // 只有当前类型有配置时才清除背景
+                if (hasBgForType) {
                     try {
                         // 从 animDelegate 获取 view 字段（DynamicIslandBaseContentView）
                         val viewField = animDelegateClass.getDeclaredField("view")
@@ -444,7 +407,7 @@ object IslandBackgroundHook : BaseHook() {
 
                 null
             }
-            log(module, "Hooked containerScheduleUpdate")
+            
         } catch (e: Throwable) {
             logError(module, "Failed to hook containerScheduleUpdate: ${e.message}")
         }
@@ -468,12 +431,13 @@ object IslandBackgroundHook : BaseHook() {
             )
 
             module.hook(method).intercept { chain ->
-                // 直接检查自定义背景文件是否存在（不依赖全局标志，避免时序问题）
-                if (hasAnyCustomBgFile()) {
-                    // 有自定义背景，清除内容视图的暗色/模糊背景
+                // 检查当前类型是否有自定义背景配置
+                val currentType = islandTypeHolder.get()
+                val hasBgForType = currentType != null && hasBgFileForType(currentType)
+
+                if (hasBgForType) {
+                    // 当前类型有自定义背景，清除内容视图的暗色/模糊背景
                     val view = chain.args[0] as? View
-                    val isPromoted = chain.args[1] as? Boolean ?: false
-                    log(module, "[DEBUG] updateBackgroundBg: hasCustomBgFile=true, view=${view?.javaClass?.simpleName}, isPromoted=$isPromoted")
 
                     if (view != null) {
                         view.background = null
@@ -496,8 +460,6 @@ object IslandBackgroundHook : BaseHook() {
                         } catch (_: Exception) {
                             // MiBlurCompat 不可用，忽略
                         }
-
-                        log(module, "[DEBUG] updateBackgroundBg: cleared view background and blur")
                     }
                     return@intercept null  // 跳过原方法
                 }
@@ -506,7 +468,7 @@ object IslandBackgroundHook : BaseHook() {
                 chain.proceed()
                 null
             }
-            log(module, "Hooked updateBackgroundBg")
+            
         } catch (e: Throwable) {
             logError(module, "Failed to hook updateBackgroundBg: ${e.message}")
         }
@@ -525,7 +487,22 @@ object IslandBackgroundHook : BaseHook() {
     }
 
     /**
+     * 检查指定类型是否有配置路径且文件存在。
+     */
+    private fun hasBgFileForType(type: IslandType): Boolean {
+        val configPath = when (type) {
+            IslandType.SMALL -> ConfigManager.getString(KEY_SMALL_BG)
+            IslandType.BIG -> ConfigManager.getString(KEY_BIG_BG)
+            IslandType.EXPAND -> ConfigManager.getString(KEY_EXPAND_BG)
+        }
+        if (configPath.isNullOrBlank()) return false
+        val file = File(configPath)
+        return file.exists() && file.canRead()
+    }
+
+    /**
      * 实际检查自定义背景文件是否存在。
+     * 只有配置路径非空且文件存在时才返回 true，不再回退到默认路径。
      */
     private fun checkCustomBgFilesExist(): Boolean {
         for (type in IslandType.entries) {
@@ -534,12 +511,9 @@ object IslandBackgroundHook : BaseHook() {
                 IslandType.BIG -> ConfigManager.getString(KEY_BIG_BG)
                 IslandType.EXPAND -> ConfigManager.getString(KEY_EXPAND_BG)
             }
-            val fileName = DEFAULT_FILE_NAMES[type] ?: continue
-            val file = if (!configPath.isNullOrBlank()) {
-                File(configPath)
-            } else {
-                File(DEFAULT_BG_DIR, fileName)
-            }
+            // 配置路径为空时，不使用任何背景
+            if (configPath.isNullOrBlank()) continue
+            val file = File(configPath)
             if (file.exists() && file.canRead()) return true
         }
         return false
@@ -547,6 +521,7 @@ object IslandBackgroundHook : BaseHook() {
 
     /**
      * 加载指定类型的自定义背景 BitmapDrawable。
+     * 只有配置路径非空时才加载，不再回退到默认路径。
      */
     private fun loadCustomDrawable(
         type: IslandType,
@@ -560,13 +535,10 @@ object IslandBackgroundHook : BaseHook() {
             IslandType.EXPAND -> ConfigManager.getString(KEY_EXPAND_BG)
         }
 
-        val fileName = DEFAULT_FILE_NAMES[type] ?: return null
-        val file = if (!configPath.isNullOrBlank()) {
-            File(configPath)
-        } else {
-            File(DEFAULT_BG_DIR, fileName)
-        }
+        // 配置路径为空时，不加载任何背景
+        if (configPath.isNullOrBlank()) return null
 
+        val file = File(configPath)
         if (!file.exists() || !file.canRead()) return null
 
         val currentModified = file.lastModified()
@@ -583,7 +555,6 @@ object IslandBackgroundHook : BaseHook() {
                         lastFileModified[type] = currentModified
                         lastConfigPath[type] = configPath
                         hasAnyCustomBg = true  // 通知 updateBackgroundBg hook 清除暗色覆盖
-                        log(module, "Loaded $type background from ${file.absolutePath} (${file.length()} bytes)")
                     }
                     // 回收旧 drawable
                     if (old is RoundedClippingDrawable) {
@@ -640,11 +611,9 @@ object IslandBackgroundHook : BaseHook() {
     }
 
     /**
-     * 获取圆角半径（px）。
+     * 获取岛圆角半径（px），直接读取系统资源 island_radius。
      */
     private fun getCornerRadius(context: android.content.Context?): Float {
-        if (customCornerRadius > 0f) return customCornerRadius
-
         if (context != null) {
             try {
                 val res = context.resources
@@ -677,8 +646,6 @@ object IslandBackgroundHook : BaseHook() {
 
     override fun onConfigChanged() {
         synchronized(this) {
-            customCornerRadius = ConfigManager.getFloat(KEY_CORNER_RADIUS, 0f)
-
             cachedDrawables.values.forEach { drawable ->
                 if (drawable is RoundedClippingDrawable) {
                     if (!drawable.bitmap.isRecycled) {

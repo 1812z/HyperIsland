@@ -456,6 +456,20 @@
   "hideDesktopIconTitle": "Ana Ekran Simgesini Gizle",
   "hideDesktopIconSubtitle": "Uygulama simgesini başlatıcıdan gizler. Gizledikten sonra LSPosed Manager üzerinden açın",
 
-  "restoreLockscreenTitle": "Kilit Ekranı Bildirimini Geri Yükle",
-  "restoreLockscreenSubtitle": "Kilit ekranında odak bildirimi işlemini atlayın, özgün gizlilik davranışını koruyun"
+"restoreLockscreenTitle": "Kilit Ekranı Bildirimini Geri Yükle",
+"restoreLockscreenSubtitle": "Kilit ekranında odak bildirimi işlemini atlayın, özgün gizlilik davranışını koruyun",
+
+"islandBgSection": "Ada Arka Planı",
+"islandBgSmallTitle": "Küçük Ada Arka Planı",
+"islandBgSmallSubtitle": "Görsel seçmek için dokunun",
+"islandBgBigTitle": "Büyük Ada Arka Planı",
+"islandBgBigSubtitle": "Görsel seçmek için dokunun",
+"islandBgExpandTitle": "Odak Bildirimi Arka Planı",
+"islandBgExpandSubtitle": "Görsel seçmek için dokunun",
+"islandBgNotSet": "Ayarlanmamış",
+"islandBgCornerRadius": "Köşe Yarıçapı",
+"islandBgCornerRadiusHint": "0=sistem varsayılanı",
+"islandBgImageSelected": "Arka plan görseli kaydedildi",
+"islandBgImageDeleted": "Arka plan görseli silindi",
+"islandBgDeleteFailed": "Silme başarısız"
 }

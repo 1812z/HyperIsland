@@ -1221,4 +1221,43 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get importErrorUnknown => '导入失败，请检查剪贴板数据是否正确';
+
+  @override
+  String get islandBgSection => 'Ada Arka Planı';
+
+  @override
+  String get islandBgSmallTitle => 'Küçük Ada Arka Planı';
+
+  @override
+  String get islandBgSmallSubtitle => 'Görsel seçmek için dokunun';
+
+  @override
+  String get islandBgBigTitle => 'Büyük Ada Arka Planı';
+
+  @override
+  String get islandBgBigSubtitle => 'Görsel seçmek için dokunun';
+
+  @override
+  String get islandBgExpandTitle => 'Odak Bildirimi Arka Planı';
+
+  @override
+  String get islandBgExpandSubtitle => 'Görsel seçmek için dokunun';
+
+  @override
+  String get islandBgNotSet => 'Ayarlanmamış';
+
+  @override
+  String get islandBgCornerRadius => 'Köşe Yarıçapı';
+
+  @override
+  String get islandBgCornerRadiusHint => '0=sistem varsayılanı';
+
+  @override
+  String get islandBgImageSelected => 'Arka plan görseli kaydedildi';
+
+  @override
+  String get islandBgImageDeleted => 'Arka plan görseli silindi';
+
+  @override
+  String get islandBgDeleteFailed => 'Silme başarısız';
 }

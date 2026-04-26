@@ -2279,6 +2279,84 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'导入失败，请检查剪贴板数据是否正确'**
   String get importErrorUnknown;
+
+  /// No description provided for @islandBgSection.
+  ///
+  /// In zh, this message translates to:
+  /// **'岛背景设置'**
+  String get islandBgSection;
+
+  /// No description provided for @islandBgSmallTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'小岛背景图'**
+  String get islandBgSmallTitle;
+
+  /// No description provided for @islandBgSmallSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'点击选择图片'**
+  String get islandBgSmallSubtitle;
+
+  /// No description provided for @islandBgBigTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'大岛背景图'**
+  String get islandBgBigTitle;
+
+  /// No description provided for @islandBgBigSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'点击选择图片'**
+  String get islandBgBigSubtitle;
+
+  /// No description provided for @islandBgExpandTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'焦点通知背景图'**
+  String get islandBgExpandTitle;
+
+  /// No description provided for @islandBgExpandSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'点击选择图片'**
+  String get islandBgExpandSubtitle;
+
+  /// No description provided for @islandBgNotSet.
+  ///
+  /// In zh, this message translates to:
+  /// **'未设置'**
+  String get islandBgNotSet;
+
+  /// No description provided for @islandBgCornerRadius.
+  ///
+  /// In zh, this message translates to:
+  /// **'圆角半径'**
+  String get islandBgCornerRadius;
+
+  /// No description provided for @islandBgCornerRadiusHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'0=跟随系统'**
+  String get islandBgCornerRadiusHint;
+
+  /// No description provided for @islandBgImageSelected.
+  ///
+  /// In zh, this message translates to:
+  /// **'背景图片已保存'**
+  String get islandBgImageSelected;
+
+  /// No description provided for @islandBgImageDeleted.
+  ///
+  /// In zh, this message translates to:
+  /// **'背景图片已删除'**
+  String get islandBgImageDeleted;
+
+  /// No description provided for @islandBgDeleteFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除失败'**
+  String get islandBgDeleteFailed;
 }
 
 class _AppLocalizationsDelegate
