@@ -449,8 +449,7 @@
   "islandDimenHeightHint": "0=follow system",
   "islandDimenMiniY": "Vertical Position",
   "islandDimenMiniYHint": "Top offset, 0=follow system",
-  "islandDimenRadius": "Corner Radius",
-  "islandDimenRadiusHint": "0=follow system",
+
 
   "islandBgSection": "Island Background",
   "islandBgSmallTitle": "Small Island Background",

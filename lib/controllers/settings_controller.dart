@@ -51,7 +51,8 @@ const kPrefIslandBgBigPath = 'pref_island_bg_big_path';
 const kPrefIslandBgExpandPath = 'pref_island_bg_expand_path';
 const kPrefIslandHeight = 'pref_island_height';
 const kPrefIslandMiniY = 'pref_island_mini_y';
-const kPrefIslandRadius = 'pref_island_radius';
+
+
 
 class AiLogEntry {
   const AiLogEntry({
@@ -156,7 +157,6 @@ class SettingsController extends ChangeNotifier {
   String islandBgExpandPath = '';
   double islandHeight = 0;
   double islandMiniY = 0;
-  double islandRadius = 0;
   Locale? locale;
   bool loading = true;
 
@@ -233,7 +233,6 @@ class SettingsController extends ChangeNotifier {
     islandBgExpandPath = prefs.getString(kPrefIslandBgExpandPath) ?? '';
     islandHeight = prefs.getDouble(kPrefIslandHeight) ?? 0;
     islandMiniY = prefs.getDouble(kPrefIslandMiniY) ?? 0;
-    islandRadius = prefs.getDouble(kPrefIslandRadius) ?? 0;
     loading = false;
     notifyListeners();
   }
@@ -617,7 +616,8 @@ class SettingsController extends ChangeNotifier {
 
   Future<void> setIslandBgSmallPath(String value) async {
     final normalized = value.trim();
-    if (islandBgSmallPath == normalized) return;
+    // Always write and notify — the file content may have changed even if
+    // the path string is the same (overwrite), so the UI must refresh.
     final prefs = await _getPrefs();
     if (normalized.isEmpty) {
       await prefs.remove(kPrefIslandBgSmallPath);
@@ -630,7 +630,8 @@ class SettingsController extends ChangeNotifier {
 
   Future<void> setIslandBgBigPath(String value) async {
     final normalized = value.trim();
-    if (islandBgBigPath == normalized) return;
+    // Always write and notify — the file content may have changed even if
+    // the path string is the same (overwrite), so the UI must refresh.
     final prefs = await _getPrefs();
     if (normalized.isEmpty) {
       await prefs.remove(kPrefIslandBgBigPath);
@@ -643,7 +644,8 @@ class SettingsController extends ChangeNotifier {
 
   Future<void> setIslandBgExpandPath(String value) async {
     final normalized = value.trim();
-    if (islandBgExpandPath == normalized) return;
+    // Always write and notify — the file content may have changed even if
+    // the path string is the same (overwrite), so the UI must refresh.
     final prefs = await _getPrefs();
     if (normalized.isEmpty) {
       await prefs.remove(kPrefIslandBgExpandPath);
@@ -675,18 +677,6 @@ class SettingsController extends ChangeNotifier {
       await prefs.setDouble(kPrefIslandMiniY, value);
     }
     islandMiniY = value;
-    notifyListeners();
-  }
-
-  Future<void> setIslandRadius(double value) async {
-    if (islandRadius == value) return;
-    final prefs = await _getPrefs();
-    if (value <= 0) {
-      await prefs.remove(kPrefIslandRadius);
-    } else {
-      await prefs.setDouble(kPrefIslandRadius, value);
-    }
-    islandRadius = value;
     notifyListeners();
   }
 

@@ -28,14 +28,12 @@ object IslandDimenHook : BaseHook() {
     /** 配置 Key */
     private const val KEY_HEIGHT = "pref_island_height"
     private const val KEY_MINI_Y = "pref_island_mini_y"
-    private const val KEY_RADIUS = "pref_island_radius"
 
     private const val CLAZZ = "miui.systemui.dynamicisland.window.content.DynamicIslandBaseContentView"
 
     /** 自定义值（dp，0 = 不生效） */
     @Volatile private var customHeightDp = 0.0
     @Volatile private var customMiniYDp = 0.0
-    @Volatile private var customRadiusDp = 0.0
 
     /** 当前 module 实例（用于 log 调用）*/
     @Volatile private var currentModule: XposedModule? = null
@@ -59,9 +57,7 @@ object IslandDimenHook : BaseHook() {
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
         if (param.packageName != "com.android.systemui") return
         loadConfig()
-        log(module, "onInit loadConfig: heightDp=$customHeightDp, miniYDp=$customMiniYDp, radiusDp=$customRadiusDp")
-        log(module, "onInit contains: height=${ConfigManager.contains(KEY_HEIGHT)}, miniY=${ConfigManager.contains(KEY_MINI_Y)}, radius=${ConfigManager.contains(KEY_RADIUS)}")
-        log(module, "onInit raw string: height='${ConfigManager.getString(KEY_HEIGHT)}', miniY='${ConfigManager.getString(KEY_MINI_Y)}', radius='${ConfigManager.getString(KEY_RADIUS)}'")
+        log(module, "onInit loadConfig: heightDp=$customHeightDp, miniYDp=$customMiniYDp")
         hookDynamicClassLoaders(module)
     }
 
@@ -189,6 +185,5 @@ object IslandDimenHook : BaseHook() {
     private fun loadConfig() {
         customHeightDp = ConfigManager.getDouble(KEY_HEIGHT, 0.0)
         customMiniYDp = ConfigManager.getDouble(KEY_MINI_Y, 0.0)
-        customRadiusDp = ConfigManager.getDouble(KEY_RADIUS, 0.0)
     }
 }

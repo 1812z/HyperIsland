@@ -356,8 +356,7 @@
 "islandDimenHeightHint": "0=システムに従う",
 "islandDimenMiniY": "垂直位置",
 "islandDimenMiniYHint": "上部オフセット、0=システムに従う",
-"islandDimenRadius": "角丸半径",
-"islandDimenRadiusHint": "0=システムに従う",
+
 
 "islandBgSection": "アイランド背景設定",
 "islandBgSmallTitle": "スモールアイランド背景",

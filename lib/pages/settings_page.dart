@@ -33,7 +33,7 @@ class _SettingsPageState extends State<SettingsPage> {
   late int _uiStateHash;
   late double _islandHeightDraft;
   late double _islandMiniYDraft;
-  late double _islandRadiusDraft;
+
 
   int _buildUiStateHash() => Object.hashAll([
     _ctrl.loading,
@@ -70,7 +70,6 @@ class _SettingsPageState extends State<SettingsPage> {
     _ctrl.islandBgExpandPath,
     _ctrl.islandHeight,
     _ctrl.islandMiniY,
-    _ctrl.islandRadius,
   ]);
 
   void _onChanged() {
@@ -80,13 +79,11 @@ class _SettingsPageState extends State<SettingsPage> {
     final nextMaxWidth = _ctrl.bigIslandMaxWidth;
     final nextHeight = _ctrl.islandHeight;
     final nextMiniY = _ctrl.islandMiniY;
-    final nextRadius = _ctrl.islandRadius;
     if (nextHash == _uiStateHash &&
         nextMarquee == _marqueeSpeedDraft &&
         nextMaxWidth == _bigIslandMaxWidthDraft &&
         nextHeight == _islandHeightDraft &&
-        nextMiniY == _islandMiniYDraft &&
-        nextRadius == _islandRadiusDraft) {
+        nextMiniY == _islandMiniYDraft) {
       return;
     }
     setState(() {
@@ -95,7 +92,6 @@ class _SettingsPageState extends State<SettingsPage> {
       _bigIslandMaxWidthDraft = nextMaxWidth;
       _islandHeightDraft = nextHeight;
       _islandMiniYDraft = nextMiniY;
-      _islandRadiusDraft = nextRadius;
     });
   }
 
@@ -106,7 +102,6 @@ class _SettingsPageState extends State<SettingsPage> {
     _bigIslandMaxWidthDraft = _ctrl.bigIslandMaxWidth;
     _islandHeightDraft = _ctrl.islandHeight;
     _islandMiniYDraft = _ctrl.islandMiniY;
-    _islandRadiusDraft = _ctrl.islandRadius;
     _uiStateHash = _buildUiStateHash();
     _ctrl.addListener(_onChanged);
   }
@@ -198,16 +193,6 @@ class _SettingsPageState extends State<SettingsPage> {
     await _ctrl.setIslandMiniY(value);
   }
 
-  void _onIslandRadiusChanged(double value) {
-    if (_islandRadiusDraft == value) return;
-    setState(() => _islandRadiusDraft = value);
-  }
-
-  Future<void> _persistIslandRadius(double value) async {
-    if (_ctrl.islandRadius == value) return;
-    await _ctrl.setIslandRadius(value);
-  }
-
   void _showSnack(String msg) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -219,6 +204,9 @@ class _SettingsPageState extends State<SettingsPage> {
     final l10n = AppLocalizations.of(context)!;
     final path = await IslandBackgroundService.pickAndCopyImage(type);
     if (path != null && mounted) {
+      // Evict cached FileImage so the preview refreshes with the new file
+      imageCache.evict(FileImage(File(path)));
+      setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(l10n.islandBgImageSelected),
@@ -230,8 +218,13 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _deleteIslandBackground(IslandBgType type) async {
     final l10n = AppLocalizations.of(context)!;
+    final oldPath = IslandBackgroundService.getImagePath(type);
     final success = await IslandBackgroundService.deleteImage(type);
+    if (success && oldPath != null) {
+      imageCache.evict(FileImage(File(oldPath)));
+    }
     if (mounted) {
+      setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -1316,18 +1309,6 @@ class _SettingsPageState extends State<SettingsPage> {
                             defaultVal: 0,
                             onChanged: _onIslandMiniYChanged,
                             onPersist: _persistIslandMiniY,
-                          ),
-                          const Divider(height: 1, indent: 16, endIndent: 16),
-                          _DimenTile(
-                            title: l10n.islandDimenRadius,
-                            hint: l10n.islandDimenRadiusHint,
-                            value: _islandRadiusDraft,
-                            min: 0,
-                            max: 100,
-                            unit: 'dp',
-                            defaultVal: 0,
-                            onChanged: _onIslandRadiusChanged,
-                            onPersist: _persistIslandRadius,
                             isLast: true,
                           ),
                         ],

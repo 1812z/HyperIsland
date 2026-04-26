@@ -1238,12 +1238,6 @@ class AppLocalizationsTr extends AppLocalizations {
   String get islandDimenMiniYHint => 'Üst uzaklık, 0=sistem varsayılanı';
 
   @override
-  String get islandDimenRadius => 'Köşe Yarıçapı';
-
-  @override
-  String get islandDimenRadiusHint => '0=sistem varsayılanı';
-
-  @override
   String get islandBgSection => 'Ada Arka Planı';
 
   @override

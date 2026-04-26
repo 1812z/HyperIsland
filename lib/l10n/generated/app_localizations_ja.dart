@@ -1197,12 +1197,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get islandDimenMiniYHint => '上部オフセット、0=システムに従う';
 
   @override
-  String get islandDimenRadius => '角丸半径';
-
-  @override
-  String get islandDimenRadiusHint => '0=システムに従う';
-
-  @override
   String get islandBgSection => 'アイランド背景設定';
 
   @override

@@ -614,8 +614,7 @@
   "islandDimenHeightHint": "0=跟随系统",
   "islandDimenMiniY": "垂直位置",
   "islandDimenMiniYHint": "距顶部偏移，0=跟随系统",
-  "islandDimenRadius": "圆角半径",
-  "islandDimenRadiusHint": "0=跟随系统",
+
 
   "islandBgSection": "岛背景设置",
   "islandBgSmallTitle": "小岛背景图",

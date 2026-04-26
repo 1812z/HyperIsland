@@ -464,8 +464,7 @@
 "islandDimenHeightHint": "0=sistem varsayılanı",
 "islandDimenMiniY": "Dikey Konum",
 "islandDimenMiniYHint": "Üst uzaklık, 0=sistem varsayılanı",
-"islandDimenRadius": "Köşe Yarıçapı",
-"islandDimenRadiusHint": "0=sistem varsayılanı",
+
 
 "islandBgSection": "Ada Arka Planı",
 "islandBgSmallTitle": "Küçük Ada Arka Planı",

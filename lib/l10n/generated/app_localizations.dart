@@ -2310,18 +2310,6 @@ abstract class AppLocalizations {
   /// **'距顶部偏移，0=跟随系统'**
   String get islandDimenMiniYHint;
 
-  /// No description provided for @islandDimenRadius.
-  ///
-  /// In zh, this message translates to:
-  /// **'圆角半径'**
-  String get islandDimenRadius;
-
-  /// No description provided for @islandDimenRadiusHint.
-  ///
-  /// In zh, this message translates to:
-  /// **'0=跟随系统'**
-  String get islandDimenRadiusHint;
-
   /// No description provided for @islandBgSection.
   ///
   /// In zh, this message translates to:

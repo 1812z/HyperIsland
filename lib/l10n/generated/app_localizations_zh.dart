@@ -1183,12 +1183,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get islandDimenMiniYHint => '距顶部偏移，0=跟随系统';
 
   @override
-  String get islandDimenRadius => '圆角半径';
-
-  @override
-  String get islandDimenRadiusHint => '0=跟随系统';
-
-  @override
   String get islandBgSection => '岛背景设置';
 
   @override

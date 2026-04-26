@@ -1239,12 +1239,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get islandDimenMiniYHint => 'Top offset, 0=follow system';
 
   @override
-  String get islandDimenRadius => 'Corner Radius';
-
-  @override
-  String get islandDimenRadiusHint => '0=follow system';
-
-  @override
   String get islandBgSection => 'Island Background';
 
   @override
