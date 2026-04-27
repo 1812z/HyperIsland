@@ -48,9 +48,7 @@ Choose the appropriate Super Island template for each app/channel:
 | Template | Description |
 |:---------|:------------|
 | Notification Super Island | Convert any notification to Focus Notification + Super Island |
-| Notification Super Island - Lite | Auto-remove "x new messages" and duplicate fields |
 | Download | Auto-detect download status and convert to Super Island |
-| Download - Lite | Super Island shows only icon + progress ring |
 | AI Notification Super Island | AI simplifies left and right sides |
 
 ### Style Selection
@@ -150,6 +148,10 @@ Through HyperCeiler or built-in bypass, you can:
 - Remove Focus Notification whitelist restrictions
 - Unlock Focus Notification whitelist verification
 - Enable any app's notifications to display as Focus Notifications
+
+## Custom Background
+- Support setting Small Island/Large Island/Focus notification backgrounds
+- Support customizing transparency/blur
 
 ## Download Manager Extension
 
