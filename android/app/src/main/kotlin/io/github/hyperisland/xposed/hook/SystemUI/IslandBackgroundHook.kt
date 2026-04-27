@@ -13,6 +13,8 @@ import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import android.os.Handler
 import android.os.Looper
 import java.io.File
+import java.lang.reflect.Field
+import java.lang.reflect.Method
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -88,8 +90,34 @@ object IslandBackgroundHook : BaseHook() {
     @Volatile
     private var cachedBlackBitmap: Bitmap? = null
 
+    /** 缓存 anyCustomBgConfigured 结果，避免热路径每帧做 3 次 I/O */
+    @Volatile
+    private var cachedAnyCustomBg: Boolean? = null
+
+    /** 缓存圆角半径，运行时不会变 */
+    @Volatile
+    private var cachedCornerRadius: Float? = null
+
+    /** 缓存 MiBlurCompat 反射对象，避免每次调用 clearMaskForView 都做类加载+方法查找 */
+    @Volatile
+    private var miBlurCompatClass: Class<*>? = null
+    @Volatile
+    private var setBlurModeMethod: Method? = null
+    @Volatile
+    private var clearBlendMethod: Method? = null
+
+    /** 缓存 bgViewClass 的 Field/Method，避免热路径反复反射查找 */
+    private val stokeWidthFieldCache = ConcurrentHashMap<Class<*>, Field?>()
+    private val drawableFieldCache = ConcurrentHashMap<Class<*>, Field?>()
+    private val backgroundAlphaFieldCache = ConcurrentHashMap<Class<*>, Field?>()
+    private val scheduleUpdateMethodCache = ConcurrentHashMap<Class<*>, Method?>()
+
     /** 延迟重试 Handler（用于 ConfigManager 时序问题的延迟重试） */
     private val bgRetryHandler = Handler(Looper.getMainLooper())
+
+    /** 当前挂起的延迟重试 Runnable，避免堆积 */
+    @Volatile
+    private var pendingRetryRunnable: Runnable? = null
 
     override fun getTag() = TAG
 
@@ -179,22 +207,14 @@ object IslandBackgroundHook : BaseHook() {
                 if (type != null && anyCustomBgConfigured()) {
                     val context = try { bgView?.context } catch (_: Exception) { null }
 
-                    var stokeWidth = 0
-                    if (bgView != null) {
-                        try {
-                            val stokeField = bgViewClass.getDeclaredField("stokeWidth")
-                            stokeField.isAccessible = true
-                            stokeWidth = stokeField.getInt(bgView)
-                        } catch (_: Exception) {}
-                    }
+                    val stokeWidth = if (bgView != null) getStokeWidth(bgView, bgViewClass) else 0
 
                     val customDrawable = loadCustomDrawable(type, context, module, stokeWidth)
 
                     if (customDrawable != null) {
                         try {
-                            val drawableField = bgViewClass.getDeclaredField("drawable")
-                            drawableField.isAccessible = true
-                            drawableField.set(chain.thisObject, customDrawable)
+                            val drawableField = getCachedField(drawableFieldCache, bgViewClass, "drawable")
+                            drawableField?.set(chain.thisObject, customDrawable)
                         } catch (e: Exception) {
                             logError(module, "Reflection set drawable failed: ${e.message}")
                         }
@@ -320,13 +340,11 @@ object IslandBackgroundHook : BaseHook() {
                 if (type != null && anyCustomBgConfigured()) {
                     val bgView = chain.thisObject
                     try {
-                        val alphaField = bgViewClass.getDeclaredField("backgroundAlpha")
-                        alphaField.isAccessible = true
-                        alphaField.setFloat(bgView, 1.0f)
+                        val alphaField = getCachedField(backgroundAlphaFieldCache, bgViewClass, "backgroundAlpha")
+                        alphaField?.setFloat(bgView, 1.0f)
 
-                        val scheduleMethod = bgViewClass.getDeclaredMethod("scheduleUpdate")
-                        scheduleMethod.isAccessible = true
-                        scheduleMethod.invoke(bgView)
+                        val scheduleMethod = getCachedMethod(scheduleUpdateMethodCache, bgViewClass, "scheduleUpdate")
+                        scheduleMethod?.invoke(bgView)
                     } catch (e: Exception) {
                         logError(module, "alphaAnimation override failed: ${e.message}, falling back")
                         chain.proceed()
@@ -388,26 +406,32 @@ object IslandBackgroundHook : BaseHook() {
     /**
      * 禁用 blur 并清除 blend colors。
      * blur mode 设为 0 + 清除 blend colors，确保无暗色叠加残留。
+     * ★ 反射对象缓存，避免每次调用都做类加载+方法查找。
      */
     private fun disableBlurAndClearBlend(view: View) {
         try {
             val cl = view.javaClass.classLoader ?: return
-            val miBlurCompatClass = cl.loadClass("miui.util.MiBlurCompat")
+
+            // 确保 MiBlurCompat 反射对象已缓存
+            if (miBlurCompatClass == null || miBlurCompatClass?.classLoader != cl) {
+                val blurClass = cl.loadClass("miui.util.MiBlurCompat")
+                miBlurCompatClass = blurClass
+                setBlurModeMethod = blurClass.getDeclaredMethod(
+                    "setMiViewBlurModeCompat", View::class.java, Int::class.javaPrimitiveType
+                )
+                clearBlendMethod = blurClass.getDeclaredMethod(
+                    "clearMiBackgroundBlendColorCompat", View::class.java
+                )
+            }
 
             // 1. 设 blur mode = 0（禁用模糊）
             try {
-                val setBlurModeMethod = miBlurCompatClass.getDeclaredMethod(
-                    "setMiViewBlurModeCompat", View::class.java, Int::class.javaPrimitiveType
-                )
-                setBlurModeMethod.invoke(null, view, 0)
+                setBlurModeMethod?.invoke(null, view, 0)
             } catch (_: Exception) {}
 
             // 2. 清除 blend colors
             try {
-                val clearBlendMethod = miBlurCompatClass.getDeclaredMethod(
-                    "clearMiBackgroundBlendColorCompat", View::class.java
-                )
-                clearBlendMethod.invoke(null, view)
+                clearBlendMethod?.invoke(null, view)
             } catch (_: Exception) {}
         } catch (_: Exception) {}
     }
@@ -429,23 +453,20 @@ object IslandBackgroundHook : BaseHook() {
         customDrawable: Drawable
     ) {
         try {
-            val drawableField = bgViewClass.getDeclaredField("drawable")
-            drawableField.isAccessible = true
-            drawableField.set(bgView, customDrawable)
+            val drawableField = getCachedField(drawableFieldCache, bgViewClass, "drawable")
+            drawableField?.set(bgView, customDrawable)
         } catch (e: Exception) {
             logError(module, "applyDrawable failed: ${e.message}")
         }
 
         try {
-            val alphaField = bgViewClass.getDeclaredField("backgroundAlpha")
-            alphaField.isAccessible = true
-            alphaField.setFloat(bgView, 1.0f)
+            val alphaField = getCachedField(backgroundAlphaFieldCache, bgViewClass, "backgroundAlpha")
+            alphaField?.setFloat(bgView, 1.0f)
         } catch (_: Exception) {}
 
         try {
-            val scheduleMethod = bgViewClass.getDeclaredMethod("scheduleUpdate")
-            scheduleMethod.isAccessible = true
-            scheduleMethod.invoke(bgView)
+            val scheduleMethod = getCachedMethod(scheduleUpdateMethodCache, bgViewClass, "scheduleUpdate")
+            scheduleMethod?.invoke(bgView)
         } catch (_: Exception) {}
 
         if (bgView is ViewGroup) {
@@ -465,17 +486,15 @@ object IslandBackgroundHook : BaseHook() {
         type: IslandType,
         module: XposedModule
     ) {
-        bgRetryHandler.postDelayed({
+        // ★ 取消之前挂起的重试，避免堆积
+        pendingRetryRunnable?.let { bgRetryHandler.removeCallbacks(it) }
+
+        val runnable = Runnable {
             try {
-                if (!anyCustomBgConfigured()) return@postDelayed
+                if (!anyCustomBgConfigured()) return@Runnable
 
                 val context = try { bgView.context } catch (_: Exception) { null }
-                var stokeWidth = 0
-                try {
-                    val stokeField = bgViewClass.getDeclaredField("stokeWidth")
-                    stokeField.isAccessible = true
-                    stokeWidth = stokeField.getInt(bgView)
-                } catch (_: Exception) {}
+                val stokeWidth = getStokeWidth(bgView, bgViewClass)
 
                 val customDrawable = loadCustomDrawable(type, context, module, stokeWidth)
                 if (customDrawable != null) {
@@ -485,8 +504,12 @@ object IslandBackgroundHook : BaseHook() {
                 }
             } catch (e: Exception) {
                 logError(module, "scheduleBgRetry failed: ${e.message}")
+            } finally {
+                pendingRetryRunnable = null
             }
-        }, 2000L)
+        }
+        pendingRetryRunnable = runnable
+        bgRetryHandler.postDelayed(runnable, 2000L)
     }
 
     /**
@@ -597,6 +620,55 @@ object IslandBackgroundHook : BaseHook() {
     }
 
     /**
+     * 从缓存获取或创建 Field 对象，避免热路径反复反射查找。
+     * 反射失败返回 null，由调用方安全处理。
+     */
+    private fun getCachedField(
+        cache: ConcurrentHashMap<Class<*>, Field?>,
+        clazz: Class<*>,
+        fieldName: String
+    ): Field? {
+        cache[clazz]?.let { return it }
+        return try {
+            val field = clazz.getDeclaredField(fieldName).apply { isAccessible = true }
+            cache[clazz] = field
+            field
+        } catch (_: Exception) { null }
+    }
+
+    /**
+     * 从缓存获取或创建 Method 对象，避免热路径反复反射查找。
+     * 反射失败返回 null，由调用方安全处理。
+     */
+    private fun getCachedMethod(
+        cache: ConcurrentHashMap<Class<*>, Method?>,
+        clazz: Class<*>,
+        methodName: String,
+        vararg parameterTypes: Class<*>
+    ): Method? {
+        cache[clazz]?.let { return it }
+        return try {
+            val method = clazz.getDeclaredMethod(methodName, *parameterTypes).apply { isAccessible = true }
+            cache[clazz] = method
+            method
+        } catch (_: Exception) { null }
+    }
+
+    /**
+     * 读取 bgView 的 stokeWidth 字段值，Field 对象缓存复用。
+     */
+    private fun getStokeWidth(bgView: View, bgViewClass: Class<*>): Int {
+        return try {
+            val field = stokeWidthFieldCache.getOrPut(bgViewClass) {
+                try {
+                    bgViewClass.getDeclaredField("stokeWidth").apply { isAccessible = true }
+                } catch (_: Exception) { null }
+            }
+            field?.getInt(bgView) ?: 0
+        } catch (_: Exception) { 0 }
+    }
+
+    /**
      * 加载指定类型的自定义背景 BitmapDrawable。
      * ★ 只加载该类型的背景，不回退到其他类型。
      * ★ 当该类型没有自定义背景但其他类型有时，返回纯黑图片（避免 container 清空后变透明）。
@@ -655,11 +727,16 @@ object IslandBackgroundHook : BaseHook() {
 
     /**
      * 检查是否至少有一个岛类型配置了自定义背景。
+     * ★ 结果缓存，避免热路径每帧做 3 次跨进程读 + 磁盘 I/O。
+     *   配置变更时由 onConfigChanged() 清除缓存。
      */
     private fun anyCustomBgConfigured(): Boolean {
-        return hasBgFileForType(IslandType.SMALL)
+        cachedAnyCustomBg?.let { return it }
+        val result = hasBgFileForType(IslandType.SMALL)
                 || hasBgFileForType(IslandType.BIG)
                 || hasBgFileForType(IslandType.EXPAND)
+        cachedAnyCustomBg = result
+        return result
     }
 
     /**
@@ -729,7 +806,18 @@ object IslandBackgroundHook : BaseHook() {
         }
     }
 
+    /**
+     * 获取圆角半径。
+     * ★ 结果缓存，运行时圆角不会变，避免每次都做资源查找。
+     */
     private fun getCornerRadius(context: android.content.Context?): Float {
+        cachedCornerRadius?.let { return it }
+        val radius = computeCornerRadius(context)
+        cachedCornerRadius = radius
+        return radius
+    }
+
+    private fun computeCornerRadius(context: android.content.Context?): Float {
         if (context != null) {
             try {
                 val res = context.resources
@@ -772,6 +860,13 @@ object IslandBackgroundHook : BaseHook() {
             lastConfigPath.clear()
             cachedBlackBitmap = null
         }
+        // ★ 清除性能缓存，下次调用时重新计算
+        cachedAnyCustomBg = null
+        cachedCornerRadius = null
+        stokeWidthFieldCache.clear()
+        drawableFieldCache.clear()
+        backgroundAlphaFieldCache.clear()
+        scheduleUpdateMethodCache.clear()
     }
 
     /**

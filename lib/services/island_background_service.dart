@@ -19,7 +19,8 @@ class IslandBackgroundService {
 
   static String getFileName(IslandBgType type) => _fileNames[type] ?? '';
 
-  static Future<String?> pickAndCopyImage(IslandBgType type) async {
+  /// Picks an image file and returns the local path (no copy yet).
+  static Future<String?> pickImage() async {
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.image,
@@ -29,25 +30,39 @@ class IslandBackgroundService {
       if (result == null || result.files.isEmpty) return null;
 
       final pickedFile = result.files.first;
-      if (pickedFile.path == null) return null;
-
-      final destFileName = _fileNames[type];
-      if (destFileName == null) return null;
-
-      final savedPath = await _copyImageToModuleDir(
-        pickedFile.path!,
-        destFileName,
-      );
-
-      if (savedPath != null) {
-        await _updateControllerPath(type, savedPath);
-      }
-
-      return savedPath;
+      return pickedFile.path;
     } catch (e) {
-      debugPrint('IslandBackgroundService.pickAndCopyImage error: $e');
+      debugPrint('IslandBackgroundService.pickImage error: $e');
       return null;
     }
+  }
+
+  /// Copies the source image to the module dir and updates the controller.
+  /// Returns the saved path, or null on failure.
+  static Future<String?> copyAndUpdate(
+    String sourcePath,
+    IslandBgType type,
+  ) async {
+    final destFileName = _fileNames[type];
+    if (destFileName == null) return null;
+
+    final savedPath = await _copyImageToModuleDir(
+      sourcePath,
+      destFileName,
+    );
+
+    if (savedPath != null) {
+      await _updateControllerPath(type, savedPath);
+    }
+
+    return savedPath;
+  }
+
+  /// Legacy method: pick, copy, and update in one step (no edit dialog).
+  static Future<String?> pickAndCopyImage(IslandBgType type) async {
+    final sourcePath = await pickImage();
+    if (sourcePath == null) return null;
+    return copyAndUpdate(sourcePath, type);
   }
 
   static Future<String?> _copyImageToModuleDir(
