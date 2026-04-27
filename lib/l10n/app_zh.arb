@@ -613,7 +613,7 @@
   "islandDimenHeight": "岛高度",
   "islandDimenHeightHint": "0=跟随系统",
   "islandDimenMiniY": "垂直位置",
-  "islandDimenMiniYHint": "距顶部偏移，0=跟随系统",
+  "islandDimenMiniYHint": "0=跟随系统",
 
 
   "islandBgSection": "岛背景设置",
@@ -628,5 +628,18 @@
   "islandBgCornerRadiusHint": "0=跟随系统",
   "islandBgImageSelected": "背景图片已保存",
   "islandBgImageDeleted": "背景图片已删除",
-  "islandBgDeleteFailed": "删除失败"
+  "islandBgDeleteFailed": "删除失败",
+  "islandBgEditTitle": "编辑{type}背景",
+  "@islandBgEditTitle": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "islandBgBlurLabel": "模糊",
+  "islandBgBrightnessLabel": "亮度",
+  "islandBgOpacityLabel": "不透明度",
+  "islandBgOff": "关",
+  "islandBgDefault": "默认"
 }

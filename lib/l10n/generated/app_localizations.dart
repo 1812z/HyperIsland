@@ -2307,7 +2307,7 @@ abstract class AppLocalizations {
   /// No description provided for @islandDimenMiniYHint.
   ///
   /// In zh, this message translates to:
-  /// **'距顶部偏移，0=跟随系统'**
+  /// **'0=跟随系统'**
   String get islandDimenMiniYHint;
 
   /// No description provided for @islandBgSection.
@@ -2387,6 +2387,42 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'删除失败'**
   String get islandBgDeleteFailed;
+
+  /// No description provided for @islandBgEditTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'编辑{type}背景'**
+  String islandBgEditTitle(String type);
+
+  /// No description provided for @islandBgBlurLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'模糊'**
+  String get islandBgBlurLabel;
+
+  /// No description provided for @islandBgBrightnessLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'亮度'**
+  String get islandBgBrightnessLabel;
+
+  /// No description provided for @islandBgOpacityLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'不透明度'**
+  String get islandBgOpacityLabel;
+
+  /// No description provided for @islandBgOff.
+  ///
+  /// In zh, this message translates to:
+  /// **'关'**
+  String get islandBgOff;
+
+  /// No description provided for @islandBgDefault.
+  ///
+  /// In zh, this message translates to:
+  /// **'默认'**
+  String get islandBgDefault;
 }
 
 class _AppLocalizationsDelegate

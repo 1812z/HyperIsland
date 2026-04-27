@@ -1236,7 +1236,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get islandDimenMiniY => 'Vertical Position';
 
   @override
-  String get islandDimenMiniYHint => 'Top offset, 0=follow system';
+  String get islandDimenMiniYHint => '0=follow system';
 
   @override
   String get islandBgSection => 'Island Background';
@@ -1276,4 +1276,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get islandBgDeleteFailed => 'Delete failed';
+
+  @override
+  String islandBgEditTitle(String type) {
+    return 'Edit $type Background';
+  }
+
+  @override
+  String get islandBgBlurLabel => 'Blur';
+
+  @override
+  String get islandBgBrightnessLabel => 'Brightness';
+
+  @override
+  String get islandBgOpacityLabel => 'Opacity';
+
+  @override
+  String get islandBgOff => 'Off';
+
+  @override
+  String get islandBgDefault => 'Default';
 }

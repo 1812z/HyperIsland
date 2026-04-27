@@ -463,7 +463,7 @@
 "islandDimenHeight": "Ada Yüksekliği",
 "islandDimenHeightHint": "0=sistem varsayılanı",
 "islandDimenMiniY": "Dikey Konum",
-"islandDimenMiniYHint": "Üst uzaklık, 0=sistem varsayılanı",
+"islandDimenMiniYHint": "0=sistem varsayılanı",
 
 
 "islandBgSection": "Ada Arka Planı",
@@ -478,5 +478,18 @@
 "islandBgCornerRadiusHint": "0=sistem varsayılanı",
 "islandBgImageSelected": "Arka plan görseli kaydedildi",
 "islandBgImageDeleted": "Arka plan görseli silindi",
-"islandBgDeleteFailed": "Silme başarısız"
+"islandBgDeleteFailed": "Silme başarısız",
+"islandBgEditTitle": "{type} Arka Planını Düzenle",
+"@islandBgEditTitle": {
+  "placeholders": {
+    "type": {
+      "type": "String"
+    }
+  }
+},
+"islandBgBlurLabel": "Bulanıklık",
+"islandBgBrightnessLabel": "Parlaklık",
+"islandBgOpacityLabel": "Opaklık",
+"islandBgOff": "Kapalı",
+"islandBgDefault": "Varsayılan"
 }

@@ -355,7 +355,7 @@
 "islandDimenHeight": "アイランド高さ",
 "islandDimenHeightHint": "0=システムに従う",
 "islandDimenMiniY": "垂直位置",
-"islandDimenMiniYHint": "上部オフセット、0=システムに従う",
+"islandDimenMiniYHint": "0=システムに従う",
 
 
 "islandBgSection": "アイランド背景設定",
@@ -370,5 +370,18 @@
 "islandBgCornerRadiusHint": "0=システムデフォルト",
 "islandBgImageSelected": "背景画像を保存しました",
 "islandBgImageDeleted": "背景画像を削除しました",
-"islandBgDeleteFailed": "削除に失敗しました"
+"islandBgDeleteFailed": "削除に失敗しました",
+"islandBgEditTitle": "{type}の背景を編集",
+"@islandBgEditTitle": {
+  "placeholders": {
+    "type": {
+      "type": "String"
+    }
+  }
+},
+"islandBgBlurLabel": "ぼかし",
+"islandBgBrightnessLabel": "明るさ",
+"islandBgOpacityLabel": "不透明度",
+"islandBgOff": "オフ",
+"islandBgDefault": "デフォルト"
 }

@@ -1180,7 +1180,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get islandDimenMiniY => '垂直位置';
 
   @override
-  String get islandDimenMiniYHint => '距顶部偏移，0=跟随系统';
+  String get islandDimenMiniYHint => '0=跟随系统';
 
   @override
   String get islandBgSection => '岛背景设置';
@@ -1220,4 +1220,24 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get islandBgDeleteFailed => '删除失败';
+
+  @override
+  String islandBgEditTitle(String type) {
+    return '编辑$type背景';
+  }
+
+  @override
+  String get islandBgBlurLabel => '模糊';
+
+  @override
+  String get islandBgBrightnessLabel => '亮度';
+
+  @override
+  String get islandBgOpacityLabel => '不透明度';
+
+  @override
+  String get islandBgOff => '关';
+
+  @override
+  String get islandBgDefault => '默认';
 }

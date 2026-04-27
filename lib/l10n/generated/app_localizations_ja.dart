@@ -1194,7 +1194,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get islandDimenMiniY => '垂直位置';
 
   @override
-  String get islandDimenMiniYHint => '上部オフセット、0=システムに従う';
+  String get islandDimenMiniYHint => '0=システムに従う';
 
   @override
   String get islandBgSection => 'アイランド背景設定';
@@ -1234,4 +1234,24 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get islandBgDeleteFailed => '削除に失敗しました';
+
+  @override
+  String islandBgEditTitle(String type) {
+    return '$typeの背景を編集';
+  }
+
+  @override
+  String get islandBgBlurLabel => 'ぼかし';
+
+  @override
+  String get islandBgBrightnessLabel => '明るさ';
+
+  @override
+  String get islandBgOpacityLabel => '不透明度';
+
+  @override
+  String get islandBgOff => 'オフ';
+
+  @override
+  String get islandBgDefault => 'デフォルト';
 }

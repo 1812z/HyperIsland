@@ -1235,7 +1235,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get islandDimenMiniY => 'Dikey Konum';
 
   @override
-  String get islandDimenMiniYHint => 'Üst uzaklık, 0=sistem varsayılanı';
+  String get islandDimenMiniYHint => '0=sistem varsayılanı';
 
   @override
   String get islandBgSection => 'Ada Arka Planı';
@@ -1275,4 +1275,24 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get islandBgDeleteFailed => 'Silme başarısız';
+
+  @override
+  String islandBgEditTitle(String type) {
+    return '$type Arka Planını Düzenle';
+  }
+
+  @override
+  String get islandBgBlurLabel => 'Bulanıklık';
+
+  @override
+  String get islandBgBrightnessLabel => 'Parlaklık';
+
+  @override
+  String get islandBgOpacityLabel => 'Opaklık';
+
+  @override
+  String get islandBgOff => 'Kapalı';
+
+  @override
+  String get islandBgDefault => 'Varsayılan';
 }

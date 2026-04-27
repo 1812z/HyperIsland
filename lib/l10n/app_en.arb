@@ -448,7 +448,7 @@
   "islandDimenHeight": "Island Height",
   "islandDimenHeightHint": "0=follow system",
   "islandDimenMiniY": "Vertical Position",
-  "islandDimenMiniYHint": "Top offset, 0=follow system",
+  "islandDimenMiniYHint": "0=follow system",
 
 
   "islandBgSection": "Island Background",
@@ -463,5 +463,18 @@
   "islandBgCornerRadiusHint": "0=system default",
   "islandBgImageSelected": "Background image saved",
   "islandBgImageDeleted": "Background image deleted",
-  "islandBgDeleteFailed": "Delete failed"
+  "islandBgDeleteFailed": "Delete failed",
+  "islandBgEditTitle": "Edit {type} Background",
+  "@islandBgEditTitle": {
+    "placeholders": {
+      "type": {
+        "type": "String"
+      }
+    }
+  },
+  "islandBgBlurLabel": "Blur",
+  "islandBgBrightnessLabel": "Brightness",
+  "islandBgOpacityLabel": "Opacity",
+  "islandBgOff": "Off",
+  "islandBgDefault": "Default"
 }
