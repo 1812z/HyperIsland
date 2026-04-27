@@ -33,7 +33,9 @@ class _SettingsPageState extends State<SettingsPage> {
   late int _bigIslandMaxWidthDraft;
   late int _uiStateHash;
   late double _islandHeightDraft;
-  late double _islandMiniYDraft;
+
+
+
 
 
   int _buildUiStateHash() => Object.hashAll([
@@ -70,7 +72,6 @@ class _SettingsPageState extends State<SettingsPage> {
     _ctrl.islandBgBigPath,
     _ctrl.islandBgExpandPath,
     _ctrl.islandHeight,
-    _ctrl.islandMiniY,
   ]);
 
   void _onChanged() {
@@ -79,12 +80,10 @@ class _SettingsPageState extends State<SettingsPage> {
     final nextMarquee = _ctrl.marqueeSpeed;
     final nextMaxWidth = _ctrl.bigIslandMaxWidth;
     final nextHeight = _ctrl.islandHeight;
-    final nextMiniY = _ctrl.islandMiniY;
     if (nextHash == _uiStateHash &&
         nextMarquee == _marqueeSpeedDraft &&
         nextMaxWidth == _bigIslandMaxWidthDraft &&
-        nextHeight == _islandHeightDraft &&
-        nextMiniY == _islandMiniYDraft) {
+        nextHeight == _islandHeightDraft) {
       return;
     }
     setState(() {
@@ -92,7 +91,6 @@ class _SettingsPageState extends State<SettingsPage> {
       _marqueeSpeedDraft = nextMarquee;
       _bigIslandMaxWidthDraft = nextMaxWidth;
       _islandHeightDraft = nextHeight;
-      _islandMiniYDraft = nextMiniY;
     });
   }
 
@@ -102,7 +100,6 @@ class _SettingsPageState extends State<SettingsPage> {
     _marqueeSpeedDraft = _ctrl.marqueeSpeed;
     _bigIslandMaxWidthDraft = _ctrl.bigIslandMaxWidth;
     _islandHeightDraft = _ctrl.islandHeight;
-    _islandMiniYDraft = _ctrl.islandMiniY;
     _uiStateHash = _buildUiStateHash();
     _ctrl.addListener(_onChanged);
   }
@@ -182,16 +179,6 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _persistIslandHeight(double value) async {
     if (_ctrl.islandHeight == value) return;
     await _ctrl.setIslandHeight(value);
-  }
-
-  void _onIslandMiniYChanged(double value) {
-    if (_islandMiniYDraft == value) return;
-    setState(() => _islandMiniYDraft = value);
-  }
-
-  Future<void> _persistIslandMiniY(double value) async {
-    if (_ctrl.islandMiniY == value) return;
-    await _ctrl.setIslandMiniY(value);
   }
 
   void _showSnack(String msg) {
@@ -1314,18 +1301,6 @@ class _SettingsPageState extends State<SettingsPage> {
                             onChanged: _onIslandHeightChanged,
                             onPersist: _persistIslandHeight,
                             isFirst: true,
-                          ),
-                          const Divider(height: 1, indent: 16, endIndent: 16),
-                          _DimenTile(
-                            title: l10n.islandDimenMiniY,
-                            hint: l10n.islandDimenMiniYHint,
-                            value: _islandMiniYDraft,
-                            min: 0,
-                            max: 200,
-                            unit: 'dp',
-                            defaultVal: 0,
-                            onChanged: _onIslandMiniYChanged,
-                            onPersist: _persistIslandMiniY,
                             isLast: true,
                           ),
                         ],

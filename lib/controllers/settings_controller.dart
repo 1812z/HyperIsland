@@ -50,7 +50,9 @@ const kPrefIslandBgSmallPath = 'pref_island_bg_small_path';
 const kPrefIslandBgBigPath = 'pref_island_bg_big_path';
 const kPrefIslandBgExpandPath = 'pref_island_bg_expand_path';
 const kPrefIslandHeight = 'pref_island_height';
-const kPrefIslandMiniY = 'pref_island_mini_y';
+
+
+
 
 
 
@@ -156,7 +158,6 @@ class SettingsController extends ChangeNotifier {
   String islandBgBigPath = '';
   String islandBgExpandPath = '';
   double islandHeight = 0;
-  double islandMiniY = 0;
   Locale? locale;
   bool loading = true;
 
@@ -232,7 +233,6 @@ class SettingsController extends ChangeNotifier {
     islandBgBigPath = prefs.getString(kPrefIslandBgBigPath) ?? '';
     islandBgExpandPath = prefs.getString(kPrefIslandBgExpandPath) ?? '';
     islandHeight = prefs.getDouble(kPrefIslandHeight) ?? 0;
-    islandMiniY = prefs.getDouble(kPrefIslandMiniY) ?? 0;
     loading = false;
     notifyListeners();
   }
@@ -665,18 +665,6 @@ class SettingsController extends ChangeNotifier {
       await prefs.setDouble(kPrefIslandHeight, value);
     }
     islandHeight = value;
-    notifyListeners();
-  }
-
-  Future<void> setIslandMiniY(double value) async {
-    if (islandMiniY == value) return;
-    final prefs = await _getPrefs();
-    if (value <= 0) {
-      await prefs.remove(kPrefIslandMiniY);
-    } else {
-      await prefs.setDouble(kPrefIslandMiniY, value);
-    }
-    islandMiniY = value;
     notifyListeners();
   }
 

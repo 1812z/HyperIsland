@@ -9,11 +9,11 @@ import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.lang.reflect.Field
 
 /**
- * 修改超级岛尺寸（高度、垂直位置）
+ * 修改超级岛尺寸（高度）
  *
  * 原理：
  *   DynamicIslandBaseContentView 在构造函数和 reset() 中读取 dimen 资源，
- *   然后缓存到字段（islandViewHeight、islandViewMarginTop 等），
+ *   然后缓存到字段（islandViewHeight 等），
  *   后续直接使用字段值，不再调用 Resources.getDimensionPixelSize()。
  *
  * 做法：
@@ -27,13 +27,11 @@ object IslandDimenHook : BaseHook() {
 
     /** 配置 Key */
     private const val KEY_HEIGHT = "pref_island_height"
-    private const val KEY_MINI_Y = "pref_island_mini_y"
 
     private const val CLAZZ = "miui.systemui.dynamicisland.window.content.DynamicIslandBaseContentView"
 
     /** 自定义值（dp，0 = 不生效） */
     @Volatile private var customHeightDp = 0.0
-    @Volatile private var customMiniYDp = 0.0
 
     /** 当前 module 实例（用于 log 调用）*/
     @Volatile private var currentModule: XposedModule? = null
@@ -41,7 +39,6 @@ object IslandDimenHook : BaseHook() {
     /** 反射字段缓存 */
     private var cachedClazz: Class<*>? = null
     private var fIslandViewHeight: Field? = null
-    private var fIslandViewMarginTop: Field? = null
     private var fSmallIslandViewWidth: Field? = null
     private var fBigIslandView: Field? = null
 
@@ -57,7 +54,7 @@ object IslandDimenHook : BaseHook() {
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
         if (param.packageName != "com.android.systemui") return
         loadConfig()
-        log(module, "onInit loadConfig: heightDp=$customHeightDp, miniYDp=$customMiniYDp")
+        log(module, "onInit loadConfig: heightDp=$customHeightDp")
         hookDynamicClassLoaders(module)
     }
 
@@ -125,7 +122,6 @@ object IslandDimenHook : BaseHook() {
         val m = currentModule ?: return
         try {
             fIslandViewHeight = clazz.getDeclaredField("islandViewHeight").apply { isAccessible = true }
-            fIslandViewMarginTop = clazz.getDeclaredField("islandViewMarginTop").apply { isAccessible = true }
             fSmallIslandViewWidth = clazz.getDeclaredField("smallIslandViewWidth").apply { isAccessible = true }
             fBigIslandView = clazz.getDeclaredField("bigIslandView").apply { isAccessible = true }
         } catch (e: Exception) {
@@ -137,7 +133,7 @@ object IslandDimenHook : BaseHook() {
      * 将自定义 dp 值写入 obj 的字段，并同步更新 View 的 LayoutParams
      */
     private fun apply(obj: Any, module: XposedModule) {
-        if (customHeightDp <= 0.0 && customMiniYDp <= 0.0) return
+        if (customHeightDp <= 0.0) return
 
         try {
             val view = obj as View
@@ -152,16 +148,6 @@ object IslandDimenHook : BaseHook() {
                 fIslandViewHeight?.setInt(obj, px)
                 updateViewHeight(obj, px)
                 log(module, "apply: islandViewHeight = ${customHeightDp}dp → ${px}px")
-            }
-
-            // 自定义垂直位置 → 覆盖 islandViewMarginTop 字段
-            if (customMiniYDp > 0.0) {
-                val px = TypedValue.applyDimension(
-                    TypedValue.COMPLEX_UNIT_DIP, customMiniYDp.toFloat(), dm
-                ).toInt()
-
-                fIslandViewMarginTop?.setInt(obj, px)
-                log(module, "apply: islandViewMarginTop = ${customMiniYDp}dp → ${px}px")
             }
         } catch (e: Exception) {
             logError(module, "apply failed: ${e.message}")
@@ -184,6 +170,5 @@ object IslandDimenHook : BaseHook() {
 
     private fun loadConfig() {
         customHeightDp = ConfigManager.getDouble(KEY_HEIGHT, 0.0)
-        customMiniYDp = ConfigManager.getDouble(KEY_MINI_Y, 0.0)
     }
 }
