@@ -11,7 +11,7 @@ import '../l10n/generated/app_localizations.dart';
 import '../services/island_background_service.dart';
 import 'modern_slider.dart';
 
-/// Result of the background editing dialog.
+/// 背景编辑结果
 class IslandBgEditResult {
   const IslandBgEditResult({
     required this.sourcePath,
@@ -22,14 +22,13 @@ class IslandBgEditResult {
   });
 
   final String sourcePath;
-  final double blur; // 0..5
-  final double brightness; // -1.0..1.0
-  final double opacity; // 0.0..1.0
-  final Rect? cropRect; // null = no crop
+  final double blur;       // 0~5
+  final double brightness; // -1.0~1.0
+  final double opacity;    // 0.0~1.0
+  final Rect? cropRect;    // null = 不裁剪
 }
 
-/// Shows a full-screen editing dialog after picking a background image.
-/// Supports crop, gaussian blur, brightness, and opacity adjustments.
+/// 背景编辑弹窗，支持模糊、亮度、透明度调节
 Future<IslandBgEditResult?> showIslandBgEditDialog({
   required BuildContext context,
   required String imagePath,
@@ -63,15 +62,15 @@ class _IslandBgEditDialogState extends State<_IslandBgEditDialog> {
   late double _brightness;
   late double _opacity;
 
-  // Crop state
+  // 裁剪
   bool _cropping = false;
   Rect? _cropRect;
 
-  // Image info
+  // 图片信息
   Size _imageSize = Size.zero;
   bool _loading = true;
 
-  // Processing state
+  // 处理中
   bool _processing = false;
 
   @override
@@ -108,8 +107,7 @@ class _IslandBgEditDialogState extends State<_IslandBgEditDialog> {
     };
   }
 
-  /// GPU-accelerated image processing — near-instant since Flutter
-  /// renders blur/brightness/opacity on the GPU, same as the preview.
+  /// GPU 渲染处理，与预览共用 Flutter 渲染管线，近乎瞬时完成
   Future<void> _apply() async {
     final result = IslandBgEditResult(
       sourcePath: widget.imagePath,
@@ -153,12 +151,11 @@ class _IslandBgEditDialogState extends State<_IslandBgEditDialog> {
     }
   }
 
-  /// Renders the image with all filters via Flutter's GPU pipeline
-  /// and saves the result to a temp file. Near-instant.
+  /// GPU 管线渲染滤镜并保存到临时文件
   Future<String?> _gpuProcessAndSave(IslandBgEditResult result) async {
     final bytes = await File(result.sourcePath).readAsBytes();
 
-    // Limit resolution to 2048px max (island backgrounds don't need 4K)
+    // 岛背景无需 4K，限制最大 2048px
     const maxDim = 2048;
     final codec = await ui.instantiateImageCodec(
       bytes,
@@ -169,7 +166,7 @@ class _IslandBgEditDialogState extends State<_IslandBgEditDialog> {
     final origW = source.width;
     final origH = source.height;
 
-    // Downscale if needed
+    // 缩放
     if (origW > maxDim || origH > maxDim) {
       final scale = math.min(maxDim / origW, maxDim / origH);
       final targetW = (origW * scale).toInt();
@@ -191,17 +188,17 @@ class _IslandBgEditDialogState extends State<_IslandBgEditDialog> {
     final w = source.width;
     final h = source.height;
 
-    // Step 1: Composite onto black background (eliminates alpha edge artifacts for blur)
+    // 步骤1：合成到黑底（消除模糊导致的 alpha 边缘白晕）
     ui.Image opaqueImage;
     if (result.blur > 0) {
       final rec = ui.PictureRecorder();
       final canvas = Canvas(rec, Rect.fromLTWH(0, 0, w.toDouble(), h.toDouble()));
-      // Black fill
+      // 黑底
       canvas.drawRect(
         Rect.fromLTWH(0, 0, w.toDouble(), h.toDouble()),
         Paint()..color = const Color(0xFF000000),
       );
-      // Image on top
+      // 图片叠上
       canvas.drawImage(source, Offset.zero, Paint());
       source.dispose();
       final pic = rec.endRecording();
@@ -210,12 +207,12 @@ class _IslandBgEditDialogState extends State<_IslandBgEditDialog> {
       opaqueImage = source;
     }
 
-    // Step 2: Apply blur + brightness + opacity in one GPU draw call
+    // 步骤2：一次 GPU 绘制同时应用模糊 + 亮度 + 透明度
     final rec = ui.PictureRecorder();
     final canvas = Canvas(rec, Rect.fromLTWH(0, 0, w.toDouble(), h.toDouble()));
     final paint = Paint();
 
-    // Blur
+    // 模糊
     if (result.blur > 0) {
       paint.imageFilter = ui.ImageFilter.blur(
         sigmaX: result.blur * 1.5,
@@ -223,7 +220,7 @@ class _IslandBgEditDialogState extends State<_IslandBgEditDialog> {
       );
     }
 
-    // Combined brightness + opacity via ColorFilter matrix
+    // 亮度 + 透明度：ColorFilter 矩阵
     if (result.brightness != 0 || result.opacity < 1.0) {
       final factor = 1.0 + result.brightness * 0.8;
       paint.colorFilter = ColorFilter.matrix(<double>[
@@ -240,13 +237,13 @@ class _IslandBgEditDialogState extends State<_IslandBgEditDialog> {
     final picture = rec.endRecording();
     final filteredImage = await picture.toImage(w, h);
 
-    // Step 3: Encode to PNG
+    // 步骤3：编码 PNG
     final byteData = await filteredImage.toByteData(format: ui.ImageByteFormat.png);
     filteredImage.dispose();
 
     if (byteData == null) return null;
 
-    // Step 4: Save to temp file
+    // 步骤4：保存到临时文件
     final tempDir = await getTemporaryDirectory();
     final tempPath = p.join(
       tempDir.path,
@@ -268,7 +265,7 @@ class _IslandBgEditDialogState extends State<_IslandBgEditDialog> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Title bar
+          // 标题栏
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 16, 8, 0),
             child: Row(
@@ -289,14 +286,14 @@ class _IslandBgEditDialogState extends State<_IslandBgEditDialog> {
           ),
           const SizedBox(height: 8),
 
-          // Preview
+          // 预览
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: _buildPreview(cs),
           ),
           const SizedBox(height: 12),
 
-          // Sliders
+          // 滑块
           Flexible(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -344,7 +341,7 @@ class _IslandBgEditDialogState extends State<_IslandBgEditDialog> {
             ),
           ),
 
-          // Action buttons
+          // 操作按钮
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
             child: Row(
@@ -411,8 +408,7 @@ class _IslandBgEditDialogState extends State<_IslandBgEditDialog> {
   }
 }
 
-/// Displays the image with real-time filter preview using Flutter's
-/// built-in ImageFilter + ColorFiltered for zero-delay feedback.
+/// 实时滤镜预览，用 Flutter 内置 ImageFilter + ColorFiltered 零延迟渲染
 class _FilteredImagePreview extends StatelessWidget {
   const _FilteredImagePreview({
     required this.imagePath,
@@ -440,7 +436,7 @@ class _FilteredImagePreview extends StatelessWidget {
   }
 
   Widget _buildFilteredImage() {
-    // Downsample for fast GPU blur preview (container is only 160px tall)
+    // 降采样加速预览（容器仅 160px 高）
     Widget image = Image.file(
       File(imagePath),
       fit: BoxFit.cover,
@@ -450,7 +446,7 @@ class _FilteredImagePreview extends StatelessWidget {
       cacheHeight: 200,
     );
 
-    // Blur
+    // 模糊
     if (blur > 0) {
       final sigma = blur * 1.5;
       image = ImageFiltered(
@@ -459,7 +455,7 @@ class _FilteredImagePreview extends StatelessWidget {
       );
     }
 
-    // Brightness via ColorFilter matrix (avoids overexposure)
+    // 亮度：ColorFilter 矩阵（避免过曝）
     if (brightness != 0) {
       final factor = 1.0 + brightness * 0.8;
       image = ColorFiltered(
@@ -473,7 +469,7 @@ class _FilteredImagePreview extends StatelessWidget {
       );
     }
 
-    // Opacity
+    // 透明度
     if (opacity < 1.0) {
       image = Opacity(opacity: opacity, child: image);
     }
