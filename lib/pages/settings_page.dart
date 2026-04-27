@@ -13,6 +13,7 @@ import '../services/interaction_haptics.dart';
 import '../services/island_background_service.dart';
 import '../widgets/color_picker_dialog.dart';
 import '../widgets/color_value_field.dart';
+import '../widgets/island_bg_edit_dialog.dart';
 import '../widgets/section_label.dart';
 import '../widgets/modern_slider.dart';
 import 'ai_config_page.dart';
@@ -202,10 +203,26 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Future<void> _pickIslandBackground(IslandBgType type) async {
     final l10n = AppLocalizations.of(context)!;
-    final path = await IslandBackgroundService.pickAndCopyImage(type);
-    if (path != null && mounted) {
+    // Step 1: Pick image
+    final sourcePath = await IslandBackgroundService.pickImage();
+    if (sourcePath == null || !mounted) return;
+
+    // Step 2: Show edit dialog (processing happens inside the dialog in an isolate)
+    final editResult = await showIslandBgEditDialog(
+      context: context,
+      imagePath: sourcePath,
+      type: type,
+    );
+    if (editResult == null || !mounted) return;
+
+    // Step 3: Copy the (already processed) file to module dir and update controller
+    final savedPath = await IslandBackgroundService.copyAndUpdate(
+      editResult.sourcePath,
+      type,
+    );
+    if (savedPath != null && mounted) {
       // Evict cached FileImage so the preview refreshes with the new file
-      imageCache.evict(FileImage(File(path)));
+      imageCache.evict(FileImage(File(savedPath)));
       setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
