@@ -17,6 +17,8 @@ object KeepIslandHook : BaseHook() {
     private const val TAG = "HyperIsland[KeepIsland]"
     private const val PREF_KEY = "pref_keep_island"
 
+    private const val PREF_KEY_AUTO_HIDE = "pref_keep_island_auto_hide"
+
     private const val KEEP_ISLAND_NOTIF_ID = 0x4B494B49
 
     private const val ANIMATION_CONTROLLER_CLASS =
@@ -42,6 +44,13 @@ object KeepIslandHook : BaseHook() {
     override fun getTag() = TAG
 
     override fun onConfigChanged() {
+        val autoHide = ConfigManager.getBoolean(PREF_KEY_AUTO_HIDE, true)
+        if (!autoHide && suppressed) {
+            activeRealKeys.clear()
+            cancelPendingRestore()
+            val ctx = appContext
+            if (ctx != null) postKeepIsland(ctx, restore = true)
+        }
         mainHandler.postDelayed({ evaluateKeepIsland() }, 500)
     }
 
@@ -108,6 +117,9 @@ object KeepIslandHook : BaseHook() {
         val enabled = ConfigManager.getBoolean(PREF_KEY, false)
         if (!enabled) return
         if (!posted && !suppressed) return
+
+        val autoHide = ConfigManager.getBoolean(PREF_KEY_AUTO_HIDE, true)
+        if (!autoHide) return
 
         val stateText = readStateText(stateObj) ?: return
 
