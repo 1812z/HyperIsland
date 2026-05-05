@@ -15,10 +15,12 @@ object BigIslandMinWidthHook : BaseHook() {
     override fun onConfigChanged() {
         hookedCalculateMaxWidthWithSmall = false
         hookedSetMaxWidth = false
+        hookedGetBigIslandMinWidth = false
     }
 
     private var hookedCalculateMaxWidthWithSmall = false
     private var hookedSetMaxWidth = false
+    private var hookedGetBigIslandMinWidth = false
 
     private fun dpToPx(dp: Int): Float {
         val density = android.content.res.Resources.getSystem().displayMetrics.density
@@ -30,7 +32,7 @@ object BigIslandMinWidthHook : BaseHook() {
     }
 
     private fun hookContentViewClasses(module: XposedModule, classLoader: ClassLoader) {
-        if (hookedCalculateMaxWidthWithSmall && hookedSetMaxWidth) return
+        if (hookedCalculateMaxWidthWithSmall && hookedSetMaxWidth && hookedGetBigIslandMinWidth) return
         val className = "miui.systemui.dynamicisland.window.content.DynamicIslandBaseContentView"
         try {
             val clazz = classLoader.loadClass(className)
@@ -42,13 +44,12 @@ object BigIslandMinWidthHook : BaseHook() {
                 }
                 if (calculateMaxWidthWithSmallMethod != null) {
                     module.hook(calculateMaxWidthWithSmallMethod).intercept { chain ->
-                        val enabled = ConfigManager.getBoolean("pref_big_island_max_width_enabled", false)
-                        if (!enabled) {
+                        val maxWidthDp = ConfigManager.getInt("pref_big_island_max_width", 0)
+                        if (maxWidthDp <= 0) {
                             return@intercept chain.proceed()
                         }
                         
-                        val maxWidthDp = ConfigManager.getInt("pref_big_island_max_width", DEFAULT_MAX_WIDTH_DP).coerceIn(100, 1000)
-                        val maxWidthPx = dpToPx(maxWidthDp)
+                        val maxWidthPx = dpToPx(maxWidthDp.coerceIn(1, 1000))
                         
                         log(module, "calculateMaxWidthWithSmall returning $maxWidthPx")
                         
@@ -64,14 +65,14 @@ object BigIslandMinWidthHook : BaseHook() {
                 val setMaxWidthMethod = clazz.declaredMethods.firstOrNull { it.name == "setMaxWidth" }
                 if (setMaxWidthMethod != null) {
                     module.hook(setMaxWidthMethod).intercept { chain ->
-                        val enabled = ConfigManager.getBoolean("pref_big_island_max_width_enabled", false)
-                        if (!enabled) {
+                        val maxWidthDp = ConfigManager.getInt("pref_big_island_max_width", 0)
+                        if (maxWidthDp <= 0) {
                             return@intercept chain.proceed()
                         }
                         
-                        val maxWidthDp = ConfigManager.getInt("pref_big_island_max_width", DEFAULT_MAX_WIDTH_DP).coerceIn(100, 1000)
+                        val maxWidthDpClamped = maxWidthDp.coerceIn(1, 1000)
                         val target = chain.thisObject ?: return@intercept chain.proceed()
-                        val maxWidthPx = dpToPx(maxWidthDp)
+                        val maxWidthPx = dpToPx(maxWidthDpClamped)
                         val clockWidth = (chain.args.getOrNull(1) as? Number)?.toFloat() ?: -1f
                         val batteryWidth = (chain.args.getOrNull(2) as? Number)?.toFloat() ?: -1f
                         
@@ -99,11 +100,49 @@ object BigIslandMinWidthHook : BaseHook() {
         } catch (e: Exception) {
             logError(module, "failed to hook $className: ${e.message}")
         }
+
+        // Hook getBigIslandMinWidth - 控制大岛最小宽度
+        if (!hookedGetBigIslandMinWidth) {
+            hookGetBigIslandMinWidth(module, classLoader)
+        }
+    }
+
+    private fun hookGetBigIslandMinWidth(module: XposedModule, classLoader: ClassLoader) {
+        val helperClasses = listOf(
+            "miui.systemui.dynamicisland.window.content.helpers.DynamicIslandContentViewPhoneHelper",
+            "miui.systemui.dynamicisland.window.content.helpers.DynamicIslandContentViewPadHelper",
+        )
+        var hookedAny = false
+        for (helperClassName in helperClasses) {
+            try {
+                val helperClazz = classLoader.loadClass(helperClassName)
+                val getMinWidthMethod = helperClazz.declaredMethods.firstOrNull {
+                    it.name == "getBigIslandMinWidth"
+                } ?: continue
+                module.hook(getMinWidthMethod).intercept { chain ->
+                    val minWidthDp = ConfigManager.getInt("pref_big_island_min_width", 0)
+                    if (minWidthDp <= 0) {
+                        return@intercept chain.proceed()
+                    }
+                    val minWidthPx = dpToPx(minWidthDp).toInt()
+                    log(module, "getBigIslandMinWidth returning $minWidthPx px ($minWidthDp dp) on $helperClassName")
+                    return@intercept minWidthPx
+                }
+                hookedAny = true
+                log(module, "hooked getBigIslandMinWidth on $helperClassName")
+            } catch (_: ClassNotFoundException) {
+            } catch (e: Exception) {
+                logError(module, "failed to hook getBigIslandMinWidth on $helperClassName: ${e.message}")
+            }
+        }
+        if (hookedAny) {
+            hookedGetBigIslandMinWidth = true
+        }
     }
 
     private fun hookDynamicClassLoaders(module: XposedModule) {
         HookUtils.hookDynamicClassLoaders(module, ClassLoader.getSystemClassLoader()) { cl ->
-            if (!hookedCalculateMaxWidthWithSmall || !hookedSetMaxWidth) {
+            if (!hookedCalculateMaxWidthWithSmall || !hookedSetMaxWidth || !hookedGetBigIslandMinWidth) {
                 hookContentViewClasses(module, cl)
             }
         }

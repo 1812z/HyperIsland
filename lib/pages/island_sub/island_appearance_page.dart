@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../controllers/settings_controller.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../services/interaction_haptics.dart';
@@ -19,12 +20,13 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
   final _ctrl = SettingsController.instance;
   late double _islandHeightDraft;
   late int _bigIslandMaxWidthDraft;
+  late int _bigIslandMinWidthDraft;
   late int _buildHash;
 
   int _computeHash() => Object.hashAll([
     _ctrl.islandHeight,
-    _ctrl.bigIslandMaxWidthEnabled,
     _ctrl.bigIslandMaxWidth,
+    _ctrl.bigIslandMinWidth,
     _ctrl.roundIcon,
     _ctrl.islandBgSmallPath,
     _ctrl.islandBgBigPath,
@@ -36,6 +38,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     super.initState();
     _islandHeightDraft = _ctrl.islandHeight;
     _bigIslandMaxWidthDraft = _ctrl.bigIslandMaxWidth;
+    _bigIslandMinWidthDraft = _ctrl.bigIslandMinWidth;
     _buildHash = _computeHash();
     _ctrl.addListener(_onChanged);
   }
@@ -51,15 +54,18 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     final nextHash = _computeHash();
     final nextHeight = _ctrl.islandHeight;
     final nextMaxWidth = _ctrl.bigIslandMaxWidth;
+    final nextMinWidth = _ctrl.bigIslandMinWidth;
     if (nextHash == _buildHash &&
         nextHeight == _islandHeightDraft &&
-        nextMaxWidth == _bigIslandMaxWidthDraft) {
+        nextMaxWidth == _bigIslandMaxWidthDraft &&
+        nextMinWidth == _bigIslandMinWidthDraft) {
       return;
     }
     setState(() {
       _buildHash = nextHash;
       _islandHeightDraft = nextHeight;
       _bigIslandMaxWidthDraft = nextMaxWidth;
+      _bigIslandMinWidthDraft = nextMinWidth;
     });
   }
 
@@ -115,6 +121,13 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     await _ctrl.setRoundIcon(value);
   }
 
+  Future<void> _sendTestNotification() async {
+    const channel = MethodChannel('io.github.hyperisland/test');
+    try {
+      await channel.invokeMethod('showTest');
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -129,6 +142,13 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
           SliverAppBar(
             backgroundColor: cs.surface,
             title: Text(l10n.appearanceSection),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.notifications_outlined),
+                tooltip: l10n.testNotifTooltip,
+                onPressed: InteractionHaptics.interceptButton(_sendTestNotification),
+              ),
+            ],
           ),
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -164,58 +184,137 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                             await _ctrl.setIslandHeight(v);
                           },
                           isFirst: true,
-                          isLast: !_ctrl.bigIslandMaxWidthEnabled,
                         ),
-                        if (_ctrl.bigIslandMaxWidthEnabled) ...[
-                          const Divider(height: 1, indent: 16, endIndent: 16),
-                          _DimenTile(
-                            title: l10n.bigIslandMaxWidthTitle,
-                            hint: l10n.bigIslandMaxWidthSubtitle,
-                            value: _bigIslandMaxWidthDraft.toDouble(),
-                            min: 50,
-                            max: 500,
-                            unit: 'dp',
-                            defaultVal: 200,
-                            onChanged: (v) {
-                              final next = v.round();
-                              if (_bigIslandMaxWidthDraft == next) return;
-                              setState(() => _bigIslandMaxWidthDraft = next);
-                            },
-                            onPersist: (v) async {
-                              final next = v.round();
-                              if (_ctrl.bigIslandMaxWidth == next) return;
-                              await _ctrl.setBigIslandMaxWidth(next);
-                            },
-                            isLast: true,
+                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 2,
                           ),
-                        ],
+                          title: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  l10n.bigIslandMaxWidthTitle,
+                                  style: titleStyle,
+                                ),
+                              ),
+                              Text(
+                                _bigIslandMaxWidthDraft > 0
+                                    ? l10n.bigIslandMaxWidthLabel(_bigIslandMaxWidthDraft)
+                                    : '-',
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(color: cs.onSurfaceVariant),
+                              ),
+                              if (_bigIslandMaxWidthDraft != 0)
+                                SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: IconButton(
+                                    icon: const Icon(Icons.refresh, size: 18),
+                                    padding: EdgeInsets.zero,
+                                    visualDensity: VisualDensity.compact,
+                                    onPressed: InteractionHaptics.interceptButton(
+                                      () {
+                                        setState(() => _bigIslandMaxWidthDraft = 0);
+                                        _ctrl.setBigIslandMaxWidth(0);
+                                      },
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          subtitle: SliderTheme(
+                            data: ModernSliderTheme.theme(context),
+                            child: Slider(
+                              value: _bigIslandMaxWidthDraft.toDouble().clamp(0, 500),
+                              min: 0,
+                              max: 500,
+                              divisions: 100,
+                              onChanged: InteractionHaptics.interceptSlider(
+                                (v) {
+                                  final next = v.round();
+                                  if (_bigIslandMaxWidthDraft == next) return;
+                                  setState(() => _bigIslandMaxWidthDraft = next);
+                                },
+                              ),
+                              onChangeEnd: (v) async {
+                                final next = v.round();
+                                if (_ctrl.bigIslandMaxWidth == next) return;
+                                await _ctrl.setBigIslandMaxWidth(next);
+                              },
+                            ),
+                          ),
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.zero,
+                          ),
+                        ),
+                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 2,
+                          ),
+                          title: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  l10n.bigIslandMinWidthTitle,
+                                  style: titleStyle,
+                                ),
+                              ),
+                              Text(
+                                _bigIslandMinWidthDraft > 0
+                                    ? l10n.bigIslandMinWidthLabel(_bigIslandMinWidthDraft)
+                                    : '-',
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(color: cs.onSurfaceVariant),
+                              ),
+                              if (_bigIslandMinWidthDraft != 0)
+                                SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: IconButton(
+                                    icon: const Icon(Icons.refresh, size: 18),
+                                    padding: EdgeInsets.zero,
+                                    visualDensity: VisualDensity.compact,
+                                    onPressed: InteractionHaptics.interceptButton(
+                                      () {
+                                        setState(() => _bigIslandMinWidthDraft = 0);
+                                        _ctrl.setBigIslandMinWidth(0);
+                                      },
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          subtitle: SliderTheme(
+                            data: ModernSliderTheme.theme(context),
+                            child: Slider(
+                              value: _bigIslandMinWidthDraft.toDouble().clamp(0, 500),
+                              min: 0,
+                              max: 500,
+                              divisions: 100,
+                              onChanged: InteractionHaptics.interceptSlider(
+                                (v) {
+                                  final next = v.round();
+                                  if (_bigIslandMinWidthDraft == next) return;
+                                  setState(() => _bigIslandMinWidthDraft = next);
+                                },
+                              ),
+                              onChangeEnd: (v) async {
+                                final next = v.round();
+                                if (_ctrl.bigIslandMinWidth == next) return;
+                                await _ctrl.setBigIslandMinWidth(next);
+                              },
+                            ),
+                          ),
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.vertical(
+                              bottom: Radius.circular(16),
+                            ),
+                          ),
+                        ),
                       ],
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Card(
-                    elevation: 0,
-                    color: cs.surfaceContainerHighest,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: SwitchListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 4,
-                      ),
-                      title: Text(l10n.bigIslandMaxWidthTitle, style: titleStyle),
-                      subtitle: Text(
-                        l10n.bigIslandMaxWidthSubtitle,
-                        style: Theme.of(context).textTheme.bodySmall
-                            ?.copyWith(color: cs.onSurfaceVariant),
-                      ),
-                      value: _ctrl.bigIslandMaxWidthEnabled,
-                      onChanged: InteractionHaptics.interceptToggle(
-                        (v) => _ctrl.setBigIslandMaxWidthEnabled(v),
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
                     ),
                   ),
                   const SizedBox(height: 8),

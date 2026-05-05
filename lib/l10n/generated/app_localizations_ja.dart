@@ -244,12 +244,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get alreadyLatest => '最新のバージョンを使用しています';
 
   @override
-  String get useAppIconTitle => 'アプリアイコンを使用';
-
-  @override
-  String get useAppIconSubtitle => 'ダウンロードマネージャーの通知にアプリアイコンを使用します';
-
-  @override
   String get roundIconTitle => 'アイコンの角を丸める';
 
   @override
@@ -267,7 +261,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get bigIslandMaxWidthTitle => '修改超级岛最大宽度';
+  String get bigIslandMaxWidthTitle => '最大宽度';
 
   @override
   String bigIslandMaxWidthLabel(int width) {
@@ -275,7 +269,15 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get bigIslandMaxWidthSubtitle => '开启后修改超级岛的最大宽度';
+  String get bigIslandMinWidthTitle => '最小宽度';
+
+  @override
+  String bigIslandMinWidthLabel(int width) {
+    return '$width dp';
+  }
+
+  @override
+  String get testNotifTooltip => '发送测试通知';
 
   @override
   String get themeModeTitle => 'カラーモード';
@@ -1283,5 +1285,11 @@ class AppLocalizationsJa extends AppLocalizations {
   String get backupRestoreSection => 'バックアップと復元';
 
   @override
-  String get downloadManagerSection => 'ダウンロードマネージャー';
+  String get hookExtensionSection => 'Hook拡張';
+
+  @override
+  String get hookScopeSystemUI => 'システムUI';
+
+  @override
+  String get hookScopeXMSF => 'Xiaomiサービスフレームワーク (XMSF)';
 }

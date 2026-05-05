@@ -10,7 +10,7 @@ import 'island_sub/island_appearance_page.dart';
 import 'island_sub/island_other_page.dart';
 import 'island_sub/misc_page.dart';
 import 'island_sub/backup_restore_page.dart';
-import 'island_sub/download_manager_page.dart';
+import 'island_sub/hook_extension_page.dart';
 import 'island_sub/default_config_page.dart';
 import 'ai_config_page.dart';
 import 'blacklist_page.dart';
@@ -233,7 +233,6 @@ class _SettingsPageState extends State<SettingsPage> {
                         _MenuTile(
                           icon: Icons.tune,
                           title: l10n.defaultConfigSection,
-                          isLast: true,
                           onTap: InteractionHaptics.interceptButton(
                             () => Navigator.push(
                               context,
@@ -247,6 +246,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         _MenuTile(
                           icon: Icons.more_horiz,
                           title: l10n.islandOtherSection,
+                          isLast: true,
                           onTap: InteractionHaptics.interceptButton(
                                 () => Navigator.push(
                               context,
@@ -285,8 +285,8 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  // 下载管理器
-                  _SectionLabel(l10n.downloadManagerSection),
+                  // Hook拓展
+                  _SectionLabel(l10n.hookExtensionSection),
                   const SizedBox(height: 8),
                   Card(
                     elevation: 0,
@@ -295,15 +295,15 @@ class _SettingsPageState extends State<SettingsPage> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: _MenuTile(
-                      icon: Icons.download_outlined,
-                      title: l10n.downloadManagerSection,
+                      icon: Icons.extension_outlined,
+                      title: l10n.hookExtensionSection,
                       isFirst: true,
                       isLast: true,
                       onTap: InteractionHaptics.interceptButton(
                         () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => const DownloadManagerPage(),
+                            builder: (_) => const HookExtensionPage(),
                           ),
                         ),
                       ),

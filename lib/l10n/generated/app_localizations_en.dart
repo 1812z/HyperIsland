@@ -257,13 +257,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get alreadyLatest => 'Already on the latest version';
 
   @override
-  String get useAppIconTitle => 'Use App Icon';
-
-  @override
-  String get useAppIconSubtitle =>
-      'Use the app icon for download manager notifications';
-
-  @override
   String get roundIconTitle => 'Round icon corners';
 
   @override
@@ -281,7 +274,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get bigIslandMaxWidthTitle => 'Modify Super Island Max Width';
+  String get bigIslandMaxWidthTitle => 'Max Width';
 
   @override
   String bigIslandMaxWidthLabel(int width) {
@@ -289,8 +282,15 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get bigIslandMaxWidthSubtitle =>
-      'Enable to modify the maximum width of super island';
+  String get bigIslandMinWidthTitle => 'Min Width';
+
+  @override
+  String bigIslandMinWidthLabel(int width) {
+    return '$width dp';
+  }
+
+  @override
+  String get testNotifTooltip => 'Send test notification';
 
   @override
   String get themeModeTitle => 'Color mode';
@@ -1328,5 +1328,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupRestoreSection => 'Backup & Restore';
 
   @override
-  String get downloadManagerSection => 'Download Manager';
+  String get hookExtensionSection => 'Hook Extension';
+
+  @override
+  String get hookScopeSystemUI => 'System UI';
+
+  @override
+  String get hookScopeXMSF => 'Xiaomi Service Framework (XMSF)';
 }

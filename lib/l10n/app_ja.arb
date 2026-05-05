@@ -100,8 +100,7 @@
   "interactionHapticsSubtitle": "スイッチ、スライダー、ボタンに Hyper カスタム振動フィードバックを有効にします",
   "checkUpdate": "更新を確認",
   "alreadyLatest": "最新のバージョンを使用しています",
-  "useAppIconTitle": "アプリアイコンを使用",
-  "useAppIconSubtitle": "ダウンロードマネージャーの通知にアプリアイコンを使用します",
+  
   "roundIconTitle": "アイコンの角を丸める",
   "roundIconSubtitle": "通知アイコンの角を丸めます",
   "marqueeChannelTitle": "Island のテキストをスクロール",
@@ -394,5 +393,7 @@
 "islandOtherSection": "その他",
 "miscSection": "その他の設定",
 "backupRestoreSection": "バックアップと復元",
-"downloadManagerSection": "ダウンロードマネージャー"
+"hookExtensionSection": "Hook拡張",
+  "hookScopeSystemUI": "システムUI",
+  "hookScopeXMSF": "Xiaomiサービスフレームワーク (XMSF)"
 }

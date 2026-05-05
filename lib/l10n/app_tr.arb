@@ -107,8 +107,7 @@
   "interactionHapticsSubtitle": "Anahtarlar, kaydırıcılar ve düğmeler için Hyper özel dokunsal geri bildirimi etkinleştir",
   "checkUpdate": "Güncellemeleri Denetle",
   "alreadyLatest": "Zaten en güncel sürümdesiniz",
-  "useAppIconTitle": "Uygulama simgesini kullan",
-  "useAppIconSubtitle": "İndirme yöneticisi bildirimleri için uygulama simgesini kullan",
+  
   "roundIconTitle": "Simge Köşelerini Yuvarla",
   "roundIconSubtitle": "Bildirim simgelerine yuvarlatılmış köşe uygular.",
   "marqueeChannelTitle": "Ada Metnini Kaydır",
@@ -502,5 +501,7 @@
 "islandOtherSection": "Diğer",
 "miscSection": "Çeşitli",
 "backupRestoreSection": "Yedekleme ve Geri Yükleme",
-"downloadManagerSection": "İndirme Yöneticisi"
+"hookExtensionSection": "Hook Uzantısı",
+  "hookScopeSystemUI": "Sistem UI",
+  "hookScopeXMSF": "Xiaomi Servis Çerçevesi (XMSF)"
 }

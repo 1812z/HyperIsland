@@ -102,8 +102,7 @@
   "interactionHapticsSubtitle": "Enable Hyper custom haptic feedback for switches, sliders, and buttons",
   "checkUpdate": "Check for updates",
   "alreadyLatest": "Already on the latest version",
-  "useAppIconTitle": "Use App Icon",
-  "useAppIconSubtitle": "Use the app icon for download manager notifications",
+  
   "roundIconTitle": "Round icon corners",
   "roundIconSubtitle": "Add rounded corners to notification icons",
   "marqueeChannelTitle": "Text Scrolling Island",
@@ -114,14 +113,21 @@
       "speed": { "type": "int" }
     }
   },
-  "bigIslandMaxWidthTitle": "Modify Super Island Max Width",
+  "bigIslandMaxWidthTitle": "Max Width",
   "bigIslandMaxWidthLabel": "{width} dp",
   "@bigIslandMaxWidthLabel": {
     "placeholders": {
       "width": { "type": "int" }
     }
   },
-  "bigIslandMaxWidthSubtitle": "Enable to modify the maximum width of super island",
+  "bigIslandMinWidthTitle": "Min Width",
+  "bigIslandMinWidthLabel": "{width} dp",
+  "@bigIslandMinWidthLabel": {
+    "placeholders": {
+      "width": { "type": "int" }
+    }
+  },
+  "testNotifTooltip": "Send test notification",
   "themeModeTitle": "Color mode",
   "themeModeSystem": "Follow system",
   "themeModeLight": "Light",
@@ -487,5 +493,7 @@
   "islandOtherSection": "Other",
   "miscSection": "Misc",
   "backupRestoreSection": "Backup & Restore",
-  "downloadManagerSection": "Download Manager"
+  "hookExtensionSection": "Hook Extension",
+  "hookScopeSystemUI": "System UI",
+  "hookScopeXMSF": "Xiaomi Service Framework (XMSF)"
 }

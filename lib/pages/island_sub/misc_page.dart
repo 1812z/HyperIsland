@@ -16,8 +16,6 @@ class _MiscPageState extends State<MiscPage> {
 
   int _buildUiStateHash() => Object.hashAll([
         _ctrl.interactionHaptics,
-        _ctrl.unlockAllFocus,
-        _ctrl.unlockFocusAuth,
         _ctrl.showWelcome,
         _ctrl.hideDesktopIcon,
         _ctrl.checkUpdateOnLaunch,
@@ -93,34 +91,6 @@ class _MiscPageState extends State<MiscPage> {
                             borderRadius: BorderRadius.vertical(
                               top: Radius.circular(16),
                             ),
-                          ),
-                        ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        SwitchListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          title: Text(l10n.unlockAllFocusTitle,
-                              style: titleStyle),
-                          subtitle: Text(l10n.unlockAllFocusSubtitle),
-                          value: _ctrl.unlockAllFocus,
-                          onChanged: InteractionHaptics.interceptToggle(
-                            (value) => _ctrl.setUnlockAllFocus(value),
-                          ),
-                        ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        SwitchListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          title: Text(l10n.unlockFocusAuthTitle,
-                              style: titleStyle),
-                          subtitle: Text(l10n.unlockFocusAuthSubtitle),
-                          value: _ctrl.unlockFocusAuth,
-                          onChanged: InteractionHaptics.interceptToggle(
-                            (value) => _ctrl.setUnlockFocusAuth(value),
                           ),
                         ),
                         const Divider(height: 1, indent: 16, endIndent: 16),

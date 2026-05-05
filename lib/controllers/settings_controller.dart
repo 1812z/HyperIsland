@@ -8,13 +8,13 @@ import 'whitelist_controller.dart';
 
 const kPrefShowWelcome = 'pref_show_welcome';
 const kPrefResumeNotification = 'pref_resume_notification';
-const kPrefUseHookAppIcon = 'pref_use_hook_app_icon';
+
 const kPrefInteractionHaptics = 'pref_interaction_haptics';
 const kPrefRoundIcon = 'pref_round_icon';
 const kPrefMarqueeFeature = 'pref_marquee_feature';
 const kPrefMarqueeSpeed = 'pref_marquee_speed';
-const kPrefBigIslandMaxWidthEnabled = 'pref_big_island_max_width_enabled';
 const kPrefBigIslandMaxWidth = 'pref_big_island_max_width';
+const kPrefBigIslandMinWidth = 'pref_big_island_min_width';
 const kPrefUnlockAllFocus = 'pref_unlock_all_focus';
 const kPrefUnlockFocusAuth = 'pref_unlock_focus_auth';
 const kPrefThemeMode = 'pref_theme_mode';
@@ -120,13 +120,12 @@ class SettingsController extends ChangeNotifier {
 
   bool showWelcome = true;
   bool resumeNotification = true;
-  bool useHookAppIcon = true;
   bool interactionHaptics = true;
   bool roundIcon = true;
   bool marqueeFeature = false;
   int marqueeSpeed = 100;
-  bool bigIslandMaxWidthEnabled = false;
-  int bigIslandMaxWidth = 200;
+  int bigIslandMaxWidth = 0;
+  int bigIslandMinWidth = 0;
   bool unlockAllFocus = false;
   bool unlockFocusAuth = false;
   bool checkUpdateOnLaunch = true;
@@ -177,14 +176,12 @@ class SettingsController extends ChangeNotifier {
     final prefs = await _getPrefs();
     showWelcome = prefs.getBool(kPrefShowWelcome) ?? true;
     resumeNotification = prefs.getBool(kPrefResumeNotification) ?? true;
-    useHookAppIcon = prefs.getBool(kPrefUseHookAppIcon) ?? true;
     interactionHaptics = prefs.getBool(kPrefInteractionHaptics) ?? true;
     roundIcon = prefs.getBool(kPrefRoundIcon) ?? true;
     marqueeFeature = prefs.getBool(kPrefMarqueeFeature) ?? false;
     marqueeSpeed = prefs.getInt(kPrefMarqueeSpeed) ?? 100;
-    bigIslandMaxWidthEnabled =
-        prefs.getBool(kPrefBigIslandMaxWidthEnabled) ?? false;
-    bigIslandMaxWidth = prefs.getInt(kPrefBigIslandMaxWidth) ?? 200;
+    bigIslandMaxWidth = prefs.getInt(kPrefBigIslandMaxWidth) ?? 0;
+    bigIslandMinWidth = prefs.getInt(kPrefBigIslandMinWidth) ?? 0;
     unlockAllFocus = prefs.getBool(kPrefUnlockAllFocus) ?? false;
     unlockFocusAuth = prefs.getBool(kPrefUnlockFocusAuth) ?? false;
     checkUpdateOnLaunch = prefs.getBool(kPrefCheckUpdateOnLaunch) ?? true;
@@ -258,14 +255,6 @@ class SettingsController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setUseHookAppIcon(bool value) async {
-    if (useHookAppIcon == value) return;
-    final prefs = await _getPrefs();
-    await prefs.setBool(kPrefUseHookAppIcon, value);
-    useHookAppIcon = value;
-    notifyListeners();
-  }
-
   Future<void> setInteractionHaptics(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(kPrefInteractionHaptics, value);
@@ -298,20 +287,25 @@ class SettingsController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setBigIslandMaxWidthEnabled(bool value) async {
-    if (bigIslandMaxWidthEnabled == value) return;
-    final prefs = await _getPrefs();
-    await prefs.setBool(kPrefBigIslandMaxWidthEnabled, value);
-    bigIslandMaxWidthEnabled = value;
-    notifyListeners();
-  }
-
   Future<void> setBigIslandMaxWidth(int value) async {
-    final clamped = value.clamp(50, 500);
+    final clamped = value.clamp(0, 500);
     if (bigIslandMaxWidth == clamped) return;
     final prefs = await _getPrefs();
     await prefs.setInt(kPrefBigIslandMaxWidth, clamped);
     bigIslandMaxWidth = clamped;
+    notifyListeners();
+  }
+
+  Future<void> setBigIslandMinWidth(int value) async {
+    final clamped = value.clamp(0, 500);
+    if (bigIslandMinWidth == clamped) return;
+    final prefs = await _getPrefs();
+    if (clamped <= 0) {
+      await prefs.remove(kPrefBigIslandMinWidth);
+    } else {
+      await prefs.setInt(kPrefBigIslandMinWidth, clamped);
+    }
+    bigIslandMinWidth = clamped;
     notifyListeners();
   }
 

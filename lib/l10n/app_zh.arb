@@ -110,7 +110,7 @@
   "unlockAllFocusTitle": "移除焦点通知白名单",
   "unlockAllFocusSubtitle": "允许所有应用发送焦点通知，无需系统授权",
   "unlockFocusAuthTitle": "移除焦点通知签名验证",
-  "unlockFocusAuthSubtitle": "允许所有应用向手表/手环发送焦点通知，跳过签名校验（需 Hook 小米服务框架）",
+  "unlockFocusAuthSubtitle": "XMSF（小米服务框架）去除校验",
   "checkUpdateOnLaunchTitle": "启动时检查更新",
   "checkUpdateOnLaunchSubtitle": "启动应用时自动检查是否有新版本",
   "showWelcomeTitle": "显示启动欢迎语",
@@ -119,8 +119,7 @@
   "interactionHapticsSubtitle": "为开关、滑块和按钮启用 Hyper 定制震感反馈",
   "checkUpdate": "检查更新",
   "alreadyLatest": "已是最新版本",
-  "useAppIconTitle": "使用应用图标",
-  "useAppIconSubtitle": "下载管理器通知使用应用图标",
+  
   "roundIconTitle": "图标圆角",
   "roundIconSubtitle": "为通知图标添加圆角效果",
   "marqueeChannelTitle": "消息滚动",
@@ -133,7 +132,7 @@
       }
     }
   },
-  "bigIslandMaxWidthTitle": "修改超级岛最大宽度",
+  "bigIslandMaxWidthTitle": "最大宽度",
   "bigIslandMaxWidthLabel": "{width} dp",
   "@bigIslandMaxWidthLabel": {
     "placeholders": {
@@ -142,7 +141,16 @@
       }
     }
   },
-  "bigIslandMaxWidthSubtitle": "开启后修改超级岛的最大宽度",
+  "bigIslandMinWidthTitle": "最小宽度",
+  "bigIslandMinWidthLabel": "{width} dp",
+  "@bigIslandMinWidthLabel": {
+    "placeholders": {
+      "width": {
+        "type": "int"
+      }
+    }
+  },
+  "testNotifTooltip": "发送测试通知",
   "themeModeTitle": "颜色模式",
   "themeModeSystem": "跟随系统",
   "themeModeLight": "浅色",
@@ -652,5 +660,7 @@
   "islandOtherSection": "其他",
   "miscSection": "杂项",
   "backupRestoreSection": "备份与恢复",
-  "downloadManagerSection": "下载管理器"
+  "hookExtensionSection": "Hook拓展",
+  "hookScopeSystemUI": "系统界面",
+  "hookScopeXMSF": "小米服务框架"
 }

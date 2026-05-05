@@ -489,7 +489,7 @@ abstract class AppLocalizations {
   /// No description provided for @unlockFocusAuthSubtitle.
   ///
   /// In zh, this message translates to:
-  /// **'允许所有应用向手表/手环发送焦点通知，跳过签名校验（需 Hook 小米服务框架）'**
+  /// **'XMSF（小米服务框架）去除校验'**
   String get unlockFocusAuthSubtitle;
 
   /// No description provided for @checkUpdateOnLaunchTitle.
@@ -540,18 +540,6 @@ abstract class AppLocalizations {
   /// **'已是最新版本'**
   String get alreadyLatest;
 
-  /// No description provided for @useAppIconTitle.
-  ///
-  /// In zh, this message translates to:
-  /// **'使用应用图标'**
-  String get useAppIconTitle;
-
-  /// No description provided for @useAppIconSubtitle.
-  ///
-  /// In zh, this message translates to:
-  /// **'下载管理器通知使用应用图标'**
-  String get useAppIconSubtitle;
-
   /// No description provided for @roundIconTitle.
   ///
   /// In zh, this message translates to:
@@ -585,7 +573,7 @@ abstract class AppLocalizations {
   /// No description provided for @bigIslandMaxWidthTitle.
   ///
   /// In zh, this message translates to:
-  /// **'修改超级岛最大宽度'**
+  /// **'最大宽度'**
   String get bigIslandMaxWidthTitle;
 
   /// No description provided for @bigIslandMaxWidthLabel.
@@ -594,11 +582,23 @@ abstract class AppLocalizations {
   /// **'{width} dp'**
   String bigIslandMaxWidthLabel(int width);
 
-  /// No description provided for @bigIslandMaxWidthSubtitle.
+  /// No description provided for @bigIslandMinWidthTitle.
   ///
   /// In zh, this message translates to:
-  /// **'开启后修改超级岛的最大宽度'**
-  String get bigIslandMaxWidthSubtitle;
+  /// **'最小宽度'**
+  String get bigIslandMinWidthTitle;
+
+  /// No description provided for @bigIslandMinWidthLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'{width} dp'**
+  String bigIslandMinWidthLabel(int width);
+
+  /// No description provided for @testNotifTooltip.
+  ///
+  /// In zh, this message translates to:
+  /// **'发送测试通知'**
+  String get testNotifTooltip;
 
   /// No description provided for @themeModeTitle.
   ///
@@ -2478,11 +2478,23 @@ abstract class AppLocalizations {
   /// **'备份与恢复'**
   String get backupRestoreSection;
 
-  /// No description provided for @downloadManagerSection.
+  /// No description provided for @hookExtensionSection.
   ///
   /// In zh, this message translates to:
-  /// **'下载管理器'**
-  String get downloadManagerSection;
+  /// **'Hook拓展'**
+  String get hookExtensionSection;
+
+  /// No description provided for @hookScopeSystemUI.
+  ///
+  /// In zh, this message translates to:
+  /// **'系统界面'**
+  String get hookScopeSystemUI;
+
+  /// No description provided for @hookScopeXMSF.
+  ///
+  /// In zh, this message translates to:
+  /// **'小米服务框架'**
+  String get hookScopeXMSF;
 }
 
 class _AppLocalizationsDelegate

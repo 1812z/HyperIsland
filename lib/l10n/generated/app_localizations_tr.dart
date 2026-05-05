@@ -258,13 +258,6 @@ class AppLocalizationsTr extends AppLocalizations {
   String get alreadyLatest => 'Zaten en güncel sürümdesiniz';
 
   @override
-  String get useAppIconTitle => 'Uygulama simgesini kullan';
-
-  @override
-  String get useAppIconSubtitle =>
-      'İndirme yöneticisi bildirimleri için uygulama simgesini kullan';
-
-  @override
   String get roundIconTitle => 'Simge Köşelerini Yuvarla';
 
   @override
@@ -283,7 +276,7 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get bigIslandMaxWidthTitle => '修改超级岛最大宽度';
+  String get bigIslandMaxWidthTitle => '最大宽度';
 
   @override
   String bigIslandMaxWidthLabel(int width) {
@@ -291,7 +284,15 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get bigIslandMaxWidthSubtitle => '开启后修改超级岛的最大宽度';
+  String get bigIslandMinWidthTitle => '最小宽度';
+
+  @override
+  String bigIslandMinWidthLabel(int width) {
+    return '$width dp';
+  }
+
+  @override
+  String get testNotifTooltip => '发送测试通知';
 
   @override
   String get themeModeTitle => 'Tema';
@@ -1327,5 +1328,11 @@ class AppLocalizationsTr extends AppLocalizations {
   String get backupRestoreSection => 'Yedekleme ve Geri Yükleme';
 
   @override
-  String get downloadManagerSection => 'İndirme Yöneticisi';
+  String get hookExtensionSection => 'Hook Uzantısı';
+
+  @override
+  String get hookScopeSystemUI => 'Sistem UI';
+
+  @override
+  String get hookScopeXMSF => 'Xiaomi Servis Çerçevesi (XMSF)';
 }

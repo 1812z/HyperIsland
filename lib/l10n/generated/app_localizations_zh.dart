@@ -213,8 +213,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get unlockFocusAuthTitle => '移除焦点通知签名验证';
 
   @override
-  String get unlockFocusAuthSubtitle =>
-      '允许所有应用向手表/手环发送焦点通知，跳过签名校验（需 Hook 小米服务框架）';
+  String get unlockFocusAuthSubtitle => 'XMSF（小米服务框架）去除校验';
 
   @override
   String get checkUpdateOnLaunchTitle => '启动时检查更新';
@@ -241,12 +240,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get alreadyLatest => '已是最新版本';
 
   @override
-  String get useAppIconTitle => '使用应用图标';
-
-  @override
-  String get useAppIconSubtitle => '下载管理器通知使用应用图标';
-
-  @override
   String get roundIconTitle => '图标圆角';
 
   @override
@@ -264,7 +257,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get bigIslandMaxWidthTitle => '修改超级岛最大宽度';
+  String get bigIslandMaxWidthTitle => '最大宽度';
 
   @override
   String bigIslandMaxWidthLabel(int width) {
@@ -272,7 +265,15 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get bigIslandMaxWidthSubtitle => '开启后修改超级岛的最大宽度';
+  String get bigIslandMinWidthTitle => '最小宽度';
+
+  @override
+  String bigIslandMinWidthLabel(int width) {
+    return '$width dp';
+  }
+
+  @override
+  String get testNotifTooltip => '发送测试通知';
 
   @override
   String get themeModeTitle => '颜色模式';
@@ -1269,5 +1270,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupRestoreSection => '备份与恢复';
 
   @override
-  String get downloadManagerSection => '下载管理器';
+  String get hookExtensionSection => 'Hook拓展';
+
+  @override
+  String get hookScopeSystemUI => '系统界面';
+
+  @override
+  String get hookScopeXMSF => '小米服务框架';
 }
