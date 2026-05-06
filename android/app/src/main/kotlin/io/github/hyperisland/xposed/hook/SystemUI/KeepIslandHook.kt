@@ -94,7 +94,13 @@ object KeepIslandHook : BaseHook() {
         val clId = System.identityHashCode(classLoader)
         if (!hookedAnimationClassLoaders.add(clId)) return
         try {
-            val clazz = classLoader.loadClass(ANIMATION_CONTROLLER_CLASS)
+            val clazz = try {
+                classLoader.loadClass(ANIMATION_CONTROLLER_CLASS)
+            } catch (_: ClassNotFoundException) {
+                hookedAnimationClassLoaders.remove(clId)
+                //log(module, "animation controller not found in cl=$clId, skipped")
+                return
+            }
             val methods = clazz.declaredMethods.filter {
                 it.name == "onStateChange" && it.parameterCount >= 1
             }
@@ -110,6 +116,7 @@ object KeepIslandHook : BaseHook() {
             }
             log(module, "hooked onStateChange (cl=$clId, methods=${methods.size})")
         } catch (e: Throwable) {
+            hookedAnimationClassLoaders.remove(clId)
             logError(module, "animation controller hook failed cl=$clId: ${e.message}")
         }
     }
