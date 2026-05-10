@@ -2,9 +2,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../l10n/generated/app_localizations.dart';
@@ -22,10 +20,10 @@ class IslandBgEditResult {
   });
 
   final String sourcePath;
-  final double blur;       // 0~5
+  final double blur; // 0~5
   final double brightness; // -1.0~1.0
-  final double opacity;    // 0.0~1.0
-  final Rect? cropRect;    // null = 不裁剪
+  final double opacity; // 0.0~1.0
+  final Rect? cropRect; // null = 不裁剪
 }
 
 /// 背景编辑弹窗，支持模糊、亮度、透明度调节
@@ -37,18 +35,12 @@ Future<IslandBgEditResult?> showIslandBgEditDialog({
   return showDialog<IslandBgEditResult>(
     context: context,
     barrierDismissible: false,
-    builder: (ctx) => _IslandBgEditDialog(
-      imagePath: imagePath,
-      type: type,
-    ),
+    builder: (ctx) => _IslandBgEditDialog(imagePath: imagePath, type: type),
   );
 }
 
 class _IslandBgEditDialog extends StatefulWidget {
-  const _IslandBgEditDialog({
-    required this.imagePath,
-    required this.type,
-  });
+  const _IslandBgEditDialog({required this.imagePath, required this.type});
 
   final String imagePath;
   final IslandBgType type;
@@ -62,12 +54,9 @@ class _IslandBgEditDialogState extends State<_IslandBgEditDialog> {
   late double _brightness;
   late double _opacity;
 
-  // 裁剪
-  bool _cropping = false;
   Rect? _cropRect;
+  Size? _imageSize;
 
-  // 图片信息
-  Size _imageSize = Size.zero;
   bool _loading = true;
 
   // 处理中
@@ -132,13 +121,15 @@ class _IslandBgEditDialogState extends State<_IslandBgEditDialog> {
       if (!mounted) return;
 
       if (tempPath != null) {
-        Navigator.of(context).pop(IslandBgEditResult(
-          sourcePath: tempPath,
-          blur: 0,
-          brightness: 0,
-          opacity: 1.0,
-          cropRect: null,
-        ));
+        Navigator.of(context).pop(
+          IslandBgEditResult(
+            sourcePath: tempPath,
+            blur: 0,
+            brightness: 0,
+            opacity: 1.0,
+            cropRect: null,
+          ),
+        );
       } else {
         setState(() => _processing = false);
         Navigator.of(context).pop(result);
@@ -157,10 +148,7 @@ class _IslandBgEditDialogState extends State<_IslandBgEditDialog> {
 
     // 岛背景无需 4K，限制最大 2048px
     const maxDim = 2048;
-    final codec = await ui.instantiateImageCodec(
-      bytes,
-      allowUpscaling: false,
-    );
+    final codec = await ui.instantiateImageCodec(bytes, allowUpscaling: false);
     final frame = await codec.getNextFrame();
     var source = frame.image;
     final origW = source.width;
@@ -173,7 +161,10 @@ class _IslandBgEditDialogState extends State<_IslandBgEditDialog> {
       final targetH = (origH * scale).toInt();
 
       final rec = ui.PictureRecorder();
-      final canvas = Canvas(rec, Rect.fromLTWH(0, 0, targetW.toDouble(), targetH.toDouble()));
+      final canvas = Canvas(
+        rec,
+        Rect.fromLTWH(0, 0, targetW.toDouble(), targetH.toDouble()),
+      );
       canvas.drawImageRect(
         source,
         Rect.fromLTWH(0, 0, origW.toDouble(), origH.toDouble()),
@@ -192,7 +183,10 @@ class _IslandBgEditDialogState extends State<_IslandBgEditDialog> {
     ui.Image opaqueImage;
     if (result.blur > 0) {
       final rec = ui.PictureRecorder();
-      final canvas = Canvas(rec, Rect.fromLTWH(0, 0, w.toDouble(), h.toDouble()));
+      final canvas = Canvas(
+        rec,
+        Rect.fromLTWH(0, 0, w.toDouble(), h.toDouble()),
+      );
       // 黑底
       canvas.drawRect(
         Rect.fromLTWH(0, 0, w.toDouble(), h.toDouble()),
@@ -238,17 +232,17 @@ class _IslandBgEditDialogState extends State<_IslandBgEditDialog> {
     final filteredImage = await picture.toImage(w, h);
 
     // 步骤3：编码 PNG
-    final byteData = await filteredImage.toByteData(format: ui.ImageByteFormat.png);
+    final byteData = await filteredImage.toByteData(
+      format: ui.ImageByteFormat.png,
+    );
     filteredImage.dispose();
 
     if (byteData == null) return null;
 
     // 步骤4：保存到临时文件
     final tempDir = await getTemporaryDirectory();
-    final tempPath = p.join(
-      tempDir.path,
-      'hyperisland_bg_processed_${DateTime.now().millisecondsSinceEpoch}.png',
-    );
+    final tempPath =
+        '${tempDir.path}${Platform.pathSeparator}hyperisland_bg_processed_${DateTime.now().millisecondsSinceEpoch}.png';
     await File(tempPath).writeAsBytes(byteData.buffer.asUint8List());
     return tempPath;
   }
@@ -278,8 +272,9 @@ class _IslandBgEditDialogState extends State<_IslandBgEditDialog> {
                 ),
                 IconButton(
                   icon: const Icon(Icons.close),
-                  onPressed:
-                      _processing ? null : () => Navigator.of(context).pop(),
+                  onPressed: _processing
+                      ? null
+                      : () => Navigator.of(context).pop(),
                 ),
               ],
             ),
@@ -305,13 +300,13 @@ class _IslandBgEditDialogState extends State<_IslandBgEditDialog> {
                     value: _blur,
                     min: 0,
                     max: 5,
-                    displayText:
-                        _blur <= 0 ? l10n.islandBgOff : _blur.toStringAsFixed(1),
+                    displayText: _blur <= 0
+                        ? l10n.islandBgOff
+                        : _blur.toStringAsFixed(1),
                     onChanged: _processing
                         ? null
                         : (v) => setState(() => _blur = v),
                   ),
-                  const SizedBox(height: 8),
                   _SliderRow(
                     label: l10n.islandBgBrightnessLabel,
                     value: _brightness,
@@ -320,7 +315,7 @@ class _IslandBgEditDialogState extends State<_IslandBgEditDialog> {
                     displayText: _brightness == 0
                         ? l10n.islandBgDefault
                         : (_brightness > 0 ? '+' : '') +
-                            _brightness.toStringAsFixed(2),
+                              _brightness.toStringAsFixed(2),
                     onChanged: _processing
                         ? null
                         : (v) => setState(() => _brightness = v),
@@ -331,7 +326,7 @@ class _IslandBgEditDialogState extends State<_IslandBgEditDialog> {
                     value: _opacity,
                     min: 0,
                     max: 1,
-                    displayText: (_opacity * 100).toStringAsFixed(0) + '%',
+                    displayText: '${(_opacity * 100).toStringAsFixed(0)}%',
                     onChanged: _processing
                         ? null
                         : (v) => setState(() => _opacity = v),
@@ -348,8 +343,9 @@ class _IslandBgEditDialogState extends State<_IslandBgEditDialog> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton(
-                  onPressed:
-                      _processing ? null : () => Navigator.of(context).pop(),
+                  onPressed: _processing
+                      ? null
+                      : () => Navigator.of(context).pop(),
                   child: Text(l10n.cancel),
                 ),
                 const SizedBox(width: 8),
@@ -382,17 +378,14 @@ class _IslandBgEditDialogState extends State<_IslandBgEditDialog> {
           color: cs.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(12),
         ),
-        child:
-            const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
       );
     }
 
     return Container(
       height: 160,
       clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
       child: LayoutBuilder(
         builder: (context, constraints) {
           return _FilteredImagePreview(
@@ -401,6 +394,7 @@ class _IslandBgEditDialogState extends State<_IslandBgEditDialog> {
             brightness: _brightness,
             opacity: _opacity,
             containerSize: Size(constraints.maxWidth, 160),
+            imageSize: _imageSize!,
           );
         },
       ),
@@ -416,6 +410,7 @@ class _FilteredImagePreview extends StatelessWidget {
     required this.brightness,
     required this.opacity,
     required this.containerSize,
+    required this.imageSize,
   });
 
   final String imagePath;
@@ -423,6 +418,7 @@ class _FilteredImagePreview extends StatelessWidget {
   final double brightness;
   final double opacity;
   final Size containerSize;
+  final Size imageSize;
 
   @override
   Widget build(BuildContext context) {
@@ -436,14 +432,18 @@ class _FilteredImagePreview extends StatelessWidget {
   }
 
   Widget _buildFilteredImage() {
+    final fitted = applyBoxFit(BoxFit.contain, imageSize, containerSize);
+    final cacheWidth = fitted.destination.width.ceil().clamp(1, 4096);
+    final cacheHeight = fitted.destination.height.ceil().clamp(1, 4096);
+
     // 降采样加速预览（容器仅 160px 高）
     Widget image = Image.file(
       File(imagePath),
-      fit: BoxFit.cover,
+      fit: BoxFit.contain,
       width: containerSize.width,
       height: containerSize.height,
-      cacheWidth: 360,
-      cacheHeight: 200,
+      cacheWidth: cacheWidth,
+      cacheHeight: cacheHeight,
     );
 
     // 模糊
@@ -519,9 +519,9 @@ class _SliderRow extends StatelessWidget {
           width: 48,
           child: Text(
             displayText,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: cs.onSurfaceVariant,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
             textAlign: TextAlign.end,
           ),
         ),
