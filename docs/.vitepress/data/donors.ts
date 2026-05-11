@@ -89,5 +89,11 @@ export const donors: DonorItem[] = [
     amount: '10',
     date: '2026-05-06',
     message: 'HyperIsland你的超级岛项目使用好久了支持'
+  },
+  {
+    name: '杨德玉',
+    amount: '2',
+    date: '2026-05-11',
+    message: '好用'
   }
 ]
