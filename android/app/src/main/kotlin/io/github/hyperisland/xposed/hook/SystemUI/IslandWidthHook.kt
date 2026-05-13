@@ -1,6 +1,8 @@
-package io.github.hyperisland.xposed.hook
+package io.github.hyperisland.xposed.hook.SystemUI
 
+import android.content.res.Resources
 import io.github.hyperisland.xposed.ConfigManager
+import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import io.github.libxposed.api.XposedModule
@@ -23,7 +25,7 @@ object BigIslandMinWidthHook : BaseHook() {
     private var hookedGetBigIslandMinWidth = false
 
     private fun dpToPx(dp: Int): Float {
-        val density = android.content.res.Resources.getSystem().displayMetrics.density
+        val density = Resources.getSystem().displayMetrics.density
         return dp * density
     }
 
