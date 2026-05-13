@@ -1416,6 +1416,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get hookExtensionSection => 'Hook拓展';
 
   @override
+  String get hookScopeSettings => '系统设置';
+
+  @override
+  String get settingsHomeEntryTitle => '系统设置入口';
+
+  @override
+  String get settingsHomeEntrySubtitle =>
+      '在系统设置首页显示 HyperIsland 入口，关闭后完全不注入该 Hook';
+
+  @override
   String get hookScopeSystemUI => '系统界面';
 
   @override

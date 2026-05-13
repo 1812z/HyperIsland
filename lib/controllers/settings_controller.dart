@@ -8,6 +8,7 @@ import 'whitelist_controller.dart';
 
 const kPrefShowWelcome = 'pref_show_welcome';
 const kPrefResumeNotification = 'pref_resume_notification';
+const kPrefSettingsHomeEntry = 'pref_settings_home_entry';
 
 const kPrefInteractionHaptics = 'pref_interaction_haptics';
 const kPrefRoundIcon = 'pref_round_icon';
@@ -122,6 +123,7 @@ class SettingsController extends ChangeNotifier {
 
   bool showWelcome = true;
   bool resumeNotification = true;
+  bool settingsHomeEntry = true;
   bool interactionHaptics = true;
   bool roundIcon = true;
   bool marqueeFeature = false;
@@ -185,6 +187,7 @@ class SettingsController extends ChangeNotifier {
     final prefs = await _getPrefs();
     showWelcome = prefs.getBool(kPrefShowWelcome) ?? true;
     resumeNotification = prefs.getBool(kPrefResumeNotification) ?? true;
+    settingsHomeEntry = prefs.getBool(kPrefSettingsHomeEntry) ?? true;
     interactionHaptics = prefs.getBool(kPrefInteractionHaptics) ?? true;
     roundIcon = prefs.getBool(kPrefRoundIcon) ?? true;
     marqueeFeature = prefs.getBool(kPrefMarqueeFeature) ?? false;
@@ -281,6 +284,14 @@ class SettingsController extends ChangeNotifier {
     final prefs = await _getPrefs();
     await prefs.setBool(kPrefResumeNotification, value);
     resumeNotification = value;
+    notifyListeners();
+  }
+
+  Future<void> setSettingsHomeEntry(bool value) async {
+    if (settingsHomeEntry == value) return;
+    final prefs = await _getPrefs();
+    await prefs.setBool(kPrefSettingsHomeEntry, value);
+    settingsHomeEntry = value;
     notifyListeners();
   }
 

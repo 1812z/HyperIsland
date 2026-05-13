@@ -17,6 +17,7 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
 
   int _buildUiStateHash() => Object.hashAll([
     _ctrl.resumeNotification,
+    _ctrl.settingsHomeEntry,
     _ctrl.unlockAllFocus,
     _ctrl.unlockFocusAuth,
   ]);
@@ -53,6 +54,18 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
     }
   }
 
+  Future<void> _onSettingsHomeEntryChanged(bool value) async {
+    await _ctrl.setSettingsHomeEntry(value);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.restartScopeApp),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -68,66 +81,85 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             sliver: SliverList(
-              delegate: SliverChildListDelegate(
-                [
-                  const SizedBox(height: 8),
-                  _SectionLabel(l10n.hookScopeSystemUI),
-                  const SizedBox(height: 8),
-                  Card(
-                    elevation: 0,
-                    color: cs.surfaceContainerHighest,
-                    child: SwitchListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 4,
-                      ),
-                      title: Text(l10n.unlockAllFocusTitle, style: titleStyle),
-                      subtitle: Text(l10n.unlockAllFocusSubtitle),
-                      value: _ctrl.unlockAllFocus,
-                      onChanged: InteractionHaptics.interceptToggle(
-                        (v) => _ctrl.setUnlockAllFocus(v),
-                      ),
+              delegate: SliverChildListDelegate([
+                const SizedBox(height: 8),
+                _SectionLabel(l10n.hookScopeSettings),
+                const SizedBox(height: 8),
+                Card(
+                  elevation: 0,
+                  color: cs.surfaceContainerHighest,
+                  child: SwitchListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    title: Text(l10n.settingsHomeEntryTitle, style: titleStyle),
+                    subtitle: Text(l10n.settingsHomeEntrySubtitle),
+                    value: _ctrl.settingsHomeEntry,
+                    onChanged: InteractionHaptics.interceptToggle(
+                      _onSettingsHomeEntryChanged,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  _SectionLabel(l10n.hookScopeXMSF),
-                  const SizedBox(height: 8),
-                  Card(
-                    elevation: 0,
-                    color: cs.surfaceContainerHighest,
-                    child: SwitchListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 4,
-                      ),
-                      title: Text(l10n.unlockFocusAuthTitle, style: titleStyle),
-                      subtitle: Text(l10n.unlockFocusAuthSubtitle),
-                      value: _ctrl.unlockFocusAuth,
-                      onChanged: InteractionHaptics.interceptToggle(
-                        (v) => _ctrl.setUnlockFocusAuth(v),
-                      ),
+                ),
+                const SizedBox(height: 8),
+                _SectionLabel(l10n.hookScopeSystemUI),
+                const SizedBox(height: 8),
+                Card(
+                  elevation: 0,
+                  color: cs.surfaceContainerHighest,
+                  child: SwitchListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    title: Text(l10n.unlockAllFocusTitle, style: titleStyle),
+                    subtitle: Text(l10n.unlockAllFocusSubtitle),
+                    value: _ctrl.unlockAllFocus,
+                    onChanged: InteractionHaptics.interceptToggle(
+                      (v) => _ctrl.setUnlockAllFocus(v),
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  _SectionLabel(l10n.downloadManagerSection),
-                  const SizedBox(height: 8),
-                  Card(
-                    elevation: 0,
-                    color: cs.surfaceContainerHighest,
-                    child: SwitchListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 4,
-                      ),
-                      title: Text(l10n.keepFocusNotifTitle, style: titleStyle),
-                      subtitle: Text(l10n.keepFocusNotifSubtitle),
-                      value: _ctrl.resumeNotification,
-                      onChanged: InteractionHaptics.interceptToggle(
-                        _onResumeNotificationChanged,
-                      ),
+                ),
+                const SizedBox(height: 8),
+                _SectionLabel(l10n.hookScopeXMSF),
+                const SizedBox(height: 8),
+                Card(
+                  elevation: 0,
+                  color: cs.surfaceContainerHighest,
+                  child: SwitchListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    title: Text(l10n.unlockFocusAuthTitle, style: titleStyle),
+                    subtitle: Text(l10n.unlockFocusAuthSubtitle),
+                    value: _ctrl.unlockFocusAuth,
+                    onChanged: InteractionHaptics.interceptToggle(
+                      (v) => _ctrl.setUnlockFocusAuth(v),
                     ),
                   ),
-                  const SizedBox(height: 32),
-                ],
-                addAutomaticKeepAlives: false,
-              ),
+                ),
+                const SizedBox(height: 8),
+                _SectionLabel(l10n.downloadManagerSection),
+                const SizedBox(height: 8),
+                Card(
+                  elevation: 0,
+                  color: cs.surfaceContainerHighest,
+                  child: SwitchListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    title: Text(l10n.keepFocusNotifTitle, style: titleStyle),
+                    subtitle: Text(l10n.keepFocusNotifSubtitle),
+                    value: _ctrl.resumeNotification,
+                    onChanged: InteractionHaptics.interceptToggle(
+                      _onResumeNotificationChanged,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+              ], addAutomaticKeepAlives: false),
             ),
           ),
         ],

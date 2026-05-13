@@ -1485,6 +1485,16 @@ class AppLocalizationsTr extends AppLocalizations {
   String get hookExtensionSection => 'Hook Uzantısı';
 
   @override
+  String get hookScopeSettings => 'Sistem Ayarları';
+
+  @override
+  String get settingsHomeEntryTitle => 'Sistem Ayarları girişi';
+
+  @override
+  String get settingsHomeEntrySubtitle =>
+      'Sistem Ayarları ana sayfasında HyperIsland girişini göster. Kapatıldığında bu Hook hiç enjekte edilmez';
+
+  @override
   String get hookScopeSystemUI => 'Sistem UI';
 
   @override

@@ -2766,6 +2766,24 @@ abstract class AppLocalizations {
   /// **'Hook拓展'**
   String get hookExtensionSection;
 
+  /// No description provided for @hookScopeSettings.
+  ///
+  /// In zh, this message translates to:
+  /// **'系统设置'**
+  String get hookScopeSettings;
+
+  /// No description provided for @settingsHomeEntryTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'系统设置入口'**
+  String get settingsHomeEntryTitle;
+
+  /// No description provided for @settingsHomeEntrySubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'在系统设置首页显示 HyperIsland 入口，关闭后完全不注入该 Hook'**
+  String get settingsHomeEntrySubtitle;
+
   /// No description provided for @hookScopeSystemUI.
   ///
   /// In zh, this message translates to:

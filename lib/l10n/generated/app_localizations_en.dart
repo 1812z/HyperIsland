@@ -1485,6 +1485,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hookExtensionSection => 'Hook Extension';
 
   @override
+  String get hookScopeSettings => 'System Settings';
+
+  @override
+  String get settingsHomeEntryTitle => 'System Settings entry';
+
+  @override
+  String get settingsHomeEntrySubtitle =>
+      'Show the HyperIsland entry on the System Settings home page. When disabled, this Hook is not injected at all';
+
+  @override
   String get hookScopeSystemUI => 'System UI';
 
   @override

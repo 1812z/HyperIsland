@@ -1432,6 +1432,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get hookExtensionSection => 'Hook拡張';
 
   @override
+  String get hookScopeSettings => 'システム設定';
+
+  @override
+  String get settingsHomeEntryTitle => 'システム設定の入口';
+
+  @override
+  String get settingsHomeEntrySubtitle =>
+      'システム設定のホーム画面に HyperIsland の入口を表示します。無効にするとこの Hook は一切注入されません';
+
+  @override
   String get hookScopeSystemUI => 'システムUI';
 
   @override

@@ -10,6 +10,7 @@ import io.github.hyperisland.xposed.hook.IslandDispatcherHook
 import io.github.hyperisland.xposed.hook.IslandOuterGlowHook
 import io.github.hyperisland.xposed.hook.KeepIslandHook
 import io.github.hyperisland.xposed.hook.MarqueeHook
+import io.github.hyperisland.xposed.hook.SettingsHomeEntryHook
 import io.github.hyperisland.xposed.hook.TextShadeHook
 import io.github.hyperisland.xposed.hook.ToastUiInterceptHook
 import io.github.hyperisland.xposed.hook.UnlockAllFocusHook
@@ -52,6 +53,11 @@ class HyperIslandModule : XposedModule() {
 
             "com.xiaomi.xmsf" ->
                 UnlockFocusAuthHook.init(this, param)
+
+            "com.android.settings" ->
+                if (ConfigManager.getBoolean("pref_settings_home_entry", true)) {
+                    SettingsHomeEntryHook.init(this, param)
+                }
 
         }
     }
