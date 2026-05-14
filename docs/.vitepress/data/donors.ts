@@ -101,5 +101,11 @@ export const donors: DonorItem[] = [
     amount: '5',
     date: '2026-05-14',
     message: '好用'
+  },
+  {
+    name: '火车站',
+    amount: '10',
+    date: '2026-05-14',
+    message: '点赞强兼全局焦点通知的光效'
   }
 ]
