@@ -318,6 +318,17 @@ class WhitelistController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setToastForwardAndBlockOriginal(
+    String packageName,
+    bool enabled,
+  ) async {
+    _toastForwardEnabled[packageName] = enabled;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_prefToastForwardKey(packageName), enabled);
+    await prefs.setBool(_prefToastBlockKey(packageName), enabled);
+    notifyListeners();
+  }
+
   int get toastEnabledCount {
     return _allApps
         .where((a) => isToastForwardEnabledSync(a.packageName))
@@ -330,6 +341,7 @@ class WhitelistController extends ChangeNotifier {
     for (final pkg in packages) {
       _toastForwardEnabled[pkg] = enabled;
       await prefs.setBool(_prefToastForwardKey(pkg), enabled);
+      await prefs.setBool(_prefToastBlockKey(pkg), enabled);
     }
     notifyListeners();
   }

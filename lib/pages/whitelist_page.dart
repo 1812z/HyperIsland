@@ -544,7 +544,7 @@ class WhitelistPageState extends State<WhitelistPage> {
                       onChanged: _selectionMode
                           ? null
                           : (v) => _isToastMode
-                                ? _ctrl.setToastForwardEnabled(pkg, v)
+                                ? _ctrl.setToastForwardAndBlockOriginal(pkg, v)
                                 : _ctrl.setEnabled(pkg, v),
                       onTap: _selectionMode
                           ? () => _toggleSelection(pkg)
