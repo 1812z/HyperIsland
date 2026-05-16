@@ -24,6 +24,7 @@ object IslandOuterGlowHook : BaseHook() {
     private const val ANIMATION_CONTROLLER_CLASS = "miui.systemui.dynamicisland.anim.DynamicIslandAnimationController"
     private const val GLOW_VIEW_CLASS = "miui.systemui.dynamicisland.view.DynamicGlowEffectView"
     private const val FOCUS_CONTROLLER_CLASS = "miui.systemui.notification.focus.FocusNotificationController"
+    private const val AVOID_BURN_IN_HELPER_CLASS = "miui.systemui.dynamicisland.display.AvoidScreenBurnInHelper"
     private const val LIGHT_BG_SHADER_FIELD = "U_LIGHT_COLORS"
     private const val BIG_VIEW_MARKER = "DynamicIslandBigIslandView"
     private const val EXPANDED_VIEW_MARKER = "DynamicIslandExpandedView"
@@ -61,10 +62,12 @@ object IslandOuterGlowHook : BaseHook() {
     private val hookedAnimationClassLoaders = ConcurrentHashMap.newKeySet<Int>()
     private val hookedFeatureClassLoaders = ConcurrentHashMap.newKeySet<Int>()
     private val hookedFocusClassLoaders = ConcurrentHashMap.newKeySet<Int>()
+    private val hookedAvoidBurnInClassLoaders = ConcurrentHashMap.newKeySet<Int>()
     private val defaultShaderColors = WeakHashMap<Class<*>, FloatArray>()
     private val mediaGlowRequests = ConcurrentHashMap<String, MediaGlowRequest>()
 
     @Volatile private var recentOwnedTarget: OwnedGlowTarget? = null
+    @Volatile private var statusGlowShowing = false
 
     fun recordMediaGlowRequest(
         pkg: String,
@@ -93,6 +96,7 @@ object IslandOuterGlowHook : BaseHook() {
         hookAnimationController(module, param.defaultClassLoader)
         hookGlowView(module, param.defaultClassLoader)
         hookFocusExtrasBridge(module, param.defaultClassLoader)
+        hookAvoidBurnInHelper(module, param.defaultClassLoader)
     }
 
     override fun onConfigChanged() {
@@ -107,6 +111,30 @@ object IslandOuterGlowHook : BaseHook() {
             hookAnimationController(module, cl)
             hookGlowView(module, cl)
             hookFocusExtrasBridge(module, cl)
+            hookAvoidBurnInHelper(module, cl)
+        }
+    }
+
+    private fun hookAvoidBurnInHelper(module: XposedModule, classLoader: ClassLoader) {
+        val clId = System.identityHashCode(classLoader)
+        if (!hookedAvoidBurnInClassLoaders.add(clId)) return
+        try {
+            val clazz = classLoader.loadClass(AVOID_BURN_IN_HELPER_CLASS)
+            val methods = clazz.declaredMethods.filter {
+                it.name == "updateViewForAvoidingScreenBurnIn" && it.parameterCount == 2
+            }
+            methods.forEach { method ->
+                module.hook(method).intercept { chain ->
+                    val mode = resolveGlowModeFromContentView(chain.args.getOrNull(0))
+                    if (mode == GLOW_MODE_STATUS && statusGlowShowing) {
+                        null
+                    } else {
+                        chain.proceed()
+                    }
+                }
+            }
+            if (methods.isNotEmpty()) log(module, "hooked dynamic island avoid-screen-burn-in translation on ${clazz.name}")
+        } catch (_: Throwable) {
         }
     }
 
@@ -204,6 +232,7 @@ object IslandOuterGlowHook : BaseHook() {
                         }
                         isStateTag(stateObj, "Deleted") -> {
                             invokeGlowEffectMethod(bigView, "stopGlowEffect")
+                            statusGlowShowing = false
                         }
                     }
                     result
@@ -220,13 +249,25 @@ object IslandOuterGlowHook : BaseHook() {
         try {
             val clazz = classLoader.loadClass(GLOW_VIEW_CLASS)
             val methods = clazz.declaredMethods.filter {
-                it.parameterCount == 0 && (it.name == "startGlowEffect" || it.name == "startGlowEffect\$miui_dynamicisland_release")
+                it.parameterCount == 0 && (
+                    it.name == "startGlowEffect" ||
+                        it.name == "startGlowEffect\$miui_dynamicisland_release" ||
+                        it.name == "stopGlowEffect" ||
+                        it.name == "stopGlowEffect\$miui_dynamicisland_release"
+                    )
             }
             methods.forEach { method ->
                 module.hook(method).intercept { chain ->
                     val mode = resolveGlowModeFromGlowView(chain.thisObject)
-                    logGlowViewProbe(module, chain.thisObject, mode)
-                    applyOwnedGlowColor(chain.thisObject, mode)
+                    if (method.name.startsWith("startGlowEffect")) {
+                        logGlowViewProbe(module, chain.thisObject, mode)
+                        applyOwnedGlowColor(chain.thisObject, mode)
+                        if (mode == GLOW_MODE_STATUS && isOwnedGlowActiveForMode(mode)) {
+                            statusGlowShowing = true
+                        }
+                    } else if (mode == GLOW_MODE_STATUS) {
+                        statusGlowShowing = false
+                    }
                     chain.proceed()
                 }
             }
@@ -517,6 +558,14 @@ object IslandOuterGlowHook : BaseHook() {
         return target.mode == mode
     }
 
+    private fun isOwnedGlowActiveForMode(mode: Int): Boolean {
+        if (mode == GLOW_MODE_AUTO) return false
+        val target = recentOwnedTarget ?: return false
+        if (System.currentTimeMillis() - target.createdAt > RECENT_TTL_MS) return false
+        if (target.mode != mode) return false
+        return resolveGlowColorConfig(mode, target).effectEnabled
+    }
+
     private fun resolveGlowEnabled(value: String?, defaultValue: String): Boolean {
         return when (value?.trim()?.lowercase()) {
             "on", "follow_dynamic" -> true
@@ -577,6 +626,15 @@ object IslandOuterGlowHook : BaseHook() {
             cls.contains(BIG_VIEW_MARKER) -> GLOW_MODE_STATUS
             shouldApplyOwnedGlowForMode(GLOW_MODE_STATUS) -> GLOW_MODE_STATUS
             shouldApplyOwnedGlowForMode(GLOW_MODE_EXPAND) -> GLOW_MODE_EXPAND
+            else -> GLOW_MODE_AUTO
+        }
+    }
+
+    private fun resolveGlowModeFromContentView(view: Any?): Int {
+        val stateText = invokeNoArg(view ?: return GLOW_MODE_AUTO, "getState")?.toString()
+        return when {
+            stateText?.contains("BigIsland") == true || stateText?.contains("SmallIsland") == true -> GLOW_MODE_STATUS
+            stateText?.contains("Expand") == true -> GLOW_MODE_EXPAND
             else -> GLOW_MODE_AUTO
         }
     }
