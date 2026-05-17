@@ -149,6 +149,10 @@ class AppLocalizationsTr extends AppLocalizations {
   String get enableInLSPosed => 'Lütfen bu modülü LSPosed içinde etkinleştirin';
 
   @override
+  String get enableSystemUiScopeInLSPosed =>
+      'Lütfen LSPosed kapsamında Sistem Arayüzü\'nü seçin';
+
+  @override
   String lsposedApiVersion(int version) {
     return 'LSPosed API Sürümü: $version';
   }
@@ -250,6 +254,13 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get showWelcomeSubtitle =>
       'Uygulama başladığında Ada üzerinde karşılama bilgisini göster';
+
+  @override
+  String get openOnboardingTitle => 'İlk kurulumu aç';
+
+  @override
+  String get openOnboardingSubtitle =>
+      'Karşılama ve hızlı başlangıç akışını yeniden görüntüle';
 
   @override
   String get interactionHapticsTitle => 'Etkileşim haptikleri';

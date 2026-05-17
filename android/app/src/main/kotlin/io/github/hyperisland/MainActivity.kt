@@ -185,8 +185,38 @@ class MainActivity : FlutterActivity() {
 
                 "isModuleActive" -> {
                     Thread {
-                        val active = XposedPrefsSyncApp.awaitReady()
+                        val active = isModuleActive()
                         runOnUiThread { result.success(active) }
+                    }.start()
+                }
+
+                "getXposedFrameworkInfo" -> {
+                    Thread {
+                        val ready = XposedPrefsSyncApp.awaitReady()
+                        val info = if (ready) {
+                            (application as XposedPrefsSyncApp).getFrameworkInfo()
+                        } else {
+                            emptyMap<String, Any>()
+                        }
+                        runOnUiThread { result.success(info) }
+                    }.start()
+                }
+
+                "getXposedScope" -> {
+                    Thread {
+                        try {
+                            val ready = XposedPrefsSyncApp.awaitReady()
+                            if (!ready) {
+                                runOnUiThread {
+                                    result.error("SERVICE_UNAVAILABLE", "XposedService is not ready", null)
+                                }
+                                return@Thread
+                            }
+                            val scope = (application as XposedPrefsSyncApp).getCurrentScope()
+                            runOnUiThread { result.success(scope) }
+                        } catch (e: Exception) {
+                            runOnUiThread { result.error("SERVICE_UNAVAILABLE", e.message, null) }
+                        }
                     }.start()
                 }
 
@@ -334,7 +364,25 @@ class MainActivity : FlutterActivity() {
             }
     }
 
-    fun isModuleActive(): Boolean = XposedPrefsSyncApp.isReady()
+    fun isModuleActive(): Boolean {
+        if (!XposedPrefsSyncApp.awaitReady()) return false
+        if (!XposedPrefsSyncApp.getFrameworkName().equals(REQUIRED_FRAMEWORK_NAME, ignoreCase = true)) return false
+        if (!isFrameworkVersionSupported(XposedPrefsSyncApp.getFrameworkVersion())) return false
+
+        return try {
+            REQUIRED_SYSTEM_UI_PACKAGE in (application as XposedPrefsSyncApp).getCurrentScope()
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    private fun isFrameworkVersionSupported(version: String): Boolean {
+        val parts = version.split('.', '-', '_')
+        val major = parts.getOrNull(0)?.toIntOrNull() ?: return false
+        val minor = parts.getOrNull(1)?.toIntOrNull() ?: 0
+        return major > REQUIRED_FRAMEWORK_MAJOR ||
+            (major == REQUIRED_FRAMEWORK_MAJOR && minor >= REQUIRED_FRAMEWORK_MINOR)
+    }
 
     /** 返回已安装应用列表（排除自身），每项含 packageName / appName / icon / isSystem。
      *  includeSystem=false 时仅返回第三方应用。 */
@@ -349,6 +397,10 @@ class MainActivity : FlutterActivity() {
     private companion object {
         const val PERM_GET_INSTALLED_APPS = "com.android.permission.GET_INSTALLED_APPS"
         const val PERM_MANAGER_MIUI       = "com.lbe.security.miui"
+        const val REQUIRED_FRAMEWORK_NAME = "LSPosed"
+        const val REQUIRED_FRAMEWORK_MAJOR = 2
+        const val REQUIRED_FRAMEWORK_MINOR = 0
+        const val REQUIRED_SYSTEM_UI_PACKAGE = "com.android.systemui"
     }
 
     /** 返回 MIUI 是否支持动态申请获取应用列表权限。 */

@@ -8,6 +8,9 @@ class HomeController extends ChangeNotifier {
   bool? moduleActive;
   int? focusProtocolVersion;
   int? lsposedApiVersion;
+  String? xposedFrameworkName;
+  String? xposedFrameworkVersion;
+  bool? hasSystemUiScope;
 
   HomeController() {
     _checkStatus();
@@ -20,6 +23,20 @@ class HomeController extends ChangeNotifier {
       lsposedApiVersion = apiVersion;
     } catch (_) {
       lsposedApiVersion = 0;
+    }
+
+    try {
+      final info = await _platform.invokeMapMethod<String, dynamic>(
+        'getXposedFrameworkInfo',
+      );
+      xposedFrameworkName = info?['frameworkName'] as String?;
+      xposedFrameworkVersion = info?['frameworkVersion'] as String?;
+      final scope = info?['scope'] as List<dynamic>?;
+      hasSystemUiScope = scope?.contains('com.android.systemui');
+    } catch (_) {
+      xposedFrameworkName = null;
+      xposedFrameworkVersion = null;
+      hasSystemUiScope = null;
     }
 
     try {

@@ -148,6 +148,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get enableInLSPosed => 'Please enable this module in LSPosed';
 
   @override
+  String get enableSystemUiScopeInLSPosed =>
+      'Please select System UI in the LSPosed scope';
+
+  @override
   String lsposedApiVersion(int version) {
     return 'LSPosed API Version: $version';
   }
@@ -249,6 +253,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get showWelcomeSubtitle =>
       'Display welcome information on Island when the app starts';
+
+  @override
+  String get openOnboardingTitle => 'Open onboarding';
+
+  @override
+  String get openOnboardingSubtitle =>
+      'Review the welcome and quick start flow';
 
   @override
   String get interactionHapticsTitle => 'Interaction Haptics';

@@ -144,6 +144,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get enableInLSPosed => 'LSPosed でこのモジュールを有効化してください';
 
   @override
+  String get enableSystemUiScopeInLSPosed =>
+      'LSPosed のスコープで System UI を選択してください';
+
+  @override
   String lsposedApiVersion(int version) {
     return 'LSPosed API バージョン: $version';
   }
@@ -235,6 +239,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get showWelcomeSubtitle => 'アプリ起動時に Island にウェルカム情報を表示します';
+
+  @override
+  String get openOnboardingTitle => '初期ガイドを開く';
+
+  @override
+  String get openOnboardingSubtitle => 'ようこそ画面とクイックスタートをもう一度確認します';
 
   @override
   String get interactionHapticsTitle => 'インタラクションの触覚フィードバック';

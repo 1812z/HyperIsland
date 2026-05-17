@@ -67,6 +67,7 @@
   "activated": "已激活",
   "notActivated": "未激活",
   "enableInLSPosed": "请在 LSPosed 中启用本模块",
+  "enableSystemUiScopeInLSPosed": "请在 LSPosed 作用域勾选系统界面",
   "lsposedApiVersion": "LSPosed API: {version}",
   "updateLSPosedRequired": "请更新 LSPosed 版本",
   "@lsposedApiVersion": {
@@ -117,6 +118,8 @@
   "debugLogSubtitle": "开启后输出 Hook 调试日志，关闭时仅保留警告和错误日志",
   "showWelcomeTitle": "显示启动欢迎语",
   "showWelcomeSubtitle": "应用启动时在超级岛显示欢迎信息",
+  "openOnboardingTitle": "打开初始引导",
+  "openOnboardingSubtitle": "重新查看欢迎与快速上手流程",
   "interactionHapticsTitle": "交互触感",
   "interactionHapticsSubtitle": "为开关、滑块和按钮启用 Hyper 定制震感反馈",
   "checkUpdate": "检查更新",

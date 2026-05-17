@@ -144,6 +144,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get enableInLSPosed => '请在 LSPosed 中启用本模块';
 
   @override
+  String get enableSystemUiScopeInLSPosed => '请在 LSPosed 作用域勾选系统界面';
+
+  @override
   String lsposedApiVersion(int version) {
     return 'LSPosed API: $version';
   }
@@ -232,6 +235,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get showWelcomeSubtitle => '应用启动时在超级岛显示欢迎信息';
+
+  @override
+  String get openOnboardingTitle => '打开初始引导';
+
+  @override
+  String get openOnboardingSubtitle => '重新查看欢迎与快速上手流程';
 
   @override
   String get interactionHapticsTitle => '交互触感';

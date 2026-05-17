@@ -360,6 +360,12 @@ abstract class AppLocalizations {
   /// **'请在 LSPosed 中启用本模块'**
   String get enableInLSPosed;
 
+  /// No description provided for @enableSystemUiScopeInLSPosed.
+  ///
+  /// In zh, this message translates to:
+  /// **'请在 LSPosed 作用域勾选系统界面'**
+  String get enableSystemUiScopeInLSPosed;
+
   /// No description provided for @lsposedApiVersion.
   ///
   /// In zh, this message translates to:
@@ -527,6 +533,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'应用启动时在超级岛显示欢迎信息'**
   String get showWelcomeSubtitle;
+
+  /// No description provided for @openOnboardingTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'打开初始引导'**
+  String get openOnboardingTitle;
+
+  /// No description provided for @openOnboardingSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'重新查看欢迎与快速上手流程'**
+  String get openOnboardingSubtitle;
 
   /// No description provided for @interactionHapticsTitle.
   ///

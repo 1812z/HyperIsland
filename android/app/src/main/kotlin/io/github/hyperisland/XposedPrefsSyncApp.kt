@@ -47,8 +47,12 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
 
     override fun onServiceBind(service: XposedService) {
         xposedService = service
-        ServiceState.markReady(service.apiVersion)
-        Log.d(TAG, "XposedService bound, API version: ${ServiceState.getApiVersion()}, syncing all prefs")
+        ServiceState.markReady(service.apiVersion, service.frameworkName, service.frameworkVersion)
+        Log.d(
+            TAG,
+            "XposedService bound, API version: ${ServiceState.getApiVersion()}, " +
+                "framework: ${ServiceState.getFrameworkName()} ${ServiceState.getFrameworkVersion()}, syncing all prefs"
+        )
         syncAllToRemote(service)
         ServiceState.notifyReady()
     }
@@ -113,6 +117,22 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
         })
     }
 
+    fun getCurrentScope(): List<String> {
+        val service = xposedService ?: throw IllegalStateException("XposedService is not ready")
+        return service.scope
+    }
+
+    fun getFrameworkInfo(): Map<String, Any> {
+        val service = xposedService ?: throw IllegalStateException("XposedService is not ready")
+        return mapOf(
+            "apiVersion" to service.apiVersion,
+            "frameworkName" to service.frameworkName,
+            "frameworkVersion" to service.frameworkVersion,
+            "frameworkVersionCode" to service.frameworkVersionCode,
+            "scope" to service.scope
+        )
+    }
+
     private fun writeAll(src: SharedPreferences, editor: SharedPreferences.Editor) {
         for ((key, value) in src.all) {
             writeValue(editor, key, value)
@@ -137,6 +157,8 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
         private object ServiceState {
             @Volatile private var serviceReady = false
             @Volatile private var apiVersion: Int = 0
+            @Volatile private var frameworkName: String = ""
+            @Volatile private var frameworkVersion: String = ""
             @Suppress("PLATFORM_CLASS_MAPPED_TO_KOTLIN")
             private val serviceReadyLock = Object()
 
@@ -144,14 +166,22 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
 
             fun getApiVersion(): Int = apiVersion
 
-            fun markReady(newApiVersion: Int) {
+            fun getFrameworkName(): String = frameworkName
+
+            fun getFrameworkVersion(): String = frameworkVersion
+
+            fun markReady(newApiVersion: Int, newFrameworkName: String, newFrameworkVersion: String) {
                 apiVersion = newApiVersion
+                frameworkName = newFrameworkName
+                frameworkVersion = newFrameworkVersion
                 serviceReady = true
             }
 
             fun markNotReady() {
                 serviceReady = false
                 apiVersion = 0
+                frameworkName = ""
+                frameworkVersion = ""
             }
 
             fun notifyReady() {
@@ -175,6 +205,10 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
         fun isReady(): Boolean = ServiceState.isReady()
 
         fun getApiVersion(): Int = ServiceState.getApiVersion()
+
+        fun getFrameworkName(): String = ServiceState.getFrameworkName()
+
+        fun getFrameworkVersion(): String = ServiceState.getFrameworkVersion()
 
         fun awaitReady(timeoutMs: Long = 1500): Boolean = ServiceState.awaitReady(timeoutMs)
     }

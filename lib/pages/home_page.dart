@@ -380,6 +380,9 @@ class _HomePageState extends State<HomePage> {
                 _ModuleStatusCard(
                   active: _ctrl.moduleActive,
                   apiVersion: _ctrl.lsposedApiVersion,
+                  frameworkName: _ctrl.xposedFrameworkName,
+                  frameworkVersion: _ctrl.xposedFrameworkVersion,
+                  hasSystemUiScope: _ctrl.hasSystemUiScope,
                 ),
                 if (_ctrl.focusProtocolVersion != null &&
                     _ctrl.focusProtocolVersion != 3) ...[
@@ -419,7 +422,16 @@ class _HomePageState extends State<HomePage> {
 class _ModuleStatusCard extends StatelessWidget {
   final bool? active;
   final int? apiVersion;
-  const _ModuleStatusCard({required this.active, this.apiVersion});
+  final String? frameworkName;
+  final String? frameworkVersion;
+  final bool? hasSystemUiScope;
+  const _ModuleStatusCard({
+    required this.active,
+    this.apiVersion,
+    this.frameworkName,
+    this.frameworkVersion,
+    this.hasSystemUiScope,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -448,7 +460,16 @@ class _ModuleStatusCard extends StatelessWidget {
     }
 
     final bool isActive = active!;
-    final bool isApiOutdated = apiVersion != null && apiVersion! < 101;
+    final bool isApiOutdated = apiVersion != null && apiVersion! > 0 && apiVersion! < 101;
+    final statusMessage = hasSystemUiScope == false
+        ? l10n.enableSystemUiScopeInLSPosed
+        : isApiOutdated
+            ? l10n.updateLSPosedRequired
+            : l10n.enableInLSPosed;
+    final frameworkLabel = [
+      frameworkName?.trim(),
+      frameworkVersion?.trim(),
+    ].where((part) => part != null && part.isNotEmpty).join(' ');
     final color = isActive ? Colors.green : cs.error;
     final bgColor = isActive
         ? Colors.green.withValues(alpha: 0.12)
@@ -496,9 +517,7 @@ class _ModuleStatusCard extends StatelessWidget {
                   if (!isActive) ...[
                     const SizedBox(height: 4),
                     Text(
-                      isApiOutdated
-                          ? l10n.updateLSPosedRequired
-                          : l10n.enableInLSPosed,
+                      statusMessage,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: color.withValues(alpha: 0.7),
                       ),
@@ -507,7 +526,9 @@ class _ModuleStatusCard extends StatelessWidget {
                   if (apiVersion != null) ...[
                     const SizedBox(height: 2),
                     Text(
-                      'API: $apiVersion',
+                      frameworkLabel.isEmpty
+                          ? 'API: $apiVersion'
+                          : '$frameworkLabel API: $apiVersion',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: color.withValues(alpha: 0.7),
                       ),
