@@ -26,6 +26,7 @@ const kPrefDefaultEnableFloat = 'pref_default_enable_float';
 const kPrefDefaultShowIslandIcon = 'pref_default_show_island_icon';
 const kPrefDefaultMarquee = 'pref_default_marquee';
 const kPrefDefaultFocusNotif = 'pref_default_focus_notif';
+const kPrefDefaultAodText = 'pref_default_aod_text';
 const kPrefDefaultDynamicHighlightColor =
     'pref_default_dynamic_highlight_color';
 const kPrefDefaultOuterGlow = 'pref_default_outer_glow';
@@ -140,6 +141,7 @@ class SettingsController extends ChangeNotifier {
   bool defaultShowIslandIcon = true;
   bool defaultMarquee = false;
   bool defaultFocusNotif = true;
+  bool defaultAodText = false;
   bool defaultDynamicHighlightColor = false;
   String defaultOuterGlow = kTriOptOff;
   String defaultIslandOuterGlow = kTriOptOff;
@@ -206,6 +208,7 @@ class SettingsController extends ChangeNotifier {
     defaultShowIslandIcon = prefs.getBool(kPrefDefaultShowIslandIcon) ?? true;
     defaultMarquee = prefs.getBool(kPrefDefaultMarquee) ?? false;
     defaultFocusNotif = prefs.getBool(kPrefDefaultFocusNotif) ?? true;
+    defaultAodText = prefs.getBool(kPrefDefaultAodText) ?? false;
     defaultDynamicHighlightColor =
         prefs.getBool(kPrefDefaultDynamicHighlightColor) ?? false;
     defaultOuterGlow = _readOuterGlowMode(
@@ -417,6 +420,14 @@ class SettingsController extends ChangeNotifier {
     final prefs = await _getPrefs();
     await prefs.setBool(kPrefDefaultFocusNotif, value);
     defaultFocusNotif = value;
+    notifyListeners();
+  }
+
+  Future<void> setDefaultAodText(bool value) async {
+    if (defaultAodText == value) return;
+    final prefs = await _getPrefs();
+    await prefs.setBool(kPrefDefaultAodText, value);
+    defaultAodText = value;
     notifyListeners();
   }
 

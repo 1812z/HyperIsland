@@ -308,6 +308,7 @@ object GenericProgressHook : BaseHook() {
             val defaultEnableFloat       = loadBooleanSetting("global:default_enable_float",       "pref_default_enable_float",       false)
             val defaultMarquee           = loadBooleanSetting("global:default_marquee",            "pref_default_marquee",            false)
             val defaultFocusNotif        = loadBooleanSetting("global:default_focus_notif",        "pref_default_focus_notif",        true)
+            val defaultAodText           = loadBooleanSetting("global:default_aod_text",           "pref_default_aod_text",           false)
             val defaultDynamicHighlightColor = loadBooleanSetting("global:default_dynamic_highlight_color", "pref_default_dynamic_highlight_color", false)
             val defaultOuterGlow = ConfigManager.getString("pref_default_outer_glow", "off")
             val defaultIslandOuterGlow = ConfigManager.getString(
@@ -366,7 +367,7 @@ object GenericProgressHook : BaseHook() {
                 "aod_text:$pkg/$channelId",
                 "pref_channel_aod_text_${pkg}_$channelId",
                 "default"
-            )
+            ).let { resolveTriOpt(it, defaultAodText) }
             val aodCustomizationJson = loadChannelStringSetting(
                 "aod_custom:$pkg/$channelId",
                 "pref_channel_aod_custom_${pkg}_$channelId",

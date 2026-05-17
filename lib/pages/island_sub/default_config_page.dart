@@ -295,6 +295,19 @@ class _DefaultConfigPageState extends State<DefaultConfigPage> {
                           horizontal: 16,
                           vertical: 4,
                         ),
+                        title: Text(l10n.aodTextSwitchLabel, style: titleStyle),
+                        subtitle: const Text('开启后息屏显示显示通知文本'),
+                        value: _ctrl.defaultAodText,
+                        onChanged: InteractionHaptics.interceptToggle(
+                          (v) => _ctrl.setDefaultAodText(v),
+                        ),
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      SwitchListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
                         title: Text(l10n.updateFloatLabel, style: titleStyle),
                         subtitle: Text(l10n.updateFloatLabelSubtitle),
                         value: _ctrl.defaultEnableFloat,

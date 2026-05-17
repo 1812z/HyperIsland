@@ -1636,46 +1636,6 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                   if (_isSingle) SizedBox(height: blockGap),
 
                   _ExpandableSection(
-                    title: l10n.aodSection,
-                    icon: Icons.bedtime_rounded,
-                    expanded: _aodExpanded,
-                    onToggle: () => setState(() => _aodExpanded = !_aodExpanded),
-                    children: [
-                      SizedBox(height: sectionTitleGap),
-                      _BatchSettingRow(
-                        label: l10n.aodTextSwitchLabel,
-                        value: _aodText,
-                        showNotChange: !_isSingle,
-                        items: [
-                          DropdownMenuItem(
-                            value: kTriOptDefault,
-                            child: Text(l10n.optDefault),
-                          ),
-                          DropdownMenuItem(
-                            value: kTriOptOn,
-                            child: Text(l10n.optOn),
-                          ),
-                          DropdownMenuItem(
-                            value: kTriOptOff,
-                            child: Text(l10n.optOff),
-                          ),
-                        ],
-                        onChanged: (v) => setState(() => _aodText = v),
-                      ),
-                      SizedBox(height: rowGap),
-                      if (_isSingle)
-                        if (_loadingAodSchema)
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 8),
-                            child: LinearProgressIndicator(minHeight: 2),
-                          )
-                        else
-                          _buildAodCustomizationFields(),
-                    ],
-                  ),
-                  SizedBox(height: blockGap),
-
-                  _ExpandableSection(
                     title: l10n.focusNotificationLabel,
                     icon: Icons.notifications_rounded,
                     expanded: _focusExpanded,
@@ -1949,6 +1909,50 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                         ),
                     ],
                   ),
+                  SizedBox(height: blockGap),
+
+                  _ExpandableSection(
+                    title: l10n.aodSection,
+                    icon: Icons.bedtime_rounded,
+                    expanded: _aodExpanded,
+                    enabled: focusNotificationEnabled,
+                    onToggle: () =>
+                        setState(() => _aodExpanded = !_aodExpanded),
+                    children: [
+                      SizedBox(height: sectionTitleGap),
+                      _BatchSettingRow(
+                        label: l10n.aodTextSwitchLabel,
+                        value: _aodText,
+                        showNotChange: !_isSingle,
+                        items: [
+                          DropdownMenuItem(
+                            value: kTriOptDefault,
+                            child: Text(
+                              _defaultLabel(context, _ctrl.defaultAodText),
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: kTriOptOn,
+                            child: Text(l10n.optOn),
+                          ),
+                          DropdownMenuItem(
+                            value: kTriOptOff,
+                            child: Text(l10n.optOff),
+                          ),
+                        ],
+                        onChanged: (v) => setState(() => _aodText = v),
+                      ),
+                      SizedBox(height: rowGap),
+                      if (_isSingle)
+                        if (_loadingAodSchema)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8),
+                            child: LinearProgressIndicator(minHeight: 2),
+                          )
+                        else
+                          _buildAodCustomizationFields(),
+                    ],
+                  ),
                   SizedBox(height: endGap),
                 ],
               ),
@@ -2041,6 +2045,7 @@ class _ExpandableSection extends StatefulWidget {
     required this.expanded,
     required this.onToggle,
     required this.children,
+    this.enabled = true,
   });
 
   final String title;
@@ -2048,6 +2053,7 @@ class _ExpandableSection extends StatefulWidget {
   final bool expanded;
   final VoidCallback onToggle;
   final List<Widget> children;
+  final bool enabled;
 
   @override
   State<_ExpandableSection> createState() => _ExpandableSectionState();
@@ -2077,7 +2083,9 @@ class _ExpandableSectionState extends State<_ExpandableSection>
   @override
   void didUpdateWidget(covariant _ExpandableSection old) {
     super.didUpdateWidget(old);
-    if (widget.expanded != old.expanded) {
+    if (!widget.enabled) {
+      _ctrl.reverse();
+    } else if (widget.expanded != old.expanded || !old.enabled) {
       if (widget.expanded) {
         _ctrl.forward();
       } else {
@@ -2096,6 +2104,9 @@ class _ExpandableSectionState extends State<_ExpandableSection>
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
+    final active = widget.enabled;
+    final expanded = active && widget.expanded;
+    final color = active ? cs.primary : cs.onSurface.withValues(alpha: 0.38);
     return DecoratedBox(
       decoration: BoxDecoration(
         color: cs.surfaceContainerHighest,
@@ -2108,27 +2119,25 @@ class _ExpandableSectionState extends State<_ExpandableSection>
             color: Colors.transparent,
             borderRadius: BorderRadius.vertical(
               top: const Radius.circular(16),
-              bottom: widget.expanded ? Radius.zero : const Radius.circular(16),
+              bottom: expanded ? Radius.zero : const Radius.circular(16),
             ),
             child: InkWell(
               borderRadius: BorderRadius.vertical(
                 top: const Radius.circular(16),
-                bottom: widget.expanded
-                    ? Radius.zero
-                    : const Radius.circular(16),
+                bottom: expanded ? Radius.zero : const Radius.circular(16),
               ),
-              onTap: widget.onToggle,
+              onTap: active ? widget.onToggle : null,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
                 child: Row(
                   children: [
-                    Icon(widget.icon, color: cs.primary, size: 20),
+                    Icon(widget.icon, color: color, size: 20),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         widget.title,
                         style: text.titleSmall?.copyWith(
-                          color: cs.primary,
+                          color: color,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -2136,10 +2145,10 @@ class _ExpandableSectionState extends State<_ExpandableSection>
                     AnimatedRotation(
                       duration: const Duration(milliseconds: 300),
                       curve: Curves.easeOutCubic,
-                      turns: widget.expanded ? 0.5 : 0,
+                      turns: expanded ? 0.5 : 0,
                       child: Icon(
                         Icons.expand_more_rounded,
-                        color: cs.primary,
+                        color: color,
                         size: 22,
                       ),
                     ),
