@@ -353,32 +353,40 @@ class _AppTile extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                     dropdownColor: cs.surfaceContainerHigh,
                     iconSize: 20,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: configured ? cs.onPrimaryContainer : cs.onSurface,
                       fontWeight: configured
                           ? FontWeight.w600
                           : FontWeight.w400,
                     ),
                     selectedItemBuilder: (context) => [
-                      Text(
-                        l10n.sceneActionDefault,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      Center(
+                        child: Text(
+                          l10n.sceneActionDefault,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      Text(
-                        l10n.sceneActionSmallOnly,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      Center(
+                        child: Text(
+                          l10n.sceneActionSmallOnly,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      Text(
-                        l10n.sceneActionExpand,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      Center(
+                        child: Text(
+                          l10n.sceneActionExpand,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      Text(
-                        l10n.sceneActionSuppress,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      Center(
+                        child: Text(
+                          l10n.sceneActionSuppress,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                     onChanged: (value) {
