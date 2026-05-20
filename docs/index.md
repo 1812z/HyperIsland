@@ -22,9 +22,9 @@ features:
   - icon: 🚫
     title: 通知黑名单
     details: 黑名单应用不会弹出通知，仅显示超级岛（全屏状态下随状态栏自动隐藏）。
-  - icon: 🔥
-    title: 热加载支持
-    details: 修改配置后无需重启即可生效，安装或更新软件后重启作用域即可。
+  - icon: 🏝️
+    title: 常驻岛支持
+    details: 显示一个类似苹果灵动岛的常驻岛，并支持自动隐藏避让。
   - icon: 🤖
     title: AI 通知精简
     details: AI 通知超级岛模板，超级岛左右交给 AI 精简，确保内容不会过长。

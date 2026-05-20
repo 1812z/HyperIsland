@@ -22,9 +22,9 @@ features:
   - icon: 🚫
     title: Notification Blacklist
     details: Blacklisted apps won't show popup notifications, only the Super Island (auto-hides in full-screen mode).
-  - icon: 🔥
-    title: Hot Reload Support
-    details: Configuration changes take effect without restart. Just restart the scope after installing or updating.
+  - icon: 🏝️
+    title: Persistent Island Support
+    details: Displays a persistent island similar to Apple's Dynamic Island, with automatic hiding and avoidance support.
   - icon: 🤖
     title: AI Notification Simplification
     details: AI-powered Super Island template that simplifies left and right sides of the island to ensure content doesn't overflow.
