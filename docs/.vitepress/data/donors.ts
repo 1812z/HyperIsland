@@ -125,5 +125,17 @@ export const donors: DonorItem[] = [
     amount: '18.88',
     date: '2026-05-22',
     message: '好用，支持开发者'
+  },
+  {
+    name: "曾",
+    amount: '2',
+    date: '2026-05-22',
+    message: '支持，好东西'
+  },
+  {
+    name: "零界",
+    amount: '20',
+    date: '2026-05-25',
+    message: ''
   }
 ]
