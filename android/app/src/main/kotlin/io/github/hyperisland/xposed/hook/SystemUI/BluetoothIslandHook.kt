@@ -14,9 +14,11 @@ import android.graphics.drawable.Icon
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import io.github.hyperisland.R
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
 import io.github.hyperisland.xposed.islanddispatch.definition.IslandRequest
+import io.github.hyperisland.xposed.utils.moduleContext
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.util.concurrent.ConcurrentHashMap
@@ -334,9 +336,12 @@ object BluetoothIslandHook : BaseHook() {
         clearBeforePost: Boolean,
         timeoutSecs: Int,
     ) {
-        val title = if (connected) "已连接" else "已断开"
+        val mc = context.moduleContext()
+        val title = if (connected) mc.getString(R.string.bluetooth_connected)
+                    else mc.getString(R.string.bluetooth_disconnected)
         val content = rightTextOverride
-            ?: "电量：${if (battery in 0..100) "$battery%" else "--"}"
+            ?: if (battery in 0..100) mc.getString(R.string.bluetooth_battery, "$battery%")
+               else mc.getString(R.string.bluetooth_battery_unknown)
         moduleRef?.let {
             logWarn(
                 it,

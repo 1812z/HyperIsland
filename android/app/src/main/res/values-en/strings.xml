@@ -27,4 +27,10 @@
     <string name="island_action_pause">Pause</string>
     <string name="island_action_cancel_all">Cancel all</string>
     <string name="island_action_cancel">Cancel</string>
+
+    <!-- Bluetooth island -->
+    <string name="bluetooth_connected">Connected</string>
+    <string name="bluetooth_disconnected">Disconnected</string>
+    <string name="bluetooth_battery">Battery: %s</string>
+    <string name="bluetooth_battery_unknown">Battery: --</string>
 </resources>

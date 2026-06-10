@@ -27,4 +27,10 @@
     <string name="island_action_pause">暂停</string>
     <string name="island_action_cancel_all">全部取消</string>
     <string name="island_action_cancel">取消</string>
+
+    <!-- 蓝牙岛 -->
+    <string name="bluetooth_connected">已连接</string>
+    <string name="bluetooth_disconnected">已断开</string>
+    <string name="bluetooth_battery">电量：%s</string>
+    <string name="bluetooth_battery_unknown">电量：--</string>
 </resources>
