@@ -50,12 +50,17 @@ object TempHiddenBehaviorHook : BaseHook() {
                 module.hook(method).intercept { chain ->
                     val result = chain.proceed()
                     val typeName = currentTypeName(chain.thisObject)
-                    val blocked = typeName != null && shouldBlockType(typeName)
+                    val blocked = shouldBlockWindowState(chain.thisObject, typeName)
                     log(
                         module,
-                        "isTempHidden result=$result type=$typeName blocked=$blocked arg=${chain.args.getOrNull(0)}"
+                        "isTempHidden result=$result type=$typeName states=${windowStateSummary(chain.thisObject)} blocked=$blocked arg=${chain.args.getOrNull(0)}"
                     )
-                    if (result == true && blocked) false else result
+                    if (result == true && blocked) {
+                        clearBlockedStates(chain.thisObject)
+                        false
+                    } else {
+                        result
+                    }
                 }
                 count++
             }
@@ -86,6 +91,16 @@ object TempHiddenBehaviorHook : BaseHook() {
                     val reason = chain.args.getOrNull(0) as? String
                     val blocked = shouldBlockCollapse(reason)
                     log(module, "collapse reason=$reason blocked=$blocked")
+                    if (blocked) null else chain.proceed()
+                }
+                count++
+            }
+        clazz.declaredMethods
+            .filter { it.name == "hideAllElementSurface" && it.parameterCount == 0 }
+            .forEach { method ->
+                module.hook(method).intercept { chain ->
+                    val blocked = !HideBehavior.SCREEN_LOCKED.enabled()
+                    log(module, "hideAllElementSurface blocked=$blocked")
                     if (blocked) null else chain.proceed()
                 }
                 count++
@@ -179,6 +194,82 @@ object TempHiddenBehaviorHook : BaseHook() {
             "CONTROL_CENTER_EXPANDED",
             "CONTROL_CENTER_SWIPE_TO_APPEARANCE" -> !HideBehavior.CONTROL_CENTER.enabled()
             else -> false
+        }
+    }
+
+    private fun shouldBlockWindowState(windowState: Any?, typeName: String?): Boolean {
+        return when {
+            getStateValue(windowState, "getScreenLocked") == true -> !HideBehavior.SCREEN_LOCKED.enabled()
+            getStateValue(windowState, "getBouncerShowing") == true -> !HideBehavior.BOUNCER_SHOWING.enabled()
+            getStateValue(windowState, "getScreenPinning") == true -> !HideBehavior.SCREEN_PINNING.enabled()
+            getStateValue(windowState, "getDeskTopAnimating") == true -> !HideBehavior.DESKTOP_ANIMATING.enabled()
+            getStateValue(windowState, "getStatusBarDisappearance") == true -> !HideBehavior.FULLSCREEN.enabled()
+            getStateValue(windowState, "getStatusBarViewShowing") == false -> !HideBehavior.FULLSCREEN.enabled()
+            getStateValue(windowState, "getNotificationAppearance") == true -> !HideBehavior.NOTIFICATION_CENTER.enabled()
+            getStateValue(windowState, "getNotificationPanelSwipeToAppearance") == true -> !HideBehavior.NOTIFICATION_CENTER.enabled()
+            getStateValue(windowState, "getShowNotificationIcons") == false -> !HideBehavior.NOTIFICATION_CENTER.enabled()
+            getStateValue(windowState, "getControlCenterExpanded") == true -> !HideBehavior.CONTROL_CENTER.enabled()
+            getStateValue(windowState, "getControlCenterPanelSwipeToAppearance") == true -> !HideBehavior.CONTROL_CENTER.enabled()
+            typeName != null -> shouldBlockType(typeName)
+            else -> false
+        }
+    }
+
+    private fun windowStateSummary(windowState: Any?): String {
+        return listOf(
+            "screenLocked=${getStateValue(windowState, "getScreenLocked")}",
+            "bouncer=${getStateValue(windowState, "getBouncerShowing")}",
+            "pinning=${getStateValue(windowState, "getScreenPinning")}",
+            "desktop=${getStateValue(windowState, "getDeskTopAnimating")}",
+            "statusGone=${getStateValue(windowState, "getStatusBarDisappearance")}",
+            "statusShowing=${getStateValue(windowState, "getStatusBarViewShowing")}",
+            "notif=${getStateValue(windowState, "getNotificationAppearance")}",
+            "notifSwipe=${getStateValue(windowState, "getNotificationPanelSwipeToAppearance")}",
+            "showIcons=${getStateValue(windowState, "getShowNotificationIcons")}",
+            "cc=${getStateValue(windowState, "getControlCenterExpanded")}",
+            "ccSwipe=${getStateValue(windowState, "getControlCenterPanelSwipeToAppearance")}",
+        ).joinToString(prefix = "[", postfix = "]")
+    }
+
+    private fun getStateValue(target: Any?, getterName: String): Boolean? {
+        val state = invokeNoArg(target, getterName) ?: return null
+        return invokeNoArg(state, "getValue") as? Boolean
+    }
+
+    private fun clearBlockedStates(windowState: Any?) {
+        if (!HideBehavior.SCREEN_LOCKED.enabled()) {
+            setStateValue(windowState, "getScreenLocked", false)
+        }
+        if (!HideBehavior.BOUNCER_SHOWING.enabled()) {
+            setStateValue(windowState, "getBouncerShowing", false)
+        }
+        if (!HideBehavior.SCREEN_PINNING.enabled()) {
+            setStateValue(windowState, "getScreenPinning", false)
+        }
+        if (!HideBehavior.DESKTOP_ANIMATING.enabled()) {
+            setStateValue(windowState, "getDeskTopAnimating", false)
+        }
+        if (!HideBehavior.FULLSCREEN.enabled()) {
+            setStateValue(windowState, "getStatusBarDisappearance", false)
+            setStateValue(windowState, "getStatusBarViewShowing", true)
+        }
+        if (!HideBehavior.NOTIFICATION_CENTER.enabled()) {
+            setStateValue(windowState, "getNotificationAppearance", false)
+            setStateValue(windowState, "getNotificationPanelSwipeToAppearance", false)
+            setStateValue(windowState, "getShowNotificationIcons", true)
+        }
+        if (!HideBehavior.CONTROL_CENTER.enabled()) {
+            setStateValue(windowState, "getControlCenterExpanded", false)
+            setStateValue(windowState, "getControlCenterPanelSwipeToAppearance", false)
+        }
+    }
+
+    private fun setStateValue(target: Any?, getterName: String, value: Boolean) {
+        val state = invokeNoArg(target, getterName) ?: return
+        runCatching {
+            state.javaClass.methods.firstOrNull { method ->
+                method.name == "setValue" && method.parameterCount == 1
+            }?.invoke(state, value)
         }
     }
 
