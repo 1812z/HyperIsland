@@ -14,6 +14,7 @@ import 'app_channels_page.dart';
 import 'toast_app_settings_page.dart';
 import '../services/app_cache_service.dart';
 import '../services/interaction_haptics.dart';
+import '../controllers/settings_controller.dart';
 
 class WhitelistPage extends StatefulWidget {
   const WhitelistPage({super.key});
@@ -420,21 +421,25 @@ class WhitelistPageState extends State<WhitelistPage> {
     final enabledCount = _isToastMode
         ? _ctrl.toastEnabledCount
         : _ctrl.enabledPackages.length;
+    final bottomPad = SettingsController.instance.blurBars ? 80.0 : 0.0;
     final allSelected =
         apps.isNotEmpty &&
         apps.every((a) => _selectedPackages.contains(a.packageName));
 
     return Scaffold(
       backgroundColor: cs.surface,
-      floatingActionButton: AnimatedScale(
-        scale: _showBackToTop ? 1 : 0,
-        duration: const Duration(milliseconds: 180),
-        child: AnimatedOpacity(
-          opacity: _showBackToTop ? 1 : 0,
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(bottom: bottomPad + 12),
+        child: AnimatedScale(
+          scale: _showBackToTop ? 1 : 0,
           duration: const Duration(milliseconds: 180),
-          child: FloatingActionButton.small(
-            onPressed: InteractionHaptics.interceptButton(_scrollToTop),
-            child: const Icon(Icons.keyboard_arrow_up_rounded),
+          child: AnimatedOpacity(
+            opacity: _showBackToTop ? 1 : 0,
+            duration: const Duration(milliseconds: 180),
+            child: FloatingActionButton.small(
+              onPressed: InteractionHaptics.interceptButton(_scrollToTop),
+              child: const Icon(Icons.keyboard_arrow_up_rounded),
+            ),
           ),
         ),
       ),
@@ -446,6 +451,7 @@ class WhitelistPageState extends State<WhitelistPage> {
           largeTitle: true,
           physics: const AlwaysScrollableScrollPhysics(),
           scrollController: _scrollController,
+          bottomPadding: bottomPad,
           leading: _selectionMode
               ? IconButton(
                   icon: const Icon(Icons.close),
