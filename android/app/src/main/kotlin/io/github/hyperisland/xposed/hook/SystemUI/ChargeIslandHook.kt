@@ -8,7 +8,6 @@ import android.content.IntentFilter
 import android.os.Bundle
 import android.os.BatteryManager
 import android.os.Build
-import android.util.Log
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
@@ -357,14 +356,14 @@ object ChargeIslandHook : BaseHook() {
     }
 
     private fun debug(module: XposedModule, message: String) {
-        module.log(Log.DEBUG, TAG, message)
+        log(module, message)
     }
 
     private fun logSnapshotIfNeeded() {
         val now = System.currentTimeMillis()
         if (now - lastSnapshotLogAt < 3000L) return
         lastSnapshotLogAt = now
-        ConfigManager.module()?.log(Log.DEBUG, TAG, "battery snapshot ${battery.toLogString()}")
+        ConfigManager.module()?.let { log(it, "battery snapshot ${battery.toLogString()}") }
     }
 
     private fun formatMode(mode: String): String? {
