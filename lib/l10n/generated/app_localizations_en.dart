@@ -634,6 +634,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get islandSection => 'Island';
 
   @override
+  String get islandEnabledLabel => 'Enable island';
+
+  @override
   String get template => 'Template';
 
   @override
@@ -1107,6 +1110,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiModelHint => 'gpt-4o-mini';
+
+  @override
+  String get aiModelPickerTitle => 'Select Model';
+
+  @override
+  String get aiModelPickerSearchHint => 'Search models…';
+
+  @override
+  String get aiModelPickerEmpty => 'No models found';
+
+  @override
+  String get aiModelPickerRetry => 'Retry';
+
+  @override
+  String get aiModelPickerClose => 'Close';
+
+  @override
+  String get aiModelPickerFetchError => 'Failed to load model list';
 
   @override
   String get aiPromptLabel => 'Custom Prompt';

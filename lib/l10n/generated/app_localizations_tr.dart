@@ -640,6 +640,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get islandSection => 'Ada';
 
   @override
+  String get islandEnabledLabel => 'Adayı etkinleştir';
+
+  @override
   String get template => 'Şablon';
 
   @override
@@ -1111,6 +1114,24 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get aiModelHint => 'gpt-4o-mini';
+
+  @override
+  String get aiModelPickerTitle => 'Model Seç';
+
+  @override
+  String get aiModelPickerSearchHint => 'Modelleri ara…';
+
+  @override
+  String get aiModelPickerEmpty => 'Model bulunamadı';
+
+  @override
+  String get aiModelPickerRetry => 'Tekrar dene';
+
+  @override
+  String get aiModelPickerClose => 'Kapat';
+
+  @override
+  String get aiModelPickerFetchError => 'Model listesi yüklenemedi';
 
   @override
   String get aiPromptLabel => 'Özel Prompt';

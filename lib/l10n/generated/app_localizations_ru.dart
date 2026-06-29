@@ -641,6 +641,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get islandSection => 'Остров';
 
   @override
+  String get islandEnabledLabel => 'Включить остров';
+
+  @override
   String get template => 'Шаблон';
 
   @override
@@ -1122,6 +1125,24 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get aiModelHint => 'gpt-4o-mini';
+
+  @override
+  String get aiModelPickerTitle => 'Выбрать модель';
+
+  @override
+  String get aiModelPickerSearchHint => 'Поиск моделей…';
+
+  @override
+  String get aiModelPickerEmpty => 'Модели не найдены';
+
+  @override
+  String get aiModelPickerRetry => 'Повторить';
+
+  @override
+  String get aiModelPickerClose => 'Закрыть';
+
+  @override
+  String get aiModelPickerFetchError => 'Не удалось загрузить список моделей';
 
   @override
   String get aiPromptLabel => 'Пользовательский промпт';

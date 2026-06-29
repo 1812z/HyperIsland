@@ -174,6 +174,61 @@ class _AiConfigPageState extends State<AiConfigPage> {
 
   String _effectiveModel(String model) => model.isEmpty ? 'gpt-4o-mini' : model;
 
+  /// Derive the `/models` endpoint from the chat completions URL.
+  ///
+  /// Handles common shapes:
+  /// - `https://host/v1/chat/completions` -> `https://host/v1/models`
+  /// - `https://host/v1/something`        -> `https://host/v1/models`
+  /// - `https://host/v1`                  -> `https://host/v1/models`
+  /// - anything else                      -> append `/models`
+  String _deriveModelsUrl(String chatUrl) {
+    var u = chatUrl.trim();
+    while (u.endsWith('/')) {
+      u = u.substring(0, u.length - 1);
+    }
+    if (u.isEmpty) return '';
+    final lower = u.toLowerCase();
+    final chatIdx = lower.lastIndexOf('/chat/completions');
+    if (chatIdx >= 0) {
+      return '${u.substring(0, chatIdx)}/models';
+    }
+    final v1Idx = lower.indexOf('/v1/');
+    if (v1Idx >= 0) {
+      return '${u.substring(0, v1Idx + 3)}/models';
+    }
+    if (lower.endsWith('/v1')) {
+      return '$u/models';
+    }
+    return '$u/models';
+  }
+
+  Future<void> _pickModel() async {
+    final l10n = AppLocalizations.of(context)!;
+    final url = _urlCtrl.text.trim();
+    if (url.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.aiTestUrlEmpty),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+      return;
+    }
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (_) => _ModelPickerDialog(
+        modelsUrl: _deriveModelsUrl(url),
+        apiKey: _keyCtrl.text.trim(),
+        currentModel: _modelCtrl.text.trim(),
+      ),
+    );
+    if (selected != null && mounted) {
+      setState(() => _modelCtrl.text = selected);
+    }
+  }
+
   Map<String, dynamic> _buildRequestPayload({
     required String model,
     required String promptText,
@@ -544,6 +599,16 @@ class _AiConfigPageState extends State<AiConfigPage> {
                           label: l10n.aiModelLabel,
                           hint: l10n.aiModelHint,
                           icon: FontAwesomeIcons.lightbulb,
+                          suffix: IconButton(
+                            tooltip: l10n.aiModelPickerTitle,
+                            icon: const FaIcon(
+                              FontAwesomeIcons.magnifyingGlass,
+                              size: 16,
+                            ),
+                            onPressed: InteractionHaptics.interceptButton(
+                              _pickModel,
+                            ),
+                          ),
                         ),
                         const SizedBox(height: 16),
                         _buildTextField(
@@ -967,6 +1032,230 @@ class _TestResultCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Dialog that fetches the model list from an OpenAI-compatible
+class _ModelPickerDialog extends StatefulWidget {
+  const _ModelPickerDialog({
+    required this.modelsUrl,
+    required this.apiKey,
+    required this.currentModel,
+  });
+
+  final String modelsUrl;
+  final String apiKey;
+  final String currentModel;
+
+  @override
+  State<_ModelPickerDialog> createState() => _ModelPickerDialogState();
+}
+
+class _ModelPickerDialogState extends State<_ModelPickerDialog> {
+  final _searchCtrl = TextEditingController();
+  List<String> _models = const [];
+  bool _loading = true;
+  String? _error;
+  String _query = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetch();
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetch() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final response = await http
+          .get(
+            Uri.parse(widget.modelsUrl),
+            headers: {
+              'Accept': 'application/json',
+              if (widget.apiKey.isNotEmpty)
+                'Authorization': 'Bearer ${widget.apiKey}',
+            },
+          )
+          .timeout(const Duration(seconds: 15));
+      if (response.statusCode != 200) {
+        throw Exception('HTTP ${response.statusCode}');
+      }
+      final decoded = jsonDecode(response.body);
+      final data = decoded is Map ? decoded['data'] : null;
+      if (data is! List) {
+        throw Exception('Unexpected response format');
+      }
+      final models = <String>[];
+      for (final item in data) {
+        if (item is Map) {
+          final id = item['id'];
+          if (id is String && id.isNotEmpty) models.add(id);
+        }
+      }
+      models.sort();
+      if (!mounted) return;
+      setState(() {
+        _models = models;
+        _loading = false;
+      });
+    } on Exception catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
+  }
+
+  List<String> get _filtered {
+    if (_query.isEmpty) return _models;
+    final q = _query.toLowerCase();
+    return _models.where((m) => m.toLowerCase().contains(q)).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
+    final filtered = _filtered;
+    final canSearch = !_loading && _error == null;
+
+    return AlertDialog(
+      title: Row(
+        children: [
+          FaIcon(
+            FontAwesomeIcons.magnifyingGlass,
+            size: 18,
+            color: cs.primary,
+          ),
+          const SizedBox(width: 8),
+          Expanded(child: Text(l10n.aiModelPickerTitle)),
+        ],
+      ),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (canSearch) ...[
+              TextField(
+                controller: _searchCtrl,
+                decoration: InputDecoration(
+                  hintText: l10n.aiModelPickerSearchHint,
+                  prefixIcon: const Icon(Icons.search, size: 20),
+                  isDense: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onChanged: (v) => setState(() => _query = v),
+              ),
+              const SizedBox(height: 8),
+            ],
+            if (_loading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 32),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (_error != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      l10n.aiModelPickerFetchError,
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _error!,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: cs.error,
+                        fontFamily: 'monospace',
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: InteractionHaptics.interceptButton(_fetch),
+                      icon: const Icon(Icons.refresh, size: 18),
+                      label: Text(l10n.aiModelPickerRetry),
+                    ),
+                  ],
+                ),
+              )
+            else if (filtered.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Text(
+                  l10n.aiModelPickerEmpty,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: cs.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              )
+            else
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.5,
+                ),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: filtered.length,
+                  separatorBuilder: (_, __) => Divider(
+                    height: 1,
+                    color: cs.outlineVariant.withValues(alpha: 0.5),
+                  ),
+                  itemBuilder: (context, index) {
+                    final m = filtered[index];
+                    final selected = m == widget.currentModel;
+                    return ListTile(
+                      dense: true,
+                      title: Text(
+                        m,
+                        style: const TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 13,
+                        ),
+                      ),
+                      trailing: selected
+                          ? FaIcon(
+                              FontAwesomeIcons.check,
+                              size: 14,
+                              color: cs.primary,
+                            )
+                          : null,
+                      onTap: InteractionHaptics.interceptButton(
+                        () => Navigator.of(context).pop(m),
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
+      actions: [
+        FilledButton.tonal(
+          onPressed: InteractionHaptics.interceptButton(
+            () => Navigator.of(context).pop(),
+          ),
+          child: Text(l10n.aiModelPickerClose),
+        ),
+      ],
     );
   }
 }

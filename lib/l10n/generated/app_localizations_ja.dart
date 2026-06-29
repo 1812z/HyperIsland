@@ -610,6 +610,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get islandSection => 'Island';
 
   @override
+  String get islandEnabledLabel => '島を有効化';
+
+  @override
   String get template => 'テンプレート';
 
   @override
@@ -1066,6 +1069,24 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get aiModelHint => 'gpt-4o-mini';
+
+  @override
+  String get aiModelPickerTitle => 'モデルを選択';
+
+  @override
+  String get aiModelPickerSearchHint => 'モデルを検索…';
+
+  @override
+  String get aiModelPickerEmpty => 'モデルが見つかりません';
+
+  @override
+  String get aiModelPickerRetry => '再試行';
+
+  @override
+  String get aiModelPickerClose => '閉じる';
+
+  @override
+  String get aiModelPickerFetchError => 'モデルリストの読み込みに失敗しました';
 
   @override
   String get aiPromptLabel => 'カスタムプロンプト';

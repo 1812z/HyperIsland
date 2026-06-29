@@ -1190,6 +1190,12 @@ abstract class AppLocalizations {
   /// **'岛'**
   String get islandSection;
 
+  /// No description provided for @islandEnabledLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'启用岛'**
+  String get islandEnabledLabel;
+
   /// No description provided for @template.
   ///
   /// In zh, this message translates to:
@@ -2077,6 +2083,42 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'gpt-4o-mini'**
   String get aiModelHint;
+
+  /// No description provided for @aiModelPickerTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'选择模型'**
+  String get aiModelPickerTitle;
+
+  /// No description provided for @aiModelPickerSearchHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索模型…'**
+  String get aiModelPickerSearchHint;
+
+  /// No description provided for @aiModelPickerEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'未找到模型'**
+  String get aiModelPickerEmpty;
+
+  /// No description provided for @aiModelPickerRetry.
+  ///
+  /// In zh, this message translates to:
+  /// **'重试'**
+  String get aiModelPickerRetry;
+
+  /// No description provided for @aiModelPickerClose.
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭'**
+  String get aiModelPickerClose;
+
+  /// No description provided for @aiModelPickerFetchError.
+  ///
+  /// In zh, this message translates to:
+  /// **'加载模型列表失败'**
+  String get aiModelPickerFetchError;
 
   /// No description provided for @aiPromptLabel.
   ///

@@ -603,6 +603,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get islandSection => '岛';
 
   @override
+  String get islandEnabledLabel => '启用岛';
+
+  @override
   String get template => '模板';
 
   @override
@@ -1053,6 +1056,24 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aiModelHint => 'gpt-4o-mini';
+
+  @override
+  String get aiModelPickerTitle => '选择模型';
+
+  @override
+  String get aiModelPickerSearchHint => '搜索模型…';
+
+  @override
+  String get aiModelPickerEmpty => '未找到模型';
+
+  @override
+  String get aiModelPickerRetry => '重试';
+
+  @override
+  String get aiModelPickerClose => '关闭';
+
+  @override
+  String get aiModelPickerFetchError => '加载模型列表失败';
 
   @override
   String get aiPromptLabel => '系统提示词';
