@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -10,9 +12,9 @@ class IslandBackgroundService {
   static const _channel = MethodChannel('io.github.hyperisland/test');
 
   static const Map<IslandBgType, String> _fileNames = {
-    IslandBgType.small: 'hyperisland_bg_small.png',
-    IslandBgType.big: 'hyperisland_bg_big.png',
-    IslandBgType.expand: 'hyperisland_bg_expand.png',
+    IslandBgType.small: 'hyperisland_bg_small',
+    IslandBgType.big: 'hyperisland_bg_big',
+    IslandBgType.expand: 'hyperisland_bg_expand',
   };
 
   static String getFileName(IslandBgType type) => _fileNames[type] ?? '';
@@ -21,7 +23,8 @@ class IslandBackgroundService {
   static Future<String?> pickImage() async {
     try {
       final pickedFile = await FilePicker.pickFile(
-        type: FileType.image,
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'bmp', 'gif'],
       );
 
       return pickedFile?.path;
@@ -37,7 +40,7 @@ class IslandBackgroundService {
     String sourcePath,
     IslandBgType type,
   ) async {
-    final destFileName = _fileNames[type];
+    final destFileName = _buildDestFileName(sourcePath, type);
     if (destFileName == null) return null;
 
     final savedPath = await _copyImageToModuleDir(
@@ -57,6 +60,17 @@ class IslandBackgroundService {
     final sourcePath = await pickImage();
     if (sourcePath == null) return null;
     return copyAndUpdate(sourcePath, type);
+  }
+
+  static bool isGif(String path) => path.trim().toLowerCase().endsWith('.gif');
+
+  static String? _buildDestFileName(String sourcePath, IslandBgType type) {
+    final baseName = _fileNames[type];
+    if (baseName == null) return null;
+    final extension = sourcePath.trim().toLowerCase().endsWith('.gif')
+        ? 'gif'
+        : 'png';
+    return '$baseName.$extension';
   }
 
   static Future<String?> _copyImageToModuleDir(
@@ -80,8 +94,9 @@ class IslandBackgroundService {
 
   static Future<bool> deleteImage(IslandBgType type) async {
     try {
-      final destFileName = _fileNames[type];
-      if (destFileName == null) return false;
+      final currentPath = getImagePath(type);
+      final destFileName = currentPath?.split(Platform.pathSeparator).last;
+      if (destFileName == null || destFileName.isEmpty) return false;
 
       final success = await _channel.invokeMethod<bool>(
         'deleteImageFromModuleDir',

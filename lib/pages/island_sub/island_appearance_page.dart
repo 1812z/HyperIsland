@@ -82,6 +82,24 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     final sourcePath = await IslandBackgroundService.pickImage();
     if (sourcePath == null || !mounted) return;
 
+    if (IslandBackgroundService.isGif(sourcePath)) {
+      final savedPath = await IslandBackgroundService.copyAndUpdate(
+        sourcePath,
+        type,
+      );
+      if (savedPath != null && mounted) {
+        imageCache.evict(FileImage(File(savedPath)));
+        setState(() {});
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.islandBgImageSelected),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+      return;
+    }
+
     final editResult = await showIslandBgEditDialog(
       context: context,
       imagePath: sourcePath,
@@ -360,7 +378,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                     children: [
                       _IslandBgTile(
                         title: l10n.islandBgSmallTitle,
-                        subtitle: l10n.tapToSelectImage,
+                        subtitle: _tapToSelectImageOrGif,
                         icon: Icons.panorama_vertical,
                         imagePath: _ctrl.islandBgSmallPath,
                         onTap: () => _pickIslandBackground(IslandBgType.small),
@@ -372,7 +390,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                       const Divider(height: 1, indent: 16, endIndent: 16),
                       _IslandBgTile(
                         title: l10n.islandBgBigTitle,
-                        subtitle: l10n.tapToSelectImage,
+                        subtitle: _tapToSelectImageOrGif,
                         icon: Icons.panorama_vertical,
                         imagePath: _ctrl.islandBgBigPath,
                         onTap: () => _pickIslandBackground(IslandBgType.big),
@@ -383,7 +401,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                       const Divider(height: 1, indent: 16, endIndent: 16),
                       _IslandBgTile(
                         title: l10n.islandBgExpandTitle,
-                        subtitle: l10n.tapToSelectImage,
+                        subtitle: _tapToSelectImageOrGif,
                         icon: Icons.panorama_vertical,
                         imagePath: _ctrl.islandBgExpandPath,
                         onTap: () => _pickIslandBackground(IslandBgType.expand),
@@ -502,6 +520,9 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
 
   String get _islandTextColorTitle =>
       _languageCode == 'zh' ? '超级岛文本颜色' : 'Island Text Color';
+
+  String get _tapToSelectImageOrGif =>
+      _languageCode == 'zh' ? '点击选择图片或 GIF' : 'Tap to select image or GIF';
 
   String _textColorModeLabel(String mode) {
     final isZh = _languageCode == 'zh';

@@ -1,6 +1,8 @@
 package io.github.hyperisland.xposed.hook
 
 import android.graphics.*
+import android.graphics.ImageDecoder
+import android.graphics.drawable.AnimatedImageDrawable
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.util.TypedValue
@@ -18,7 +20,7 @@ import java.lang.reflect.Method
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Hook 超级岛背景视图，替换默认背景 Drawable 为自定义 PNG。
+ * Hook 超级岛背景视图，替换默认背景 Drawable 为自定义图片或 GIF。
  *
  * 核心原则：**只对配置了自定义背景的岛类型替换 drawable，绝不影响其他类型的岛外形。**
  * 但遮罩处理采用"全有或全无"策略——只要有一个类型配了自定义背景（anyCustomBgConfigured），
@@ -213,6 +215,7 @@ object IslandBackgroundHook : BaseHook() {
 
                     if (customDrawable != null) {
                         try {
+                            customDrawable.callback = bgView
                             val drawableField = getCachedField(drawableFieldCache, bgViewClass, "drawable")
                             drawableField?.set(chain.thisObject, customDrawable)
                         } catch (e: Exception) {
@@ -453,6 +456,7 @@ object IslandBackgroundHook : BaseHook() {
         customDrawable: Drawable
     ) {
         try {
+            customDrawable.callback = bgView
             val drawableField = getCachedField(drawableFieldCache, bgViewClass, "drawable")
             drawableField?.set(bgView, customDrawable)
         } catch (e: Exception) {
@@ -704,7 +708,12 @@ object IslandBackgroundHook : BaseHook() {
         val cachedModified = lastFileModified[type] ?: 0L
         val cachedPath = lastConfigPath[type] ?: ""
 
-        if (cachedDrawables[type] == null || currentModified != cachedModified || cachedPath != configPath) {
+        val cachedDrawable = cachedDrawables[type]
+        if (cachedDrawable is RoundedClippingAnimatedDrawable) {
+            cachedDrawable.start()
+        }
+
+        if (cachedDrawable == null || currentModified != cachedModified || cachedPath != configPath) {
             synchronized(this) {
                 if (cachedDrawables[type] == null || currentModified != (lastFileModified[type] ?: 0L) || lastConfigPath[type] != configPath) {
                     val old = cachedDrawables[type]
@@ -716,6 +725,8 @@ object IslandBackgroundHook : BaseHook() {
                     }
                     if (old is RoundedClippingDrawable) {
                         if (!old.bitmap.isRecycled) old.bitmap.recycle()
+                    } else if (old is RoundedClippingAnimatedDrawable) {
+                        old.release()
                     } else if (old is BitmapDrawable) {
                         old.bitmap?.recycle()
                     }
@@ -782,6 +793,10 @@ object IslandBackgroundHook : BaseHook() {
         module: XposedModule,
         stokeWidth: Int = 0
     ): Drawable? {
+        if (file.extension.equals("gif", ignoreCase = true)) {
+            return decodeAnimatedGif(file, context, module, stokeWidth)
+        }
+
         return try {
             val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             BitmapFactory.decodeFile(file.absolutePath, options)
@@ -802,6 +817,33 @@ object IslandBackgroundHook : BaseHook() {
             RoundedClippingDrawable(bitmap, cornerRadius, stokeWidth)
         } catch (e: Exception) {
             logError(module, "Failed to decode background: ${e.message}")
+            null
+        }
+    }
+
+    private fun decodeAnimatedGif(
+        file: File,
+        context: android.content.Context?,
+        module: XposedModule,
+        stokeWidth: Int = 0
+    ): Drawable? {
+        return try {
+            val source = ImageDecoder.createSource(file)
+            var gifWidth = 0
+            var gifHeight = 0
+            val drawable = ImageDecoder.decodeDrawable(source) { decoder, info, _ ->
+                val size = info.size
+                gifWidth = size.width
+                gifHeight = size.height
+                decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+            }
+            if (drawable is AnimatedImageDrawable) {
+                drawable.repeatCount = AnimatedImageDrawable.REPEAT_INFINITE
+                drawable.start()
+            }
+            RoundedClippingAnimatedDrawable(drawable, gifWidth, gifHeight, getCornerRadius(context), stokeWidth)
+        } catch (e: Exception) {
+            logError(module, "Failed to decode GIF background: ${e.message}")
             null
         }
     }
@@ -851,6 +893,8 @@ object IslandBackgroundHook : BaseHook() {
             cachedDrawables.values.forEach { drawable ->
                 if (drawable is RoundedClippingDrawable) {
                     if (!drawable.bitmap.isRecycled) drawable.bitmap.recycle()
+                } else if (drawable is RoundedClippingAnimatedDrawable) {
+                    drawable.release()
                 } else if (drawable is BitmapDrawable) {
                     drawable.bitmap?.recycle()
                 }
@@ -934,5 +978,106 @@ object IslandBackgroundHook : BaseHook() {
         override fun setColorFilter(colorFilter: ColorFilter?) { paint.colorFilter = colorFilter }
         override fun getIntrinsicWidth(): Int = bitmap.width
         override fun getIntrinsicHeight(): Int = bitmap.height
+    }
+
+    /**
+     * 圆角裁剪 AnimatedImageDrawable 包装器，用于 GIF 背景。
+     */
+    private class RoundedClippingAnimatedDrawable(
+        private val child: Drawable,
+        private val sourceWidth: Int,
+        private val sourceHeight: Int,
+        private val cornerRadius: Float,
+        private val stokeWidth: Int = 0
+    ) : Drawable(), Drawable.Callback {
+
+        private val clipPath = Path()
+        private val rect = RectF()
+        private val childRect = Rect()
+
+        private val defaultStoke by lazy {
+            TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP, 4f,
+                android.content.res.Resources.getSystem().displayMetrics
+            ).toInt()
+        }
+
+        init {
+            child.callback = this
+            start()
+        }
+
+        fun start() {
+            if (child is AnimatedImageDrawable) {
+                child.repeatCount = AnimatedImageDrawable.REPEAT_INFINITE
+                child.start()
+            }
+        }
+
+        fun release() {
+            if (child is AnimatedImageDrawable) {
+                child.stop()
+            }
+            child.callback = null
+            callback = null
+        }
+
+        override fun draw(canvas: Canvas) {
+            val bounds = getBounds()
+            if (bounds.isEmpty) return
+
+            val s = if (stokeWidth > 0) stokeWidth.toFloat() else defaultStoke.toFloat()
+            val contentLeft = (bounds.left + s).coerceAtLeast(bounds.left.toFloat())
+            val contentTop = (bounds.top + s).coerceAtLeast(bounds.top.toFloat())
+            val contentRight = (bounds.right - s).coerceAtMost(bounds.right.toFloat())
+            val contentBottom = (bounds.bottom - s).coerceAtMost(bounds.bottom.toFloat())
+
+            if (contentRight > contentLeft && contentBottom > contentTop) {
+                rect.set(contentLeft, contentTop, contentRight, contentBottom)
+            } else {
+                rect.set(bounds.left.toFloat(), bounds.top.toFloat(), bounds.right.toFloat(), bounds.bottom.toFloat())
+            }
+
+            clipPath.reset()
+            clipPath.addRoundRect(rect, cornerRadius, cornerRadius, Path.Direction.CW)
+
+            val save = canvas.save()
+            canvas.clipPath(clipPath)
+
+            val imageW = if (sourceWidth > 0) sourceWidth else child.intrinsicWidth
+            val imageH = if (sourceHeight > 0) sourceHeight else child.intrinsicHeight
+            if (imageW > 0 && imageH > 0) {
+                val scale = kotlin.math.max(
+                    rect.width() / imageW.toFloat(),
+                    rect.height() / imageH.toFloat()
+                )
+                val drawW = imageW * scale
+                val drawH = imageH * scale
+                val left = rect.left + (rect.width() - drawW) / 2f
+                val top = rect.top + (rect.height() - drawH) / 2f
+
+                canvas.translate(left, top)
+                canvas.scale(scale, scale)
+                childRect.set(0, 0, imageW, imageH)
+            } else {
+                childRect.set(rect.left.toInt(), rect.top.toInt(), rect.right.toInt(), rect.bottom.toInt())
+            }
+            child.bounds = childRect
+            child.draw(canvas)
+            canvas.restoreToCount(save)
+        }
+
+        override fun setAlpha(alpha: Int) { child.alpha = alpha }
+        override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
+        override fun setColorFilter(colorFilter: ColorFilter?) { child.colorFilter = colorFilter }
+        override fun getIntrinsicWidth(): Int = if (sourceWidth > 0) sourceWidth else child.intrinsicWidth
+        override fun getIntrinsicHeight(): Int = if (sourceHeight > 0) sourceHeight else child.intrinsicHeight
+        override fun invalidateDrawable(who: Drawable) { invalidateSelf() }
+        override fun scheduleDrawable(who: Drawable, what: Runnable, `when`: Long) {
+            scheduleSelf(what, `when`)
+        }
+        override fun unscheduleDrawable(who: Drawable, what: Runnable) {
+            unscheduleSelf(what)
+        }
     }
 }

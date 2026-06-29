@@ -328,6 +328,9 @@ class MainActivity : FlutterActivity() {
                             publicDir.setExecutable(true, false)
 
                             val destFile = java.io.File(publicDir, destFileName)
+                            val destBase = destFile.nameWithoutExtension
+                            java.io.File(publicDir, "$destBase.png").delete()
+                            java.io.File(publicDir, "$destBase.gif").delete()
                             java.io.File(sourcePath).copyTo(destFile, overwrite = true)
                             destFile.setReadable(true, false)
                             runOnUiThread { result.success(destFile.absolutePath) }
@@ -344,6 +347,9 @@ class MainActivity : FlutterActivity() {
                                 moduleDir.setExecutable(true, false)
 
                                 val destFile = java.io.File(moduleDir, destFileName)
+                                val destBase = destFile.nameWithoutExtension
+                                java.io.File(moduleDir, "$destBase.png").delete()
+                                java.io.File(moduleDir, "$destBase.gif").delete()
                                 java.io.File(sourcePath).copyTo(destFile, overwrite = true)
                                 destFile.setReadable(true, false)
                                 runOnUiThread { result.success(destFile.absolutePath) }
