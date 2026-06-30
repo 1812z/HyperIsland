@@ -82,8 +82,8 @@ object TextShadeHook : BaseHook() {
         } ?: return
 
         module.hook(method).intercept { chain ->
-            if (hasBigIslandBackground() && chain.args.size >= 4) {
-                chain.args[3] = false
+            if (hasBigIslandBackground()) {
+                hideTextShade(chain.thisObject)
             }
             val result = chain.proceed()
             if (hasBigIslandBackground()) {
