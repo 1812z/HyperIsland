@@ -93,6 +93,13 @@ const kPrefThemeSeedColor = 'pref_theme_seed_color';
 const kPrefBlurBars = 'pref_blur_bars';
 const kPrefDebugLog = 'pref_debug_log';
 const kPrefOnboardingCompleted = 'pref_onboarding_completed';
+const kPrefCommandTokenEnabled = 'pref_command_token_enabled';
+const kPrefCommandTokenDouyinEnabled = 'pref_command_token_douyin_enabled';
+const kPrefCommandTokenTimeoutSeconds = 'pref_command_token_timeout_seconds';
+const kPrefCommandTokenClearClipAfterClick =
+    'pref_command_token_clear_clip_after_click';
+const kPrefCommandTokenDedupWindowSeconds =
+    'pref_command_token_dedup_window_seconds';
 
 const kIslandTextColorDefault = 'default';
 const kIslandTextColorBlack = 'black';
@@ -198,6 +205,11 @@ class SettingsController extends ChangeNotifier {
   String chargeIslandDurationMode = kChargeIslandDurationDefault;
   int chargeIslandDurationSeconds = 10;
   bool chargeIslandOuterGlow = false;
+  bool commandTokenEnabled = false;
+  bool commandTokenDouyinEnabled = true;
+  int commandTokenTimeoutSeconds = 8;
+  bool commandTokenClearClipAfterClick = false;
+  int commandTokenDedupWindowSeconds = 30;
   bool checkUpdateOnLaunch = true;
   bool defaultFirstFloat = false;
   bool defaultEnableFloat = false;
@@ -307,6 +319,17 @@ class SettingsController extends ChangeNotifier {
       prefs.getInt(kPrefChargeIslandDurationSeconds),
     );
     chargeIslandOuterGlow = prefs.getBool(kPrefChargeIslandOuterGlow) ?? false;
+    commandTokenEnabled = prefs.getBool(kPrefCommandTokenEnabled) ?? false;
+    commandTokenDouyinEnabled =
+        prefs.getBool(kPrefCommandTokenDouyinEnabled) ?? true;
+    commandTokenTimeoutSeconds = _normalizeCommandTokenTimeoutSeconds(
+      prefs.getInt(kPrefCommandTokenTimeoutSeconds),
+    );
+    commandTokenClearClipAfterClick =
+        prefs.getBool(kPrefCommandTokenClearClipAfterClick) ?? false;
+    commandTokenDedupWindowSeconds = _normalizeCommandTokenDedupWindowSeconds(
+      prefs.getInt(kPrefCommandTokenDedupWindowSeconds),
+    );
     checkUpdateOnLaunch = prefs.getBool(kPrefCheckUpdateOnLaunch) ?? true;
     defaultFirstFloat = prefs.getBool(kPrefDefaultFirstFloat) ?? false;
     defaultEnableFloat = prefs.getBool(kPrefDefaultEnableFloat) ?? false;
@@ -638,6 +661,48 @@ class SettingsController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setCommandTokenEnabled(bool value) async {
+    if (commandTokenEnabled == value) return;
+    final prefs = await _getPrefs();
+    await prefs.setBool(kPrefCommandTokenEnabled, value);
+    commandTokenEnabled = value;
+    notifyListeners();
+  }
+
+  Future<void> setCommandTokenDouyinEnabled(bool value) async {
+    if (commandTokenDouyinEnabled == value) return;
+    final prefs = await _getPrefs();
+    await prefs.setBool(kPrefCommandTokenDouyinEnabled, value);
+    commandTokenDouyinEnabled = value;
+    notifyListeners();
+  }
+
+  Future<void> setCommandTokenTimeoutSeconds(int value) async {
+    final normalized = value.clamp(1, 30);
+    if (commandTokenTimeoutSeconds == normalized) return;
+    final prefs = await _getPrefs();
+    await prefs.setInt(kPrefCommandTokenTimeoutSeconds, normalized);
+    commandTokenTimeoutSeconds = normalized;
+    notifyListeners();
+  }
+
+  Future<void> setCommandTokenClearClipAfterClick(bool value) async {
+    if (commandTokenClearClipAfterClick == value) return;
+    final prefs = await _getPrefs();
+    await prefs.setBool(kPrefCommandTokenClearClipAfterClick, value);
+    commandTokenClearClipAfterClick = value;
+    notifyListeners();
+  }
+
+  Future<void> setCommandTokenDedupWindowSeconds(int value) async {
+    final normalized = value.clamp(5, 300);
+    if (commandTokenDedupWindowSeconds == normalized) return;
+    final prefs = await _getPrefs();
+    await prefs.setInt(kPrefCommandTokenDedupWindowSeconds, normalized);
+    commandTokenDedupWindowSeconds = normalized;
+    notifyListeners();
+  }
+
   Future<void> setCheckUpdateOnLaunch(bool value) async {
     if (checkUpdateOnLaunch == value) return;
     final prefs = await _getPrefs();
@@ -891,6 +956,16 @@ class SettingsController extends ChangeNotifier {
 
   int _normalizeBluetoothIslandDisplayDurationSeconds(int? value) {
     return (value ?? 2).clamp(1, 86400);
+  }
+
+  static int _normalizeCommandTokenTimeoutSeconds(int? value) {
+    if (value == null) return 8;
+    return value.clamp(1, 30);
+  }
+
+  static int _normalizeCommandTokenDedupWindowSeconds(int? value) {
+    if (value == null) return 30;
+    return value.clamp(5, 300);
   }
 
   Future<void> setHideDesktopIcon(bool value) async {

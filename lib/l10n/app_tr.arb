@@ -728,5 +728,18 @@
   "hideBehaviorNotificationCenterSubtitle": "Hide the island while the notification shade expands or transitions",
   "tapToSelectImage": "Resim veya GIF seçmek için dokunun",
   "autoExpandNotification": "Bildirimi otomatik genişlet",
-  "off": "Kapalı"
+  "off": "Kapalı",
+  "commandTokenTitle": "Command Token Recognition",
+  "commandTokenSubtitle": "Show island prompt to open the target app after copying a token",
+  "commandTokenSettingsTitle": "Command Token Settings",
+  "commandTokenEnableTitle": "Enable command token recognition",
+  "commandTokenEnableSubtitle": "Monitor clipboard for command tokens and show on island",
+  "commandTokenDouyinEnableTitle": "Enable Douyin tokens",
+  "commandTokenDouyinEnableSubtitle": "Show island when a Douyin token is detected",
+  "commandTokenTimeoutTitle": "Display duration",
+  "commandTokenClearClipTitle": "Clear clipboard after click",
+  "commandTokenClearClipSubtitle": "Clear clipboard after tapping the island to avoid re-detection",
+  "commandTokenDedupTitle": "Dedup window",
+  "commandTokenStatusEnabled": "Enabled",
+  "commandTokenStatusDisabled": "Disabled"
 }

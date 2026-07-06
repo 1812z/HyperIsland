@@ -40,6 +40,11 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
     _ctrl.chargeIslandDurationMode,
     _ctrl.chargeIslandDurationSeconds,
     _ctrl.chargeIslandOuterGlow,
+    _ctrl.commandTokenEnabled,
+    _ctrl.commandTokenDouyinEnabled,
+    _ctrl.commandTokenTimeoutSeconds,
+    _ctrl.commandTokenClearClipAfterClick,
+    _ctrl.commandTokenDedupWindowSeconds,
   ]);
 
   void _onChanged() {
@@ -202,6 +207,53 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
               await _ctrl.setChargeIslandDurationMode(durationMode);
               await _ctrl.setChargeIslandDurationSeconds(durationSeconds);
               await _ctrl.setChargeIslandOuterGlow(outerGlow);
+              if (mounted && enabledChanged) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      AppLocalizations.of(context)!.restartScopeApp,
+                    ),
+                    duration: const Duration(seconds: 4),
+                  ),
+                );
+              }
+              return true;
+            },
+      ),
+    );
+  }
+
+  Future<void> _showCommandTokenSettings() async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => _CommandTokenSettingsDialog(
+        enabled: _ctrl.commandTokenEnabled,
+        douyinEnabled: _ctrl.commandTokenDouyinEnabled,
+        timeoutSeconds: _ctrl.commandTokenTimeoutSeconds,
+        dedupWindowSeconds: _ctrl.commandTokenDedupWindowSeconds,
+        clearClipAfterClick: _ctrl.commandTokenClearClipAfterClick,
+        onApply:
+            (
+              enabled,
+              douyinEnabled,
+              timeoutSeconds,
+              dedupWindowSeconds,
+              clearClipAfterClick,
+            ) async {
+              final enabledChanged = enabled != _ctrl.commandTokenEnabled;
+              if (!await _requestScopesIfEnabled(
+                enabled,
+                const ['com.android.systemui'],
+              )) {
+                return false;
+              }
+              await _ctrl.setCommandTokenEnabled(enabled);
+              await _ctrl.setCommandTokenDouyinEnabled(douyinEnabled);
+              await _ctrl.setCommandTokenTimeoutSeconds(timeoutSeconds);
+              await _ctrl.setCommandTokenDedupWindowSeconds(dedupWindowSeconds);
+              await _ctrl.setCommandTokenClearClipAfterClick(
+                clearClipAfterClick,
+              );
               if (mounted && enabledChanged) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
@@ -390,6 +442,29 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
                     ),
                     onLongPress: InteractionHaptics.interceptButton(
                       _showChargeIslandSettings,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Card(
+                  elevation: 0,
+                  color: cs.surfaceContainerHighest,
+                  clipBehavior: Clip.antiAlias,
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    title: Text(l10n.commandTokenTitle, style: titleStyle),
+                    subtitle: Text(
+                      '${l10n.commandTokenSubtitle}（${_ctrl.commandTokenEnabled ? l10n.commandTokenStatusEnabled : l10n.commandTokenStatusDisabled}）',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: InteractionHaptics.interceptButton(
+                      _showCommandTokenSettings,
+                    ),
+                    onLongPress: InteractionHaptics.interceptButton(
+                      _showCommandTokenSettings,
                     ),
                   ),
                 ),
@@ -1085,6 +1160,162 @@ class _SectionLabel extends StatelessWidget {
           letterSpacing: 0.5,
         ),
       ),
+    );
+  }
+}
+
+class _CommandTokenSettingsDialog extends StatefulWidget {
+  const _CommandTokenSettingsDialog({
+    required this.enabled,
+    required this.douyinEnabled,
+    required this.timeoutSeconds,
+    required this.dedupWindowSeconds,
+    required this.clearClipAfterClick,
+    required this.onApply,
+  });
+
+  final bool enabled;
+  final bool douyinEnabled;
+  final int timeoutSeconds;
+  final int dedupWindowSeconds;
+  final bool clearClipAfterClick;
+  final Future<bool> Function(
+    bool enabled,
+    bool douyinEnabled,
+    int timeoutSeconds,
+    int dedupWindowSeconds,
+    bool clearClipAfterClick,
+  )
+  onApply;
+
+  @override
+  State<_CommandTokenSettingsDialog> createState() =>
+      _CommandTokenSettingsDialogState();
+}
+
+class _CommandTokenSettingsDialogState
+    extends State<_CommandTokenSettingsDialog> {
+  late bool _enabled;
+  late bool _douyinEnabled;
+  late bool _clearClipAfterClick;
+  late final TextEditingController _timeoutController;
+  late final TextEditingController _dedupController;
+
+  @override
+  void initState() {
+    super.initState();
+    _enabled = widget.enabled;
+    _douyinEnabled = widget.douyinEnabled;
+    _clearClipAfterClick = widget.clearClipAfterClick;
+    _timeoutController = TextEditingController(
+      text: widget.timeoutSeconds.toString(),
+    );
+    _dedupController = TextEditingController(
+      text: widget.dedupWindowSeconds.toString(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _timeoutController.dispose();
+    _dedupController.dispose();
+    super.dispose();
+  }
+
+  int _parseTimeout() {
+    final raw = int.tryParse(_timeoutController.text.trim()) ?? 8;
+    return raw.clamp(1, 30);
+  }
+
+  int _parseDedup() {
+    final raw = int.tryParse(_dedupController.text.trim()) ?? 30;
+    return raw.clamp(5, 300);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return AlertDialog(
+      title: Text(l10n.commandTokenSettingsTitle),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(l10n.commandTokenEnableTitle),
+              subtitle: Text(l10n.commandTokenEnableSubtitle),
+              value: _enabled,
+              onChanged: (value) => setState(() => _enabled = value),
+            ),
+            if (_enabled) ...[
+              const Divider(height: 24),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(l10n.commandTokenDouyinEnableTitle),
+                subtitle: Text(l10n.commandTokenDouyinEnableSubtitle),
+                value: _douyinEnabled,
+                onChanged: (value) => setState(() => _douyinEnabled = value),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _timeoutController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: InputDecoration(
+                  labelText: l10n.commandTokenTimeoutTitle,
+                  suffixText: l10n.seconds,
+                  border: const OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _dedupController,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                decoration: InputDecoration(
+                  labelText: l10n.commandTokenDedupTitle,
+                  suffixText: l10n.seconds,
+                  border: const OutlineInputBorder(),
+                  isDense: true,
+                ),
+              ),
+              const SizedBox(height: 16),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(l10n.commandTokenClearClipTitle),
+                subtitle: Text(l10n.commandTokenClearClipSubtitle),
+                value: _clearClipAfterClick,
+                onChanged: (value) =>
+                    setState(() => _clearClipAfterClick = value),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: InteractionHaptics.interceptButton(() {
+            Navigator.pop(context);
+          }),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(
+          onPressed: InteractionHaptics.interceptButton(() async {
+            final applied = await widget.onApply(
+              _enabled,
+              _douyinEnabled,
+              _parseTimeout(),
+              _parseDedup(),
+              _clearClipAfterClick,
+            );
+            if (!applied) return;
+            if (context.mounted) Navigator.pop(context);
+          }),
+          child: Text(l10n.apply),
+        ),
+      ],
     );
   }
 }

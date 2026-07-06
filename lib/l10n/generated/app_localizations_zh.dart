@@ -1823,4 +1823,43 @@ class AppLocalizationsZh extends AppLocalizations {
   String widthDpLabel(int width) {
     return '$width dp';
   }
+
+  @override
+  String get commandTokenTitle => '口令识别';
+
+  @override
+  String get commandTokenSubtitle => '复制口令后上岛提示打开对应 App';
+
+  @override
+  String get commandTokenSettingsTitle => '口令识别设置';
+
+  @override
+  String get commandTokenEnableTitle => '启用口令识别';
+
+  @override
+  String get commandTokenEnableSubtitle => '监听剪贴板识别口令并上岛';
+
+  @override
+  String get commandTokenDouyinEnableTitle => '启用抖音口令';
+
+  @override
+  String get commandTokenDouyinEnableSubtitle => '识别到抖音口令后上岛';
+
+  @override
+  String get commandTokenTimeoutTitle => '显示时长';
+
+  @override
+  String get commandTokenClearClipTitle => '点击后清空剪贴板';
+
+  @override
+  String get commandTokenClearClipSubtitle => '点击岛后清空剪贴板，避免重复识别';
+
+  @override
+  String get commandTokenDedupTitle => '去重时间窗';
+
+  @override
+  String get commandTokenStatusEnabled => '已启用';
+
+  @override
+  String get commandTokenStatusDisabled => '未启用';
 }

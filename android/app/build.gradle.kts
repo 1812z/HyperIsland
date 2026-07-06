@@ -6,6 +6,7 @@ val buildTime: String = LocalDateTime.now().format(DateTimeFormatter.ofPattern("
 
 plugins {
     id("com.android.application")
+    id("org.jetbrains.kotlin.android")
     // The Flutter Gradle Plugin must be applied after the Android Gradle plugin.
     id("dev.flutter.flutter-gradle-plugin")
 }
@@ -111,4 +112,5 @@ dependencies {
     implementation("io.github.d4viddf:hyperisland_kit:0.4.4")
     compileOnly("io.github.libxposed:api:102.0.0")
     implementation("io.github.libxposed:service:102.0.0")
+    testImplementation("junit:junit:4.13.2")
 }
