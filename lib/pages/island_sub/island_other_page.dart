@@ -3,7 +3,6 @@ import '../../controllers/settings_controller.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../services/interaction_haptics.dart';
 import '../../widgets/blur_app_bar.dart';
-import '../../widgets/color_picker_dialog.dart';
 import '../../widgets/modern_slider.dart';
 
 class IslandOtherPage extends StatefulWidget {
@@ -23,10 +22,6 @@ class _IslandOtherPageState extends State<IslandOtherPage> {
     _ctrl.landscapeBehavior,
     _ctrl.dndBehavior,
     _ctrl.marqueeSpeed,
-    _ctrl.keepIsland,
-    _ctrl.keepIslandAutoHide,
-    _ctrl.keepIslandHideLandscape,
-    _ctrl.keepIslandHighlightColor,
   ]);
 
   @override
@@ -248,146 +243,6 @@ class _IslandOtherPageState extends State<IslandOtherPage> {
                         ),
                       ],
                     ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                // --- 常驻岛 ---
-                _SectionLabel(l10n.keepIslandTitle),
-                const SizedBox(height: 8),
-                Card(
-                  elevation: 0,
-                  color: cs.surfaceContainerHighest,
-                  child: Column(
-                    children: [
-                      SwitchListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 4,
-                        ),
-                        title: Text(l10n.keepIslandTitle, style: titleStyle),
-                        subtitle: Text(l10n.keepIslandSubtitle),
-                        value: _ctrl.keepIsland,
-                        onChanged: InteractionHaptics.interceptToggle(
-                          (v) => _ctrl.setKeepIsland(v),
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: _ctrl.keepIsland
-                              ? const BorderRadius.vertical(
-                                  top: Radius.circular(16),
-                                )
-                              : BorderRadius.circular(16),
-                        ),
-                      ),
-                      if (_ctrl.keepIsland) ...[
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        SwitchListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          title: Text(
-                            l10n.keepIslandAutoHideTitle,
-                            style: titleStyle,
-                          ),
-                          subtitle: Text(l10n.keepIslandAutoHideSubtitle),
-                          value: _ctrl.keepIslandAutoHide,
-                          onChanged: InteractionHaptics.interceptToggle(
-                            (v) => _ctrl.setKeepIslandAutoHide(v),
-                          ),
-                        ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        SwitchListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          title: Text(
-                            l10n.keepIslandHideLandscapeTitle,
-                            style: titleStyle,
-                          ),
-                          subtitle: Text(l10n.keepIslandHideLandscapeSubtitle),
-                          value: _ctrl.keepIslandHideLandscape,
-                          onChanged: InteractionHaptics.interceptToggle(
-                            (v) => _ctrl.setKeepIslandHideLandscape(v),
-                          ),
-                        ),
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          title: Text(
-                            l10n.keepIslandHighlightColorTitle,
-                            style: titleStyle,
-                          ),
-                          subtitle: Text(l10n.keepIslandHighlightColorSubtitle),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (_ctrl.keepIslandHighlightColor.isNotEmpty)
-                                Container(
-                                  width: 24,
-                                  height: 24,
-                                  decoration: BoxDecoration(
-                                    color:
-                                        parseHexColor(
-                                          _ctrl.keepIslandHighlightColor,
-                                        ) ??
-                                        cs.primary,
-                                    borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(
-                                      color: cs.outline,
-                                      width: 1,
-                                    ),
-                                  ),
-                                )
-                              else
-                                Icon(
-                                  Icons.palette_outlined,
-                                  color: cs.onSurfaceVariant,
-                                ),
-                              const SizedBox(width: 8),
-                              if (_ctrl.keepIslandHighlightColor.isNotEmpty)
-                                SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: IconButton(
-                                    icon: const Icon(Icons.refresh, size: 18),
-                                    padding: EdgeInsets.zero,
-                                    visualDensity: VisualDensity.compact,
-                                    onPressed:
-                                        InteractionHaptics.interceptButton(
-                                          () => _ctrl
-                                              .setKeepIslandHighlightColor(''),
-                                        ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                          onTap: InteractionHaptics.interceptButton(() async {
-                            final color = await showColorPickerDialog(
-                              context,
-                              initialHex: _ctrl.keepIslandHighlightColor.isEmpty
-                                  ? null
-                                  : _ctrl.keepIslandHighlightColor,
-                              title: l10n.keepIslandHighlightColorTitle,
-                              enableAlpha: true,
-                            );
-                            if (color != null) {
-                              await _ctrl.setKeepIslandHighlightColor(
-                                colorToArgbHex(color),
-                              );
-                            }
-                          }),
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(
-                              bottom: Radius.circular(16),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
                   ),
                 ),
                 const SizedBox(height: 32),

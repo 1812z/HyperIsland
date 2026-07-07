@@ -549,11 +549,47 @@
   "keepIslandTitle": "Keep Island Visible",
   "keepIslandSubtitle": "Post a blank notification to keep the island always visible",
   "keepIslandAutoHideTitle": "Auto Hide",
-  "keepIslandAutoHideSubtitle": "Automatically hide the blank island when a real notification arrives, and restore it when dismissed",
+  "keepIslandAutoHideSubtitle": "Automatically hide the blank island when a notification arrives, and restore it when dismissed",
   "keepIslandHideLandscapeTitle": "Hide in Landscape",
-  "keepIslandHideLandscapeSubtitle": "Hide the keep island in landscape, then restore in portrait when no real notification is active",
+  "keepIslandHideLandscapeSubtitle": "Hide the keep island in landscape, then restore in portrait when no notification is active",
   "keepIslandHighlightColorTitle": "Highlight Color",
   "keepIslandHighlightColorSubtitle": "Customize the highlight text color for the keep island",
+  "keepIslandLeftContentTitle": "Left island content",
+  "keepIslandRightContentTitle": "Right island content",
+  "keepIslandPlaceholdersTitle": "Available placeholders",
+  "keepIslandPlaceholdersDescription": "Enter plain text or expressions for either side, for example: Battery {batteryLevel}, CPU {cpuUsage}. Tap a tag to copy it.",
+  "@keepIslandPlaceholdersDescription": {
+    "placeholders": {
+      "batteryLevel": {
+        "type": "String",
+        "example": "{battery.level}"
+      },
+      "cpuUsage": {
+        "type": "String",
+        "example": "{cpu.usage}"
+      }
+    }
+  },
+  "keepIslandPlaceholderCopied": "Copied {placeholder}",
+  "@keepIslandPlaceholderCopied": {
+    "placeholders": {
+      "placeholder": {
+        "type": "String"
+      }
+    }
+  },
+  "keepIslandDefaultEmpty": "Empty by default",
+  "keepIslandContentHint": "Empty by default. Enter text or {placeholder}",
+  "@keepIslandContentHint": {
+    "placeholders": {
+      "placeholder": {
+        "type": "String",
+        "example": "{battery.level}"
+      }
+    }
+  },
+  "clear": "Clear",
+  "save": "Save",
   "islandOtherSection": "Other",
   "miscSection": "Misc",
   "onboardingEntryTitle": "Open Onboarding",
@@ -637,10 +673,10 @@
   "chargeIslandLeftModeTitle": "Left Behavior",
   "chargeIslandRightModeTitle": "Right Behavior",
   "chargeIslandModeDefault": "Default",
-  "chargeIslandModePower": "Real Power",
-  "chargeIslandModeVoltage": "Real Voltage",
-  "chargeIslandModeCurrent": "Real Current",
-  "chargeIslandModeLevel": "Real Battery",
+  "chargeIslandModePower": "Power",
+  "chargeIslandModeVoltage": "Voltage",
+  "chargeIslandModeCurrent": "Current",
+  "chargeIslandModeLevel": "Battery",
   "chargeIslandModeTemperature": "Battery Temperature",
   "chargeIslandDurationModeTitle": "Duration",
   "chargeIslandDurationDefault": "Default",

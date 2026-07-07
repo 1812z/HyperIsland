@@ -585,11 +585,47 @@
   "keepIslandTitle": "Adayı Sürekli Göster",
   "keepIslandSubtitle": "Adayı sürekli görünür tutmak için boş bir bildirim gönder",
   "keepIslandAutoHideTitle": "Otomatik Gizle",
-  "keepIslandAutoHideSubtitle": "Gerçek bildirim geldiğinde boş adayı otomatik gizle, bildirim kalktığında geri yükle",
+  "keepIslandAutoHideSubtitle": "Bildirim geldiğinde boş adayı otomatik gizle, bildirim kalktığında geri yükle",
   "keepIslandHideLandscapeTitle": "Yatayda Gizle",
-  "keepIslandHideLandscapeSubtitle": "Yatay ekranda sürekli adayı gizle, dikeye dönünce gerçek bildirim yoksa geri yükle",
+  "keepIslandHideLandscapeSubtitle": "Yatay ekranda sürekli adayı gizle, dikeye dönünce bildirim yoksa geri yükle",
   "keepIslandHighlightColorTitle": "Vurgu Rengi",
   "keepIslandHighlightColorSubtitle": "Sürekli adanın vurgu metin rengini özelleştir",
+  "keepIslandLeftContentTitle": "Sol ada içeriği",
+  "keepIslandRightContentTitle": "Sağ ada içeriği",
+  "keepIslandPlaceholdersTitle": "Kullanılabilir yer tutucular",
+  "keepIslandPlaceholdersDescription": "Her iki taraf için metin veya ifade girin, örneğin: Battery {batteryLevel}, CPU {cpuUsage}. Kopyalamak için etikete dokunun.",
+  "@keepIslandPlaceholdersDescription": {
+    "placeholders": {
+      "batteryLevel": {
+        "type": "String",
+        "example": "{battery.level}"
+      },
+      "cpuUsage": {
+        "type": "String",
+        "example": "{cpu.usage}"
+      }
+    }
+  },
+  "keepIslandPlaceholderCopied": "{placeholder} kopyalandı",
+  "@keepIslandPlaceholderCopied": {
+    "placeholders": {
+      "placeholder": {
+        "type": "String"
+      }
+    }
+  },
+  "keepIslandDefaultEmpty": "Varsayılan boş",
+  "keepIslandContentHint": "Varsayılan boş. Metin veya {placeholder} girin",
+  "@keepIslandContentHint": {
+    "placeholders": {
+      "placeholder": {
+        "type": "String",
+        "example": "{battery.level}"
+      }
+    }
+  },
+  "clear": "Temizle",
+  "save": "Kaydet",
   "islandOtherSection": "Diğer",
   "miscSection": "Çeşitli",
   "onboardingEntryTitle": "İlk Kurulumu Aç",
@@ -673,10 +709,10 @@
   "chargeIslandLeftModeTitle": "Sol Davranış",
   "chargeIslandRightModeTitle": "Sağ Davranış",
   "chargeIslandModeDefault": "Varsayılan",
-  "chargeIslandModePower": "Gerçek Güç",
-  "chargeIslandModeVoltage": "Gerçek Voltaj",
-  "chargeIslandModeCurrent": "Gerçek Akım",
-  "chargeIslandModeLevel": "Gerçek Pil",
+  "chargeIslandModePower": "Güç",
+  "chargeIslandModeVoltage": "Voltaj",
+  "chargeIslandModeCurrent": "Akım",
+  "chargeIslandModeLevel": "Pil",
   "chargeIslandModeTemperature": "Pil Sıcaklığı",
   "chargeIslandDurationModeTitle": "Süre",
   "chargeIslandDurationDefault": "Varsayılan",

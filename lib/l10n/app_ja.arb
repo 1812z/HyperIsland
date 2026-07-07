@@ -438,11 +438,47 @@
   "keepIslandTitle": "常時ダイナミックアイランド",
   "keepIslandSubtitle": "空白通知を投稿してアイランドを常に表示",
   "keepIslandAutoHideTitle": "自動非表示",
-  "keepIslandAutoHideSubtitle": "リアル通知が来た時に空白アイランドを自動的に隠し、通知が消えた後に自動的に復元",
+  "keepIslandAutoHideSubtitle": "通知が来た時に空白アイランドを自動的に隠し、通知が消えた後に自動的に復元",
   "keepIslandHideLandscapeTitle": "横画面で非表示",
-  "keepIslandHideLandscapeSubtitle": "横画面では常時アイランドを隠し、縦画面に戻りリアル通知がない時に復元します",
+  "keepIslandHideLandscapeSubtitle": "横画面では常時アイランドを隠し、縦画面に戻り通知がない時に復元します",
   "keepIslandHighlightColorTitle": "ハイライトカラー",
   "keepIslandHighlightColorSubtitle": "常時アイランドのハイライトテキストカラーをカスタマイズ",
+  "keepIslandLeftContentTitle": "左側の内容",
+  "keepIslandRightContentTitle": "右側の内容",
+  "keepIslandPlaceholdersTitle": "利用可能なプレースホルダー",
+  "keepIslandPlaceholdersDescription": "左右の内容にテキストまたは式を入力できます。例：バッテリー {batteryLevel}、CPU {cpuUsage}。タグをタップしてコピーします。",
+  "@keepIslandPlaceholdersDescription": {
+    "placeholders": {
+      "batteryLevel": {
+        "type": "String",
+        "example": "{battery.level}"
+      },
+      "cpuUsage": {
+        "type": "String",
+        "example": "{cpu.usage}"
+      }
+    }
+  },
+  "keepIslandPlaceholderCopied": "{placeholder} をコピーしました",
+  "@keepIslandPlaceholderCopied": {
+    "placeholders": {
+      "placeholder": {
+        "type": "String"
+      }
+    }
+  },
+  "keepIslandDefaultEmpty": "デフォルトは空",
+  "keepIslandContentHint": "デフォルトは空。テキストまたは {placeholder} を入力",
+  "@keepIslandContentHint": {
+    "placeholders": {
+      "placeholder": {
+        "type": "String",
+        "example": "{battery.level}"
+      }
+    }
+  },
+  "clear": "クリア",
+  "save": "保存",
   "islandOtherSection": "その他",
   "miscSection": "その他の設定",
   "onboardingEntryTitle": "初期ガイドを開く",
@@ -526,10 +562,10 @@
   "chargeIslandLeftModeTitle": "左側の動作",
   "chargeIslandRightModeTitle": "右側の動作",
   "chargeIslandModeDefault": "デフォルト",
-  "chargeIslandModePower": "実電力",
-  "chargeIslandModeVoltage": "実電圧",
-  "chargeIslandModeCurrent": "実電流",
-  "chargeIslandModeLevel": "実電池残量",
+  "chargeIslandModePower": "電力",
+  "chargeIslandModeVoltage": "電圧",
+  "chargeIslandModeCurrent": "電流",
+  "chargeIslandModeLevel": "電池残量",
   "chargeIslandModeTemperature": "電池温度",
   "chargeIslandDurationModeTitle": "表示時間",
   "chargeIslandDurationDefault": "デフォルト",

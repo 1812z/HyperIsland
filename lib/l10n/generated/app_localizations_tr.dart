@@ -1518,14 +1518,14 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get keepIslandAutoHideSubtitle =>
-      'Gerçek bildirim geldiğinde boş adayı otomatik gizle, bildirim kalktığında geri yükle';
+      'Bildirim geldiğinde boş adayı otomatik gizle, bildirim kalktığında geri yükle';
 
   @override
   String get keepIslandHideLandscapeTitle => 'Yatayda Gizle';
 
   @override
   String get keepIslandHideLandscapeSubtitle =>
-      'Yatay ekranda sürekli adayı gizle, dikeye dönünce gerçek bildirim yoksa geri yükle';
+      'Yatay ekranda sürekli adayı gizle, dikeye dönünce bildirim yoksa geri yükle';
 
   @override
   String get keepIslandHighlightColorTitle => 'Vurgu Rengi';
@@ -1533,6 +1533,42 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get keepIslandHighlightColorSubtitle =>
       'Sürekli adanın vurgu metin rengini özelleştir';
+
+  @override
+  String get keepIslandLeftContentTitle => 'Sol ada içeriği';
+
+  @override
+  String get keepIslandRightContentTitle => 'Sağ ada içeriği';
+
+  @override
+  String get keepIslandPlaceholdersTitle => 'Kullanılabilir yer tutucular';
+
+  @override
+  String keepIslandPlaceholdersDescription(
+    String batteryLevel,
+    String cpuUsage,
+  ) {
+    return 'Her iki taraf için metin veya ifade girin, örneğin: Battery $batteryLevel, CPU $cpuUsage. Kopyalamak için etikete dokunun.';
+  }
+
+  @override
+  String keepIslandPlaceholderCopied(String placeholder) {
+    return '$placeholder kopyalandı';
+  }
+
+  @override
+  String get keepIslandDefaultEmpty => 'Varsayılan boş';
+
+  @override
+  String keepIslandContentHint(String placeholder) {
+    return 'Varsayılan boş. Metin veya $placeholder girin';
+  }
+
+  @override
+  String get clear => 'Temizle';
+
+  @override
+  String get save => 'Kaydet';
 
   @override
   String get islandOtherSection => 'Diğer';
@@ -1730,16 +1766,16 @@ class AppLocalizationsTr extends AppLocalizations {
   String get chargeIslandModeDefault => 'Varsayılan';
 
   @override
-  String get chargeIslandModePower => 'Gerçek Güç';
+  String get chargeIslandModePower => 'Güç';
 
   @override
-  String get chargeIslandModeVoltage => 'Gerçek Voltaj';
+  String get chargeIslandModeVoltage => 'Voltaj';
 
   @override
-  String get chargeIslandModeCurrent => 'Gerçek Akım';
+  String get chargeIslandModeCurrent => 'Akım';
 
   @override
-  String get chargeIslandModeLevel => 'Gerçek Pil';
+  String get chargeIslandModeLevel => 'Pil';
 
   @override
   String get chargeIslandModeTemperature => 'Pil Sıcaklığı';

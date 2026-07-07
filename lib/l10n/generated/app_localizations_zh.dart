@@ -1447,7 +1447,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get keepIslandAutoHideTitle => '自动隐藏';
 
   @override
-  String get keepIslandAutoHideSubtitle => '真实通知到来时自动隐藏空白岛，通知消失后自动恢复';
+  String get keepIslandAutoHideSubtitle => '通知到来时自动隐藏空白岛，通知消失后自动恢复';
 
   @override
   String get keepIslandHideLandscapeTitle => '横屏时隐藏';
@@ -1460,6 +1460,42 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get keepIslandHighlightColorSubtitle => '自定义常驻岛的高亮文字颜色';
+
+  @override
+  String get keepIslandLeftContentTitle => '岛左边内容';
+
+  @override
+  String get keepIslandRightContentTitle => '岛右边内容';
+
+  @override
+  String get keepIslandPlaceholdersTitle => '可用占位符';
+
+  @override
+  String keepIslandPlaceholdersDescription(
+    String batteryLevel,
+    String cpuUsage,
+  ) {
+    return '可在左右内容中直接输入文本或表达式，例如：电量 $batteryLevel、CPU $cpuUsage。点击标签复制。';
+  }
+
+  @override
+  String keepIslandPlaceholderCopied(String placeholder) {
+    return '已复制 $placeholder';
+  }
+
+  @override
+  String get keepIslandDefaultEmpty => '默认空';
+
+  @override
+  String keepIslandContentHint(String placeholder) {
+    return '默认空，可输入文本或 $placeholder';
+  }
+
+  @override
+  String get clear => '清空';
+
+  @override
+  String get save => '保存';
 
   @override
   String get islandOtherSection => '其他';
@@ -1645,16 +1681,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get chargeIslandModeDefault => '默认';
 
   @override
-  String get chargeIslandModePower => '真实功率';
+  String get chargeIslandModePower => '功率';
 
   @override
-  String get chargeIslandModeVoltage => '真实电压';
+  String get chargeIslandModeVoltage => '电压';
 
   @override
-  String get chargeIslandModeCurrent => '真实电流';
+  String get chargeIslandModeCurrent => '电流';
 
   @override
-  String get chargeIslandModeLevel => '真实电量';
+  String get chargeIslandModeLevel => '电量';
 
   @override
   String get chargeIslandModeTemperature => '电池温度';

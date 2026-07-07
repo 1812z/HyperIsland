@@ -30,6 +30,7 @@ internal object IslandDispatcherNotifier {
     private const val EXTRA_OWNER = "hyperisland.owner"
     private const val OWNER_MARKER = "io.github.hyperisland"
     private const val EFFECT_SRC = "outer_glow"
+    private const val KEEP_ISLAND_NOTIF_ID = 0x4B494B49
 
     fun post(context: Context, request: IslandRequest) {
         try {
@@ -169,6 +170,7 @@ internal object IslandDispatcherNotifier {
                         aodTitle = request.aodTitle ?: request.content.ifEmpty { request.title },
                         aodPicKey = aodIconKey,
                         islandEnabled = request.islandEnabled,
+                        updatable = request.notifId == KEEP_ISLAND_NOTIF_ID && !request.clearBeforePost,
                     )
                 }
             notif.extras.putString("miui.focus.param", jsonParam)
@@ -279,8 +281,9 @@ internal object IslandDispatcherNotifier {
         aodTitle: String?,
         aodPicKey: String?,
         islandEnabled: Boolean = true,
+        updatable: Boolean = false,
     ): String {
-        if (highlightColor == null && !outerGlow && !islandOuterGlow && islandOuterGlowColor.isNullOrBlank() && outEffectColor.isNullOrBlank() && !dismissIsland && aodTitle.isNullOrBlank() && aodPicKey.isNullOrBlank()) {
+        if (highlightColor == null && !outerGlow && !islandOuterGlow && islandOuterGlowColor.isNullOrBlank() && outEffectColor.isNullOrBlank() && !dismissIsland && aodTitle.isNullOrBlank() && aodPicKey.isNullOrBlank() && !updatable) {
             return jsonParam
         }
         return try {
@@ -296,6 +299,7 @@ internal object IslandDispatcherNotifier {
                 pv2.put("param_island", paramIsland)
             }
             if (outerGlow) pv2.put("outEffectSrc", "outer_glow")
+            if (updatable) pv2.put("updatable", true)
             if (!outEffectColor.isNullOrBlank()) pv2.put("outEffectColor", outEffectColor)
             if (!aodTitle.isNullOrBlank()) pv2.put("aodTitle", aodTitle)
             if (!aodPicKey.isNullOrBlank()) pv2.put("aodPic", aodPicKey)

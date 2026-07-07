@@ -2837,7 +2837,7 @@ abstract class AppLocalizations {
   /// No description provided for @keepIslandAutoHideSubtitle.
   ///
   /// In zh, this message translates to:
-  /// **'真实通知到来时自动隐藏空白岛，通知消失后自动恢复'**
+  /// **'通知到来时自动隐藏空白岛，通知消失后自动恢复'**
   String get keepIslandAutoHideSubtitle;
 
   /// No description provided for @keepIslandHideLandscapeTitle.
@@ -2863,6 +2863,63 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'自定义常驻岛的高亮文字颜色'**
   String get keepIslandHighlightColorSubtitle;
+
+  /// No description provided for @keepIslandLeftContentTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'岛左边内容'**
+  String get keepIslandLeftContentTitle;
+
+  /// No description provided for @keepIslandRightContentTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'岛右边内容'**
+  String get keepIslandRightContentTitle;
+
+  /// No description provided for @keepIslandPlaceholdersTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'可用占位符'**
+  String get keepIslandPlaceholdersTitle;
+
+  /// No description provided for @keepIslandPlaceholdersDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'可在左右内容中直接输入文本或表达式，例如：电量 {batteryLevel}、CPU {cpuUsage}。点击标签复制。'**
+  String keepIslandPlaceholdersDescription(
+    String batteryLevel,
+    String cpuUsage,
+  );
+
+  /// No description provided for @keepIslandPlaceholderCopied.
+  ///
+  /// In zh, this message translates to:
+  /// **'已复制 {placeholder}'**
+  String keepIslandPlaceholderCopied(String placeholder);
+
+  /// No description provided for @keepIslandDefaultEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'默认空'**
+  String get keepIslandDefaultEmpty;
+
+  /// No description provided for @keepIslandContentHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'默认空，可输入文本或 {placeholder}'**
+  String keepIslandContentHint(String placeholder);
+
+  /// No description provided for @clear.
+  ///
+  /// In zh, this message translates to:
+  /// **'清空'**
+  String get clear;
+
+  /// No description provided for @save.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存'**
+  String get save;
 
   /// No description provided for @islandOtherSection.
   ///
@@ -3221,25 +3278,25 @@ abstract class AppLocalizations {
   /// No description provided for @chargeIslandModePower.
   ///
   /// In zh, this message translates to:
-  /// **'真实功率'**
+  /// **'功率'**
   String get chargeIslandModePower;
 
   /// No description provided for @chargeIslandModeVoltage.
   ///
   /// In zh, this message translates to:
-  /// **'真实电压'**
+  /// **'电压'**
   String get chargeIslandModeVoltage;
 
   /// No description provided for @chargeIslandModeCurrent.
   ///
   /// In zh, this message translates to:
-  /// **'真实电流'**
+  /// **'电流'**
   String get chargeIslandModeCurrent;
 
   /// No description provided for @chargeIslandModeLevel.
   ///
   /// In zh, this message translates to:
-  /// **'真实电量'**
+  /// **'电量'**
   String get chargeIslandModeLevel;
 
   /// No description provided for @chargeIslandModeTemperature.

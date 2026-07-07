@@ -33,6 +33,10 @@ object KeepIslandHook : BaseHook() {
 
     private const val PREF_KEY_HIGHLIGHT_COLOR = "pref_keep_island_highlight_color"
 
+    private const val PREF_KEY_LEFT_CONTENT = "pref_keep_island_left_content"
+
+    private const val PREF_KEY_RIGHT_CONTENT = "pref_keep_island_right_content"
+
     private const val KEEP_ISLAND_NOTIF_ID = 0x4B494B49
 
     private const val ANIMATION_CONTROLLER_CLASS =
@@ -44,6 +48,8 @@ object KeepIslandHook : BaseHook() {
 
     private const val RESTORE_DELAY_MS = 150L
 
+    private const val DATA_UPDATE_INTERVAL_MS = 1000L
+
     private val mainHandler = Handler(Looper.getMainLooper())
     private var appContext: android.content.Context? = null
     private var posted = false
@@ -53,6 +59,18 @@ object KeepIslandHook : BaseHook() {
     private val activeRealKeys = ConcurrentHashMap.newKeySet<String>()
 
     private var restoreRunnable: Runnable? = null
+
+    private var periodicDataUpdateRunnable: Runnable? = null
+
+    private val dataChangedListener: () -> Unit = { scheduleContentUpdateFromDataChange() }
+
+    private var dataListenerRegistered = false
+
+    private var keepIslandContentCustomized = false
+
+    private var lastContentUpdateAt = 0L
+
+    private var lastContentUpdateSignature: String? = null
 
     private var configurationCallbacksRegistered = false
 
@@ -66,7 +84,18 @@ object KeepIslandHook : BaseHook() {
     override fun getTag() = TAG
 
     override fun onConfigChanged() {
-        mainHandler.postDelayed({ evaluateKeepIsland() }, 500)
+        mainHandler.postDelayed({
+            evaluateKeepIsland()
+            if (posted) {
+                if (hasConfiguredKeepIslandContent()) {
+                    appContext?.let { updateKeepIslandContent(it) }
+                    schedulePeriodicDataUpdate()
+                } else {
+                    appContext?.let { updateKeepIslandContent(it) }
+                    cancelPeriodicDataUpdate()
+                }
+            }
+        }, 500)
     }
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
@@ -90,6 +119,7 @@ object KeepIslandHook : BaseHook() {
                     appContext = app.applicationContext
                     registerConfigurationCallbacks(app.applicationContext)
                     registerDisplayListener(app.applicationContext)
+                    registerIslandDataManager(app.applicationContext)
                     mainHandler.postDelayed({ evaluateKeepIsland() }, 3000)
                 }
                 result
@@ -284,10 +314,10 @@ object KeepIslandHook : BaseHook() {
     private fun shouldShowKeepIsland(context: Context): Boolean {
         if (!ConfigManager.getBoolean(PREF_KEY, false)) return false
         val hideForRealNotification = ConfigManager.getBoolean(PREF_KEY_AUTO_HIDE, true) &&
-            activeRealKeys.isNotEmpty()
+                activeRealKeys.isNotEmpty()
         if (hideForRealNotification) return false
         val hideForLandscape = ConfigManager.getBoolean(PREF_KEY_HIDE_LANDSCAPE, false) &&
-            isLandscape(context)
+                isLandscape(context)
         return !hideForLandscape
     }
 
@@ -295,9 +325,11 @@ object KeepIslandHook : BaseHook() {
         try {
             val highlightColor = ConfigManager.getString(PREF_KEY_HIGHLIGHT_COLOR, "")
                 .takeIf { it.isNotBlank() }
+            IslandDataManager.refresh(context)
+            val texts: Pair<String, String> = resolveKeepIslandTexts()
             val request = IslandRequest(
-                title = " ",
-                content = "",
+                title = texts.first,
+                content = texts.second,
                 icon = null,
                 notifId = KEEP_ISLAND_NOTIF_ID,
                 timeoutSecs = Int.MAX_VALUE,
@@ -317,16 +349,118 @@ object KeepIslandHook : BaseHook() {
             )
             IslandDispatcher.post(context, request)
             posted = true
+            lastContentUpdateSignature = contentSignature(texts, highlightColor)
+            lastContentUpdateAt = System.currentTimeMillis()
+            keepIslandContentCustomized = texts.first != " " || texts.second.isNotEmpty()
             cachedModule?.let { log(it, "keep island ${if (restore) "restored" else "posted"}") }
+            if (hasConfiguredKeepIslandContent()) schedulePeriodicDataUpdate()
         } catch (e: Exception) {
             cachedModule?.let { logError(it, "keep island post failed: ${e.message}") }
         }
+    }
+
+    private fun updateKeepIslandContent(context: android.content.Context) {
+        if (!posted || !shouldShowKeepIsland(context)) return
+        val texts: Pair<String, String> = resolveKeepIslandTexts()
+        try {
+            val highlightColor = ConfigManager.getString(PREF_KEY_HIGHLIGHT_COLOR, "")
+                .takeIf { it.isNotBlank() }
+            val signature = contentSignature(texts, highlightColor)
+            if (signature == lastContentUpdateSignature) return
+            val now = System.currentTimeMillis()
+            if (now - lastContentUpdateAt < DATA_UPDATE_INTERVAL_MS) return
+            val request = IslandRequest(
+                title = texts.first,
+                content = texts.second,
+                icon = null,
+                notifId = KEEP_ISLAND_NOTIF_ID,
+                timeoutSecs = Int.MAX_VALUE,
+                firstFloat = false,
+                enableFloat = false,
+                showNotification = false,
+                preserveStatusBarSmallIcon = false,
+                isOngoing = true,
+                showIslandIcon = false,
+                clearBeforePost = false,
+                sourcePackage = "io.github.hyperisland",
+                sourceChannelId = KEEP_ISLAND_CHANNEL,
+                highlightColor = highlightColor,
+                showLeftHighlightColor = highlightColor != null,
+                showRightHighlightColor = highlightColor != null,
+                islandOnly = true,
+            )
+            IslandDispatcher.post(context, request)
+            lastContentUpdateAt = now
+            lastContentUpdateSignature = signature
+            keepIslandContentCustomized = texts.first != " " || texts.second.isNotEmpty()
+            cachedModule?.let { log(it, "keep island content updated left=${texts.first} right=${texts.second}") }
+        } catch (e: Exception) {
+            cachedModule?.let { logError(it, "keep island update failed: ${e.message}") }
+        }
+    }
+
+    private fun resolveKeepIslandTexts(): Pair<String, String> {
+        val leftExpression = ConfigManager.getString(PREF_KEY_LEFT_CONTENT, "")
+        val rightExpression = ConfigManager.getString(PREF_KEY_RIGHT_CONTENT, "")
+        if (leftExpression.isBlank() && rightExpression.isBlank()) {
+            return " " to ""
+        }
+
+        val left = renderExpressionSafely(leftExpression).ifBlank { " " }
+        val right = renderExpressionSafely(rightExpression).let { rendered ->
+            if (rendered.isBlank()) " " else rendered
+        }
+        return left to right
+    }
+
+    private fun contentSignature(texts: Pair<String, String>, highlightColor: String?): String {
+        return "${texts.first}\u0000${texts.second}\u0000${highlightColor.orEmpty()}"
+    }
+
+    private fun renderExpressionSafely(expression: String): String {
+        if (expression.isBlank()) return ""
+        return runCatching { IslandDataManager.renderExpression(expression) }
+            .getOrDefault("")
+    }
+
+    private fun scheduleContentUpdateFromDataChange() {
+        val ctx = appContext ?: return
+        if (!posted || !shouldShowKeepIsland(ctx) || !hasConfiguredKeepIslandContent()) return
+        mainHandler.post { updateKeepIslandContent(ctx) }
+    }
+
+    private fun schedulePeriodicDataUpdate() {
+        if (periodicDataUpdateRunnable != null) return
+        cancelPeriodicDataUpdate()
+        periodicDataUpdateRunnable = Runnable {
+            val ctx = appContext
+            if (ctx != null && posted && shouldShowKeepIsland(ctx) && hasConfiguredKeepIslandContent()) {
+                IslandDataManager.refresh(ctx)
+                updateKeepIslandContent(ctx)
+                mainHandler.postDelayed(periodicDataUpdateRunnable!!, DATA_UPDATE_INTERVAL_MS)
+            } else {
+                periodicDataUpdateRunnable = null
+            }
+        }
+        mainHandler.postDelayed(periodicDataUpdateRunnable!!, DATA_UPDATE_INTERVAL_MS)
+    }
+
+    private fun cancelPeriodicDataUpdate() {
+        periodicDataUpdateRunnable?.let { mainHandler.removeCallbacks(it) }
+        periodicDataUpdateRunnable = null
+    }
+
+    private fun hasConfiguredKeepIslandContent(): Boolean {
+        return ConfigManager.getString(PREF_KEY_LEFT_CONTENT, "").isNotBlank() ||
+                ConfigManager.getString(PREF_KEY_RIGHT_CONTENT, "").isNotBlank()
     }
 
     private fun cancelKeepIsland(context: android.content.Context) {
         try {
             IslandDispatcher.cancel(context, KEEP_ISLAND_NOTIF_ID)
             posted = false
+            lastContentUpdateSignature = null
+            cancelPeriodicDataUpdate()
             cachedModule?.let { log(it, "keep island cancelled") }
         } catch (e: Exception) {
             cachedModule?.let { logError(it, "keep island cancel failed: ${e.message}") }
@@ -344,6 +478,18 @@ object KeepIslandHook : BaseHook() {
     private fun cancelPendingRestore() {
         restoreRunnable?.let { mainHandler.removeCallbacks(it) }
         restoreRunnable = null
+    }
+
+    private fun registerIslandDataManager(context: Context) {
+        try {
+            IslandDataManager.register(context)
+            if (!dataListenerRegistered) {
+                IslandDataManager.addListener(dataChangedListener)
+                dataListenerRegistered = true
+            }
+        } catch (e: Throwable) {
+            cachedModule?.let { logWarn(it, "island data manager register failed: ${e.message}") }
+        }
     }
 
     private fun registerConfigurationCallbacks(context: Context) {

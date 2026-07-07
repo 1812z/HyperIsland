@@ -1464,20 +1464,56 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get keepIslandAutoHideSubtitle =>
-      'リアル通知が来た時に空白アイランドを自動的に隠し、通知が消えた後に自動的に復元';
+      '通知が来た時に空白アイランドを自動的に隠し、通知が消えた後に自動的に復元';
 
   @override
   String get keepIslandHideLandscapeTitle => '横画面で非表示';
 
   @override
   String get keepIslandHideLandscapeSubtitle =>
-      '横画面では常時アイランドを隠し、縦画面に戻りリアル通知がない時に復元します';
+      '横画面では常時アイランドを隠し、縦画面に戻り通知がない時に復元します';
 
   @override
   String get keepIslandHighlightColorTitle => 'ハイライトカラー';
 
   @override
   String get keepIslandHighlightColorSubtitle => '常時アイランドのハイライトテキストカラーをカスタマイズ';
+
+  @override
+  String get keepIslandLeftContentTitle => '左側の内容';
+
+  @override
+  String get keepIslandRightContentTitle => '右側の内容';
+
+  @override
+  String get keepIslandPlaceholdersTitle => '利用可能なプレースホルダー';
+
+  @override
+  String keepIslandPlaceholdersDescription(
+    String batteryLevel,
+    String cpuUsage,
+  ) {
+    return '左右の内容にテキストまたは式を入力できます。例：バッテリー $batteryLevel、CPU $cpuUsage。タグをタップしてコピーします。';
+  }
+
+  @override
+  String keepIslandPlaceholderCopied(String placeholder) {
+    return '$placeholder をコピーしました';
+  }
+
+  @override
+  String get keepIslandDefaultEmpty => 'デフォルトは空';
+
+  @override
+  String keepIslandContentHint(String placeholder) {
+    return 'デフォルトは空。テキストまたは $placeholder を入力';
+  }
+
+  @override
+  String get clear => 'クリア';
+
+  @override
+  String get save => '保存';
 
   @override
   String get islandOtherSection => 'その他';
@@ -1668,16 +1704,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get chargeIslandModeDefault => 'デフォルト';
 
   @override
-  String get chargeIslandModePower => '実電力';
+  String get chargeIslandModePower => '電力';
 
   @override
-  String get chargeIslandModeVoltage => '実電圧';
+  String get chargeIslandModeVoltage => '電圧';
 
   @override
-  String get chargeIslandModeCurrent => '実電流';
+  String get chargeIslandModeCurrent => '電流';
 
   @override
-  String get chargeIslandModeLevel => '実電池残量';
+  String get chargeIslandModeLevel => '電池残量';
 
   @override
   String get chargeIslandModeTemperature => '電池温度';

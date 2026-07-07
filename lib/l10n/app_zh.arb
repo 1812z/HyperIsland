@@ -701,11 +701,47 @@
   "keepIslandTitle": "常驻超级岛",
   "keepIslandSubtitle": "显示一条空白通知使岛始终可见",
   "keepIslandAutoHideTitle": "自动隐藏",
-  "keepIslandAutoHideSubtitle": "真实通知到来时自动隐藏空白岛，通知消失后自动恢复",
+  "keepIslandAutoHideSubtitle": "通知到来时自动隐藏空白岛，通知消失后自动恢复",
   "keepIslandHideLandscapeTitle": "横屏时隐藏",
   "keepIslandHideLandscapeSubtitle": "横屏时自动隐藏常驻岛，回到竖屏时恢复",
   "keepIslandHighlightColorTitle": "高亮颜色",
   "keepIslandHighlightColorSubtitle": "自定义常驻岛的高亮文字颜色",
+  "keepIslandLeftContentTitle": "岛左边内容",
+  "keepIslandRightContentTitle": "岛右边内容",
+  "keepIslandPlaceholdersTitle": "可用占位符",
+  "keepIslandPlaceholdersDescription": "可在左右内容中直接输入文本或表达式，例如：电量 {batteryLevel}、CPU {cpuUsage}。点击标签复制。",
+  "@keepIslandPlaceholdersDescription": {
+    "placeholders": {
+      "batteryLevel": {
+        "type": "String",
+        "example": "{battery.level}"
+      },
+      "cpuUsage": {
+        "type": "String",
+        "example": "{cpu.usage}"
+      }
+    }
+  },
+  "keepIslandPlaceholderCopied": "已复制 {placeholder}",
+  "@keepIslandPlaceholderCopied": {
+    "placeholders": {
+      "placeholder": {
+        "type": "String"
+      }
+    }
+  },
+  "keepIslandDefaultEmpty": "默认空",
+  "keepIslandContentHint": "默认空，可输入文本或 {placeholder}",
+  "@keepIslandContentHint": {
+    "placeholders": {
+      "placeholder": {
+        "type": "String",
+        "example": "{battery.level}"
+      }
+    }
+  },
+  "clear": "清空",
+  "save": "保存",
   "islandOtherSection": "其他",
   "miscSection": "杂项",
   "onboardingEntryTitle": "打开初始引导",
@@ -789,10 +825,10 @@
   "chargeIslandLeftModeTitle": "左侧行为",
   "chargeIslandRightModeTitle": "右侧行为",
   "chargeIslandModeDefault": "默认",
-  "chargeIslandModePower": "真实功率",
-  "chargeIslandModeVoltage": "真实电压",
-  "chargeIslandModeCurrent": "真实电流",
-  "chargeIslandModeLevel": "真实电量",
+  "chargeIslandModePower": "功率",
+  "chargeIslandModeVoltage": "电压",
+  "chargeIslandModeCurrent": "电流",
+  "chargeIslandModeLevel": "电量",
   "chargeIslandModeTemperature": "电池温度",
   "chargeIslandDurationModeTitle": "持续时间",
   "chargeIslandDurationDefault": "默认",

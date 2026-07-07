@@ -1524,14 +1524,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get keepIslandAutoHideSubtitle =>
-      'Automatically hide the blank island when a real notification arrives, and restore it when dismissed';
+      'Automatically hide the blank island when a notification arrives, and restore it when dismissed';
 
   @override
   String get keepIslandHideLandscapeTitle => 'Hide in Landscape';
 
   @override
   String get keepIslandHideLandscapeSubtitle =>
-      'Hide the keep island in landscape, then restore in portrait when no real notification is active';
+      'Hide the keep island in landscape, then restore in portrait when no notification is active';
 
   @override
   String get keepIslandHighlightColorTitle => 'Highlight Color';
@@ -1539,6 +1539,42 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get keepIslandHighlightColorSubtitle =>
       'Customize the highlight text color for the keep island';
+
+  @override
+  String get keepIslandLeftContentTitle => 'Left island content';
+
+  @override
+  String get keepIslandRightContentTitle => 'Right island content';
+
+  @override
+  String get keepIslandPlaceholdersTitle => 'Available placeholders';
+
+  @override
+  String keepIslandPlaceholdersDescription(
+    String batteryLevel,
+    String cpuUsage,
+  ) {
+    return 'Enter plain text or expressions for either side, for example: Battery $batteryLevel, CPU $cpuUsage. Tap a tag to copy it.';
+  }
+
+  @override
+  String keepIslandPlaceholderCopied(String placeholder) {
+    return 'Copied $placeholder';
+  }
+
+  @override
+  String get keepIslandDefaultEmpty => 'Empty by default';
+
+  @override
+  String keepIslandContentHint(String placeholder) {
+    return 'Empty by default. Enter text or $placeholder';
+  }
+
+  @override
+  String get clear => 'Clear';
+
+  @override
+  String get save => 'Save';
 
   @override
   String get islandOtherSection => 'Other';
@@ -1735,16 +1771,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chargeIslandModeDefault => 'Default';
 
   @override
-  String get chargeIslandModePower => 'Real Power';
+  String get chargeIslandModePower => 'Power';
 
   @override
-  String get chargeIslandModeVoltage => 'Real Voltage';
+  String get chargeIslandModeVoltage => 'Voltage';
 
   @override
-  String get chargeIslandModeCurrent => 'Real Current';
+  String get chargeIslandModeCurrent => 'Current';
 
   @override
-  String get chargeIslandModeLevel => 'Real Battery';
+  String get chargeIslandModeLevel => 'Battery';
 
   @override
   String get chargeIslandModeTemperature => 'Battery Temperature';

@@ -79,7 +79,7 @@ object ChargeIslandHook : BaseHook() {
             module.hook(method).intercept { chain ->
                 val result = chain.proceed()
                 (chain.thisObject as? Context)?.let {
-                    IslandDataManager.register(it)
+                    runCatching { IslandDataManager.register(it) }
                     debug(module, "island data manager registered")
                 }
                 result
@@ -125,6 +125,7 @@ object ChargeIslandHook : BaseHook() {
                 module.hook(method).intercept { chain ->
                     val model = chain.proceed()
                     if (ConfigManager.getBoolean(PREF_ENABLED, false)) {
+                        IslandDataManager.cacheBatteryBundle(chain.args.getOrNull(0) as? Bundle)
                         IslandDataManager.cacheBatteryStatus(chain.args.getOrNull(2))
                         IslandDataManager.refresh()
                         replaceChargeModel(model, module) ?: model

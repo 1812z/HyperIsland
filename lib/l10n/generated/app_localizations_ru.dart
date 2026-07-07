@@ -1538,14 +1538,14 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get keepIslandAutoHideSubtitle =>
-      'Автоматически скрывать пустой остров при поступлении реального уведомления и восстанавливать при его закрытии';
+      'Автоматически скрывать пустой остров при поступлении уведомления и восстанавливать при его закрытии';
 
   @override
   String get keepIslandHideLandscapeTitle => 'Скрывать в альбомной ориентации';
 
   @override
   String get keepIslandHideLandscapeSubtitle =>
-      'Скрывать постоянный Остров в альбомной ориентации и восстанавливать в портретной, если нет реального уведомления';
+      'Скрывать постоянный Остров в альбомной ориентации и восстанавливать в портретной, если нет уведомления';
 
   @override
   String get keepIslandHighlightColorTitle => 'Цвет подсветки';
@@ -1553,6 +1553,42 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get keepIslandHighlightColorSubtitle =>
       'Настроить цвет текста подсветки для режима удержания Острова';
+
+  @override
+  String get keepIslandLeftContentTitle => 'Левое содержимое Острова';
+
+  @override
+  String get keepIslandRightContentTitle => 'Правое содержимое Острова';
+
+  @override
+  String get keepIslandPlaceholdersTitle => 'Доступные плейсхолдеры';
+
+  @override
+  String keepIslandPlaceholdersDescription(
+    String batteryLevel,
+    String cpuUsage,
+  ) {
+    return 'Введите текст или выражения для любой стороны, например: Battery $batteryLevel, CPU $cpuUsage. Нажмите тег, чтобы скопировать.';
+  }
+
+  @override
+  String keepIslandPlaceholderCopied(String placeholder) {
+    return 'Скопировано $placeholder';
+  }
+
+  @override
+  String get keepIslandDefaultEmpty => 'По умолчанию пусто';
+
+  @override
+  String keepIslandContentHint(String placeholder) {
+    return 'По умолчанию пусто. Введите текст или $placeholder';
+  }
+
+  @override
+  String get clear => 'Очистить';
+
+  @override
+  String get save => 'Сохранить';
 
   @override
   String get islandOtherSection => 'Прочее';
@@ -1750,16 +1786,16 @@ class AppLocalizationsRu extends AppLocalizations {
   String get chargeIslandModeDefault => '默认';
 
   @override
-  String get chargeIslandModePower => '真实功率';
+  String get chargeIslandModePower => '功率';
 
   @override
-  String get chargeIslandModeVoltage => '真实电压';
+  String get chargeIslandModeVoltage => '电压';
 
   @override
-  String get chargeIslandModeCurrent => '真实电流';
+  String get chargeIslandModeCurrent => '电流';
 
   @override
-  String get chargeIslandModeLevel => '真实电量';
+  String get chargeIslandModeLevel => '电量';
 
   @override
   String get chargeIslandModeTemperature => '电池温度';

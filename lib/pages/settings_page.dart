@@ -8,6 +8,7 @@ import '../widgets/blur_app_bar.dart';
 import '../services/interaction_haptics.dart';
 import '../services/app_info_service.dart';
 import 'island_sub/island_appearance_page.dart';
+import 'island_sub/keep_island_page.dart';
 import 'island_sub/island_other_page.dart';
 import 'island_sub/misc_page.dart';
 import 'island_sub/backup_restore_page.dart';
@@ -209,9 +210,8 @@ class _SettingsPageState extends State<SettingsPage> {
                         _MenuTile(
                           icon: Icons.visibility_off_outlined,
                           title: l10n.hideBehaviorTitle,
-                          isLast: true,
                           onTap: InteractionHaptics.interceptButton(
-                                () => Navigator.push(
+                            () => Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (_) => const HideBehaviorPage(),
@@ -221,10 +221,24 @@ class _SettingsPageState extends State<SettingsPage> {
                         ),
                         const Divider(height: 1, indent: 16, endIndent: 16),
                         _MenuTile(
+                          icon: Icons.push_pin_outlined,
+                          title: '常驻岛',
+                          onTap: InteractionHaptics.interceptButton(
+                            () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const KeepIslandPage(),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        _MenuTile(
                           icon: Icons.more_horiz,
                           title: l10n.islandOtherSection,
+                          isLast: true,
                           onTap: InteractionHaptics.interceptButton(
-                                () => Navigator.push(
+                            () => Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (_) => const IslandOtherPage(),

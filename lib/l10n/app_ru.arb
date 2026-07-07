@@ -523,11 +523,47 @@
   "keepIslandTitle": "Держать Остров видимым",
   "keepIslandSubtitle": "Отправлять пустое уведомление, чтобы Остров всегда был виден",
   "keepIslandAutoHideTitle": "Автоскрытие",
-  "keepIslandAutoHideSubtitle": "Автоматически скрывать пустой остров при поступлении реального уведомления и восстанавливать при его закрытии",
+  "keepIslandAutoHideSubtitle": "Автоматически скрывать пустой остров при поступлении уведомления и восстанавливать при его закрытии",
   "keepIslandHideLandscapeTitle": "Скрывать в альбомной ориентации",
-  "keepIslandHideLandscapeSubtitle": "Скрывать постоянный Остров в альбомной ориентации и восстанавливать в портретной, если нет реального уведомления",
+  "keepIslandHideLandscapeSubtitle": "Скрывать постоянный Остров в альбомной ориентации и восстанавливать в портретной, если нет уведомления",
   "keepIslandHighlightColorTitle": "Цвет подсветки",
   "keepIslandHighlightColorSubtitle": "Настроить цвет текста подсветки для режима удержания Острова",
+  "keepIslandLeftContentTitle": "Левое содержимое Острова",
+  "keepIslandRightContentTitle": "Правое содержимое Острова",
+  "keepIslandPlaceholdersTitle": "Доступные плейсхолдеры",
+  "keepIslandPlaceholdersDescription": "Введите текст или выражения для любой стороны, например: Battery {batteryLevel}, CPU {cpuUsage}. Нажмите тег, чтобы скопировать.",
+  "@keepIslandPlaceholdersDescription": {
+    "placeholders": {
+      "batteryLevel": {
+        "type": "String",
+        "example": "{battery.level}"
+      },
+      "cpuUsage": {
+        "type": "String",
+        "example": "{cpu.usage}"
+      }
+    }
+  },
+  "keepIslandPlaceholderCopied": "Скопировано {placeholder}",
+  "@keepIslandPlaceholderCopied": {
+    "placeholders": {
+      "placeholder": {
+        "type": "String"
+      }
+    }
+  },
+  "keepIslandDefaultEmpty": "По умолчанию пусто",
+  "keepIslandContentHint": "По умолчанию пусто. Введите текст или {placeholder}",
+  "@keepIslandContentHint": {
+    "placeholders": {
+      "placeholder": {
+        "type": "String",
+        "example": "{battery.level}"
+      }
+    }
+  },
+  "clear": "Очистить",
+  "save": "Сохранить",
   "islandOtherSection": "Прочее",
   "miscSection": "Разное",
   "onboardingEntryTitle": "Открыть онбординг",

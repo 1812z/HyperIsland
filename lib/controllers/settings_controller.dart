@@ -83,6 +83,8 @@ const kPrefKeepIsland = 'pref_keep_island';
 const kPrefKeepIslandAutoHide = 'pref_keep_island_auto_hide';
 const kPrefKeepIslandHideLandscape = 'pref_keep_island_hide_landscape';
 const kPrefKeepIslandHighlightColor = 'pref_keep_island_highlight_color';
+const kPrefKeepIslandLeftContent = 'pref_keep_island_left_content';
+const kPrefKeepIslandRightContent = 'pref_keep_island_right_content';
 const kPrefTempHideBehaviorEnabled = 'pref_temp_hide_behavior_enabled';
 const kPrefTempHideScreenPinning = 'pref_temp_hide_screen_pinning';
 const kPrefTempHideBouncerShowing = 'pref_temp_hide_bouncer_showing';
@@ -241,6 +243,8 @@ class SettingsController extends ChangeNotifier {
   bool keepIslandAutoHide = true;
   bool keepIslandHideLandscape = false;
   String keepIslandHighlightColor = '';
+  String keepIslandLeftContent = '';
+  String keepIslandRightContent = '';
   bool tempHideBehaviorEnabled = false;
   bool tempHideScreenPinning = true;
   bool tempHideBouncerShowing = true;
@@ -380,6 +384,8 @@ class SettingsController extends ChangeNotifier {
         prefs.getBool(kPrefKeepIslandHideLandscape) ?? false;
     keepIslandHighlightColor =
         prefs.getString(kPrefKeepIslandHighlightColor) ?? '';
+    keepIslandLeftContent = prefs.getString(kPrefKeepIslandLeftContent) ?? '';
+    keepIslandRightContent = prefs.getString(kPrefKeepIslandRightContent) ?? '';
     tempHideBehaviorEnabled =
         prefs.getBool(kPrefTempHideBehaviorEnabled) ?? false;
     tempHideScreenPinning = prefs.getBool(kPrefTempHideScreenPinning) ?? true;
@@ -1161,6 +1167,18 @@ class SettingsController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setKeepIslandLeftContent(String value) => _setStringPref(
+    kPrefKeepIslandLeftContent,
+    value.trim(),
+    (v) => keepIslandLeftContent = v,
+  );
+
+  Future<void> setKeepIslandRightContent(String value) => _setStringPref(
+    kPrefKeepIslandRightContent,
+    value.trim(),
+    (v) => keepIslandRightContent = v,
+  );
+
   Future<void> setTempHideBehaviorEnabled(bool value) => _setBoolPref(
     kPrefTempHideBehaviorEnabled,
     value,
@@ -1204,6 +1222,21 @@ class SettingsController extends ChangeNotifier {
   ) async {
     final prefs = await _getPrefs();
     await prefs.setBool(key, value);
+    update(value);
+    notifyListeners();
+  }
+
+  Future<void> _setStringPref(
+    String key,
+    String value,
+    void Function(String value) update,
+  ) async {
+    final prefs = await _getPrefs();
+    if (value.isEmpty) {
+      await prefs.remove(key);
+    } else {
+      await prefs.setString(key, value);
+    }
     update(value);
     notifyListeners();
   }
