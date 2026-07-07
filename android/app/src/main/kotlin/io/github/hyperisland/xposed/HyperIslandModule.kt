@@ -1,6 +1,7 @@
 package io.github.hyperisland.xposed
 
 import io.github.hyperisland.xposed.hook.SystemUI.BigIslandMinWidthHook
+import io.github.hyperisland.xposed.hook.SystemUI.CommandTokenHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandTopOffsetHook
 import io.github.hyperisland.xposed.hook.SystemUI.SmoothIslandHook
 import io.github.hyperisland.xposed.hook.ActiveIslandDismissHook
@@ -65,6 +66,9 @@ class HyperIslandModule : XposedModule() {
                 }
                 if (ConfigManager.getBoolean("pref_charge_island", false)) {
                     ChargeIslandHook.init(this, param)
+                }
+                if (ConfigManager.getBoolean("pref_command_token_enabled", false)) {
+                    CommandTokenHook.init(this, param)
                 }
             }
 

@@ -860,5 +860,18 @@
         "type": "int"
       }
     }
-  }
+  },
+  "commandTokenTitle": "口令识别",
+  "commandTokenSubtitle": "复制口令后上岛提示打开对应 App",
+  "commandTokenSettingsTitle": "口令识别设置",
+  "commandTokenEnableTitle": "启用口令识别",
+  "commandTokenEnableSubtitle": "监听剪贴板识别口令并上岛",
+  "commandTokenDouyinEnableTitle": "启用抖音口令",
+  "commandTokenDouyinEnableSubtitle": "识别到抖音口令后上岛",
+  "commandTokenTimeoutTitle": "显示时长",
+  "commandTokenClearClipTitle": "点击后清空剪贴板",
+  "commandTokenClearClipSubtitle": "点击岛后清空剪贴板，避免重复识别",
+  "commandTokenDedupTitle": "去重时间窗",
+  "commandTokenStatusEnabled": "已启用",
+  "commandTokenStatusDisabled": "未启用"
 }

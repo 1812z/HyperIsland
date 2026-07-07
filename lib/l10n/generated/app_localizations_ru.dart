@@ -1943,4 +1943,47 @@ class AppLocalizationsRu extends AppLocalizations {
   String widthDpLabel(int width) {
     return '$width dp';
   }
+
+  @override
+  String get commandTokenTitle => 'Command Token Recognition';
+
+  @override
+  String get commandTokenSubtitle =>
+      'Show island prompt to open the target app after copying a token';
+
+  @override
+  String get commandTokenSettingsTitle => 'Command Token Settings';
+
+  @override
+  String get commandTokenEnableTitle => 'Enable command token recognition';
+
+  @override
+  String get commandTokenEnableSubtitle =>
+      'Monitor clipboard for command tokens and show on island';
+
+  @override
+  String get commandTokenDouyinEnableTitle => 'Enable Douyin tokens';
+
+  @override
+  String get commandTokenDouyinEnableSubtitle =>
+      'Show island when a Douyin token is detected';
+
+  @override
+  String get commandTokenTimeoutTitle => 'Display duration';
+
+  @override
+  String get commandTokenClearClipTitle => 'Clear clipboard after click';
+
+  @override
+  String get commandTokenClearClipSubtitle =>
+      'Clear clipboard after tapping the island to avoid re-detection';
+
+  @override
+  String get commandTokenDedupTitle => 'Dedup window';
+
+  @override
+  String get commandTokenStatusEnabled => 'Enabled';
+
+  @override
+  String get commandTokenStatusDisabled => 'Disabled';
 }

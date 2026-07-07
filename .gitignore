@@ -51,3 +51,12 @@ opencode.json
 /docs/.vitepress/cache
 /node_modules
 /docs/.vitepress/dist
+
+# AI assistant local files
+.trae/
+
+# Android build output
+/android/build/
+
+# Flutter DevTools local config
+devtools_options.yaml

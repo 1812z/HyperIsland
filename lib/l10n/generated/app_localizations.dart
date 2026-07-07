@@ -3565,6 +3565,84 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'{width} dp'**
   String widthDpLabel(int width);
+
+  /// No description provided for @commandTokenTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'口令识别'**
+  String get commandTokenTitle;
+
+  /// No description provided for @commandTokenSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'复制口令后上岛提示打开对应 App'**
+  String get commandTokenSubtitle;
+
+  /// No description provided for @commandTokenSettingsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'口令识别设置'**
+  String get commandTokenSettingsTitle;
+
+  /// No description provided for @commandTokenEnableTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'启用口令识别'**
+  String get commandTokenEnableTitle;
+
+  /// No description provided for @commandTokenEnableSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'监听剪贴板识别口令并上岛'**
+  String get commandTokenEnableSubtitle;
+
+  /// No description provided for @commandTokenDouyinEnableTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'启用抖音口令'**
+  String get commandTokenDouyinEnableTitle;
+
+  /// No description provided for @commandTokenDouyinEnableSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'识别到抖音口令后上岛'**
+  String get commandTokenDouyinEnableSubtitle;
+
+  /// No description provided for @commandTokenTimeoutTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'显示时长'**
+  String get commandTokenTimeoutTitle;
+
+  /// No description provided for @commandTokenClearClipTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'点击后清空剪贴板'**
+  String get commandTokenClearClipTitle;
+
+  /// No description provided for @commandTokenClearClipSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'点击岛后清空剪贴板，避免重复识别'**
+  String get commandTokenClearClipSubtitle;
+
+  /// No description provided for @commandTokenDedupTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'去重时间窗'**
+  String get commandTokenDedupTitle;
+
+  /// No description provided for @commandTokenStatusEnabled.
+  ///
+  /// In zh, this message translates to:
+  /// **'已启用'**
+  String get commandTokenStatusEnabled;
+
+  /// No description provided for @commandTokenStatusDisabled.
+  ///
+  /// In zh, this message translates to:
+  /// **'未启用'**
+  String get commandTokenStatusDisabled;
 }
 
 class _AppLocalizationsDelegate

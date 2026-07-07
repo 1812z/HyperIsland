@@ -132,7 +132,7 @@ object ConfigManager {
     fun contains(key: String): Boolean =
         prefsForKey(key)?.contains(fk(key)) ?: false
 
-    fun isDebugLogEnabled(): Boolean = getBoolean("pref_debug_log", false)
+    fun isDebugLogEnabled(): Boolean = getBoolean("pref_debug_log", true)
 
     /** 供同进程内其他组件（如 template）获取 module 引用以写日志。 */
     fun module(): XposedModule? = module
@@ -334,6 +334,11 @@ object ConfigManager {
         "pref_charge_island_duration_mode",
         "pref_charge_island_duration_seconds",
         "pref_charge_island_outer_glow",
+        "pref_command_token_enabled",
+        "pref_command_token_douyin_enabled",
+        "pref_command_token_timeout_seconds",
+        "pref_command_token_clear_clip_after_click",
+        "pref_command_token_dedup_window_seconds",
         "pref_default_first_float",
         "pref_default_enable_float",
         "pref_default_show_island_icon",
