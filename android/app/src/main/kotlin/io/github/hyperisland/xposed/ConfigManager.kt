@@ -180,21 +180,21 @@ object ConfigManager {
     }
 
     private fun parseAppField(key: String, fields: Map<String, String>): AppField? {
-        for ((prefix, name) in fields) {
+        for ((prefix, name) in fields.entries.sortedByDescending { it.key.length }) {
             if (key.startsWith(prefix)) return AppField(key.removePrefix(prefix), name)
         }
         return null
     }
 
     private fun parseChannelField(key: String): ChannelField? {
-        for ((prefix, name) in CHANNEL_FIELDS) {
+        for ((prefix, name) in CHANNEL_FIELDS.entries.sortedByDescending { it.key.length }) {
             if (!key.startsWith(prefix)) continue
             val rest = key.removePrefix(prefix)
             val pkg = appPackages()
                 .filter { rest == it || rest.startsWith("${it}_") }
                 .maxByOrNull { it.length }
-                ?: return null
-            if (rest.length <= pkg.length + 1) return null
+                ?: continue
+            if (rest.length <= pkg.length + 1) continue
             return ChannelField(pkg, rest.substring(pkg.length + 1), name)
         }
         return null
