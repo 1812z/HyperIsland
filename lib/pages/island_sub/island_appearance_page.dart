@@ -192,7 +192,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                         title: l10n.islandDimenHeight,
                         value: _islandHeightDraft,
                         min: 0,
-                        max: 200,
+                        max: 100,
                         unit: 'dp',
                         defaultVal: 0,
                         followSystemLabel: l10n.followSystem,
@@ -567,6 +567,7 @@ class _DimenTile extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final titleStyle = Theme.of(context).textTheme.titleMedium;
     final divisions = (max - min).toInt();
+    final displayValue = value.roundToDouble();
 
     BorderRadius? borderRadius;
     if (isFirst) {
@@ -582,14 +583,14 @@ class _DimenTile extends StatelessWidget {
         children: [
           Expanded(child: Text(title, style: titleStyle)),
           Text(
-            value != defaultVal
-                ? '${value.toStringAsFixed(1)} $unit'
+            displayValue != defaultVal
+                ? '${displayValue.toInt()} $unit'
                 : followSystemLabel,
             style: Theme.of(
               context,
             ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
           ),
-          if (value != defaultVal)
+          if (displayValue != defaultVal)
             SizedBox(
               width: 18,
               height: 18,
@@ -608,12 +609,14 @@ class _DimenTile extends StatelessWidget {
       subtitle: SliderTheme(
         data: ModernSliderTheme.theme(context),
         child: Slider(
-          value: value.clamp(min, max),
+          value: displayValue.clamp(min, max),
           min: min,
           max: max,
-          divisions: divisions > 100 ? 100 : divisions,
-          onChanged: InteractionHaptics.interceptSlider(onChanged),
-          onChangeEnd: onPersist,
+          divisions: divisions,
+          onChanged: InteractionHaptics.interceptSlider(
+            (v) => onChanged(v.roundToDouble()),
+          ),
+          onChangeEnd: (v) => onPersist(v.roundToDouble()),
         ),
       ),
     );
