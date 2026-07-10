@@ -174,4 +174,10 @@ export const donors: DonorItem[] = [
     date: '2026-06-30',
     message: '爱了爱了~感谢大佬~'
   },
+  {
+    name: "a",
+    amount: '0.66',
+    date: '2026-07-10',
+    message: '支持创作'
+  },
 ]
