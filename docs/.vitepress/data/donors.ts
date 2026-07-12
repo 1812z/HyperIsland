@@ -180,4 +180,10 @@ export const donors: DonorItem[] = [
     date: '2026-07-10',
     message: '支持创作'
   },
+  {
+    name: "天空'",
+    amount: '2',
+    date: '2026-07-11',
+    message: '大佬牛逼'
+  },
 ]
