@@ -1597,6 +1597,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get keepIslandPlaceholdersTitle => 'Available placeholders';
 
   @override
+  String get keepIslandWeatherCategory => 'Weather';
+
+  @override
+  String get keepIslandDisplayCategory => 'Display';
+
+  @override
   String keepIslandPlaceholdersDescription(
     String batteryLevel,
     String cpuUsage,

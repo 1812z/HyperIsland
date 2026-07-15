@@ -1593,6 +1593,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get keepIslandPlaceholdersTitle => 'Kullanılabilir yer tutucular';
 
   @override
+  String get keepIslandWeatherCategory => 'Hava durumu';
+
+  @override
+  String get keepIslandDisplayCategory => 'Ekran';
+
+  @override
   String keepIslandPlaceholdersDescription(
     String batteryLevel,
     String cpuUsage,

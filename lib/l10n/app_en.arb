@@ -571,6 +571,8 @@
   "keepIslandCustomIconTitle": "Custom icon",
   "keepIslandCustomIconSelected": "Set, tap to replace",
   "keepIslandPlaceholdersTitle": "Available placeholders",
+  "keepIslandWeatherCategory": "Weather",
+  "keepIslandDisplayCategory": "Display",
   "keepIslandPlaceholdersDescription": "Enter plain text or expressions for either side, for example: Battery {batteryLevel}, CPU {cpuUsage}. Tap a tag to copy it.",
   "@keepIslandPlaceholdersDescription": {
     "placeholders": {

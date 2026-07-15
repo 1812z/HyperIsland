@@ -723,6 +723,8 @@
   "keepIslandCustomIconTitle": "自定义图标",
   "keepIslandCustomIconSelected": "已设置，点击替换",
   "keepIslandPlaceholdersTitle": "可用占位符",
+  "keepIslandWeatherCategory": "天气",
+  "keepIslandDisplayCategory": "显示",
   "keepIslandPlaceholdersDescription": "可在左右内容中直接输入文本或表达式，例如：电量 {batteryLevel}、CPU {cpuUsage}。点击标签复制。",
   "@keepIslandPlaceholdersDescription": {
     "placeholders": {

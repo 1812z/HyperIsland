@@ -445,14 +445,14 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
                     ),
                     const SizedBox(height: 8),
                     _PlaceholderCategory(
-                      title: 'Weather',
+                      title: l10n.keepIslandWeatherCategory,
                       icon: Icons.cloud_outlined,
                       placeholders: _weatherPlaceholders,
                       onCopy: _copyPlaceholder,
                     ),
                     const SizedBox(height: 8),
                     _PlaceholderCategory(
-                      title: 'Display',
+                      title: l10n.keepIslandDisplayCategory,
                       icon: Icons.monitor_outlined,
                       placeholders: _displayPlaceholders,
                       onCopy: _copyPlaceholder,

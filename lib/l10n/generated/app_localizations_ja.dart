@@ -1531,6 +1531,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get keepIslandPlaceholdersTitle => '利用可能なプレースホルダー';
 
   @override
+  String get keepIslandWeatherCategory => '天気';
+
+  @override
+  String get keepIslandDisplayCategory => 'ディスプレイ';
+
+  @override
   String keepIslandPlaceholdersDescription(
     String batteryLevel,
     String cpuUsage,

@@ -1610,6 +1610,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get keepIslandPlaceholdersTitle => 'Доступные плейсхолдеры';
 
   @override
+  String get keepIslandWeatherCategory => 'Погода';
+
+  @override
+  String get keepIslandDisplayCategory => 'Экран';
+
+  @override
   String keepIslandPlaceholdersDescription(
     String batteryLevel,
     String cpuUsage,

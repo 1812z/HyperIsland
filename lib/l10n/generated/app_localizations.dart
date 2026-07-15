@@ -2966,6 +2966,18 @@ abstract class AppLocalizations {
   /// **'可用占位符'**
   String get keepIslandPlaceholdersTitle;
 
+  /// No description provided for @keepIslandWeatherCategory.
+  ///
+  /// In zh, this message translates to:
+  /// **'天气'**
+  String get keepIslandWeatherCategory;
+
+  /// No description provided for @keepIslandDisplayCategory.
+  ///
+  /// In zh, this message translates to:
+  /// **'显示'**
+  String get keepIslandDisplayCategory;
+
   /// No description provided for @keepIslandPlaceholdersDescription.
   ///
   /// In zh, this message translates to:

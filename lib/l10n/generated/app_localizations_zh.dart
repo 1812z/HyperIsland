@@ -1513,6 +1513,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get keepIslandPlaceholdersTitle => '可用占位符';
 
   @override
+  String get keepIslandWeatherCategory => '天气';
+
+  @override
+  String get keepIslandDisplayCategory => '显示';
+
+  @override
   String keepIslandPlaceholdersDescription(
     String batteryLevel,
     String cpuUsage,

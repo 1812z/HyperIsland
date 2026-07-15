@@ -606,6 +606,8 @@
   "keepIslandCustomIconTitle": "Özel simge",
   "keepIslandCustomIconSelected": "Ayarlandı, değiştirmek için dokunun",
   "keepIslandPlaceholdersTitle": "Kullanılabilir yer tutucular",
+  "keepIslandWeatherCategory": "Hava durumu",
+  "keepIslandDisplayCategory": "Ekran",
   "keepIslandPlaceholdersDescription": "Her iki taraf için metin veya ifade girin, örneğin: Battery {batteryLevel}, CPU {cpuUsage}. Kopyalamak için etikete dokunun.",
   "@keepIslandPlaceholdersDescription": {
     "placeholders": {

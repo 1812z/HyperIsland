@@ -544,6 +544,8 @@
   "keepIslandCustomIconTitle": "Пользовательский значок",
   "keepIslandCustomIconSelected": "Установлен, нажмите для замены",
   "keepIslandPlaceholdersTitle": "Доступные плейсхолдеры",
+  "keepIslandWeatherCategory": "Погода",
+  "keepIslandDisplayCategory": "Экран",
   "keepIslandPlaceholdersDescription": "Введите текст или выражения для любой стороны, например: Battery {batteryLevel}, CPU {cpuUsage}. Нажмите тег, чтобы скопировать.",
   "@keepIslandPlaceholdersDescription": {
     "placeholders": {
