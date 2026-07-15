@@ -4,11 +4,16 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.database.ContentObserver
+import android.net.Uri
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Handler
+import android.os.HandlerThread
 import android.os.Looper
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.abs
@@ -34,13 +39,19 @@ object IslandDataManager {
     @Volatile private var cpu = CpuSnapshot()
     @Volatile private var memory = MemorySnapshot()
     @Volatile private var gpu = GpuSnapshot()
+    @Volatile private var weather = WeatherSnapshot()
     @Volatile private var lastPowerRefreshAt = 0L
     @Volatile private var lastSystemRefreshAt = 0L
     @Volatile private var lastCpuTimes: CpuTimes? = null
     @Volatile private var lastRegisterFailed = false
     @Volatile private var notifyScheduled = false
+    @Volatile private var weatherInitialized = false
     private val listeners = ConcurrentHashMap.newKeySet<() -> Unit>()
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val weatherThread by lazy {
+        HandlerThread("HyperIslandWeather").apply { start() }
+    }
+    private val weatherHandler by lazy { Handler(weatherThread.looper) }
 
     fun register(context: Context) {
         val ctx = context.applicationContext ?: context
@@ -142,7 +153,7 @@ object IslandDataManager {
             refresh()
             val snap = battery
             when (mode) {
-                MODE_POWER -> snap.powerWatt()?.let { "${it.roundToInt()}W" }
+                MODE_POWER -> snap.powerWatt()?.let { String.format(Locale.US, "%.1fW", it) }
                 MODE_VOLTAGE -> snap.voltageMilliVolt?.let { trimNumber(it / 1000.0, 2) + "V" }
                 MODE_CURRENT -> snap.currentMicroAmp?.let { trimNumber(abs(it) / 1000000.0, 2) + "A" }
                 MODE_LEVEL -> snap.levelText?.let { "$it%" }
@@ -165,8 +176,17 @@ object IslandDataManager {
 
     fun renderExpression(expression: String): String {
         if (expression.isBlank()) return ""
+        if (expression.contains(WEATHER_PLACEHOLDER_PREFIX)) {
+            appContext?.let { registerWeatherObserver(it) }
+        }
+        val now = Date()
         return PLACEHOLDER_PATTERN.replace(expression) { match ->
             when (match.value) {
+                "{time.HH}" -> formatTime("HH", now)
+                "{time.mm}" -> formatTime("mm", now)
+                "{time.ss}" -> formatTime("ss", now)
+                "{time.HH:mm}" -> formatTime("HH:mm", now)
+                "{time.HH:mm:ss}" -> formatTime("HH:mm:ss", now)
                 "{battery.power}" -> format(MODE_POWER)
                 "{battery.voltage}" -> format(MODE_VOLTAGE)
                 "{battery.current}" -> format(MODE_CURRENT)
@@ -179,9 +199,16 @@ object IslandDataManager {
                 "{cpu.temperature}" -> format(MODE_CPU_TEMPERATURE)
                 "{gpu.usage}" -> format(MODE_GPU_USAGE)
                 "{gpu.frequency}" -> format(MODE_GPU_FREQUENCY)
+                "{weather.location}" -> weather.location
+                "{weather.condition}" -> weather.condition
+                "{weather.temperature}" -> weather.temperature
                 else -> null
             } ?: ""
         }
+    }
+
+    private fun formatTime(pattern: String, date: Date): String {
+        return SimpleDateFormat(pattern, Locale.getDefault()).format(date)
     }
 
     fun addListener(listener: () -> Unit) {
@@ -199,6 +226,65 @@ object IslandDataManager {
                 refresh(context)
             }
         }
+    }
+
+    private val weatherObserver by lazy {
+        object : ContentObserver(weatherHandler) {
+            override fun onChange(selfChange: Boolean) {
+                scheduleWeatherRefresh()
+            }
+
+            override fun onChange(selfChange: Boolean, uri: Uri?) {
+                scheduleWeatherRefresh()
+            }
+        }
+    }
+
+    private val weatherRefreshRunnable = Runnable {
+        val context = appContext ?: return@Runnable
+        readWeatherSnapshot(context)?.let { setWeather(it) }
+    }
+
+    private fun registerWeatherObserver(context: Context) {
+        if (weatherInitialized) return
+        synchronized(this) {
+            if (weatherInitialized) return
+            weatherInitialized = true
+            runCatching {
+                context.contentResolver.registerContentObserver(
+                    WEATHER_URI,
+                    true,
+                    weatherObserver,
+                )
+            }
+        }
+        scheduleWeatherRefresh(0L)
+    }
+
+    private fun scheduleWeatherRefresh(delayMs: Long = WEATHER_REFRESH_DELAY_MS) {
+        weatherHandler.removeCallbacks(weatherRefreshRunnable)
+        weatherHandler.postDelayed(weatherRefreshRunnable, delayMs)
+    }
+
+    private fun readWeatherSnapshot(context: Context): WeatherSnapshot? = runCatching {
+        context.contentResolver.query(WEATHER_URI, null, null, null, null)?.use { cursor ->
+            if (!cursor.moveToFirst()) return null
+            val locationIndex = cursor.getColumnIndex(WEATHER_COLUMN_LOCATION)
+            val conditionIndex = cursor.getColumnIndex(WEATHER_COLUMN_CONDITION)
+            val temperatureIndex = cursor.getColumnIndex(WEATHER_COLUMN_TEMPERATURE)
+            if (locationIndex < 0 && conditionIndex < 0 && temperatureIndex < 0) return null
+            WeatherSnapshot(
+                location = locationIndex.takeIf { it >= 0 }?.let(cursor::getString).orEmpty(),
+                condition = conditionIndex.takeIf { it >= 0 }?.let(cursor::getString).orEmpty(),
+                temperature = temperatureIndex.takeIf { it >= 0 }?.let(cursor::getString).orEmpty(),
+            )
+        }
+    }.getOrNull()
+
+    private fun setWeather(next: WeatherSnapshot) {
+        if (next == weather) return
+        weather = next
+        scheduleNotifyListeners()
     }
 
     private fun readStickyBatteryIntent(context: Context): Intent? = runCatching {
@@ -630,6 +716,12 @@ object IslandDataManager {
         }
     }
 
+    private data class WeatherSnapshot(
+        val location: String = "",
+        val condition: String = "",
+        val temperature: String = "",
+    )
+
     private data class CpuTimes(
         val total: Long,
         val idle: Long,
@@ -643,7 +735,12 @@ object IslandDataManager {
     )
 
     private val SYSFS_POWER_SUPPLY_NAMES = listOf("bms", "battery")
-    private val PLACEHOLDER_PATTERN = Regex("\\{[a-zA-Z0-9_.]+\\}")
+    private val WEATHER_URI = Uri.parse("content://weather/weather")
+    private const val WEATHER_PLACEHOLDER_PREFIX = "{weather."
+    private const val WEATHER_COLUMN_LOCATION = "city_name"
+    private const val WEATHER_COLUMN_CONDITION = "description"
+    private const val WEATHER_COLUMN_TEMPERATURE = "temperature"
+    private val PLACEHOLDER_PATTERN = Regex("\\{[a-zA-Z0-9_.:]+\\}")
     private val NUMBER_PATTERN = Regex("-?\\d+(?:\\.\\d+)?")
     private val CPU_THERMAL_TYPE_KEYWORDS = listOf("cpu", "soc", "apss", "tsens_tz_sensor")
     private val CPU_THERMAL_FALLBACK_PATHS = listOf(
@@ -667,4 +764,5 @@ object IslandDataManager {
     private const val POWER_REFRESH_INTERVAL_MS = 1000L
     private const val SYSTEM_REFRESH_INTERVAL_MS = 1000L
     private const val NOTIFY_INTERVAL_MS = 1000L
+    private const val WEATHER_REFRESH_DELAY_MS = 200L
 }

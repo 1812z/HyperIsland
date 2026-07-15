@@ -23,19 +23,31 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
   final _ctrl = SettingsController.instance;
   late int _buildHash;
 
-  static const _placeholders = [
+  static const _batteryPlaceholders = [
     '{battery.power}',
     '{battery.voltage}',
     '{battery.current}',
     '{battery.level}',
     '{battery.temperature}',
-    '{cpu.usage}',
+  ];
+  static const _cpuPlaceholders = ['{cpu.usage}', '{cpu.temperature}'];
+  static const _gpuPlaceholders = ['{gpu.usage}', '{gpu.frequency}'];
+  static const _memoryPlaceholders = [
     '{memory.usage}',
     '{memory.used}',
     '{memory.total}',
-    '{cpu.temperature}',
-    '{gpu.usage}',
-    '{gpu.frequency}',
+  ];
+  static const _timePlaceholders = [
+    '{time.HH}',
+    '{time.mm}',
+    '{time.ss}',
+    '{time.HH:mm}',
+    '{time.HH:mm:ss}',
+  ];
+  static const _weatherPlaceholders = [
+    '{weather.location}',
+    '{weather.condition}',
+    '{weather.temperature}',
   ];
 
   int _computeHash() => Object.hashAll([
@@ -389,17 +401,49 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
                   ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
                 ),
                 const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                Column(
                   children: [
-                    for (final placeholder in _placeholders)
-                      ActionChip(
-                        label: Text(placeholder),
-                        onPressed: InteractionHaptics.interceptButton(
-                          () => _copyPlaceholder(placeholder),
-                        ),
-                      ),
+                    _PlaceholderCategory(
+                      title: l10n.chargeIslandModeLevel,
+                      icon: Icons.battery_charging_full,
+                      placeholders: _batteryPlaceholders,
+                      onCopy: _copyPlaceholder,
+                    ),
+                    const SizedBox(height: 8),
+                    _PlaceholderCategory(
+                      title: 'CPU',
+                      icon: Icons.developer_board_outlined,
+                      placeholders: _cpuPlaceholders,
+                      onCopy: _copyPlaceholder,
+                    ),
+                    const SizedBox(height: 8),
+                    _PlaceholderCategory(
+                      title: 'GPU',
+                      icon: Icons.videogame_asset_outlined,
+                      placeholders: _gpuPlaceholders,
+                      onCopy: _copyPlaceholder,
+                    ),
+                    const SizedBox(height: 8),
+                    _PlaceholderCategory(
+                      title: 'RAM',
+                      icon: Icons.memory,
+                      placeholders: _memoryPlaceholders,
+                      onCopy: _copyPlaceholder,
+                    ),
+                    const SizedBox(height: 8),
+                    _PlaceholderCategory(
+                      title: l10n.aiLastLogTimeLabel,
+                      icon: Icons.schedule,
+                      placeholders: _timePlaceholders,
+                      onCopy: _copyPlaceholder,
+                    ),
+                    const SizedBox(height: 8),
+                    _PlaceholderCategory(
+                      title: 'Weather',
+                      icon: Icons.cloud_outlined,
+                      placeholders: _weatherPlaceholders,
+                      onCopy: _copyPlaceholder,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 32),
@@ -408,6 +452,56 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _PlaceholderCategory extends StatelessWidget {
+  const _PlaceholderCategory({
+    required this.title,
+    required this.icon,
+    required this.placeholders,
+    required this.onCopy,
+  });
+
+  final String title;
+  final IconData icon;
+  final List<String> placeholders;
+  final ValueChanged<String> onCopy;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return ExpansionTile(
+      initiallyExpanded: false,
+      tilePadding: const EdgeInsets.symmetric(horizontal: 16),
+      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      backgroundColor: cs.surfaceContainerHighest,
+      collapsedBackgroundColor: cs.surfaceContainerHighest,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      collapsedShape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      leading: Icon(icon, color: cs.primary),
+      title: Text(title),
+      children: [
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final placeholder in placeholders)
+                ActionChip(
+                  label: Text(placeholder),
+                  onPressed: InteractionHaptics.interceptButton(
+                    () => onCopy(placeholder),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
