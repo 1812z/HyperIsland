@@ -457,7 +457,10 @@ object MarqueeHook : BaseHook() {
                                     isOngoing = (sbn?.notification?.flags ?: 0) and android.app.Notification.FLAG_ONGOING_EVENT != 0
                                     targetPkg[islandView] = pkgName
                                     targetChannel[islandView] = channelId
-                                    if (islandKey.isNotEmpty()) targetIslandKey[islandView] = islandKey
+                                    if (islandKey.isNotEmpty()) {
+                                        val notificationKey = sbn?.key
+                                        targetIslandKey[islandView] = notificationKey ?: islandKey
+                                    }
                                 }
                             } catch (_: Exception) {}
                             if (pkgName.isEmpty()) {

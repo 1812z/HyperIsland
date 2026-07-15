@@ -2,6 +2,9 @@ package io.github.hyperisland.xposed.hook
 
 import android.os.Handler
 import android.os.Looper
+import android.service.notification.StatusBarNotification
+import io.github.hyperisland.xposed.ConfigManager
+import io.github.hyperisland.xposed.log
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
@@ -10,80 +13,78 @@ import java.util.concurrent.ConcurrentHashMap
 
 object ActiveIslandDismissHook : BaseHook() {
     private const val TAG = "HyperIsland[IslandDismiss]"
-    private const val WINDOW_CONTROLLER_CLASS =
-        "miui.systemui.dynamicisland.window.DynamicIslandWindowViewController"
+    private const val FOCUS_NOTIFICATION_CONTROLLER_CLASS =
+        "miui.systemui.notification.focus.FocusNotificationController"
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val hookedClassLoaders = ConcurrentHashMap.newKeySet<Int>()
-    private val controllers = ConcurrentHashMap<String, WeakReference<Any>>()
+
+    @Volatile
+    private var focusControllerRef: WeakReference<Any>? = null
 
     override fun getTag() = TAG
 
-    override fun onConfigChanged() {
-        controllers.clear()
-    }
-
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
-        hookWindowController(module, param.defaultClassLoader)
-        HookUtils.hookDynamicClassLoaders(module, ClassLoader.getSystemClassLoader()) { cl ->
-            hookWindowController(module, cl)
+        hookFocusNotificationController(module, param.defaultClassLoader)
+        HookUtils.hookDynamicClassLoaders(module, ClassLoader.getSystemClassLoader()) { classLoader ->
+            hookFocusNotificationController(module, classLoader)
         }
     }
 
-    fun dismiss(key: String) {
-        if (key.isBlank()) return
+    fun dismiss(notificationKey: String) {
+        if (notificationKey.isBlank()) return
         mainHandler.post {
-            val controller = controllers[key]?.get()
+            val controller = focusControllerRef?.get()
             if (controller == null) {
-                controllers.remove(key)
+                diag("focus controller unavailable key=$notificationKey")
                 return@post
             }
             try {
-                val method = controller.javaClass.getMethod("removeDynamicIslandView", String::class.java)
-                method.invoke(controller, key)
+                val method = controller.javaClass.getMethod(
+                    "access\$removeByKey",
+                    controller.javaClass,
+                    String::class.java,
+                )
+                method.invoke(null, controller, notificationKey)
+                diag("focus removeByKey invoked key=$notificationKey")
             } catch (e: Throwable) {
-                controllers.remove(key)
+                diag(
+                    "focus removeByKey failed key=$notificationKey " +
+                        "error=${e.cause?.message ?: e.message}",
+                )
             }
         }
     }
 
-    private fun hookWindowController(module: XposedModule, classLoader: ClassLoader) {
-        val clId = System.identityHashCode(classLoader)
-        if (!hookedClassLoaders.add(clId)) return
+    private fun hookFocusNotificationController(module: XposedModule, classLoader: ClassLoader) {
+        val classLoaderId = System.identityHashCode(classLoader)
+        if (!hookedClassLoaders.add(classLoaderId)) return
         try {
             val clazz = try {
-                classLoader.loadClass(WINDOW_CONTROLLER_CLASS)
+                classLoader.loadClass(FOCUS_NOTIFICATION_CONTROLLER_CLASS)
             } catch (_: ClassNotFoundException) {
-                hookedClassLoaders.remove(clId)
+                hookedClassLoaders.remove(classLoaderId)
                 return
             }
             clazz.declaredMethods
-                .filter { it.name == "updateDynamicIslandView" && it.parameterCount >= 1 }
+                .filter { it.name == "onNotificationPosted" && it.parameterCount >= 1 }
                 .forEach { method ->
                     module.hook(method).intercept { chain ->
-                        val result = chain.proceed()
-                        val islandData = chain.args.getOrNull(0)
-                        val key = runCatching {
-                            islandData?.javaClass?.getMethod("getKey")?.invoke(islandData) as? String
-                        }.getOrNull()
-                        if (!key.isNullOrBlank()) recordController(key, chain.thisObject)
-                        result
+                        val sbn = chain.args.getOrNull(0) as? StatusBarNotification
+                        if (sbn != null) {
+                            focusControllerRef = WeakReference(chain.thisObject)
+                            diag("focus controller captured key=${sbn.key}")
+                        }
+                        chain.proceed()
                     }
                 }
         } catch (_: Throwable) {
-            hookedClassLoaders.remove(clId)
+            hookedClassLoaders.remove(classLoaderId)
         }
     }
 
-    private fun recordController(key: String, controller: Any) {
-        controllers[key] = WeakReference(controller)
-        if (controllers.size <= 64) return
-        controllers.entries.removeIf { it.value.get() == null }
-        if (controllers.size <= 128) return
-        controllers.keys.iterator().let { iterator ->
-            while (controllers.size > 128 && iterator.hasNext()) {
-                controllers.remove(iterator.next())
-            }
-        }
+    private fun diag(message: String) {
+        if (!ConfigManager.isDebugLogEnabled()) return
+        ConfigManager.module()?.log("HyperIsland[IslandDismissDiag] $message")
     }
 }
