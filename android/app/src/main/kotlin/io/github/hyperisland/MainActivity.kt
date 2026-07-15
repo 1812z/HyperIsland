@@ -329,8 +329,8 @@ class MainActivity : FlutterActivity() {
 
                             val destFile = java.io.File(publicDir, destFileName)
                             val destBase = destFile.nameWithoutExtension
-                            java.io.File(publicDir, "$destBase.png").delete()
-                            java.io.File(publicDir, "$destBase.gif").delete()
+                            deleteIslandBackgroundFile(java.io.File(publicDir, "$destBase.png"))
+                            deleteIslandBackgroundFile(java.io.File(publicDir, "$destBase.gif"))
                             java.io.File(sourcePath).copyTo(destFile, overwrite = true)
                             destFile.setReadable(true, false)
                             runOnUiThread { result.success(destFile.absolutePath) }
@@ -370,7 +370,7 @@ class MainActivity : FlutterActivity() {
                         try {
                             val publicDir = java.io.File("/sdcard/Pictures/HyperIsland")
                             val file = java.io.File(publicDir, fileName)
-                            val success = if (file.exists()) file.delete() else true
+                            val success = deleteIslandBackgroundFile(file)
                             runOnUiThread { result.success(success) }
                         } catch (e: Exception) {
                             runOnUiThread { result.error("ERROR", e.message, null) }
@@ -410,6 +410,25 @@ class MainActivity : FlutterActivity() {
             false
         }
     }
+
+    private fun deleteIslandBackgroundFile(file: java.io.File): Boolean {
+        val allowedName = Regex("hyperisland_bg_(small|big|expand)\\.(png|gif)")
+        val publicDir = java.io.File("/sdcard/Pictures/HyperIsland")
+        if (!allowedName.matches(file.name) || file.parentFile?.canonicalFile != publicDir.canonicalFile) {
+            return false
+        }
+        if (!file.exists() || file.delete()) return true
+
+        return try {
+            val result = RootShell.run("rm -f -- ${shellQuote(file.absolutePath)}")
+            result.exitCode == 0 && !file.exists()
+        } catch (e: Exception) {
+            Log.e(TAG, "Root delete failed for ${file.name}: ${e.message}", e)
+            false
+        }
+    }
+
+    private fun shellQuote(value: String): String = "'${value.replace("'", "'\\''")}'"
 
     private fun isFrameworkVersionSupported(version: String): Boolean {
         val parts = version.split('.', '-', '_')
