@@ -1117,6 +1117,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiMaxTokensSubtitle => '限制 AI 生成回答的最大长度';
 
   @override
+  String get aiTriggerCharCountTitle => '触发字数';
+
+  @override
+  String get aiTriggerCharCountSubtitle => '通知标题和正文达到此字符数时触发 AI';
+
+  @override
+  String get aiTriggerCharCountAlways => '无论通知字数多少都触发 AI';
+
+  @override
   String get aiDefaultPromptFull =>
       '留空使用默认提示词：根据通知信息，提取关键信息，左右分别不超过 6 汉字 12 字符';
 

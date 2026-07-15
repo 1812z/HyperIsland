@@ -71,6 +71,7 @@ const kPrefAiPromptInUser = 'pref_ai_prompt_in_user';
 const kPrefAiTimeout = 'pref_ai_timeout';
 const kPrefAiTemperature = 'pref_ai_temperature';
 const kPrefAiMaxTokens = 'pref_ai_max_tokens';
+const kPrefAiTriggerCharCount = 'pref_ai_trigger_char_count';
 const kPrefAiLastLogJson = 'pref_ai_last_log_json';
 const kPrefConfigAppVersion = 'pref_config_app_version';
 const kPrefIslandBgSmallPath = 'pref_island_bg_small_path';
@@ -230,6 +231,7 @@ class SettingsController extends ChangeNotifier {
   int aiTimeout = 3;
   double aiTemperature = 0.1;
   int aiMaxTokens = 50;
+  int aiTriggerCharCount = 10;
   AiLogEntry? aiLastLog;
   String configAppVersion = '';
   ThemeMode themeMode = ThemeMode.system;
@@ -361,6 +363,10 @@ class SettingsController extends ChangeNotifier {
     aiTimeout = prefs.getInt(kPrefAiTimeout) ?? 3;
     aiTemperature = prefs.getDouble(kPrefAiTemperature) ?? 0.1;
     aiMaxTokens = prefs.getInt(kPrefAiMaxTokens) ?? 50;
+    aiTriggerCharCount = (prefs.getInt(kPrefAiTriggerCharCount) ?? 10).clamp(
+      0,
+      100,
+    );
     aiLastLog = _parseAiLog(prefs.getString(kPrefAiLastLogJson));
     configAppVersion = prefs.getString(kPrefConfigAppVersion) ?? '';
     themeMode = switch (prefs.getString(kPrefThemeMode)) {
@@ -1005,6 +1011,15 @@ class SettingsController extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(kPrefAiMaxTokens, value);
     aiMaxTokens = value;
+    notifyListeners();
+  }
+
+  Future<void> setAiTriggerCharCount(int value) async {
+    final clamped = value.clamp(0, 100);
+    if (aiTriggerCharCount == clamped) return;
+    final prefs = await _getPrefs();
+    await prefs.setInt(kPrefAiTriggerCharCount, clamped);
+    aiTriggerCharCount = clamped;
     notifyListeners();
   }
 

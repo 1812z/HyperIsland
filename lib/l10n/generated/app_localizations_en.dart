@@ -1176,6 +1176,17 @@ class AppLocalizationsEn extends AppLocalizations {
       'Limit the maximum length of AI-generated responses';
 
   @override
+  String get aiTriggerCharCountTitle => 'Trigger Character Count';
+
+  @override
+  String get aiTriggerCharCountSubtitle =>
+      'Trigger AI when the notification title and body reach this length';
+
+  @override
+  String get aiTriggerCharCountAlways =>
+      'Always trigger AI regardless of notification length';
+
+  @override
   String get aiDefaultPromptFull =>
       'Leave empty to use default prompt: Extract key info from notification, no more than 6 words or 12 characters for left and right sides';
 

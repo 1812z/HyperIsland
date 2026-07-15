@@ -253,6 +253,7 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
             "pref_ai_timeout",
             "pref_ai_temperature",
             "pref_ai_max_tokens",
+            "pref_ai_trigger_char_count",
             "pref_island_height",
             "pref_island_top_offset",
             "pref_island_text_color_mode",

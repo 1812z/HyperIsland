@@ -1190,6 +1190,17 @@ class AppLocalizationsRu extends AppLocalizations {
       'Ограничить максимальную длину ответов, генерируемых ИИ';
 
   @override
+  String get aiTriggerCharCountTitle => 'Количество символов для запуска';
+
+  @override
+  String get aiTriggerCharCountSubtitle =>
+      'Запускать ИИ, когда заголовок и текст уведомления достигают этой длины';
+
+  @override
+  String get aiTriggerCharCountAlways =>
+      'Всегда запускать ИИ независимо от длины уведомления';
+
+  @override
   String get aiDefaultPromptFull =>
       'Оставьте пустым для использования промпта по умолчанию: Извлечь ключевую информацию из уведомления, не более 6 слов или 12 символов для левой и правой сторон';
 

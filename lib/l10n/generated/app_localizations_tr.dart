@@ -1181,6 +1181,17 @@ class AppLocalizationsTr extends AppLocalizations {
       'AI tarafından üretilen yanıtların en fazla uzunluğunu sınırlar';
 
   @override
+  String get aiTriggerCharCountTitle => 'Tetikleme Karakter Sayısı';
+
+  @override
+  String get aiTriggerCharCountSubtitle =>
+      'Bildirim başlığı ve metni bu uzunluğa ulaştığında AI\'ı tetikle';
+
+  @override
+  String get aiTriggerCharCountAlways =>
+      'Bildirim uzunluğundan bağımsız olarak AI\'ı her zaman tetikle';
+
+  @override
   String get aiDefaultPromptFull =>
       'Boş bırakırsanız varsayılan prompt kullanılır: Bildirimden ana bilgiyi çıkarın; sol ve sağ taraf için en fazla 6 kelime veya 12 karakter';
 

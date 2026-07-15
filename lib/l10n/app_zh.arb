@@ -550,6 +550,9 @@
   "aiTemperatureSubtitle": "控制回答的随机性。0 为准确，1 则更具创意",
   "aiMaxTokensTitle": "最大 Token 数 (Max Tokens)",
   "aiMaxTokensSubtitle": "限制 AI 生成回答的最大长度",
+  "aiTriggerCharCountTitle": "触发字数",
+  "aiTriggerCharCountSubtitle": "通知标题和正文达到此字符数时触发 AI",
+  "aiTriggerCharCountAlways": "无论通知字数多少都触发 AI",
   "@aiTimeoutLabel": {
     "placeholders": {
       "seconds": {

@@ -35,6 +35,7 @@ class _AiConfigPageState extends State<AiConfigPage> {
   late int _aiTimeoutDraft;
   late double _aiTemperatureDraft;
   late int _aiMaxTokensDraft;
+  late int _aiTriggerCharCountDraft;
   late bool _aiEnabledValue;
   late bool _aiPromptInUserValue;
   bool _localizedDefaultsInitialized = false;
@@ -44,11 +45,13 @@ class _AiConfigPageState extends State<AiConfigPage> {
     final nextTimeout = _ctrl.aiTimeout;
     final nextTemperature = _ctrl.aiTemperature;
     final nextMaxTokens = _ctrl.aiMaxTokens;
+    final nextTriggerCharCount = _ctrl.aiTriggerCharCount;
     final nextAiEnabled = _ctrl.aiEnabled;
     final nextPromptInUser = _ctrl.aiPromptInUser;
     if (nextTimeout == _aiTimeoutDraft &&
         nextTemperature == _aiTemperatureDraft &&
         nextMaxTokens == _aiMaxTokensDraft &&
+        nextTriggerCharCount == _aiTriggerCharCountDraft &&
         nextAiEnabled == _aiEnabledValue &&
         nextPromptInUser == _aiPromptInUserValue) {
       return;
@@ -57,6 +60,7 @@ class _AiConfigPageState extends State<AiConfigPage> {
       _aiTimeoutDraft = nextTimeout;
       _aiTemperatureDraft = nextTemperature;
       _aiMaxTokensDraft = nextMaxTokens;
+      _aiTriggerCharCountDraft = nextTriggerCharCount;
       _aiEnabledValue = nextAiEnabled;
       _aiPromptInUserValue = nextPromptInUser;
     });
@@ -74,6 +78,7 @@ class _AiConfigPageState extends State<AiConfigPage> {
     _aiTimeoutDraft = _ctrl.aiTimeout;
     _aiTemperatureDraft = _ctrl.aiTemperature;
     _aiMaxTokensDraft = _ctrl.aiMaxTokens;
+    _aiTriggerCharCountDraft = _ctrl.aiTriggerCharCount;
     _aiEnabledValue = _ctrl.aiEnabled;
     _aiPromptInUserValue = _ctrl.aiPromptInUser;
   }
@@ -158,6 +163,18 @@ class _AiConfigPageState extends State<AiConfigPage> {
     final next = value.round();
     if (_ctrl.aiMaxTokens == next) return;
     await _ctrl.setAiMaxTokens(next);
+  }
+
+  void _onTriggerCharCountChanged(double value) {
+    final next = value.round();
+    if (_aiTriggerCharCountDraft == next) return;
+    setState(() => _aiTriggerCharCountDraft = next);
+  }
+
+  Future<void> _persistTriggerCharCount(double value) async {
+    final next = value.round();
+    if (_ctrl.aiTriggerCharCount == next) return;
+    await _ctrl.setAiTriggerCharCount(next);
   }
 
   Future<void> _onAiEnabledChanged(bool value) async {
@@ -665,6 +682,54 @@ class _AiConfigPageState extends State<AiConfigPage> {
                               _onTimeoutChanged,
                             ),
                             onChangeEnd: _persistTimeout,
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            const FaIcon(FontAwesomeIcons.textWidth, size: 18),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    l10n.aiTriggerCharCountTitle,
+                                    style: textTheme.titleMedium,
+                                  ),
+                                  Text(
+                                    _aiTriggerCharCountDraft == 0
+                                        ? l10n.aiTriggerCharCountAlways
+                                        : l10n.aiTriggerCharCountSubtitle,
+                                    style: textTheme.bodySmall?.copyWith(
+                                      color: cs.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Text(
+                              '$_aiTriggerCharCountDraft',
+                              style: textTheme.bodyLarge?.copyWith(
+                                color: cs.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SliderTheme(
+                          data: ModernSliderTheme.theme(context),
+                          child: Slider(
+                            value: _aiTriggerCharCountDraft.toDouble(),
+                            min: 0,
+                            max: 100,
+                            divisions: 20,
+                            label: '$_aiTriggerCharCountDraft',
+                            onChanged: InteractionHaptics.interceptSlider(
+                              _onTriggerCharCountChanged,
+                            ),
+                            onChangeEnd: _persistTriggerCharCount,
                           ),
                         ),
 

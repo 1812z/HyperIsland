@@ -2198,6 +2198,24 @@ abstract class AppLocalizations {
   /// **'限制 AI 生成回答的最大长度'**
   String get aiMaxTokensSubtitle;
 
+  /// No description provided for @aiTriggerCharCountTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'触发字数'**
+  String get aiTriggerCharCountTitle;
+
+  /// No description provided for @aiTriggerCharCountSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'通知标题和正文达到此字符数时触发 AI'**
+  String get aiTriggerCharCountSubtitle;
+
+  /// No description provided for @aiTriggerCharCountAlways.
+  ///
+  /// In zh, this message translates to:
+  /// **'无论通知字数多少都触发 AI'**
+  String get aiTriggerCharCountAlways;
+
   /// No description provided for @aiDefaultPromptFull.
   ///
   /// In zh, this message translates to:

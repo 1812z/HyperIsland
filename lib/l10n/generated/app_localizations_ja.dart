@@ -1132,6 +1132,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get aiMaxTokensSubtitle => 'AI が生成する回答の最大長を制限します';
 
   @override
+  String get aiTriggerCharCountTitle => 'トリガー文字数';
+
+  @override
+  String get aiTriggerCharCountSubtitle => '通知のタイトルと本文がこの文字数に達すると AI を起動します';
+
+  @override
+  String get aiTriggerCharCountAlways => '通知の文字数に関係なく常に AI を起動します';
+
+  @override
   String get aiDefaultPromptFull =>
       '空欄でデフォルトを使用：通知から重要な情報を抽出します。左右それぞれ 6 漢字 12 文字以内とします。';
 

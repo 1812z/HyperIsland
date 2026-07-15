@@ -58,7 +58,9 @@ object AINotificationIslandNotification : IslandTemplate {
 
     override fun inject(context: Context, extras: Bundle, data: NotifData) {
         val aiConfig = loadAiConfig(context)
-        val aiText = if (aiConfig.enabled && aiConfig.url.isNotEmpty()) {
+        val contentLength = data.title.length + data.subtitle.length
+        val shouldTrigger = aiConfig.triggerCharCount == 0 || contentLength >= aiConfig.triggerCharCount
+        val aiText = if (aiConfig.enabled && aiConfig.url.isNotEmpty() && shouldTrigger) {
             fetchAiText(aiConfig, data)
         } else null
 
@@ -95,6 +97,7 @@ object AINotificationIslandNotification : IslandTemplate {
         val promptInUser: Boolean,
         val temperature: Float,
         val maxTokens: Int,
+        val triggerCharCount: Int,
     )
 
     private data class AiIslandText(val left: String, val right: String)
@@ -109,6 +112,7 @@ object AINotificationIslandNotification : IslandTemplate {
         promptInUser = ConfigManager.getBoolean("pref_ai_prompt_in_user", false),
         temperature = ConfigManager.getFloat("pref_ai_temperature", 0.1f).coerceIn(0f, 1f),
         maxTokens = ConfigManager.getInt("pref_ai_max_tokens", 50).coerceIn(10, 500),
+        triggerCharCount = ConfigManager.getInt("pref_ai_trigger_char_count", 10).coerceIn(0, 100),
     )
 
     // ── AI 调用（带超时） ──────────────────────────────────────────────────────
