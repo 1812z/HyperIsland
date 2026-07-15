@@ -186,4 +186,16 @@ export const donors: DonorItem[] = [
     date: '2026-07-11',
     message: '大佬牛逼'
   },
+  {
+    name: "FeAsoNZD",
+    amount: '8.88',
+    date: '2026-07-15',
+    message: '下次更新常驻岛时钟可以加12小时制吗'
+  },
+  {
+    name: "榆青",
+    amount: '0.52',
+    date: '2026-07-15',
+    message: '芥子我祝你星途璀璨'
+  },
 ]
