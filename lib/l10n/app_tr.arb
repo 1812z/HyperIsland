@@ -597,6 +597,10 @@
   "keepIslandHighlightColorSubtitle": "Sürekli adanın vurgu metin rengini özelleştir",
   "keepIslandLeftContentTitle": "Sol ada içeriği",
   "keepIslandRightContentTitle": "Sağ ada içeriği",
+  "keepIslandFocusNotificationTitle": "Tıklanabilir ada",
+  "keepIslandFocusNotificationSubtitle": "Odak bildirim içeriğini göster ve dokunarak genişletmeyi destekle",
+  "keepIslandNotificationTitle": "Bildirim başlığı",
+  "keepIslandNotificationContent": "Bildirim içeriği",
   "keepIslandPlaceholdersTitle": "Kullanılabilir yer tutucular",
   "keepIslandPlaceholdersDescription": "Her iki taraf için metin veya ifade girin, örneğin: Battery {batteryLevel}, CPU {cpuUsage}. Kopyalamak için etikete dokunun.",
   "@keepIslandPlaceholdersDescription": {

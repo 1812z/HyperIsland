@@ -562,6 +562,10 @@
   "keepIslandHighlightColorSubtitle": "Customize the highlight text color for the keep island",
   "keepIslandLeftContentTitle": "Left island content",
   "keepIslandRightContentTitle": "Right island content",
+  "keepIslandFocusNotificationTitle": "Clickable island",
+  "keepIslandFocusNotificationSubtitle": "Show focus notification content and support tap to expand",
+  "keepIslandNotificationTitle": "Notification title",
+  "keepIslandNotificationContent": "Notification content",
   "keepIslandPlaceholdersTitle": "Available placeholders",
   "keepIslandPlaceholdersDescription": "Enter plain text or expressions for either side, for example: Battery {batteryLevel}, CPU {cpuUsage}. Tap a tag to copy it.",
   "@keepIslandPlaceholdersDescription": {

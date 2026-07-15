@@ -38,6 +38,8 @@ data class IslandRequest(
     val clearBeforePost: Boolean = false,
     val islandOnly: Boolean = false,
     val islandEnabled: Boolean = true,
+    val focusTitle: String? = null,
+    val focusContent: String? = null,
 ) {
     fun toBundle(): Bundle = Bundle().apply {
         putString(KEY_TITLE, title)
@@ -71,6 +73,8 @@ data class IslandRequest(
         putBoolean(KEY_CLEAR_BEFORE_POST, clearBeforePost)
         putBoolean(KEY_ISLAND_ONLY, islandOnly)
         putBoolean(KEY_ISLAND_ENABLED, islandEnabled)
+        putString(KEY_FOCUS_TITLE, focusTitle)
+        putString(KEY_FOCUS_CONTENT, focusContent)
     }
 
     companion object {
@@ -105,6 +109,8 @@ data class IslandRequest(
         private const val KEY_CLEAR_BEFORE_POST = "clearBeforePost"
         private const val KEY_ISLAND_ONLY = "islandOnly"
         private const val KEY_ISLAND_ENABLED = "islandEnabled"
+        private const val KEY_FOCUS_TITLE = "focusTitle"
+        private const val KEY_FOCUS_CONTENT = "focusContent"
 
         fun fromBundle(b: Bundle) = IslandRequest(
             title = b.getString(KEY_TITLE, ""),
@@ -138,6 +144,8 @@ data class IslandRequest(
             clearBeforePost = b.getBoolean(KEY_CLEAR_BEFORE_POST, false),
             islandOnly = b.getBoolean(KEY_ISLAND_ONLY, false),
             islandEnabled = b.getBoolean(KEY_ISLAND_ENABLED, true),
+            focusTitle = b.getString(KEY_FOCUS_TITLE),
+            focusContent = b.getString(KEY_FOCUS_CONTENT),
         )
 
         private fun iconFromBundle(b: Bundle): Icon? =

@@ -2912,6 +2912,30 @@ abstract class AppLocalizations {
   /// **'岛右边内容'**
   String get keepIslandRightContentTitle;
 
+  /// No description provided for @keepIslandFocusNotificationTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'岛可点击'**
+  String get keepIslandFocusNotificationTitle;
+
+  /// No description provided for @keepIslandFocusNotificationSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'显示焦点通知内容，并支持点击展开'**
+  String get keepIslandFocusNotificationSubtitle;
+
+  /// No description provided for @keepIslandNotificationTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'通知标题'**
+  String get keepIslandNotificationTitle;
+
+  /// No description provided for @keepIslandNotificationContent.
+  ///
+  /// In zh, this message translates to:
+  /// **'通知正文'**
+  String get keepIslandNotificationContent;
+
   /// No description provided for @keepIslandPlaceholdersTitle.
   ///
   /// In zh, this message translates to:

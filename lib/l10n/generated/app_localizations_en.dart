@@ -1568,6 +1568,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get keepIslandRightContentTitle => 'Right island content';
 
   @override
+  String get keepIslandFocusNotificationTitle => 'Clickable island';
+
+  @override
+  String get keepIslandFocusNotificationSubtitle =>
+      'Show focus notification content and support tap to expand';
+
+  @override
+  String get keepIslandNotificationTitle => 'Notification title';
+
+  @override
+  String get keepIslandNotificationContent => 'Notification content';
+
+  @override
   String get keepIslandPlaceholdersTitle => 'Available placeholders';
 
   @override

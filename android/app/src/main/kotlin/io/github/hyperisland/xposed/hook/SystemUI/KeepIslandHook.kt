@@ -37,6 +37,12 @@ object KeepIslandHook : BaseHook() {
 
     private const val PREF_KEY_RIGHT_CONTENT = "pref_keep_island_right_content"
 
+    private const val PREF_KEY_FOCUS_NOTIFICATION = "pref_keep_island_focus_notification"
+
+    private const val PREF_KEY_NOTIFICATION_TITLE = "pref_keep_island_notification_title"
+
+    private const val PREF_KEY_NOTIFICATION_CONTENT = "pref_keep_island_notification_content"
+
     private const val KEEP_ISLAND_NOTIF_ID = 0x4B494B49
 
     private const val ANIMATION_CONTROLLER_CLASS =
@@ -88,10 +94,10 @@ object KeepIslandHook : BaseHook() {
             evaluateKeepIsland()
             if (posted) {
                 if (hasConfiguredKeepIslandContent()) {
-                    appContext?.let { updateKeepIslandContent(it) }
+                    appContext?.let { updateKeepIslandContent(it, force = true) }
                     schedulePeriodicDataUpdate()
                 } else {
-                    appContext?.let { updateKeepIslandContent(it) }
+                    appContext?.let { updateKeepIslandContent(it, force = true) }
                     cancelPeriodicDataUpdate()
                 }
             }
@@ -327,6 +333,8 @@ object KeepIslandHook : BaseHook() {
                 .takeIf { it.isNotBlank() }
             IslandDataManager.refresh(context)
             val texts: Pair<String, String> = resolveKeepIslandTexts()
+            val focusEnabled = ConfigManager.getBoolean(PREF_KEY_FOCUS_NOTIFICATION, false)
+            val focusTexts = resolveFocusNotificationTexts()
             val request = IslandRequest(
                 title = texts.first,
                 content = texts.second,
@@ -345,11 +353,18 @@ object KeepIslandHook : BaseHook() {
                 highlightColor = highlightColor,
                 showLeftHighlightColor = highlightColor != null,
                 showRightHighlightColor = highlightColor != null,
-                islandOnly = true,
+                islandOnly = !focusEnabled,
+                focusTitle = focusTexts.first,
+                focusContent = focusTexts.second,
             )
             IslandDispatcher.post(context, request)
             posted = true
-            lastContentUpdateSignature = contentSignature(texts, highlightColor)
+            lastContentUpdateSignature = contentSignature(
+                texts,
+                focusEnabled,
+                focusTexts,
+                highlightColor,
+            )
             lastContentUpdateAt = System.currentTimeMillis()
             keepIslandContentCustomized = texts.first != " " || texts.second.isNotEmpty()
             cachedModule?.let { log(it, "keep island ${if (restore) "restored" else "posted"}") }
@@ -359,16 +374,21 @@ object KeepIslandHook : BaseHook() {
         }
     }
 
-    private fun updateKeepIslandContent(context: android.content.Context) {
+    private fun updateKeepIslandContent(
+        context: android.content.Context,
+        force: Boolean = false,
+    ) {
         if (!posted || !shouldShowKeepIsland(context)) return
         val texts: Pair<String, String> = resolveKeepIslandTexts()
         try {
             val highlightColor = ConfigManager.getString(PREF_KEY_HIGHLIGHT_COLOR, "")
                 .takeIf { it.isNotBlank() }
-            val signature = contentSignature(texts, highlightColor)
-            if (signature == lastContentUpdateSignature) return
+            val focusEnabled = ConfigManager.getBoolean(PREF_KEY_FOCUS_NOTIFICATION, false)
+            val focusTexts = resolveFocusNotificationTexts()
+            val signature = contentSignature(texts, focusEnabled, focusTexts, highlightColor)
+            if (!force && signature == lastContentUpdateSignature) return
             val now = System.currentTimeMillis()
-            if (now - lastContentUpdateAt < DATA_UPDATE_INTERVAL_MS) return
+            if (!force && now - lastContentUpdateAt < DATA_UPDATE_INTERVAL_MS) return
             val request = IslandRequest(
                 title = texts.first,
                 content = texts.second,
@@ -387,7 +407,9 @@ object KeepIslandHook : BaseHook() {
                 highlightColor = highlightColor,
                 showLeftHighlightColor = highlightColor != null,
                 showRightHighlightColor = highlightColor != null,
-                islandOnly = true,
+                islandOnly = !focusEnabled,
+                focusTitle = focusTexts.first,
+                focusContent = focusTexts.second,
             )
             IslandDispatcher.post(context, request)
             lastContentUpdateAt = now
@@ -413,8 +435,24 @@ object KeepIslandHook : BaseHook() {
         return left to right
     }
 
-    private fun contentSignature(texts: Pair<String, String>, highlightColor: String?): String {
-        return "${texts.first}\u0000${texts.second}\u0000${highlightColor.orEmpty()}"
+    private fun resolveFocusNotificationTexts(): Pair<String, String> {
+        val title = renderExpressionSafely(
+            ConfigManager.getString(PREF_KEY_NOTIFICATION_TITLE, ""),
+        ).ifBlank { " " }
+        val content = renderExpressionSafely(
+            ConfigManager.getString(PREF_KEY_NOTIFICATION_CONTENT, ""),
+        )
+        return title to content
+    }
+
+    private fun contentSignature(
+        texts: Pair<String, String>,
+        focusEnabled: Boolean,
+        focusTexts: Pair<String, String>,
+        highlightColor: String?,
+    ): String {
+        return "${texts.first}\u0000${texts.second}\u0000$focusEnabled\u0000" +
+                "${focusTexts.first}\u0000${focusTexts.second}\u0000${highlightColor.orEmpty()}"
     }
 
     private fun renderExpressionSafely(expression: String): String {
@@ -451,8 +489,13 @@ object KeepIslandHook : BaseHook() {
     }
 
     private fun hasConfiguredKeepIslandContent(): Boolean {
-        return ConfigManager.getString(PREF_KEY_LEFT_CONTENT, "").isNotBlank() ||
-                ConfigManager.getString(PREF_KEY_RIGHT_CONTENT, "").isNotBlank()
+        val hasIslandContent =
+            ConfigManager.getString(PREF_KEY_LEFT_CONTENT, "").isNotBlank() ||
+                    ConfigManager.getString(PREF_KEY_RIGHT_CONTENT, "").isNotBlank()
+        if (hasIslandContent) return true
+        if (!ConfigManager.getBoolean(PREF_KEY_FOCUS_NOTIFICATION, false)) return false
+        return ConfigManager.getString(PREF_KEY_NOTIFICATION_TITLE, "").isNotBlank() ||
+                ConfigManager.getString(PREF_KEY_NOTIFICATION_CONTENT, "").isNotBlank()
     }
 
     private fun cancelKeepIsland(context: android.content.Context) {

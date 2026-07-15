@@ -86,6 +86,10 @@ const kPrefKeepIslandHideLandscape = 'pref_keep_island_hide_landscape';
 const kPrefKeepIslandHighlightColor = 'pref_keep_island_highlight_color';
 const kPrefKeepIslandLeftContent = 'pref_keep_island_left_content';
 const kPrefKeepIslandRightContent = 'pref_keep_island_right_content';
+const kPrefKeepIslandFocusNotification = 'pref_keep_island_focus_notification';
+const kPrefKeepIslandNotificationTitle = 'pref_keep_island_notification_title';
+const kPrefKeepIslandNotificationContent =
+    'pref_keep_island_notification_content';
 const kPrefTempHideBehaviorEnabled = 'pref_temp_hide_behavior_enabled';
 const kPrefTempHideScreenPinning = 'pref_temp_hide_screen_pinning';
 const kPrefTempHideBouncerShowing = 'pref_temp_hide_bouncer_showing';
@@ -247,6 +251,9 @@ class SettingsController extends ChangeNotifier {
   String keepIslandHighlightColor = '';
   String keepIslandLeftContent = '';
   String keepIslandRightContent = '';
+  bool keepIslandFocusNotification = false;
+  String keepIslandNotificationTitle = '';
+  String keepIslandNotificationContent = '';
   bool tempHideBehaviorEnabled = false;
   bool tempHideScreenPinning = true;
   bool tempHideBouncerShowing = true;
@@ -392,6 +399,12 @@ class SettingsController extends ChangeNotifier {
         prefs.getString(kPrefKeepIslandHighlightColor) ?? '';
     keepIslandLeftContent = prefs.getString(kPrefKeepIslandLeftContent) ?? '';
     keepIslandRightContent = prefs.getString(kPrefKeepIslandRightContent) ?? '';
+    keepIslandFocusNotification =
+        prefs.getBool(kPrefKeepIslandFocusNotification) ?? false;
+    keepIslandNotificationTitle =
+        prefs.getString(kPrefKeepIslandNotificationTitle) ?? '';
+    keepIslandNotificationContent =
+        prefs.getString(kPrefKeepIslandNotificationContent) ?? '';
     tempHideBehaviorEnabled =
         prefs.getBool(kPrefTempHideBehaviorEnabled) ?? false;
     tempHideScreenPinning = prefs.getBool(kPrefTempHideScreenPinning) ?? true;
@@ -1194,6 +1207,24 @@ class SettingsController extends ChangeNotifier {
     kPrefKeepIslandRightContent,
     value.trim(),
     (v) => keepIslandRightContent = v,
+  );
+
+  Future<void> setKeepIslandFocusNotification(bool value) => _setBoolPref(
+    kPrefKeepIslandFocusNotification,
+    value,
+    (v) => keepIslandFocusNotification = v,
+  );
+
+  Future<void> setKeepIslandNotificationTitle(String value) => _setStringPref(
+    kPrefKeepIslandNotificationTitle,
+    value.trim(),
+    (v) => keepIslandNotificationTitle = v,
+  );
+
+  Future<void> setKeepIslandNotificationContent(String value) => _setStringPref(
+    kPrefKeepIslandNotificationContent,
+    value.trim(),
+    (v) => keepIslandNotificationContent = v,
   );
 
   Future<void> setTempHideBehaviorEnabled(bool value) => _setBoolPref(

@@ -1486,6 +1486,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get keepIslandRightContentTitle => '岛右边内容';
 
   @override
+  String get keepIslandFocusNotificationTitle => '岛可点击';
+
+  @override
+  String get keepIslandFocusNotificationSubtitle => '显示焦点通知内容，并支持点击展开';
+
+  @override
+  String get keepIslandNotificationTitle => '通知标题';
+
+  @override
+  String get keepIslandNotificationContent => '通知正文';
+
+  @override
   String get keepIslandPlaceholdersTitle => '可用占位符';
 
   @override

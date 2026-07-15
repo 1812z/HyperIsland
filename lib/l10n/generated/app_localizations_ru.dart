@@ -1581,6 +1581,19 @@ class AppLocalizationsRu extends AppLocalizations {
   String get keepIslandRightContentTitle => 'Правое содержимое Острова';
 
   @override
+  String get keepIslandFocusNotificationTitle => 'Интерактивный Остров';
+
+  @override
+  String get keepIslandFocusNotificationSubtitle =>
+      'Показывать содержимое фокус-уведомления и раскрывать его по нажатию';
+
+  @override
+  String get keepIslandNotificationTitle => 'Заголовок уведомления';
+
+  @override
+  String get keepIslandNotificationContent => 'Текст уведомления';
+
+  @override
   String get keepIslandPlaceholdersTitle => 'Доступные плейсхолдеры';
 
   @override

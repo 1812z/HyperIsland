@@ -535,6 +535,10 @@
   "keepIslandHighlightColorSubtitle": "Настроить цвет текста подсветки для режима удержания Острова",
   "keepIslandLeftContentTitle": "Левое содержимое Острова",
   "keepIslandRightContentTitle": "Правое содержимое Острова",
+  "keepIslandFocusNotificationTitle": "Интерактивный Остров",
+  "keepIslandFocusNotificationSubtitle": "Показывать содержимое фокус-уведомления и раскрывать его по нажатию",
+  "keepIslandNotificationTitle": "Заголовок уведомления",
+  "keepIslandNotificationContent": "Текст уведомления",
   "keepIslandPlaceholdersTitle": "Доступные плейсхолдеры",
   "keepIslandPlaceholdersDescription": "Введите текст или выражения для любой стороны, например: Battery {batteryLevel}, CPU {cpuUsage}. Нажмите тег, чтобы скопировать.",
   "@keepIslandPlaceholdersDescription": {

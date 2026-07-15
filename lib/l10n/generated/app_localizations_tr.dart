@@ -1563,6 +1563,19 @@ class AppLocalizationsTr extends AppLocalizations {
   String get keepIslandRightContentTitle => 'Sağ ada içeriği';
 
   @override
+  String get keepIslandFocusNotificationTitle => 'Tıklanabilir ada';
+
+  @override
+  String get keepIslandFocusNotificationSubtitle =>
+      'Odak bildirim içeriğini göster ve dokunarak genişletmeyi destekle';
+
+  @override
+  String get keepIslandNotificationTitle => 'Bildirim başlığı';
+
+  @override
+  String get keepIslandNotificationContent => 'Bildirim içeriği';
+
+  @override
   String get keepIslandPlaceholdersTitle => 'Kullanılabilir yer tutucular';
 
   @override

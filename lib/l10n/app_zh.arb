@@ -714,6 +714,10 @@
   "keepIslandHighlightColorSubtitle": "自定义常驻岛的高亮文字颜色",
   "keepIslandLeftContentTitle": "岛左边内容",
   "keepIslandRightContentTitle": "岛右边内容",
+  "keepIslandFocusNotificationTitle": "岛可点击",
+  "keepIslandFocusNotificationSubtitle": "显示焦点通知内容，并支持点击展开",
+  "keepIslandNotificationTitle": "通知标题",
+  "keepIslandNotificationContent": "通知正文",
   "keepIslandPlaceholdersTitle": "可用占位符",
   "keepIslandPlaceholdersDescription": "可在左右内容中直接输入文本或表达式，例如：电量 {batteryLevel}、CPU {cpuUsage}。点击标签复制。",
   "@keepIslandPlaceholdersDescription": {

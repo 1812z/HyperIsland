@@ -51,10 +51,12 @@ internal object IslandDispatcherNotifier {
             ensureChannel(context)
 
             val appIcon = resolveIcon(request.icon, context)
+            val focusTitle = request.focusTitle ?: request.title
+            val focusContent = request.focusContent ?: request.content
             val islandBuilder = HyperIslandNotification.Builder(
                 context,
                 "hyper_island_dispatch",
-                request.title,
+                focusTitle,
             )
 
             islandBuilder.addPicture(HyperPicture("key_island_icon", appIcon))
@@ -62,8 +64,8 @@ internal object IslandDispatcherNotifier {
                 islandBuilder.addPicture(HyperPicture("key_focus_icon", appIcon))
                 islandBuilder.setIconTextInfo(
                     picKey = "key_focus_icon",
-                    title = request.title,
-                    content = request.content,
+                    title = focusTitle,
+                    content = focusContent,
                 )
             }
             val effectiveFirstFloat = sceneDecision.applyToBoolean(request.firstFloat)
@@ -140,8 +142,8 @@ internal object IslandDispatcherNotifier {
 
             val notif = Notification.Builder(context, IslandDispatchContract.CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
-                .setContentTitle(request.title)
-                .setContentText(request.content)
+                .setContentTitle(focusTitle)
+                .setContentText(focusContent)
                 .setVisibility(visibility)
                 .setPublicVersion(publicVersion)
                 .setAutoCancel(true)

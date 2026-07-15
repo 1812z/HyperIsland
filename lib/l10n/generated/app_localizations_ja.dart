@@ -1504,6 +1504,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get keepIslandRightContentTitle => '右側の内容';
 
   @override
+  String get keepIslandFocusNotificationTitle => 'タップ可能なアイランド';
+
+  @override
+  String get keepIslandFocusNotificationSubtitle => 'フォーカス通知の内容を表示し、タップで展開できます';
+
+  @override
+  String get keepIslandNotificationTitle => '通知タイトル';
+
+  @override
+  String get keepIslandNotificationContent => '通知本文';
+
+  @override
   String get keepIslandPlaceholdersTitle => '利用可能なプレースホルダー';
 
   @override
