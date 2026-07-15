@@ -51,6 +51,10 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
     '{weather.condition}',
     '{weather.temperature}',
   ];
+  static const _displayPlaceholders = [
+    '{display.refreshRate}',
+    '{display.actualRefreshRate}',
+  ];
 
   int _computeHash() => Object.hashAll([
     _ctrl.keepIsland,
@@ -444,6 +448,13 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
                       title: 'Weather',
                       icon: Icons.cloud_outlined,
                       placeholders: _weatherPlaceholders,
+                      onCopy: _copyPlaceholder,
+                    ),
+                    const SizedBox(height: 8),
+                    _PlaceholderCategory(
+                      title: 'Display',
+                      icon: Icons.monitor_outlined,
+                      placeholders: _displayPlaceholders,
                       onCopy: _copyPlaceholder,
                     ),
                   ],

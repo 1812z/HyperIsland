@@ -5,12 +5,14 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.database.ContentObserver
+import android.hardware.display.DisplayManager
 import android.net.Uri
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
+import android.view.Display
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -208,6 +210,8 @@ object IslandDataManager {
                 "{weather.location}" -> weather.location
                 "{weather.condition}" -> weather.condition
                 "{weather.temperature}" -> weather.temperature
+                "{display.refreshRate}" -> formatDisplayRefreshRate()
+                "{display.actualRefreshRate}" -> formatActualDisplayRefreshRate()
                 else -> null
             } ?: ""
         }
@@ -215,6 +219,29 @@ object IslandDataManager {
 
     private fun formatTime(pattern: String, date: Date): String {
         return SimpleDateFormat(pattern, Locale.getDefault()).format(date)
+    }
+
+    private fun formatDisplayRefreshRate(): String? {
+        val context = appContext ?: return null
+        val displayManager = context.getSystemService(Context.DISPLAY_SERVICE) as? DisplayManager
+            ?: return null
+        val refreshRate = displayManager.getDisplay(Display.DEFAULT_DISPLAY)?.refreshRate
+            ?.takeIf { it > 0f }
+            ?: return null
+        return refreshRate.roundToInt().toString() + "Hz"
+    }
+
+    private fun formatActualDisplayRefreshRate(): String {
+        for (file in displayRefreshRateFiles) {
+            val raw = readTextFile(file) ?: continue
+            val refreshRate = NUMBER_PATTERN.find(raw)?.value?.toDoubleOrNull()
+                ?: continue
+            if (refreshRate == 0.0) return "0Hz"
+            val normalized = if (refreshRate > 1000.0) refreshRate / 1000.0 else refreshRate
+            if (normalized !in 0.1..1000.0) continue
+            return normalized.roundToInt().toString() + "Hz"
+        }
+        return "0Hz"
     }
 
     fun addListener(listener: () -> Unit) {
@@ -767,6 +794,16 @@ object IslandDataManager {
         "/sys/class/devfreq/kgsl-3d0/cur_freq",
         "/sys/class/devfreq/1c00000.qcom,kgsl-3d0/cur_freq",
     )
+    private val displayRefreshRateFiles: List<File> by lazy {
+        val names = listOf("measured_fps", "dynamic_fps", "actual_fps", "fps")
+        buildList {
+            File("/sys/class/drm").listFiles()?.forEach { connector ->
+                names.forEach { name -> add(File(connector, name)) }
+            }
+            val framebuffer = File("/sys/class/graphics/fb0")
+            names.forEach { name -> add(File(framebuffer, name)) }
+        }.filter { it.isFile && it.canRead() }
+    }
     private const val POWER_REFRESH_INTERVAL_MS = 1000L
     private const val SYSTEM_REFRESH_INTERVAL_MS = 1000L
     private const val NOTIFY_INTERVAL_MS = 1000L
