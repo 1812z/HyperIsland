@@ -47,7 +47,6 @@ class _DefaultConfigPageState extends State<DefaultConfigPage> {
         '${l10n.islandSection} ${_outerGlowModeLabel(l10n, _ctrl.defaultIslandOuterGlow)}';
   }
 
-
   InputDecoration _dialogFieldDecoration(
     BuildContext context, {
     String? hintText,
@@ -381,25 +380,33 @@ class _DefaultConfigPageState extends State<DefaultConfigPage> {
                                   items: [
                                     DropdownMenuItem(
                                       value: kTriOptOff,
-                                      child: Center(
-                                        child: Text(
-                                          l10n.off,
-                                        ),
-                                      ),
+                                      child: Center(child: Text(l10n.off)),
                                     ),
                                     DropdownMenuItem(
                                       value: '1',
                                       child: Center(
-                                        child: Text(
-                                          l10n.marqueeAutoHideOnce,
-                                        ),
+                                        child: Text(l10n.marqueeAutoHideOnce),
                                       ),
                                     ),
                                     DropdownMenuItem(
                                       value: '2',
                                       child: Center(
+                                        child: Text(l10n.marqueeAutoHideTwice),
+                                      ),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: '1_override',
+                                      child: Center(
                                         child: Text(
-                                          l10n.marqueeAutoHideTwice,
+                                          l10n.marqueeAutoHideOnceOverride,
+                                        ),
+                                      ),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: '2_override',
+                                      child: Center(
+                                        child: Text(
+                                          l10n.marqueeAutoHideTwiceOverride,
                                         ),
                                       ),
                                     ),

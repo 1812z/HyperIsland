@@ -278,6 +278,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get marqueeAutoHideTwice => '滚动2次';
 
   @override
+  String get marqueeAutoHideOnceOverride => '1回スクロール（タイムアウトを上書き）';
+
+  @override
+  String get marqueeAutoHideTwiceOverride => '2回スクロール（タイムアウトを上書き）';
+
+  @override
   String get marqueeSpeedTitle => '速度';
 
   @override

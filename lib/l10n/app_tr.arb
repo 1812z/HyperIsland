@@ -122,6 +122,8 @@
   "roundIconTitle": "Simge Köşelerini Yuvarla",
   "roundIconSubtitle": "Bildirim simgelerine yuvarlatılmış köşe uygular.",
   "marqueeChannelTitle": "Ada Metnini Kaydır",
+  "marqueeAutoHideOnceOverride": "1 kez kaydır (zaman aşımını geçersiz kıl)",
+  "marqueeAutoHideTwiceOverride": "2 kez kaydır (zaman aşımını geçersiz kıl)",
   "marqueeSpeedTitle": "Kaydırma Hızı",
   "marqueeSpeedLabel": "{speed} px/sn",
   "@marqueeSpeedLabel": {

@@ -119,6 +119,8 @@
   "marqueeAutoHideSubtitle": "Hide the current Island after the message scrolls the selected number of times",
   "marqueeAutoHideOnce": "Scroll once",
   "marqueeAutoHideTwice": "Scroll twice",
+  "marqueeAutoHideOnceOverride": "Scroll once (override timeout)",
+  "marqueeAutoHideTwiceOverride": "Scroll twice (override timeout)",
   "marqueeSpeedTitle": "Speed",
   "marqueeSpeedLabel": "{speed} px/s",
   "@marqueeSpeedLabel": {

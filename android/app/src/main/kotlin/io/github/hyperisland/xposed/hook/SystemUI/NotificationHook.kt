@@ -357,8 +357,33 @@ object GenericProgressHook : BaseHook() {
             val islandTimeoutStr = loadChannelStringSetting(
                 "timeout:$pkg/$channelId", "pref_channel_timeout_${pkg}_$channelId", "5"
             )
-            val islandTimeout = islandTimeoutStr.toIntOrNull() ?: 5
             val isOngoing = (notif.flags and Notification.FLAG_ONGOING_EVENT) != 0
+            val marqueeEnabled = resolveTriOpt(
+                loadChannelStringSetting(
+                    "marquee:$pkg/$channelId",
+                    "pref_channel_marquee_${pkg}_$channelId",
+                    "default",
+                ),
+                defaultMarquee,
+            ) == "on"
+            val marqueeAutoHide = loadChannelStringSetting(
+                "marquee_auto_hide:$pkg/$channelId",
+                "pref_channel_marquee_auto_hide_${pkg}_$channelId",
+                "default",
+            ).let { value ->
+                if (value == "default") {
+                    ConfigManager.getString("pref_default_marquee_auto_hide", "off")
+                } else {
+                    value
+                }
+            }
+            val overrideMarqueeTimeout = marqueeEnabled && !isOngoing &&
+                marqueeAutoHide in setOf("1_override", "2_override")
+            val islandTimeout = if (overrideMarqueeTimeout) {
+                Int.MAX_VALUE
+            } else {
+                islandTimeoutStr.toIntOrNull() ?: 5
+            }
             val renderer = loadChannelStringSetting(
                 "renderer:$pkg/$channelId", "pref_channel_renderer_${pkg}_$channelId", "image_text_with_buttons_4"
             )

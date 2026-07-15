@@ -295,6 +295,14 @@ class AppLocalizationsTr extends AppLocalizations {
   String get marqueeAutoHideTwice => '滚动2次';
 
   @override
+  String get marqueeAutoHideOnceOverride =>
+      '1 kez kaydır (zaman aşımını geçersiz kıl)';
+
+  @override
+  String get marqueeAutoHideTwiceOverride =>
+      '2 kez kaydır (zaman aşımını geçersiz kıl)';
+
+  @override
   String get marqueeSpeedTitle => 'Kaydırma Hızı';
 
   @override

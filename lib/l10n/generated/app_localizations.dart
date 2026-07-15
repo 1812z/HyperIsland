@@ -608,6 +608,18 @@ abstract class AppLocalizations {
   /// **'滚动2次'**
   String get marqueeAutoHideTwice;
 
+  /// No description provided for @marqueeAutoHideOnceOverride.
+  ///
+  /// In zh, this message translates to:
+  /// **'滚动1次（覆盖超时）'**
+  String get marqueeAutoHideOnceOverride;
+
+  /// No description provided for @marqueeAutoHideTwiceOverride.
+  ///
+  /// In zh, this message translates to:
+  /// **'滚动2次（覆盖超时）'**
+  String get marqueeAutoHideTwiceOverride;
+
   /// No description provided for @marqueeSpeedTitle.
   ///
   /// In zh, this message translates to:

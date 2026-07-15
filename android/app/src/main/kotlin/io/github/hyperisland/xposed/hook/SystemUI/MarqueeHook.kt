@@ -39,8 +39,19 @@ object MarqueeHook : BaseHook() {
     private val scrollerMap = WeakHashMap<TextView, MarqueeController>()
     private val observedViews = WeakHashMap<TextView, TextViewListeners>()
     private val islandMarqueeState = WeakHashMap<ViewGroup, Boolean>()
-    private val islandAutoHideLoops = WeakHashMap<ViewGroup, Int>()
+    private val islandAutoHideSessions = WeakHashMap<ViewGroup, IslandAutoHideSession>()
     private val forcedSingleLineMaxLines = WeakHashMap<TextView, Int>()
+
+    private data class IslandAutoHideSession(
+        val islandKey: String,
+        val targetLoops: Int,
+        val overrideTimeout: Boolean,
+        val timeoutMs: Long,
+        val startedAtMs: Long = SystemClock.elapsedRealtime(),
+        val scrollingViews: WeakHashMap<TextView, Int> = WeakHashMap(),
+        var fallbackRunnable: Runnable? = null,
+        var dismissed: Boolean = false,
+    )
 
     @Volatile private var cachedSpeed: Int? = null
 
@@ -84,7 +95,10 @@ object MarqueeHook : BaseHook() {
         scrollerMap.clear()
         forcedSingleLineMaxLines.clear()
         islandMarqueeState.clear()
-        islandAutoHideLoops.clear()
+        islandAutoHideSessions.forEach { (island, session) ->
+            session.fallbackRunnable?.let(island::removeCallbacks)
+        }
+        islandAutoHideSessions.clear()
     }
 
     fun startMarquee(textView: TextView) {
@@ -131,6 +145,7 @@ object MarqueeHook : BaseHook() {
         if (fullText != cleanText) {
             textView.text = cleanText
         }
+        unregisterScrollingView(textView)
     }
 
     private fun resolveVisibleWidth(view: View): Int {
@@ -143,21 +158,102 @@ object MarqueeHook : BaseHook() {
         return if (visibleW == Int.MAX_VALUE) 0 else visibleW
     }
 
-    fun traverseAndApplyMarquee(bigIslandView: ViewGroup, enabled: Boolean, autoHideLoops: Int = 0) {
+    fun traverseAndApplyMarquee(
+        bigIslandView: ViewGroup,
+        enabled: Boolean,
+        autoHideLoops: Int = 0,
+        overrideTimeout: Boolean = false,
+        originalTimeoutSecs: Int = 5,
+    ) {
         //log("Marquee ${if (enabled) "enabled" else "disabled"} for island view")
         islandMarqueeState[bigIslandView] = enabled
-        islandAutoHideLoops[bigIslandView] = if (enabled) autoHideLoops.coerceIn(0, 2) else 0
+        configureAutoHideSession(
+            bigIslandView,
+            if (enabled) autoHideLoops.coerceIn(0, 2) else 0,
+            enabled && overrideTimeout,
+            originalTimeoutSecs,
+        )
         traverseInternal(bigIslandView, enabled)
     }
 
-    private fun resolveAutoHideLoops(textView: TextView): Int {
-        val island = findBigIslandView(textView) ?: return 0
-        return islandAutoHideLoops[island] ?: 0
+    private fun configureAutoHideSession(
+        island: ViewGroup,
+        targetLoops: Int,
+        overrideTimeout: Boolean,
+        originalTimeoutSecs: Int,
+    ) {
+        val islandKey = targetIslandKey[island].orEmpty()
+        val current = islandAutoHideSessions[island]
+        if (targetLoops <= 0) {
+            current?.fallbackRunnable?.let(island::removeCallbacks)
+            islandAutoHideSessions.remove(island)
+            return
+        }
+        if (current != null && current.islandKey == islandKey &&
+            current.targetLoops == targetLoops && current.overrideTimeout == overrideTimeout) {
+            return
+        }
+        current?.fallbackRunnable?.let(island::removeCallbacks)
+        val session = IslandAutoHideSession(
+            islandKey = islandKey,
+            targetLoops = targetLoops,
+            overrideTimeout = overrideTimeout,
+            timeoutMs = originalTimeoutSecs.coerceAtLeast(1) * 1000L,
+        )
+        islandAutoHideSessions[island] = session
+        scheduleFallbackIfNeeded(island, session)
     }
 
-    private fun dismissIslandFor(textView: TextView) {
+    private fun registerScrollingView(textView: TextView) {
         val island = findBigIslandView(textView) ?: return
+        val session = islandAutoHideSessions[island] ?: return
+        session.scrollingViews[textView] = 0
+        session.fallbackRunnable?.let(island::removeCallbacks)
+        session.fallbackRunnable = null
+    }
+
+    private fun unregisterScrollingView(textView: TextView) {
+        val island = findBigIslandView(textView) ?: return
+        val session = islandAutoHideSessions[island] ?: return
+        if (session.scrollingViews.remove(textView) != null) {
+            scheduleFallbackIfNeeded(island, session)
+        }
+    }
+
+    private fun onLoopCompleted(textView: TextView, completedLoops: Int) {
+        val island = findBigIslandView(textView) ?: return
+        val session = islandAutoHideSessions[island] ?: return
+        if (!session.scrollingViews.containsKey(textView)) return
+        session.scrollingViews[textView] = completedLoops
+        val shouldDismiss = if (session.overrideTimeout) {
+            session.scrollingViews.isNotEmpty() &&
+                session.scrollingViews.values.all { it >= session.targetLoops }
+        } else {
+            completedLoops >= session.targetLoops
+        }
+        if (shouldDismiss) {
+            dismissIsland(island, session)
+        }
+    }
+
+    private fun scheduleFallbackIfNeeded(island: ViewGroup, session: IslandAutoHideSession) {
+        if (!session.overrideTimeout || session.dismissed || session.scrollingViews.isNotEmpty() ||
+            session.fallbackRunnable != null) return
+        val elapsed = SystemClock.elapsedRealtime() - session.startedAtMs
+        val runnable = Runnable {
+            session.fallbackRunnable = null
+            if (session.scrollingViews.isEmpty()) dismissIsland(island, session)
+        }
+        session.fallbackRunnable = runnable
+        island.postDelayed(runnable, (session.timeoutMs - elapsed).coerceAtLeast(0L))
+    }
+
+    private fun dismissIsland(island: ViewGroup, session: IslandAutoHideSession) {
+        if (session.dismissed) return
         val key = targetIslandKey[island] ?: return
+        session.dismissed = true
+        session.fallbackRunnable?.let(island::removeCallbacks)
+        session.fallbackRunnable = null
         ActiveIslandDismissHook.dismiss(key)
     }
 
@@ -404,7 +500,7 @@ object MarqueeHook : BaseHook() {
                                 "off" -> false
                                 else -> defaultMarquee
                             }
-                            val autoHideLoops = if (isToastSource) {
+                            val effectiveAutoHide = if (isToastSource) {
                                 val autoHideRaw = ConfigManager.getString(
                                     "pref_toast_marquee_auto_hide_$pkgName",
                                     "default"
@@ -418,7 +514,7 @@ object MarqueeHook : BaseHook() {
                                 } else {
                                     autoHideRaw
                                 }
-                                effectiveAutoHide.toIntOrNull()?.coerceIn(1, 2) ?: 0
+                                effectiveAutoHide
                             } else {
                                 val autoHideRaw = ConfigManager.getString(
                                     "pref_channel_marquee_auto_hide_${pkgName}_${channelId}",
@@ -433,8 +529,22 @@ object MarqueeHook : BaseHook() {
                                 } else {
                                     autoHideRaw
                                 }
-                                effectiveAutoHide.toIntOrNull()?.coerceIn(1, 2) ?: 0
+                                effectiveAutoHide
                             }
+                            val autoHideLoops = effectiveAutoHide
+                                .removeSuffix("_override")
+                                .toIntOrNull()
+                                ?.coerceIn(1, 2)
+                                ?: 0
+                            val overrideTimeout = effectiveAutoHide.endsWith("_override")
+                            val originalTimeoutSecs = if (isToastSource) {
+                                ConfigManager.getString("pref_toast_timeout_$pkgName", "5")
+                            } else {
+                                ConfigManager.getString(
+                                    "pref_channel_timeout_${pkgName}_${channelId}",
+                                    "5",
+                                )
+                            }.toIntOrNull()?.coerceAtLeast(1) ?: 5
                             
                             if (!enabled || isOngoing) {
                                 traverseAndApplyMarquee(islandView, false)
@@ -442,7 +552,13 @@ object MarqueeHook : BaseHook() {
                             }
                             
                             //log("Marquee triggered for package: $pkgName")
-                            traverseAndApplyMarquee(islandView, true, autoHideLoops)
+                            traverseAndApplyMarquee(
+                                islandView,
+                                true,
+                                autoHideLoops,
+                                overrideTimeout,
+                                originalTimeoutSecs,
+                            )
                         } catch (e: Exception) {
                             logError("Error in updateBigIslandView hook: ${e.message}")
                         }
@@ -484,6 +600,7 @@ object MarqueeHook : BaseHook() {
             val view = viewRef.get() ?: return
             val textNow = normalizeText(view.text.toString())
             if (isRunning && currentText == textNow) return
+            registerScrollingView(view)
             currentText = textNow
             isRunning = true
             currentScrollX = 0f
@@ -531,7 +648,11 @@ object MarqueeHook : BaseHook() {
                 lastFrameTimeNanos = frameTimeNanos
             }
             val maxScroll = getRealMaxScroll()
-            if (maxScroll <= 0) { stop(); return }
+            if (maxScroll <= 0) {
+                unregisterScrollingView(view)
+                stop()
+                return
+            }
 
             val elapsedMs = (frameTimeNanos - startTimeNanos) / 1_000_000
             when (state) {
@@ -550,9 +671,10 @@ object MarqueeHook : BaseHook() {
                 }
                 2 -> if (elapsedMs > PAUSE_AT_END_MS) {
                     completedLoops += 1
-                    val targetLoops = resolveAutoHideLoops(view)
-                    if (targetLoops > 0 && completedLoops >= targetLoops) {
-                        dismissIslandFor(view)
+                    onLoopCompleted(view, completedLoops)
+                    val island = findBigIslandView(view)
+                    val session = island?.let { islandAutoHideSessions[it] }
+                    if (session?.dismissed == true) {
                         stop()
                         return
                     }

@@ -294,6 +294,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get marqueeAutoHideTwice => 'Scroll twice';
 
   @override
+  String get marqueeAutoHideOnceOverride => 'Scroll once (override timeout)';
+
+  @override
+  String get marqueeAutoHideTwiceOverride => 'Scroll twice (override timeout)';
+
+  @override
   String get marqueeSpeedTitle => 'Speed';
 
   @override

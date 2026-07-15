@@ -126,6 +126,8 @@
   "marqueeAutoHideSubtitle": "消息滚动达到指定次数后隐藏当前岛",
   "marqueeAutoHideOnce": "滚动1次",
   "marqueeAutoHideTwice": "滚动2次",
+  "marqueeAutoHideOnceOverride": "滚动1次（覆盖超时）",
+  "marqueeAutoHideTwiceOverride": "滚动2次（覆盖超时）",
   "marqueeSpeedTitle": "滚动速度",
   "marqueeSpeedLabel": "{speed} 像素/秒",
   "@marqueeSpeedLabel": {

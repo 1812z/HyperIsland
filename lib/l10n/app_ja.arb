@@ -115,6 +115,8 @@
   "roundIconTitle": "アイコンの角を丸める",
   "roundIconSubtitle": "通知アイコンの角を丸めます",
   "marqueeChannelTitle": "Island のテキストをスクロール",
+  "marqueeAutoHideOnceOverride": "1回スクロール（タイムアウトを上書き）",
+  "marqueeAutoHideTwiceOverride": "2回スクロール（タイムアウトを上書き）",
   "marqueeSpeedTitle": "速度",
   "marqueeSpeedLabel": "{speed} px/秒",
   "@marqueeSpeedLabel": {

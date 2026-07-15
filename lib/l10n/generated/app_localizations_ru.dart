@@ -299,6 +299,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get marqueeAutoHideTwice => '滚动2次';
 
   @override
+  String get marqueeAutoHideOnceOverride => '1 прокрутка (вместо тайм-аута)';
+
+  @override
+  String get marqueeAutoHideTwiceOverride => '2 прокрутки (вместо тайм-аута)';
+
+  @override
   String get marqueeSpeedTitle => 'Скорость';
 
   @override

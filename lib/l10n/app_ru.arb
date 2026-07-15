@@ -115,6 +115,8 @@
   "roundIconTitle": "Скругленные углы иконок",
   "roundIconSubtitle": "Добавить скругленные углы к иконкам уведомлений",
   "marqueeChannelTitle": "Бегущая строка на Острове",
+  "marqueeAutoHideOnceOverride": "1 прокрутка (вместо тайм-аута)",
+  "marqueeAutoHideTwiceOverride": "2 прокрутки (вместо тайм-аута)",
   "marqueeSpeedTitle": "Скорость",
   "marqueeSpeedLabel": "{speed} пкс/с",
   "@marqueeSpeedLabel": {

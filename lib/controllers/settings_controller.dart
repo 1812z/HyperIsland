@@ -706,6 +706,8 @@ class SettingsController extends ChangeNotifier {
     return switch (value) {
       '1' => '1',
       '2' => '2',
+      '1_override' => '1_override',
+      '2_override' => '2_override',
       _ => kTriOptOff,
     };
   }

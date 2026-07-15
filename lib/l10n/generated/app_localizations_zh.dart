@@ -273,6 +273,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get marqueeAutoHideTwice => '滚动2次';
 
   @override
+  String get marqueeAutoHideOnceOverride => '滚动1次（覆盖超时）';
+
+  @override
+  String get marqueeAutoHideTwiceOverride => '滚动2次（覆盖超时）';
+
+  @override
   String get marqueeSpeedTitle => '滚动速度';
 
   @override

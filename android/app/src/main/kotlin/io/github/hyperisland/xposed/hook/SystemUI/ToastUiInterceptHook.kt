@@ -34,6 +34,7 @@ object ToastUiInterceptHook : BaseHook() {
         val firstFloat: Boolean,
         val enableFloat: Boolean,
         val timeoutSecs: Int,
+        val overrideMarqueeTimeout: Boolean,
         val highlightColor: String?,
         val dynamicHighlightMode: String,
         val showLeftHighlightColor: Boolean,
@@ -223,6 +224,20 @@ object ToastUiInterceptHook : BaseHook() {
             .toIntOrNull()
             ?.coerceIn(1, 20)
             ?: 5
+        val marqueeEnabled = resolveTriOpt(
+            ConfigManager.getString("pref_toast_marquee_$pkg", "default"),
+            ConfigManager.getBoolean("pref_default_marquee", false),
+        )
+        val marqueeAutoHide = ConfigManager.getString(
+            "pref_toast_marquee_auto_hide_$pkg",
+            "default",
+        ).let { value ->
+            if (value == "default") {
+                ConfigManager.getString("pref_default_marquee_auto_hide", "off")
+            } else {
+                value
+            }
+        }
 
         val manualHighlightColor = ConfigManager.getString("pref_toast_highlight_color_$pkg", "")
             .trim()
@@ -277,6 +292,8 @@ object ToastUiInterceptHook : BaseHook() {
             firstFloat = firstFloat,
             enableFloat = enableFloat,
             timeoutSecs = clampedTimeout,
+            overrideMarqueeTimeout = marqueeEnabled &&
+                marqueeAutoHide in setOf("1_override", "2_override"),
             highlightColor = manualHighlightColor,
             dynamicHighlightMode = dynamicHighlightMode,
             showLeftHighlightColor = showLeftHighlight,
@@ -386,7 +403,7 @@ object ToastUiInterceptHook : BaseHook() {
                     title = appName,
                     content = text,
                     icon = icon,
-                    timeoutSecs = rule.timeoutSecs,
+                    timeoutSecs = if (rule.overrideMarqueeTimeout) Int.MAX_VALUE else rule.timeoutSecs,
                     firstFloat = sceneDecision.applyToBoolean(rule.firstFloat),
                     enableFloat = sceneDecision.applyToBoolean(rule.enableFloat),
                     showNotification = rule.showNotification,

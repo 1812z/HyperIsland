@@ -295,6 +295,8 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
     return switch (value) {
       '1' => l10n.marqueeAutoHideOnce,
       '2' => l10n.marqueeAutoHideTwice,
+      '1_override' => l10n.marqueeAutoHideOnceOverride,
+      '2_override' => l10n.marqueeAutoHideTwiceOverride,
       kTriOptDefault =>
         '${l10n.optDefault}（${_marqueeAutoHideLabel(context, _ctrl.defaultMarqueeAutoHide)}）',
       _ => l10n.off,
@@ -1144,12 +1146,14 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                     : null),
           'island_enabled': _isSingle
               ? ((_focusNotif == kTriOptOn ||
-                          (_focusNotif == kTriOptDefault && _ctrl.defaultFocusNotif))
-                    ? _islandEnabled
-                    : true)
-                  .toString()
+                            (_focusNotif == kTriOptDefault &&
+                                _ctrl.defaultFocusNotif))
+                        ? _islandEnabled
+                        : true)
+                    .toString()
               : ((_focusNotif == kTriOptOn ||
-                          (_focusNotif == kTriOptDefault && _ctrl.defaultFocusNotif))
+                        (_focusNotif == kTriOptDefault &&
+                            _ctrl.defaultFocusNotif))
                     ? (_islandEnabled ? null : 'false')
                     : null),
         },
@@ -1319,12 +1323,12 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                         ],
                         onChanged: focusNotificationEnabled
                             ? (v) => setState(() {
-                                  _islandEnabled = v == kTriOptOn;
-                                  if (!_islandEnabled) {
-                                    _islandExpanded = false;
-                                    _islandCustomExpanded = false;
-                                  }
-                                })
+                                _islandEnabled = v == kTriOptOn;
+                                if (!_islandEnabled) {
+                                  _islandExpanded = false;
+                                  _islandCustomExpanded = false;
+                                }
+                              })
                             : null,
                       ),
                       SizedBox(height: rowGap),
@@ -1472,6 +1476,18 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                             DropdownMenuItem(
                               value: '2',
                               child: Text(_marqueeAutoHideLabel(context, '2')),
+                            ),
+                            DropdownMenuItem(
+                              value: '1_override',
+                              child: Text(
+                                _marqueeAutoHideLabel(context, '1_override'),
+                              ),
+                            ),
+                            DropdownMenuItem(
+                              value: '2_override',
+                              child: Text(
+                                _marqueeAutoHideLabel(context, '2_override'),
+                              ),
                             ),
                           ],
                           onChanged: _marqueeAutoHideEnabled
@@ -2175,9 +2191,7 @@ class _ExpandableSection extends StatelessWidget {
       dense: false,
       visualDensity: VisualDensity.standard,
       childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       collapsedShape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
@@ -2201,10 +2215,7 @@ class _ExpandableSection extends StatelessWidget {
           if (trailing != null) trailing!,
         ],
       ),
-      children: [
-        const SizedBox(height: 8),
-        ...children,
-      ],
+      children: [const SizedBox(height: 8), ...children],
     );
   }
 }

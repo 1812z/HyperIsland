@@ -358,6 +358,8 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
     return switch (value) {
       '1' => l10n.marqueeAutoHideOnce,
       '2' => l10n.marqueeAutoHideTwice,
+      '1_override' => l10n.marqueeAutoHideOnceOverride,
+      '2_override' => l10n.marqueeAutoHideTwiceOverride,
       kTriOptDefault =>
         '${l10n.optDefault} (${_marqueeAutoHideLabel(context, _ctrl.defaultMarqueeAutoHide)})',
       _ => l10n.off,
@@ -479,6 +481,14 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
                             DropdownMenuItem(
                               value: '2',
                               child: Text(l10n.marqueeAutoHideTwice),
+                            ),
+                            DropdownMenuItem(
+                              value: '1_override',
+                              child: Text(l10n.marqueeAutoHideOnceOverride),
+                            ),
+                            DropdownMenuItem(
+                              value: '2_override',
+                              child: Text(l10n.marqueeAutoHideTwiceOverride),
                             ),
                           ],
                           onChanged: islandEnabled && _marqueeAutoHideEnabled
@@ -708,7 +718,7 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
                           '${l10n.outEffectColorLabel} (${l10n.islandSection})',
                       child: ColorValueField(
                         controller: _islandOuterGlowColorController,
-                            enabled:
+                        enabled:
                             islandEnabled && !_islandOuterGlowFollowDynamic,
                         readOnly: _islandOuterGlowFollowDynamic,
                         decoration: toastFieldDecoration(
