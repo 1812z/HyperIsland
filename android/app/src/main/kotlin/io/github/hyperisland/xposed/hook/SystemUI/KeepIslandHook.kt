@@ -20,6 +20,7 @@ import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
 import io.github.hyperisland.xposed.islanddispatch.definition.IslandRequest
 import io.github.hyperisland.xposed.utils.HookUtils
+import io.github.hyperisland.xposed.utils.toRounded
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.io.File
@@ -347,7 +348,7 @@ object KeepIslandHook : BaseHook() {
             val request = IslandRequest(
                 title = texts.first,
                 content = texts.second,
-                icon = loadCustomIcon(customIconPath),
+                icon = loadCustomIcon(customIconPath)?.toRounded(context),
                 notifId = KEEP_ISLAND_NOTIF_ID,
                 timeoutSecs = Int.MAX_VALUE,
                 firstFloat = false,
@@ -412,7 +413,7 @@ object KeepIslandHook : BaseHook() {
             val request = IslandRequest(
                 title = texts.first,
                 content = texts.second,
-                icon = loadCustomIcon(customIconPath),
+                icon = loadCustomIcon(customIconPath)?.toRounded(context),
                 notifId = KEEP_ISLAND_NOTIF_ID,
                 timeoutSecs = Int.MAX_VALUE,
                 firstFloat = false,

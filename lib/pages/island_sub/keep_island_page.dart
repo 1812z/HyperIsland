@@ -39,6 +39,8 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
   ];
   static const _timePlaceholders = [
     '{time.HH}',
+    '{time.hh}',
+    '{time.h}',
     '{time.mm}',
     '{time.ss}',
     '{time.HH:mm}',

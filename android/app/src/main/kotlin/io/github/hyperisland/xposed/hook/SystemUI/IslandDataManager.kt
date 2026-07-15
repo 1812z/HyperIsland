@@ -183,10 +183,16 @@ object IslandDataManager {
         return PLACEHOLDER_PATTERN.replace(expression) { match ->
             when (match.value) {
                 "{time.HH}" -> formatTime("HH", now)
+                "{time.h}" -> formatTime("h", now)
+                "{time.hh}" -> formatTime("hh", now)
                 "{time.mm}" -> formatTime("mm", now)
                 "{time.ss}" -> formatTime("ss", now)
                 "{time.HH:mm}" -> formatTime("HH:mm", now)
                 "{time.HH:mm:ss}" -> formatTime("HH:mm:ss", now)
+                "{time.h:mm}" -> formatTime("h:mm", now)
+                "{time.h:mm:ss}" -> formatTime("h:mm:ss", now)
+                "{time.hh:mm}" -> formatTime("hh:mm", now)
+                "{time.hh:mm:ss}" -> formatTime("hh:mm:ss", now)
                 "{battery.power}" -> format(MODE_POWER)
                 "{battery.voltage}" -> format(MODE_VOLTAGE)
                 "{battery.current}" -> format(MODE_CURRENT)
