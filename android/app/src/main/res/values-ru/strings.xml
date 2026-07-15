@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="bluetooth_connected">Подключено</string>
+    <string name="bluetooth_disconnected">Отключено</string>
+    <string name="bluetooth_battery">Заряд: %s</string>
+    <string name="bluetooth_battery_unknown">Заряд: --</string>
+</resources>

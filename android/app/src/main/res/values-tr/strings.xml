@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="bluetooth_connected">Bağlandı</string>
+    <string name="bluetooth_disconnected">Bağlantı kesildi</string>
+    <string name="bluetooth_battery">Pil: %s</string>
+    <string name="bluetooth_battery_unknown">Pil: --</string>
+</resources>

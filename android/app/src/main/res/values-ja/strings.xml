@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="bluetooth_connected">接続済み</string>
+    <string name="bluetooth_disconnected">切断済み</string>
+    <string name="bluetooth_battery">バッテリー：%s</string>
+    <string name="bluetooth_battery_unknown">バッテリー：--</string>
+</resources>
