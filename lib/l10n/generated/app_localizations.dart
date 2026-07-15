@@ -2936,6 +2936,30 @@ abstract class AppLocalizations {
   /// **'通知正文'**
   String get keepIslandNotificationContent;
 
+  /// No description provided for @keepIslandShowIslandIconTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'显示岛图标'**
+  String get keepIslandShowIslandIconTitle;
+
+  /// No description provided for @keepIslandShowIslandIconSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'在常驻岛左侧显示图标'**
+  String get keepIslandShowIslandIconSubtitle;
+
+  /// No description provided for @keepIslandCustomIconTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'自定义图标'**
+  String get keepIslandCustomIconTitle;
+
+  /// No description provided for @keepIslandCustomIconSelected.
+  ///
+  /// In zh, this message translates to:
+  /// **'已设置，点击替换'**
+  String get keepIslandCustomIconSelected;
+
   /// No description provided for @keepIslandPlaceholdersTitle.
   ///
   /// In zh, this message translates to:

@@ -5,7 +5,9 @@ import android.app.ActivityManager
 import android.content.ComponentCallbacks
 import android.content.Context
 import android.content.res.Configuration
+import android.graphics.BitmapFactory
 import android.graphics.Rect
+import android.graphics.drawable.Icon
 import android.hardware.display.DisplayManager
 import android.os.Bundle
 import android.os.Handler
@@ -20,6 +22,7 @@ import io.github.hyperisland.xposed.islanddispatch.definition.IslandRequest
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
+import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 
 object KeepIslandHook : BaseHook() {
@@ -42,6 +45,10 @@ object KeepIslandHook : BaseHook() {
     private const val PREF_KEY_NOTIFICATION_TITLE = "pref_keep_island_notification_title"
 
     private const val PREF_KEY_NOTIFICATION_CONTENT = "pref_keep_island_notification_content"
+
+    private const val PREF_KEY_SHOW_ISLAND_ICON = "pref_keep_island_show_island_icon"
+
+    private const val PREF_KEY_CUSTOM_ICON_PATH = "pref_keep_island_custom_icon_path"
 
     private const val KEEP_ISLAND_NOTIF_ID = 0x4B494B49
 
@@ -335,10 +342,12 @@ object KeepIslandHook : BaseHook() {
             val texts: Pair<String, String> = resolveKeepIslandTexts()
             val focusEnabled = ConfigManager.getBoolean(PREF_KEY_FOCUS_NOTIFICATION, false)
             val focusTexts = resolveFocusNotificationTexts()
+            val showIslandIcon = ConfigManager.getBoolean(PREF_KEY_SHOW_ISLAND_ICON, false)
+            val customIconPath = ConfigManager.getString(PREF_KEY_CUSTOM_ICON_PATH, "")
             val request = IslandRequest(
                 title = texts.first,
                 content = texts.second,
-                icon = null,
+                icon = loadCustomIcon(customIconPath),
                 notifId = KEEP_ISLAND_NOTIF_ID,
                 timeoutSecs = Int.MAX_VALUE,
                 firstFloat = false,
@@ -346,7 +355,7 @@ object KeepIslandHook : BaseHook() {
                 showNotification = false,
                 preserveStatusBarSmallIcon = false,
                 isOngoing = true,
-                showIslandIcon = false,
+                showIslandIcon = showIslandIcon,
                 clearBeforePost = true,
                 sourcePackage = "io.github.hyperisland",
                 sourceChannelId = KEEP_ISLAND_CHANNEL,
@@ -363,6 +372,8 @@ object KeepIslandHook : BaseHook() {
                 texts,
                 focusEnabled,
                 focusTexts,
+                showIslandIcon,
+                customIconPath,
                 highlightColor,
             )
             lastContentUpdateAt = System.currentTimeMillis()
@@ -385,14 +396,23 @@ object KeepIslandHook : BaseHook() {
                 .takeIf { it.isNotBlank() }
             val focusEnabled = ConfigManager.getBoolean(PREF_KEY_FOCUS_NOTIFICATION, false)
             val focusTexts = resolveFocusNotificationTexts()
-            val signature = contentSignature(texts, focusEnabled, focusTexts, highlightColor)
+            val showIslandIcon = ConfigManager.getBoolean(PREF_KEY_SHOW_ISLAND_ICON, false)
+            val customIconPath = ConfigManager.getString(PREF_KEY_CUSTOM_ICON_PATH, "")
+            val signature = contentSignature(
+                texts,
+                focusEnabled,
+                focusTexts,
+                showIslandIcon,
+                customIconPath,
+                highlightColor,
+            )
             if (!force && signature == lastContentUpdateSignature) return
             val now = System.currentTimeMillis()
             if (!force && now - lastContentUpdateAt < DATA_UPDATE_INTERVAL_MS) return
             val request = IslandRequest(
                 title = texts.first,
                 content = texts.second,
-                icon = null,
+                icon = loadCustomIcon(customIconPath),
                 notifId = KEEP_ISLAND_NOTIF_ID,
                 timeoutSecs = Int.MAX_VALUE,
                 firstFloat = false,
@@ -400,7 +420,7 @@ object KeepIslandHook : BaseHook() {
                 showNotification = false,
                 preserveStatusBarSmallIcon = false,
                 isOngoing = true,
-                showIslandIcon = false,
+                showIslandIcon = showIslandIcon,
                 clearBeforePost = false,
                 sourcePackage = "io.github.hyperisland",
                 sourceChannelId = KEEP_ISLAND_CHANNEL,
@@ -449,10 +469,33 @@ object KeepIslandHook : BaseHook() {
         texts: Pair<String, String>,
         focusEnabled: Boolean,
         focusTexts: Pair<String, String>,
+        showIslandIcon: Boolean,
+        customIconPath: String,
         highlightColor: String?,
     ): String {
         return "${texts.first}\u0000${texts.second}\u0000$focusEnabled\u0000" +
-                "${focusTexts.first}\u0000${focusTexts.second}\u0000${highlightColor.orEmpty()}"
+                "${focusTexts.first}\u0000${focusTexts.second}\u0000$showIslandIcon\u0000" +
+                "$customIconPath\u0000${highlightColor.orEmpty()}"
+    }
+
+    private fun loadCustomIcon(path: String): Icon? {
+        if (path.isBlank()) return null
+        return runCatching {
+            val file = File(path)
+            if (!file.isFile || !file.canRead()) return null
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeFile(path, bounds)
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+            var sampleSize = 1
+            while (bounds.outWidth / sampleSize > 512 || bounds.outHeight / sampleSize > 512) {
+                sampleSize *= 2
+            }
+            val bitmap = BitmapFactory.decodeFile(
+                path,
+                BitmapFactory.Options().apply { inSampleSize = sampleSize },
+            ) ?: return null
+            Icon.createWithBitmap(bitmap)
+        }.getOrNull()
     }
 
     private fun renderExpressionSafely(expression: String): String {

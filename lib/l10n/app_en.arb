@@ -566,6 +566,10 @@
   "keepIslandFocusNotificationSubtitle": "Show focus notification content and support tap to expand",
   "keepIslandNotificationTitle": "Notification title",
   "keepIslandNotificationContent": "Notification content",
+  "keepIslandShowIslandIconTitle": "Show island icon",
+  "keepIslandShowIslandIconSubtitle": "Show an icon on the left side of the keep island",
+  "keepIslandCustomIconTitle": "Custom icon",
+  "keepIslandCustomIconSelected": "Set, tap to replace",
   "keepIslandPlaceholdersTitle": "Available placeholders",
   "keepIslandPlaceholdersDescription": "Enter plain text or expressions for either side, for example: Battery {batteryLevel}, CPU {cpuUsage}. Tap a tag to copy it.",
   "@keepIslandPlaceholdersDescription": {

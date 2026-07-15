@@ -454,6 +454,10 @@
   "keepIslandFocusNotificationSubtitle": "フォーカス通知の内容を表示し、タップで展開できます",
   "keepIslandNotificationTitle": "通知タイトル",
   "keepIslandNotificationContent": "通知本文",
+  "keepIslandShowIslandIconTitle": "アイランドアイコンを表示",
+  "keepIslandShowIslandIconSubtitle": "常時アイランドの左側にアイコンを表示します",
+  "keepIslandCustomIconTitle": "カスタムアイコン",
+  "keepIslandCustomIconSelected": "設定済み。タップして置換",
   "keepIslandPlaceholdersTitle": "利用可能なプレースホルダー",
   "keepIslandPlaceholdersDescription": "左右の内容にテキストまたは式を入力できます。例：バッテリー {batteryLevel}、CPU {cpuUsage}。タグをタップしてコピーします。",
   "@keepIslandPlaceholdersDescription": {

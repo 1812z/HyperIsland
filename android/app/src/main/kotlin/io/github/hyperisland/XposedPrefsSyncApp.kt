@@ -266,6 +266,8 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
             "pref_keep_island_focus_notification",
             "pref_keep_island_notification_title",
             "pref_keep_island_notification_content",
+            "pref_keep_island_show_island_icon",
+            "pref_keep_island_custom_icon_path",
             "pref_temp_hide_screen_pinning",
             "pref_temp_hide_bouncer_showing",
             "pref_temp_hide_fullscreen",

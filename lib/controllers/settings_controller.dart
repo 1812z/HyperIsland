@@ -90,6 +90,8 @@ const kPrefKeepIslandFocusNotification = 'pref_keep_island_focus_notification';
 const kPrefKeepIslandNotificationTitle = 'pref_keep_island_notification_title';
 const kPrefKeepIslandNotificationContent =
     'pref_keep_island_notification_content';
+const kPrefKeepIslandShowIslandIcon = 'pref_keep_island_show_island_icon';
+const kPrefKeepIslandCustomIconPath = 'pref_keep_island_custom_icon_path';
 const kPrefTempHideBehaviorEnabled = 'pref_temp_hide_behavior_enabled';
 const kPrefTempHideScreenPinning = 'pref_temp_hide_screen_pinning';
 const kPrefTempHideBouncerShowing = 'pref_temp_hide_bouncer_showing';
@@ -254,6 +256,8 @@ class SettingsController extends ChangeNotifier {
   bool keepIslandFocusNotification = false;
   String keepIslandNotificationTitle = '';
   String keepIslandNotificationContent = '';
+  bool keepIslandShowIslandIcon = false;
+  String keepIslandCustomIconPath = '';
   bool tempHideBehaviorEnabled = false;
   bool tempHideScreenPinning = true;
   bool tempHideBouncerShowing = true;
@@ -405,6 +409,10 @@ class SettingsController extends ChangeNotifier {
         prefs.getString(kPrefKeepIslandNotificationTitle) ?? '';
     keepIslandNotificationContent =
         prefs.getString(kPrefKeepIslandNotificationContent) ?? '';
+    keepIslandShowIslandIcon =
+        prefs.getBool(kPrefKeepIslandShowIslandIcon) ?? false;
+    keepIslandCustomIconPath =
+        prefs.getString(kPrefKeepIslandCustomIconPath) ?? '';
     tempHideBehaviorEnabled =
         prefs.getBool(kPrefTempHideBehaviorEnabled) ?? false;
     tempHideScreenPinning = prefs.getBool(kPrefTempHideScreenPinning) ?? true;
@@ -1225,6 +1233,18 @@ class SettingsController extends ChangeNotifier {
     kPrefKeepIslandNotificationContent,
     value.trim(),
     (v) => keepIslandNotificationContent = v,
+  );
+
+  Future<void> setKeepIslandShowIslandIcon(bool value) => _setBoolPref(
+    kPrefKeepIslandShowIslandIcon,
+    value,
+    (v) => keepIslandShowIslandIcon = v,
+  );
+
+  Future<void> setKeepIslandCustomIconPath(String value) => _setStringPref(
+    kPrefKeepIslandCustomIconPath,
+    value.trim(),
+    (v) => keepIslandCustomIconPath = v,
   );
 
   Future<void> setTempHideBehaviorEnabled(bool value) => _setBoolPref(

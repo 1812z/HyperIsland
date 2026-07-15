@@ -1498,6 +1498,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get keepIslandNotificationContent => '通知正文';
 
   @override
+  String get keepIslandShowIslandIconTitle => '显示岛图标';
+
+  @override
+  String get keepIslandShowIslandIconSubtitle => '在常驻岛左侧显示图标';
+
+  @override
+  String get keepIslandCustomIconTitle => '自定义图标';
+
+  @override
+  String get keepIslandCustomIconSelected => '已设置，点击替换';
+
+  @override
   String get keepIslandPlaceholdersTitle => '可用占位符';
 
   @override

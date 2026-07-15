@@ -1576,6 +1576,20 @@ class AppLocalizationsTr extends AppLocalizations {
   String get keepIslandNotificationContent => 'Bildirim içeriği';
 
   @override
+  String get keepIslandShowIslandIconTitle => 'Ada simgesini göster';
+
+  @override
+  String get keepIslandShowIslandIconSubtitle =>
+      'Sürekli adanın sol tarafında bir simge göster';
+
+  @override
+  String get keepIslandCustomIconTitle => 'Özel simge';
+
+  @override
+  String get keepIslandCustomIconSelected =>
+      'Ayarlandı, değiştirmek için dokunun';
+
+  @override
   String get keepIslandPlaceholdersTitle => 'Kullanılabilir yer tutucular';
 
   @override

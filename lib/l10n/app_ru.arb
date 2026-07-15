@@ -539,6 +539,10 @@
   "keepIslandFocusNotificationSubtitle": "Показывать содержимое фокус-уведомления и раскрывать его по нажатию",
   "keepIslandNotificationTitle": "Заголовок уведомления",
   "keepIslandNotificationContent": "Текст уведомления",
+  "keepIslandShowIslandIconTitle": "Показывать значок Острова",
+  "keepIslandShowIslandIconSubtitle": "Показывать значок слева на постоянном Острове",
+  "keepIslandCustomIconTitle": "Пользовательский значок",
+  "keepIslandCustomIconSelected": "Установлен, нажмите для замены",
   "keepIslandPlaceholdersTitle": "Доступные плейсхолдеры",
   "keepIslandPlaceholdersDescription": "Введите текст или выражения для любой стороны, например: Battery {batteryLevel}, CPU {cpuUsage}. Нажмите тег, чтобы скопировать.",
   "@keepIslandPlaceholdersDescription": {

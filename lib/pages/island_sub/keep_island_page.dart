@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -15,6 +18,8 @@ class KeepIslandPage extends StatefulWidget {
 }
 
 class _KeepIslandPageState extends State<KeepIslandPage> {
+  static const _channel = MethodChannel('io.github.hyperisland/test');
+
   final _ctrl = SettingsController.instance;
   late int _buildHash;
 
@@ -43,6 +48,8 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
     _ctrl.keepIslandFocusNotification,
     _ctrl.keepIslandNotificationTitle,
     _ctrl.keepIslandNotificationContent,
+    _ctrl.keepIslandShowIslandIcon,
+    _ctrl.keepIslandCustomIconPath,
   ]);
 
   @override
@@ -114,6 +121,49 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(l10n.keepIslandPlaceholderCopied(value))),
     );
+  }
+
+  Future<void> _pickCustomIcon() async {
+    final picked = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'bmp'],
+    );
+    final sourcePath = picked?.path;
+    if (sourcePath == null) return;
+    final oldPath = _ctrl.keepIslandCustomIconPath;
+    final savedPath = await _channel.invokeMethod<String>(
+      'copyImageToModuleDir',
+      {
+        'sourcePath': sourcePath,
+        'destFileName':
+            'hyperisland_keep_icon_${DateTime.now().millisecondsSinceEpoch}.png',
+      },
+    );
+    if (savedPath == null) return;
+    await _ctrl.setKeepIslandCustomIconPath(savedPath);
+    if (oldPath.isNotEmpty && oldPath != savedPath) {
+      await _channel.invokeMethod<bool>('deleteImageFromModuleDir', {
+        'fileName': File(oldPath).uri.pathSegments.last,
+      });
+      imageCache.evict(FileImage(File(oldPath)));
+    }
+    if (!mounted) return;
+    imageCache.evict(FileImage(File(savedPath)));
+    setState(() {});
+  }
+
+  Future<void> _deleteCustomIcon() async {
+    final path = _ctrl.keepIslandCustomIconPath;
+    if (path.isEmpty) return;
+    imageCache.evict(FileImage(File(path)));
+    await _ctrl.setKeepIslandCustomIconPath('');
+    try {
+      await _channel.invokeMethod<bool>('deleteImageFromModuleDir', {
+        'fileName': File(path).uri.pathSegments.last,
+      });
+    } on PlatformException {
+      // The setting is cleared even if the stale file cannot be removed.
+    }
   }
 
   @override
@@ -298,11 +348,30 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
                             );
                           }
                         }),
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.vertical(
-                            bottom: Radius.circular(16),
-                          ),
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      SwitchListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
                         ),
+                        title: Text(
+                          l10n.keepIslandShowIslandIconTitle,
+                          style: titleStyle,
+                        ),
+                        subtitle: Text(l10n.keepIslandShowIslandIconSubtitle),
+                        value: _ctrl.keepIslandShowIslandIcon,
+                        onChanged: InteractionHaptics.interceptToggle(
+                          (v) => _ctrl.setKeepIslandShowIslandIcon(v),
+                        ),
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      _CustomIconTile(
+                        imagePath: _ctrl.keepIslandCustomIconPath,
+                        onTap: _pickCustomIcon,
+                        onDelete: _ctrl.keepIslandCustomIconPath.isEmpty
+                            ? null
+                            : _deleteCustomIcon,
                       ),
                     ],
                   ),
@@ -338,6 +407,71 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _CustomIconTile extends StatelessWidget {
+  const _CustomIconTile({
+    required this.imagePath,
+    required this.onTap,
+    this.onDelete,
+  });
+
+  final String imagePath;
+  final VoidCallback onTap;
+  final VoidCallback? onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
+    final hasIcon = imagePath.isNotEmpty;
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: hasIcon ? cs.primary : cs.outline.withValues(alpha: 0.3),
+            width: hasIcon ? 2 : 1,
+          ),
+        ),
+        child: hasIcon
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: Image.file(
+                  File(imagePath),
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) =>
+                      Icon(Icons.image_outlined, color: cs.onSurfaceVariant),
+                ),
+              )
+            : Icon(Icons.image_outlined, color: cs.onSurfaceVariant),
+      ),
+      title: Text(l10n.keepIslandCustomIconTitle),
+      subtitle: Text(
+        hasIcon ? l10n.keepIslandCustomIconSelected : l10n.tapToSelectImage,
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (onDelete != null)
+            IconButton(
+              icon: Icon(Icons.delete_outline, color: cs.error),
+              onPressed: onDelete,
+              visualDensity: VisualDensity.compact,
+            ),
+          const Icon(Icons.chevron_right),
+        ],
+      ),
+      onTap: InteractionHaptics.interceptButton(onTap),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
       ),
     );
   }

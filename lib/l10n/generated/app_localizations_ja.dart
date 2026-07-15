@@ -1516,6 +1516,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get keepIslandNotificationContent => '通知本文';
 
   @override
+  String get keepIslandShowIslandIconTitle => 'アイランドアイコンを表示';
+
+  @override
+  String get keepIslandShowIslandIconSubtitle => '常時アイランドの左側にアイコンを表示します';
+
+  @override
+  String get keepIslandCustomIconTitle => 'カスタムアイコン';
+
+  @override
+  String get keepIslandCustomIconSelected => '設定済み。タップして置換';
+
+  @override
   String get keepIslandPlaceholdersTitle => '利用可能なプレースホルダー';
 
   @override

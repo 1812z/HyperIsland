@@ -1594,6 +1594,19 @@ class AppLocalizationsRu extends AppLocalizations {
   String get keepIslandNotificationContent => 'Текст уведомления';
 
   @override
+  String get keepIslandShowIslandIconTitle => 'Показывать значок Острова';
+
+  @override
+  String get keepIslandShowIslandIconSubtitle =>
+      'Показывать значок слева на постоянном Острове';
+
+  @override
+  String get keepIslandCustomIconTitle => 'Пользовательский значок';
+
+  @override
+  String get keepIslandCustomIconSelected => 'Установлен, нажмите для замены';
+
+  @override
   String get keepIslandPlaceholdersTitle => 'Доступные плейсхолдеры';
 
   @override

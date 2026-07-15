@@ -412,7 +412,10 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun deleteIslandBackgroundFile(file: java.io.File): Boolean {
-        val allowedName = Regex("hyperisland_bg_(small|big|expand)\\.(png|gif)")
+        val allowedName = Regex(
+            "hyperisland_bg_(small|big|expand)\\.(png|gif)|" +
+                    "hyperisland_keep_icon_\\d+\\.png",
+        )
         val publicDir = java.io.File("/sdcard/Pictures/HyperIsland")
         if (!allowedName.matches(file.name) || file.parentFile?.canonicalFile != publicDir.canonicalFile) {
             return false

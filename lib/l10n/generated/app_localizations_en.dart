@@ -1581,6 +1581,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get keepIslandNotificationContent => 'Notification content';
 
   @override
+  String get keepIslandShowIslandIconTitle => 'Show island icon';
+
+  @override
+  String get keepIslandShowIslandIconSubtitle =>
+      'Show an icon on the left side of the keep island';
+
+  @override
+  String get keepIslandCustomIconTitle => 'Custom icon';
+
+  @override
+  String get keepIslandCustomIconSelected => 'Set, tap to replace';
+
+  @override
   String get keepIslandPlaceholdersTitle => 'Available placeholders';
 
   @override
