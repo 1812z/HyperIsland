@@ -7,6 +7,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../services/interaction_haptics.dart';
 import '../../services/island_background_service.dart';
 import '../../widgets/blur_app_bar.dart';
+import '../../widgets/color_picker_dialog.dart';
 import '../../widgets/island_bg_edit_dialog.dart';
 import '../../widgets/modern_slider.dart';
 
@@ -34,6 +35,15 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _ctrl.islandBgSmallPath,
     _ctrl.islandBgBigPath,
     _ctrl.islandBgExpandPath,
+    _ctrl.islandBlurSmallEnabled,
+    _ctrl.islandBlurSmallRadius,
+    _ctrl.islandBlurSmallColor,
+    _ctrl.islandBlurBigEnabled,
+    _ctrl.islandBlurBigRadius,
+    _ctrl.islandBlurBigColor,
+    _ctrl.islandBlurExpandEnabled,
+    _ctrl.islandBlurExpandRadius,
+    _ctrl.islandBlurExpandColor,
     _ctrl.islandTextColorMode,
   ]);
 
@@ -147,6 +157,139 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     await _ctrl.setRoundIcon(value);
   }
 
+  Future<void> _showIslandBlurDialog(_IslandBlurType type) async {
+    final l10n = AppLocalizations.of(context)!;
+    final title = switch (type) {
+      _IslandBlurType.small => l10n.islandBlurSmallTitle,
+      _IslandBlurType.big => l10n.islandBlurBigTitle,
+      _IslandBlurType.expand => l10n.islandBlurExpandTitle,
+    };
+    var enabled = switch (type) {
+      _IslandBlurType.small => _ctrl.islandBlurSmallEnabled,
+      _IslandBlurType.big => _ctrl.islandBlurBigEnabled,
+      _IslandBlurType.expand => _ctrl.islandBlurExpandEnabled,
+    };
+    var radius = switch (type) {
+      _IslandBlurType.small => _ctrl.islandBlurSmallRadius,
+      _IslandBlurType.big => _ctrl.islandBlurBigRadius,
+      _IslandBlurType.expand => _ctrl.islandBlurExpandRadius,
+    };
+    var color = switch (type) {
+      _IslandBlurType.small => _ctrl.islandBlurSmallColor,
+      _IslandBlurType.big => _ctrl.islandBlurBigColor,
+      _IslandBlurType.expand => _ctrl.islandBlurExpandColor,
+    };
+
+    final result = await showDialog<_IslandBlurSettings>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(title),
+          content: SizedBox(
+            width: 360,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(l10n.islandBlurEnabled),
+                  value: enabled,
+                  onChanged: (value) => setDialogState(() => enabled = value),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(child: Text(l10n.islandBlurRadius)),
+                    Text('$radius'),
+                  ],
+                ),
+                SliderTheme(
+                  data: ModernSliderTheme.theme(context),
+                  child: Slider(
+                    value: radius.toDouble(),
+                    min: 0,
+                    max: 275,
+                    divisions: 55,
+                    onChanged: enabled
+                        ? (value) =>
+                              setDialogState(() => radius = value.round())
+                        : null,
+                  ),
+                ),
+                ListTile(
+                  enabled: enabled,
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(l10n.islandBlurBlendColor),
+                  subtitle: Text(color),
+                  trailing: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: parseHexColor(color),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                      ),
+                    ),
+                  ),
+                  onTap: enabled
+                      ? () async {
+                          final selected = await showColorPickerDialog(
+                            context,
+                            initialHex: color,
+                            title: l10n.islandBlurBlendColor,
+                          );
+                          if (selected != null) {
+                            setDialogState(
+                              () => color = colorToArgbHex(selected),
+                            );
+                          }
+                        }
+                      : null,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(
+                dialogContext,
+                _IslandBlurSettings(enabled, radius, color),
+              ),
+              child: Text(l10n.save),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (result == null) return;
+
+    switch (type) {
+      case _IslandBlurType.small:
+        await _ctrl.setIslandBlurSmall(
+          enabled: result.enabled,
+          radius: result.radius,
+          color: result.color,
+        );
+      case _IslandBlurType.big:
+        await _ctrl.setIslandBlurBig(
+          enabled: result.enabled,
+          radius: result.radius,
+          color: result.color,
+        );
+      case _IslandBlurType.expand:
+        await _ctrl.setIslandBlurExpand(
+          enabled: result.enabled,
+          radius: result.radius,
+          color: result.color,
+        );
+    }
+  }
+
   Future<void> _sendTestNotification() async {
     const channel = MethodChannel('io.github.hyperisland/test');
     try {
@@ -240,9 +383,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                             ),
                             Text(
                               _bigIslandMaxWidthDraft > 0
-                                  ? l10n.widthDpLabel(
-                                      _bigIslandMaxWidthDraft,
-                                    )
+                                  ? l10n.widthDpLabel(_bigIslandMaxWidthDraft)
                                   : l10n.followSystem,
                               style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(color: cs.onSurfaceVariant),
@@ -309,9 +450,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                             ),
                             Text(
                               _bigIslandMinWidthDraft > 0
-                                  ? l10n.widthDpLabel(
-                                      _bigIslandMinWidthDraft,
-                                    )
+                                  ? l10n.widthDpLabel(_bigIslandMinWidthDraft)
                                   : l10n.followSystem,
                               style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(color: cs.onSurfaceVariant),
@@ -408,6 +547,32 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                         onDelete: _ctrl.islandBgExpandPath.isNotEmpty
                             ? () => _deleteIslandBackground(IslandBgType.expand)
                             : null,
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      _IslandBlurTile(
+                        title: l10n.islandBlurSmallTitle,
+                        enabled: _ctrl.islandBlurSmallEnabled,
+                        radius: _ctrl.islandBlurSmallRadius,
+                        color: _ctrl.islandBlurSmallColor,
+                        onTap: () =>
+                            _showIslandBlurDialog(_IslandBlurType.small),
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      _IslandBlurTile(
+                        title: l10n.islandBlurBigTitle,
+                        enabled: _ctrl.islandBlurBigEnabled,
+                        radius: _ctrl.islandBlurBigRadius,
+                        color: _ctrl.islandBlurBigColor,
+                        onTap: () => _showIslandBlurDialog(_IslandBlurType.big),
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      _IslandBlurTile(
+                        title: l10n.islandBlurExpandTitle,
+                        enabled: _ctrl.islandBlurExpandEnabled,
+                        radius: _ctrl.islandBlurExpandRadius,
+                        color: _ctrl.islandBlurExpandColor,
+                        onTap: () =>
+                            _showIslandBlurDialog(_IslandBlurType.expand),
                         isLast: true,
                       ),
                     ],
@@ -445,25 +610,37 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                         DropdownMenuItem(
                           value: kIslandTextColorFollowBackground,
                           child: Text(
-                            _textColorModeLabel(l10n, kIslandTextColorFollowBackground),
+                            _textColorModeLabel(
+                              l10n,
+                              kIslandTextColorFollowBackground,
+                            ),
                           ),
                         ),
                         DropdownMenuItem(
                           value: kIslandTextColorInvertBackground,
                           child: Text(
-                            _textColorModeLabel(l10n, kIslandTextColorInvertBackground),
+                            _textColorModeLabel(
+                              l10n,
+                              kIslandTextColorInvertBackground,
+                            ),
                           ),
                         ),
                         DropdownMenuItem(
                           value: kIslandTextColorFollowStatusBar,
                           child: Text(
-                            _textColorModeLabel(l10n, kIslandTextColorFollowStatusBar),
+                            _textColorModeLabel(
+                              l10n,
+                              kIslandTextColorFollowStatusBar,
+                            ),
                           ),
                         ),
                         DropdownMenuItem(
                           value: kIslandTextColorInvertStatusBar,
                           child: Text(
-                            _textColorModeLabel(l10n, kIslandTextColorInvertStatusBar),
+                            _textColorModeLabel(
+                              l10n,
+                              kIslandTextColorInvertStatusBar,
+                            ),
                           ),
                         ),
                       ],
@@ -515,6 +692,16 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
       _ => l10n.islandTextColorDefault,
     };
   }
+}
+
+enum _IslandBlurType { small, big, expand }
+
+class _IslandBlurSettings {
+  const _IslandBlurSettings(this.enabled, this.radius, this.color);
+
+  final bool enabled;
+  final int radius;
+  final String color;
 }
 
 class _SectionLabel extends StatelessWidget {
@@ -632,7 +819,6 @@ class _IslandBgTile extends StatelessWidget {
     required this.onTap,
     this.onDelete,
     this.isFirst = false,
-    this.isLast = false,
   });
 
   final String title;
@@ -642,21 +828,15 @@ class _IslandBgTile extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback? onDelete;
   final bool isFirst;
-  final bool isLast;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final hasImage = imagePath.isNotEmpty;
 
-    BorderRadius? borderRadius;
-    if (isFirst && isLast) {
-      borderRadius = BorderRadius.circular(16);
-    } else if (isFirst) {
-      borderRadius = const BorderRadius.vertical(top: Radius.circular(16));
-    } else if (isLast) {
-      borderRadius = const BorderRadius.vertical(bottom: Radius.circular(16));
-    }
+    final borderRadius = isFirst
+        ? const BorderRadius.vertical(top: Radius.circular(16))
+        : null;
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -680,7 +860,7 @@ class _IslandBgTile extends StatelessWidget {
                 child: Image.file(
                   File(imagePath),
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) =>
+                  errorBuilder: (_, _, _) =>
                       Icon(icon, color: cs.onSurfaceVariant, size: 24),
                 ),
               )
@@ -705,6 +885,57 @@ class _IslandBgTile extends StatelessWidget {
           const Icon(Icons.chevron_right),
         ],
       ),
+      onTap: onTap,
+    );
+  }
+}
+
+class _IslandBlurTile extends StatelessWidget {
+  const _IslandBlurTile({
+    required this.title,
+    required this.enabled,
+    required this.radius,
+    required this.color,
+    required this.onTap,
+    this.isLast = false,
+  });
+
+  final String title;
+  final bool enabled;
+  final int radius;
+  final String color;
+  final VoidCallback onTap;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final l10n = AppLocalizations.of(context)!;
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      shape: isLast
+          ? const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
+            )
+          : null,
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: enabled ? parseHexColor(color) : cs.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: cs.outlineVariant),
+        ),
+        child: Icon(
+          Icons.blur_on,
+          color: enabled ? cs.onSurface : cs.onSurfaceVariant,
+        ),
+      ),
+      title: Text(title),
+      subtitle: Text(
+        enabled ? l10n.islandBlurRadiusValue(radius) : l10n.islandBlurDisabled,
+      ),
+      trailing: const Icon(Icons.chevron_right),
       onTap: onTap,
     );
   }

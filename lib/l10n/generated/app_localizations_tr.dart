@@ -1529,6 +1529,32 @@ class AppLocalizationsTr extends AppLocalizations {
   String get islandBgDefault => 'Varsayılan';
 
   @override
+  String get islandBlurSmallTitle => 'Küçük Ada Bulanıklığı';
+
+  @override
+  String get islandBlurBigTitle => 'Büyük Ada Bulanıklığı';
+
+  @override
+  String get islandBlurExpandTitle => 'Odak Bildirimi Bulanıklığı';
+
+  @override
+  String get islandBlurEnabled => 'Canlı arka plan bulanıklığını etkinleştir';
+
+  @override
+  String get islandBlurRadius => 'Bulanıklık düzeyi';
+
+  @override
+  String get islandBlurBlendColor => 'Karışım rengi';
+
+  @override
+  String get islandBlurDisabled => 'Kapalı';
+
+  @override
+  String islandBlurRadiusValue(int radius) {
+    return 'Bulanıklık $radius';
+  }
+
+  @override
   String get keepIslandTitle => 'Adayı Sürekli Göster';
 
   @override

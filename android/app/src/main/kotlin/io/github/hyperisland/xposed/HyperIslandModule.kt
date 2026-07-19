@@ -2,6 +2,7 @@ package io.github.hyperisland.xposed
 
 import io.github.hyperisland.xposed.hook.SystemUI.BigIslandMinWidthHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandTopOffsetHook
+import io.github.hyperisland.xposed.hook.SystemUI.IslandBlurHook
 import io.github.hyperisland.xposed.hook.SystemUI.SmoothIslandHook
 import io.github.hyperisland.xposed.hook.ActiveIslandDismissHook
 import io.github.hyperisland.xposed.hook.BluetoothIslandHook
@@ -48,6 +49,7 @@ class HyperIslandModule : XposedModule() {
                 FocusNotifStatusBarIconHook.init(this, param)
                 IslandOuterGlowHook.init(this, param)
                 IslandBackgroundHook.init(this, param)
+                IslandBlurHook.init(this, param)
                 IslandTextColorHook.init(this, param)
                 TextShadeHook.init(this, param)
                 IslandDimenHook.init(this, param)

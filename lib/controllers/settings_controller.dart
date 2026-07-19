@@ -77,6 +77,15 @@ const kPrefConfigAppVersion = 'pref_config_app_version';
 const kPrefIslandBgSmallPath = 'pref_island_bg_small_path';
 const kPrefIslandBgBigPath = 'pref_island_bg_big_path';
 const kPrefIslandBgExpandPath = 'pref_island_bg_expand_path';
+const kPrefIslandBlurSmallEnabled = 'pref_island_blur_small_enabled';
+const kPrefIslandBlurSmallRadius = 'pref_island_blur_small_radius';
+const kPrefIslandBlurSmallColor = 'pref_island_blur_small_color';
+const kPrefIslandBlurBigEnabled = 'pref_island_blur_big_enabled';
+const kPrefIslandBlurBigRadius = 'pref_island_blur_big_radius';
+const kPrefIslandBlurBigColor = 'pref_island_blur_big_color';
+const kPrefIslandBlurExpandEnabled = 'pref_island_blur_expand_enabled';
+const kPrefIslandBlurExpandRadius = 'pref_island_blur_expand_radius';
+const kPrefIslandBlurExpandColor = 'pref_island_blur_expand_color';
 const kPrefIslandHeight = 'pref_island_height';
 const kPrefIslandTopOffset = 'pref_island_top_offset';
 const kPrefIslandTextColorMode = 'pref_island_text_color_mode';
@@ -244,6 +253,15 @@ class SettingsController extends ChangeNotifier {
   String islandBgSmallPath = '';
   String islandBgBigPath = '';
   String islandBgExpandPath = '';
+  bool islandBlurSmallEnabled = false;
+  int islandBlurSmallRadius = 80;
+  String islandBlurSmallColor = '#20FFFFFF';
+  bool islandBlurBigEnabled = false;
+  int islandBlurBigRadius = 80;
+  String islandBlurBigColor = '#20FFFFFF';
+  bool islandBlurExpandEnabled = false;
+  int islandBlurExpandRadius = 80;
+  String islandBlurExpandColor = '#20FFFFFF';
   double islandHeight = 0;
   double islandTopOffset = 0;
   String islandTextColorMode = kIslandTextColorDefault;
@@ -390,6 +408,25 @@ class SettingsController extends ChangeNotifier {
     islandBgSmallPath = prefs.getString(kPrefIslandBgSmallPath) ?? '';
     islandBgBigPath = prefs.getString(kPrefIslandBgBigPath) ?? '';
     islandBgExpandPath = prefs.getString(kPrefIslandBgExpandPath) ?? '';
+    islandBlurSmallEnabled =
+        prefs.getBool(kPrefIslandBlurSmallEnabled) ?? false;
+    islandBlurSmallRadius = (prefs.getInt(kPrefIslandBlurSmallRadius) ?? 80)
+        .clamp(0, 275);
+    islandBlurSmallColor =
+        prefs.getString(kPrefIslandBlurSmallColor) ?? '#20FFFFFF';
+    islandBlurBigEnabled = prefs.getBool(kPrefIslandBlurBigEnabled) ?? false;
+    islandBlurBigRadius = (prefs.getInt(kPrefIslandBlurBigRadius) ?? 80).clamp(
+      0,
+      275,
+    );
+    islandBlurBigColor =
+        prefs.getString(kPrefIslandBlurBigColor) ?? '#20FFFFFF';
+    islandBlurExpandEnabled =
+        prefs.getBool(kPrefIslandBlurExpandEnabled) ?? false;
+    islandBlurExpandRadius = (prefs.getInt(kPrefIslandBlurExpandRadius) ?? 80)
+        .clamp(0, 275);
+    islandBlurExpandColor =
+        prefs.getString(kPrefIslandBlurExpandColor) ?? '#20FFFFFF';
     islandHeight = prefs.getDouble(kPrefIslandHeight) ?? 0;
     islandTopOffset = prefs.getDouble(kPrefIslandTopOffset) ?? 0;
     islandTextColorMode = _normalizeIslandTextColorMode(
@@ -1127,6 +1164,80 @@ class SettingsController extends ChangeNotifier {
       await prefs.setString(kPrefIslandBgExpandPath, normalized);
     }
     islandBgExpandPath = normalized;
+    notifyListeners();
+  }
+
+  Future<void> setIslandBlurSmall({
+    required bool enabled,
+    required int radius,
+    required String color,
+  }) => _setIslandBlur(
+    enabledKey: kPrefIslandBlurSmallEnabled,
+    radiusKey: kPrefIslandBlurSmallRadius,
+    colorKey: kPrefIslandBlurSmallColor,
+    enabled: enabled,
+    radius: radius,
+    color: color,
+    update: (nextEnabled, nextRadius, nextColor) {
+      islandBlurSmallEnabled = nextEnabled;
+      islandBlurSmallRadius = nextRadius;
+      islandBlurSmallColor = nextColor;
+    },
+  );
+
+  Future<void> setIslandBlurBig({
+    required bool enabled,
+    required int radius,
+    required String color,
+  }) => _setIslandBlur(
+    enabledKey: kPrefIslandBlurBigEnabled,
+    radiusKey: kPrefIslandBlurBigRadius,
+    colorKey: kPrefIslandBlurBigColor,
+    enabled: enabled,
+    radius: radius,
+    color: color,
+    update: (nextEnabled, nextRadius, nextColor) {
+      islandBlurBigEnabled = nextEnabled;
+      islandBlurBigRadius = nextRadius;
+      islandBlurBigColor = nextColor;
+    },
+  );
+
+  Future<void> setIslandBlurExpand({
+    required bool enabled,
+    required int radius,
+    required String color,
+  }) => _setIslandBlur(
+    enabledKey: kPrefIslandBlurExpandEnabled,
+    radiusKey: kPrefIslandBlurExpandRadius,
+    colorKey: kPrefIslandBlurExpandColor,
+    enabled: enabled,
+    radius: radius,
+    color: color,
+    update: (nextEnabled, nextRadius, nextColor) {
+      islandBlurExpandEnabled = nextEnabled;
+      islandBlurExpandRadius = nextRadius;
+      islandBlurExpandColor = nextColor;
+    },
+  );
+
+  Future<void> _setIslandBlur({
+    required String enabledKey,
+    required String radiusKey,
+    required String colorKey,
+    required bool enabled,
+    required int radius,
+    required String color,
+    required void Function(bool enabled, int radius, String color) update,
+  }) async {
+    final normalizedRadius = radius.clamp(0, 275);
+    final normalizedColor = color.trim().toUpperCase();
+    final prefs = await _getPrefs();
+    await prefs.setBool(enabledKey, false);
+    await prefs.setInt(radiusKey, normalizedRadius);
+    await prefs.setString(colorKey, normalizedColor);
+    if (enabled) await prefs.setBool(enabledKey, true);
+    update(enabled, normalizedRadius, normalizedColor);
     notifyListeners();
   }
 

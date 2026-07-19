@@ -1534,6 +1534,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get islandBgDefault => 'Default';
 
   @override
+  String get islandBlurSmallTitle => 'Small Island Blur';
+
+  @override
+  String get islandBlurBigTitle => 'Large Island Blur';
+
+  @override
+  String get islandBlurExpandTitle => 'Focus Notification Blur';
+
+  @override
+  String get islandBlurEnabled => 'Enable live background blur';
+
+  @override
+  String get islandBlurRadius => 'Blur radius';
+
+  @override
+  String get islandBlurBlendColor => 'Blend color';
+
+  @override
+  String get islandBlurDisabled => 'Disabled';
+
+  @override
+  String islandBlurRadiusValue(int radius) {
+    return 'Blur $radius';
+  }
+
+  @override
   String get keepIslandTitle => 'Keep Island Visible';
 
   @override

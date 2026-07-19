@@ -2852,6 +2852,54 @@ abstract class AppLocalizations {
   /// **'默认'**
   String get islandBgDefault;
 
+  /// No description provided for @islandBlurSmallTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'小岛模糊'**
+  String get islandBlurSmallTitle;
+
+  /// No description provided for @islandBlurBigTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'大岛模糊'**
+  String get islandBlurBigTitle;
+
+  /// No description provided for @islandBlurExpandTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'焦点通知模糊'**
+  String get islandBlurExpandTitle;
+
+  /// No description provided for @islandBlurEnabled.
+  ///
+  /// In zh, this message translates to:
+  /// **'启用实时背景模糊'**
+  String get islandBlurEnabled;
+
+  /// No description provided for @islandBlurRadius.
+  ///
+  /// In zh, this message translates to:
+  /// **'模糊度'**
+  String get islandBlurRadius;
+
+  /// No description provided for @islandBlurBlendColor.
+  ///
+  /// In zh, this message translates to:
+  /// **'混色颜色'**
+  String get islandBlurBlendColor;
+
+  /// No description provided for @islandBlurDisabled.
+  ///
+  /// In zh, this message translates to:
+  /// **'未启用'**
+  String get islandBlurDisabled;
+
+  /// No description provided for @islandBlurRadiusValue.
+  ///
+  /// In zh, this message translates to:
+  /// **'模糊度 {radius}'**
+  String islandBlurRadiusValue(int radius);
+
   /// No description provided for @keepIslandTitle.
   ///
   /// In zh, this message translates to:

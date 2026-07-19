@@ -1547,6 +1547,32 @@ class AppLocalizationsRu extends AppLocalizations {
   String get islandBgDefault => 'По умолчанию';
 
   @override
+  String get islandBlurSmallTitle => 'Размытие малого острова';
+
+  @override
+  String get islandBlurBigTitle => 'Размытие большого острова';
+
+  @override
+  String get islandBlurExpandTitle => 'Размытие фокус-уведомления';
+
+  @override
+  String get islandBlurEnabled => 'Включить размытие фона';
+
+  @override
+  String get islandBlurRadius => 'Степень размытия';
+
+  @override
+  String get islandBlurBlendColor => 'Цвет смешивания';
+
+  @override
+  String get islandBlurDisabled => 'Выключено';
+
+  @override
+  String islandBlurRadiusValue(int radius) {
+    return 'Размытие $radius';
+  }
+
+  @override
   String get keepIslandTitle => 'Держать Остров видимым';
 
   @override

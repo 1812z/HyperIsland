@@ -65,6 +65,9 @@ object IslandBackgroundHook : BaseHook() {
     private const val KEY_SMALL_BG = "pref_island_bg_small_path"
     private const val KEY_BIG_BG = "pref_island_bg_big_path"
     private const val KEY_EXPAND_BG = "pref_island_bg_expand_path"
+    private const val KEY_SMALL_BLUR_ENABLED = "pref_island_blur_small_enabled"
+    private const val KEY_BIG_BLUR_ENABLED = "pref_island_blur_big_enabled"
+    private const val KEY_EXPAND_BLUR_ENABLED = "pref_island_blur_expand_enabled"
 
     /** island 类型枚举 */
     private enum class IslandType { SMALL, BIG, EXPAND }
@@ -95,6 +98,9 @@ object IslandBackgroundHook : BaseHook() {
     /** 缓存 anyCustomBgConfigured 结果，避免热路径每帧做 3 次 I/O */
     @Volatile
     private var cachedAnyCustomBg: Boolean? = null
+
+    /** 按类型缓存背景文件可用状态，避免动画热路径访问文件系统。 */
+    private val cachedBgAvailability = ConcurrentHashMap<IslandType, Boolean>()
 
     /** 缓存圆角半径，运行时不会变 */
     @Volatile
@@ -206,7 +212,7 @@ object IslandBackgroundHook : BaseHook() {
                 val type = getCurrentIslandType()
                 val bgView = chain.thisObject as? View
 
-                if (type != null && anyCustomBgConfigured()) {
+                if (type != null && hasBgFileForType(type)) {
                     val context = try { bgView?.context } catch (_: Exception) { null }
 
                     val stokeWidth = if (bgView != null) getStokeWidth(bgView, bgViewClass) else 0
@@ -227,6 +233,10 @@ object IslandBackgroundHook : BaseHook() {
                             clearMaskForCurrentType(bgView, type)
                         }
                     }
+                } else if (type != null && isBlurEnabledForType(type) && bgView is ViewGroup) {
+                    // 模糊与自定义背景使用同一个外层 drawable 层级，也必须清掉
+                    // 当前状态主 View 上由 SystemUI 反复设置的黑色/混色遮罩。
+                    clearMaskForCurrentType(bgView, type)
                 }
 
                 null
@@ -301,11 +311,11 @@ object IslandBackgroundHook : BaseHook() {
                     lastIslandType = type
                 }
 
-                chain.proceed()
-
-                islandTypeHolder.remove()
-
-                null
+                try {
+                    chain.proceed()
+                } finally {
+                    islandTypeHolder.remove()
+                }
             }
 
         } catch (e: Throwable) {
@@ -340,7 +350,7 @@ object IslandBackgroundHook : BaseHook() {
             module.hook(alphaMethod).intercept { chain ->
                 val type = getCurrentIslandType()
 
-                if (type != null && anyCustomBgConfigured()) {
+                if (type != null && shouldClearMaskForType(type)) {
                     val bgView = chain.thisObject
                     try {
                         val alphaField = getCachedField(backgroundAlphaFieldCache, bgViewClass, "backgroundAlpha")
@@ -417,7 +427,12 @@ object IslandBackgroundHook : BaseHook() {
 
             // 确保 MiBlurCompat 反射对象已缓存
             if (miBlurCompatClass == null || miBlurCompatClass?.classLoader != cl) {
-                val blurClass = cl.loadClass("miui.util.MiBlurCompat")
+                val blurClass = sequenceOf(
+                    "miui.systemui.util.MiBlurCompat",
+                    "miui.util.MiBlurCompat",
+                ).mapNotNull { name ->
+                    runCatching { cl.loadClass(name) }.getOrNull()
+                }.firstOrNull() ?: return
                 miBlurCompatClass = blurClass
                 setBlurModeMethod = blurClass.getDeclaredMethod(
                     "setMiViewBlurModeCompat", View::class.java, Int::class.javaPrimitiveType
@@ -535,15 +550,18 @@ object IslandBackgroundHook : BaseHook() {
             )
 
             module.hook(method).intercept { chain ->
-                val view = chain.args[0] as? View
-                val viewType = if (view != null) getIslandTypeForView(view) else null
+                val view = chain.args[0] as? View ?: return@intercept chain.proceed()
+                val viewType = getIslandTypeForView(view)
 
-                if (viewType != null && anyCustomBgConfigured()) {
-                    // ★ 该 View 所属的岛类型有自定义背景 → 跳过原方法，清除遮罩
-                    if (view != null) {
-                        clearMaskForView(view)
-                    }
+                if (viewType != null && hasBgFileForType(viewType)) {
+                    clearMaskForView(view)
                     return@intercept null
+                }
+
+                if (viewType != null && isBlurEnabledForType(viewType)) {
+                    // 先清旧遮罩，再让 IslandBlurHook 在正确层级安装 BlurDrawable。
+                    clearMaskForView(view)
+                    return@intercept chain.proceed()
                 }
 
                 // 无自定义背景 → 执行原方法
@@ -571,7 +589,7 @@ object IslandBackgroundHook : BaseHook() {
 
                 val type = lastIslandType
 
-                if (type != null && anyCustomBgConfigured()) {
+                if (type != null && shouldClearMaskForType(type)) {
                     try {
                         val viewField = animDelegateClass.getDeclaredField("view")
                         viewField.isAccessible = true
@@ -613,14 +631,31 @@ object IslandBackgroundHook : BaseHook() {
      * 检查指定类型是否有配置路径且文件存在。
      */
     private fun hasBgFileForType(type: IslandType): Boolean {
+        cachedBgAvailability[type]?.let { return it }
         val configPath = when (type) {
             IslandType.SMALL -> ConfigManager.getString(KEY_SMALL_BG)
             IslandType.BIG -> ConfigManager.getString(KEY_BIG_BG)
             IslandType.EXPAND -> ConfigManager.getString(KEY_EXPAND_BG)
         }
-        if (configPath.isNullOrBlank()) return false
+        if (configPath.isNullOrBlank()) {
+            cachedBgAvailability[type] = false
+            return false
+        }
         val file = File(configPath)
-        return file.exists() && file.canRead()
+        return (file.exists() && file.canRead()).also { cachedBgAvailability[type] = it }
+    }
+
+    private fun shouldClearMaskForType(type: IslandType): Boolean {
+        return hasBgFileForType(type) || isBlurEnabledForType(type)
+    }
+
+    private fun isBlurEnabledForType(type: IslandType): Boolean {
+        val blurKey = when (type) {
+            IslandType.SMALL -> KEY_SMALL_BLUR_ENABLED
+            IslandType.BIG -> KEY_BIG_BLUR_ENABLED
+            IslandType.EXPAND -> KEY_EXPAND_BLUR_ENABLED
+        }
+        return ConfigManager.getBoolean(blurKey, false)
     }
 
     /**
@@ -891,6 +926,7 @@ object IslandBackgroundHook : BaseHook() {
     override fun onConfigChanged() {
         synchronized(this) {
             cachedDrawables.values.forEach { drawable ->
+                drawable.callback = null
                 if (drawable is RoundedClippingDrawable) {
                     if (!drawable.bitmap.isRecycled) drawable.bitmap.recycle()
                 } else if (drawable is RoundedClippingAnimatedDrawable) {
@@ -906,6 +942,7 @@ object IslandBackgroundHook : BaseHook() {
         }
         // ★ 清除性能缓存，下次调用时重新计算
         cachedAnyCustomBg = null
+        cachedBgAvailability.clear()
         cachedCornerRadius = null
         stokeWidthFieldCache.clear()
         drawableFieldCache.clear()

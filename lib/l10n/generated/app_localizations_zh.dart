@@ -1456,6 +1456,32 @@ class AppLocalizationsZh extends AppLocalizations {
   String get islandBgDefault => '默认';
 
   @override
+  String get islandBlurSmallTitle => '小岛模糊';
+
+  @override
+  String get islandBlurBigTitle => '大岛模糊';
+
+  @override
+  String get islandBlurExpandTitle => '焦点通知模糊';
+
+  @override
+  String get islandBlurEnabled => '启用实时背景模糊';
+
+  @override
+  String get islandBlurRadius => '模糊度';
+
+  @override
+  String get islandBlurBlendColor => '混色颜色';
+
+  @override
+  String get islandBlurDisabled => '未启用';
+
+  @override
+  String islandBlurRadiusValue(int radius) {
+    return '模糊度 $radius';
+  }
+
+  @override
   String get keepIslandTitle => '常驻超级岛';
 
   @override

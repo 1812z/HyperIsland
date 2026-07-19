@@ -1472,6 +1472,32 @@ class AppLocalizationsJa extends AppLocalizations {
   String get islandBgDefault => 'デフォルト';
 
   @override
+  String get islandBlurSmallTitle => 'スモールアイランドのぼかし';
+
+  @override
+  String get islandBlurBigTitle => 'ラージアイランドのぼかし';
+
+  @override
+  String get islandBlurExpandTitle => 'フォーカス通知のぼかし';
+
+  @override
+  String get islandBlurEnabled => 'リアルタイム背景ぼかしを有効化';
+
+  @override
+  String get islandBlurRadius => 'ぼかしの強さ';
+
+  @override
+  String get islandBlurBlendColor => 'ブレンドカラー';
+
+  @override
+  String get islandBlurDisabled => '無効';
+
+  @override
+  String islandBlurRadiusValue(int radius) {
+    return 'ぼかし $radius';
+  }
+
+  @override
   String get keepIslandTitle => '常時ダイナミックアイランド';
 
   @override
