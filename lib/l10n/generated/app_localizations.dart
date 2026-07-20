@@ -3698,7 +3698,7 @@ abstract class AppLocalizations {
   /// No description provided for @hideBehaviorMasterSwitchSubtitle.
   ///
   /// In zh, this message translates to:
-  /// **'开启后才注册隐藏行为 Hook；关闭后完全不 Hook，默认关闭'**
+  /// **'开启后才启用拦截隐藏行为功能；关闭后完全禁用'**
   String get hideBehaviorMasterSwitchSubtitle;
 
   /// No description provided for @hideBehaviorScreenPinning.

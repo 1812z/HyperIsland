@@ -2021,7 +2021,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get hideBehaviorMasterSwitchSubtitle =>
-      'Регистрирует перехват поведения при скрытии только при включении. Отключение означает отсутствие перехвата и является значением по умолчанию.';
+      'Функция перехвата поведения при скрытии включается только при включении; при отключении полностью деактивируется';
 
   @override
   String get hideBehaviorScreenPinning => 'Закрепление экрана';

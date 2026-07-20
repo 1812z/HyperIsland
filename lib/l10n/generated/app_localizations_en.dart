@@ -2006,7 +2006,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hideBehaviorMasterSwitchSubtitle =>
-      'Registers the hide behavior hook only when enabled. Disabled means no hook and is the default.';
+      'Only enables the hide behavior interception feature when turned on; completely disabled when off.';
 
   @override
   String get hideBehaviorScreenPinning => 'Screen pinning';

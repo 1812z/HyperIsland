@@ -751,7 +751,7 @@
   "hideBehaviorTitle": "Hide Behavior",
   "hideBehaviorDescription": "Control whether system scenes are allowed to temporarily hide the island. Turning an item off blocks the matching system hide logic.",
   "hideBehaviorMasterSwitch": "Enable hide behavior hook",
-  "hideBehaviorMasterSwitchSubtitle": "Registers the hide behavior hook only when enabled. Disabled means no hook and is the default.",
+  "hideBehaviorMasterSwitchSubtitle": "Only enables the hide behavior interception feature when turned on; completely disabled when off.",
   "hideBehaviorScreenPinning": "Screen pinning",
   "hideBehaviorScreenPinningSubtitle": "Hide the island while screen pinning is active",
   "hideBehaviorBouncerShowing": "Unlock screen",

@@ -1899,8 +1899,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get hideBehaviorMasterSwitch => '启用隐藏行为 Hook';
 
   @override
-  String get hideBehaviorMasterSwitchSubtitle =>
-      '开启后才注册隐藏行为 Hook；关闭后完全不 Hook，默认关闭';
+  String get hideBehaviorMasterSwitchSubtitle => '开启后才启用拦截隐藏行为功能；关闭后完全禁用';
 
   @override
   String get hideBehaviorScreenPinning => '屏幕固定';

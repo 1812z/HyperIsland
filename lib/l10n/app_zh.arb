@@ -903,7 +903,7 @@
   "hideBehaviorTitle": "隐藏行为",
   "hideBehaviorDescription": "控制系统场景是否允许临时隐藏超级岛。关闭某项后，会拦截对应场景的系统隐藏逻辑。",
   "hideBehaviorMasterSwitch": "启用隐藏行为 Hook",
-  "hideBehaviorMasterSwitchSubtitle": "开启后才注册隐藏行为 Hook；关闭后完全不 Hook，默认关闭",
+  "hideBehaviorMasterSwitchSubtitle": "开启后才启用拦截隐藏行为功能；关闭后完全禁用",
   "hideBehaviorScreenPinning": "屏幕固定",
   "hideBehaviorScreenPinningSubtitle": "屏幕固定激活时隐藏超级岛",
   "hideBehaviorBouncerShowing": "解锁界面",
