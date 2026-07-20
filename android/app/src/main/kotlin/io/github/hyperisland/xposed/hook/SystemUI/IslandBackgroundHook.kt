@@ -450,6 +450,12 @@ object IslandBackgroundHook : BaseHook() {
         } catch (_: Exception) {}
     }
 
+    private fun anyBlurEnabled(): Boolean {
+        return isBlurEnabledForType(IslandType.SMALL) ||
+            isBlurEnabledForType(IslandType.BIG) ||
+            isBlurEnabledForType(IslandType.EXPAND)
+    }
+
     /**
      * 统一辅助方法：将自定义 drawable 应用到 backgroundView 并安排重绘。
      *
@@ -547,6 +553,17 @@ object IslandBackgroundHook : BaseHook() {
 
             module.hook(method).intercept { chain ->
                 val view = chain.args[0] as? View ?: return@intercept chain.proceed()
+                val resourceName = try {
+                    if (view.id == View.NO_ID) "" else view.resources.getResourceEntryName(view.id)
+                } catch (_: Exception) { "" }
+
+                if (resourceName.contains("fake_expanded") && anyBlurEnabled()) {
+                    // Do not let the transition surface create a second native
+                    // blur behind the real expanded card.
+                    view.background = null
+                    disableBlurAndClearBlend(view)
+                    return@intercept null
+                }
                 val viewType = getIslandTypeForView(view)
 
                 if (viewType != null && hasBgFileForType(viewType)) {
@@ -559,7 +576,10 @@ object IslandBackgroundHook : BaseHook() {
                     // Only clear MIUI's blur/blend state before the blur Hook installs
                     // its own BackgroundBlurDrawable.
                     disableBlurAndClearBlend(view)
-                    return@intercept chain.proceed()
+                    // Do not call SystemUI's implementation here: it clears the
+                    // stock background, which makes the blur layer capture null and
+                    // exposes the black transition mask until the next state.
+                    return@intercept null
                 }
 
                 // 无自定义背景 → 执行原方法

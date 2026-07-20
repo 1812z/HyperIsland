@@ -7,6 +7,8 @@ import android.os.Handler
 import android.os.Looper
 import android.util.TypedValue
 import android.view.View
+import android.view.ViewGroup
+import android.widget.FrameLayout
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.hyperisland.xposed.utils.HookUtils
@@ -27,6 +29,10 @@ object IslandBlurHook : BaseHook() {
         "miui.systemui.dynamicisland.window.content.DynamicIslandBaseContentView"
     private const val BACKGROUND_VIEW_CLASS =
         "miui.systemui.dynamicisland.DynamicIslandBackgroundView"
+    private const val ANIMATION_DELEGATE_CLASS =
+        "miui.systemui.dynamicisland.anim.DynamicIslandAnimationDelegate"
+    private const val FAKE_VIEW_CLASS =
+        "miui.systemui.dynamicisland.window.content.DynamicIslandContentFakeView"
 
     private const val KEY_SMALL_ENABLED = "pref_island_blur_small_enabled"
     private const val KEY_SMALL_RADIUS = "pref_island_blur_small_radius"
@@ -54,6 +60,9 @@ object IslandBlurHook : BaseHook() {
     )
     private val ownedBlurs = Collections.synchronizedMap(
         WeakHashMap<View, WeakReference<OwnedBlur>>()
+    )
+    private val transitionOverlays = Collections.synchronizedMap(
+        WeakHashMap<View, View>()
     )
     private val mainHandler = Handler(Looper.getMainLooper())
     private val applyFailureLogged = AtomicBoolean(false)
@@ -156,6 +165,12 @@ object IslandBlurHook : BaseHook() {
                 false,
                 classLoader,
             )
+            val animationDelegateClass = Class.forName(
+                ANIMATION_DELEGATE_CLASS,
+                false,
+                classLoader,
+            )
+            val fakeViewClass = Class.forName(FAKE_VIEW_CLASS, false, classLoader)
             val compatClass = sequenceOf(
                 "miui.systemui.util.MiBlurCompat",
                 "miui.util.MiBlurCompat",
@@ -190,6 +205,7 @@ object IslandBlurHook : BaseHook() {
             }
             hookIslandState(module, contentClass, stateClass, updateMethod)
             hookBackgroundDrawing(module, backgroundClass)
+            hookTransitionBlur(module, animationDelegateClass, fakeViewClass, methods)
             module.hook(updateMethod).intercept { chain ->
                 val result = chain.proceed()
                 val view = chain.args.getOrNull(0) as? View ?: return@intercept result
@@ -230,9 +246,6 @@ object IslandBlurHook : BaseHook() {
                 // already laid out for a focus notification. The target view is authoritative.
                 if (backgroundView == null) return@intercept result
 
-                backgroundState?.deactivateOtherTypes(type)?.forEach { oldView ->
-                    deactivateBlur(oldView)
-                }
                 deactivateBlur(view)
                 val staleExpandedUpdate = type == IslandType.EXPAND && stateType != IslandType.EXPAND
                 val active = if (staleExpandedUpdate) {
@@ -244,13 +257,18 @@ object IslandBlurHook : BaseHook() {
                     deactivateBlur(view)
                     false
                 }
-                if (backgroundView != null && backgroundState != null) {
+                if (backgroundState != null) {
                     backgroundState.updateContentView(contentView)
-                    backgroundState.setTarget(
-                        type,
-                        view,
-                    )
+                    backgroundState.setTarget(type, view)
                     backgroundState.setActive(type, active)
+                }
+                // Install the new concrete layer before releasing the previous
+                // one. SystemUI can draw the shared outer view between these
+                // operations; releasing first exposes its black transition mask.
+                backgroundState?.deactivateOtherTypes(type)?.forEach { oldView ->
+                    deactivateBlur(oldView)
+                }
+                if (backgroundView != null && backgroundState != null) {
                     backgroundView.invalidate()
                 }
                 result
@@ -355,26 +373,34 @@ object IslandBlurHook : BaseHook() {
         val method = backgroundClass.getDeclaredMethod("onDraw", Canvas::class.java)
         module.hook(method).intercept { chain ->
             val backgroundView = chain.thisObject as? View ?: return@intercept chain.proceed()
+            // The outer drawable is always the stock black island underneath
+            // concrete blur layers. This must run before state lookup because a
+            // new/fake transition can draw before BackgroundState is registered.
+            val blurLifecycleActive = sequenceOf(configs.small, configs.big, configs.expand).any {
+                it.enabled && !it.hasCustomBackground
+            }
+            if (blurLifecycleActive) return@intercept null
+
             val states = synchronized(backgroundStates) {
                 backgroundStates.values.filter { it.backgroundView.get() === backgroundView }
             }
             if (states.isEmpty()) return@intercept chain.proceed()
-            val type = islandTypeHolder.get()
-                ?: states.firstNotNullOfOrNull { it.activeType() }
-                ?: lastIslandType
-                ?: return@intercept chain.proceed()
             val activeTarget = states.asSequence()
-                .filter { it.isActive(type) }
-                .mapNotNull { it.target(type)?.get() }
-                .mapNotNull { target ->
+                .flatMap { state ->
+                    IslandType.values().asSequence().filter { state.isActive(it) }.mapNotNull { type ->
+                        state.target(type)?.get()?.let { type to it }
+                    }
+                }
+                .mapNotNull { (type, target) ->
                     ownedBlurs[target]?.get()?.takeIf {
                         it.active && target.background === it.drawable
-                    }?.let { target to it }
+                    }?.let { type to (target to it) }
                 }
                 .firstOrNull()
                 ?: return@intercept chain.proceed()
-            val target = activeTarget.first
-            val owned = activeTarget.second
+            val type = activeTarget.first
+            val target = activeTarget.second.first
+            val owned = activeTarget.second.second
 
             // All state blur layers live on their concrete content View. Suppress only
             // the shared outer black island drawable.
@@ -385,6 +411,172 @@ object IslandBlurHook : BaseHook() {
             )
             null
         }
+    }
+
+    private fun hookTransitionBlur(
+        module: XposedModule,
+        animationDelegateClass: Class<*>,
+        fakeViewClass: Class<*>,
+        methods: BlurMethods,
+    ) {
+        val updateMethod = animationDelegateClass.getDeclaredMethod("updateFakeViewAnimState")
+        val getFakeView = findMethod(animationDelegateClass, "getFakeView")
+        module.hook(updateMethod).intercept { chain ->
+            val result = chain.proceed()
+            val fakeView = runCatching { getFakeView?.invoke(chain.thisObject) }.getOrNull()
+            applyTransitionBlur(module, fakeView, methods)
+            result
+        }
+
+        val containerUpdate = animationDelegateClass.getDeclaredMethod("containerScheduleUpdate")
+        val viewField = animationDelegateClass.getDeclaredField("view").apply { isAccessible = true }
+        module.hook(containerUpdate).intercept { chain ->
+            val result = chain.proceed()
+            if (sequenceOf(configs.small, configs.big, configs.expand).any {
+                    it.enabled && !it.hasCustomBackground
+                }) {
+                val contentView = runCatching { viewField.get(chain.thisObject) }.getOrNull()
+                clearTransitionContainer(contentView, methods)
+                val fakeView = runCatching { getFakeView?.invoke(chain.thisObject) }.getOrNull()
+                clearTransitionContainer(fakeView, methods)
+            }
+            result
+        }
+
+        val finishInflate = fakeViewClass.getDeclaredMethod("onFinishInflate")
+        module.hook(finishInflate).intercept { chain ->
+            val result = chain.proceed()
+            applyTransitionBlur(module, chain.thisObject, methods)
+            result
+        }
+
+        val setVisibility = fakeViewClass.getDeclaredMethod(
+            "setVisibility",
+            Int::class.javaPrimitiveType,
+        )
+        module.hook(setVisibility).intercept { chain ->
+            val result = chain.proceed()
+            val fakeView = chain.thisObject
+            if ((chain.args.getOrNull(0) as? Int) == View.VISIBLE) {
+                applyTransitionBlur(module, fakeView, methods)
+            } else if (fakeView is View) {
+                transitionOverlays[fakeView]?.let {
+                    deactivateBlur(it)
+                    it.visibility = View.INVISIBLE
+                }
+            }
+            result
+        }
+    }
+
+    private fun applyTransitionBlur(module: XposedModule, fakeView: Any?, methods: BlurMethods) {
+        if (fakeView !is View) return
+        // The fake root covers the animation window. A child overlay is positioned
+        // at SystemUI's animated roundedRect so BackgroundBlurDrawable never uses
+        // the oversized root bounds.
+        deactivateBlur(fakeView)
+        fakeView.background = null
+        val realView = runCatching {
+            findMethod(fakeView.javaClass, "getRealView")?.invoke(fakeView)
+        }.getOrNull()
+        val state = runCatching {
+            realView?.let { findMethod(it.javaClass, "getState")?.invoke(it) }
+        }.getOrNull()
+        val type = resolveIslandType(state) ?: lastIslandType
+        if (type != null) {
+            val config = configForType(type)
+            if (config.enabled && !config.hasCustomBackground && fakeView.isShown) {
+                val overlay = transitionOverlay(fakeView)
+                ownedBlurs[overlay]?.get()?.takeIf { it.type != type }?.let {
+                    deactivateBlur(overlay)
+                    ownedBlurs.remove(overlay)
+                }
+                syncTransitionOverlay(fakeView, overlay)
+                applyContentBlur(module, overlay, type, config, methods)
+            } else {
+                transitionOverlays[fakeView]?.let(::deactivateBlur)
+            }
+        }
+        transitionMaskViews(fakeView).forEach { child ->
+            runCatching { methods.setViewMode.invoke(null, child, 0) }
+            runCatching { methods.clearBlend.invoke(null, child) }
+            child.background = null
+        }
+        transitionExpandedView(fakeView)?.let { expanded ->
+            // Keep SystemUI's transition surface and outline, but do not treat it
+            // as the stable expanded target or add another BlurDrawable.
+            runCatching { methods.clearBlend.invoke(null, expanded) }
+            expanded.background = null
+        }
+        runCatching {
+            (findMethod(fakeView.javaClass, "getFakeMask")?.invoke(fakeView) as? View)?.apply {
+                visibility = View.INVISIBLE
+                background = null
+            }
+        }
+    }
+
+    private fun transitionMaskViews(fakeView: Any): List<View> {
+        return listOf(
+            "getFakeContainer",
+            "getFakeSmallIsland",
+            "getFakeBigIsland",
+        ).mapNotNull { getterName ->
+            runCatching {
+                findMethod(fakeView.javaClass, getterName)?.invoke(fakeView) as? View
+            }.getOrNull()
+        }
+    }
+
+    private fun transitionExpandedView(fakeView: Any): View? {
+        return runCatching {
+            findMethod(fakeView.javaClass, "getFakeExpandedView")?.invoke(fakeView) as? View
+        }.getOrNull()
+    }
+
+    private fun clearTransitionContainer(owner: Any?, methods: BlurMethods) {
+        if (owner == null) return
+        listOf("getContainer", "getFakeContainer").forEach { getterName ->
+            val container = runCatching {
+                findMethod(owner.javaClass, getterName)?.invoke(owner) as? View
+            }.getOrNull() ?: return@forEach
+            runCatching { methods.setViewMode.invoke(null, container, 0) }
+            runCatching { methods.clearBlend.invoke(null, container) }
+            container.background = null
+        }
+    }
+
+    private fun transitionOverlay(fakeView: View): View {
+        synchronized(transitionOverlays) {
+            transitionOverlays[fakeView]?.let { return it }
+            val parent = fakeView as? ViewGroup ?: return fakeView
+            return View(fakeView.context).apply {
+                layoutParams = FrameLayout.LayoutParams(1, 1)
+                isClickable = false
+                isFocusable = false
+                parent.addView(this, 0)
+                transitionOverlays[fakeView] = this
+            }
+        }
+    }
+
+    private fun syncTransitionOverlay(fakeView: View, overlay: View) {
+        val roundedRect = runCatching {
+            findMethod(fakeView.javaClass, "getRoundedRect")?.invoke(fakeView) as? android.graphics.RectF
+        }.getOrNull() ?: return
+        val width = roundedRect.width().toInt().coerceAtLeast(1)
+        val height = roundedRect.height().toInt().coerceAtLeast(1)
+        val params = (overlay.layoutParams as? FrameLayout.LayoutParams)
+            ?: FrameLayout.LayoutParams(width, height)
+        if (params.width != width || params.height != height) {
+            params.width = width
+            params.height = height
+            overlay.layoutParams = params
+        }
+        overlay.layout(0, 0, width, height)
+        overlay.translationX = roundedRect.left
+        overlay.translationY = roundedRect.top
+        overlay.visibility = View.VISIBLE
     }
 
     private fun resolveIslandType(state: Any?): IslandType? {
@@ -404,14 +596,15 @@ object IslandBlurHook : BaseHook() {
     }
 
     private fun typeForView(view: View): IslandType? {
-        val className = view.javaClass.name
-        if (className.contains("ExpandedView")) return IslandType.EXPAND
-        if (className.contains("BigIslandView")) return IslandType.BIG
-
         val resourceName = runCatching {
             if (view.id == View.NO_ID) "" else view.resources.getResourceEntryName(view.id)
         }.getOrDefault("")
         if (resourceName.contains("fake_expanded")) return null
+
+        val className = view.javaClass.name
+        if (className.contains("ExpandedView")) return IslandType.EXPAND
+        if (className.contains("BigIslandView")) return IslandType.BIG
+
         return when {
             resourceName.contains("small_island") -> IslandType.SMALL
             resourceName.contains("big_island") -> IslandType.BIG
