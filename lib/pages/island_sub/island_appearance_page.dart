@@ -8,6 +8,7 @@ import '../../services/interaction_haptics.dart';
 import '../../services/island_background_service.dart';
 import '../../widgets/blur_app_bar.dart';
 import '../../widgets/color_picker_dialog.dart';
+import '../../widgets/color_value_field.dart';
 import '../../widgets/island_bg_edit_dialog.dart';
 import '../../widgets/modern_slider.dart';
 
@@ -226,6 +227,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
       _IslandBlurType.big => _ctrl.islandBlurBigColor,
       _IslandBlurType.expand => _ctrl.islandBlurExpandColor,
     };
+    final colorController = TextEditingController(text: color);
 
     final result = await showDialog<_IslandBlurSettings>(
       context: context,
@@ -263,36 +265,30 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                         : null,
                   ),
                 ),
-                ListTile(
+                ColorValueField(
+                  controller: colorController,
                   enabled: enabled,
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(l10n.islandBlurBlendColor),
-                  subtitle: Text(color),
-                  trailing: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: parseHexColor(color),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: Theme.of(context).colorScheme.outlineVariant,
-                      ),
-                    ),
+                  decoration: InputDecoration(
+                    labelText: l10n.islandBlurBlendColor,
+                    border: const OutlineInputBorder(),
+                    isDense: true,
                   ),
-                  onTap: enabled
-                      ? () async {
-                          final selected = await showColorPickerDialog(
-                            context,
-                            initialHex: color,
-                            title: l10n.islandBlurBlendColor,
-                          );
-                          if (selected != null) {
-                            setDialogState(
-                              () => color = colorToArgbHex(selected),
-                            );
-                          }
-                        }
-                      : null,
+                  previewColor: parseHexColor(color),
+                  previewFallbackColor: Theme.of(context).colorScheme.primary,
+                  onChanged: (value) =>
+                      setDialogState(() => color = value.trim()),
+                  onPickColor: () async {
+                    final selected = await showColorPickerDialog(
+                      context,
+                      initialHex: color,
+                      title: l10n.islandBlurBlendColor,
+                    );
+                    if (selected != null) {
+                      final hex = colorToArgbHex(selected);
+                      colorController.text = hex;
+                      setDialogState(() => color = hex);
+                    }
+                  },
                 ),
               ],
             ),
@@ -313,6 +309,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
         ),
       ),
     );
+    colorController.dispose();
     if (result == null) return;
 
     switch (type) {
