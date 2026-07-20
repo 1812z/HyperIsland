@@ -123,13 +123,6 @@ object TempHiddenBehaviorHook : BaseHook() {
                     val isLandscape = interceptionCandidate && landscapeDisable &&
                         appContext?.let(SceneBehavior::isLandscape) == true
                     val blocked = interceptionCandidate && !isLandscape
-                    logWarn(
-                        module,
-                        "statusBarAppearance received: " +
-                            "original=$original fullscreenEnabled=$fullscreenEnabled " +
-                            "landscapeDisable=$landscapeDisable isLandscape=$isLandscape " +
-                            "blocked=$blocked"
-                    )
                     if (blocked) {
                         invokeWithFilteredArgs(method, chain.thisObject, false)
                     } else {
