@@ -1555,6 +1555,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get islandBlurDisabled => 'Disabled';
 
   @override
+  String get islandBlurUnavailableWithBackground =>
+      'Unavailable while a background is set';
+
+  @override
+  String get islandBlurBigTextColorSuggestion =>
+      'Consider setting the Super Island text color to Follow Status Bar';
+
+  @override
   String islandBlurRadiusValue(int radius) {
     return 'Blur $radius';
   }

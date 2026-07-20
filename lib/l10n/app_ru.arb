@@ -532,6 +532,8 @@
   "islandBlurRadius": "Степень размытия",
   "islandBlurBlendColor": "Цвет смешивания",
   "islandBlurDisabled": "Выключено",
+  "islandBlurUnavailableWithBackground": "Недоступно, пока установлен фон",
+  "islandBlurBigTextColorSuggestion": "Рекомендуется настроить цвет текста супер-острова в соответствии со строкой состояния",
   "islandBlurRadiusValue": "Размытие {radius}",
   "@islandBlurRadiusValue": {"placeholders": {"radius": {"type": "int"}}},
   "keepIslandTitle": "Держать Остров видимым",

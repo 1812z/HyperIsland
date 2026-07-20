@@ -594,6 +594,8 @@
   "islandBlurRadius": "Bulanıklık düzeyi",
   "islandBlurBlendColor": "Karışım rengi",
   "islandBlurDisabled": "Kapalı",
+  "islandBlurUnavailableWithBackground": "Arka plan ayarlıyken kullanılamaz",
+  "islandBlurBigTextColorSuggestion": "Süper Ada metin rengini durum çubuğunu takip edecek şekilde ayarlamanız önerilir",
   "islandBlurRadiusValue": "Bulanıklık {radius}",
   "@islandBlurRadiusValue": {"placeholders": {"radius": {"type": "int"}}},
   "keepIslandTitle": "Adayı Sürekli Göster",

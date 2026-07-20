@@ -711,6 +711,8 @@
   "islandBlurRadius": "模糊度",
   "islandBlurBlendColor": "混色颜色",
   "islandBlurDisabled": "未启用",
+  "islandBlurUnavailableWithBackground": "已设置背景，无法启用模糊",
+  "islandBlurBigTextColorSuggestion": "建议将超级岛文本颜色改为跟随状态栏",
   "islandBlurRadiusValue": "模糊度 {radius}",
   "@islandBlurRadiusValue": {"placeholders": {"radius": {"type": "int"}}},
   "keepIslandTitle": "常驻超级岛",

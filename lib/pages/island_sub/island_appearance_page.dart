@@ -56,6 +56,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _bigIslandMinWidthDraft = _ctrl.bigIslandMinWidth;
     _buildHash = _computeHash();
     _ctrl.addListener(_onChanged);
+    _disableBlurForExistingBackgrounds();
   }
 
   @override
@@ -87,6 +88,46 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     });
   }
 
+  Future<void> _disableBlurForExistingBackgrounds() async {
+    if (_ctrl.islandBgSmallPath.isNotEmpty && _ctrl.islandBlurSmallEnabled) {
+      await _setBlurEnabled(_IslandBlurType.small, false);
+    }
+    if (_ctrl.islandBgBigPath.isNotEmpty && _ctrl.islandBlurBigEnabled) {
+      await _setBlurEnabled(_IslandBlurType.big, false);
+    }
+    if (_ctrl.islandBgExpandPath.isNotEmpty && _ctrl.islandBlurExpandEnabled) {
+      await _setBlurEnabled(_IslandBlurType.expand, false);
+    }
+  }
+
+  Future<void> _setBlurEnabled(_IslandBlurType type, bool enabled) {
+    return switch (type) {
+      _IslandBlurType.small => _ctrl.setIslandBlurSmall(
+        enabled: enabled,
+        radius: _ctrl.islandBlurSmallRadius,
+        color: _ctrl.islandBlurSmallColor,
+      ),
+      _IslandBlurType.big => _ctrl.setIslandBlurBig(
+        enabled: enabled,
+        radius: _ctrl.islandBlurBigRadius,
+        color: _ctrl.islandBlurBigColor,
+      ),
+      _IslandBlurType.expand => _ctrl.setIslandBlurExpand(
+        enabled: enabled,
+        radius: _ctrl.islandBlurExpandRadius,
+        color: _ctrl.islandBlurExpandColor,
+      ),
+    };
+  }
+
+  Future<void> _disableBlurForBackground(IslandBgType type) {
+    return _setBlurEnabled(switch (type) {
+      IslandBgType.small => _IslandBlurType.small,
+      IslandBgType.big => _IslandBlurType.big,
+      IslandBgType.expand => _IslandBlurType.expand,
+    }, false);
+  }
+
   Future<void> _pickIslandBackground(IslandBgType type) async {
     final l10n = AppLocalizations.of(context)!;
     final sourcePath = await IslandBackgroundService.pickImage();
@@ -98,6 +139,8 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
         type,
       );
       if (savedPath != null && mounted) {
+        await _disableBlurForBackground(type);
+        if (!mounted) return;
         imageCache.evict(FileImage(File(savedPath)));
         setState(() {});
         ScaffoldMessenger.of(context).showSnackBar(
@@ -122,6 +165,8 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
       type,
     );
     if (savedPath != null && mounted) {
+      await _disableBlurForBackground(type);
+      if (!mounted) return;
       imageCache.evict(FileImage(File(savedPath)));
       setState(() {});
       ScaffoldMessenger.of(context).showSnackBar(
@@ -287,6 +332,11 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
           radius: result.radius,
           color: result.color,
         );
+    }
+    if (type == _IslandBlurType.big && result.enabled && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.islandBlurBigTextColorSuggestion)),
+      );
     }
   }
 
@@ -554,8 +604,10 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                         enabled: _ctrl.islandBlurSmallEnabled,
                         radius: _ctrl.islandBlurSmallRadius,
                         color: _ctrl.islandBlurSmallColor,
-                        onTap: () =>
-                            _showIslandBlurDialog(_IslandBlurType.small),
+                        blockedByBackground: _ctrl.islandBgSmallPath.isNotEmpty,
+                        onTap: _ctrl.islandBgSmallPath.isEmpty
+                            ? () => _showIslandBlurDialog(_IslandBlurType.small)
+                            : null,
                       ),
                       const Divider(height: 1, indent: 16, endIndent: 16),
                       _IslandBlurTile(
@@ -563,7 +615,10 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                         enabled: _ctrl.islandBlurBigEnabled,
                         radius: _ctrl.islandBlurBigRadius,
                         color: _ctrl.islandBlurBigColor,
-                        onTap: () => _showIslandBlurDialog(_IslandBlurType.big),
+                        blockedByBackground: _ctrl.islandBgBigPath.isNotEmpty,
+                        onTap: _ctrl.islandBgBigPath.isEmpty
+                            ? () => _showIslandBlurDialog(_IslandBlurType.big)
+                            : null,
                       ),
                       const Divider(height: 1, indent: 16, endIndent: 16),
                       _IslandBlurTile(
@@ -571,8 +626,12 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                         enabled: _ctrl.islandBlurExpandEnabled,
                         radius: _ctrl.islandBlurExpandRadius,
                         color: _ctrl.islandBlurExpandColor,
-                        onTap: () =>
-                            _showIslandBlurDialog(_IslandBlurType.expand),
+                        blockedByBackground:
+                            _ctrl.islandBgExpandPath.isNotEmpty,
+                        onTap: _ctrl.islandBgExpandPath.isEmpty
+                            ? () =>
+                                  _showIslandBlurDialog(_IslandBlurType.expand)
+                            : null,
                         isLast: true,
                       ),
                     ],
@@ -897,6 +956,7 @@ class _IslandBlurTile extends StatelessWidget {
     required this.radius,
     required this.color,
     required this.onTap,
+    required this.blockedByBackground,
     this.isLast = false,
   });
 
@@ -904,14 +964,17 @@ class _IslandBlurTile extends StatelessWidget {
   final bool enabled;
   final int radius;
   final String color;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final bool blockedByBackground;
   final bool isLast;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
+    final effectiveEnabled = enabled && !blockedByBackground;
     return ListTile(
+      enabled: !blockedByBackground,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       shape: isLast
           ? const RoundedRectangleBorder(
@@ -922,18 +985,24 @@ class _IslandBlurTile extends StatelessWidget {
         width: 40,
         height: 40,
         decoration: BoxDecoration(
-          color: enabled ? parseHexColor(color) : cs.surfaceContainerHigh,
+          color: effectiveEnabled
+              ? parseHexColor(color)
+              : cs.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: cs.outlineVariant),
         ),
         child: Icon(
           Icons.blur_on,
-          color: enabled ? cs.onSurface : cs.onSurfaceVariant,
+          color: effectiveEnabled ? cs.onSurface : cs.onSurfaceVariant,
         ),
       ),
       title: Text(title),
       subtitle: Text(
-        enabled ? l10n.islandBlurRadiusValue(radius) : l10n.islandBlurDisabled,
+        blockedByBackground
+            ? l10n.islandBlurUnavailableWithBackground
+            : effectiveEnabled
+            ? l10n.islandBlurRadiusValue(radius)
+            : l10n.islandBlurDisabled,
       ),
       trailing: const Icon(Icons.chevron_right),
       onTap: onTap,

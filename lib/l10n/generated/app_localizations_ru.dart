@@ -1568,6 +1568,14 @@ class AppLocalizationsRu extends AppLocalizations {
   String get islandBlurDisabled => 'Выключено';
 
   @override
+  String get islandBlurUnavailableWithBackground =>
+      'Недоступно, пока установлен фон';
+
+  @override
+  String get islandBlurBigTextColorSuggestion =>
+      'Рекомендуется настроить цвет текста супер-острова в соответствии со строкой состояния';
+
+  @override
   String islandBlurRadiusValue(int radius) {
     return 'Размытие $radius';
   }

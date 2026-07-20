@@ -2894,6 +2894,18 @@ abstract class AppLocalizations {
   /// **'未启用'**
   String get islandBlurDisabled;
 
+  /// No description provided for @islandBlurUnavailableWithBackground.
+  ///
+  /// In zh, this message translates to:
+  /// **'已设置背景，无法启用模糊'**
+  String get islandBlurUnavailableWithBackground;
+
+  /// No description provided for @islandBlurBigTextColorSuggestion.
+  ///
+  /// In zh, this message translates to:
+  /// **'建议将超级岛文本颜色改为跟随状态栏'**
+  String get islandBlurBigTextColorSuggestion;
+
   /// No description provided for @islandBlurRadiusValue.
   ///
   /// In zh, this message translates to:

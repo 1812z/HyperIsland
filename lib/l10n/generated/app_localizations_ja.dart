@@ -1493,6 +1493,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get islandBlurDisabled => '無効';
 
   @override
+  String get islandBlurUnavailableWithBackground => '背景設定中はぼかしを有効にできません';
+
+  @override
+  String get islandBlurBigTextColorSuggestion =>
+      'スーパーアイランドの文字色をステータスバーに合わせることをおすすめします';
+
+  @override
   String islandBlurRadiusValue(int radius) {
     return 'ぼかし $radius';
   }

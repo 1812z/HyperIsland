@@ -1477,6 +1477,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get islandBlurDisabled => '未启用';
 
   @override
+  String get islandBlurUnavailableWithBackground => '已设置背景，无法启用模糊';
+
+  @override
+  String get islandBlurBigTextColorSuggestion => '建议将超级岛文本颜色改为跟随状态栏';
+
+  @override
   String islandBlurRadiusValue(int radius) {
     return '模糊度 $radius';
   }

@@ -1550,6 +1550,14 @@ class AppLocalizationsTr extends AppLocalizations {
   String get islandBlurDisabled => 'Kapalı';
 
   @override
+  String get islandBlurUnavailableWithBackground =>
+      'Arka plan ayarlıyken kullanılamaz';
+
+  @override
+  String get islandBlurBigTextColorSuggestion =>
+      'Süper Ada metin rengini durum çubuğunu takip edecek şekilde ayarlamanız önerilir';
+
+  @override
   String islandBlurRadiusValue(int radius) {
     return 'Bulanıklık $radius';
   }

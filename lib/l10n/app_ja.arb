@@ -447,6 +447,8 @@
   "islandBlurRadius": "ぼかしの強さ",
   "islandBlurBlendColor": "ブレンドカラー",
   "islandBlurDisabled": "無効",
+  "islandBlurUnavailableWithBackground": "背景設定中はぼかしを有効にできません",
+  "islandBlurBigTextColorSuggestion": "スーパーアイランドの文字色をステータスバーに合わせることをおすすめします",
   "islandBlurRadiusValue": "ぼかし {radius}",
   "@islandBlurRadiusValue": {"placeholders": {"radius": {"type": "int"}}},
   "keepIslandTitle": "常時ダイナミックアイランド",

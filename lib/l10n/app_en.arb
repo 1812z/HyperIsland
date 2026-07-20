@@ -559,6 +559,8 @@
   "islandBlurRadius": "Blur radius",
   "islandBlurBlendColor": "Blend color",
   "islandBlurDisabled": "Disabled",
+  "islandBlurUnavailableWithBackground": "Unavailable while a background is set",
+  "islandBlurBigTextColorSuggestion": "Consider setting the Super Island text color to Follow Status Bar",
   "islandBlurRadiusValue": "Blur {radius}",
   "@islandBlurRadiusValue": {"placeholders": {"radius": {"type": "int"}}},
   "keepIslandTitle": "Keep Island Visible",
