@@ -18,6 +18,7 @@ object TextShadeHook : BaseHook() {
 
     private const val TAG = "HyperIsland[TextShade]"
     private const val KEY_BIG_BG = "pref_island_bg_big_path"
+    private const val KEY_BIG_BLUR_ENABLED = "pref_island_blur_big_enabled"
 
     private val hookedClassLoaders = ConcurrentHashMap.newKeySet<Int>()
     @Volatile private var cachedBigBgConfigured: Boolean? = null
@@ -32,11 +33,11 @@ object TextShadeHook : BaseHook() {
         hookDynamicClassLoaders(module)
     }
 
-    private fun hasBigIslandBackground(): Boolean {
+    private fun shouldHideBigIslandTextShade(): Boolean {
         cachedBigBgConfigured?.let { return it }
         val configured = ConfigManager.getString(KEY_BIG_BG).trim().let { path ->
             path.isNotEmpty() && File(path).exists()
-        }
+        } || ConfigManager.getBoolean(KEY_BIG_BLUR_ENABLED, false)
         cachedBigBgConfigured = configured
         return configured
     }
@@ -82,11 +83,11 @@ object TextShadeHook : BaseHook() {
         } ?: return
 
         module.hook(method).intercept { chain ->
-            if (hasBigIslandBackground()) {
+            if (shouldHideBigIslandTextShade()) {
                 hideTextShade(chain.thisObject)
             }
             val result = chain.proceed()
-            if (hasBigIslandBackground()) {
+            if (shouldHideBigIslandTextShade()) {
                 hideTextShade(chain.thisObject)
             }
             result
@@ -104,7 +105,7 @@ object TextShadeHook : BaseHook() {
         for (method in methods) {
             module.hook(method).intercept { chain ->
                 val result = chain.proceed()
-                if (hasBigIslandBackground()) {
+                if (shouldHideBigIslandTextShade()) {
                     hideTextShade(chain.thisObject)
                 }
                 result
