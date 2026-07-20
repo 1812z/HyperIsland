@@ -2021,6 +2021,13 @@ class AppLocalizationsTr extends AppLocalizations {
       'Hide the island when the status bar disappears or immersive fullscreen is active';
 
   @override
+  String get hideBehaviorFullscreenLandscapeDisable => '横屏禁用全屏模式隐藏';
+
+  @override
+  String get hideBehaviorFullscreenLandscapeDisableSubtitle =>
+      '横屏时候恢复系统行为不再拦截隐藏';
+
+  @override
   String get hideBehaviorScreenLocked => 'Lock screen';
 
   @override

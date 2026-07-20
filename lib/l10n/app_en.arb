@@ -758,6 +758,8 @@
   "hideBehaviorBouncerShowingSubtitle": "Hide the island while the unlock challenge is showing",
   "hideBehaviorFullscreen": "Fullscreen mode",
   "hideBehaviorFullscreenSubtitle": "Hide the island when the status bar disappears or immersive fullscreen is active",
+  "hideBehaviorFullscreenLandscapeDisable": "Disable fullscreen hide in landscape",
+  "hideBehaviorFullscreenLandscapeDisableSubtitle": "Restore system behavior and stop intercepting hide when in landscape mode",
   "hideBehaviorScreenLocked": "Lock screen",
   "hideBehaviorScreenLockedSubtitle": "Hide the island during lock screen or screen-off flows",
   "hideBehaviorNotificationCenter": "Notification center",

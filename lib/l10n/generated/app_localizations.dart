@@ -3737,6 +3737,18 @@ abstract class AppLocalizations {
   /// **'状态栏消失或沉浸式全屏时隐藏超级岛'**
   String get hideBehaviorFullscreenSubtitle;
 
+  /// No description provided for @hideBehaviorFullscreenLandscapeDisable.
+  ///
+  /// In zh, this message translates to:
+  /// **'横屏禁用全屏模式隐藏'**
+  String get hideBehaviorFullscreenLandscapeDisable;
+
+  /// No description provided for @hideBehaviorFullscreenLandscapeDisableSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'横屏时候恢复系统行为不再拦截隐藏'**
+  String get hideBehaviorFullscreenLandscapeDisableSubtitle;
+
   /// No description provided for @hideBehaviorScreenLocked.
   ///
   /// In zh, this message translates to:

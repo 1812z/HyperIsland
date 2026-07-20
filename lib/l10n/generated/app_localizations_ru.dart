@@ -2045,6 +2045,13 @@ class AppLocalizationsRu extends AppLocalizations {
       'Скрывать Остров, когда строка состояния исчезает или активен иммерсивный полноэкранный режим';
 
   @override
+  String get hideBehaviorFullscreenLandscapeDisable => '横屏禁用全屏模式隐藏';
+
+  @override
+  String get hideBehaviorFullscreenLandscapeDisableSubtitle =>
+      '横屏时候恢复系统行为不再拦截隐藏';
+
+  @override
   String get hideBehaviorScreenLocked => 'Экран блокировки';
 
   @override

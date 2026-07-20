@@ -114,6 +114,17 @@ class _HideBehaviorPageState extends State<HideBehaviorPage> {
                             : null,
                         titleStyle: titleStyle,
                       ),
+                      _SwitchTile(
+                        title: l10n.hideBehaviorFullscreenLandscapeDisable,
+                        subtitle:
+                            l10n.hideBehaviorFullscreenLandscapeDisableSubtitle,
+                        value: _ctrl.tempHideFullscreenLandscapeDisable,
+                        onChanged: _ctrl.tempHideBehaviorEnabled &&
+                                !_ctrl.tempHideFullscreen
+                            ? _ctrl.setTempHideFullscreenLandscapeDisable
+                            : null,
+                        titleStyle: titleStyle,
+                      ),
                       const Divider(height: 1, indent: 16, endIndent: 16),
                       _SwitchTile(
                         title: l10n.hideBehaviorScreenLocked,

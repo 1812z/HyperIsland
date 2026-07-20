@@ -910,6 +910,8 @@
   "hideBehaviorBouncerShowingSubtitle": "密码、指纹等解锁界面显示时隐藏超级岛",
   "hideBehaviorFullscreen": "全屏模式",
   "hideBehaviorFullscreenSubtitle": "状态栏消失或沉浸式全屏时隐藏超级岛",
+  "hideBehaviorFullscreenLandscapeDisable": "横屏禁用全屏模式隐藏",
+  "hideBehaviorFullscreenLandscapeDisableSubtitle": "横屏时候恢复系统行为不再拦截隐藏",
   "hideBehaviorScreenLocked": "锁屏",
   "hideBehaviorScreenLockedSubtitle": "锁屏或息屏流程中隐藏超级岛",
   "hideBehaviorNotificationCenter": "通知中心",
