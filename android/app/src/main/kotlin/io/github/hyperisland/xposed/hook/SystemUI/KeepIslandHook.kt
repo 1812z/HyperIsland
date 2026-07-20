@@ -60,7 +60,7 @@ object KeepIslandHook : BaseHook() {
 
     private const val KEEP_ISLAND_CHANNEL = "keep_island"
 
-    private const val RESTORE_DELAY_MS = 150L
+    private const val RESTORE_DELAY_MS = 300L
 
     private const val DATA_UPDATE_INTERVAL_MS = 1000L
 
