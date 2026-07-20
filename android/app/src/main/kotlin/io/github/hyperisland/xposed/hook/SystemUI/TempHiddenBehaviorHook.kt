@@ -1,13 +1,9 @@
 package io.github.hyperisland.xposed.hook
 
 import android.app.Application
-import android.content.ComponentCallbacks
 import android.content.Context
-import android.content.res.Configuration
-import android.hardware.display.DisplayManager
-import android.view.Display
-import android.view.Surface
 import io.github.hyperisland.xposed.ConfigManager
+import io.github.hyperisland.xposed.utils.SceneBehavior
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.lang.reflect.InvocationTargetException
@@ -25,32 +21,7 @@ object TempHiddenBehaviorHook : BaseHook() {
     private val hookedClassLoaders = ConcurrentHashMap.newKeySet<Int>()
     private val invokingWithFilteredArgs = ThreadLocal.withInitial { false }
 
-    @Volatile
     private var appContext: Context? = null
-
-    @Volatile
-    private var isLandscape = false
-
-    private var callbacksRegistered = false
-
-    private val componentCallbacks = object : ComponentCallbacks {
-        override fun onConfigurationChanged(newConfig: Configuration) {
-            updateLandscapeState()
-        }
-
-        override fun onLowMemory() {}
-    }
-
-    private val displayListener = object : DisplayManager.DisplayListener {
-        override fun onDisplayChanged(displayId: Int) {
-            if (displayId == Display.DEFAULT_DISPLAY) {
-                updateLandscapeState()
-            }
-        }
-
-        override fun onDisplayAdded(displayId: Int) {}
-        override fun onDisplayRemoved(displayId: Int) {}
-    }
 
     override fun getTag() = TAG
 
@@ -72,10 +43,7 @@ object TempHiddenBehaviorHook : BaseHook() {
                 val result = chain.proceed()
                 val app = chain.thisObject as? Application
                 if (app != null && appContext == null) {
-                    val ctx = app.applicationContext
-                    appContext = ctx
-                    registerCallbacks(ctx)
-                    updateLandscapeState()
+                    appContext = app.applicationContext
                 }
                 result
             }
@@ -83,36 +51,6 @@ object TempHiddenBehaviorHook : BaseHook() {
         } catch (e: Throwable) {
             logError(module, "Application.onCreate hook failed: ${e.message}")
         }
-    }
-
-    private fun registerCallbacks(context: Context) {
-        if (callbacksRegistered) return
-        context.registerComponentCallbacks(componentCallbacks)
-        val displayManager =
-            context.getSystemService(DisplayManager::class.java)
-        if (displayManager != null) {
-            displayManager.registerDisplayListener(displayListener, null)
-        }
-        callbacksRegistered = true
-    }
-
-    private fun updateLandscapeState() {
-        val ctx = appContext ?: return
-        isLandscape = isLandscape(ctx)
-    }
-
-    private fun isLandscape(context: Context): Boolean {
-        if (context.resources.configuration.orientation ==
-            Configuration.ORIENTATION_LANDSCAPE
-        ) {
-            return true
-        }
-        val rotation = runCatching {
-            context.getSystemService(DisplayManager::class.java)
-                ?.getDisplay(Display.DEFAULT_DISPLAY)
-                ?.rotation
-        }.getOrNull()
-        return rotation == Surface.ROTATION_90 || rotation == Surface.ROTATION_270
     }
 
     private fun hookClasses(module: XposedModule, classLoader: ClassLoader) {
@@ -175,17 +113,19 @@ object TempHiddenBehaviorHook : BaseHook() {
             .forEach { method ->
                 module.hook(method).intercept { chain ->
                     if (invokingWithFilteredArgs.get()) return@intercept chain.proceed()
-                    val original = chain.args.getOrNull(0)
+                    val original = chain.args.getOrNull(0) as? Boolean
                     val fullscreenEnabled = HideBehavior.FULLSCREEN.enabled()
                     val landscapeDisable = ConfigManager.getBoolean(
                         PREF_LANDSCAPE_DISABLE_FULLSCREEN,
                         false
                     )
-                    val blocked = original == true && !fullscreenEnabled &&
-                        !(landscapeDisable && isLandscape)
-                    log(
+                    val interceptionCandidate = original == true && !fullscreenEnabled
+                    val isLandscape = interceptionCandidate && landscapeDisable &&
+                        appContext?.let(SceneBehavior::isLandscape) == true
+                    val blocked = interceptionCandidate && !isLandscape
+                    logWarn(
                         module,
-                        "DynamicIslandWindowViewController.statusBarAppearance " +
+                        "statusBarAppearance received: " +
                             "original=$original fullscreenEnabled=$fullscreenEnabled " +
                             "landscapeDisable=$landscapeDisable isLandscape=$isLandscape " +
                             "blocked=$blocked"

@@ -190,7 +190,7 @@ object SceneBehavior {
         }
     }
 
-    private fun isLandscape(context: Context): Boolean {
+    fun isLandscape(context: Context): Boolean {
         return context.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     }
 
