@@ -233,10 +233,6 @@ object IslandBackgroundHook : BaseHook() {
                             clearMaskForCurrentType(bgView, type)
                         }
                     }
-                } else if (type != null && isBlurEnabledForType(type) && bgView is ViewGroup) {
-                    // 模糊与自定义背景使用同一个外层 drawable 层级，也必须清掉
-                    // 当前状态主 View 上由 SystemUI 反复设置的黑色/混色遮罩。
-                    clearMaskForCurrentType(bgView, type)
                 }
 
                 null
@@ -559,8 +555,10 @@ object IslandBackgroundHook : BaseHook() {
                 }
 
                 if (viewType != null && isBlurEnabledForType(viewType)) {
-                    // 先清旧遮罩，再让 IslandBlurHook 在正确层级安装 BlurDrawable。
-                    clearMaskForView(view)
+                    // Keep the stock Drawable as the restore point for IslandBlurHook.
+                    // Only clear MIUI's blur/blend state before the blur Hook installs
+                    // its own BackgroundBlurDrawable.
+                    disableBlurAndClearBlend(view)
                     return@intercept chain.proceed()
                 }
 

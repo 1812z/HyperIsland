@@ -2,7 +2,6 @@ package io.github.hyperisland.xposed.hook.SystemUI
 
 import android.graphics.Color
 import android.graphics.Canvas
-import android.graphics.Outline
 import android.graphics.drawable.Drawable
 import android.os.Handler
 import android.os.Looper
@@ -14,7 +13,6 @@ import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.lang.reflect.Method
-import java.lang.reflect.Field
 import java.lang.ref.WeakReference
 import java.io.File
 import java.util.Collections
@@ -52,7 +50,7 @@ object IslandBlurHook : BaseHook() {
         WeakHashMap<View, RefreshTarget>()
     )
     private val backgroundStates = Collections.synchronizedMap(
-        WeakHashMap<View, BackgroundState>()
+        WeakHashMap<Any, BackgroundState>()
     )
     private val ownedBlurs = Collections.synchronizedMap(
         WeakHashMap<View, WeakReference<OwnedBlur>>()
@@ -187,15 +185,11 @@ object IslandBlurHook : BaseHook() {
             val backgroundViewField = contentClass.getDeclaredField("backgroundView").apply {
                 isAccessible = true
             }
-            val backgroundDrawableField = backgroundClass.getDeclaredField("drawable").apply {
-                isAccessible = true
-            }
             val stateField = contentClass.getDeclaredField("state").apply {
                 isAccessible = true
             }
-            hookIslandState(module, contentClass, stateClass)
+            hookIslandState(module, contentClass, stateClass, updateMethod)
             hookBackgroundDrawing(module, backgroundClass)
-            hookBackgroundDrawable(module, backgroundClass, backgroundDrawableField)
             module.hook(updateMethod).intercept { chain ->
                 val result = chain.proceed()
                 val view = chain.args.getOrNull(0) as? View ?: return@intercept result
@@ -204,6 +198,8 @@ object IslandBlurHook : BaseHook() {
                     contentView = WeakReference(contentView),
                     updateMethod = updateMethod,
                     promoted = chain.args.getOrNull(1) as? Boolean ?: false,
+                    type = typeForView(view),
+                    stateField = stateField,
                 )
                 val type = typeForView(view) ?: return@intercept result
                 val backgroundView = runCatching {
@@ -211,10 +207,11 @@ object IslandBlurHook : BaseHook() {
                 }.getOrNull()
                 val backgroundState = if (backgroundView != null) {
                     synchronized(backgroundStates) {
-                        backgroundStates[backgroundView] ?: BackgroundState(
+                        backgroundStates[contentView] ?: BackgroundState(
                             contentView = WeakReference(contentView),
+                            backgroundView = WeakReference(backgroundView),
                             stateField = stateField,
-                        ).also { backgroundStates[backgroundView] = it }
+                        ).also { backgroundStates[contentView] = it }
                     }
                 } else {
                     null
@@ -233,33 +230,25 @@ object IslandBlurHook : BaseHook() {
                 // already laid out for a focus notification. The target view is authoritative.
                 if (backgroundView == null) return@intercept result
 
+                backgroundState?.deactivateOtherTypes(type)?.forEach { oldView ->
+                    deactivateBlur(oldView)
+                }
                 deactivateBlur(view)
-                val active = if (config.enabled && !config.hasCustomBackground) {
-                    if (type == IslandType.EXPAND) {
-                        applyIslandBlur(
-                            module,
-                            backgroundView,
-                            view,
-                            type,
-                            config,
-                            methods,
-                            backgroundDrawableField,
-                        )
-                    } else {
-                        deactivateIslandBlur(backgroundView, backgroundDrawableField)
-                        applyContentBlur(module, view, type, config, methods)
-                    }
+                val staleExpandedUpdate = type == IslandType.EXPAND && stateType != IslandType.EXPAND
+                val active = if (staleExpandedUpdate) {
+                    diag(module, "skip expanded view while state=$stateType view=${describe(view)}")
+                    false
+                } else if (config.enabled && !config.hasCustomBackground) {
+                    applyContentBlur(module, view, type, config, methods)
                 } else {
-                    if (type == IslandType.EXPAND) {
-                        deactivateIslandBlur(backgroundView, backgroundDrawableField)
-                    }
+                    deactivateBlur(view)
                     false
                 }
                 if (backgroundView != null && backgroundState != null) {
                     backgroundState.updateContentView(contentView)
                     backgroundState.setTarget(
                         type,
-                        if (type == IslandType.EXPAND) backgroundView else view,
+                        view,
                     )
                     backgroundState.setActive(type, active)
                     backgroundView.invalidate()
@@ -284,6 +273,10 @@ object IslandBlurHook : BaseHook() {
         }
         targets.forEach { (view, contentView, target) ->
             if (!view.isAttachedToWindow) return@forEach
+            val currentType = runCatching {
+                resolveIslandType(target.stateField.get(contentView))
+            }.getOrNull()
+            if (target.type == null || currentType != target.type) return@forEach
             runCatching {
                 target.updateMethod.invoke(contentView, view, target.promoted)
             }
@@ -294,6 +287,7 @@ object IslandBlurHook : BaseHook() {
         module: XposedModule,
         contentClass: Class<*>,
         stateClass: Class<*>,
+        updateMethod: Method,
     ) {
         val method = contentClass.getDeclaredMethod(
             "updateDarkLightMode",
@@ -313,6 +307,13 @@ object IslandBlurHook : BaseHook() {
                 if (type != null) {
                     mainHandler.removeCallbacks(refreshRunnable)
                     mainHandler.post(refreshRunnable)
+                    mainHandler.post {
+                        refreshConcreteIslandViews(
+                            chain.thisObject,
+                            updateMethod,
+                            type,
+                        )
+                    }
                 }
                 result
             } finally {
@@ -321,33 +322,32 @@ object IslandBlurHook : BaseHook() {
         }
     }
 
-    private fun hookBackgroundDrawable(
-        module: XposedModule,
-        backgroundClass: Class<*>,
-        drawableField: Field,
+    /**
+     * SystemUI does not always call updateBackgroundBg for small/big views.
+     * Refresh the concrete views the same way the peer module does.
+     */
+    private fun refreshConcreteIslandViews(
+        contentView: Any,
+        updateMethod: Method,
+        type: IslandType,
     ) {
-        val method = backgroundClass.getDeclaredMethod("setDrawable", Drawable::class.java)
-        module.hook(method).intercept { chain ->
-            val result = chain.proceed()
-            val view = chain.thisObject as? View ?: return@intercept result
-            val owned = ownedBlurs[view]?.get() ?: return@intercept result
-            val type = islandTypeHolder.get() ?: backgroundStates[view]?.let { state ->
-                state.contentView.get()?.let { contentView ->
-                    runCatching { resolveIslandType(state.stateField.get(contentView)) }.getOrNull()
-                }
-            } ?: lastIslandType ?: return@intercept result
-            if (type == owned.type && owned.active && configForType(type).let {
-                    it.enabled && !it.hasCustomBackground
-                }) {
-                val systemDrawable = chain.args.getOrNull(0) as? Drawable
-                if (systemDrawable !== owned.drawable) {
-                    owned.stockDrawable = systemDrawable
-                    owned.stockDrawableCaptured = true
-                }
-                drawableField.set(view, owned.drawable)
-                view.invalidate()
-            }
-            result
+        val module = ConfigManager.module() ?: return
+        val getterName = when (type) {
+            IslandType.SMALL -> "getSmallIslandView"
+            IslandType.BIG -> "getBigIslandView"
+            IslandType.EXPAND -> return
+        }
+        val getter = findMethod(contentView.javaClass, getterName)
+        val view = runCatching { getter?.invoke(contentView) as? View }.getOrNull()
+        if (view == null) {
+            diag(module, "concrete getter=$getterName result=null")
+            return
+        }
+        diag(module, "concrete getter=$getterName view=${describe(view)}")
+        runCatching {
+            updateMethod.invoke(contentView, view, false)
+        }.onFailure { error ->
+            diag(module, "concrete refresh failed getter=$getterName error=${error.message}")
         }
     }
 
@@ -355,21 +355,29 @@ object IslandBlurHook : BaseHook() {
         val method = backgroundClass.getDeclaredMethod("onDraw", Canvas::class.java)
         module.hook(method).intercept { chain ->
             val backgroundView = chain.thisObject as? View ?: return@intercept chain.proceed()
-            val state = backgroundStates[backgroundView]
+            val states = synchronized(backgroundStates) {
+                backgroundStates.values.filter { it.backgroundView.get() === backgroundView }
+            }
+            if (states.isEmpty()) return@intercept chain.proceed()
+            val type = islandTypeHolder.get()
+                ?: states.firstNotNullOfOrNull { it.activeType() }
+                ?: lastIslandType
                 ?: return@intercept chain.proceed()
-            val type = islandTypeHolder.get() ?: state.contentView.get()?.let { contentView ->
-                runCatching { resolveIslandType(state.stateField.get(contentView)) }.getOrNull()
-            } ?: lastIslandType ?: return@intercept chain.proceed()
-            if (type == IslandType.EXPAND || state.isActive(type) != true) {
-                return@intercept chain.proceed()
-            }
-            val target = state.target(type)?.get() ?: return@intercept chain.proceed()
-            val owned = ownedBlurs[target]?.get() ?: return@intercept chain.proceed()
-            if (!owned.active || target.background !== owned.drawable) {
-                return@intercept chain.proceed()
-            }
+            val activeTarget = states.asSequence()
+                .filter { it.isActive(type) }
+                .mapNotNull { it.target(type)?.get() }
+                .mapNotNull { target ->
+                    ownedBlurs[target]?.get()?.takeIf {
+                        it.active && target.background === it.drawable
+                    }?.let { target to it }
+                }
+                .firstOrNull()
+                ?: return@intercept chain.proceed()
+            val target = activeTarget.first
+            val owned = activeTarget.second
 
-            // Small and big blur live on their content View; suppress only the outer black island.
+            // All state blur layers live on their concrete content View. Suppress only
+            // the shared outer black island drawable.
             diag(
                 module,
                 "suppress outer type=$type target=${describe(target)} " +
@@ -403,6 +411,7 @@ object IslandBlurHook : BaseHook() {
         val resourceName = runCatching {
             if (view.id == View.NO_ID) "" else view.resources.getResourceEntryName(view.id)
         }.getOrDefault("")
+        if (resourceName.contains("fake_expanded")) return null
         return when {
             resourceName.contains("small_island") -> IslandType.SMALL
             resourceName.contains("big_island") -> IslandType.BIG
@@ -414,6 +423,9 @@ object IslandBlurHook : BaseHook() {
     private fun deactivateBlur(view: View) {
         val owned = ownedBlurs[view]?.get() ?: return
         runCatching { owned.methods.setRadius.invoke(owned.effectDrawable, 0) }
+        if (view.background === owned.drawable && owned.stockDrawableCaptured) {
+            view.background = owned.stockDrawable
+        }
         owned.active = false
         ConfigManager.module()?.let { module ->
             diag(module, "content deactivated type=${owned.type} view=${describe(view)}")
@@ -441,6 +453,10 @@ object IslandBlurHook : BaseHook() {
                     }
             } ?: return@runCatching false
 
+            if (!owned.stockDrawableCaptured && view.background !== owned.drawable) {
+                owned.stockDrawable = view.background
+                owned.stockDrawableCaptured = true
+            }
             updateOwnedBlur(module, view, owned, config, view)
             val modeResult = methods.setViewMode.invoke(null, view, 0)
             val blendResult = methods.clearBlend.invoke(null, view)
@@ -463,91 +479,6 @@ object IslandBlurHook : BaseHook() {
 
         if (!applied) deactivateBlur(view)
         return applied
-    }
-
-    private fun applyIslandBlur(
-        module: XposedModule,
-        backgroundView: View,
-        contentView: View,
-        type: IslandType,
-        config: BlurConfig,
-        methods: BlurMethods,
-        drawableField: Field,
-    ): Boolean {
-        val applied = runCatching {
-            if (!backgroundView.isAttachedToWindow || backgroundView.width <= 0 ||
-                backgroundView.height <= 0
-            ) {
-                return@runCatching false
-            }
-            val blurOpened = methods.isBlurOpened.invoke(null, backgroundView.context) as? Boolean
-                ?: false
-            if (!blurOpened) return@runCatching false
-
-            val owned = synchronized(ownedBlurs) {
-                val previous = ownedBlurs[backgroundView]?.get()
-                if (previous != null && previous.type == type) {
-                    previous
-                } else {
-                    previous?.let {
-                        runCatching { it.methods.setRadius.invoke(it.effectDrawable, 0) }
-                    }
-                    createBackgroundBlurDrawable(backgroundView, type)?.also {
-                        it.stockDrawable = previous?.stockDrawable
-                        it.stockDrawableCaptured = previous?.stockDrawableCaptured == true
-                        ownedBlurs[backgroundView] = WeakReference(it)
-                    }
-                }
-            } ?: return@runCatching false
-
-            val currentDrawable = drawableField.get(backgroundView) as? Drawable
-            if (currentDrawable !== owned.drawable && !owned.stockDrawableCaptured) {
-                owned.stockDrawable = currentDrawable
-                owned.stockDrawableCaptured = true
-            }
-            updateOwnedBlur(module, backgroundView, owned, config, contentView)
-
-            try {
-                // All states use the same outer drawing layer as IslandBackgroundHook.
-                methods.setViewMode.invoke(null, contentView, 0)
-                methods.clearBlend.invoke(null, contentView)
-                contentView.background = null
-                drawableField.set(backgroundView, owned.drawable)
-            } catch (error: Throwable) {
-                owned.methods.setRadius.invoke(owned.effectDrawable, 0)
-                drawableField.set(backgroundView, owned.stockDrawable)
-                runCatching { methods.setViewMode.invoke(null, contentView, 1) }
-                throw error
-            }
-            owned.active = true
-            backgroundView.invalidate()
-            diag(
-                module,
-                    "outer applied type=$type radius=${config.radius} " +
-                        "blur=${System.identityHashCode(owned.effectDrawable)} " +
-                        "corner=${resolveCornerRadius(backgroundView, type, contentView)} " +
-                        "outer=${describe(backgroundView)}",
-            )
-            true
-        }.onFailure { error ->
-            if (applyFailureLogged.compareAndSet(false, true)) {
-                logError(module, "island blur application failed: ${error.message}")
-            }
-            diag(module, "outer failed type=$type radius=${config.radius} error=${error.message}")
-        }.getOrDefault(false)
-
-        if (!applied) deactivateIslandBlur(backgroundView, drawableField)
-        return applied
-    }
-
-    private fun deactivateIslandBlur(backgroundView: View, drawableField: Field) {
-        val owned = ownedBlurs[backgroundView]?.get() ?: return
-        runCatching { owned.methods.setRadius.invoke(owned.effectDrawable, 0) }
-        if (runCatching { drawableField.get(backgroundView) }.getOrNull() === owned.drawable) {
-            runCatching { drawableField.set(backgroundView, owned.stockDrawable) }
-        }
-        owned.active = false
-        backgroundView.invalidate()
     }
 
     private fun createBackgroundBlurDrawable(view: View, type: IslandType): OwnedBlur? {
@@ -643,25 +574,11 @@ object IslandBlurHook : BaseHook() {
     private fun resolveCornerRadius(view: View, type: IslandType, shapeView: View? = null): Float {
         if (type == IslandType.EXPAND) {
             val target = shapeView ?: view
-            val outline = Outline()
-            runCatching {
-                target.outlineProvider?.getOutline(target, outline)
-                val outlineRadius = outline.radius
-                if (outlineRadius > 0f) return outlineRadius
-            }
-            val resourceNames = arrayOf(
-                "focus_notification_corner_radius",
-                "focus_notification_radius",
-                "expanded_island_radius",
-                "island_expanded_radius",
-            )
-            resourceNames.forEach { name ->
-                val resourceId = target.resources.getIdentifier(name, "dimen", "com.android.systemui")
-                if (resourceId > 0) return target.resources.getDimension(resourceId)
-            }
+            // The expanded view inherits the pill outline (77dp on this device).
+            // It is not the focus card's rounded-rectangle corner radius.
             return TypedValue.applyDimension(
                 TypedValue.COMPLEX_UNIT_DIP,
-                28f,
+                32f,
                 target.resources.displayMetrics,
             )
         }
@@ -742,10 +659,13 @@ object IslandBlurHook : BaseHook() {
         val contentView: WeakReference<Any>,
         val updateMethod: Method,
         val promoted: Boolean,
+        val type: IslandType?,
+        val stateField: java.lang.reflect.Field,
     )
 
     private class BackgroundState(
         contentView: WeakReference<Any>,
+        val backgroundView: WeakReference<View>,
         val stateField: java.lang.reflect.Field,
     ) {
         var contentView = contentView
@@ -784,11 +704,36 @@ object IslandBlurHook : BaseHook() {
             }
         }
 
+        fun deactivateOtherTypes(current: IslandType): List<View> {
+            val oldViews = mutableListOf<View>()
+            if (current != IslandType.SMALL && smallActive) {
+                smallTarget?.get()?.let(oldViews::add)
+                smallActive = false
+            }
+            if (current != IslandType.BIG && bigActive) {
+                bigTarget?.get()?.let(oldViews::add)
+                bigActive = false
+            }
+            if (current != IslandType.EXPAND && expandActive) {
+                expandTarget?.get()?.let(oldViews::add)
+                expandActive = false
+            }
+            return oldViews
+        }
+
         fun isActive(type: IslandType): Boolean = when (type) {
             IslandType.SMALL -> smallActive
             IslandType.BIG -> bigActive
             IslandType.EXPAND -> expandActive
         }
+
+        fun activeType(): IslandType? = when {
+            expandActive -> IslandType.EXPAND
+            bigActive -> IslandType.BIG
+            smallActive -> IslandType.SMALL
+            else -> null
+        }
+
     }
 
     private enum class IslandType { SMALL, BIG, EXPAND }
