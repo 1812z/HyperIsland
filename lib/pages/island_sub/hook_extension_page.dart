@@ -276,6 +276,7 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
                 Card(
                   elevation: 0,
                   color: cs.surfaceContainerHighest,
+                  clipBehavior: Clip.antiAlias,
                   child: SwitchListTile(
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -326,6 +327,7 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
                 Card(
                   elevation: 0,
                   color: cs.surfaceContainerHighest,
+                  clipBehavior: Clip.antiAlias,
                   child: SwitchListTile(
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -399,6 +401,7 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
                 Card(
                   elevation: 0,
                   color: cs.surfaceContainerHighest,
+                  clipBehavior: Clip.antiAlias,
                   child: SwitchListTile(
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -418,6 +421,7 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
                 Card(
                   elevation: 0,
                   color: cs.surfaceContainerHighest,
+                  clipBehavior: Clip.antiAlias,
                   child: SwitchListTile(
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,

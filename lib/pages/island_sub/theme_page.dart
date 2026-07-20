@@ -223,6 +223,7 @@ class _ThemePageState extends State<ThemePage> {
                   Card(
                     elevation: 0,
                     color: cs.surfaceContainerHighest,
+                    clipBehavior: Clip.antiAlias,
                     child: SwitchListTile(
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16,
@@ -245,6 +246,7 @@ class _ThemePageState extends State<ThemePage> {
                   Card(
                     elevation: 0,
                     color: cs.surfaceContainerHighest,
+                    clipBehavior: Clip.antiAlias,
                     child: ListTile(
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16,

@@ -1122,6 +1122,7 @@ class _MediaIslandTile extends StatelessWidget {
     return Material(
       color: cs.surfaceContainerHighest,
       borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: onTap,
@@ -1334,6 +1335,7 @@ class _ChannelTile extends StatelessWidget {
         Material(
           color: cs.surfaceContainerHighest,
           borderRadius: radius,
+          clipBehavior: Clip.antiAlias,
           child: InkWell(
             borderRadius: radius,
             onTap: appEnabled ? () => onToggle(!channelEnabled) : null,
