@@ -2066,6 +2066,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get islandTextSection => 'Island Text';
 
   @override
+  String get islandOutlineSection => 'Outline controls';
+
+  @override
+  String get alwaysShowIslandOutlineTitle => 'Always show island outline';
+
+  @override
+  String get alwaysShowFocusOutlineTitle =>
+      'Always show Focus Notification outline';
+
+  @override
   String get islandTextColorTitle => 'Island Text Color';
 
   @override

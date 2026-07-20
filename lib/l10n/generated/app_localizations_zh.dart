@@ -1951,6 +1951,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get islandTextSection => '超级岛文字';
 
   @override
+  String get islandOutlineSection => '轮廓控制';
+
+  @override
+  String get alwaysShowIslandOutlineTitle => '常驻显示岛轮廓';
+
+  @override
+  String get alwaysShowFocusOutlineTitle => '常驻显示焦点通知轮廓';
+
+  @override
   String get islandTextColorTitle => '超级岛文本颜色';
 
   @override

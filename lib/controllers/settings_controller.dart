@@ -89,6 +89,8 @@ const kPrefIslandBlurExpandColor = 'pref_island_blur_expand_color';
 const kPrefIslandHeight = 'pref_island_height';
 const kPrefIslandTopOffset = 'pref_island_top_offset';
 const kPrefIslandTextColorMode = 'pref_island_text_color_mode';
+const kPrefAlwaysShowIslandOutline = 'pref_always_show_island_outline';
+const kPrefAlwaysShowFocusOutline = 'pref_always_show_focus_outline';
 const kPrefKeepIsland = 'pref_keep_island';
 const kPrefKeepIslandAutoHide = 'pref_keep_island_auto_hide';
 const kPrefKeepIslandHideLandscape = 'pref_keep_island_hide_landscape';
@@ -267,6 +269,8 @@ class SettingsController extends ChangeNotifier {
   double islandHeight = 0;
   double islandTopOffset = 0;
   String islandTextColorMode = kIslandTextColorDefault;
+  bool alwaysShowIslandOutline = false;
+  bool alwaysShowFocusOutline = false;
   bool keepIsland = false;
   bool keepIslandAutoHide = true;
   bool keepIslandHideLandscape = false;
@@ -435,6 +439,10 @@ class SettingsController extends ChangeNotifier {
     islandTextColorMode = _normalizeIslandTextColorMode(
       prefs.getString(kPrefIslandTextColorMode),
     );
+    alwaysShowIslandOutline =
+        prefs.getBool(kPrefAlwaysShowIslandOutline) ?? false;
+    alwaysShowFocusOutline =
+        prefs.getBool(kPrefAlwaysShowFocusOutline) ?? false;
     keepIsland = prefs.getBool(kPrefKeepIsland) ?? false;
     keepIslandAutoHide = prefs.getBool(kPrefKeepIslandAutoHide) ?? true;
     keepIslandHideLandscape =
@@ -1403,6 +1411,18 @@ class SettingsController extends ChangeNotifier {
     kPrefTempHideFullscreenLandscapeDisable,
     value,
     (v) => tempHideFullscreenLandscapeDisable = v,
+  );
+
+  Future<void> setAlwaysShowIslandOutline(bool value) => _setBoolPref(
+    kPrefAlwaysShowIslandOutline,
+    value,
+    (v) => alwaysShowIslandOutline = v,
+  );
+
+  Future<void> setAlwaysShowFocusOutline(bool value) => _setBoolPref(
+    kPrefAlwaysShowFocusOutline,
+    value,
+    (v) => alwaysShowFocusOutline = v,
   );
 
   Future<void> _setBoolPref(

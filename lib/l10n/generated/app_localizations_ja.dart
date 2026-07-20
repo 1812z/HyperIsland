@@ -1985,6 +1985,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get islandTextSection => '超级岛文字';
 
   @override
+  String get islandOutlineSection => 'アウトライン制御';
+
+  @override
+  String get alwaysShowIslandOutlineTitle => 'アイランドのアウトラインを常に表示';
+
+  @override
+  String get alwaysShowFocusOutlineTitle => 'フォーカス通知のアウトラインを常に表示';
+
+  @override
   String get islandTextColorTitle => '超级岛文本颜色';
 
   @override

@@ -2056,6 +2056,16 @@ class AppLocalizationsTr extends AppLocalizations {
   String get islandTextSection => '超级岛文字';
 
   @override
+  String get islandOutlineSection => 'Ana hat denetimi';
+
+  @override
+  String get alwaysShowIslandOutlineTitle => 'Ada ana hattını her zaman göster';
+
+  @override
+  String get alwaysShowFocusOutlineTitle =>
+      'Odak bildirimi ana hattını her zaman göster';
+
+  @override
   String get islandTextColorTitle => '超级岛文本颜色';
 
   @override

@@ -326,6 +326,8 @@ object ConfigManager {
         "pref_big_island_min_width",
         "pref_smooth_island",
         "pref_smooth_island_smoothing",
+        "pref_always_show_island_outline",
+        "pref_always_show_focus_outline",
         "pref_unlock_all_focus",
         "pref_unlock_focus_auth",
         "pref_charge_island",

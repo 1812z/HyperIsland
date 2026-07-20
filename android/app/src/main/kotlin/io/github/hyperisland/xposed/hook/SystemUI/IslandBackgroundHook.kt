@@ -8,6 +8,8 @@ import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
 import io.github.hyperisland.xposed.ConfigManager
+import io.github.hyperisland.xposed.hook.IslandBackgroundFile
+import io.github.hyperisland.xposed.hook.SystemUI.IslandOutlineHook
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
@@ -212,6 +214,10 @@ object IslandBackgroundHook : BaseHook() {
 
                 val type = getCurrentIslandType()
                 val bgView = chain.thisObject as? View
+                IslandOutlineHook.rememberStockOutline(
+                    chain.thisObject,
+                    chain.args.getOrNull(0) as? Drawable,
+                )
 
                 if (type != null && hasBgFileForType(type)) {
                     val context = try { bgView?.context } catch (_: Exception) { null }
@@ -223,10 +229,15 @@ object IslandBackgroundHook : BaseHook() {
 
                     if (customDrawable != null) {
                         try {
-                            if (bgView != null) setWeakCallback(customDrawable, bgView)
                             val drawableField = getCachedField(drawableFieldCache, bgViewClass, "drawable")
                                 ?: return@intercept null
-                            drawableField.set(chain.thisObject, customDrawable)
+                            val renderDrawable = IslandOutlineHook.withOutline(
+                                chain.thisObject,
+                                customDrawable,
+                                type == IslandType.EXPAND,
+                            )
+                            if (bgView != null) setWeakCallback(renderDrawable, bgView)
+                            drawableField.set(chain.thisObject, renderDrawable)
                         } catch (e: Exception) {
                             logError(module, "Reflection set drawable failed: ${e.message}")
                         }
@@ -479,9 +490,14 @@ object IslandBackgroundHook : BaseHook() {
     ) {
         try {
             val drawable = newDrawableInstance(customDrawable)
-            setWeakCallback(drawable, bgView)
             val drawableField = getCachedField(drawableFieldCache, bgViewClass, "drawable") ?: return
-            drawableField.set(bgView, drawable)
+            val renderDrawable = IslandOutlineHook.withOutline(
+                bgView,
+                drawable,
+                type == IslandType.EXPAND,
+            )
+            setWeakCallback(renderDrawable, bgView)
+            drawableField.set(bgView, renderDrawable)
         } catch (e: Exception) {
             logError(module, "applyDrawable failed: ${e.message}")
         }
@@ -665,8 +681,9 @@ object IslandBackgroundHook : BaseHook() {
             cachedBgAvailability[type] = false
             return false
         }
-        val file = File(configPath)
-        return (file.exists() && file.canRead()).also { cachedBgAvailability[type] = it }
+        return (IslandBackgroundFile.resolve(configPath) != null).also {
+            cachedBgAvailability[type] = it
+        }
     }
 
     private fun shouldClearMaskForType(type: IslandType): Boolean {
@@ -756,8 +773,8 @@ object IslandBackgroundHook : BaseHook() {
             return null
         }
 
-        val file = File(configPath)
-        if (!file.exists() || !file.canRead()) {
+        val file = IslandBackgroundFile.resolve(configPath)
+        if (file == null) {
             if (anyCustomBgConfigured()) {
                 return loadBlackDrawable(context, module, stokeWidth)
             }
@@ -778,7 +795,10 @@ object IslandBackgroundHook : BaseHook() {
                 if (cachedDrawables[type] == null || currentModified != (lastFileModified[type] ?: 0L) || lastConfigPath[type] != configPath) {
                     val drawable = decodeFile(file, context, module, stokeWidth)
                     if (drawable != null) {
-                        cachedDrawables[type] = drawable
+                        val previous = cachedDrawables.put(type, drawable)
+                        if (previous is RoundedClippingAnimatedDrawable && previous !== drawable) {
+                            previous.release()
+                        }
                         lastFileModified[type] = currentModified
                         lastConfigPath[type] = configPath
                     }

@@ -3,6 +3,7 @@ package io.github.hyperisland.xposed
 import io.github.hyperisland.xposed.hook.SystemUI.BigIslandMinWidthHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandTopOffsetHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandBlurHook
+import io.github.hyperisland.xposed.hook.SystemUI.IslandOutlineHook
 import io.github.hyperisland.xposed.hook.SystemUI.SmoothIslandHook
 import io.github.hyperisland.xposed.hook.ActiveIslandDismissHook
 import io.github.hyperisland.xposed.hook.BluetoothIslandHook
@@ -54,6 +55,7 @@ class HyperIslandModule : XposedModule() {
                 TextShadeHook.init(this, param)
                 IslandDimenHook.init(this, param)
                 IslandTopOffsetHook.init(this, param)
+                IslandOutlineHook.init(this, param)
                 if (ConfigManager.getBoolean("pref_temp_hide_behavior_enabled", false)) {
                     TempHiddenBehaviorHook.init(this, param)
                 }

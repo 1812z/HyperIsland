@@ -9,6 +9,7 @@ import android.util.TypedValue
 import android.view.View
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.BaseHook
+import io.github.hyperisland.xposed.hook.IslandBackgroundFile
 import io.github.hyperisland.xposed.log
 import io.github.hyperisland.xposed.logError
 import io.github.hyperisland.xposed.utils.HookUtils
@@ -16,7 +17,6 @@ import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.lang.reflect.Method
 import java.lang.ref.WeakReference
-import java.io.File
 import java.util.Collections
 import java.util.WeakHashMap
 
@@ -134,9 +134,9 @@ object IslandBlurHook : BaseHook() {
             enabled = ConfigManager.getBoolean(enabledKey, false),
             radius = ConfigManager.getInt(radiusKey, DEFAULT_RADIUS).coerceIn(0, 275),
             blendColor = parseColor(ConfigManager.getString(colorKey)),
-            hasCustomBackground = ConfigManager.getString(backgroundKey).let { path ->
-                path.isNotBlank() && File(path).let { it.isFile && it.canRead() }
-            },
+            hasCustomBackground = IslandBackgroundFile.resolve(
+                ConfigManager.getString(backgroundKey),
+            ) != null,
         )
     }
 
@@ -199,14 +199,15 @@ object IslandBlurHook : BaseHook() {
                 val result = chain.proceed()
                 val view = chain.args.getOrNull(0) as? View ?: return@intercept result
                 val contentView = chain.thisObject ?: return@intercept result
+                val type = typeForView(view)
                 refreshTargets[view] = RefreshTarget(
                     contentView = WeakReference(contentView),
                     updateMethod = updateMethod,
                     promoted = chain.args.getOrNull(1) as? Boolean ?: false,
-                    type = typeForView(view),
+                    type = type,
                     stateField = stateField,
                 )
-                val type = typeForView(view) ?: return@intercept result
+                type ?: return@intercept result
                 val backgroundView = runCatching {
                     backgroundViewField.get(contentView) as? View
                 }.getOrNull()
@@ -336,8 +337,8 @@ object IslandBlurHook : BaseHook() {
             val outer = outerBlurs[backgroundView]
             if (outer?.active == true) {
                 runCatching {
-                    if (drawableField.get(backgroundView) !== outer.owned.drawable) {
-                        drawableField.set(backgroundView, outer.owned.drawable)
+                    if (drawableField.get(backgroundView) !== outer.renderDrawable) {
+                        drawableField.set(backgroundView, outer.renderDrawable)
                     }
                 }
                 chain.proceed()
@@ -490,8 +491,20 @@ object IslandBlurHook : BaseHook() {
             }
             ensureDetachCleanup(backgroundView)
             updateOwnedBlur(backgroundView, outer.owned, config, shapeView)
-            drawableField.set(backgroundView, outer.owned.drawable)
-            outer.owned.drawable.callback = WeakViewDrawableCallback(backgroundView)
+            val outlineEnabled = IslandOutlineHook.isOutlineEnabled(type == IslandType.EXPAND)
+            if (IslandOutlineHook.hasOutline(outer.renderDrawable) != outlineEnabled) {
+                IslandOutlineHook.releaseOutline(outer.renderDrawable)
+                outer.renderDrawable.callback = null
+                outer.renderDrawable = IslandOutlineHook.withOutline(
+                    backgroundView,
+                    outer.owned.drawable,
+                    type == IslandType.EXPAND,
+                )
+            }
+            drawableField.set(backgroundView, outer.renderDrawable)
+            if (outer.renderDrawable.callback == null) {
+                outer.renderDrawable.callback = WeakViewDrawableCallback(backgroundView)
+            }
             outer.owned.active = true
             outer.active = true
             backgroundView.invalidate()
@@ -512,12 +525,13 @@ object IslandBlurHook : BaseHook() {
     ) {
         val outer = outerBlurs[backgroundView] ?: return
         runCatching { outer.owned.methods.setRadius.invoke(outer.owned.effectDrawable, 0) }
-        if (runCatching { drawableField.get(backgroundView) }.getOrNull() === outer.owned.drawable) {
+        if (runCatching { drawableField.get(backgroundView) }.getOrNull() === outer.renderDrawable) {
             runCatching { drawableField.set(backgroundView, outer.stockDrawable) }
         }
         outer.owned.active = false
         outer.active = false
-        outer.owned.drawable.callback = null
+        IslandOutlineHook.releaseOutline(outer.renderDrawable)
+        outer.renderDrawable.callback = null
         outerBlurs.remove(backgroundView)
         backgroundView.invalidate()
     }
@@ -712,9 +726,12 @@ object IslandBlurHook : BaseHook() {
         val drawableField: java.lang.reflect.Field,
         var active: Boolean = false,
     ) {
+        var renderDrawable: Drawable = owned.drawable
+
         fun release() {
             runCatching { owned.methods.setRadius.invoke(owned.effectDrawable, 0) }
-            owned.drawable.callback = null
+            IslandOutlineHook.releaseOutline(renderDrawable)
+            renderDrawable.callback = null
             owned.active = false
             active = false
         }

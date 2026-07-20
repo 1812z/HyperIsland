@@ -2080,6 +2080,16 @@ class AppLocalizationsRu extends AppLocalizations {
   String get islandTextSection => '超级岛文字';
 
   @override
+  String get islandOutlineSection => 'Управление контуром';
+
+  @override
+  String get alwaysShowIslandOutlineTitle => 'Всегда показывать контур острова';
+
+  @override
+  String get alwaysShowFocusOutlineTitle =>
+      'Всегда показывать контур фокус-уведомления';
+
+  @override
   String get islandTextColorTitle => '超级岛文本颜色';
 
   @override

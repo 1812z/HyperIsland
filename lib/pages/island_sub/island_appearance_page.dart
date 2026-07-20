@@ -45,6 +45,8 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _ctrl.islandBlurExpandRadius,
     _ctrl.islandBlurExpandColor,
     _ctrl.islandTextColorMode,
+    _ctrl.alwaysShowIslandOutline,
+    _ctrl.alwaysShowFocusOutline,
   ]);
 
   @override
@@ -730,6 +732,47 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                     onChanged: InteractionHaptics.interceptToggle(
                       _onRoundIconChanged,
                     ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // --- 轮廓 ---
+                _SectionLabel(l10n.islandOutlineSection),
+                const SizedBox(height: 8),
+                Card(
+                  elevation: 0,
+                  color: cs.surfaceContainerHighest,
+                  child: Column(
+                    children: [
+                      SwitchListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        title: Text(
+                          l10n.alwaysShowIslandOutlineTitle,
+                          style: titleStyle,
+                        ),
+                        value: _ctrl.alwaysShowIslandOutline,
+                        onChanged: InteractionHaptics.interceptToggle(
+                          _ctrl.setAlwaysShowIslandOutline,
+                        ),
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      SwitchListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        title: Text(
+                          l10n.alwaysShowFocusOutlineTitle,
+                          style: titleStyle,
+                        ),
+                        value: _ctrl.alwaysShowFocusOutline,
+                        onChanged: InteractionHaptics.interceptToggle(
+                          _ctrl.setAlwaysShowFocusOutline,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 32),

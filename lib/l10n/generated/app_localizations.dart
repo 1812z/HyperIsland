@@ -3797,6 +3797,24 @@ abstract class AppLocalizations {
   /// **'超级岛文字'**
   String get islandTextSection;
 
+  /// No description provided for @islandOutlineSection.
+  ///
+  /// In zh, this message translates to:
+  /// **'轮廓控制'**
+  String get islandOutlineSection;
+
+  /// No description provided for @alwaysShowIslandOutlineTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'常驻显示岛轮廓'**
+  String get alwaysShowIslandOutlineTitle;
+
+  /// No description provided for @alwaysShowFocusOutlineTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'常驻显示焦点通知轮廓'**
+  String get alwaysShowFocusOutlineTitle;
+
   /// No description provided for @islandTextColorTitle.
   ///
   /// In zh, this message translates to:
