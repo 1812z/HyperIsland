@@ -3,7 +3,6 @@ package io.github.hyperisland.xposed.hook
 import android.graphics.*
 import android.graphics.ImageDecoder
 import android.graphics.drawable.AnimatedImageDrawable
-import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.util.TypedValue
 import android.view.View
@@ -15,8 +14,11 @@ import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import android.os.Handler
 import android.os.Looper
 import java.io.File
+import java.lang.ref.WeakReference
 import java.lang.reflect.Field
 import java.lang.reflect.Method
+import java.util.Collections
+import java.util.WeakHashMap
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -81,8 +83,10 @@ object IslandBackgroundHook : BaseHook() {
     /** 按类型记录上次配置的路径字符串 */
     private val lastConfigPath = ConcurrentHashMap<IslandType, String>()
 
-    /** 已 Hook 的 ClassLoader 集合（用于去重） */
-    private val hookedClassLoaders = ConcurrentHashMap.newKeySet<Int>()
+    /** 按实际目标 Class 去重，避免委托 ClassLoader 对同一方法重复安装 Hook。 */
+    private val hookedBackgroundClasses = Collections.synchronizedSet(
+        Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>())
+    )
 
     /** 在 updateDarkLightMode → setDrawable 调用链中传递岛类型 */
     private val islandTypeHolder = ThreadLocal<IslandType>()
@@ -101,6 +105,7 @@ object IslandBackgroundHook : BaseHook() {
 
     /** 按类型缓存背景文件可用状态，避免动画热路径访问文件系统。 */
     private val cachedBgAvailability = ConcurrentHashMap<IslandType, Boolean>()
+    private val cachedBlurEnabled = ConcurrentHashMap<IslandType, Boolean>()
 
     /** 缓存圆角半径，运行时不会变 */
     @Volatile
@@ -146,27 +151,24 @@ object IslandBackgroundHook : BaseHook() {
      * 当新的 ClassLoader 加载时，尝试识别并 Hook DynamicIsland 相关类。
      */
     private fun onClassLoaderLoaded(module: XposedModule, classLoader: ClassLoader) {
-        val clId = System.identityHashCode(classLoader)
-        if (!hookedClassLoaders.add(clId)) return
-
         try {
             val bgViewClass = try {
                 classLoader.loadClass("miui.systemui.dynamicisland.DynamicIslandBackgroundView")
             } catch (_: ClassNotFoundException) {
-                hookedClassLoaders.remove(clId)
                 return
             }
+            val contentViewClass = runCatching {
+                classLoader.loadClass("miui.systemui.dynamicisland.window.content.DynamicIslandBaseContentView")
+            }.getOrNull() ?: return
+            val stateClass = runCatching {
+                classLoader.loadClass("miui.systemui.dynamicisland.event.DynamicIslandState")
+            }.getOrNull() ?: return
+            if (!hookedBackgroundClasses.add(bgViewClass)) return
 
             hookSetDrawable(module, bgViewClass)
             hookAlphaAnimation(module, bgViewClass)
 
             try {
-                val contentViewClass = classLoader.loadClass(
-                    "miui.systemui.dynamicisland.window.content.DynamicIslandBaseContentView"
-                )
-                val stateClass = classLoader.loadClass(
-                    "miui.systemui.dynamicisland.event.DynamicIslandState"
-                )
                 hookUpdateDarkLightMode(module, contentViewClass, stateClass)
                 hookUpdateBackgroundBg(module, contentViewClass)
 
@@ -184,7 +186,6 @@ object IslandBackgroundHook : BaseHook() {
 
         } catch (e: Throwable) {
             logError(module, "Hook setup failed for CL: ${e.message}")
-            hookedClassLoaders.remove(clId)
         }
     }
 
@@ -218,12 +219,14 @@ object IslandBackgroundHook : BaseHook() {
                     val stokeWidth = if (bgView != null) getStokeWidth(bgView, bgViewClass) else 0
 
                     val customDrawable = loadCustomDrawable(type, context, module, stokeWidth)
+                        ?.let(::newDrawableInstance)
 
                     if (customDrawable != null) {
                         try {
-                            customDrawable.callback = bgView
+                            if (bgView != null) setWeakCallback(customDrawable, bgView)
                             val drawableField = getCachedField(drawableFieldCache, bgViewClass, "drawable")
-                            drawableField?.set(chain.thisObject, customDrawable)
+                                ?: return@intercept null
+                            drawableField.set(chain.thisObject, customDrawable)
                         } catch (e: Exception) {
                             logError(module, "Reflection set drawable failed: ${e.message}")
                         }
@@ -350,10 +353,12 @@ object IslandBackgroundHook : BaseHook() {
                     val bgView = chain.thisObject
                     try {
                         val alphaField = getCachedField(backgroundAlphaFieldCache, bgViewClass, "backgroundAlpha")
-                        alphaField?.setFloat(bgView, 1.0f)
+                            ?: return@intercept chain.proceed()
+                        alphaField.setFloat(bgView, 1.0f)
 
                         val scheduleMethod = getCachedMethod(scheduleUpdateMethodCache, bgViewClass, "scheduleUpdate")
-                        scheduleMethod?.invoke(bgView)
+                            ?: return@intercept chain.proceed()
+                        scheduleMethod.invoke(bgView)
                     } catch (e: Exception) {
                         logError(module, "alphaAnimation override failed: ${e.message}, falling back")
                         chain.proceed()
@@ -473,9 +478,10 @@ object IslandBackgroundHook : BaseHook() {
         customDrawable: Drawable
     ) {
         try {
-            customDrawable.callback = bgView
-            val drawableField = getCachedField(drawableFieldCache, bgViewClass, "drawable")
-            drawableField?.set(bgView, customDrawable)
+            val drawable = newDrawableInstance(customDrawable)
+            setWeakCallback(drawable, bgView)
+            val drawableField = getCachedField(drawableFieldCache, bgViewClass, "drawable") ?: return
+            drawableField.set(bgView, drawable)
         } catch (e: Exception) {
             logError(module, "applyDrawable failed: ${e.message}")
         }
@@ -668,12 +674,13 @@ object IslandBackgroundHook : BaseHook() {
     }
 
     private fun isBlurEnabledForType(type: IslandType): Boolean {
+        cachedBlurEnabled[type]?.let { return it }
         val blurKey = when (type) {
             IslandType.SMALL -> KEY_SMALL_BLUR_ENABLED
             IslandType.BIG -> KEY_BIG_BLUR_ENABLED
             IslandType.EXPAND -> KEY_EXPAND_BLUR_ENABLED
         }
-        return ConfigManager.getBoolean(blurKey, false)
+        return ConfigManager.getBoolean(blurKey, false).also { cachedBlurEnabled[type] = it }
     }
 
     /**
@@ -769,19 +776,11 @@ object IslandBackgroundHook : BaseHook() {
         if (cachedDrawable == null || currentModified != cachedModified || cachedPath != configPath) {
             synchronized(this) {
                 if (cachedDrawables[type] == null || currentModified != (lastFileModified[type] ?: 0L) || lastConfigPath[type] != configPath) {
-                    val old = cachedDrawables[type]
                     val drawable = decodeFile(file, context, module, stokeWidth)
                     if (drawable != null) {
                         cachedDrawables[type] = drawable
                         lastFileModified[type] = currentModified
                         lastConfigPath[type] = configPath
-                    }
-                    if (old is RoundedClippingDrawable) {
-                        if (!old.bitmap.isRecycled) old.bitmap.recycle()
-                    } else if (old is RoundedClippingAnimatedDrawable) {
-                        old.release()
-                    } else if (old is BitmapDrawable) {
-                        old.bitmap?.recycle()
                     }
                 }
             }
@@ -888,6 +887,17 @@ object IslandBackgroundHook : BaseHook() {
                 val size = info.size
                 gifWidth = size.width
                 gifHeight = size.height
+                val displayMetrics = android.content.res.Resources.getSystem().displayMetrics
+                val maxTargetSize = TypedValue.applyDimension(
+                    TypedValue.COMPLEX_UNIT_DIP, 200f, displayMetrics
+                ).toInt().coerceAtLeast(512)
+                val largest = maxOf(gifWidth, gifHeight)
+                if (largest > maxTargetSize) {
+                    val scale = maxTargetSize.toFloat() / largest
+                    gifWidth = (gifWidth * scale).toInt().coerceAtLeast(1)
+                    gifHeight = (gifHeight * scale).toInt().coerceAtLeast(1)
+                    decoder.setTargetSize(gifWidth, gifHeight)
+                }
                 decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
             }
             if (drawable is AnimatedImageDrawable) {
@@ -931,27 +941,41 @@ object IslandBackgroundHook : BaseHook() {
 
     private fun calculateInSampleSize(srcW: Int, srcH: Int, dstW: Int, dstH: Int): Int {
         var inSampleSize = 1
-        if (srcW > dstW || srcH > dstH) {
-            val halfW = srcW / 2
-            val halfH = srcH / 2
-            while (halfW / inSampleSize >= dstW && halfH / inSampleSize >= dstH) {
-                inSampleSize *= 2
-            }
+        while (maxOf(srcW / inSampleSize, srcH / inSampleSize) > maxOf(dstW, dstH)) {
+            inSampleSize *= 2
         }
         return inSampleSize
+    }
+
+    private fun setWeakCallback(drawable: Drawable, view: View) {
+        drawable.callback = WeakDrawableCallback(view)
+    }
+
+    private fun newDrawableInstance(drawable: Drawable): Drawable {
+        return if (drawable is RoundedClippingDrawable) drawable.newDrawable() else drawable
+    }
+
+    private class WeakDrawableCallback(view: View) : Drawable.Callback {
+        private val view = WeakReference(view)
+
+        override fun invalidateDrawable(who: Drawable) {
+            view.get()?.invalidateDrawable(who)
+        }
+
+        override fun scheduleDrawable(who: Drawable, what: Runnable, `when`: Long) {
+            view.get()?.scheduleDrawable(who, what, `when`)
+        }
+
+        override fun unscheduleDrawable(who: Drawable, what: Runnable) {
+            view.get()?.unscheduleDrawable(who, what)
+        }
     }
 
     override fun onConfigChanged() {
         synchronized(this) {
             cachedDrawables.values.forEach { drawable ->
+                if (drawable is RoundedClippingAnimatedDrawable) drawable.stop()
                 drawable.callback = null
-                if (drawable is RoundedClippingDrawable) {
-                    if (!drawable.bitmap.isRecycled) drawable.bitmap.recycle()
-                } else if (drawable is RoundedClippingAnimatedDrawable) {
-                    drawable.release()
-                } else if (drawable is BitmapDrawable) {
-                    drawable.bitmap?.recycle()
-                }
             }
             cachedDrawables.clear()
             lastFileModified.clear()
@@ -961,6 +985,7 @@ object IslandBackgroundHook : BaseHook() {
         // ★ 清除性能缓存，下次调用时重新计算
         cachedAnyCustomBg = null
         cachedBgAvailability.clear()
+        cachedBlurEnabled.clear()
         cachedCornerRadius = null
         stokeWidthFieldCache.clear()
         drawableFieldCache.clear()
@@ -976,6 +1001,10 @@ object IslandBackgroundHook : BaseHook() {
         private val cornerRadius: Float,
         private val stokeWidth: Int = 0
     ) : Drawable() {
+
+        fun newDrawable(): RoundedClippingDrawable {
+            return RoundedClippingDrawable(bitmap, cornerRadius, stokeWidth)
+        }
 
         private val clipPath = Path()
         private val rect = RectF()
@@ -1069,10 +1098,12 @@ object IslandBackgroundHook : BaseHook() {
             }
         }
 
+        fun stop() {
+            if (child is AnimatedImageDrawable) child.stop()
+        }
+
         fun release() {
-            if (child is AnimatedImageDrawable) {
-                child.stop()
-            }
+            stop()
             child.callback = null
             callback = null
         }
