@@ -92,13 +92,24 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
   }
 
   Future<void> _disableBlurForExistingBackgrounds() async {
-    if (_ctrl.islandBgSmallPath.isNotEmpty && _ctrl.islandBlurSmallEnabled) {
+    if (_hasAnyBackground) {
+      await _disableAllBlur();
+    }
+  }
+
+  bool get _hasAnyBackground =>
+      _ctrl.islandBgSmallPath.isNotEmpty ||
+      _ctrl.islandBgBigPath.isNotEmpty ||
+      _ctrl.islandBgExpandPath.isNotEmpty;
+
+  Future<void> _disableAllBlur() async {
+    if (_ctrl.islandBlurSmallEnabled) {
       await _setBlurEnabled(_IslandBlurType.small, false);
     }
-    if (_ctrl.islandBgBigPath.isNotEmpty && _ctrl.islandBlurBigEnabled) {
+    if (_ctrl.islandBlurBigEnabled) {
       await _setBlurEnabled(_IslandBlurType.big, false);
     }
-    if (_ctrl.islandBgExpandPath.isNotEmpty && _ctrl.islandBlurExpandEnabled) {
+    if (_ctrl.islandBlurExpandEnabled) {
       await _setBlurEnabled(_IslandBlurType.expand, false);
     }
   }
@@ -123,14 +134,6 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     };
   }
 
-  Future<void> _disableBlurForBackground(IslandBgType type) {
-    return _setBlurEnabled(switch (type) {
-      IslandBgType.small => _IslandBlurType.small,
-      IslandBgType.big => _IslandBlurType.big,
-      IslandBgType.expand => _IslandBlurType.expand,
-    }, false);
-  }
-
   Future<void> _pickIslandBackground(IslandBgType type) async {
     final l10n = AppLocalizations.of(context)!;
     final sourcePath = await IslandBackgroundService.pickImage();
@@ -142,7 +145,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
         type,
       );
       if (savedPath != null && mounted) {
-        await _disableBlurForBackground(type);
+        await _disableAllBlur();
         if (!mounted) return;
         imageCache.evict(FileImage(File(savedPath)));
         setState(() {});
@@ -168,7 +171,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
       type,
     );
     if (savedPath != null && mounted) {
-      await _disableBlurForBackground(type);
+      await _disableAllBlur();
       if (!mounted) return;
       imageCache.evict(FileImage(File(savedPath)));
       setState(() {});
@@ -603,10 +606,11 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                         enabled: _ctrl.islandBlurSmallEnabled,
                         radius: _ctrl.islandBlurSmallRadius,
                         color: _ctrl.islandBlurSmallColor,
-                        blockedByBackground: _ctrl.islandBgSmallPath.isNotEmpty,
-                        onTap: _ctrl.islandBgSmallPath.isEmpty
-                            ? () => _showIslandBlurDialog(_IslandBlurType.small)
-                            : null,
+                        blockedByBackground: _hasAnyBackground,
+                        onTap: _hasAnyBackground
+                            ? null
+                            : () =>
+                                  _showIslandBlurDialog(_IslandBlurType.small),
                       ),
                       const Divider(height: 1, indent: 16, endIndent: 16),
                       _IslandBlurTile(
@@ -614,10 +618,10 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                         enabled: _ctrl.islandBlurBigEnabled,
                         radius: _ctrl.islandBlurBigRadius,
                         color: _ctrl.islandBlurBigColor,
-                        blockedByBackground: _ctrl.islandBgBigPath.isNotEmpty,
-                        onTap: _ctrl.islandBgBigPath.isEmpty
-                            ? () => _showIslandBlurDialog(_IslandBlurType.big)
-                            : null,
+                        blockedByBackground: _hasAnyBackground,
+                        onTap: _hasAnyBackground
+                            ? null
+                            : () => _showIslandBlurDialog(_IslandBlurType.big),
                       ),
                       const Divider(height: 1, indent: 16, endIndent: 16),
                       _IslandBlurTile(
@@ -625,12 +629,11 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                         enabled: _ctrl.islandBlurExpandEnabled,
                         radius: _ctrl.islandBlurExpandRadius,
                         color: _ctrl.islandBlurExpandColor,
-                        blockedByBackground:
-                            _ctrl.islandBgExpandPath.isNotEmpty,
-                        onTap: _ctrl.islandBgExpandPath.isEmpty
-                            ? () =>
-                                  _showIslandBlurDialog(_IslandBlurType.expand)
-                            : null,
+                        blockedByBackground: _hasAnyBackground,
+                        onTap: _hasAnyBackground
+                            ? null
+                            : () =>
+                                  _showIslandBlurDialog(_IslandBlurType.expand),
                         isLast: true,
                       ),
                     ],
