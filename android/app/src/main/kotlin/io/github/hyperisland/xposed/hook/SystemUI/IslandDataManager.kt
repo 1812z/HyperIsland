@@ -1,10 +1,8 @@
 package io.github.hyperisland.xposed.hook
 
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.database.ContentObserver
 import android.hardware.display.DisplayManager
 import android.net.Uri
 import android.os.BatteryManager
@@ -36,18 +34,23 @@ object IslandDataManager {
     const val MODE_GPU_FREQUENCY = "gpu_frequency"
 
     @Volatile private var appContext: Context? = null
-    @Volatile private var receiverRegistered = false
     @Volatile private var battery = BatterySnapshot()
     @Volatile private var cpu = CpuSnapshot()
     @Volatile private var memory = MemorySnapshot()
     @Volatile private var gpu = GpuSnapshot()
     @Volatile private var weather = WeatherSnapshot()
-    @Volatile private var lastPowerRefreshAt = 0L
-    @Volatile private var lastSystemRefreshAt = 0L
+    @Volatile private var lastBatteryBroadcastRefreshAt = 0L
+    @Volatile private var lastBatteryCurrentRefreshAt = 0L
+    @Volatile private var lastBatteryVoltageRefreshAt = 0L
+    @Volatile private var lastCpuUsageRefreshAt = 0L
+    @Volatile private var lastCpuTemperatureRefreshAt = 0L
+    @Volatile private var lastMemoryRefreshAt = 0L
+    @Volatile private var lastGpuUsageRefreshAt = 0L
+    @Volatile private var lastGpuFrequencyRefreshAt = 0L
+    @Volatile private var lastWeatherRefreshAt = 0L
     @Volatile private var lastCpuTimes: CpuTimes? = null
-    @Volatile private var lastRegisterFailed = false
     @Volatile private var notifyScheduled = false
-    @Volatile private var weatherInitialized = false
+    @Volatile private var weatherRefreshScheduled = false
     private val listeners = ConcurrentHashMap.newKeySet<() -> Unit>()
     private val mainHandler = Handler(Looper.getMainLooper())
     private val weatherThread by lazy {
@@ -58,61 +61,11 @@ object IslandDataManager {
     fun register(context: Context) {
         val ctx = context.applicationContext ?: context
         appContext = ctx
-        readStickyBatteryIntent(ctx)?.let { updateBatterySnapshot(it) }
-        refresh(ctx)
-        if (receiverRegistered || lastRegisterFailed) return
-        synchronized(this) {
-            if (receiverRegistered || lastRegisterFailed) return
-            val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
-            runCatching {
-                val sticky = if (Build.VERSION.SDK_INT >= 33) {
-                    ctx.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
-                } else {
-                    @Suppress("DEPRECATION")
-                    ctx.registerReceiver(receiver, filter)
-                }
-                sticky?.let { updateBatterySnapshot(it) }
-                receiverRegistered = true
-            }.onFailure {
-                lastRegisterFailed = true
-            }
-        }
     }
 
-    fun refresh() {
-        appContext?.let { refresh(it) }
-    }
-
-    fun refresh(context: Context) {
+    fun cacheBatteryStatus(status: Any?, modes: Set<String>) {
         runCatching {
-            val now = System.currentTimeMillis()
-            if (now - lastPowerRefreshAt < POWER_REFRESH_INTERVAL_MS) return
-            lastPowerRefreshAt = now
-
-            readStickyBatteryIntent(context)?.let { updateBatterySnapshot(it) }
-            refreshSystemSnapshot()
-            val old = battery
-            val sysfs = readSysfsBatterySnapshot()
-            val managerCurrent = readBatteryManagerCurrent(context)
-            val current = sysfs.currentMicroAmp ?: managerCurrent
-            if (current == null && sysfs.voltageMilliVolt == null) return
-            setBattery(
-                old.copy(
-                    voltageMilliVolt = sysfs.voltageMilliVolt ?: old.voltageMilliVolt,
-                    voltageSource = sysfs.voltageSource ?: old.voltageSource,
-                    currentMicroAmp = current ?: old.currentMicroAmp,
-                    currentSource = when {
-                        sysfs.currentMicroAmp != null -> sysfs.currentSource
-                        managerCurrent != null -> "BatteryManager"
-                        else -> old.currentSource
-                    },
-                ),
-            )
-        }
-    }
-
-    fun cacheBatteryStatus(status: Any?) {
-        runCatching {
+            if (MODE_LEVEL !in modes) return
             if (status == null) return
             val levelNumber = readNumber(status, "level") ?: callNumber(status, "getLevel")
             val level = levelNumber?.toDouble() ?: return
@@ -120,28 +73,34 @@ object IslandDataManager {
         }
     }
 
-    fun cacheBatteryBundle(bundle: android.os.Bundle?) {
+    fun cacheBatteryBundle(bundle: android.os.Bundle?, modes: Set<String>) {
         runCatching {
             if (bundle == null) return
-            val level = readBundleNumber(bundle, "level", "batteryLevel", "battery_level", "chargeLevel")
-            val voltage = readBundleNumber(bundle, "voltage", "batteryVoltage", "battery_voltage")
-            val current = readBundleNumber(bundle, "current", "batteryCurrent", "battery_current", "currentNow")
-            val temperature = readBundleNumber(bundle, "temperature", "batteryTemperature", "battery_temperature")
             var next = battery
-            level?.let { next = next.copy(levelPercent = it.toDouble(), levelText = formatLevel(it.toDouble())) }
-            voltage?.let { value ->
-                normalizeVoltageToMilliVolt(value)?.let {
-                    next = next.copy(voltageMilliVolt = it, voltageSource = "charge_bundle")
+            if (MODE_LEVEL in modes) {
+                readBundleNumber(bundle, "level", "batteryLevel", "battery_level", "chargeLevel")?.let {
+                    next = next.copy(levelPercent = it.toDouble(), levelText = formatLevel(it.toDouble()))
                 }
             }
-            current?.let { value ->
-                normalizeCurrentToMicroAmp(value)?.let {
-                    next = next.copy(currentMicroAmp = it, currentSource = "charge_bundle")
+            if (MODE_VOLTAGE in modes || MODE_POWER in modes) {
+                readBundleNumber(bundle, "voltage", "batteryVoltage", "battery_voltage")?.let { value ->
+                    normalizeVoltageToMilliVolt(value)?.let {
+                        next = next.copy(voltageMilliVolt = it, voltageSource = "charge_bundle")
+                    }
                 }
             }
-            temperature?.let { value ->
-                normalizeTemperatureToDeciCelsius(value)?.let {
-                    next = next.copy(temperatureCentiCelsius = it)
+            if (MODE_CURRENT in modes || MODE_POWER in modes) {
+                readBundleNumber(bundle, "current", "batteryCurrent", "battery_current", "currentNow")?.let { value ->
+                    normalizeCurrentToMicroAmp(value)?.let {
+                        next = next.copy(currentMicroAmp = it, currentSource = "charge_bundle")
+                    }
+                }
+            }
+            if (MODE_TEMPERATURE in modes) {
+                readBundleNumber(bundle, "temperature", "batteryTemperature", "battery_temperature")?.let { value ->
+                    normalizeTemperatureToDeciCelsius(value)?.let {
+                        next = next.copy(temperatureCentiCelsius = it)
+                    }
                 }
             }
             setBattery(next)
@@ -152,34 +111,64 @@ object IslandDataManager {
 
     fun format(mode: String): String? {
         return runCatching {
-            refresh()
-            val snap = battery
             when (mode) {
-                MODE_POWER -> snap.powerWatt()?.let { String.format(Locale.US, "%.1fW", it) }
-                MODE_VOLTAGE -> snap.voltageMilliVolt?.let { trimNumber(it / 1000.0, 2) + "V" }
-                MODE_CURRENT -> snap.currentMicroAmp?.let { trimNumber(abs(it) / 1000000.0, 2) + "A" }
-                MODE_LEVEL -> snap.levelText?.let { "$it%" }
-                MODE_TEMPERATURE -> snap.temperatureCentiCelsius?.let { trimNumber(it / 10.0, 1) + "°C" }
-                MODE_CPU_USAGE -> cpu.usagePercent?.let { trimNumber(it, 0) + "%" }
-                MODE_MEMORY_USAGE -> memory.usagePercent()?.let { trimNumber(it, 0) + "%" }
-                MODE_MEMORY_USED -> memory.usedKb?.let { formatBytesFromKb(it) }
-                MODE_MEMORY_TOTAL -> memory.totalKb?.let { formatBytesFromKb(it) }
-                MODE_CPU_TEMPERATURE -> cpu.temperatureMilliCelsius?.let { formatTemperatureMilliCelsius(it) }
-                MODE_GPU_USAGE -> gpu.usagePercent?.let { trimNumber(it, 0) + "%" }
-                MODE_GPU_FREQUENCY -> gpu.frequencyHz?.let { formatFrequencyHz(it) }
+                MODE_POWER -> {
+                    refreshBattery(needCurrent = true, needVoltage = true)
+                    battery.powerWatt()?.let { String.format(Locale.US, "%.1fW", it) }
+                }
+                MODE_VOLTAGE -> {
+                    refreshBattery(needVoltage = true)
+                    battery.voltageMilliVolt?.let { trimNumber(it / 1000.0, 2) + "V" }
+                }
+                MODE_CURRENT -> {
+                    refreshBattery(needCurrent = true)
+                    battery.currentMicroAmp?.let { trimNumber(abs(it) / 1000000.0, 2) + "A" }
+                }
+                MODE_LEVEL -> {
+                    refreshBattery(needBroadcast = true)
+                    battery.levelText?.let { "$it%" }
+                }
+                MODE_TEMPERATURE -> {
+                    refreshBattery(needBroadcast = true)
+                    battery.temperatureCentiCelsius?.let { trimNumber(it / 10.0, 1) + "°C" }
+                }
+                MODE_CPU_USAGE -> {
+                    refreshCpuUsage()
+                    cpu.usagePercent?.let { trimNumber(it, 0) + "%" }
+                }
+                MODE_MEMORY_USAGE -> {
+                    refreshMemory()
+                    memory.usagePercent()?.let { trimNumber(it, 0) + "%" }
+                }
+                MODE_MEMORY_USED -> {
+                    refreshMemory()
+                    memory.usedKb?.let { formatBytesFromKb(it) }
+                }
+                MODE_MEMORY_TOTAL -> {
+                    refreshMemory()
+                    memory.totalKb?.let { formatBytesFromKb(it) }
+                }
+                MODE_CPU_TEMPERATURE -> {
+                    refreshCpuTemperature()
+                    cpu.temperatureMilliCelsius?.let { formatTemperatureMilliCelsius(it) }
+                }
+                MODE_GPU_USAGE -> {
+                    refreshGpuUsage()
+                    gpu.usagePercent?.let { trimNumber(it, 0) + "%" }
+                }
+                MODE_GPU_FREQUENCY -> {
+                    refreshGpuFrequency()
+                    gpu.frequencyHz?.let { formatFrequencyHz(it) }
+                }
                 else -> null
             }
         }.getOrNull()
     }
 
-    fun keepIslandTexts(): Pair<String, String> {
-        return " " to ""
-    }
-
     fun renderExpression(expression: String): String {
         if (expression.isBlank()) return ""
         if (expression.contains(WEATHER_PLACEHOLDER_PREFIX)) {
-            appContext?.let { registerWeatherObserver(it) }
+            refreshWeather()
         }
         val now = Date()
         return PLACEHOLDER_PATTERN.replace(expression) { match ->
@@ -252,51 +241,16 @@ object IslandDataManager {
         listeners.remove(listener)
     }
 
-    private val receiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            if (intent.action == Intent.ACTION_BATTERY_CHANGED) {
-                updateBatterySnapshot(intent)
-                refresh(context)
-            }
+    private fun refreshWeather() {
+        val context = appContext ?: return
+        val now = System.currentTimeMillis()
+        if (weatherRefreshScheduled || now - lastWeatherRefreshAt < DATA_REFRESH_INTERVAL_MS) return
+        lastWeatherRefreshAt = now
+        weatherRefreshScheduled = true
+        weatherHandler.post {
+            readWeatherSnapshot(context)?.let { setWeather(it) }
+            weatherRefreshScheduled = false
         }
-    }
-
-    private val weatherObserver by lazy {
-        object : ContentObserver(weatherHandler) {
-            override fun onChange(selfChange: Boolean) {
-                scheduleWeatherRefresh()
-            }
-
-            override fun onChange(selfChange: Boolean, uri: Uri?) {
-                scheduleWeatherRefresh()
-            }
-        }
-    }
-
-    private val weatherRefreshRunnable = Runnable {
-        val context = appContext ?: return@Runnable
-        readWeatherSnapshot(context)?.let { setWeather(it) }
-    }
-
-    private fun registerWeatherObserver(context: Context) {
-        if (weatherInitialized) return
-        synchronized(this) {
-            if (weatherInitialized) return
-            weatherInitialized = true
-            runCatching {
-                context.contentResolver.registerContentObserver(
-                    WEATHER_URI,
-                    true,
-                    weatherObserver,
-                )
-            }
-        }
-        scheduleWeatherRefresh(0L)
-    }
-
-    private fun scheduleWeatherRefresh(delayMs: Long = WEATHER_REFRESH_DELAY_MS) {
-        weatherHandler.removeCallbacks(weatherRefreshRunnable)
-        weatherHandler.postDelayed(weatherRefreshRunnable, delayMs)
     }
 
     private fun readWeatherSnapshot(context: Context): WeatherSnapshot? = runCatching {
@@ -371,10 +325,49 @@ object IslandDataManager {
         return currentMicroAmp.takeIf { it != Int.MIN_VALUE && it != 0 }
     }
 
-    private fun refreshSystemSnapshot() {
+    private fun refreshBattery(
+        needBroadcast: Boolean = false,
+        needCurrent: Boolean = false,
+        needVoltage: Boolean = false,
+    ) {
+        val context = appContext ?: return
         val now = System.currentTimeMillis()
-        if (now - lastSystemRefreshAt < SYSTEM_REFRESH_INTERVAL_MS) return
-        lastSystemRefreshAt = now
+        if (needBroadcast && now - lastBatteryBroadcastRefreshAt >= DATA_REFRESH_INTERVAL_MS) {
+            lastBatteryBroadcastRefreshAt = now
+            readStickyBatteryIntent(context)?.let { updateBatterySnapshot(it) }
+        }
+
+        val refreshCurrent = needCurrent && now - lastBatteryCurrentRefreshAt >= DATA_REFRESH_INTERVAL_MS
+        val refreshVoltage = needVoltage && now - lastBatteryVoltageRefreshAt >= DATA_REFRESH_INTERVAL_MS
+        if (!refreshCurrent && !refreshVoltage) return
+        if (refreshCurrent) lastBatteryCurrentRefreshAt = now
+        if (refreshVoltage) lastBatteryVoltageRefreshAt = now
+
+        val old = battery
+        val sysfs = readSysfsBatterySnapshot(refreshCurrent, refreshVoltage)
+        val managerCurrent = if (refreshCurrent && sysfs.currentMicroAmp == null) {
+            readBatteryManagerCurrent(context)
+        } else {
+            null
+        }
+        setBattery(
+            old.copy(
+                voltageMilliVolt = sysfs.voltageMilliVolt ?: old.voltageMilliVolt,
+                voltageSource = sysfs.voltageSource ?: old.voltageSource,
+                currentMicroAmp = sysfs.currentMicroAmp ?: managerCurrent ?: old.currentMicroAmp,
+                currentSource = when {
+                    sysfs.currentMicroAmp != null -> sysfs.currentSource
+                    managerCurrent != null -> "BatteryManager"
+                    else -> old.currentSource
+                },
+            ),
+        )
+    }
+
+    private fun refreshCpuUsage() {
+        val now = System.currentTimeMillis()
+        if (now - lastCpuUsageRefreshAt < DATA_REFRESH_INTERVAL_MS) return
+        lastCpuUsageRefreshAt = now
         readCpuTimes()?.let { current ->
             val previous = lastCpuTimes
             lastCpuTimes = current
@@ -382,14 +375,30 @@ object IslandDataManager {
                 val totalDelta = current.total - previous.total
                 val idleDelta = current.idle - previous.idle
                 if (totalDelta > 0L && idleDelta >= 0L) {
-                    setCpu(CpuSnapshot(((totalDelta - idleDelta).toDouble() * 100.0 / totalDelta).coerceIn(0.0, 100.0)))
+                    setCpu(
+                        cpu.copy(
+                            usagePercent = ((totalDelta - idleDelta).toDouble() * 100.0 / totalDelta)
+                                .coerceIn(0.0, 100.0),
+                        ),
+                    )
                 }
             }
         }
+    }
+
+    private fun refreshCpuTemperature() {
+        val now = System.currentTimeMillis()
+        if (now - lastCpuTemperatureRefreshAt < DATA_REFRESH_INTERVAL_MS) return
+        lastCpuTemperatureRefreshAt = now
         readCpuTemperatureMilliCelsius()?.let { temperature ->
             setCpu(cpu.copy(temperatureMilliCelsius = temperature))
         }
-        readGpuSnapshot()?.let { setGpu(it) }
+    }
+
+    private fun refreshMemory() {
+        val now = System.currentTimeMillis()
+        if (now - lastMemoryRefreshAt < DATA_REFRESH_INTERVAL_MS) return
+        lastMemoryRefreshAt = now
         readMemorySnapshot()?.let { setMemory(it) }
     }
 
@@ -464,18 +473,21 @@ object IslandDataManager {
         null
     }.getOrNull()
 
-    private fun readGpuSnapshot(): GpuSnapshot? = runCatching {
-        val usage = readGpuUsagePercent()
-        val frequency = readFirstLong(GPU_FREQUENCY_PATHS)?.let { normalizeFrequencyHz(it) }
-        if (usage == null && frequency == null) {
-            null
-        } else {
-            gpu.copy(
-                usagePercent = usage ?: gpu.usagePercent,
-                frequencyHz = frequency ?: gpu.frequencyHz,
-            )
-        }
-    }.getOrNull()
+    private fun refreshGpuUsage() {
+        val now = System.currentTimeMillis()
+        if (now - lastGpuUsageRefreshAt < DATA_REFRESH_INTERVAL_MS) return
+        lastGpuUsageRefreshAt = now
+        readGpuUsagePercent()?.let { setGpu(gpu.copy(usagePercent = it)) }
+    }
+
+    private fun refreshGpuFrequency() {
+        val now = System.currentTimeMillis()
+        if (now - lastGpuFrequencyRefreshAt < DATA_REFRESH_INTERVAL_MS) return
+        lastGpuFrequencyRefreshAt = now
+        readFirstLong(GPU_FREQUENCY_PATHS)
+            ?.let { normalizeFrequencyHz(it) }
+            ?.let { setGpu(gpu.copy(frequencyHz = it)) }
+    }
 
     private fun readGpuUsagePercent(): Double? {
         readFirstNumber(GPU_BUSY_PERCENT_PATHS)?.let { return it.coerceIn(0.0, 100.0) }
@@ -492,33 +504,60 @@ object IslandDataManager {
         return null
     }
 
-    private fun readSysfsBatterySnapshot(): SysfsBatterySnapshot {
+    private fun readSysfsBatterySnapshot(needCurrent: Boolean, needVoltage: Boolean): SysfsBatterySnapshot {
+        var snapshot = SysfsBatterySnapshot()
         SYSFS_POWER_SUPPLY_NAMES.forEach { name ->
             val dir = File("/sys/class/power_supply/$name")
-            val fromUevent = readPowerSupplyUevent(dir, name)
-            if (fromUevent.currentMicroAmp != null || fromUevent.voltageMilliVolt != null) return fromUevent
+            val fromUevent = readPowerSupplyUevent(
+                dir,
+                name,
+                needCurrent && snapshot.currentMicroAmp == null,
+                needVoltage && snapshot.voltageMilliVolt == null,
+            )
 
-            val current = readLongFile(File(dir, "current_now"))
-            val voltage = readLongFile(File(dir, "voltage_now"))
-            if (current != null || voltage != null) {
-                return SysfsBatterySnapshot(
-                    currentMicroAmp = current?.toIntOrNull(),
-                    currentSource = current?.let { "$name/current_now" },
-                    voltageMilliVolt = voltage?.toMilliVoltOrNull(),
-                    voltageSource = voltage?.let { "$name/voltage_now" },
-                )
+            val current = if (needCurrent && snapshot.currentMicroAmp == null && fromUevent.currentMicroAmp == null) {
+                readLongFile(File(dir, "current_now"))
+            } else {
+                null
             }
+            val voltage = if (needVoltage && snapshot.voltageMilliVolt == null && fromUevent.voltageMilliVolt == null) {
+                readLongFile(File(dir, "voltage_now"))
+            } else {
+                null
+            }
+            snapshot = snapshot.copy(
+                currentMicroAmp = snapshot.currentMicroAmp ?: fromUevent.currentMicroAmp ?: current?.toIntOrNull(),
+                currentSource = snapshot.currentSource ?: fromUevent.currentSource ?: current?.let { "$name/current_now" },
+                voltageMilliVolt = snapshot.voltageMilliVolt ?: fromUevent.voltageMilliVolt ?: voltage?.toMilliVoltOrNull(),
+                voltageSource = snapshot.voltageSource ?: fromUevent.voltageSource ?: voltage?.let { "$name/voltage_now" },
+            )
+            if ((!needCurrent || snapshot.currentMicroAmp != null) &&
+                (!needVoltage || snapshot.voltageMilliVolt != null)
+            ) return snapshot
         }
-        return SysfsBatterySnapshot()
+        return snapshot
     }
 
-    private fun readPowerSupplyUevent(dir: File, name: String): SysfsBatterySnapshot {
+    private fun readPowerSupplyUevent(
+        dir: File,
+        name: String,
+        needCurrent: Boolean,
+        needVoltage: Boolean,
+    ): SysfsBatterySnapshot {
         val values = readKeyValueFile(File(dir, "uevent"))
-        val current = values["POWER_SUPPLY_CURRENT_NOW"]
-            ?: values["POWER_SUPPLY_BATT_CURRENT_NOW"]
-            ?: values["POWER_SUPPLY_CONSTANT_CHARGE_CURRENT"]
-        val voltage = values["POWER_SUPPLY_VOLTAGE_NOW"]
-            ?: values["POWER_SUPPLY_BATT_VOLTAGE_NOW"]
+        val current = if (needCurrent) {
+            values["POWER_SUPPLY_CURRENT_NOW"]
+                ?: values["POWER_SUPPLY_BATT_CURRENT_NOW"]
+                ?: values["POWER_SUPPLY_CONSTANT_CHARGE_CURRENT"]
+        } else {
+            null
+        }
+        val voltage = if (needVoltage) {
+            values["POWER_SUPPLY_VOLTAGE_NOW"]
+                ?: values["POWER_SUPPLY_BATT_VOLTAGE_NOW"]
+        } else {
+            null
+        }
         return SysfsBatterySnapshot(
             currentMicroAmp = current?.toIntOrNull(),
             currentSource = current?.let { "$name/uevent" },
@@ -789,7 +828,6 @@ object IslandDataManager {
         "/sys/devices/platform/kgsl-3d0.0/kgsl/kgsl-3d0/gpubusy",
     )
     private val GPU_FREQUENCY_PATHS = listOf(
-        "/sys/class/kgsl/kgsl-3d0/gpuclk",
         "/sys/class/kgsl/kgsl-3d0/devfreq/cur_freq",
         "/sys/class/devfreq/kgsl-3d0/cur_freq",
         "/sys/class/devfreq/1c00000.qcom,kgsl-3d0/cur_freq",
@@ -804,8 +842,6 @@ object IslandDataManager {
             names.forEach { name -> add(File(framebuffer, name)) }
         }.filter { it.isFile && it.canRead() }
     }
-    private const val POWER_REFRESH_INTERVAL_MS = 1000L
-    private const val SYSTEM_REFRESH_INTERVAL_MS = 1000L
+    private const val DATA_REFRESH_INTERVAL_MS = 1000L
     private const val NOTIFY_INTERVAL_MS = 1000L
-    private const val WEATHER_REFRESH_DELAY_MS = 200L
 }

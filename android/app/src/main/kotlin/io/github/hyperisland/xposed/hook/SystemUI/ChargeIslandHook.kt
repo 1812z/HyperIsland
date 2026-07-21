@@ -125,9 +125,12 @@ object ChargeIslandHook : BaseHook() {
                 module.hook(method).intercept { chain ->
                     val model = chain.proceed()
                     if (ConfigManager.getBoolean(PREF_ENABLED, false)) {
-                        IslandDataManager.cacheBatteryBundle(chain.args.getOrNull(0) as? Bundle)
-                        IslandDataManager.cacheBatteryStatus(chain.args.getOrNull(2))
-                        IslandDataManager.refresh()
+                        val modes = setOf(
+                            ConfigManager.getString(PREF_LEFT_MODE, MODE_DEFAULT),
+                            ConfigManager.getString(PREF_RIGHT_MODE, MODE_DEFAULT),
+                        )
+                        IslandDataManager.cacheBatteryBundle(chain.args.getOrNull(0) as? Bundle, modes)
+                        IslandDataManager.cacheBatteryStatus(chain.args.getOrNull(2), modes)
                         replaceChargeModel(model, module) ?: model
                     } else {
                         model

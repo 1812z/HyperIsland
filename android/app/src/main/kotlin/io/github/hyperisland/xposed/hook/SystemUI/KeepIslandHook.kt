@@ -339,7 +339,6 @@ object KeepIslandHook : BaseHook() {
         try {
             val highlightColor = ConfigManager.getString(PREF_KEY_HIGHLIGHT_COLOR, "")
                 .takeIf { it.isNotBlank() }
-            IslandDataManager.refresh(context)
             val texts: Pair<String, String> = resolveKeepIslandTexts()
             val focusEnabled = ConfigManager.getBoolean(PREF_KEY_FOCUS_NOTIFICATION, false)
             val focusTexts = resolveFocusNotificationTexts()
@@ -517,7 +516,6 @@ object KeepIslandHook : BaseHook() {
         periodicDataUpdateRunnable = Runnable {
             val ctx = appContext
             if (ctx != null && posted && shouldShowKeepIsland(ctx) && hasConfiguredKeepIslandContent()) {
-                IslandDataManager.refresh(ctx)
                 updateKeepIslandContent(ctx)
                 mainHandler.postDelayed(periodicDataUpdateRunnable!!, DATA_UPDATE_INTERVAL_MS)
             } else {
