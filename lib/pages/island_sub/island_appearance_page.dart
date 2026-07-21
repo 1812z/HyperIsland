@@ -268,30 +268,40 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                         : null,
                   ),
                 ),
-                ColorValueField(
-                  controller: colorController,
-                  enabled: enabled,
-                  decoration: InputDecoration(
-                    labelText: l10n.islandBlurBlendColor,
-                    border: const OutlineInputBorder(),
-                    isDense: true,
-                  ),
-                  previewColor: parseHexColor(color),
-                  previewFallbackColor: Theme.of(context).colorScheme.primary,
-                  onChanged: (value) =>
-                      setDialogState(() => color = value.trim()),
-                  onPickColor: () async {
-                    final selected = await showColorPickerDialog(
-                      context,
-                      initialHex: color,
-                      title: l10n.islandBlurBlendColor,
-                    );
-                    if (selected != null) {
-                      final hex = colorToArgbHex(selected);
-                      colorController.text = hex;
-                      setDialogState(() => color = hex);
-                    }
-                  },
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.islandBlurBlendColor,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 6),
+                    ColorValueField(
+                      controller: colorController,
+                      enabled: enabled,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                      previewColor: parseHexColor(color),
+                      previewFallbackColor:
+                          Theme.of(context).colorScheme.primary,
+                      onChanged: (value) =>
+                          setDialogState(() => color = value.trim()),
+                      onPickColor: () async {
+                        final selected = await showColorPickerDialog(
+                          context,
+                          initialHex: color,
+                          title: l10n.islandBlurBlendColor,
+                        );
+                        if (selected != null) {
+                          final hex = colorToArgbHex(selected);
+                          colorController.text = hex;
+                          setDialogState(() => color = hex);
+                        }
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),
