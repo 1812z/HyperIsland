@@ -401,7 +401,7 @@ class MainActivity : FlutterActivity() {
 
     fun isModuleActive(): Boolean {
         if (!XposedPrefsSyncApp.awaitReady()) return false
-        if (!XposedPrefsSyncApp.getFrameworkName().equals(REQUIRED_FRAMEWORK_NAME, ignoreCase = true)) return false
+        //if (!XposedPrefsSyncApp.getFrameworkName().equals(REQUIRED_FRAMEWORK_NAME, ignoreCase = true)) return false
         if (!isFrameworkVersionSupported(XposedPrefsSyncApp.getFrameworkVersion())) return false
 
         return try {
@@ -454,7 +454,7 @@ class MainActivity : FlutterActivity() {
     private companion object {
         const val PERM_GET_INSTALLED_APPS = "com.android.permission.GET_INSTALLED_APPS"
         const val PERM_MANAGER_MIUI       = "com.lbe.security.miui"
-        const val REQUIRED_FRAMEWORK_NAME = "LSPosed"
+        //const val REQUIRED_FRAMEWORK_NAME = "LSPosed"
         const val REQUIRED_FRAMEWORK_MAJOR = 2
         const val REQUIRED_FRAMEWORK_MINOR = 0
         const val REQUIRED_SYSTEM_UI_PACKAGE = "com.android.systemui"
