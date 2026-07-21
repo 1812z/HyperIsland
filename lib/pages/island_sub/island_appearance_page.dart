@@ -46,6 +46,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _ctrl.islandBlurExpandRadius,
     _ctrl.islandBlurExpandColor,
     _ctrl.islandTextColorMode,
+    _ctrl.focusNotificationTextColorMode,
     _ctrl.alwaysShowIslandOutline,
     _ctrl.alwaysShowFocusOutline,
   ]);
@@ -656,72 +657,40 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                 Card(
                   elevation: 0,
                   color: cs.surfaceContainerHighest,
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 4,
-                    ),
-                    title: Text(l10n.islandTextColorTitle, style: titleStyle),
-                    trailing: DropdownButton<String>(
-                      value: _ctrl.islandTextColorMode,
-                      underline: const SizedBox.shrink(),
-                      items: [
-                        DropdownMenuItem(
-                          value: kIslandTextColorDefault,
-                          child: Text(
-                            _textColorModeLabel(l10n, kIslandTextColorDefault),
-                          ),
+                  child: Column(
+                    children: [
+                      ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
                         ),
-                        DropdownMenuItem(
-                          value: kIslandTextColorBlack,
-                          child: Text(
-                            _textColorModeLabel(l10n, kIslandTextColorBlack),
-                          ),
+                        title: Text(
+                          l10n.islandTextColorTitle,
+                          style: titleStyle,
                         ),
-                        DropdownMenuItem(
-                          value: kIslandTextColorFollowBackground,
-                          child: Text(
-                            _textColorModeLabel(
-                              l10n,
-                              kIslandTextColorFollowBackground,
-                            ),
-                          ),
+                        trailing: _buildTextColorDropdown(
+                          l10n,
+                          _ctrl.islandTextColorMode,
+                          _ctrl.setIslandTextColorMode,
                         ),
-                        DropdownMenuItem(
-                          value: kIslandTextColorInvertBackground,
-                          child: Text(
-                            _textColorModeLabel(
-                              l10n,
-                              kIslandTextColorInvertBackground,
-                            ),
-                          ),
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
                         ),
-                        DropdownMenuItem(
-                          value: kIslandTextColorFollowStatusBar,
-                          child: Text(
-                            _textColorModeLabel(
-                              l10n,
-                              kIslandTextColorFollowStatusBar,
-                            ),
-                          ),
+                        title: Text(
+                          l10n.focusNotificationTextColorTitle,
+                          style: titleStyle,
                         ),
-                        DropdownMenuItem(
-                          value: kIslandTextColorInvertStatusBar,
-                          child: Text(
-                            _textColorModeLabel(
-                              l10n,
-                              kIslandTextColorInvertStatusBar,
-                            ),
-                          ),
+                        trailing: _buildTextColorDropdown(
+                          l10n,
+                          _ctrl.focusNotificationTextColorMode,
+                          _ctrl.setFocusNotificationTextColorMode,
                         ),
-                      ],
-                      onChanged: InteractionHaptics.interceptDropdown<String>((
-                        value,
-                      ) {
-                        if (value == null) return;
-                        _ctrl.setIslandTextColorMode(value);
-                      }),
-                    ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -791,6 +760,54 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildTextColorDropdown(
+    AppLocalizations l10n,
+    String value,
+    ValueChanged<String> onChanged,
+  ) {
+    return DropdownButton<String>(
+      value: value,
+      underline: const SizedBox.shrink(),
+      items: [
+        DropdownMenuItem(
+          value: kIslandTextColorDefault,
+          child: Text(_textColorModeLabel(l10n, kIslandTextColorDefault)),
+        ),
+        DropdownMenuItem(
+          value: kIslandTextColorBlack,
+          child: Text(_textColorModeLabel(l10n, kIslandTextColorBlack)),
+        ),
+        DropdownMenuItem(
+          value: kIslandTextColorFollowBackground,
+          child: Text(
+            _textColorModeLabel(l10n, kIslandTextColorFollowBackground),
+          ),
+        ),
+        DropdownMenuItem(
+          value: kIslandTextColorInvertBackground,
+          child: Text(
+            _textColorModeLabel(l10n, kIslandTextColorInvertBackground),
+          ),
+        ),
+        DropdownMenuItem(
+          value: kIslandTextColorFollowStatusBar,
+          child: Text(
+            _textColorModeLabel(l10n, kIslandTextColorFollowStatusBar),
+          ),
+        ),
+        DropdownMenuItem(
+          value: kIslandTextColorInvertStatusBar,
+          child: Text(
+            _textColorModeLabel(l10n, kIslandTextColorInvertStatusBar),
+          ),
+        ),
+      ],
+      onChanged: InteractionHaptics.interceptDropdown<String>((next) {
+        if (next != null) onChanged(next);
+      }),
     );
   }
 

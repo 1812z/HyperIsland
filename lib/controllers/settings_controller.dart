@@ -89,6 +89,8 @@ const kPrefIslandBlurExpandColor = 'pref_island_blur_expand_color';
 const kPrefIslandHeight = 'pref_island_height';
 const kPrefIslandTopOffset = 'pref_island_top_offset';
 const kPrefIslandTextColorMode = 'pref_island_text_color_mode';
+const kPrefFocusNotificationTextColorMode =
+    'pref_focus_notification_text_color_mode';
 const kPrefAlwaysShowIslandOutline = 'pref_always_show_island_outline';
 const kPrefAlwaysShowFocusOutline = 'pref_always_show_focus_outline';
 const kPrefKeepIsland = 'pref_keep_island';
@@ -269,6 +271,7 @@ class SettingsController extends ChangeNotifier {
   double islandHeight = 0;
   double islandTopOffset = 0;
   String islandTextColorMode = kIslandTextColorDefault;
+  String focusNotificationTextColorMode = kIslandTextColorDefault;
   bool alwaysShowIslandOutline = false;
   bool alwaysShowFocusOutline = false;
   bool keepIsland = false;
@@ -438,6 +441,9 @@ class SettingsController extends ChangeNotifier {
     islandTopOffset = prefs.getDouble(kPrefIslandTopOffset) ?? 0;
     islandTextColorMode = _normalizeIslandTextColorMode(
       prefs.getString(kPrefIslandTextColorMode),
+    );
+    focusNotificationTextColorMode = _normalizeIslandTextColorMode(
+      prefs.getString(kPrefFocusNotificationTextColorMode),
     );
     alwaysShowIslandOutline =
         prefs.getBool(kPrefAlwaysShowIslandOutline) ?? false;
@@ -1289,6 +1295,19 @@ class SettingsController extends ChangeNotifier {
       await prefs.setString(kPrefIslandTextColorMode, normalized);
     }
     islandTextColorMode = normalized;
+    notifyListeners();
+  }
+
+  Future<void> setFocusNotificationTextColorMode(String value) async {
+    final normalized = _normalizeIslandTextColorMode(value);
+    if (focusNotificationTextColorMode == normalized) return;
+    final prefs = await _getPrefs();
+    if (normalized == kIslandTextColorDefault) {
+      await prefs.remove(kPrefFocusNotificationTextColorMode);
+    } else {
+      await prefs.setString(kPrefFocusNotificationTextColorMode, normalized);
+    }
+    focusNotificationTextColorMode = normalized;
     notifyListeners();
   }
 

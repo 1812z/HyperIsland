@@ -3821,6 +3821,12 @@ abstract class AppLocalizations {
   /// **'超级岛文本颜色'**
   String get islandTextColorTitle;
 
+  /// No description provided for @focusNotificationTextColorTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'焦点通知文本颜色'**
+  String get focusNotificationTextColorTitle;
+
   /// No description provided for @islandTextColorBlack.
   ///
   /// In zh, this message translates to:

@@ -772,6 +772,7 @@
   "alwaysShowIslandOutlineTitle": "Always show island outline",
   "alwaysShowFocusOutlineTitle": "Always show Focus Notification outline",
   "islandTextColorTitle": "Island Text Color",
+  "focusNotificationTextColorTitle": "Focus Notification Text Color",
   "islandTextColorBlack": "Black",
   "islandTextColorFollowBackground": "Follow island background",
   "islandTextColorInvertBackground": "Invert island background",

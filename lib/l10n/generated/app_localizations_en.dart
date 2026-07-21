@@ -2079,6 +2079,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get islandTextColorTitle => 'Island Text Color';
 
   @override
+  String get focusNotificationTextColorTitle => 'Focus Notification Text Color';
+
+  @override
   String get islandTextColorBlack => 'Black';
 
   @override

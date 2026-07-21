@@ -2093,6 +2093,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get islandTextColorTitle => '超级岛文本颜色';
 
   @override
+  String get focusNotificationTextColorTitle => '焦点通知文本颜色';
+
+  @override
   String get islandTextColorBlack => '黑色';
 
   @override

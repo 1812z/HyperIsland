@@ -924,6 +924,7 @@
   "alwaysShowIslandOutlineTitle": "常驻显示岛轮廓",
   "alwaysShowFocusOutlineTitle": "常驻显示焦点通知轮廓",
   "islandTextColorTitle": "超级岛文本颜色",
+  "focusNotificationTextColorTitle": "焦点通知文本颜色",
   "islandTextColorBlack": "黑色",
   "islandTextColorFollowBackground": "跟随岛背景",
   "islandTextColorInvertBackground": "反跟随岛背景",
