@@ -66,6 +66,13 @@ DynamicIslandExpandedView (id=expanded_view)
 
 `expanded_view` 可能在 ViewStub inflate 后才存在。它也可能在状态已经回到 `BIG` 时被 SystemUI 再次测量或布局，因此不能只根据 View 类名判断它当前是否应该启用焦点模糊，还要检查所属 `DynamicIslandContentView.state`。
 
+需要区分“形状/遮罩参考 View”和“最终外层 Drawable 宿主”：
+
+- `expanded_view` 是焦点稳定态的真实内容 View，也是类型和圆角参考。
+- HyperIsland 自定义焦点图片最终写入 `DynamicIslandBackgroundView.drawable`，不写入 `expanded_view`。
+- HyperIsland 焦点 BlurDrawable 也最终写入同一个 `DynamicIslandBackgroundView.drawable`，不写入 `expanded_view`。
+- 图片和模糊共享同一个外层 Drawable 槽位，因此同一类型按设计互斥；存在自定义焦点背景时不会创建焦点 BlurDrawable。
+
 实机曾观察到：
 
 ```text
@@ -189,6 +196,16 @@ fakeExpandedView.addView(dynamicIslandData.fakeView)
 ```
 
 因此 `fake_expanded_view` 是过渡期展开/焦点内容和背景的实际宿主，不是普通的稳定状态 `expanded_view`。
+
+这里的“背景宿主”指 SystemUI 自己通过 `updateBackgroundBg(fakeExpandedView, ...)` 设置的内层 stock background、MiBlur 和 BlendColor。当前 HyperIsland 实现没有把自定义焦点图片或 `BackgroundBlurDrawable` 设置到 `fake_expanded_view`：
+
+```text
+稳定态自定义焦点背景 -> DynamicIslandBackgroundView.drawable
+稳定态焦点实时模糊   -> DynamicIslandBackgroundView.drawable
+过渡态 fake 内容/系统遮罩 -> fake_expanded_view
+```
+
+`onTrackingFakeViewStart()` 会隐藏真实 `DynamicIslandBackgroundView` 和真实内容 View，动画结束后 `updateExpandedFakeViewToReal()` 才重新显示它们。因此当前代码在 fake 动画期间只是清理可能盖住外层效果的系统 fake 遮罩，并没有把自定义图片或 BlurDrawable 迁移到 fake View。若动画期间观察到焦点自定义背景/模糊消失，这属于宿主切换造成的现有限制，不能把稳定态宿主误记为 `fake_expanded_view`。
 
 ## 5. fake 层几何和圆角
 
@@ -363,6 +380,10 @@ DynamicIslandBackgroundView.onDraw() 动态设置 bounds 并绘制
 
 当前 Hook 保留 fake View 的生命周期和内容动画，但清理 fake 根层、fake 三种内容容器、`fakeContainer` 和 `fake_island_mask` 的 stock background、MiBlur mode 与 BlendColor，避免它们叠在外层实时模糊上形成黑块。不会删除整个 `DynamicIslandContentFakeView`。
 
+该清理只能在至少一种实时模糊启用时执行。`updateFakeViewAnimState()`、`onFinishInflate()` 和 `setVisibility(VISIBLE)` 即使未启用模块背景功能也会由 SystemUI 正常调用，因此这些 Hook 入口不能无条件清空 fake background 或隐藏 `fake_island_mask`。三种模糊全部关闭时，`IslandBlurHook` 必须保留系统纯黑过渡遮罩并对 fake 层零修改；自定义图片的遮罩处理继续由 `IslandBackgroundHook` 按类型负责。
+
+`DynamicIslandBackgroundView.onDraw()` 也不能在当前实例没有 active `OuterBlur` 时被跳过。外层系统纯黑 Drawable 正是由该方法绘制；跳过后只剩内层 MiBlur/BlendColor，视觉上会成为灰色岛。inactive 实例必须始终执行原始 `onDraw()`，只有 active 实例需要先把 `drawable` 字段纠正为对应 BlurDrawable。
+
 ## 8. 圆角
 
 ### 8.1 小岛和大岛
@@ -426,6 +447,8 @@ getSmallIslandView()
 getBigIslandView()
 updateBackgroundBg(view, false)
 ```
+
+该调用不是 SystemUI 在每次 `updateDarkLightMode()` 后必然执行的原始流程，而是模糊 Hook 为安装外层 BlurDrawable 追加的刷新。因此只能在目标类型的 `BlurConfig.isActive=true` 时调用。若模糊全关仍主动调用，支持背景模糊的设备会进入 SystemUI 的 MiBlur 分支：设置 blur mode 和 BlendColor、清空 View background，结果是仅加载 Hook 就把原生纯黑岛变成灰色。
 
 主动刷新必须检查内容实例当前状态，只刷新匹配类型：
 
@@ -555,6 +578,14 @@ fake_expanded_view -> 过渡层，不是稳定 EXPAND
 
 再检查类名。否则类名包含 `ExpandedView` 的 fake/包装 View 可能被误判。
 
+### 13.6 功能全关时缺少纯黑遮罩
+
+检查两条路径：
+
+- `IslandBlurHook.applyTransitionBlur()` 是否在 `anyBlurEnabled=false` 时仍清空 fake 根层和子 View background，或隐藏 `fake_island_mask`。这些过渡回调始终会运行，清理函数必须自行检查模糊总开关。
+- `IslandBlurHook.hookBackgroundDrawing()` 是否在当前背景实例没有 active `OuterBlur` 时跳过原始 `onDraw()`。这会删除外层纯黑 Drawable，只留下灰色 MiBlur/BlendColor。
+- `IslandBlurHook.hookIslandState()` 是否在对应模糊关闭时仍主动调用具体 View 的 `updateBackgroundBg()`。这是额外调用，不是透明观察；它会让 SystemUI 重新配置 MiBlur 和 BlendColor。
+
 ## 14. 调试日志建议
 
 稳定状态更新至少记录：
@@ -616,6 +647,9 @@ Mini Window 手势
 8. 多岛按具体 `DynamicIslandBackgroundView` 实例隔离 `OuterBlur`。
 9. SystemUI 不一定主动刷新小岛和大岛背景，必要时要调用具体 getter 和 `updateBackgroundBg()`。
 10. 普通内部子 View BlurDrawable 可能扩大到整个 ViewRoot，不能用于本实现。
+11. 三种模糊全部关闭时不得清理 fake 层，系统纯黑过渡遮罩必须完整保留。
+12. inactive 背景实例必须执行 SystemUI 原始 `onDraw()`；不得通过跳过外层绘制来清理内层遮罩。
+13. 主动 `updateBackgroundBg()` 只允许用于 active 模糊类型；模糊全关时不得追加任何背景刷新。
 
 ## 16. 信息来源和可信度
 
