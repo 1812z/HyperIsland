@@ -97,7 +97,9 @@ object IslandBlurHook : BaseHook() {
             }
         }
         mainHandler.removeCallbacks(refreshRunnable)
-        mainHandler.postDelayed(refreshRunnable, 80L)
+        if (anyBlurEnabled) {
+            mainHandler.postDelayed(refreshRunnable, 80L)
+        }
     }
 
     private fun loadConfig() {
@@ -286,7 +288,7 @@ object IslandBlurHook : BaseHook() {
             }
             try {
                 val result = chain.proceed()
-                if (type != null) {
+                if (type != null && configForType(type).isActive) {
                     mainHandler.removeCallbacks(refreshRunnable)
                     mainHandler.post(refreshRunnable)
                     mainHandler.post {
@@ -318,6 +320,7 @@ object IslandBlurHook : BaseHook() {
             IslandType.BIG -> "getBigIslandView"
             IslandType.EXPAND -> return
         }
+        if (!configForType(type).isActive) return
         val getter = findMethod(contentView.javaClass, getterName)
         val view = runCatching { getter?.invoke(contentView) as? View }.getOrNull()
         if (view == null) return
@@ -343,8 +346,9 @@ object IslandBlurHook : BaseHook() {
                 }
                 chain.proceed()
             } else {
-                // No active blur yet: suppress the stock black drawable.
-                null
+                // The stock black/custom drawable belongs to SystemUI or the
+                // background hook. Never suppress it for an inactive instance.
+                chain.proceed()
             }
         }
     }
@@ -408,6 +412,7 @@ object IslandBlurHook : BaseHook() {
     }
 
     private fun applyTransitionBlur(fakeView: Any?, methods: BlurMethods, access: TransitionAccess) {
+        if (!anyBlurEnabled) return
         if (fakeView !is View) return
         fakeView.background = null
         access.forEachFakeView(fakeView) { child ->
