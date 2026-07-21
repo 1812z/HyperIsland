@@ -24,8 +24,6 @@ object FocusNotificationTextColorHook : BaseHook() {
 
     private const val MODE_DEFAULT = "default"
     private const val MODE_BLACK = "black"
-    private const val MODE_FOLLOW_BACKGROUND = "follow_background"
-    private const val MODE_INVERT_BACKGROUND = "invert_background"
     private const val MODE_FOLLOW_STATUS_BAR = "follow_status_bar"
     private const val MODE_INVERT_STATUS_BAR = "invert_status_bar"
 
@@ -194,15 +192,10 @@ object FocusNotificationTextColorHook : BaseHook() {
     }
 
     private fun applyOverrideColors(holder: Any) {
-        val mode = ConfigManager.getString(KEY_TEXT_COLOR_MODE, MODE_DEFAULT)
+        val mode = getConfiguredMode()
         if (mode == MODE_DEFAULT) return
 
-        val isDarkBackground = runCatching {
-            holder.javaClass.methods.firstOrNull { method ->
-                method.name == "isDark" && method.parameterTypes.isEmpty()
-            }?.invoke(holder) as? Boolean
-        }.getOrNull() ?: true
-        val color = resolveTextColor(mode, isDarkBackground)
+        val color = resolveTextColor(mode)
         val injected = mutableSetOf<String>()
         val originals = mutableMapOf<String, Any?>()
         val setters = mutableMapOf<String, Method>()
@@ -287,16 +280,13 @@ object FocusNotificationTextColorHook : BaseHook() {
         textView.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
             override fun onViewAttachedToWindow(view: View) {
                 val target = view as? TextView ?: return
-                val mode = ConfigManager.getString(KEY_TEXT_COLOR_MODE, MODE_DEFAULT)
+                val mode = getConfiguredMode()
                 if (mode != MODE_FOLLOW_STATUS_BAR && mode != MODE_INVERT_STATUS_BAR) return
                 if (islandAnimationRunning) {
                     pendingTintRefresh = true
                 } else {
                     val trackedHolder = holderRef.get()
-                    val color = resolveTextColor(
-                        mode,
-                        trackedHolder?.let(::readDarkBackground) ?: true,
-                    )
+                    val color = resolveTextColor(mode)
                     if (trackedHolder != null) applyHolderFieldColors(trackedHolder, color)
                     applyTextColor(target, color)
                 }
@@ -315,15 +305,15 @@ object FocusNotificationTextColorHook : BaseHook() {
                 clearInjectedColors(holder)
                 applyOverrideColors(holder)
                 val fields = injectedFields[holder] ?: return@post
-                val mode = ConfigManager.getString(KEY_TEXT_COLOR_MODE, MODE_DEFAULT)
-                val color = resolveTextColor(mode, readDarkBackground(holder))
+                val mode = getConfiguredMode()
+                val color = resolveTextColor(mode)
                 applyVisibleTextColor(view, fields, color)
             }
         }
     }
 
     private fun refreshInjectedTextColors() {
-        val mode = ConfigManager.getString(KEY_TEXT_COLOR_MODE, MODE_DEFAULT)
+        val mode = getConfiguredMode()
         if (mode != MODE_FOLLOW_STATUS_BAR && mode != MODE_INVERT_STATUS_BAR) return
         val holders = synchronized(trackedHolders) { trackedHolders.toList() }
         holders.forEach { holder ->
@@ -332,8 +322,7 @@ object FocusNotificationTextColorHook : BaseHook() {
                 original.view.get()?.takeIf { it.isAttachedToWindow }?.let { original to it }
             }
             if (views.isEmpty()) return@forEach
-            val isDarkBackground = readDarkBackground(holder)
-            val color = resolveTextColor(mode, isDarkBackground)
+            val color = resolveTextColor(mode)
             applyHolderFieldColors(holder, color)
             views.forEach { (original, textView) ->
                 if (original.field in fields) applyTextColor(textView, color)
@@ -405,11 +394,9 @@ object FocusNotificationTextColorHook : BaseHook() {
         textView.invalidate()
     }
 
-    private fun resolveTextColor(mode: String, isDarkBackground: Boolean): Int {
+    private fun resolveTextColor(mode: String): Int {
         return when (mode) {
             MODE_BLACK -> Color.BLACK
-            MODE_FOLLOW_BACKGROUND -> if (isDarkBackground) Color.WHITE else Color.BLACK
-            MODE_INVERT_BACKGROUND -> if (isDarkBackground) Color.BLACK else Color.WHITE
             MODE_FOLLOW_STATUS_BAR -> IslandTextColorHook.getStatusBarTint()
             MODE_INVERT_STATUS_BAR -> {
                 if (isLightColor(IslandTextColorHook.getStatusBarTint())) Color.BLACK else Color.WHITE
@@ -418,16 +405,15 @@ object FocusNotificationTextColorHook : BaseHook() {
         }
     }
 
-    private fun isLightColor(color: Int): Boolean {
-        return Color.red(color) * 299 + Color.green(color) * 587 + Color.blue(color) * 114 >= 128000
+    private fun getConfiguredMode(): String {
+        return when (val mode = ConfigManager.getString(KEY_TEXT_COLOR_MODE, MODE_DEFAULT)) {
+            MODE_BLACK, MODE_FOLLOW_STATUS_BAR, MODE_INVERT_STATUS_BAR -> mode
+            else -> MODE_DEFAULT
+        }
     }
 
-    private fun readDarkBackground(holder: Any): Boolean {
-        return runCatching {
-            holder.javaClass.methods.firstOrNull { method ->
-                method.name == "isDark" && method.parameterTypes.isEmpty()
-            }?.invoke(holder) as? Boolean
-        }.getOrNull() ?: true
+    private fun isLightColor(color: Int): Boolean {
+        return Color.red(color) * 299 + Color.green(color) * 587 + Color.blue(color) * 114 >= 128000
     }
 
     private fun targetColorField(view: TextView): String? {

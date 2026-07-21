@@ -688,6 +688,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                           l10n,
                           _ctrl.focusNotificationTextColorMode,
                           _ctrl.setFocusNotificationTextColorMode,
+                          includeBackgroundModes: false,
                         ),
                       ),
                     ],
@@ -766,48 +767,80 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
   Widget _buildTextColorDropdown(
     AppLocalizations l10n,
     String value,
-    ValueChanged<String> onChanged,
-  ) {
-    return DropdownButton<String>(
-      value: value,
-      underline: const SizedBox.shrink(),
-      items: [
-        DropdownMenuItem(
+    ValueChanged<String> onChanged, {
+    bool includeBackgroundModes = true,
+  }) {
+    final cs = Theme.of(context).colorScheme;
+    return PopupMenuButton<String>(
+      initialValue: value,
+      color: cs.surfaceContainerHigh,
+      borderRadius: BorderRadius.circular(12),
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: cs.outlineVariant),
+      ),
+      onSelected: InteractionHaptics.interceptDropdown<String>((next) {
+        if (next != null) onChanged(next);
+      }),
+      itemBuilder: (context) => [
+        PopupMenuItem(
           value: kIslandTextColorDefault,
           child: Text(_textColorModeLabel(l10n, kIslandTextColorDefault)),
         ),
-        DropdownMenuItem(
+        PopupMenuItem(
           value: kIslandTextColorBlack,
           child: Text(_textColorModeLabel(l10n, kIslandTextColorBlack)),
         ),
-        DropdownMenuItem(
-          value: kIslandTextColorFollowBackground,
-          child: Text(
-            _textColorModeLabel(l10n, kIslandTextColorFollowBackground),
+        if (includeBackgroundModes) ...[
+          PopupMenuItem(
+            value: kIslandTextColorFollowBackground,
+            child: Text(
+              _textColorModeLabel(l10n, kIslandTextColorFollowBackground),
+            ),
           ),
-        ),
-        DropdownMenuItem(
-          value: kIslandTextColorInvertBackground,
-          child: Text(
-            _textColorModeLabel(l10n, kIslandTextColorInvertBackground),
+          PopupMenuItem(
+            value: kIslandTextColorInvertBackground,
+            child: Text(
+              _textColorModeLabel(l10n, kIslandTextColorInvertBackground),
+            ),
           ),
-        ),
-        DropdownMenuItem(
+        ],
+        PopupMenuItem(
           value: kIslandTextColorFollowStatusBar,
           child: Text(
             _textColorModeLabel(l10n, kIslandTextColorFollowStatusBar),
           ),
         ),
-        DropdownMenuItem(
+        PopupMenuItem(
           value: kIslandTextColorInvertStatusBar,
           child: Text(
             _textColorModeLabel(l10n, kIslandTextColorInvertStatusBar),
           ),
         ),
       ],
-      onChanged: InteractionHaptics.interceptDropdown<String>((next) {
-        if (next != null) onChanged(next);
-      }),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          decoration: BoxDecoration(
+            color: cs.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: cs.outlineVariant),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _textColorModeLabel(l10n, value),
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(width: 10),
+              const Icon(Icons.arrow_drop_down),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

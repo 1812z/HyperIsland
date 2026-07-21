@@ -442,9 +442,16 @@ class SettingsController extends ChangeNotifier {
     islandTextColorMode = _normalizeIslandTextColorMode(
       prefs.getString(kPrefIslandTextColorMode),
     );
-    focusNotificationTextColorMode = _normalizeIslandTextColorMode(
-      prefs.getString(kPrefFocusNotificationTextColorMode),
+    final storedFocusTextColorMode = prefs.getString(
+      kPrefFocusNotificationTextColorMode,
     );
+    focusNotificationTextColorMode = _normalizeFocusTextColorMode(
+      storedFocusTextColorMode,
+    );
+    if (storedFocusTextColorMode != null &&
+        storedFocusTextColorMode != focusNotificationTextColorMode) {
+      await prefs.remove(kPrefFocusNotificationTextColorMode);
+    }
     alwaysShowIslandOutline =
         prefs.getBool(kPrefAlwaysShowIslandOutline) ?? false;
     alwaysShowFocusOutline =
@@ -1299,7 +1306,7 @@ class SettingsController extends ChangeNotifier {
   }
 
   Future<void> setFocusNotificationTextColorMode(String value) async {
-    final normalized = _normalizeIslandTextColorMode(value);
+    final normalized = _normalizeFocusTextColorMode(value);
     if (focusNotificationTextColorMode == normalized) return;
     final prefs = await _getPrefs();
     if (normalized == kIslandTextColorDefault) {
@@ -1536,6 +1543,15 @@ class SettingsController extends ChangeNotifier {
       kIslandTextColorBlack => kIslandTextColorBlack,
       kIslandTextColorFollowBackground => kIslandTextColorFollowBackground,
       kIslandTextColorInvertBackground => kIslandTextColorInvertBackground,
+      kIslandTextColorFollowStatusBar => kIslandTextColorFollowStatusBar,
+      kIslandTextColorInvertStatusBar => kIslandTextColorInvertStatusBar,
+      _ => kIslandTextColorDefault,
+    };
+  }
+
+  String _normalizeFocusTextColorMode(String? value) {
+    return switch (value) {
+      kIslandTextColorBlack => kIslandTextColorBlack,
       kIslandTextColorFollowStatusBar => kIslandTextColorFollowStatusBar,
       kIslandTextColorInvertStatusBar => kIslandTextColorInvertStatusBar,
       _ => kIslandTextColorDefault,
