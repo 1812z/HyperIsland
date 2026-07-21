@@ -285,8 +285,9 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                         isDense: true,
                       ),
                       previewColor: parseHexColor(color),
-                      previewFallbackColor:
-                          Theme.of(context).colorScheme.primary,
+                      previewFallbackColor: Theme.of(
+                        context,
+                      ).colorScheme.primary,
                       onChanged: (value) =>
                           setDialogState(() => color = value.trim()),
                       onPickColor: () async {
@@ -771,72 +772,56 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     bool includeBackgroundModes = true,
   }) {
     final cs = Theme.of(context).colorScheme;
-    return PopupMenuButton<String>(
-      initialValue: value,
-      color: cs.surfaceContainerHigh,
-      borderRadius: BorderRadius.circular(12),
-      clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: cs.outlineVariant),
-      ),
-      onSelected: InteractionHaptics.interceptDropdown<String>((next) {
-        if (next != null) onChanged(next);
-      }),
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: kIslandTextColorDefault,
-          child: Text(_textColorModeLabel(l10n, kIslandTextColorDefault)),
-        ),
-        PopupMenuItem(
-          value: kIslandTextColorBlack,
-          child: Text(_textColorModeLabel(l10n, kIslandTextColorBlack)),
-        ),
-        if (includeBackgroundModes) ...[
-          PopupMenuItem(
-            value: kIslandTextColorFollowBackground,
-            child: Text(
-              _textColorModeLabel(l10n, kIslandTextColorFollowBackground),
-            ),
-          ),
-          PopupMenuItem(
-            value: kIslandTextColorInvertBackground,
-            child: Text(
-              _textColorModeLabel(l10n, kIslandTextColorInvertBackground),
-            ),
-          ),
-        ],
-        PopupMenuItem(
-          value: kIslandTextColorFollowStatusBar,
-          child: Text(
-            _textColorModeLabel(l10n, kIslandTextColorFollowStatusBar),
-          ),
-        ),
-        PopupMenuItem(
-          value: kIslandTextColorInvertStatusBar,
-          child: Text(
-            _textColorModeLabel(l10n, kIslandTextColorInvertStatusBar),
-          ),
-        ),
+    final values = [
+      kIslandTextColorDefault,
+      kIslandTextColorBlack,
+      if (includeBackgroundModes) ...[
+        kIslandTextColorFollowBackground,
+        kIslandTextColorInvertBackground,
       ],
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+      kIslandTextColorFollowStatusBar,
+      kIslandTextColorInvertStatusBar,
+    ];
+    final dropdownWidth = (MediaQuery.sizeOf(context).width * 0.36).clamp(
+      112.0,
+      172.0,
+    );
+
+    return DropdownButtonHideUnderline(
+      child: SizedBox(
+        width: dropdownWidth,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
           decoration: BoxDecoration(
             color: cs.surfaceContainerHigh,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: cs.outlineVariant),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                _textColorModeLabel(l10n, value),
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(width: 10),
-              const Icon(Icons.arrow_drop_down),
+          child: DropdownButton<String>(
+            value: value,
+            isExpanded: true,
+            alignment: Alignment.center,
+            borderRadius: BorderRadius.circular(16),
+            onChanged: InteractionHaptics.interceptDropdown((next) {
+              if (next == null) return;
+              onChanged(next);
+            }),
+            selectedItemBuilder: (context) => [
+              for (final item in values)
+                Center(
+                  child: Text(
+                    _textColorModeLabel(l10n, item),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+            ],
+            items: [
+              for (final item in values)
+                DropdownMenuItem<String>(
+                  value: item,
+                  child: Text(_textColorModeLabel(l10n, item)),
+                ),
             ],
           ),
         ),
