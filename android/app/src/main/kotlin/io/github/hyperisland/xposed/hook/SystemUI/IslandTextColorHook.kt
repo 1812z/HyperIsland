@@ -1,13 +1,16 @@
 package io.github.hyperisland.xposed.hook
 
 import android.graphics.Color
+import android.text.Spanned
 import android.widget.TextView
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.util.Collections
+import java.lang.reflect.Method
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.WeakHashMap
 
@@ -31,9 +34,17 @@ object IslandTextColorHook : BaseHook() {
     private val defaultTextViews = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<TextView, Boolean>())
     )
+    private val resolvedTextEffectViews = Collections.synchronizedSet(
+        Collections.newSetFromMap(WeakHashMap<TextView, Boolean>())
+    )
+    private val textEffectAccessors = Collections.synchronizedMap(
+        WeakHashMap<TextView, TextEffectAccessors>()
+    )
+    private val statusBarTintListeners = CopyOnWriteArrayList<(Int) -> Unit>()
 
     @Volatile private var isRegionDark = true
     @Volatile private var statusBarTint = Color.WHITE
+    @Volatile private var dispatchedStatusBarTint = Color.WHITE
 
     override fun getTag() = TAG
 
@@ -45,6 +56,12 @@ object IslandTextColorHook : BaseHook() {
 
     override fun onConfigChanged() {
         applyTextColorToTrackedViews()
+    }
+
+    fun getStatusBarTint(): Int = statusBarTint
+
+    fun addStatusBarTintListener(listener: (Int) -> Unit) {
+        statusBarTintListeners.addIfAbsent(listener)
     }
 
     private fun hookClasses(module: XposedModule, classLoader: ClassLoader) {
@@ -102,7 +119,7 @@ object IslandTextColorHook : BaseHook() {
                         val text = chain.args.getOrNull(3) as? String
                         if (textView != null && text != null) {
                             defaultTextViews.add(textView)
-                            applyTextColor(textView, text, resolveDefaultTextColor(mode))
+                            applyTextColor(textView, resolveDefaultTextColor(mode))
                         }
                     }
                     result
@@ -137,7 +154,9 @@ object IslandTextColorHook : BaseHook() {
             runCatching {
                 val statusTextClass = classLoader.loadClass(className)
                 statusTextClass.declaredMethods
-                    .filter { method -> method.name == "onDarkChanged" || method.name == "onLightDarkTintChanged" }
+                    .filter { method ->
+                        method.name == "onDarkChanged" || method.name == "onLightDarkTintChanged"
+                    }
                     .forEach { method ->
                         module.hook(method).intercept { chain ->
                             val result = chain.proceed()
@@ -220,6 +239,13 @@ object IslandTextColorHook : BaseHook() {
         if (statusBarTint == nextTint) return
         statusBarTint = nextTint
         applyTextColorToTrackedViews()
+        val readableTint = if (isLightColor(nextTint)) Color.WHITE else Color.BLACK
+        if (dispatchedStatusBarTint != readableTint) {
+            dispatchedStatusBarTint = readableTint
+            statusBarTintListeners.forEach { listener ->
+                runCatching { listener(readableTint) }
+            }
+        }
     }
 
     private fun isStatusBarTextView(textView: TextView): Boolean {
@@ -241,26 +267,62 @@ object IslandTextColorHook : BaseHook() {
         val color = resolveDefaultTextColor(mode)
         val views = synchronized(defaultTextViews) { defaultTextViews.toList() }
         views.forEach { textView ->
-            val text = textView.text?.toString() ?: return@forEach
-            applyTextColor(textView, text, color)
+            applyTextColor(textView, color)
         }
     }
 
-    private fun applyTextColor(textView: TextView, text: String, color: Int) {
-        runCatching {
-            val updateMethod = textView.javaClass.methods.firstOrNull { candidate ->
-                candidate.name == "updateTextWithNewAppearance" && candidate.parameterTypes.size == 2
-            }
-            if (updateMethod != null) {
-                updateMethod.invoke(textView, text, color)
-            } else {
-                textView.setTextColor(color)
-                textView.text = text
-            }
-        }.onFailure {
+    private fun applyTextColor(textView: TextView, color: Int) {
+        val accessors = resolveTextEffectAccessors(textView)
+        if (accessors == null) {
+            if (textView.currentTextColor == color) return
             textView.setTextColor(color)
+            return
+        }
+
+        val spanned = textView.text as? Spanned
+        val spans = if (spanned != null) {
+            spanned.getSpans(0, spanned.length, accessors.spanClass)
+        } else {
+            emptyArray()
+        }
+        if (spanned == null || spans.isEmpty()) {
+            textView.setTextColor(color)
+            return
+        }
+        if (runCatching {
+                accessors.setAppearance.invoke(spans[0], spanned, color)
+            }.isFailure
+        ) {
+            textView.setTextColor(color)
+            return
+        }
+        textView.setTextColor(color)
+        textView.invalidate()
+    }
+
+    private fun resolveTextEffectAccessors(textView: TextView): TextEffectAccessors? {
+        if (resolvedTextEffectViews.contains(textView)) return textEffectAccessors[textView]
+        resolvedTextEffectViews.add(textView)
+        textView.javaClass.methods.firstOrNull { method ->
+            method.name == "updateTextWithNewAppearance" && method.parameterTypes.size == 2
+        } ?: return null
+        val spanClass = runCatching {
+            textView.javaClass.classLoader.loadClass(
+                "miuix.colorful.texteffect.TimerTextEffectSpan"
+            )
+        }.getOrNull() ?: return null
+        val setAppearance = spanClass.methods.firstOrNull { method ->
+            method.name == "setOldTextAppearance" && method.parameterTypes.size == 2
+        } ?: return null
+        return TextEffectAccessors(spanClass, setAppearance).also { accessors ->
+            textEffectAccessors[textView] = accessors
         }
     }
+
+    private data class TextEffectAccessors(
+        val spanClass: Class<*>,
+        val setAppearance: Method,
+    )
 
     private val STATUS_BAR_TEXT_CLASSES = setOf(
         "com.android.systemui.statusbar.policy.Clock",
@@ -273,4 +335,5 @@ object IslandTextColorHook : BaseHook() {
         "com.android.systemui.statusbar.views.MiuiBatteryMeterView",
         "com.android.systemui.statusbar.views.NetworkSpeedView",
     )
+
 }
