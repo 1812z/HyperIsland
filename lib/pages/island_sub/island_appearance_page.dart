@@ -237,8 +237,8 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                   child: Slider(
                     value: radius.toDouble(),
                     min: 0,
-                    max: 275,
-                    divisions: 55,
+                    max: 100,
+                    divisions: 100,
                     onChanged: enabled
                         ? (value) =>
                               setDialogState(() => radius = value.round())
