@@ -516,7 +516,16 @@ object IslandBlurHook : BaseHook() {
             val outer = if (current?.owned?.type == type) {
                 current
             } else {
-                val stock = current?.stockDrawable ?: drawableField.get(backgroundView) as? Drawable
+                // A shared background view changes ownership between SMALL/BIG/EXPAND.
+                // Never carry the previous owner's stroke into the new state.
+                val stock = if (current == null) {
+                    drawableField.get(backgroundView) as? Drawable
+                } else {
+                    IslandOutlineHook.stockOutlineFor(
+                        drawableField.get(backgroundView) as? Drawable,
+                        type.name,
+                    )
+                }
                 val owned = createBackgroundBlurDrawable(backgroundView, type)
                     ?: return@runCatching false
                 current?.release()
@@ -529,9 +538,10 @@ object IslandBlurHook : BaseHook() {
                 IslandOutlineHook.releaseOutline(outer.renderDrawable)
                 outer.renderDrawable.callback = null
                 outer.renderDrawable = IslandOutlineHook.withOutline(
-                    backgroundView,
                     outer.owned.drawable,
+                    outer.stockDrawable,
                     type == IslandType.EXPAND,
+                    type.name,
                 )
             }
             drawableField.set(backgroundView, outer.renderDrawable)
@@ -545,11 +555,39 @@ object IslandBlurHook : BaseHook() {
         }.onFailure {
             val failed = outerBlurs.remove(backgroundView)
             failed?.release()
-            if (failed != null) {
+            if (failed?.stockDrawable != null) {
                 runCatching { drawableField.set(backgroundView, failed.stockDrawable) }
                 backgroundView.invalidate()
             }
         }.getOrDefault(false)
+    }
+
+    internal fun updateStockOutline(
+        backgroundView: Any?,
+        stockDrawable: Drawable?,
+        typeName: String?,
+    ): Boolean {
+        val view = backgroundView as? View ?: return false
+        val stock = stockDrawable ?: return false
+        val outer = outerBlurs[view] ?: return false
+        if (typeName == null || outer.owned.type.name != typeName) return false
+        outer.stockDrawable = stock
+        if (!outer.active) return false
+
+        IslandOutlineHook.releaseOutline(outer.renderDrawable)
+        outer.renderDrawable.callback = null
+        outer.renderDrawable = IslandOutlineHook.withOutline(
+            outer.owned.drawable,
+            stock,
+            outer.owned.type == IslandType.EXPAND,
+            outer.owned.type.name,
+        )
+        runCatching { outer.drawableField.set(view, outer.renderDrawable) }
+        if (outer.renderDrawable.callback == null) {
+            outer.renderDrawable.callback = WeakViewDrawableCallback(view)
+        }
+        view.invalidate()
+        return true
     }
 
     private fun deactivateOuterBlur(
@@ -558,7 +596,9 @@ object IslandBlurHook : BaseHook() {
     ) {
         val outer = outerBlurs[backgroundView] ?: return
         runCatching { outer.owned.methods.setRadius.invoke(outer.owned.effectDrawable, 0) }
-        if (runCatching { drawableField.get(backgroundView) }.getOrNull() === outer.renderDrawable) {
+        if (outer.stockDrawable != null &&
+            runCatching { drawableField.get(backgroundView) }.getOrNull() === outer.renderDrawable
+        ) {
             runCatching { drawableField.set(backgroundView, outer.stockDrawable) }
         }
         outer.owned.active = false
@@ -762,7 +802,7 @@ object IslandBlurHook : BaseHook() {
 
     private class OuterBlur(
         val owned: OwnedBlur,
-        val stockDrawable: Drawable?,
+        var stockDrawable: Drawable?,
         val drawableField: java.lang.reflect.Field,
         var active: Boolean = false,
     ) {

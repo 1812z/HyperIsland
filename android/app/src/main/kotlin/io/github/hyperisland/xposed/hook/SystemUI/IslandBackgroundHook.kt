@@ -221,10 +221,6 @@ object IslandBackgroundHook : BaseHook() {
 
                 val type = getCurrentIslandType()
                 val bgView = chain.thisObject as? View
-                IslandOutlineHook.rememberStockOutline(
-                    chain.thisObject,
-                    chain.args.getOrNull(0) as? Drawable,
-                )
 
                 if (type != null && shouldOwnOuterDrawable(type)) {
                     val context = try { bgView?.context } catch (_: Exception) { null }
@@ -239,9 +235,10 @@ object IslandBackgroundHook : BaseHook() {
                             val drawableField = getCachedField(drawableFieldCache, bgViewClass, "drawable")
                                 ?: return@intercept null
                             val renderDrawable = IslandOutlineHook.withOutline(
-                                chain.thisObject,
                                 customDrawable,
+                                chain.args.getOrNull(0) as? Drawable,
                                 type == IslandType.EXPAND,
+                                type.name,
                             )
                             if (bgView != null) setWeakCallback(renderDrawable, bgView)
                             drawableField.set(chain.thisObject, renderDrawable)
@@ -499,10 +496,12 @@ object IslandBackgroundHook : BaseHook() {
         try {
             val drawable = newDrawableInstance(customDrawable)
             val drawableField = getCachedField(drawableFieldCache, bgViewClass, "drawable") ?: return
+            val stockDrawable = drawableField.get(bgView) as? Drawable
             val renderDrawable = IslandOutlineHook.withOutline(
-                bgView,
                 drawable,
+                stockDrawable,
                 type == IslandType.EXPAND,
+                type.name,
             )
             setWeakCallback(renderDrawable, bgView)
             drawableField.set(bgView, renderDrawable)
@@ -547,6 +546,32 @@ object IslandBackgroundHook : BaseHook() {
             module,
             drawable,
         )
+    }
+
+    internal fun updateStockOutline(
+        backgroundView: Any?,
+        stockDrawable: Drawable?,
+        typeName: String?,
+    ) {
+        val view = backgroundView as? View ?: return
+        val stock = stockDrawable ?: return
+        val type = getCurrentIslandType() ?: return
+        if (type.name != typeName) return
+        val drawableField = getCachedField(
+            drawableFieldCache,
+            view.javaClass,
+            "drawable",
+        ) ?: return
+        val current = runCatching { drawableField.get(view) as? Drawable }.getOrNull()
+        val updated = IslandOutlineHook.refreshOutline(
+            current,
+            stock,
+            type == IslandType.EXPAND,
+            type.name,
+        ) ?: return
+        setWeakCallback(updated, view)
+        runCatching { drawableField.set(view, updated) }
+        view.invalidate()
     }
 
     /**

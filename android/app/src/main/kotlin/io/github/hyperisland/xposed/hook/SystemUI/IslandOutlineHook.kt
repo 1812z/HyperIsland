@@ -8,6 +8,7 @@ import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.BaseHook
+import io.github.hyperisland.xposed.hook.IslandBackgroundHook
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
@@ -34,9 +35,8 @@ object IslandOutlineHook : BaseHook() {
         Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>()),
     )
     private val invokingOriginal = ThreadLocal<Boolean>()
-    private val stockOutlines = Collections.synchronizedMap(
-        WeakHashMap<Any, Drawable>(),
-    )
+    private val capturingStockDrawable = ThreadLocal<Boolean>()
+    private val capturedStockDrawable = ThreadLocal<Drawable>()
     @Volatile private var alwaysShowIslandOutline = false
     @Volatile private var alwaysShowFocusOutline = false
 
@@ -83,6 +83,10 @@ object IslandOutlineHook : BaseHook() {
 
     private fun hookMedianLuma(module: XposedModule, contentViewClass: Class<*>) {
         val isExpandedMethod = contentViewClass.getMethod("isExpanded")
+        val backgroundViewField = contentViewClass.getDeclaredField("backgroundView").apply {
+            isAccessible = true
+        }
+        val stateField = contentViewClass.getDeclaredField("state").apply { isAccessible = true }
         contentViewClass.declaredMethods
             .filter { method ->
                 method.name == "updateMedianLuma" &&
@@ -95,7 +99,13 @@ object IslandOutlineHook : BaseHook() {
                     ) {
                         return@intercept chain.proceed()
                     }
-                    invokeWithArgs(method, chain.thisObject, arrayOf(0f))
+                    invokeAndRefreshOutline(
+                        method,
+                        chain.thisObject,
+                        backgroundViewField,
+                        arrayOf(0f),
+                        outlineType(runCatching { stateField.get(chain.thisObject) }.getOrNull()),
+                    )
                 }
                 log(module, "hooked updateMedianLuma")
             }
@@ -103,6 +113,9 @@ object IslandOutlineHook : BaseHook() {
 
     private fun hookDarkLightMode(module: XposedModule, contentViewClass: Class<*>) {
         val isExpandedMethod = contentViewClass.getMethod("isExpanded")
+        val backgroundViewField = contentViewClass.getDeclaredField("backgroundView").apply {
+            isAccessible = true
+        }
         contentViewClass.declaredMethods
             .filter { method ->
                 method.name == "updateDarkLightMode" &&
@@ -121,9 +134,16 @@ object IslandOutlineHook : BaseHook() {
                         return@intercept chain.proceed()
                     }
                     val args = chain.args.toTypedArray()
-                    // false selects the drawable branch that owns the island stroke.
+                    // Select the SystemUI drawable branch that owns the stroke. The
+                    // captured drawable remains scoped to this exact state update.
                     args[2] = false
-                    invokeWithArgs(method, chain.thisObject, args)
+                    invokeAndRefreshOutline(
+                        method,
+                        chain.thisObject,
+                        backgroundViewField,
+                        args,
+                        outlineType(chain.args.getOrNull(0)),
+                    )
                 }
                 log(module, "hooked updateDarkLightMode")
             }
@@ -132,32 +152,77 @@ object IslandOutlineHook : BaseHook() {
     private fun hookStockDrawable(module: XposedModule, backgroundViewClass: Class<*>) {
         val method = backgroundViewClass.getDeclaredMethod("setDrawable", Drawable::class.java)
         module.hook(method).intercept { chain ->
-            val result = chain.proceed()
-            rememberStockOutline(chain.thisObject, chain.args.getOrNull(0) as? Drawable)
-            result
+            if (capturingStockDrawable.get() == true) {
+                (chain.args.getOrNull(0) as? Drawable)?.let(capturedStockDrawable::set)
+            }
+            chain.proceed()
         }
         log(module, "hooked background setDrawable")
     }
 
-    internal fun rememberStockOutline(backgroundView: Any, drawable: Drawable?) {
-        val stock = drawable as? GradientDrawable ?: return
-        val outline = stock.constantState?.newDrawable()?.mutate() as? GradientDrawable ?: return
-        // Keep SystemUI's stroke and shape, but let replacement backgrounds show through.
-        outline.setColor(Color.TRANSPARENT)
-        stockOutlines[backgroundView] = outline
-    }
-
-    /** Adds the stock SystemUI stroke to a drawable installed by another island hook. */
+    /** Adds the current stock SystemUI stroke to a replacement drawable. */
     internal fun withOutline(
-        backgroundView: Any,
         replacement: Drawable,
+        stockDrawable: Drawable?,
         isExpanded: Boolean,
+        typeName: String? = null,
     ): Drawable {
         if (!isEnabledForState(isExpanded)) return replacement
-        val cachedOutline = synchronized(stockOutlines) { stockOutlines[backgroundView] }
+        // Only consume a fresh SystemUI drawable, never an outline from a previous wrapper.
+        val stock = stockDrawable as? GradientDrawable ?: return replacement
+        val outline = stock.constantState?.newDrawable()?.mutate() as? GradientDrawable
             ?: return replacement
-        val outline = cachedOutline.constantState?.newDrawable()?.mutate() ?: return replacement
-        return OutlineDrawable(replacement, outline)
+        outline.setColor(Color.TRANSPARENT)
+        return OutlineDrawable(replacement, outline, typeName)
+    }
+
+    internal fun refreshOutline(
+        drawable: Drawable?,
+        stockDrawable: Drawable,
+        isExpanded: Boolean,
+        typeName: String?,
+    ): Drawable? {
+        val current = drawable as? OutlineDrawable ?: return null
+        if (typeName == null || current.typeName != typeName) return null
+        val fill = current.fill
+        val alpha = current.alpha
+        current.release()
+        return withOutline(fill, stockDrawable, isExpanded, typeName).apply { this.alpha = alpha }
+    }
+
+    internal fun stockOutlineFor(drawable: Drawable?, typeName: String): Drawable? {
+        val current = drawable as? OutlineDrawable ?: return null
+        return current.outline.takeIf { current.typeName == typeName }
+    }
+
+    private fun invokeAndRefreshOutline(
+        method: Method,
+        contentView: Any?,
+        backgroundViewField: java.lang.reflect.Field,
+        args: Array<Any?>,
+        type: OutlineType?,
+    ) {
+        capturedStockDrawable.remove()
+        capturingStockDrawable.set(true)
+        try {
+            invokeWithArgs(method, contentView, args)
+            val backgroundView = runCatching { backgroundViewField.get(contentView) }.getOrNull()
+            val handledByBlur = IslandBlurHook.updateStockOutline(
+                backgroundView,
+                capturedStockDrawable.get(),
+                type?.name,
+            )
+            if (!handledByBlur) {
+                IslandBackgroundHook.updateStockOutline(
+                    backgroundView,
+                    capturedStockDrawable.get(),
+                    type?.name,
+                )
+            }
+        } finally {
+            capturingStockDrawable.remove()
+            capturedStockDrawable.remove()
+        }
     }
 
     internal fun isOutlineEnabled(isExpanded: Boolean): Boolean = isEnabledForState(isExpanded)
@@ -169,11 +234,7 @@ object IslandOutlineHook : BaseHook() {
     }
 
     private fun shouldAlwaysShow(contentView: Any?, isExpandedMethod: Method): Boolean {
-        if (contentView == null) return false
-        val isExpanded = runCatching {
-            isExpandedMethod.invoke(contentView) as Boolean
-        }.getOrDefault(false)
-        return isEnabledForState(isExpanded)
+        return isEnabledForState(isExpanded(contentView, isExpandedMethod))
     }
 
     private fun shouldAlwaysShowForState(
@@ -181,9 +242,31 @@ object IslandOutlineHook : BaseHook() {
         isExpandedMethod: Method,
         state: Any?,
     ): Boolean {
-        val isExpanded = state?.javaClass?.simpleName?.contains("Expanded")
-        return if (isExpanded != null) isEnabledForState(isExpanded)
-        else shouldAlwaysShow(contentView, isExpandedMethod)
+        return isEnabledForState(isExpandedForState(contentView, isExpandedMethod, state))
+    }
+
+    private fun isExpanded(contentView: Any?, isExpandedMethod: Method): Boolean {
+        if (contentView == null) return false
+        return runCatching { isExpandedMethod.invoke(contentView) as Boolean }.getOrDefault(false)
+    }
+
+    private fun isExpandedForState(
+        contentView: Any?,
+        isExpandedMethod: Method,
+        state: Any?,
+    ): Boolean {
+        return state?.javaClass?.simpleName?.contains("Expanded")
+            ?: isExpanded(contentView, isExpandedMethod)
+    }
+
+    private fun outlineType(state: Any?): OutlineType? {
+        val name = state?.javaClass?.simpleName.orEmpty()
+        return when {
+            name.contains("SmallIsland") -> OutlineType.SMALL
+            name.contains("BigIsland") -> OutlineType.BIG
+            name.contains("Expanded") -> OutlineType.EXPAND
+            else -> null
+        }
     }
 
     private fun isEnabledForState(isExpanded: Boolean): Boolean {
@@ -212,8 +295,9 @@ object IslandOutlineHook : BaseHook() {
     }
 
     private class OutlineDrawable(
-        private val fill: Drawable,
-        private val outline: Drawable,
+        val fill: Drawable,
+        val outline: Drawable,
+        val typeName: String?,
     ) : Drawable(), Drawable.Callback {
 
         init {
@@ -257,4 +341,6 @@ object IslandOutlineHook : BaseHook() {
             callback = null
         }
     }
+
+    private enum class OutlineType { SMALL, BIG, EXPAND }
 }
