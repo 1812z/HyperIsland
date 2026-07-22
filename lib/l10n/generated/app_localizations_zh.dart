@@ -1963,6 +1963,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get islandOutlineSection => '轮廓控制';
 
   @override
+  String get outerGlowAppearanceSection => '外圈光效';
+
+  @override
+  String get outerGlowRangeTitle => '光晕范围';
+
+  @override
   String get alwaysShowIslandOutlineTitle => '常驻显示岛轮廓';
 
   @override

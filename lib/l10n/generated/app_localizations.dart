@@ -3821,6 +3821,18 @@ abstract class AppLocalizations {
   /// **'轮廓控制'**
   String get islandOutlineSection;
 
+  /// No description provided for @outerGlowAppearanceSection.
+  ///
+  /// In zh, this message translates to:
+  /// **'外圈光效'**
+  String get outerGlowAppearanceSection;
+
+  /// No description provided for @outerGlowRangeTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'光晕范围'**
+  String get outerGlowRangeTitle;
+
   /// No description provided for @alwaysShowIslandOutlineTitle.
   ///
   /// In zh, this message translates to:

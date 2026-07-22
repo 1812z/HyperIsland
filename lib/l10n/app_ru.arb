@@ -529,6 +529,8 @@
   "islandBlurBigTitle": "Размытие большого острова",
   "islandBlurExpandTitle": "Размытие фокус-уведомления",
   "islandOutlineSection": "Управление контуром",
+  "outerGlowAppearanceSection": "Внешнее свечение",
+  "outerGlowRangeTitle": "Область свечения",
   "alwaysShowIslandOutlineTitle": "Всегда показывать контур острова",
   "alwaysShowFocusOutlineTitle": "Всегда показывать контур фокус-уведомления",
   "islandBlurEnabled": "Включить размытие фона",

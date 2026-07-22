@@ -444,6 +444,8 @@
   "islandBlurBigTitle": "ラージアイランドのぼかし",
   "islandBlurExpandTitle": "フォーカス通知のぼかし",
   "islandOutlineSection": "アウトライン制御",
+  "outerGlowAppearanceSection": "外周グロー",
+  "outerGlowRangeTitle": "グローの範囲",
   "alwaysShowIslandOutlineTitle": "アイランドのアウトラインを常に表示",
   "alwaysShowFocusOutlineTitle": "フォーカス通知のアウトラインを常に表示",
   "islandBlurEnabled": "リアルタイム背景ぼかしを有効化",

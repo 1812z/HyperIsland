@@ -2092,6 +2092,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get islandOutlineSection => 'Управление контуром';
 
   @override
+  String get outerGlowAppearanceSection => 'Внешнее свечение';
+
+  @override
+  String get outerGlowRangeTitle => 'Область свечения';
+
+  @override
   String get alwaysShowIslandOutlineTitle => 'Всегда показывать контур острова';
 
   @override

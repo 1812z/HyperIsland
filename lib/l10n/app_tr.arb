@@ -591,6 +591,8 @@
   "islandBlurBigTitle": "Büyük Ada Bulanıklığı",
   "islandBlurExpandTitle": "Odak Bildirimi Bulanıklığı",
   "islandOutlineSection": "Ana hat denetimi",
+  "outerGlowAppearanceSection": "Dış parlama",
+  "outerGlowRangeTitle": "Parlama aralığı",
   "alwaysShowIslandOutlineTitle": "Ada ana hattını her zaman göster",
   "alwaysShowFocusOutlineTitle": "Odak bildirimi ana hattını her zaman göster",
   "islandBlurEnabled": "Canlı arka plan bulanıklığını etkinleştir",

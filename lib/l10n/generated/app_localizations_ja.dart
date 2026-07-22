@@ -1997,6 +1997,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get islandOutlineSection => 'アウトライン制御';
 
   @override
+  String get outerGlowAppearanceSection => '外周グロー';
+
+  @override
+  String get outerGlowRangeTitle => 'グローの範囲';
+
+  @override
   String get alwaysShowIslandOutlineTitle => 'アイランドのアウトラインを常に表示';
 
   @override

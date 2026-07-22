@@ -93,6 +93,7 @@ const kPrefFocusNotificationTextColorMode =
     'pref_focus_notification_text_color_mode';
 const kPrefAlwaysShowIslandOutline = 'pref_always_show_island_outline';
 const kPrefAlwaysShowFocusOutline = 'pref_always_show_focus_outline';
+const kPrefOuterGlowRange = 'pref_outer_glow_range';
 const kPrefKeepIsland = 'pref_keep_island';
 const kPrefKeepIslandAutoHide = 'pref_keep_island_auto_hide';
 const kPrefKeepIslandHideLandscape = 'pref_keep_island_hide_landscape';
@@ -276,6 +277,7 @@ class SettingsController extends ChangeNotifier {
   String focusNotificationTextColorMode = kIslandTextColorDefault;
   bool alwaysShowIslandOutline = false;
   bool alwaysShowFocusOutline = false;
+  int outerGlowRange = 0;
   bool keepIsland = false;
   bool keepIslandAutoHide = true;
   bool keepIslandHideLandscape = false;
@@ -460,6 +462,7 @@ class SettingsController extends ChangeNotifier {
         prefs.getBool(kPrefAlwaysShowIslandOutline) ?? false;
     alwaysShowFocusOutline =
         prefs.getBool(kPrefAlwaysShowFocusOutline) ?? false;
+    outerGlowRange = (prefs.getInt(kPrefOuterGlowRange) ?? 0).clamp(0, 100);
     keepIsland = prefs.getBool(kPrefKeepIsland) ?? false;
     keepIslandAutoHide = prefs.getBool(kPrefKeepIslandAutoHide) ?? true;
     keepIslandHideLandscape =
@@ -1297,6 +1300,19 @@ class SettingsController extends ChangeNotifier {
       await prefs.setDouble(kPrefIslandTopOffset, clamped);
     }
     islandTopOffset = clamped;
+    notifyListeners();
+  }
+
+  Future<void> setOuterGlowRange(int value) async {
+    final clamped = value.clamp(0, 100);
+    if (outerGlowRange == clamped) return;
+    final prefs = await _getPrefs();
+    if (clamped == 0) {
+      await prefs.remove(kPrefOuterGlowRange);
+    } else {
+      await prefs.setInt(kPrefOuterGlowRange, clamped);
+    }
+    outerGlowRange = clamped;
     notifyListeners();
   }
 

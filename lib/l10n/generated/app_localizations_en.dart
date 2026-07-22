@@ -2078,6 +2078,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get islandOutlineSection => 'Outline controls';
 
   @override
+  String get outerGlowAppearanceSection => 'Outer glow';
+
+  @override
+  String get outerGlowRangeTitle => 'Glow range';
+
+  @override
   String get alwaysShowIslandOutlineTitle => 'Always show island outline';
 
   @override

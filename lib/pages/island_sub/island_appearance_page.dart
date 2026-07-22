@@ -25,6 +25,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
   late double _islandTopOffsetDraft;
   late int _bigIslandMaxWidthDraft;
   late int _bigIslandMinWidthDraft;
+  late int _outerGlowRangeDraft;
   late int _buildHash;
 
   int _computeHash() => Object.hashAll([
@@ -49,6 +50,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _ctrl.focusNotificationTextColorMode,
     _ctrl.alwaysShowIslandOutline,
     _ctrl.alwaysShowFocusOutline,
+    _ctrl.outerGlowRange,
   ]);
 
   @override
@@ -58,6 +60,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _islandTopOffsetDraft = _ctrl.islandTopOffset;
     _bigIslandMaxWidthDraft = _ctrl.bigIslandMaxWidth;
     _bigIslandMinWidthDraft = _ctrl.bigIslandMinWidth;
+    _outerGlowRangeDraft = _ctrl.outerGlowRange;
     _buildHash = _computeHash();
     _ctrl.addListener(_onChanged);
   }
@@ -75,11 +78,13 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     final nextTopOffset = _ctrl.islandTopOffset;
     final nextMaxWidth = _ctrl.bigIslandMaxWidth;
     final nextMinWidth = _ctrl.bigIslandMinWidth;
+    final nextGlowRange = _ctrl.outerGlowRange;
     if (nextHash == _buildHash &&
         nextHeight == _islandHeightDraft &&
         nextTopOffset == _islandTopOffsetDraft &&
         nextMaxWidth == _bigIslandMaxWidthDraft &&
-        nextMinWidth == _bigIslandMinWidthDraft) {
+        nextMinWidth == _bigIslandMinWidthDraft &&
+        nextGlowRange == _outerGlowRangeDraft) {
       return;
     }
     setState(() {
@@ -88,6 +93,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
       _islandTopOffsetDraft = nextTopOffset;
       _bigIslandMaxWidthDraft = nextMaxWidth;
       _bigIslandMinWidthDraft = nextMinWidth;
+      _outerGlowRangeDraft = nextGlowRange;
     });
   }
 
@@ -746,6 +752,35 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                         onChanged: InteractionHaptics.interceptToggle(
                           _ctrl.setAlwaysShowFocusOutline,
                         ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // --- 外圈光效 ---
+                _SectionLabel(l10n.outerGlowAppearanceSection),
+                const SizedBox(height: 8),
+                Card(
+                  elevation: 0,
+                  color: cs.surfaceContainerHighest,
+                  child: Column(
+                    children: [
+                      _DimenTile(
+                        title: l10n.outerGlowRangeTitle,
+                        value: _outerGlowRangeDraft.toDouble(),
+                        min: 0,
+                        max: 100,
+                        unit: '%',
+                        defaultVal: 0,
+                        followSystemLabel: l10n.followSystem,
+                        onChanged: (value) {
+                          final next = value.round();
+                          if (_outerGlowRangeDraft == next) return;
+                          setState(() => _outerGlowRangeDraft = next);
+                        },
+                        onPersist: (value) =>
+                            _ctrl.setOuterGlowRange(value.round()),
+                        isFirst: true,
                       ),
                     ],
                   ),

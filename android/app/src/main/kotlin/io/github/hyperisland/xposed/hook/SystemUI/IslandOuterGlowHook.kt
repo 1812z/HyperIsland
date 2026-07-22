@@ -71,6 +71,7 @@ object IslandOuterGlowHook : BaseHook() {
     private val hookedAvoidBurnInClassLoaders = ConcurrentHashMap.newKeySet<Int>()
     private val defaultShaderColors = WeakHashMap<Class<*>, FloatArray>()
     private val glowTargets = WeakHashMap<Any, OwnedGlowTarget>()
+    private val defaultGlowRanges = WeakHashMap<Any, Float>()
     private val mediaGlowRequests = ConcurrentHashMap<String, MediaGlowRequest>()
 
     @Volatile private var recentOwnedTarget: OwnedGlowTarget? = null
@@ -313,6 +314,7 @@ object IslandOuterGlowHook : BaseHook() {
                 module.hook(method).intercept { chain ->
                     val mode = resolveGlowModeFromGlowView(chain.thisObject)
                     if (method.name.startsWith("startGlowEffect")) {
+                        applyGlowAppearance(chain.thisObject, module)
                         //logGlowViewProbe(module, chain.thisObject, mode)
                         applyOwnedGlowColor(chain.thisObject, mode, module)
                         if (mode == GLOW_MODE_STATUS && isOwnedGlowActiveForMode(mode)) {
@@ -578,6 +580,37 @@ object IslandOuterGlowHook : BaseHook() {
         val pkg = resolveSourcePkg(extras)
         if (pkg.isNullOrBlank()) return null
         return mediaGlowRequests[pkg]?.takeIf { it.islandEnabled }
+    }
+
+    private fun applyGlowAppearance(glowView: Any, module: XposedModule) {
+        val range = ConfigManager.getInt("pref_outer_glow_range", 0).coerceIn(0, 100)
+        val container = invokeNoArg(glowView, "getMContainer")
+        if (container == null) {
+            log(
+                module,
+                "glow range apply: range=$range container=null view=${glowView.javaClass.name}",
+            )
+            return
+        }
+        val defaultRange = synchronized(defaultGlowRanges) {
+            defaultGlowRanges.getOrPut(container) {
+                (invokeNoArg(container, "getSizeOfGlowArea") as? Number)?.toFloat() ?: Float.NaN
+            }
+        }
+        val appliedRange = if (range == 0 || defaultRange.isNaN()) {
+            defaultRange
+        } else {
+            defaultRange * range / 100f
+        }
+        val rangeApplied = !appliedRange.isNaN() && invokeFloatSetter(
+            container,
+            "setSizeOfGlowArea",
+            appliedRange,
+        )
+        log(
+            module,
+            "glow range apply: range=$range area=$defaultRange->$appliedRange applied=$rangeApplied view=${glowView.javaClass.name}",
+        )
     }
 
     private fun resolveMediaFocusGlowTarget(
@@ -1060,6 +1093,26 @@ object IslandOuterGlowHook : BaseHook() {
             method.isAccessible = true
             method.invoke(target)
         }.getOrNull()
+    }
+
+    private fun invokeFloatSetter(target: Any, methodName: String, value: Float): Boolean {
+        var current: Class<*>? = target.javaClass
+        while (current != null) {
+            val method = current.declaredMethods.firstOrNull {
+                it.name == methodName &&
+                    it.parameterCount == 1 &&
+                    it.parameterTypes[0] == Float::class.javaPrimitiveType
+            }
+            if (method != null) {
+                return runCatching {
+                    method.isAccessible = true
+                    method.invoke(target, value)
+                    true
+                }.getOrDefault(false)
+            }
+            current = current.superclass
+        }
+        return false
     }
 
     private fun findNoArgMethod(clazz: Class<*>, name: String): Method? {

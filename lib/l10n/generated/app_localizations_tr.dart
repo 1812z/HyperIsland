@@ -2068,6 +2068,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get islandOutlineSection => 'Ana hat denetimi';
 
   @override
+  String get outerGlowAppearanceSection => 'Dış parlama';
+
+  @override
+  String get outerGlowRangeTitle => 'Parlama aralığı';
+
+  @override
   String get alwaysShowIslandOutlineTitle => 'Ada ana hattını her zaman göster';
 
   @override
