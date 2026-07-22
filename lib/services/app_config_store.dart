@@ -599,6 +599,8 @@ class AppConfigStore {
       'pref_media_island_normal_notification_',
       false,
     ),
+    'outer_glow': _LegacyField('pref_media_outer_glow_', kTriOptDefault),
+    'out_effect_color': _LegacyField('pref_media_out_effect_color_', ''),
     'island_outer_glow': _LegacyField(
       'pref_media_island_outer_glow_',
       kTriOptDefault,

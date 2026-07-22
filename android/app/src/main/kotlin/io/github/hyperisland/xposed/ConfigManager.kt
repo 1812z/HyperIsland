@@ -269,6 +269,8 @@ object ConfigManager {
     private val NOTIFICATION_FIELDS = linkedMapOf(
         "pref_media_island_enabled_" to "enabled",
         "pref_media_island_normal_notification_" to "normal_notification",
+        "pref_media_outer_glow_" to "outer_glow",
+        "pref_media_out_effect_color_" to "out_effect_color",
         "pref_media_island_outer_glow_" to "island_outer_glow",
         "pref_media_island_outer_glow_color_" to "island_outer_glow_color"
     )
@@ -348,6 +350,8 @@ object ConfigManager {
         "pref_default_island_outer_glow",
         "pref_default_force_outer_glow",
         "pref_default_force_island_outer_glow",
+        "pref_default_out_effect_color",
+        "pref_default_island_outer_glow_color",
         "pref_default_restore_lockscreen",
         "pref_default_preserve_small_icon",
         "pref_fullscreen_behavior",

@@ -319,10 +319,7 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
       'blacklist_keywords',
       widget.controller.setChannelBlacklistKeywords,
     );
-    queueExtra(
-      'island_enabled',
-      widget.controller.setChannelIslandEnabled,
-    );
+    queueExtra('island_enabled', widget.controller.setChannelIslandEnabled);
 
     if (templateChanged || extrasChanged) {
       setState(() {
@@ -375,6 +372,9 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
     return (_mediaIslandSettings['enabled'] ?? kTriOptOn) != kTriOptOn ||
         (_mediaIslandSettings['normal_notification'] ?? kTriOptOff) !=
             kTriOptOff ||
+        (_mediaIslandSettings['outer_glow'] ?? kTriOptDefault) !=
+            kTriOptDefault ||
+        (_mediaIslandSettings['out_effect_color'] ?? '').isNotEmpty ||
         (_mediaIslandSettings['island_outer_glow'] ?? kTriOptDefault) !=
             kTriOptDefault ||
         (_mediaIslandSettings['island_outer_glow_color'] ?? '').isNotEmpty;
@@ -415,11 +415,14 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
     var normalNotification =
         (_mediaIslandSettings['normal_notification'] ?? kTriOptOff) ==
         kTriOptOn;
+    var outerGlow = _mediaIslandSettings['outer_glow'] ?? kTriOptDefault;
+    var outEffectColor = _mediaIslandSettings['out_effect_color'] ?? '';
     var islandOuterGlow =
         _mediaIslandSettings['island_outer_glow'] ?? kTriOptDefault;
     var islandOuterGlowColor =
         _mediaIslandSettings['island_outer_glow_color'] ?? '';
     final colorController = TextEditingController(text: islandOuterGlowColor);
+    final focusColorController = TextEditingController(text: outEffectColor);
 
     final result = await showDialog<Map<String, String>>(
       context: context,
@@ -428,6 +431,10 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
           final followDynamic = _isFollowDynamicGlow(
             islandOuterGlow,
             ctrl.defaultIslandOuterGlow,
+          );
+          final focusFollowDynamic = _isFollowDynamicGlow(
+            outerGlow,
+            ctrl.defaultOuterGlow,
           );
           return AlertDialog(
             title: Row(
@@ -439,9 +446,12 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                   onPressed: () => setDialogState(() {
                     enabled = true;
                     normalNotification = false;
+                    outerGlow = kTriOptDefault;
+                    outEffectColor = '';
                     islandOuterGlow = kTriOptDefault;
                     islandOuterGlowColor = '';
                     colorController.clear();
+                    focusColorController.clear();
                   }),
                 ),
               ],
@@ -470,7 +480,82 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    l10n.outerGlowLabel,
+                    '${l10n.focusNotificationLabel} · ${l10n.outerGlowLabel}',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: enabled
+                          ? null
+                          : Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.38),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    initialValue: outerGlow,
+                    isExpanded: true,
+                    decoration: _dialogFieldDecoration(context),
+                    items: [
+                      DropdownMenuItem(
+                        value: kTriOptDefault,
+                        child: Text(
+                          _outerGlowDefaultLabel(l10n, ctrl.defaultOuterGlow),
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOn,
+                        child: Text(l10n.optOn),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptOff,
+                        child: Text(l10n.optOff),
+                      ),
+                      DropdownMenuItem(
+                        value: kTriOptFollowDynamic,
+                        child: Text(l10n.followDynamicColorLabel),
+                      ),
+                    ],
+                    onChanged: enabled
+                        ? (value) {
+                            if (value != null) {
+                              setDialogState(() => outerGlow = value);
+                            }
+                          }
+                        : null,
+                  ),
+                  const SizedBox(height: 12),
+                  ColorValueField(
+                    controller: focusColorController,
+                    enabled: enabled && !focusFollowDynamic,
+                    readOnly: focusFollowDynamic,
+                    decoration: _dialogFieldDecoration(
+                      context,
+                      hintText: '#AARRGGBB / #RRGGBB',
+                    ),
+                    previewColor: parseHexColor(outEffectColor),
+                    previewFallbackColor: Theme.of(context).colorScheme.primary,
+                    onChanged: (value) =>
+                        setDialogState(() => outEffectColor = value.trim()),
+                    onClear: () => setDialogState(() {
+                      outEffectColor = '';
+                      focusColorController.clear();
+                    }),
+                    onPickColor: () async {
+                      final color = await showColorPickerDialog(
+                        context,
+                        title: l10n.outEffectColorLabel,
+                        initialHex: outEffectColor,
+                        enableAlpha: true,
+                      );
+                      if (color != null) {
+                        final hex = colorToArgbHex(color);
+                        focusColorController.text = hex;
+                        setDialogState(() => outEffectColor = hex);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    '${l10n.islandEnabledLabel} · ${l10n.outerGlowLabel}',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       color: enabled
                           ? null
@@ -561,6 +646,8 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                   'normal_notification': normalNotification
                       ? kTriOptOn
                       : kTriOptOff,
+                  'outer_glow': outerGlow,
+                  'out_effect_color': outEffectColor.trim(),
                   'island_outer_glow': islandOuterGlow,
                   'island_outer_glow_color': islandOuterGlowColor.trim(),
                 }),
@@ -573,6 +660,7 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
     );
 
     colorController.dispose();
+    focusColorController.dispose();
     if (result == null) return;
     await Future.wait([
       widget.controller.setMediaIslandEnabled(
@@ -582,6 +670,14 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
       widget.controller.setMediaIslandNormalNotification(
         pkg,
         result['normal_notification'] == kTriOptOn,
+      ),
+      widget.controller.setMediaOuterGlow(
+        pkg,
+        result['outer_glow'] ?? kTriOptDefault,
+      ),
+      widget.controller.setMediaOutEffectColor(
+        pkg,
+        result['out_effect_color'] ?? '',
       ),
       widget.controller.setMediaIslandOuterGlow(
         pkg,
@@ -861,7 +957,6 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               sliver: SliverToBoxAdapter(
                 child: _MediaIslandTile(
-                  appEnabled: _appEnabled,
                   enabled:
                       (_mediaIslandSettings['enabled'] ?? kTriOptOn) !=
                       kTriOptOff,
@@ -873,7 +968,7 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                   outerGlow:
                       _mediaIslandSettings['island_outer_glow'] ??
                       kTriOptDefault,
-                  onTap: _appEnabled ? _openMediaIslandSettings : null,
+                  onTap: _openMediaIslandSettings,
                 ),
               ),
             ),
@@ -997,8 +1092,7 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                             (extras['blacklist_keywords'] ?? '').isEmpty
                             ? []
                             : (extras['blacklist_keywords'] ?? '').split(','),
-                        islandEnabled:
-                            extras['island_enabled'] != 'false',
+                        islandEnabled: extras['island_enabled'] != 'false',
                         controller: widget.controller,
                         onToggle: (v) => _toggle(ch.id, v),
                         onSettingsApplied: (s) =>
@@ -1090,7 +1184,6 @@ class _AppHeaderIconState extends State<_AppHeaderIcon> {
 
 class _MediaIslandTile extends StatelessWidget {
   const _MediaIslandTile({
-    required this.appEnabled,
     required this.enabled,
     required this.normalNotification,
     required this.modified,
@@ -1098,7 +1191,6 @@ class _MediaIslandTile extends StatelessWidget {
     required this.onTap,
   });
 
-  final bool appEnabled;
   final bool enabled;
   final bool normalNotification;
   final bool modified;
@@ -1118,7 +1210,7 @@ class _MediaIslandTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
-    final active = appEnabled && enabled;
+    final active = enabled;
     return Material(
       color: cs.surfaceContainerHighest,
       borderRadius: BorderRadius.circular(16),
@@ -1151,11 +1243,7 @@ class _MediaIslandTile extends StatelessWidget {
                   children: [
                     Text(
                       l10n.mediaNotificationTitle,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: appEnabled
-                            ? null
-                            : cs.onSurface.withValues(alpha: 0.38),
-                      ),
+                      style: Theme.of(context).textTheme.bodyLarge,
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -1165,20 +1253,13 @@ class _MediaIslandTile extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: appEnabled
-                            ? cs.onSurfaceVariant
-                            : cs.onSurface.withValues(alpha: 0.28),
+                        color: cs.onSurfaceVariant,
                       ),
                     ),
                   ],
                 ),
               ),
-              Icon(
-                Icons.expand_more_rounded,
-                color: appEnabled
-                    ? cs.onSurfaceVariant
-                    : cs.onSurface.withValues(alpha: 0.28),
-              ),
+              Icon(Icons.expand_more_rounded, color: cs.onSurfaceVariant),
             ],
           ),
         ),

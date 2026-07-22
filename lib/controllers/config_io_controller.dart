@@ -55,6 +55,8 @@ class ConfigIOController {
   static const _notificationAppPrefPrefixes = [
     'pref_media_island_enabled_',
     'pref_media_island_normal_notification_',
+    'pref_media_outer_glow_',
+    'pref_media_out_effect_color_',
     'pref_media_island_outer_glow_',
     'pref_media_island_outer_glow_color_',
   ];

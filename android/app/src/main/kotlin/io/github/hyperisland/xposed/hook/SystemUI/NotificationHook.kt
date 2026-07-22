@@ -213,6 +213,7 @@ object GenericProgressHook : BaseHook() {
         classLoader: ClassLoader
     ) {
         sbn ?: return
+        IslandOuterGlowHook.removeMediaGlowRequest(sbn.packageName, sbn.key)
         val key = "${sbn.packageName}#${sbn.id}"
         val proxyId = trackedForCancel.remove(key) ?: return
         val context = HookUtils.getContext(classLoader) ?: return
@@ -240,6 +241,11 @@ object GenericProgressHook : BaseHook() {
             extras.putString(EXTRA_OWNER, OWNER_MARKER)
             if (isHyperIslandProxy && extras.containsKey("miui.focus.param")) return
 
+            if (isMediaNotification(notif, extras)) {
+                handleMediaNotification(pkg, channelId, sbn.id, sbn.key, notif, extras, context, module, classLoader)
+                return
+            }
+
             if (!isHyperIslandProxy) {
                 val allowedChannels = loadWhitelist(module)[pkg] ?: return
                 if (allowedChannels.isNotEmpty() && channelId !in allowedChannels) return
@@ -252,11 +258,6 @@ object GenericProgressHook : BaseHook() {
                 channelId = sourceChannelId,
             )
             if (sceneDecision.shouldSuppress) return
-
-            if (isMediaNotification(notif, extras)) {
-                handleMediaNotification(pkg, channelId, sbn.id, sbn.key, notif, extras, context, module, classLoader)
-                return
-            }
 
             val defaultRestoreLockscreen = loadBooleanSetting("global:default_restore_lockscreen", "pref_default_restore_lockscreen", false)
             val restoreLockscreenRaw = loadChannelStringSetting("restore_lockscreen:$pkg/$channelId", "pref_channel_restore_lockscreen_${pkg}_$channelId", "default")
@@ -466,22 +467,42 @@ object GenericProgressHook : BaseHook() {
                 "pref_channel_out_effect_color_${pkg}_$channelId",
                 ConfigManager.getString("pref_default_out_effect_color", ""),
             ).takeIf { it.isNotBlank() }
+            val glowDynamicColor = if (
+                resolvedOuterGlowMode == "follow_dynamic" ||
+                resolvedIslandOuterGlowMode == "follow_dynamic"
+            ) {
+                resolveHighlightColor(
+                    context = context,
+                    iconMode = iconMode,
+                    notifIcon = notif.smallIcon,
+                    largeIcon = largeIcon,
+                    appIconRaw = appIconRaw,
+                    manualHighlightColor = null,
+                    dynamicMode = "on",
+                )
+            } else {
+                null
+            }
             val resolvedOutEffectColor = when (resolvedOuterGlowMode) {
-                "follow_dynamic" -> resolvedHighlightColor
+                "follow_dynamic" -> glowDynamicColor ?: resolvedHighlightColor
                 else -> outEffectColor
             }
             val resolvedIslandOuterGlowColor = when (resolvedIslandOuterGlowMode) {
-                "follow_dynamic" -> resolvedHighlightColor
+                "follow_dynamic" -> glowDynamicColor ?: resolvedHighlightColor
                 else -> islandOuterGlowColor
             }
             resolvedOutEffectColor?.let { extras.putString("hyperisland_focus_out_effect_color", it) }
             resolvedIslandOuterGlowColor?.let { extras.putString("hyperisland_island_outer_glow_color", it) }
+            glowDynamicColor?.let { extras.putString("hyperisland_dynamic_glow_color", it) }
 
             if (resolvedIslandOuterGlowMode != "off") {
                 extras.putString("miui.bigIsland.effect.src", EFFECT_SRC)
-                extras.putString("miui.effect.src", EFFECT_SRC)
             } else {
                 extras.remove("miui.bigIsland.effect.src")
+            }
+            if (resolvedOuterGlowMode != "off") {
+                extras.putString("miui.effect.src", EFFECT_SRC)
+            } else {
                 extras.remove("miui.effect.src")
             }
 
@@ -667,40 +688,70 @@ object GenericProgressHook : BaseHook() {
             islandOuterGlowRaw,
             defaultIslandOuterGlow,
         )
+        val defaultOuterGlow = ConfigManager.getString("pref_default_outer_glow", "off")
+        val outerGlowRaw = ConfigManager.getString(
+            "pref_media_outer_glow_$pkg",
+            "default",
+        )
+        val resolvedOuterGlowMode = resolveGlowMode(outerGlowRaw, defaultOuterGlow)
         if (resolvedIslandOuterGlowMode != "off") {
             extras.putString("miui.bigIsland.effect.src", EFFECT_SRC)
-            extras.putString("miui.effect.src", EFFECT_SRC)
         } else {
             extras.remove("miui.bigIsland.effect.src")
+        }
+        if (resolvedOuterGlowMode != "off") {
+            extras.putString("miui.effect.src", EFFECT_SRC)
+        } else {
             extras.remove("miui.effect.src")
         }
         extras.putString("hyperisland_channel_id", "media")
         val manualIslandOuterGlowColor = ConfigManager.getString(
             "pref_media_island_outer_glow_color_$pkg",
-            "",
+            ConfigManager.getString("pref_default_island_outer_glow_color", ""),
         ).takeIf { it.isNotBlank() }
-        val resolvedIslandOuterGlowColor = when (resolvedIslandOuterGlowMode) {
-            "follow_dynamic" -> resolveHighlightColor(
+        val manualOutEffectColor = ConfigManager.getString(
+            "pref_media_out_effect_color_$pkg",
+            ConfigManager.getString("pref_default_out_effect_color", ""),
+        ).takeIf { it.isNotBlank() }
+        val dynamicColor = if (
+            resolvedIslandOuterGlowMode == "follow_dynamic" ||
+            resolvedOuterGlowMode == "follow_dynamic"
+        ) {
+            resolveHighlightColor(
                 context = context,
                 iconMode = "auto",
                 notifIcon = notif.smallIcon,
                 largeIcon = extractLargeIcon(extras),
                 appIconRaw = context.packageManager.getAppIcon(pkg),
-                manualHighlightColor = manualIslandOuterGlowColor,
+                manualHighlightColor = null,
                 dynamicMode = "on",
             )
+        } else {
+            null
+        }
+        val resolvedIslandOuterGlowColor = when (resolvedIslandOuterGlowMode) {
+            "follow_dynamic" -> dynamicColor ?: manualIslandOuterGlowColor
             else -> manualIslandOuterGlowColor
         }
+        val resolvedOutEffectColor = when (resolvedOuterGlowMode) {
+            "follow_dynamic" -> dynamicColor ?: manualOutEffectColor
+            else -> manualOutEffectColor
+        }
         resolvedIslandOuterGlowColor?.let { extras.putString("hyperisland_island_outer_glow_color", it) }
+        resolvedOutEffectColor?.let { extras.putString("hyperisland_focus_out_effect_color", it) }
+        dynamicColor?.let { extras.putString("hyperisland_dynamic_glow_color", it) }
         IslandOuterGlowHook.recordMediaGlowRequest(
             pkg = pkg,
-            enabled = resolvedIslandOuterGlowMode != "off",
-            color = extras.getString("hyperisland_island_outer_glow_color"),
+            notificationKey = sbnKey,
+            islandEnabled = resolvedIslandOuterGlowMode != "off",
+            focusEnabled = resolvedOuterGlowMode != "off",
+            islandColor = resolvedIslandOuterGlowColor,
+            focusColor = resolvedOutEffectColor,
             module = module,
         )
         log(
             module,
-            "media glow request: pkg=$pkg channel=media id=$notifId raw=$islandOuterGlowRaw resolved=$resolvedIslandOuterGlowMode big=${extras.getString("miui.bigIsland.effect.src")} effect=${extras.getString("miui.effect.src")} color=${extras.getString("hyperisland_island_outer_glow_color")}",
+            "media glow request: pkg=$pkg id=$notifId island=$islandOuterGlowRaw/$resolvedIslandOuterGlowMode focus=$outerGlowRaw/$resolvedOuterGlowMode big=${extras.getString("miui.bigIsland.effect.src")} effect=${extras.getString("miui.effect.src")} islandColor=$resolvedIslandOuterGlowColor focusColor=$resolvedOutEffectColor dynamicColor=$dynamicColor",
         )
     }
 

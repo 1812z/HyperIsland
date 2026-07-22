@@ -1358,6 +1358,16 @@ class WhitelistController extends ChangeNotifier {
               true
           ? kTriOptOn
           : kTriOptOff,
+      'outer_glow': await AppConfigStore.getNotification(
+        packageName,
+        'outer_glow',
+        kTriOptDefault,
+      ),
+      'out_effect_color': await AppConfigStore.getNotification(
+        packageName,
+        'out_effect_color',
+        '',
+      ),
       'island_outer_glow': await AppConfigStore.getNotification(
         packageName,
         'island_outer_glow',
@@ -1393,6 +1403,24 @@ class WhitelistController extends ChangeNotifier {
       'island_outer_glow',
       value,
       kTriOptDefault,
+    );
+  }
+
+  Future<void> setMediaOuterGlow(String packageName, String value) async {
+    await AppConfigStore.setNotification(
+      packageName,
+      'outer_glow',
+      value,
+      kTriOptDefault,
+    );
+  }
+
+  Future<void> setMediaOutEffectColor(String packageName, String value) async {
+    await AppConfigStore.setNotification(
+      packageName,
+      'out_effect_color',
+      value,
+      '',
     );
   }
 
