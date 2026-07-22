@@ -2,6 +2,10 @@ package io.github.hyperisland.xposed.hook.SystemUI
 
 import android.graphics.Color
 import android.graphics.Canvas
+import android.graphics.ColorFilter
+import android.graphics.Path
+import android.graphics.PixelFormat
+import android.graphics.RectF
 import android.graphics.drawable.Drawable
 import android.os.Handler
 import android.os.Looper
@@ -196,7 +200,7 @@ object IslandBlurHook : BaseHook() {
             if (!hookedContentClasses.add(contentClass)) return
             hookIslandState(module, contentClass, stateClass, updateMethod)
             hookBackgroundDrawing(module, backgroundClass, outerDrawableField)
-            hookTransitionBlur(module, contentClass, animationDelegateClass, fakeViewClass, methods)
+            hookTransitionBlur(module, animationDelegateClass, fakeViewClass, methods)
             module.hook(updateMethod).intercept { chain ->
                 val result = chain.proceed()
                 val view = chain.args.getOrNull(0) as? View ?: return@intercept result
@@ -355,7 +359,6 @@ object IslandBlurHook : BaseHook() {
 
     private fun hookTransitionBlur(
         module: XposedModule,
-        contentClass: Class<*>,
         animationDelegateClass: Class<*>,
         fakeViewClass: Class<*>,
         methods: BlurMethods,
@@ -364,11 +367,7 @@ object IslandBlurHook : BaseHook() {
             fakeSmall = findMethod(fakeViewClass, "getFakeSmallIsland"),
             fakeBig = findMethod(fakeViewClass, "getFakeBigIsland"),
             fakeExpanded = findMethod(fakeViewClass, "getFakeExpandedView"),
-            fakeMask = findMethod(fakeViewClass, "getFakeMask"),
-            container = findMethod(contentClass, "getContainer"),
-            fakeContainer = findMethod(contentClass, "getFakeContainer"),
         )
-        val viewField = animationDelegateClass.getDeclaredField("view").apply { isAccessible = true }
         val updateMethod = animationDelegateClass.getDeclaredMethod("updateFakeViewAnimState")
         val getFakeView = findMethod(animationDelegateClass, "getFakeView")
         module.hook(updateMethod).intercept { chain ->
@@ -381,12 +380,10 @@ object IslandBlurHook : BaseHook() {
         val containerUpdate = animationDelegateClass.getDeclaredMethod("containerScheduleUpdate")
         module.hook(containerUpdate).intercept { chain ->
             val result = chain.proceed()
-            if (anyBlurEnabled) {
-                val contentView = runCatching { viewField.get(chain.thisObject) }.getOrNull()
-                clearTransitionContainer(contentView, methods, access)
-                val fakeView = runCatching { getFakeView?.invoke(chain.thisObject) }.getOrNull()
-                clearTransitionContainer(fakeView, methods, access)
-            }
+            // container/fakeContainer are shared by all three states. Clearing either
+            // for one enabled blur also removes the stock mask of disabled states.
+            val fakeView = runCatching { getFakeView?.invoke(chain.thisObject) }.getOrNull()
+            applyTransitionBlur(fakeView, methods, access)
             result
         }
 
@@ -414,31 +411,12 @@ object IslandBlurHook : BaseHook() {
     private fun applyTransitionBlur(fakeView: Any?, methods: BlurMethods, access: TransitionAccess) {
         if (!anyBlurEnabled) return
         if (fakeView !is View) return
-        fakeView.background = null
-        access.forEachFakeView(fakeView) { child ->
+        access.forEachFakeView(fakeView) { type, child ->
+            if (!configForType(type).isActive) return@forEachFakeView
             runCatching { methods.setViewMode.invoke(null, child, 0) }
             runCatching { methods.clearBlend.invoke(null, child) }
             child.background = null
         }
-        runCatching {
-            (access.fakeMask?.invoke(fakeView) as? View)?.apply {
-                visibility = View.INVISIBLE
-                background = null
-            }
-        }
-    }
-
-    private fun clearTransitionContainer(owner: Any?, methods: BlurMethods, access: TransitionAccess) {
-        if (owner == null) return
-        fun clear(getter: Method?) {
-            val container = runCatching { getter?.invoke(owner) as? View }.getOrNull()
-                ?: return
-            runCatching { methods.setViewMode.invoke(null, container, 0) }
-            runCatching { methods.clearBlend.invoke(null, container) }
-            container.background = null
-        }
-        clear(access.container)
-        clear(access.fakeContainer)
     }
 
     private fun resolveIslandType(state: Any?): IslandType? {
@@ -586,9 +564,14 @@ object IslandBlurHook : BaseHook() {
 
         return runCatching {
             val drawableClass = drawable.javaClass
+            val clippedDrawable = ClippedBlurDrawable(
+                drawable,
+                resolveStrokeWidth(view),
+            )
             OwnedBlur(
-                drawable = drawable,
+                drawable = clippedDrawable,
                 effectDrawable = drawable,
+                clippedDrawable = clippedDrawable,
                 type = type,
                 methods = BlurDrawableMethods(
                     setRadius = findMethod(
@@ -622,6 +605,7 @@ object IslandBlurHook : BaseHook() {
     ) {
         owned.methods.setRadius.invoke(owned.effectDrawable, config.radius)
         val radius = resolveCornerRadius(view, owned.type, shapeView)
+        owned.clippedDrawable.setCornerRadius(radius)
         owned.methods.setCornerRadius.invoke(
             owned.effectDrawable,
             radius,
@@ -653,6 +637,12 @@ object IslandBlurHook : BaseHook() {
         } else {
             view.height / 2f
         }
+    }
+
+    private fun resolveStrokeWidth(view: View): Int {
+        return runCatching {
+            (findMethod(view.javaClass, "getStokeWidth")?.invoke(view) as? Int) ?: 0
+        }.getOrDefault(0).coerceAtLeast(0)
     }
 
     private fun findMethod(clazz: Class<*>, name: String, vararg types: Class<*>): Method? {
@@ -710,18 +700,15 @@ object IslandBlurHook : BaseHook() {
         val fakeSmall: Method?,
         val fakeBig: Method?,
         val fakeExpanded: Method?,
-        val fakeMask: Method?,
-        val container: Method?,
-        val fakeContainer: Method?,
     ) {
-        fun forEachFakeView(owner: Any, action: (View) -> Unit) {
-            fun apply(getter: Method?) {
+        fun forEachFakeView(owner: Any, action: (IslandType, View) -> Unit) {
+            fun apply(type: IslandType, getter: Method?) {
                 val view = runCatching { getter?.invoke(owner) as? View }.getOrNull()
-                if (view != null) action(view)
+                if (view != null) action(type, view)
             }
-            apply(fakeSmall)
-            apply(fakeBig)
-            apply(fakeExpanded)
+            apply(IslandType.SMALL, fakeSmall)
+            apply(IslandType.BIG, fakeBig)
+            apply(IslandType.EXPAND, fakeExpanded)
         }
     }
 
@@ -745,10 +732,74 @@ object IslandBlurHook : BaseHook() {
     private class OwnedBlur(
         val drawable: Drawable,
         val effectDrawable: Drawable,
+        val clippedDrawable: ClippedBlurDrawable,
         val type: IslandType,
         val methods: BlurDrawableMethods,
         var active: Boolean = false,
     )
+
+    /** Keeps the blur region inside the same stroked rounded bounds as image backgrounds. */
+    private class ClippedBlurDrawable(
+        private val child: Drawable,
+        private val inset: Int,
+    ) : Drawable(), Drawable.Callback {
+        private val clipPath = Path()
+        private val clipRect = RectF()
+        private var cornerRadius = 0f
+
+        init {
+            child.callback = this
+        }
+
+        fun setCornerRadius(radius: Float) {
+            cornerRadius = radius
+        }
+
+        override fun draw(canvas: Canvas) {
+            val bounds = bounds
+            val safeInset = inset.coerceAtMost(minOf(bounds.width(), bounds.height()) / 2)
+            clipRect.set(
+                (bounds.left + safeInset).toFloat(),
+                (bounds.top + safeInset).toFloat(),
+                (bounds.right - safeInset).toFloat(),
+                (bounds.bottom - safeInset).toFloat(),
+            )
+            if (clipRect.isEmpty) return
+            child.bounds = android.graphics.Rect(
+                clipRect.left.toInt(),
+                clipRect.top.toInt(),
+                clipRect.right.toInt(),
+                clipRect.bottom.toInt(),
+            )
+            clipPath.reset()
+            clipPath.addRoundRect(clipRect, cornerRadius, cornerRadius, Path.Direction.CW)
+            val save = canvas.save()
+            canvas.clipPath(clipPath)
+            child.draw(canvas)
+            canvas.restoreToCount(save)
+        }
+
+        override fun setAlpha(alpha: Int) {
+            child.alpha = alpha
+        }
+
+        override fun setColorFilter(colorFilter: ColorFilter?) {
+            child.colorFilter = colorFilter
+        }
+
+        @Deprecated("Deprecated in Java")
+        override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
+
+        override fun invalidateDrawable(who: Drawable) = invalidateSelf()
+
+        override fun scheduleDrawable(who: Drawable, what: Runnable, `when`: Long) {
+            scheduleSelf(what, `when`)
+        }
+
+        override fun unscheduleDrawable(who: Drawable, what: Runnable) {
+            unscheduleSelf(what)
+        }
+    }
 
     private data class RefreshTarget(
         val contentView: WeakReference<Any>,

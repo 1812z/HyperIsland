@@ -108,6 +108,9 @@ object IslandBackgroundHook : BaseHook() {
     /** 按类型缓存背景文件可用状态，避免动画热路径访问文件系统。 */
     private val cachedBgAvailability = ConcurrentHashMap<IslandType, Boolean>()
     private val cachedBlurEnabled = ConcurrentHashMap<IslandType, Boolean>()
+    private val clearedSharedContainers = Collections.synchronizedMap(
+        WeakHashMap<View, IslandType>()
+    )
 
     /** 缓存圆角半径，运行时不会变 */
     @Volatile
@@ -178,7 +181,7 @@ object IslandBackgroundHook : BaseHook() {
                     val animDelegateClass = classLoader.loadClass(
                         "miui.systemui.dynamicisland.anim.DynamicIslandAnimationDelegate"
                     )
-                    hookContainerScheduleUpdate(module, animDelegateClass)
+                    hookContainerScheduleUpdate(module, animDelegateClass, contentViewClass)
                 } catch (e: Throwable) {
                     logError(module, "Failed to hook containerScheduleUpdate: ${e.message}")
                 }
@@ -219,7 +222,7 @@ object IslandBackgroundHook : BaseHook() {
                     chain.args.getOrNull(0) as? Drawable,
                 )
 
-                if (type != null && hasBgFileForType(type)) {
+                if (type != null && shouldOwnOuterDrawable(type)) {
                     val context = try { bgView?.context } catch (_: Exception) { null }
 
                     val stokeWidth = if (bgView != null) getStokeWidth(bgView, bgViewClass) else 0
@@ -242,7 +245,8 @@ object IslandBackgroundHook : BaseHook() {
                             logError(module, "Reflection set drawable failed: ${e.message}")
                         }
 
-                        // ★ 精准清除当前类型主视图的遮罩
+                        // Each state owns either its image or an independent black
+                        // fallback, so clearing a shared stale mask cannot expose alpha.
                         if (bgView is ViewGroup) {
                             clearMaskForCurrentType(bgView, type)
                         }
@@ -575,17 +579,6 @@ object IslandBackgroundHook : BaseHook() {
 
             module.hook(method).intercept { chain ->
                 val view = chain.args[0] as? View ?: return@intercept chain.proceed()
-                val resourceName = try {
-                    if (view.id == View.NO_ID) "" else view.resources.getResourceEntryName(view.id)
-                } catch (_: Exception) { "" }
-
-                if (resourceName.contains("fake_expanded") && anyBlurEnabled()) {
-                    // Do not let the transition surface create a second native
-                    // blur behind the real expanded card.
-                    view.background = null
-                    disableBlurAndClearBlend(view)
-                    return@intercept null
-                }
                 val viewType = getIslandTypeForView(view)
 
                 if (viewType != null && hasBgFileForType(viewType)) {
@@ -594,13 +587,10 @@ object IslandBackgroundHook : BaseHook() {
                 }
 
                 if (viewType != null && isBlurEnabledForType(viewType)) {
-                    // Keep the stock Drawable as the restore point for IslandBlurHook.
-                    // Only clear MIUI's blur/blend state before the blur Hook installs
-                    // its own BackgroundBlurDrawable.
-                    disableBlurAndClearBlend(view)
-                    // Do not call SystemUI's implementation here: it clears the
-                    // stock background, which makes the blur layer capture null and
-                    // exposes the black transition mask until the next state.
+                    // The native BlurDrawable lives on DynamicIslandBackgroundView.
+                    // Any stock background on this content view is above it and would
+                    // make the blur appear opaque until another feature clears it.
+                    clearMaskForView(view)
                     return@intercept null
                 }
 
@@ -620,31 +610,33 @@ object IslandBackgroundHook : BaseHook() {
      * ★ 仅当当前岛类型有自定义背景时，清除 container 的遮罩。
      * 无自定义背景时完全跟随系统。
      */
-    private fun hookContainerScheduleUpdate(module: XposedModule, animDelegateClass: Class<*>) {
+    private fun hookContainerScheduleUpdate(
+        module: XposedModule,
+        animDelegateClass: Class<*>,
+        contentViewClass: Class<*>,
+    ) {
         try {
             val method = animDelegateClass.getDeclaredMethod("containerScheduleUpdate")
+            val viewField = animDelegateClass.getDeclaredField("view").apply { isAccessible = true }
+            val stateField = contentViewClass.getDeclaredField("state").apply { isAccessible = true }
+            val getContainer = contentViewClass.getMethod("getContainer").apply { isAccessible = true }
 
             module.hook(method).intercept { chain ->
                 chain.proceed()
 
-                val type = lastIslandType
-
-                if (type != null && shouldClearMaskForType(type)) {
-                    try {
-                        val viewField = animDelegateClass.getDeclaredField("view")
-                        viewField.isAccessible = true
-                        val contentView = viewField.get(chain.thisObject) as? View ?: return@intercept null
-
-                        val containerResId = contentView.resources.getIdentifier("container", "id", "com.android.systemui")
-                        if (containerResId > 0) {
-                            val container = contentView.findViewById<View>(containerResId)
-                            if (container != null) {
-                                clearMaskForView(container)
-                            }
-                        }
-                    } catch (e: Exception) {
-                        logError(module, "containerScheduleUpdate clear bg failed: ${e.message}")
+                try {
+                    val contentView = viewField.get(chain.thisObject) ?: return@intercept null
+                    val state = stateField.get(contentView)
+                    val type = resolveIslandType(
+                        state?.javaClass?.simpleName.orEmpty(),
+                        state?.javaClass?.name.orEmpty(),
+                    )
+                    if (type != null && anyManagedOuterVisual()) {
+                        val container = getContainer.invoke(contentView) as? View
+                        if (container != null) clearSharedContainer(container, type)
                     }
+                } catch (e: Exception) {
+                    logError(module, "containerScheduleUpdate clear bg failed: ${e.message}")
                 }
 
                 null
@@ -688,6 +680,24 @@ object IslandBackgroundHook : BaseHook() {
 
     private fun shouldClearMaskForType(type: IslandType): Boolean {
         return hasBgFileForType(type) || isBlurEnabledForType(type)
+    }
+
+    private fun shouldOwnOuterDrawable(type: IslandType): Boolean {
+        return hasBgFileForType(type) ||
+            (!isBlurEnabledForType(type) && anyManagedOuterVisual())
+    }
+
+    private fun anyManagedOuterVisual(): Boolean {
+        return anyCustomBgConfigured() || anyBlurEnabled()
+    }
+
+    private fun clearSharedContainer(container: View, type: IslandType) {
+        val firstClear = synchronized(clearedSharedContainers) {
+            clearedSharedContainers.put(container, type) != type
+        }
+        // A state change can restore MIUI blend state without assigning a Drawable.
+        // Promoted notifications can also restore the Drawable on every frame.
+        if (firstClear || container.background != null) clearMaskForView(container)
     }
 
     private fun isBlurEnabledForType(type: IslandType): Boolean {
@@ -767,7 +777,7 @@ object IslandBackgroundHook : BaseHook() {
         }
 
         if (configPath.isNullOrBlank()) {
-            if (anyCustomBgConfigured()) {
+            if (anyManagedOuterVisual()) {
                 return loadBlackDrawable(context, module, stokeWidth)
             }
             return null
@@ -775,7 +785,7 @@ object IslandBackgroundHook : BaseHook() {
 
         val file = IslandBackgroundFile.resolve(configPath)
         if (file == null) {
-            if (anyCustomBgConfigured()) {
+            if (anyManagedOuterVisual()) {
                 return loadBlackDrawable(context, module, stokeWidth)
             }
             return null
@@ -1006,6 +1016,7 @@ object IslandBackgroundHook : BaseHook() {
         cachedAnyCustomBg = null
         cachedBgAvailability.clear()
         cachedBlurEnabled.clear()
+        clearedSharedContainers.clear()
         cachedCornerRadius = null
         stokeWidthFieldCache.clear()
         drawableFieldCache.clear()
