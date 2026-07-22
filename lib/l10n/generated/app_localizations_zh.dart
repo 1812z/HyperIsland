@@ -1512,6 +1512,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get keepIslandHighlightColorSubtitle => '自定义常驻岛的高亮文字颜色';
 
   @override
+  String get keepIslandTextHighlightTitle => '文本高亮';
+
+  @override
+  String get keepIslandHighlightLeft => '左';
+
+  @override
+  String get keepIslandHighlightRight => '右';
+
+  @override
   String get keepIslandLeftContentTitle => '岛左边内容';
 
   @override

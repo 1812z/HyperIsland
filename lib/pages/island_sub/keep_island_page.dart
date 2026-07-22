@@ -61,6 +61,8 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
     _ctrl.keepIslandAutoHide,
     _ctrl.keepIslandHideLandscape,
     _ctrl.keepIslandHighlightColor,
+    _ctrl.keepIslandLeftHighlight,
+    _ctrl.keepIslandRightHighlight,
     _ctrl.keepIslandLeftContent,
     _ctrl.keepIslandRightContent,
     _ctrl.keepIslandFocusNotification,
@@ -367,6 +369,50 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
                           }
                         }),
                       ),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l10n.keepIslandTextHighlightTitle,
+                              style: Theme.of(context).textTheme.labelMedium
+                                  ?.copyWith(color: cs.onSurfaceVariant),
+                            ),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _HighlightSwitch(
+                                    label: l10n.keepIslandHighlightLeft,
+                                    value: _ctrl.keepIslandLeftHighlight,
+                                    onChanged:
+                                        _ctrl.keepIslandHighlightColor.isEmpty
+                                        ? null
+                                        : (value) =>
+                                              _ctrl.setKeepIslandLeftHighlight(
+                                                value,
+                                              ),
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _HighlightSwitch(
+                                    label: l10n.keepIslandHighlightRight,
+                                    value: _ctrl.keepIslandRightHighlight,
+                                    onChanged:
+                                        _ctrl.keepIslandHighlightColor.isEmpty
+                                        ? null
+                                        : (value) =>
+                                              _ctrl.setKeepIslandRightHighlight(
+                                                value,
+                                              ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
                       const Divider(height: 1, indent: 16, endIndent: 16),
                       SwitchListTile(
                         contentPadding: const EdgeInsets.symmetric(
@@ -465,6 +511,41 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _HighlightSwitch extends StatelessWidget {
+  const _HighlightSwitch({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String label;
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onChanged != null;
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: enabled ? null : Theme.of(context).disabledColor,
+            ),
+          ),
+        ),
+        Switch(
+          value: value,
+          onChanged: enabled
+              ? InteractionHaptics.interceptToggle(onChanged!)
+              : null,
+        ),
+      ],
     );
   }
 }

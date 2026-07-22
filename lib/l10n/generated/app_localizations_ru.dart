@@ -1609,6 +1609,15 @@ class AppLocalizationsRu extends AppLocalizations {
       'Настроить цвет текста подсветки для режима удержания Острова';
 
   @override
+  String get keepIslandTextHighlightTitle => 'Подсветка текста';
+
+  @override
+  String get keepIslandHighlightLeft => 'Слева';
+
+  @override
+  String get keepIslandHighlightRight => 'Справа';
+
+  @override
   String get keepIslandLeftContentTitle => 'Левое содержимое Острова';
 
   @override

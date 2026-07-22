@@ -1596,6 +1596,15 @@ class AppLocalizationsEn extends AppLocalizations {
       'Customize the highlight text color for the keep island';
 
   @override
+  String get keepIslandTextHighlightTitle => 'Text highlight';
+
+  @override
+  String get keepIslandHighlightLeft => 'Left';
+
+  @override
+  String get keepIslandHighlightRight => 'Right';
+
+  @override
   String get keepIslandLeftContentTitle => 'Left island content';
 
   @override

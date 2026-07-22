@@ -378,6 +378,8 @@ object ConfigManager {
         "pref_keep_island_auto_hide",
         "pref_keep_island_hide_landscape",
         "pref_keep_island_highlight_color",
+        "pref_keep_island_left_highlight",
+        "pref_keep_island_right_highlight",
         "pref_keep_island_left_content",
         "pref_keep_island_right_content",
         "pref_keep_island_focus_notification",

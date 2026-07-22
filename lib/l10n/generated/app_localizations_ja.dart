@@ -1531,6 +1531,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get keepIslandHighlightColorSubtitle => '常時アイランドのハイライトテキストカラーをカスタマイズ';
 
   @override
+  String get keepIslandTextHighlightTitle => 'テキストのハイライト';
+
+  @override
+  String get keepIslandHighlightLeft => '左';
+
+  @override
+  String get keepIslandHighlightRight => '右';
+
+  @override
   String get keepIslandLeftContentTitle => '左側の内容';
 
   @override

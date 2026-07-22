@@ -1591,6 +1591,15 @@ class AppLocalizationsTr extends AppLocalizations {
       'Sürekli adanın vurgu metin rengini özelleştir';
 
   @override
+  String get keepIslandTextHighlightTitle => 'Metin vurgusu';
+
+  @override
+  String get keepIslandHighlightLeft => 'Sol';
+
+  @override
+  String get keepIslandHighlightRight => 'Sağ';
+
+  @override
   String get keepIslandLeftContentTitle => 'Sol ada içeriği';
 
   @override

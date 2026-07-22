@@ -37,6 +37,10 @@ object KeepIslandHook : BaseHook() {
 
     private const val PREF_KEY_HIGHLIGHT_COLOR = "pref_keep_island_highlight_color"
 
+    private const val PREF_KEY_LEFT_HIGHLIGHT = "pref_keep_island_left_highlight"
+
+    private const val PREF_KEY_RIGHT_HIGHLIGHT = "pref_keep_island_right_highlight"
+
     private const val PREF_KEY_LEFT_CONTENT = "pref_keep_island_left_content"
 
     private const val PREF_KEY_RIGHT_CONTENT = "pref_keep_island_right_content"
@@ -339,6 +343,10 @@ object KeepIslandHook : BaseHook() {
         try {
             val highlightColor = ConfigManager.getString(PREF_KEY_HIGHLIGHT_COLOR, "")
                 .takeIf { it.isNotBlank() }
+            val showLeftHighlight = highlightColor != null &&
+                    ConfigManager.getBoolean(PREF_KEY_LEFT_HIGHLIGHT, false)
+            val showRightHighlight = highlightColor != null &&
+                    ConfigManager.getBoolean(PREF_KEY_RIGHT_HIGHLIGHT, false)
             val texts: Pair<String, String> = resolveKeepIslandTexts()
             val focusEnabled = ConfigManager.getBoolean(PREF_KEY_FOCUS_NOTIFICATION, false)
             val focusTexts = resolveFocusNotificationTexts()
@@ -360,8 +368,8 @@ object KeepIslandHook : BaseHook() {
                 sourcePackage = "io.github.hyperisland",
                 sourceChannelId = KEEP_ISLAND_CHANNEL,
                 highlightColor = highlightColor,
-                showLeftHighlightColor = highlightColor != null,
-                showRightHighlightColor = highlightColor != null,
+                showLeftHighlightColor = showLeftHighlight,
+                showRightHighlightColor = showRightHighlight,
                 islandOnly = !focusEnabled,
                 focusTitle = focusTexts.first,
                 focusContent = focusTexts.second,
@@ -375,6 +383,8 @@ object KeepIslandHook : BaseHook() {
                 showIslandIcon,
                 customIconPath,
                 highlightColor,
+                showLeftHighlight,
+                showRightHighlight,
             )
             lastContentUpdateAt = System.currentTimeMillis()
             keepIslandContentCustomized = texts.first != " " || texts.second.isNotEmpty()
@@ -394,6 +404,10 @@ object KeepIslandHook : BaseHook() {
         try {
             val highlightColor = ConfigManager.getString(PREF_KEY_HIGHLIGHT_COLOR, "")
                 .takeIf { it.isNotBlank() }
+            val showLeftHighlight = highlightColor != null &&
+                    ConfigManager.getBoolean(PREF_KEY_LEFT_HIGHLIGHT, false)
+            val showRightHighlight = highlightColor != null &&
+                    ConfigManager.getBoolean(PREF_KEY_RIGHT_HIGHLIGHT, false)
             val focusEnabled = ConfigManager.getBoolean(PREF_KEY_FOCUS_NOTIFICATION, false)
             val focusTexts = resolveFocusNotificationTexts()
             val showIslandIcon = ConfigManager.getBoolean(PREF_KEY_SHOW_ISLAND_ICON, false)
@@ -405,6 +419,8 @@ object KeepIslandHook : BaseHook() {
                 showIslandIcon,
                 customIconPath,
                 highlightColor,
+                showLeftHighlight,
+                showRightHighlight,
             )
             if (!force && signature == lastContentUpdateSignature) return
             val now = System.currentTimeMillis()
@@ -425,8 +441,8 @@ object KeepIslandHook : BaseHook() {
                 sourcePackage = "io.github.hyperisland",
                 sourceChannelId = KEEP_ISLAND_CHANNEL,
                 highlightColor = highlightColor,
-                showLeftHighlightColor = highlightColor != null,
-                showRightHighlightColor = highlightColor != null,
+                showLeftHighlightColor = showLeftHighlight,
+                showRightHighlightColor = showRightHighlight,
                 islandOnly = !focusEnabled,
                 focusTitle = focusTexts.first,
                 focusContent = focusTexts.second,
@@ -472,10 +488,13 @@ object KeepIslandHook : BaseHook() {
         showIslandIcon: Boolean,
         customIconPath: String,
         highlightColor: String?,
+        showLeftHighlight: Boolean,
+        showRightHighlight: Boolean,
     ): String {
         return "${texts.first}\u0000${texts.second}\u0000$focusEnabled\u0000" +
                 "${focusTexts.first}\u0000${focusTexts.second}\u0000$showIslandIcon\u0000" +
-                "$customIconPath\u0000${highlightColor.orEmpty()}"
+                "$customIconPath\u0000${highlightColor.orEmpty()}\u0000" +
+                "$showLeftHighlight\u0000$showRightHighlight"
     }
 
     private fun loadCustomIcon(path: String): Icon? {

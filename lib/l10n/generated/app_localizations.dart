@@ -2960,6 +2960,24 @@ abstract class AppLocalizations {
   /// **'自定义常驻岛的高亮文字颜色'**
   String get keepIslandHighlightColorSubtitle;
 
+  /// No description provided for @keepIslandTextHighlightTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'文本高亮'**
+  String get keepIslandTextHighlightTitle;
+
+  /// No description provided for @keepIslandHighlightLeft.
+  ///
+  /// In zh, this message translates to:
+  /// **'左'**
+  String get keepIslandHighlightLeft;
+
+  /// No description provided for @keepIslandHighlightRight.
+  ///
+  /// In zh, this message translates to:
+  /// **'右'**
+  String get keepIslandHighlightRight;
+
   /// No description provided for @keepIslandLeftContentTitle.
   ///
   /// In zh, this message translates to:

@@ -97,6 +97,8 @@ const kPrefKeepIsland = 'pref_keep_island';
 const kPrefKeepIslandAutoHide = 'pref_keep_island_auto_hide';
 const kPrefKeepIslandHideLandscape = 'pref_keep_island_hide_landscape';
 const kPrefKeepIslandHighlightColor = 'pref_keep_island_highlight_color';
+const kPrefKeepIslandLeftHighlight = 'pref_keep_island_left_highlight';
+const kPrefKeepIslandRightHighlight = 'pref_keep_island_right_highlight';
 const kPrefKeepIslandLeftContent = 'pref_keep_island_left_content';
 const kPrefKeepIslandRightContent = 'pref_keep_island_right_content';
 const kPrefKeepIslandFocusNotification = 'pref_keep_island_focus_notification';
@@ -278,6 +280,8 @@ class SettingsController extends ChangeNotifier {
   bool keepIslandAutoHide = true;
   bool keepIslandHideLandscape = false;
   String keepIslandHighlightColor = '';
+  bool keepIslandLeftHighlight = false;
+  bool keepIslandRightHighlight = false;
   String keepIslandLeftContent = '';
   String keepIslandRightContent = '';
   bool keepIslandFocusNotification = false;
@@ -462,6 +466,10 @@ class SettingsController extends ChangeNotifier {
         prefs.getBool(kPrefKeepIslandHideLandscape) ?? false;
     keepIslandHighlightColor =
         prefs.getString(kPrefKeepIslandHighlightColor) ?? '';
+    keepIslandLeftHighlight =
+        prefs.getBool(kPrefKeepIslandLeftHighlight) ?? false;
+    keepIslandRightHighlight =
+        prefs.getBool(kPrefKeepIslandRightHighlight) ?? false;
     keepIslandLeftContent = prefs.getString(kPrefKeepIslandLeftContent) ?? '';
     keepIslandRightContent = prefs.getString(kPrefKeepIslandRightContent) ?? '';
     keepIslandFocusNotification =
@@ -1355,6 +1363,18 @@ class SettingsController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setKeepIslandLeftHighlight(bool value) => _setBoolPref(
+    kPrefKeepIslandLeftHighlight,
+    value,
+    (v) => keepIslandLeftHighlight = v,
+  );
+
+  Future<void> setKeepIslandRightHighlight(bool value) => _setBoolPref(
+    kPrefKeepIslandRightHighlight,
+    value,
+    (v) => keepIslandRightHighlight = v,
+  );
+
   Future<void> setKeepIslandLeftContent(String value) => _setStringPref(
     kPrefKeepIslandLeftContent,
     value.trim(),
@@ -1433,11 +1453,12 @@ class SettingsController extends ChangeNotifier {
     (v) => tempHideNotificationCenter = v,
   );
 
-  Future<void> setTempHideFullscreenLandscapeDisable(bool value) => _setBoolPref(
-    kPrefTempHideFullscreenLandscapeDisable,
-    value,
-    (v) => tempHideFullscreenLandscapeDisable = v,
-  );
+  Future<void> setTempHideFullscreenLandscapeDisable(bool value) =>
+      _setBoolPref(
+        kPrefTempHideFullscreenLandscapeDisable,
+        value,
+        (v) => tempHideFullscreenLandscapeDisable = v,
+      );
 
   Future<void> setAlwaysShowIslandOutline(bool value) => _setBoolPref(
     kPrefAlwaysShowIslandOutline,
