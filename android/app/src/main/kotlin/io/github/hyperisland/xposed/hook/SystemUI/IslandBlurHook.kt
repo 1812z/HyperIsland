@@ -13,7 +13,7 @@ import android.util.TypedValue
 import android.view.View
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.BaseHook
-import io.github.hyperisland.xposed.hook.IslandBackgroundFile
+import io.github.hyperisland.xposed.hook.IslandBackgroundHook
 import io.github.hyperisland.xposed.log
 import io.github.hyperisland.xposed.logError
 import io.github.hyperisland.xposed.utils.HookUtils
@@ -46,9 +46,6 @@ object IslandBlurHook : BaseHook() {
     private const val KEY_EXPAND_ENABLED = "pref_island_blur_expand_enabled"
     private const val KEY_EXPAND_RADIUS = "pref_island_blur_expand_radius"
     private const val KEY_EXPAND_COLOR = "pref_island_blur_expand_color"
-    private const val KEY_SMALL_BACKGROUND = "pref_island_bg_small_path"
-    private const val KEY_BIG_BACKGROUND = "pref_island_bg_big_path"
-    private const val KEY_EXPAND_BACKGROUND = "pref_island_bg_expand_path"
 
     private const val DEFAULT_RADIUS = 80
     private const val DEFAULT_BLEND_COLOR = 0x20FFFFFF
@@ -112,19 +109,16 @@ object IslandBlurHook : BaseHook() {
                 KEY_SMALL_ENABLED,
                 KEY_SMALL_RADIUS,
                 KEY_SMALL_COLOR,
-                KEY_SMALL_BACKGROUND,
             ),
             big = readConfig(
                 KEY_BIG_ENABLED,
                 KEY_BIG_RADIUS,
                 KEY_BIG_COLOR,
-                KEY_BIG_BACKGROUND,
             ),
             expand = readConfig(
                 KEY_EXPAND_ENABLED,
                 KEY_EXPAND_RADIUS,
                 KEY_EXPAND_COLOR,
-                KEY_EXPAND_BACKGROUND,
             ),
         )
         anyBlurEnabled = configs.small.isActive || configs.big.isActive || configs.expand.isActive
@@ -134,15 +128,11 @@ object IslandBlurHook : BaseHook() {
         enabledKey: String,
         radiusKey: String,
         colorKey: String,
-        backgroundKey: String,
     ): BlurConfig {
         return BlurConfig(
             enabled = ConfigManager.getBoolean(enabledKey, false),
             radius = ConfigManager.getInt(radiusKey, DEFAULT_RADIUS).coerceIn(0, 275),
             blendColor = parseColor(ConfigManager.getString(colorKey)),
-            hasCustomBackground = IslandBackgroundFile.resolve(
-                ConfigManager.getString(backgroundKey),
-            ) != null,
         )
     }
 
@@ -198,7 +188,15 @@ object IslandBlurHook : BaseHook() {
                 isAccessible = true
             }
             if (!hookedContentClasses.add(contentClass)) return
-            hookIslandState(module, contentClass, stateClass, updateMethod)
+            hookIslandState(
+                module,
+                contentClass,
+                stateClass,
+                updateMethod,
+                stateField,
+                backgroundViewField,
+                outerDrawableField,
+            )
             hookBackgroundDrawing(module, backgroundClass, outerDrawableField)
             hookTransitionBlur(module, animationDelegateClass, fakeViewClass, methods)
             module.hook(updateMethod).intercept { chain ->
@@ -228,7 +226,7 @@ object IslandBlurHook : BaseHook() {
                 val staleUpdate = stateType != null && type != stateType
                 val active = if (staleUpdate) {
                     false
-                } else if (config.enabled && !config.hasCustomBackground) {
+                } else if (config.enabled) {
                     applyOuterBlur(
                         backgroundView,
                         view,
@@ -238,6 +236,10 @@ object IslandBlurHook : BaseHook() {
                     )
                 } else {
                     deactivateOuterBlur(backgroundView, outerDrawableField)
+                    // DynamicIslandBackgroundView owns one shared drawable slot. A
+                    // previous state's blur restores its old stock drawable, not the
+                    // current state's image, so re-install the current image here.
+                    IslandBackgroundHook.restoreCustomBackground(backgroundView, type.name)
                     false
                 }
                 if (active) {
@@ -276,6 +278,9 @@ object IslandBlurHook : BaseHook() {
         contentClass: Class<*>,
         stateClass: Class<*>,
         updateMethod: Method,
+        stateField: java.lang.reflect.Field,
+        backgroundViewField: java.lang.reflect.Field,
+        outerDrawableField: java.lang.reflect.Field,
     ) {
         val method = contentClass.getDeclaredMethod(
             "updateDarkLightMode",
@@ -295,12 +300,19 @@ object IslandBlurHook : BaseHook() {
                 if (type != null && configForType(type).isActive) {
                     mainHandler.removeCallbacks(refreshRunnable)
                     mainHandler.post(refreshRunnable)
+                }
+                if (type != null) {
                     mainHandler.post {
-                        refreshConcreteIslandViews(
+                        synchronizeOuterVisual(
                             chain.thisObject,
-                            updateMethod,
                             type,
+                            stateField,
+                            backgroundViewField,
+                            outerDrawableField,
                         )
+                        if (configForType(type).isActive) {
+                            refreshConcreteIslandViews(chain.thisObject, updateMethod, type)
+                        }
                     }
                 }
                 result
@@ -329,6 +341,17 @@ object IslandBlurHook : BaseHook() {
         val view = runCatching { getter?.invoke(contentView) as? View }.getOrNull()
         if (view == null) return
         runCatching { updateMethod.invoke(contentView, view, false) }
+    }
+
+    private fun islandViewForType(contentView: Any, type: IslandType): View? {
+        val getterName = when (type) {
+            IslandType.SMALL -> "getSmallIslandView"
+            IslandType.BIG -> "getBigIslandView"
+            IslandType.EXPAND -> "getExpandedView"
+        }
+        return runCatching {
+            findMethod(contentView.javaClass, getterName)?.invoke(contentView) as? View
+        }.getOrNull()
     }
 
     private fun hookBackgroundDrawing(
@@ -416,6 +439,33 @@ object IslandBlurHook : BaseHook() {
             runCatching { methods.setViewMode.invoke(null, child, 0) }
             runCatching { methods.clearBlend.invoke(null, child) }
             child.background = null
+        }
+    }
+
+    /** Keeps the shared outer drawable aligned with the settled logical state. */
+    private fun synchronizeOuterVisual(
+        contentView: Any?,
+        type: IslandType,
+        stateField: java.lang.reflect.Field,
+        backgroundViewField: java.lang.reflect.Field,
+        outerDrawableField: java.lang.reflect.Field,
+    ) {
+        if (contentView == null || runCatching {
+                resolveIslandType(stateField.get(contentView))
+            }.getOrNull() != type
+        ) return
+        val backgroundView = runCatching {
+            backgroundViewField.get(contentView) as? View
+        }.getOrNull() ?: return
+        val config = configForType(type)
+        val shapeView = islandViewForType(contentView, type)
+        if (config.enabled && shapeView != null) {
+            applyOuterBlur(backgroundView, shapeView, type, config, outerDrawableField)
+        } else {
+            // expanded_view can be inflated after the state callback. Never leave
+            // the prior state's blur visible while waiting for that concrete View.
+            deactivateOuterBlur(backgroundView, outerDrawableField)
+            IslandBackgroundHook.restoreCustomBackground(backgroundView, type.name)
         }
     }
 
@@ -660,11 +710,10 @@ object IslandBlurHook : BaseHook() {
         enabled: Boolean,
         val radius: Int,
         blendColor: Int,
-        val hasCustomBackground: Boolean,
     ) {
         val enabled = enabled
         val blendColor = blendColor
-        val isActive = enabled && !hasCustomBackground
+        val isActive = enabled
     }
 
     private data class BlurConfigs(
@@ -678,7 +727,6 @@ object IslandBlurHook : BaseHook() {
                     false,
                     DEFAULT_RADIUS,
                     DEFAULT_BLEND_COLOR,
-                    false,
                 )
                 return BlurConfigs(disabled, disabled, disabled)
             }

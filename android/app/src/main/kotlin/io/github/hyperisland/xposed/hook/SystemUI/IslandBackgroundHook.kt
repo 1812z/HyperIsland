@@ -137,9 +137,13 @@ object IslandBackgroundHook : BaseHook() {
     @Volatile
     private var pendingRetryRunnable: Runnable? = null
 
+    @Volatile
+    private var hookModule: XposedModule? = null
+
     override fun getTag() = TAG
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
+        hookModule = module
         hookDynamicClassLoaders(module)
     }
 
@@ -519,6 +523,30 @@ object IslandBackgroundHook : BaseHook() {
         if (bgView is ViewGroup) {
             clearMaskForCurrentType(bgView, type)
         }
+    }
+
+    /** Restores this state's image or black fallback after another state releases the shared slot. */
+    internal fun restoreCustomBackground(backgroundView: View, typeName: String) {
+        val type = when (typeName) {
+            "SMALL" -> IslandType.SMALL
+            "BIG" -> IslandType.BIG
+            "EXPAND" -> IslandType.EXPAND
+            else -> return
+        }
+        val module = hookModule ?: return
+        val drawable = loadCustomDrawable(
+            type,
+            backgroundView.context,
+            module,
+            getStokeWidth(backgroundView, backgroundView.javaClass),
+        ) ?: return
+        applyDrawableToBgView(
+            backgroundView,
+            backgroundView.javaClass,
+            type,
+            module,
+            drawable,
+        )
     }
 
     /**
