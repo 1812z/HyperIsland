@@ -2984,6 +2984,18 @@ abstract class AppLocalizations {
   /// **'根据设备姿态实时移动边缘光照'**
   String get islandGlassGyroscopeSubtitle;
 
+  /// No description provided for @islandGlassTrueRefraction.
+  ///
+  /// In zh, this message translates to:
+  /// **'真折射模式'**
+  String get islandGlassTrueRefraction;
+
+  /// No description provided for @islandGlassTrueRefractionSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'大岛和焦点通知通过屏幕捕获折射周围内容，性能开销较高'**
+  String get islandGlassTrueRefractionSubtitle;
+
   /// No description provided for @keepIslandTitle.
   ///
   /// In zh, this message translates to:

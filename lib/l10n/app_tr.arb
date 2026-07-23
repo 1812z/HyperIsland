@@ -615,6 +615,8 @@
   "islandGlassDispersion": "Dispersion strength",
   "islandGlassGyroscope": "Gyroscope lighting",
   "islandGlassGyroscopeSubtitle": "Move rim lighting with the device pose",
+  "islandGlassTrueRefraction": "True refraction mode",
+  "islandGlassTrueRefractionSubtitle": "Refract surrounding screen content on Large Island and Focus Notification; higher performance cost",
   "keepIslandTitle": "Adayı Sürekli Göster",
   "keepIslandSubtitle": "Adayı sürekli görünür tutmak için boş bir bildirim gönder",
   "keepIslandAutoHideTitle": "Otomatik Gizle",

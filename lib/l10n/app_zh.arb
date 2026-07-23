@@ -727,6 +727,8 @@
   "islandGlassDispersion": "色散强度",
   "islandGlassGyroscope": "陀螺仪光效",
   "islandGlassGyroscopeSubtitle": "根据设备姿态实时移动边缘光照",
+  "islandGlassTrueRefraction": "真折射模式",
+  "islandGlassTrueRefractionSubtitle": "大岛和焦点通知通过屏幕捕获折射周围内容，性能开销较高",
   "keepIslandTitle": "常驻超级岛",
   "keepIslandSubtitle": "显示一条空白通知使岛始终可见",
   "keepIslandAutoHideTitle": "自动隐藏",

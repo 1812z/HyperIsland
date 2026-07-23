@@ -1524,6 +1524,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get islandGlassGyroscopeSubtitle => '根据设备姿态实时移动边缘光照';
 
   @override
+  String get islandGlassTrueRefraction => '真折射模式';
+
+  @override
+  String get islandGlassTrueRefractionSubtitle => '大岛和焦点通知通过屏幕捕获折射周围内容，性能开销较高';
+
+  @override
   String get keepIslandTitle => '常驻超级岛';
 
   @override

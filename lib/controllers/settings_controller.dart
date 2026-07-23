@@ -94,6 +94,7 @@ const kPrefIslandGlassShadow = 'pref_island_glass_shadow';
 const kPrefIslandGlassLightDirection = 'pref_island_glass_light_direction';
 const kPrefIslandGlassDispersion = 'pref_island_glass_dispersion';
 const kPrefIslandGlassGyroscope = 'pref_island_glass_gyroscope';
+const kPrefIslandGlassTrueRefraction = 'pref_island_glass_true_refraction';
 const kPrefIslandHeight = 'pref_island_height';
 const kPrefIslandTopOffset = 'pref_island_top_offset';
 const kPrefIslandTextColorMode = 'pref_island_text_color_mode';
@@ -287,6 +288,7 @@ class SettingsController extends ChangeNotifier {
   int islandGlassLightDirection = 243;
   int islandGlassDispersion = 18;
   bool islandGlassGyroscope = true;
+  bool islandGlassTrueRefraction = false;
   double islandHeight = 0;
   double islandTopOffset = 0;
   String islandTextColorMode = kIslandTextColorDefault;
@@ -475,6 +477,8 @@ class SettingsController extends ChangeNotifier {
     islandGlassDispersion = (prefs.getInt(kPrefIslandGlassDispersion) ?? 18)
         .clamp(0, 100);
     islandGlassGyroscope = prefs.getBool(kPrefIslandGlassGyroscope) ?? true;
+    islandGlassTrueRefraction =
+        prefs.getBool(kPrefIslandGlassTrueRefraction) ?? false;
     islandHeight = prefs.getDouble(kPrefIslandHeight) ?? 0;
     islandTopOffset = prefs.getDouble(kPrefIslandTopOffset) ?? 0;
     islandTextColorMode = _normalizeIslandTextColorMode(
@@ -1318,6 +1322,11 @@ class SettingsController extends ChangeNotifier {
   Future<void> setIslandGlassGyroscope(bool value) =>
       _setIslandGlassBool(kPrefIslandGlassGyroscope, value, () {
         islandGlassGyroscope = value;
+      });
+
+  Future<void> setIslandGlassTrueRefraction(bool value) =>
+      _setIslandGlassBool(kPrefIslandGlassTrueRefraction, value, () {
+        islandGlassTrueRefraction = value;
       });
 
   Future<void> setIslandGlassEdgeWidth(int value) => _setIslandGlassInt(

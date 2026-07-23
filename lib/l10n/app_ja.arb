@@ -468,6 +468,8 @@
   "islandGlassDispersion": "Dispersion strength",
   "islandGlassGyroscope": "Gyroscope lighting",
   "islandGlassGyroscopeSubtitle": "Move rim lighting with the device pose",
+  "islandGlassTrueRefraction": "True refraction mode",
+  "islandGlassTrueRefractionSubtitle": "Refract surrounding screen content on Large Island and Focus Notification; higher performance cost",
   "keepIslandTitle": "常時ダイナミックアイランド",
   "keepIslandSubtitle": "空白通知を投稿してアイランドを常に表示",
   "keepIslandAutoHideTitle": "自動非表示",

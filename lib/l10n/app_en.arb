@@ -575,6 +575,8 @@
   "islandGlassDispersion": "Dispersion strength",
   "islandGlassGyroscope": "Gyroscope lighting",
   "islandGlassGyroscopeSubtitle": "Move rim lighting with the device pose",
+  "islandGlassTrueRefraction": "True refraction mode",
+  "islandGlassTrueRefractionSubtitle": "Refract surrounding screen content on Large Island and Focus Notification; higher performance cost",
   "keepIslandTitle": "Keep Island Visible",
   "keepIslandSubtitle": "Post a blank notification to keep the island always visible",
   "keepIslandAutoHideTitle": "Auto Hide",

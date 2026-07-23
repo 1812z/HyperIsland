@@ -1620,6 +1620,13 @@ class AppLocalizationsRu extends AppLocalizations {
       'Move rim lighting with the device pose';
 
   @override
+  String get islandGlassTrueRefraction => 'True refraction mode';
+
+  @override
+  String get islandGlassTrueRefractionSubtitle =>
+      'Refract surrounding screen content on Large Island and Focus Notification; higher performance cost';
+
+  @override
   String get keepIslandTitle => 'Держать Остров видимым';
 
   @override

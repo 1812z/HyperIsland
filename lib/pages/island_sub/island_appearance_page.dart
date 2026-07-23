@@ -60,6 +60,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _ctrl.islandGlassLightDirection,
     _ctrl.islandGlassDispersion,
     _ctrl.islandGlassGyroscope,
+    _ctrl.islandGlassTrueRefraction,
     _ctrl.islandTextColorMode,
     _ctrl.focusNotificationTextColorMode,
     _ctrl.alwaysShowIslandOutline,
@@ -793,6 +794,24 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                         onChanged: _ctrl.islandGlassEnabled && _hasAnyBlur
                             ? InteractionHaptics.interceptToggle(
                                 _ctrl.setIslandGlassGyroscope,
+                              )
+                            : null,
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      SwitchListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        title: Text(
+                          l10n.islandGlassTrueRefraction,
+                          style: titleStyle,
+                        ),
+                        subtitle: Text(l10n.islandGlassTrueRefractionSubtitle),
+                        value: _ctrl.islandGlassTrueRefraction,
+                        onChanged: _ctrl.islandGlassEnabled && _hasAnyBlur
+                            ? InteractionHaptics.interceptToggle(
+                                _ctrl.setIslandGlassTrueRefraction,
                               )
                             : null,
                       ),

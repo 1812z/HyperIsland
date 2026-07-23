@@ -55,6 +55,7 @@ object IslandBlurHook : BaseHook() {
     private const val KEY_GLASS_LIGHT_DIRECTION = "pref_island_glass_light_direction"
     private const val KEY_GLASS_DISPERSION = "pref_island_glass_dispersion"
     private const val KEY_GLASS_GYROSCOPE = "pref_island_glass_gyroscope"
+    private const val KEY_GLASS_TRUE_REFRACTION = "pref_island_glass_true_refraction"
 
     private const val DEFAULT_RADIUS = 80
     private const val DEFAULT_BLEND_COLOR = 0x20FFFFFF
@@ -156,6 +157,7 @@ object IslandBlurHook : BaseHook() {
             dispersion = ConfigManager.getInt(KEY_GLASS_DISPERSION, 18)
                 .coerceIn(0, 100) / 100f,
             gyroscope = ConfigManager.getBoolean(KEY_GLASS_GYROSCOPE, true),
+            trueRefraction = ConfigManager.getBoolean(KEY_GLASS_TRUE_REFRACTION, false),
         )
     }
 
@@ -908,7 +910,7 @@ object IslandBlurHook : BaseHook() {
                 view,
                 clippedDrawable,
                 strokeWidth,
-                glassConfig,
+                glassConfig.copy(trueRefraction = glassConfig.trueRefraction && type != IslandType.SMALL),
             )
             OwnedBlur(
                 drawable = liquidDrawable,
@@ -930,7 +932,11 @@ object IslandBlurHook : BaseHook() {
         val radius = resolveCornerRadius(view, owned.type, shapeView)
         owned.clippedDrawable.setCornerRadius(radius)
         owned.liquidDrawable.setCornerRadius(radius)
-        owned.liquidDrawable.updateConfig(glassConfig)
+        owned.liquidDrawable.updateConfig(
+            glassConfig.copy(
+                trueRefraction = glassConfig.trueRefraction && owned.type != IslandType.SMALL,
+            ),
+        )
         owned.methods.setCornerRadius.invoke(
             owned.effectDrawable,
             radius,
