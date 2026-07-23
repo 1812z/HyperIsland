@@ -37,6 +37,8 @@ object IslandBlurHook : BaseHook() {
         "miui.systemui.dynamicisland.anim.DynamicIslandAnimationDelegate"
     private const val FAKE_VIEW_CLASS =
         "miui.systemui.dynamicisland.window.content.DynamicIslandContentFakeView"
+    private const val CONTENT_VIEW_CONTROLLER_CLASS =
+        "miui.systemui.dynamicisland.window.content.DynamicIslandContentViewController"
 
     private const val KEY_SMALL_ENABLED = "pref_island_blur_small_enabled"
     private const val KEY_SMALL_RADIUS = "pref_island_blur_small_radius"
@@ -75,6 +77,9 @@ object IslandBlurHook : BaseHook() {
     )
     private val detachListeners = Collections.synchronizedMap(
         WeakHashMap<View, View.OnAttachStateChangeListener>()
+    )
+    private val controllerVisibility = Collections.synchronizedMap(
+        WeakHashMap<Any, Boolean>()
     )
     private val mainHandler = Handler(Looper.getMainLooper())
     private val refreshRunnable = Runnable { refreshTrackedViews() }
@@ -245,6 +250,12 @@ object IslandBlurHook : BaseHook() {
                 outerDrawableField,
             )
             hookBackgroundDrawing(module, backgroundClass, outerDrawableField)
+            hookContentVisibility(
+                module,
+                classLoader,
+                backgroundViewField,
+                outerDrawableField,
+            )
             hookTempHiddenLifecycle(module, windowViewClass)
             hookTransitionBlur(module, animationDelegateClass, fakeViewClass, methods)
             module.hook(updateMethod).intercept { chain ->
@@ -338,7 +349,8 @@ object IslandBlurHook : BaseHook() {
             Boolean::class.javaPrimitiveType,
         )
         module.hook(method).intercept { chain ->
-            val type = resolveIslandType(chain.args.getOrNull(0))
+            val state = chain.args.getOrNull(0)
+            val type = resolveIslandType(state)
             if (type != null) {
                 islandTypeHolder.set(type)
                 lastIslandType = type
@@ -361,6 +373,15 @@ object IslandBlurHook : BaseHook() {
                         if (configForType(type).isActive) {
                             refreshConcreteIslandViews(chain.thisObject, updateMethod, type)
                         }
+                    }
+                } else if (isNoContentState(state)) {
+                    val contentView = chain.thisObject
+                    mainHandler.post {
+                        val backgroundView = runCatching {
+                            backgroundViewField.get(contentView) as? View
+                        }.getOrNull() ?: return@post
+                        deactivateOuterBlur(backgroundView, outerDrawableField)
+                        lastIslandType = null
                     }
                 }
                 result
@@ -623,6 +644,58 @@ object IslandBlurHook : BaseHook() {
             name.contains("BigIsland") -> IslandType.BIG
             name.contains("Expanded") -> IslandType.EXPAND
             else -> null
+        }
+    }
+
+    private fun isNoContentState(state: Any?): Boolean {
+        val name = state?.javaClass?.simpleName.orEmpty()
+        val text = state?.toString().orEmpty()
+        return sequenceOf(name, text).any { value ->
+            value.contains("Deleted", ignoreCase = true) ||
+                value.contains("Empty", ignoreCase = true) ||
+                value.contains("Invisible", ignoreCase = true) ||
+                value.contains("Idle", ignoreCase = true) ||
+                value.contains("None", ignoreCase = true)
+        }
+    }
+
+    private fun hookContentVisibility(
+        module: XposedModule,
+        classLoader: ClassLoader,
+        backgroundViewField: java.lang.reflect.Field,
+        outerDrawableField: java.lang.reflect.Field,
+    ) {
+        val controllerClass = runCatching {
+            Class.forName(CONTENT_VIEW_CONTROLLER_CLASS, false, classLoader)
+        }.getOrNull() ?: return
+        val preDrawMethods = controllerClass.declaredMethods.filter {
+            it.name == "onPreDraw" && it.parameterCount == 0
+        }
+        preDrawMethods.forEach { method ->
+            module.hook(method).intercept { chain ->
+                val result = chain.proceed()
+                val controller = chain.thisObject
+                val visible = runCatching {
+                    findMethod(controller.javaClass, "currentIslandVisible")
+                        ?.invoke(controller) as? Boolean
+                }.getOrNull()
+                val contentView = runCatching {
+                    findMethod(controller.javaClass, "getView")?.invoke(controller)
+                }.getOrNull()
+                val backgroundView = runCatching {
+                    backgroundViewField.get(contentView) as? View
+                }.getOrNull()
+                val previouslyVisible = if (visible != null) {
+                    controllerVisibility.put(controller, visible)
+                } else {
+                    null
+                }
+                if (backgroundView != null && previouslyVisible != false && visible == false) {
+                    deactivateOuterBlur(backgroundView, outerDrawableField)
+                    lastIslandType = null
+                }
+                result
+            }
         }
     }
 
@@ -936,6 +1009,7 @@ object IslandBlurHook : BaseHook() {
     ) {
         val radius = resolveCornerRadius(view, owned.type, shapeView)
         owned.clippedDrawable.setCornerRadius(radius)
+        owned.liquidDrawable.setContentView(shapeView)
         owned.liquidDrawable.setCornerRadius(radius)
         owned.liquidDrawable.setBackgroundBlurRadius(config.radius.toFloat())
         owned.liquidDrawable.updateConfig(

@@ -65,6 +65,7 @@ internal class LiquidGlassDrawable(
 
     private val context = context
     private val hostView = WeakReference(host)
+    private var contentView: WeakReference<View>? = null
     private val glassRect = RectF()
     private val rimShader = runCatching { RuntimeShader(RIM_SHADER) }.getOrNull()
     private val rimPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { shader = rimShader }
@@ -72,6 +73,7 @@ internal class LiquidGlassDrawable(
     private val refractionPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { shader = refractionShader }
     private val screenCapture = RefractiveScreenCapture(
         host,
+        ::shouldCaptureNow,
         ::applySystemBlur,
         ::onScreenCaptured,
     )
@@ -96,7 +98,13 @@ internal class LiquidGlassDrawable(
 
     fun setCornerRadius(radius: Float) {
         cornerRadius = radius.coerceAtLeast(0f)
+        updateCaptureState()
         invalidateSelf()
+    }
+
+    fun setContentView(view: View) {
+        if (contentView?.get() !== view) contentView = WeakReference(view)
+        updateCaptureState()
     }
 
     fun setBackgroundBlurRadius(radius: Float) {
@@ -135,12 +143,38 @@ internal class LiquidGlassDrawable(
     }
 
     private fun updateCaptureState() {
-        if (config.enabled && config.trueRefraction && refractionShader != null) {
+        if (shouldCaptureNow()) {
             screenCapture.updateScreenPosition()
             screenCapture.start()
         } else {
-            screenCapture.stop()
+            stopCapture()
         }
+    }
+
+    private fun stopCapture() {
+        screenCapture.stop()
+        currentFrame?.takeIf { !it.isRecycled }?.recycle()
+        currentFrame = null
+    }
+
+    private fun shouldCaptureNow(): Boolean {
+        if (!config.enabled || !config.trueRefraction || refractionShader == null) return false
+        if (!isVisible || drawableAlpha <= 0f || bounds.isEmpty) return false
+        val host = hostView.get() ?: return false
+        val content = contentView?.get() ?: return false
+        return isActuallyVisible(host) && isActuallyVisible(content)
+    }
+
+    private fun isActuallyVisible(view: View): Boolean {
+        if (!view.isAttachedToWindow || !view.isShown || view.windowVisibility != View.VISIBLE ||
+            view.width <= 0 || view.height <= 0 || !view.getGlobalVisibleRect(Rect())
+        ) return false
+        var current: View? = view
+        while (current != null) {
+            if (current.alpha <= 0.01f) return false
+            current = current.parent as? View
+        }
+        return true
     }
 
     private fun onScreenCaptured(
@@ -210,9 +244,11 @@ internal class LiquidGlassDrawable(
     override fun onBoundsChange(bounds: Rect) {
         child.bounds = bounds
         updateGlassRect(bounds)
+        updateCaptureState()
     }
 
     override fun draw(canvas: Canvas) {
+        updateCaptureState()
         screenCapture.updateScreenPosition()
         if (!loggedFirstDraw) {
             loggedFirstDraw = true
@@ -306,7 +342,15 @@ internal class LiquidGlassDrawable(
     override fun setAlpha(alpha: Int) {
         child.alpha = alpha
         drawableAlpha = alpha.coerceIn(0, 255) / 255f
+        updateCaptureState()
         invalidateSelf()
+    }
+
+    override fun setVisible(visible: Boolean, restart: Boolean): Boolean {
+        child.setVisible(visible, restart)
+        val changed = super.setVisible(visible, restart)
+        updateCaptureState()
+        return changed
     }
 
     override fun setColorFilter(colorFilter: ColorFilter?) {
@@ -330,8 +374,8 @@ internal class LiquidGlassDrawable(
         if (tiltAttached) runCatching { LiquidGlassTiltController.detach(this) }
         tiltAttached = false
         screenCapture.release()
-        currentFrame?.takeIf { !it.isRecycled }?.recycle()
-        currentFrame = null
+        stopCapture()
+        contentView = null
         hostView.clear()
         child.callback = null
         callback = null
@@ -462,6 +506,7 @@ internal class LiquidGlassDrawable(
 
 private class RefractiveScreenCapture(
     host: View,
+    private val canCapture: () -> Boolean,
     private val prepareFrame: (Bitmap) -> Bitmap,
     private val onFrame: (Bitmap, Float, Float) -> Unit,
 ) {
@@ -501,32 +546,39 @@ private class RefractiveScreenCapture(
 
     fun start() {
         if (worker != null) return
+        if (!canCapture()) return
         val view = host.get() ?: return
-        val access = runCatching { CaptureAccess.create(view, captureScale) }
-            .onFailure { logWarn("$TAG unavailable: ${it.message}") }
-            .getOrNull() ?: return
-        val initialFrame = runCatching { access.capture() }
-            .onFailure { logWarn("$TAG initial capture failed: ${it.message}") }
-            .getOrNull() ?: return
-        captureAccess = access
-        hasFrame = true
-        onFrame(
-            prepareFrame(initialFrame.bitmap),
-            initialFrame.scaleX,
-            initialFrame.scaleY,
-        )
         val captureThread = HandlerThread("HyperIslandTrueRefraction").apply { start() }
         thread = captureThread
         worker = Handler(captureThread.looper)
         generation++
-        scheduleCapture(generation, captureIntervalMs)
+        val token = generation
+        worker?.post { initializeCapture(token, view) }
+    }
+
+    private fun initializeCapture(token: Int, view: View) {
+        if (token != generation) return
+        if (!canCapture()) {
+            mainHandler.post { if (token == generation) stop() }
+            return
+        }
+        val access = runCatching { CaptureAccess.create(view, captureScale) }
+            .onFailure { logWarn("$TAG unavailable: ${it.message}") }
+            .getOrNull()
+        if (access == null) {
+            mainHandler.post { if (token == generation) stop() }
+            return
+        }
+        captureAccess = access
         logWarn(
             "$TAG started path=${access.path} fps=$captureFps scale=$captureScale " +
                 "with excluded island layers",
         )
+        capture(token)
     }
 
     fun stop() {
+        if (worker == null && captureAccess == null && !hasFrame) return
         generation++
         worker?.removeCallbacksAndMessages(null)
         thread?.quitSafely()
@@ -557,6 +609,10 @@ private class RefractiveScreenCapture(
 
     private fun capture(token: Int) {
         if (token != generation) return
+        if (!canCapture()) {
+            mainHandler.post { if (token == generation) stop() }
+            return
+        }
         val access = captureAccess ?: return
         val startedAt = SystemClock.uptimeMillis()
         val result = runCatching { access.capture() }
@@ -569,20 +625,22 @@ private class RefractiveScreenCapture(
             mainHandler.post { if (token == generation) stop() }
             return
         }
-        if (token == generation) {
-            val preparedBitmap = prepareFrame(frame.bitmap)
-            mainHandler.post {
-                if (token != generation) {
-                    if (!preparedBitmap.isRecycled) preparedBitmap.recycle()
-                    return@post
-                }
-                hasFrame = true
-                onFrame(
-                    preparedBitmap,
-                    frame.scaleX,
-                    frame.scaleY,
-                )
+        if (token != generation) {
+            if (!frame.bitmap.isRecycled) frame.bitmap.recycle()
+            return
+        }
+        val preparedBitmap = prepareFrame(frame.bitmap)
+        mainHandler.post {
+            if (token != generation) {
+                if (!preparedBitmap.isRecycled) preparedBitmap.recycle()
+                return@post
             }
+            hasFrame = true
+            onFrame(
+                preparedBitmap,
+                frame.scaleX,
+                frame.scaleY,
+            )
         }
         val elapsed = SystemClock.uptimeMillis() - startedAt
         scheduleCapture(token, (captureIntervalMs - elapsed).coerceAtLeast(0L))
