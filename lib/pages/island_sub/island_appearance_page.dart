@@ -61,6 +61,8 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _ctrl.islandGlassDispersion,
     _ctrl.islandGlassGyroscope,
     _ctrl.islandGlassTrueRefraction,
+    _ctrl.islandGlassCaptureFps,
+    _ctrl.islandGlassCaptureQuality,
     _ctrl.islandTextColorMode,
     _ctrl.focusNotificationTextColorMode,
     _ctrl.alwaysShowIslandOutline,
@@ -232,7 +234,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
       _IslandBlurType.small => _ctrl.islandBlurSmallRadius,
       _IslandBlurType.big => _ctrl.islandBlurBigRadius,
       _IslandBlurType.expand => _ctrl.islandBlurExpandRadius,
-    };
+    }.clamp(0, 20).toInt();
     var color = switch (type) {
       _IslandBlurType.small => _ctrl.islandBlurSmallColor,
       _IslandBlurType.big => _ctrl.islandBlurBigColor,
@@ -268,8 +270,8 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                   child: Slider(
                     value: radius.toDouble(),
                     min: 0,
-                    max: 100,
-                    divisions: 100,
+                    max: 20,
+                    divisions: 20,
                     onChanged: enabled
                         ? (value) =>
                               setDialogState(() => radius = value.round())
@@ -369,6 +371,78 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     try {
       await channel.invokeMethod('showTest');
     } catch (_) {}
+  }
+
+  Future<void> _showGlassCaptureSettings() async {
+    final l10n = AppLocalizations.of(context)!;
+    var fps = _ctrl.islandGlassCaptureFps;
+    var quality = _ctrl.islandGlassCaptureQuality;
+    final result = await showDialog<(int, int)>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(l10n.islandGlassCaptureSettings),
+          content: SizedBox(
+            width: 360,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Expanded(child: Text(l10n.islandGlassCaptureFps)),
+                    Text('$fps fps'),
+                  ],
+                ),
+                SliderTheme(
+                  data: ModernSliderTheme.theme(context),
+                  child: Slider(
+                    value: fps.toDouble(),
+                    min: 10,
+                    max: 60,
+                    divisions: 50,
+                    onChanged: (value) =>
+                        setDialogState(() => fps = value.round()),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(child: Text(l10n.islandGlassCaptureQuality)),
+                    Text('$quality%'),
+                  ],
+                ),
+                SliderTheme(
+                  data: ModernSliderTheme.theme(context),
+                  child: Slider(
+                    value: quality.toDouble(),
+                    min: 10,
+                    max: 100,
+                    divisions: 18,
+                    onChanged: (value) =>
+                        setDialogState(() => quality = value.round()),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, (fps, quality)),
+              child: Text(l10n.save),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (result == null) return;
+    await _ctrl.setIslandGlassCaptureSettings(
+      fps: result.$1,
+      quality: result.$2,
+    );
   }
 
   @override
@@ -813,6 +887,33 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                             ? InteractionHaptics.interceptToggle(
                                 _ctrl.setIslandGlassTrueRefraction,
                               )
+                            : null,
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        leading: const Icon(Icons.tune),
+                        title: Text(
+                          l10n.islandGlassCaptureSettings,
+                          style: titleStyle,
+                        ),
+                        subtitle: Text(
+                          '${_ctrl.islandGlassCaptureFps} fps · '
+                          '${_ctrl.islandGlassCaptureQuality}%',
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        enabled:
+                            _ctrl.islandGlassEnabled &&
+                            _hasAnyBlur &&
+                            _ctrl.islandGlassTrueRefraction,
+                        onTap:
+                            _ctrl.islandGlassEnabled &&
+                                _hasAnyBlur &&
+                                _ctrl.islandGlassTrueRefraction
+                            ? _showGlassCaptureSettings
                             : null,
                       ),
                     ],

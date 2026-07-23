@@ -1551,6 +1551,15 @@ class AppLocalizationsJa extends AppLocalizations {
       'Refract surrounding screen content on Large Island and Focus Notification; higher performance cost';
 
   @override
+  String get islandGlassCaptureSettings => 'Capture settings';
+
+  @override
+  String get islandGlassCaptureFps => 'Capture frame rate';
+
+  @override
+  String get islandGlassCaptureQuality => 'Resolution';
+
+  @override
   String get keepIslandTitle => '常時ダイナミックアイランド';
 
   @override

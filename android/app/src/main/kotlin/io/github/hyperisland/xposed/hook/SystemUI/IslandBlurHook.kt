@@ -56,6 +56,8 @@ object IslandBlurHook : BaseHook() {
     private const val KEY_GLASS_DISPERSION = "pref_island_glass_dispersion"
     private const val KEY_GLASS_GYROSCOPE = "pref_island_glass_gyroscope"
     private const val KEY_GLASS_TRUE_REFRACTION = "pref_island_glass_true_refraction"
+    private const val KEY_GLASS_CAPTURE_FPS = "pref_island_glass_capture_fps"
+    private const val KEY_GLASS_CAPTURE_QUALITY = "pref_island_glass_capture_quality"
 
     private const val DEFAULT_RADIUS = 80
     private const val DEFAULT_BLEND_COLOR = 0x20FFFFFF
@@ -158,6 +160,9 @@ object IslandBlurHook : BaseHook() {
                 .coerceIn(0, 100) / 100f,
             gyroscope = ConfigManager.getBoolean(KEY_GLASS_GYROSCOPE, true),
             trueRefraction = ConfigManager.getBoolean(KEY_GLASS_TRUE_REFRACTION, false),
+            captureFps = ConfigManager.getInt(KEY_GLASS_CAPTURE_FPS, 20).coerceIn(10, 60),
+            captureScale = ConfigManager.getInt(KEY_GLASS_CAPTURE_QUALITY, 30)
+                .coerceIn(10, 100) / 100f,
         )
     }
 
@@ -168,7 +173,7 @@ object IslandBlurHook : BaseHook() {
     ): BlurConfig {
         return BlurConfig(
             enabled = ConfigManager.getBoolean(enabledKey, false),
-            radius = ConfigManager.getInt(radiusKey, DEFAULT_RADIUS).coerceIn(0, 275),
+            radius = ConfigManager.getInt(radiusKey, DEFAULT_RADIUS).coerceIn(0, 100),
             blendColor = parseColor(ConfigManager.getString(colorKey)),
         )
     }

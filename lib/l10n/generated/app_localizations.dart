@@ -2996,6 +2996,24 @@ abstract class AppLocalizations {
   /// **'大岛和焦点通知通过屏幕捕获折射周围内容，性能开销较高'**
   String get islandGlassTrueRefractionSubtitle;
 
+  /// No description provided for @islandGlassCaptureSettings.
+  ///
+  /// In zh, this message translates to:
+  /// **'采样设置'**
+  String get islandGlassCaptureSettings;
+
+  /// No description provided for @islandGlassCaptureFps.
+  ///
+  /// In zh, this message translates to:
+  /// **'采样帧率'**
+  String get islandGlassCaptureFps;
+
+  /// No description provided for @islandGlassCaptureQuality.
+  ///
+  /// In zh, this message translates to:
+  /// **'清晰度'**
+  String get islandGlassCaptureQuality;
+
   /// No description provided for @keepIslandTitle.
   ///
   /// In zh, this message translates to:

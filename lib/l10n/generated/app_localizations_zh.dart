@@ -1530,6 +1530,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get islandGlassTrueRefractionSubtitle => '大岛和焦点通知通过屏幕捕获折射周围内容，性能开销较高';
 
   @override
+  String get islandGlassCaptureSettings => '采样设置';
+
+  @override
+  String get islandGlassCaptureFps => '采样帧率';
+
+  @override
+  String get islandGlassCaptureQuality => '清晰度';
+
+  @override
   String get keepIslandTitle => '常驻超级岛';
 
   @override
