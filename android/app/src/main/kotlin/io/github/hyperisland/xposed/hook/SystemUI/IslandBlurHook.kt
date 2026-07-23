@@ -16,6 +16,7 @@ import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.hyperisland.xposed.hook.IslandBackgroundHook
 import io.github.hyperisland.xposed.log
 import io.github.hyperisland.xposed.logError
+import io.github.hyperisland.xposed.logWarn
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
@@ -58,6 +59,9 @@ object IslandBlurHook : BaseHook() {
     private val outerBlurs = Collections.synchronizedMap(
         WeakHashMap<View, OuterBlur>()
     )
+    private val pendingOuterBlurs = Collections.synchronizedMap(
+        WeakHashMap<View, PendingBlur>()
+    )
     private val detachListeners = Collections.synchronizedMap(
         WeakHashMap<View, View.OnAttachStateChangeListener>()
     )
@@ -73,6 +77,9 @@ object IslandBlurHook : BaseHook() {
 
     @Volatile
     private var anyBlurEnabled = false
+
+    @Volatile
+    private var islandTempHidden = false
 
     override fun getTag() = TAG
 
@@ -95,6 +102,11 @@ object IslandBlurHook : BaseHook() {
             }
             stale.forEach { (view, outer) ->
                 deactivateOuterBlur(view, outer.drawableField)
+            }
+            synchronized(pendingOuterBlurs) {
+                pendingOuterBlurs.entries.removeAll { (_, pending) ->
+                    !configForType(pending.type).isActive
+                }
             }
         }
         mainHandler.removeCallbacks(refreshRunnable)
@@ -156,6 +168,11 @@ object IslandBlurHook : BaseHook() {
                 classLoader,
             )
             val fakeViewClass = Class.forName(FAKE_VIEW_CLASS, false, classLoader)
+            val windowViewClass = Class.forName(
+                "miui.systemui.dynamicisland.window.DynamicIslandWindowView",
+                false,
+                classLoader,
+            )
             val compatClass = sequenceOf(
                 "miui.systemui.util.MiBlurCompat",
                 "miui.util.MiBlurCompat",
@@ -198,6 +215,7 @@ object IslandBlurHook : BaseHook() {
                 outerDrawableField,
             )
             hookBackgroundDrawing(module, backgroundClass, outerDrawableField)
+            hookTempHiddenLifecycle(module, windowViewClass)
             hookTransitionBlur(module, animationDelegateClass, fakeViewClass, methods)
             module.hook(updateMethod).intercept { chain ->
                 val result = chain.proceed()
@@ -226,7 +244,7 @@ object IslandBlurHook : BaseHook() {
                 val staleUpdate = stateType != null && type != stateType
                 val active = if (staleUpdate) {
                     false
-                } else if (config.enabled) {
+                } else if (config.isActive) {
                     applyOuterBlur(
                         backgroundView,
                         view,
@@ -364,6 +382,7 @@ object IslandBlurHook : BaseHook() {
             val backgroundView = chain.thisObject as? View ?: return@intercept chain.proceed()
             if (!anyBlurEnabled) return@intercept chain.proceed()
 
+            realizePendingBlur(backgroundView, drawableField)
             val outer = outerBlurs[backgroundView]
             if (outer?.active == true) {
                 runCatching {
@@ -379,6 +398,104 @@ object IslandBlurHook : BaseHook() {
             }
         }
     }
+
+    /**
+     * A native BackgroundBlurDrawable must not survive or be created while the
+     * island window is temporarily hidden. Its RenderThread region otherwise
+     * starts without the island's published geometry and can become a full rect.
+     */
+    private fun hookTempHiddenLifecycle(
+        module: XposedModule,
+        windowViewClass: Class<*>,
+    ) {
+        val tempHideMethod = windowViewClass.declaredMethods.firstOrNull { method ->
+            method.name == "onIslandTempHide" &&
+                method.parameterCount == 2 &&
+                method.parameterTypes[0] == Boolean::class.javaPrimitiveType
+        } ?: return
+        module.hook(tempHideMethod).intercept { chain ->
+            val hidden = aggregateTempHidden(chain.thisObject)
+            when (hidden) {
+                true -> enterTempHidden()
+                false -> islandTempHidden = false
+                null -> Unit
+            }
+            val result = chain.proceed()
+            if (hidden == false) {
+                val pendingViews = synchronized(pendingOuterBlurs) {
+                    pendingOuterBlurs.keys.toList()
+                }
+                pendingViews.forEach(View::invalidate)
+            }
+            result
+        }
+    }
+
+    private fun aggregateTempHidden(windowView: Any?): Boolean? {
+        if (windowView == null) return null
+        return runCatching {
+            val controller = findMethod(
+                windowView.javaClass,
+                "getWindowViewController",
+            )?.invoke(windowView) ?: return@runCatching null
+            val windowState = findMethod(
+                controller.javaClass,
+                "getWindowState",
+            )?.invoke(controller) ?: return@runCatching null
+            val stateFlow = findMethod(
+                windowState.javaClass,
+                "getTempHidden",
+            )?.invoke(windowState) ?: return@runCatching null
+            findMethod(stateFlow.javaClass, "getValue")?.invoke(stateFlow) as? Boolean
+        }.getOrNull()
+    }
+
+    private fun enterTempHidden() {
+        islandTempHidden = true
+        val active = synchronized(outerBlurs) {
+            outerBlurs.entries.map { it.key to it.value }
+        }
+        active.forEach { (view, outer) ->
+            outer.shapeView.get()?.let { shapeView ->
+                pendingOuterBlurs[view] = PendingBlur(
+                    shapeView = WeakReference(shapeView),
+                    type = outer.owned.type,
+                )
+            }
+            deactivateOuterBlur(view, outer.drawableField, clearPending = false)
+        }
+    }
+
+    private fun currentBackgroundBounds(view: View): android.graphics.Rect? {
+        val left = runCatching {
+            findMethod(view.javaClass, "getActualLeft")?.invoke(view) as? Int
+        }.getOrNull() ?: return null
+        val top = runCatching {
+            findMethod(view.javaClass, "getActualTop")?.invoke(view) as? Int
+        }.getOrNull() ?: return null
+        val right = runCatching {
+            findMethod(view.javaClass, "getActualWidth")?.invoke(view) as? Int
+        }.getOrNull() ?: return null
+        val bottom = runCatching {
+            findMethod(view.javaClass, "getActualHeight")?.invoke(view) as? Int
+        }.getOrNull() ?: return null
+        return android.graphics.Rect(left, top, right, bottom).takeIf {
+            it.width() > 0 && it.height() > 0
+        }
+    }
+
+    private fun setCurrentBackgroundBounds(view: View, drawable: Drawable): Boolean {
+        val bounds = currentBackgroundBounds(view) ?: return false
+        val stroke = resolveStrokeWidth(view)
+        drawable.setBounds(
+            bounds.left - stroke,
+            bounds.top - stroke,
+            bounds.right + stroke,
+            bounds.bottom + stroke,
+        )
+        return true
+    }
+
 
     private fun hookTransitionBlur(
         module: XposedModule,
@@ -459,7 +576,7 @@ object IslandBlurHook : BaseHook() {
         }.getOrNull() ?: return
         val config = configForType(type)
         val shapeView = islandViewForType(contentView, type)
-        if (config.enabled && shapeView != null) {
+        if (config.isActive && shapeView != null) {
             applyOuterBlur(backgroundView, shapeView, type, config, outerDrawableField)
         } else {
             // expanded_view can be inflated after the state callback. Never leave
@@ -512,25 +629,25 @@ object IslandBlurHook : BaseHook() {
     ): Boolean {
         return runCatching {
             if (!backgroundView.isAttachedToWindow) return@runCatching false
-            val current = outerBlurs[backgroundView]
-            val outer = if (current?.owned?.type == type) {
-                current
-            } else {
-                // A shared background view changes ownership between SMALL/BIG/EXPAND.
-                // Never carry the previous owner's stroke into the new state.
-                val stock = if (current == null) {
-                    drawableField.get(backgroundView) as? Drawable
-                } else {
-                    IslandOutlineHook.stockOutlineFor(
-                        drawableField.get(backgroundView) as? Drawable,
-                        type.name,
-                    )
-                }
-                val owned = createBackgroundBlurDrawable(backgroundView, type)
-                    ?: return@runCatching false
-                current?.release()
-                OuterBlur(owned, stock, drawableField).also { outerBlurs[backgroundView] = it }
+            if (islandTempHidden) {
+                pendingOuterBlurs[backgroundView] = PendingBlur(
+                    shapeView = WeakReference(shapeView),
+                    type = type,
+                )
+                return@runCatching false
             }
+            val current = outerBlurs[backgroundView]
+            if (current?.owned?.type != type) {
+                pendingOuterBlurs[backgroundView] = PendingBlur(
+                    shapeView = WeakReference(shapeView),
+                    type = type,
+                )
+                backgroundView.invalidate()
+                return@runCatching true
+            }
+            pendingOuterBlurs.remove(backgroundView)
+            val outer = current ?: return@runCatching false
+            outer.shapeView = WeakReference(shapeView)
             ensureDetachCleanup(backgroundView)
             updateOwnedBlur(backgroundView, outer.owned, config, shapeView)
             val outlineEnabled = IslandOutlineHook.isOutlineEnabled(type == IslandType.EXPAND)
@@ -560,6 +677,93 @@ object IslandBlurHook : BaseHook() {
                 backgroundView.invalidate()
             }
         }.getOrDefault(false)
+    }
+
+    /** Creates the native blur only once the background has entered a real draw pass. */
+    private fun realizePendingBlur(
+        backgroundView: View,
+        drawableField: java.lang.reflect.Field,
+    ) {
+        val pending = pendingOuterBlurs[backgroundView] ?: return
+        if (islandTempHidden ||
+            !backgroundView.isAttachedToWindow ||
+            backgroundView.visibility != View.VISIBLE
+        ) return
+        val config = configForType(pending.type)
+        if (!config.isActive) {
+            pendingOuterBlurs.remove(backgroundView)
+            return
+        }
+        val shapeView = pending.shapeView.get() ?: run {
+            pendingOuterBlurs.remove(backgroundView)
+            return
+        }
+        if (currentBackgroundBounds(backgroundView) == null) return
+
+        var candidate: OwnedBlur? = null
+        runCatching {
+            val current = outerBlurs[backgroundView]
+            if (current?.owned?.type == pending.type) {
+                updateOwnedBlur(backgroundView, current.owned, config, shapeView)
+                pendingOuterBlurs.remove(backgroundView)
+                return@runCatching
+            }
+            val stock = if (current == null) {
+                drawableField.get(backgroundView) as? Drawable
+            } else {
+                IslandOutlineHook.stockOutlineFor(
+                    drawableField.get(backgroundView) as? Drawable,
+                    pending.type.name,
+                )
+            }
+            val owned = createBackgroundBlurDrawable(backgroundView, pending.type) ?: run {
+                pendingOuterBlurs.remove(backgroundView)
+                log("$TAG native blur unavailable for ${pending.type}")
+                return@runCatching
+            }
+            candidate = owned
+            if (!setCurrentBackgroundBounds(backgroundView, owned.drawable)) {
+                owned.clippedDrawable.release()
+                candidate = null
+                return@runCatching
+            }
+            val outer = OuterBlur(
+                owned,
+                stock,
+                drawableField,
+                WeakReference(shapeView),
+            )
+            updateOwnedBlur(backgroundView, owned, config, shapeView)
+            outer.renderDrawable = IslandOutlineHook.withOutline(
+                owned.drawable,
+                stock,
+                pending.type == IslandType.EXPAND,
+                pending.type.name,
+            )
+            outer.renderDrawable.callback = WeakViewDrawableCallback(backgroundView)
+            drawableField.set(backgroundView, outer.renderDrawable)
+            current?.release()
+            outerBlurs[backgroundView] = outer
+            candidate = null
+            owned.active = true
+            outer.active = true
+            pendingOuterBlurs.remove(backgroundView)
+            ensureDetachCleanup(backgroundView)
+        }.onFailure { error ->
+            logWarn("$TAG realization failed for ${pending.type}: ${error.message}")
+            candidate?.let { owned ->
+                runCatching { owned.methods.setRadius.invoke(owned.effectDrawable, 0) }
+                owned.clippedDrawable.release()
+            }
+            pendingOuterBlurs.remove(backgroundView)
+            val failed = outerBlurs.remove(backgroundView)
+            failed?.release()
+            if (failed != null &&
+                runCatching { drawableField.get(backgroundView) }.getOrNull() === failed.renderDrawable
+            ) {
+                runCatching { drawableField.set(backgroundView, failed.stockDrawable) }
+            }
+        }
     }
 
     internal fun updateStockOutline(
@@ -593,19 +797,15 @@ object IslandBlurHook : BaseHook() {
     private fun deactivateOuterBlur(
         backgroundView: View,
         drawableField: java.lang.reflect.Field,
+        clearPending: Boolean = true,
     ) {
+        if (clearPending) pendingOuterBlurs.remove(backgroundView)
         val outer = outerBlurs[backgroundView] ?: return
-        runCatching { outer.owned.methods.setRadius.invoke(outer.owned.effectDrawable, 0) }
-        if (outer.stockDrawable != null &&
-            runCatching { drawableField.get(backgroundView) }.getOrNull() === outer.renderDrawable
-        ) {
+        if (runCatching { drawableField.get(backgroundView) }.getOrNull() === outer.renderDrawable) {
             runCatching { drawableField.set(backgroundView, outer.stockDrawable) }
         }
-        outer.owned.active = false
-        outer.active = false
-        IslandOutlineHook.releaseOutline(outer.renderDrawable)
-        outer.renderDrawable.callback = null
         outerBlurs.remove(backgroundView)
+        outer.release()
         backgroundView.invalidate()
     }
 
@@ -616,6 +816,7 @@ object IslandBlurHook : BaseHook() {
                 override fun onViewAttachedToWindow(view: View) = Unit
 
                 override fun onViewDetachedFromWindow(view: View) {
+                    pendingOuterBlurs.remove(view)
                     outerBlurs.remove(view)?.release()
                     detachListeners.remove(view)
                     view.removeOnAttachStateChangeListener(this)
@@ -693,7 +894,6 @@ object IslandBlurHook : BaseHook() {
         config: BlurConfig,
         shapeView: View,
     ) {
-        owned.methods.setRadius.invoke(owned.effectDrawable, config.radius)
         val radius = resolveCornerRadius(view, owned.type, shapeView)
         owned.clippedDrawable.setCornerRadius(radius)
         owned.methods.setCornerRadius.invoke(
@@ -704,6 +904,9 @@ object IslandBlurHook : BaseHook() {
             radius,
         )
         owned.methods.setColor.invoke(owned.effectDrawable, config.blendColor)
+        // Radius activates the RenderThread blur region, so geometry, corners,
+        // and color must all be initialized before this final call.
+        owned.methods.setRadius.invoke(owned.effectDrawable, config.radius)
     }
 
     private fun resolveCornerRadius(view: View, type: IslandType, shapeView: View? = null): Float {
@@ -736,6 +939,9 @@ object IslandBlurHook : BaseHook() {
     }
 
     private fun findMethod(clazz: Class<*>, name: String, vararg types: Class<*>): Method? {
+        runCatching {
+            return clazz.getMethod(name, *types).apply { isAccessible = true }
+        }
         var current: Class<*>? = clazz
         while (current != null) {
             runCatching {
@@ -751,7 +957,6 @@ object IslandBlurHook : BaseHook() {
         val radius: Int,
         blendColor: Int,
     ) {
-        val enabled = enabled
         val blendColor = blendColor
         val isActive = enabled
     }
@@ -804,6 +1009,7 @@ object IslandBlurHook : BaseHook() {
         val owned: OwnedBlur,
         var stockDrawable: Drawable?,
         val drawableField: java.lang.reflect.Field,
+        var shapeView: WeakReference<View>,
         var active: Boolean = false,
     ) {
         var renderDrawable: Drawable = owned.drawable
@@ -812,6 +1018,7 @@ object IslandBlurHook : BaseHook() {
             runCatching { owned.methods.setRadius.invoke(owned.effectDrawable, 0) }
             IslandOutlineHook.releaseOutline(renderDrawable)
             renderDrawable.callback = null
+            owned.clippedDrawable.release()
             owned.active = false
             active = false
         }
@@ -843,8 +1050,11 @@ object IslandBlurHook : BaseHook() {
             cornerRadius = radius
         }
 
-        override fun draw(canvas: Canvas) {
-            val bounds = bounds
+        override fun onBoundsChange(bounds: android.graphics.Rect) {
+            updateChildBounds(bounds)
+        }
+
+        private fun updateChildBounds(bounds: android.graphics.Rect): Boolean {
             val safeInset = inset.coerceAtMost(minOf(bounds.width(), bounds.height()) / 2)
             clipRect.set(
                 (bounds.left + safeInset).toFloat(),
@@ -852,13 +1062,19 @@ object IslandBlurHook : BaseHook() {
                 (bounds.right - safeInset).toFloat(),
                 (bounds.bottom - safeInset).toFloat(),
             )
-            if (clipRect.isEmpty) return
-            child.bounds = android.graphics.Rect(
+            if (clipRect.isEmpty) return false
+            child.setBounds(
                 clipRect.left.toInt(),
                 clipRect.top.toInt(),
                 clipRect.right.toInt(),
                 clipRect.bottom.toInt(),
             )
+            return true
+        }
+
+        override fun draw(canvas: Canvas) {
+            val bounds = bounds
+            if (!updateChildBounds(bounds)) return
             clipPath.reset()
             clipPath.addRoundRect(clipRect, cornerRadius, cornerRadius, Path.Direction.CW)
             val save = canvas.save()
@@ -887,6 +1103,11 @@ object IslandBlurHook : BaseHook() {
         override fun unscheduleDrawable(who: Drawable, what: Runnable) {
             unscheduleSelf(what)
         }
+
+        fun release() {
+            child.callback = null
+            callback = null
+        }
     }
 
     private data class RefreshTarget(
@@ -895,6 +1116,11 @@ object IslandBlurHook : BaseHook() {
         val promoted: Boolean,
         val type: IslandType?,
         val stateField: java.lang.reflect.Field,
+    )
+
+    private data class PendingBlur(
+        val shapeView: WeakReference<View>,
+        val type: IslandType,
     )
 
     private enum class IslandType { SMALL, BIG, EXPAND }
