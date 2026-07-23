@@ -2912,6 +2912,78 @@ abstract class AppLocalizations {
   /// **'模糊度 {radius}'**
   String islandBlurRadiusValue(int radius);
 
+  /// No description provided for @islandGlassSection.
+  ///
+  /// In zh, this message translates to:
+  /// **'玻璃效果'**
+  String get islandGlassSection;
+
+  /// No description provided for @islandGlassEnabled.
+  ///
+  /// In zh, this message translates to:
+  /// **'启用玻璃效果'**
+  String get islandGlassEnabled;
+
+  /// No description provided for @islandGlassEnabledSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'在已启用的实时背景模糊上叠加玻璃边缘效果'**
+  String get islandGlassEnabledSubtitle;
+
+  /// No description provided for @islandGlassRequiresBlur.
+  ///
+  /// In zh, this message translates to:
+  /// **'请先启用小岛、大岛或焦点通知模糊'**
+  String get islandGlassRequiresBlur;
+
+  /// No description provided for @islandGlassEdgeWidth.
+  ///
+  /// In zh, this message translates to:
+  /// **'边缘宽度'**
+  String get islandGlassEdgeWidth;
+
+  /// No description provided for @islandGlassRefraction.
+  ///
+  /// In zh, this message translates to:
+  /// **'折射强度'**
+  String get islandGlassRefraction;
+
+  /// No description provided for @islandGlassHighlight.
+  ///
+  /// In zh, this message translates to:
+  /// **'高光强度'**
+  String get islandGlassHighlight;
+
+  /// No description provided for @islandGlassShadow.
+  ///
+  /// In zh, this message translates to:
+  /// **'背光暗边强度'**
+  String get islandGlassShadow;
+
+  /// No description provided for @islandGlassLightDirection.
+  ///
+  /// In zh, this message translates to:
+  /// **'光源方向'**
+  String get islandGlassLightDirection;
+
+  /// No description provided for @islandGlassDispersion.
+  ///
+  /// In zh, this message translates to:
+  /// **'色散强度'**
+  String get islandGlassDispersion;
+
+  /// No description provided for @islandGlassGyroscope.
+  ///
+  /// In zh, this message translates to:
+  /// **'陀螺仪光效'**
+  String get islandGlassGyroscope;
+
+  /// No description provided for @islandGlassGyroscopeSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'根据设备姿态实时移动边缘光照'**
+  String get islandGlassGyroscopeSubtitle;
+
   /// No description provided for @keepIslandTitle.
   ///
   /// In zh, this message translates to:

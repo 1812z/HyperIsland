@@ -47,6 +47,14 @@ object IslandBlurHook : BaseHook() {
     private const val KEY_EXPAND_ENABLED = "pref_island_blur_expand_enabled"
     private const val KEY_EXPAND_RADIUS = "pref_island_blur_expand_radius"
     private const val KEY_EXPAND_COLOR = "pref_island_blur_expand_color"
+    private const val KEY_GLASS_ENABLED = "pref_island_glass_enabled"
+    private const val KEY_GLASS_EDGE_WIDTH = "pref_island_glass_edge_width"
+    private const val KEY_GLASS_REFRACTION = "pref_island_glass_refraction"
+    private const val KEY_GLASS_HIGHLIGHT = "pref_island_glass_highlight"
+    private const val KEY_GLASS_SHADOW = "pref_island_glass_shadow"
+    private const val KEY_GLASS_LIGHT_DIRECTION = "pref_island_glass_light_direction"
+    private const val KEY_GLASS_DISPERSION = "pref_island_glass_dispersion"
+    private const val KEY_GLASS_GYROSCOPE = "pref_island_glass_gyroscope"
 
     private const val DEFAULT_RADIUS = 80
     private const val DEFAULT_BLEND_COLOR = 0x20FFFFFF
@@ -74,6 +82,9 @@ object IslandBlurHook : BaseHook() {
 
     @Volatile
     private var configs = BlurConfigs.disabled()
+
+    @Volatile
+    private var glassConfig = LiquidGlassConfig.disabled()
 
     @Volatile
     private var anyBlurEnabled = false
@@ -134,6 +145,18 @@ object IslandBlurHook : BaseHook() {
             ),
         )
         anyBlurEnabled = configs.small.isActive || configs.big.isActive || configs.expand.isActive
+        glassConfig = LiquidGlassConfig(
+            enabled = ConfigManager.getBoolean(KEY_GLASS_ENABLED, false) && anyBlurEnabled,
+            edgeWidth = ConfigManager.getInt(KEY_GLASS_EDGE_WIDTH, 16).coerceIn(4, 40) / 100f,
+            refraction = ConfigManager.getInt(KEY_GLASS_REFRACTION, 16).coerceIn(0, 40) / 100f,
+            highlight = ConfigManager.getInt(KEY_GLASS_HIGHLIGHT, 42).coerceIn(0, 100) / 100f,
+            shadow = ConfigManager.getInt(KEY_GLASS_SHADOW, 14).coerceIn(0, 100) / 100f,
+            lightDirection = ConfigManager.getInt(KEY_GLASS_LIGHT_DIRECTION, 243)
+                .coerceIn(0, 359),
+            dispersion = ConfigManager.getInt(KEY_GLASS_DISPERSION, 18)
+                .coerceIn(0, 100) / 100f,
+            gyroscope = ConfigManager.getBoolean(KEY_GLASS_GYROSCOPE, true),
+        )
     }
 
     private fun readConfig(
@@ -855,14 +878,37 @@ object IslandBlurHook : BaseHook() {
 
         return runCatching {
             val drawableClass = drawable.javaClass
+            val methods = BlurDrawableMethods(
+                setRadius = findMethod(
+                    drawableClass,
+                    "setBlurRadius",
+                    Int::class.javaPrimitiveType!!,
+                ) ?: return@runCatching null,
+                setCornerRadius = findMethod(
+                    drawableClass,
+                    "setCornerRadius",
+                    Float::class.javaPrimitiveType!!,
+                    Float::class.javaPrimitiveType!!,
+                    Float::class.javaPrimitiveType!!,
+                    Float::class.javaPrimitiveType!!,
+                ) ?: return@runCatching null,
+                setColor = findMethod(
+                    drawableClass,
+                    "setColor",
+                    Int::class.javaPrimitiveType!!,
+                ) ?: return@runCatching null,
+            )
             val strokeWidth = resolveStrokeWidth(view)
             val clippedDrawable = ClippedBlurDrawable(
                 drawable,
                 strokeWidth,
             )
             val liquidDrawable = LiquidGlassDrawable(
+                view.context,
+                view,
                 clippedDrawable,
                 strokeWidth,
+                glassConfig,
             )
             OwnedBlur(
                 drawable = liquidDrawable,
@@ -870,26 +916,7 @@ object IslandBlurHook : BaseHook() {
                 clippedDrawable = clippedDrawable,
                 liquidDrawable = liquidDrawable,
                 type = type,
-                methods = BlurDrawableMethods(
-                    setRadius = findMethod(
-                        drawableClass,
-                        "setBlurRadius",
-                        Int::class.javaPrimitiveType!!,
-                    ) ?: return@runCatching null,
-                    setCornerRadius = findMethod(
-                        drawableClass,
-                        "setCornerRadius",
-                        Float::class.javaPrimitiveType!!,
-                        Float::class.javaPrimitiveType!!,
-                        Float::class.javaPrimitiveType!!,
-                        Float::class.javaPrimitiveType!!,
-                    ) ?: return@runCatching null,
-                    setColor = findMethod(
-                        drawableClass,
-                        "setColor",
-                        Int::class.javaPrimitiveType!!,
-                    ) ?: return@runCatching null,
-                ),
+                methods = methods,
             )
         }.getOrNull()
     }
@@ -903,6 +930,7 @@ object IslandBlurHook : BaseHook() {
         val radius = resolveCornerRadius(view, owned.type, shapeView)
         owned.clippedDrawable.setCornerRadius(radius)
         owned.liquidDrawable.setCornerRadius(radius)
+        owned.liquidDrawable.updateConfig(glassConfig)
         owned.methods.setCornerRadius.invoke(
             owned.effectDrawable,
             radius,

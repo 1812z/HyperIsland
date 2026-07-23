@@ -1488,6 +1488,42 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get islandGlassSection => '玻璃效果';
+
+  @override
+  String get islandGlassEnabled => '启用玻璃效果';
+
+  @override
+  String get islandGlassEnabledSubtitle => '在已启用的实时背景模糊上叠加玻璃边缘效果';
+
+  @override
+  String get islandGlassRequiresBlur => '请先启用小岛、大岛或焦点通知模糊';
+
+  @override
+  String get islandGlassEdgeWidth => '边缘宽度';
+
+  @override
+  String get islandGlassRefraction => '折射强度';
+
+  @override
+  String get islandGlassHighlight => '高光强度';
+
+  @override
+  String get islandGlassShadow => '背光暗边强度';
+
+  @override
+  String get islandGlassLightDirection => '光源方向';
+
+  @override
+  String get islandGlassDispersion => '色散强度';
+
+  @override
+  String get islandGlassGyroscope => '陀螺仪光效';
+
+  @override
+  String get islandGlassGyroscopeSubtitle => '根据设备姿态实时移动边缘光照';
+
+  @override
   String get keepIslandTitle => '常驻超级岛';
 
   @override

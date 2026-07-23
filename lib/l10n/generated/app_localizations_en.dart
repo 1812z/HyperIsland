@@ -1568,6 +1568,45 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get islandGlassSection => 'Glass Effect';
+
+  @override
+  String get islandGlassEnabled => 'Enable glass effect';
+
+  @override
+  String get islandGlassEnabledSubtitle =>
+      'Add glass rim effects to enabled live background blur states';
+
+  @override
+  String get islandGlassRequiresBlur =>
+      'Enable Small, Large, or Focus Notification blur first';
+
+  @override
+  String get islandGlassEdgeWidth => 'Edge width';
+
+  @override
+  String get islandGlassRefraction => 'Refraction strength';
+
+  @override
+  String get islandGlassHighlight => 'Highlight strength';
+
+  @override
+  String get islandGlassShadow => 'Backlight shadow strength';
+
+  @override
+  String get islandGlassLightDirection => 'Light direction';
+
+  @override
+  String get islandGlassDispersion => 'Dispersion strength';
+
+  @override
+  String get islandGlassGyroscope => 'Gyroscope lighting';
+
+  @override
+  String get islandGlassGyroscopeSubtitle =>
+      'Move rim lighting with the device pose';
+
+  @override
   String get keepIslandTitle => 'Keep Island Visible';
 
   @override

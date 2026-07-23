@@ -86,6 +86,14 @@ const kPrefIslandBlurBigColor = 'pref_island_blur_big_color';
 const kPrefIslandBlurExpandEnabled = 'pref_island_blur_expand_enabled';
 const kPrefIslandBlurExpandRadius = 'pref_island_blur_expand_radius';
 const kPrefIslandBlurExpandColor = 'pref_island_blur_expand_color';
+const kPrefIslandGlassEnabled = 'pref_island_glass_enabled';
+const kPrefIslandGlassEdgeWidth = 'pref_island_glass_edge_width';
+const kPrefIslandGlassRefraction = 'pref_island_glass_refraction';
+const kPrefIslandGlassHighlight = 'pref_island_glass_highlight';
+const kPrefIslandGlassShadow = 'pref_island_glass_shadow';
+const kPrefIslandGlassLightDirection = 'pref_island_glass_light_direction';
+const kPrefIslandGlassDispersion = 'pref_island_glass_dispersion';
+const kPrefIslandGlassGyroscope = 'pref_island_glass_gyroscope';
 const kPrefIslandHeight = 'pref_island_height';
 const kPrefIslandTopOffset = 'pref_island_top_offset';
 const kPrefIslandTextColorMode = 'pref_island_text_color_mode';
@@ -271,6 +279,14 @@ class SettingsController extends ChangeNotifier {
   bool islandBlurExpandEnabled = false;
   int islandBlurExpandRadius = 80;
   String islandBlurExpandColor = '#20FFFFFF';
+  bool islandGlassEnabled = false;
+  int islandGlassEdgeWidth = 16;
+  int islandGlassRefraction = 16;
+  int islandGlassHighlight = 42;
+  int islandGlassShadow = 14;
+  int islandGlassLightDirection = 243;
+  int islandGlassDispersion = 18;
+  bool islandGlassGyroscope = true;
   double islandHeight = 0;
   double islandTopOffset = 0;
   String islandTextColorMode = kIslandTextColorDefault;
@@ -443,6 +459,22 @@ class SettingsController extends ChangeNotifier {
         .clamp(0, 275);
     islandBlurExpandColor =
         prefs.getString(kPrefIslandBlurExpandColor) ?? '#20FFFFFF';
+    islandGlassEnabled = prefs.getBool(kPrefIslandGlassEnabled) ?? false;
+    islandGlassEdgeWidth = (prefs.getInt(kPrefIslandGlassEdgeWidth) ?? 16)
+        .clamp(4, 40);
+    islandGlassRefraction = (prefs.getInt(kPrefIslandGlassRefraction) ?? 16)
+        .clamp(0, 40);
+    islandGlassHighlight = (prefs.getInt(kPrefIslandGlassHighlight) ?? 42)
+        .clamp(0, 100);
+    islandGlassShadow = (prefs.getInt(kPrefIslandGlassShadow) ?? 14).clamp(
+      0,
+      100,
+    );
+    islandGlassLightDirection =
+        (prefs.getInt(kPrefIslandGlassLightDirection) ?? 243) % 360;
+    islandGlassDispersion = (prefs.getInt(kPrefIslandGlassDispersion) ?? 18)
+        .clamp(0, 100);
+    islandGlassGyroscope = prefs.getBool(kPrefIslandGlassGyroscope) ?? true;
     islandHeight = prefs.getDouble(kPrefIslandHeight) ?? 0;
     islandTopOffset = prefs.getDouble(kPrefIslandTopOffset) ?? 0;
     islandTextColorMode = _normalizeIslandTextColorMode(
@@ -1275,6 +1307,89 @@ class SettingsController extends ChangeNotifier {
     await prefs.setString(colorKey, normalizedColor);
     if (enabled) await prefs.setBool(enabledKey, true);
     update(enabled, normalizedRadius, normalizedColor);
+    notifyListeners();
+  }
+
+  Future<void> setIslandGlassEnabled(bool value) =>
+      _setIslandGlassBool(kPrefIslandGlassEnabled, value, () {
+        islandGlassEnabled = value;
+      });
+
+  Future<void> setIslandGlassGyroscope(bool value) =>
+      _setIslandGlassBool(kPrefIslandGlassGyroscope, value, () {
+        islandGlassGyroscope = value;
+      });
+
+  Future<void> setIslandGlassEdgeWidth(int value) => _setIslandGlassInt(
+    kPrefIslandGlassEdgeWidth,
+    value,
+    4,
+    40,
+    (next) => islandGlassEdgeWidth = next,
+  );
+
+  Future<void> setIslandGlassRefraction(int value) => _setIslandGlassInt(
+    kPrefIslandGlassRefraction,
+    value,
+    0,
+    40,
+    (next) => islandGlassRefraction = next,
+  );
+
+  Future<void> setIslandGlassHighlight(int value) => _setIslandGlassInt(
+    kPrefIslandGlassHighlight,
+    value,
+    0,
+    100,
+    (next) => islandGlassHighlight = next,
+  );
+
+  Future<void> setIslandGlassShadow(int value) => _setIslandGlassInt(
+    kPrefIslandGlassShadow,
+    value,
+    0,
+    100,
+    (next) => islandGlassShadow = next,
+  );
+
+  Future<void> setIslandGlassLightDirection(int value) => _setIslandGlassInt(
+    kPrefIslandGlassLightDirection,
+    value,
+    0,
+    359,
+    (next) => islandGlassLightDirection = next,
+  );
+
+  Future<void> setIslandGlassDispersion(int value) => _setIslandGlassInt(
+    kPrefIslandGlassDispersion,
+    value,
+    0,
+    100,
+    (next) => islandGlassDispersion = next,
+  );
+
+  Future<void> _setIslandGlassBool(
+    String key,
+    bool value,
+    VoidCallback update,
+  ) async {
+    final prefs = await _getPrefs();
+    await prefs.setBool(key, value);
+    update();
+    notifyListeners();
+  }
+
+  Future<void> _setIslandGlassInt(
+    String key,
+    int value,
+    int min,
+    int max,
+    ValueChanged<int> update,
+  ) async {
+    final normalized = value.clamp(min, max);
+    final prefs = await _getPrefs();
+    await prefs.setInt(key, normalized);
+    update(normalized);
     notifyListeners();
   }
 

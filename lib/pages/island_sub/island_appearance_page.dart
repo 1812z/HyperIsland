@@ -26,6 +26,12 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
   late int _bigIslandMaxWidthDraft;
   late int _bigIslandMinWidthDraft;
   late int _outerGlowRangeDraft;
+  late int _glassEdgeWidthDraft;
+  late int _glassRefractionDraft;
+  late int _glassHighlightDraft;
+  late int _glassShadowDraft;
+  late int _glassLightDirectionDraft;
+  late int _glassDispersionDraft;
   late int _buildHash;
 
   int _computeHash() => Object.hashAll([
@@ -46,6 +52,14 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _ctrl.islandBlurExpandEnabled,
     _ctrl.islandBlurExpandRadius,
     _ctrl.islandBlurExpandColor,
+    _ctrl.islandGlassEnabled,
+    _ctrl.islandGlassEdgeWidth,
+    _ctrl.islandGlassRefraction,
+    _ctrl.islandGlassHighlight,
+    _ctrl.islandGlassShadow,
+    _ctrl.islandGlassLightDirection,
+    _ctrl.islandGlassDispersion,
+    _ctrl.islandGlassGyroscope,
     _ctrl.islandTextColorMode,
     _ctrl.focusNotificationTextColorMode,
     _ctrl.alwaysShowIslandOutline,
@@ -61,6 +75,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _bigIslandMaxWidthDraft = _ctrl.bigIslandMaxWidth;
     _bigIslandMinWidthDraft = _ctrl.bigIslandMinWidth;
     _outerGlowRangeDraft = _ctrl.outerGlowRange;
+    _syncGlassDrafts();
     _buildHash = _computeHash();
     _ctrl.addListener(_onChanged);
   }
@@ -94,8 +109,23 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
       _bigIslandMaxWidthDraft = nextMaxWidth;
       _bigIslandMinWidthDraft = nextMinWidth;
       _outerGlowRangeDraft = nextGlowRange;
+      _syncGlassDrafts();
     });
   }
+
+  void _syncGlassDrafts() {
+    _glassEdgeWidthDraft = _ctrl.islandGlassEdgeWidth;
+    _glassRefractionDraft = _ctrl.islandGlassRefraction;
+    _glassHighlightDraft = _ctrl.islandGlassHighlight;
+    _glassShadowDraft = _ctrl.islandGlassShadow;
+    _glassLightDirectionDraft = _ctrl.islandGlassLightDirection;
+    _glassDispersionDraft = _ctrl.islandGlassDispersion;
+  }
+
+  bool get _hasAnyBlur =>
+      _ctrl.islandBlurSmallEnabled ||
+      _ctrl.islandBlurBigEnabled ||
+      _ctrl.islandBlurExpandEnabled;
 
   bool _hasBackground(IslandBgType type) => switch (type) {
     IslandBgType.small => _ctrl.islandBgSmallPath.isNotEmpty,
@@ -322,6 +352,9 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
           radius: result.radius,
           color: result.color,
         );
+    }
+    if (!_hasAnyBlur && _ctrl.islandGlassEnabled) {
+      await _ctrl.setIslandGlassEnabled(false);
     }
     if (type == _IslandBlurType.big && result.enabled && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -647,6 +680,121 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                             : () =>
                                   _showIslandBlurDialog(_IslandBlurType.expand),
                         isLast: true,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                // --- 玻璃效果 ---
+                _SectionLabel(l10n.islandGlassSection),
+                const SizedBox(height: 8),
+                Card(
+                  elevation: 0,
+                  color: cs.surfaceContainerHighest,
+                  child: Column(
+                    children: [
+                      SwitchListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        title: Text(l10n.islandGlassEnabled, style: titleStyle),
+                        subtitle: Text(
+                          _hasAnyBlur
+                              ? l10n.islandGlassEnabledSubtitle
+                              : l10n.islandGlassRequiresBlur,
+                        ),
+                        value: _hasAnyBlur && _ctrl.islandGlassEnabled,
+                        onChanged: _hasAnyBlur
+                            ? InteractionHaptics.interceptToggle(
+                                _ctrl.setIslandGlassEnabled,
+                              )
+                            : null,
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      _GlassSliderTile(
+                        title: l10n.islandGlassEdgeWidth,
+                        value: _glassEdgeWidthDraft,
+                        min: 4,
+                        max: 40,
+                        unit: '%',
+                        enabled: _ctrl.islandGlassEnabled && _hasAnyBlur,
+                        onChanged: (value) =>
+                            setState(() => _glassEdgeWidthDraft = value),
+                        onPersist: _ctrl.setIslandGlassEdgeWidth,
+                      ),
+                      _GlassSliderTile(
+                        title: l10n.islandGlassRefraction,
+                        value: _glassRefractionDraft,
+                        min: 0,
+                        max: 40,
+                        unit: '%',
+                        enabled: _ctrl.islandGlassEnabled && _hasAnyBlur,
+                        onChanged: (value) =>
+                            setState(() => _glassRefractionDraft = value),
+                        onPersist: _ctrl.setIslandGlassRefraction,
+                      ),
+                      _GlassSliderTile(
+                        title: l10n.islandGlassHighlight,
+                        value: _glassHighlightDraft,
+                        min: 0,
+                        max: 100,
+                        unit: '%',
+                        enabled: _ctrl.islandGlassEnabled && _hasAnyBlur,
+                        onChanged: (value) =>
+                            setState(() => _glassHighlightDraft = value),
+                        onPersist: _ctrl.setIslandGlassHighlight,
+                      ),
+                      _GlassSliderTile(
+                        title: l10n.islandGlassShadow,
+                        value: _glassShadowDraft,
+                        min: 0,
+                        max: 100,
+                        unit: '%',
+                        enabled: _ctrl.islandGlassEnabled && _hasAnyBlur,
+                        onChanged: (value) =>
+                            setState(() => _glassShadowDraft = value),
+                        onPersist: _ctrl.setIslandGlassShadow,
+                      ),
+                      _GlassSliderTile(
+                        title: l10n.islandGlassLightDirection,
+                        value: _glassLightDirectionDraft,
+                        min: 0,
+                        max: 359,
+                        unit: '°',
+                        enabled: _ctrl.islandGlassEnabled && _hasAnyBlur,
+                        onChanged: (value) =>
+                            setState(() => _glassLightDirectionDraft = value),
+                        onPersist: _ctrl.setIslandGlassLightDirection,
+                      ),
+                      _GlassSliderTile(
+                        title: l10n.islandGlassDispersion,
+                        value: _glassDispersionDraft,
+                        min: 0,
+                        max: 100,
+                        unit: '%',
+                        enabled: _ctrl.islandGlassEnabled && _hasAnyBlur,
+                        onChanged: (value) =>
+                            setState(() => _glassDispersionDraft = value),
+                        onPersist: _ctrl.setIslandGlassDispersion,
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      SwitchListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        title: Text(
+                          l10n.islandGlassGyroscope,
+                          style: titleStyle,
+                        ),
+                        subtitle: Text(l10n.islandGlassGyroscopeSubtitle),
+                        value: _ctrl.islandGlassGyroscope,
+                        onChanged: _ctrl.islandGlassEnabled && _hasAnyBlur
+                            ? InteractionHaptics.interceptToggle(
+                                _ctrl.setIslandGlassGyroscope,
+                              )
+                            : null,
                       ),
                     ],
                   ),
@@ -1076,6 +1224,62 @@ class _IslandBgTile extends StatelessWidget {
         ],
       ),
       onTap: onTap,
+    );
+  }
+}
+
+class _GlassSliderTile extends StatelessWidget {
+  const _GlassSliderTile({
+    required this.title,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.unit,
+    required this.enabled,
+    required this.onChanged,
+    required this.onPersist,
+  });
+
+  final String title;
+  final int value;
+  final int min;
+  final int max;
+  final String unit;
+  final bool enabled;
+  final ValueChanged<int> onChanged;
+  final ValueChanged<int> onPersist;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      enabled: enabled,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      title: Row(
+        children: [
+          Expanded(child: Text(title)),
+          Text(
+            '$value$unit',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+      subtitle: SliderTheme(
+        data: ModernSliderTheme.theme(context),
+        child: Slider(
+          value: value.toDouble().clamp(min.toDouble(), max.toDouble()),
+          min: min.toDouble(),
+          max: max.toDouble(),
+          divisions: max - min,
+          onChanged: enabled
+              ? InteractionHaptics.interceptSlider(
+                  (next) => onChanged(next.round()),
+                )
+              : null,
+          onChangeEnd: enabled ? (next) => onPersist(next.round()) : null,
+        ),
+      ),
     );
   }
 }
