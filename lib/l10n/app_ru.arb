@@ -537,7 +537,7 @@
   "islandBlurRadius": "Степень размытия",
   "islandBlurBlendColor": "Цвет смешивания",
   "islandBlurDisabled": "Выключено",
-  "islandBlurUnavailableWithBackground": "Недоступно, пока установлен фон",
+  "islandBlurUnavailableWithBackground": "Фон и размытие нельзя включить одновременно",
   "islandBlurBigTextColorSuggestion": "Рекомендуется настроить цвет текста супер-острова в соответствии со строкой состояния",
   "islandBlurRadiusValue": "Размытие {radius}",
   "@islandBlurRadiusValue": {"placeholders": {"radius": {"type": "int"}}},

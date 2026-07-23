@@ -1493,7 +1493,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get islandBlurDisabled => '無効';
 
   @override
-  String get islandBlurUnavailableWithBackground => '背景設定中はぼかしを有効にできません';
+  String get islandBlurUnavailableWithBackground => '背景とぼかしは同時に有効にできません';
 
   @override
   String get islandBlurBigTextColorSuggestion =>

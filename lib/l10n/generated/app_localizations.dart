@@ -2897,7 +2897,7 @@ abstract class AppLocalizations {
   /// No description provided for @islandBlurUnavailableWithBackground.
   ///
   /// In zh, this message translates to:
-  /// **'已设置背景，无法启用模糊'**
+  /// **'背景和模糊无法同时启用'**
   String get islandBlurUnavailableWithBackground;
 
   /// No description provided for @islandBlurBigTextColorSuggestion.

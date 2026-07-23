@@ -1477,7 +1477,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get islandBlurDisabled => '未启用';
 
   @override
-  String get islandBlurUnavailableWithBackground => '已设置背景，无法启用模糊';
+  String get islandBlurUnavailableWithBackground => '背景和模糊无法同时启用';
 
   @override
   String get islandBlurBigTextColorSuggestion => '建议将超级岛文本颜色改为跟随状态栏';

@@ -1556,7 +1556,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get islandBlurUnavailableWithBackground =>
-      'Unavailable while a background is set';
+      'Background and blur cannot be enabled at the same time';
 
   @override
   String get islandBlurBigTextColorSuggestion =>

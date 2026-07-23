@@ -1569,7 +1569,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get islandBlurUnavailableWithBackground =>
-      'Недоступно, пока установлен фон';
+      'Фон и размытие нельзя включить одновременно';
 
   @override
   String get islandBlurBigTextColorSuggestion =>

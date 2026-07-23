@@ -1551,7 +1551,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get islandBlurUnavailableWithBackground =>
-      'Arka plan ayarlıyken kullanılamaz';
+      'Arka plan ve bulanıklaştırma aynı anda etkinleştirilemez';
 
   @override
   String get islandBlurBigTextColorSuggestion =>
