@@ -2987,7 +2987,7 @@ abstract class AppLocalizations {
   /// No description provided for @islandGlassTrueRefraction.
   ///
   /// In zh, this message translates to:
-  /// **'真折射模式'**
+  /// **'液态玻璃'**
   String get islandGlassTrueRefraction;
 
   /// No description provided for @islandGlassTrueRefractionSubtitle.

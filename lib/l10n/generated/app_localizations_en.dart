@@ -1607,7 +1607,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Move rim lighting with the device pose';
 
   @override
-  String get islandGlassTrueRefraction => 'True refraction mode';
+  String get islandGlassTrueRefraction => 'Liquid glass';
 
   @override
   String get islandGlassTrueRefractionSubtitle =>
