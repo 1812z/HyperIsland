@@ -932,6 +932,7 @@ object IslandBlurHook : BaseHook() {
         val radius = resolveCornerRadius(view, owned.type, shapeView)
         owned.clippedDrawable.setCornerRadius(radius)
         owned.liquidDrawable.setCornerRadius(radius)
+        owned.liquidDrawable.setBackgroundBlurRadius(config.radius.toFloat())
         owned.liquidDrawable.updateConfig(
             glassConfig.copy(
                 trueRefraction = glassConfig.trueRefraction && owned.type != IslandType.SMALL,

@@ -69,6 +69,10 @@ internal class LiquidGlassDrawable(
     private var lightX = DEFAULT_LIGHT_X
     private var lightY = DEFAULT_LIGHT_Y
     private var drawableAlpha = 1f
+    private var currentFrame: Bitmap? = null
+    private var captureScaleX = 0f
+    private var captureScaleY = 0f
+    private var backgroundBlurRadius = 0f
     private var loggedFirstDraw = false
     private var config = initialConfig
     private var tiltAttached = false
@@ -82,6 +86,13 @@ internal class LiquidGlassDrawable(
 
     fun setCornerRadius(radius: Float) {
         cornerRadius = radius.coerceAtLeast(0f)
+        invalidateSelf()
+    }
+
+    fun setBackgroundBlurRadius(radius: Float) {
+        val value = radius.coerceAtLeast(0f)
+        if (backgroundBlurRadius == value) return
+        backgroundBlurRadius = value
         invalidateSelf()
     }
 
@@ -122,11 +133,18 @@ internal class LiquidGlassDrawable(
 
     private fun onScreenCaptured(bitmap: Bitmap, scaleX: Float, scaleY: Float) {
         val runtimeShader = refractionShader ?: return
+        val previousFrame = currentFrame
+        currentFrame = bitmap
         runtimeShader.setInputShader(
             "uContent",
             BitmapShader(bitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP),
         )
         runtimeShader.setFloatUniform("uCaptureScale", scaleX, scaleY)
+        captureScaleX = scaleX
+        captureScaleY = scaleY
+        if (previousFrame !== bitmap && previousFrame?.isRecycled == false) {
+            previousFrame.recycle()
+        }
         hostView.get()?.postInvalidateOnAnimation()
     }
 
@@ -169,10 +187,10 @@ internal class LiquidGlassDrawable(
         val width = glassRect.width()
         val height = glassRect.height()
         val radius = cornerRadius.coerceAtMost(minOf(width, height) / 2f)
-        // BackgroundBlurDrawable is a RenderThread special drawable and must be
-        // submitted directly to the destination canvas. Recording it into another
-        // RenderNode produces an empty layer on HyperOS.
-        child.draw(canvas)
+        val hasTrueRefraction = config.enabled && config.trueRefraction && screenCapture.hasFrame
+        // A valid capture is the glass background itself. Native blur is retained
+        // only as the failure/first-frame fallback, never underneath the capture.
+        if (!hasTrueRefraction) child.draw(canvas)
         if (config.enabled) {
             drawTrueRefraction(canvas, width, height, radius)
             drawDirectionalRim(canvas, width, height, radius)
@@ -186,9 +204,22 @@ internal class LiquidGlassDrawable(
         runtimeShader.setFloatUniform("uScreenOrigin", screenCapture.screenX, screenCapture.screenY)
         runtimeShader.setFloatUniform("uSize", width, height)
         runtimeShader.setFloatUniform("uCornerRadius", radius)
-        runtimeShader.setFloatUniform("uRefractionHeight", (height * config.edgeWidth * 2f).coerceAtLeast(1f))
-        runtimeShader.setFloatUniform("uRefractionAmount", height * config.refraction)
-        runtimeShader.setFloatUniform("uDispersion", config.dispersion * 4f)
+        runtimeShader.setFloatUniform(
+            "uRefractionHeight",
+            (minOf(width, height) * config.edgeWidth * 1.25f).coerceAtLeast(1f),
+        )
+        runtimeShader.setFloatUniform(
+            "uRefractionAmount",
+            -minOf(width, height) * config.refraction * 2f,
+        )
+        runtimeShader.setFloatUniform("uDepthEffect", 1f)
+        runtimeShader.setFloatUniform("uDispersion", config.dispersion * 0.12f)
+        val captureScale = (captureScaleX + captureScaleY) * 0.5f
+        runtimeShader.setFloatUniform(
+            "uBlurRadius",
+            (backgroundBlurRadius * captureScale * BLUR_SAMPLE_SCALE)
+                .coerceIn(0f, MAX_BLUR_SAMPLE_RADIUS),
+        )
         canvas.drawRect(glassRect, refractionPaint)
     }
 
@@ -199,10 +230,13 @@ internal class LiquidGlassDrawable(
         runtimeShader.setFloatUniform("uCornerRadius", radius)
         runtimeShader.setFloatUniform("uLightDir", lightX, lightY)
         runtimeShader.setFloatUniform("uEdgeWidth", (height * config.edgeWidth).coerceAtLeast(1f))
-        runtimeShader.setFloatUniform("uRefraction", config.refraction)
-        runtimeShader.setFloatUniform("uEdgeAlpha", config.highlight * drawableAlpha)
-        runtimeShader.setFloatUniform("uEdgeShadow", config.shadow * drawableAlpha)
-        runtimeShader.setFloatUniform("uDispersion", config.dispersion)
+        runtimeShader.setFloatUniform(
+            "uRefraction",
+            if (config.trueRefraction && screenCapture.hasFrame) 0f else config.refraction,
+        )
+        runtimeShader.setFloatUniform("uEdgeAlpha", config.highlight * drawableAlpha * 0.56f)
+        runtimeShader.setFloatUniform("uEdgeShadow", config.shadow * drawableAlpha * 0.34f)
+        runtimeShader.setFloatUniform("uDispersion", config.dispersion * 0.16f)
         canvas.drawRect(glassRect, rimPaint)
     }
 
@@ -220,6 +254,7 @@ internal class LiquidGlassDrawable(
     override fun setAlpha(alpha: Int) {
         child.alpha = alpha
         drawableAlpha = alpha.coerceIn(0, 255) / 255f
+        refractionPaint.alpha = alpha.coerceIn(0, 255)
         invalidateSelf()
     }
 
@@ -244,6 +279,8 @@ internal class LiquidGlassDrawable(
         if (tiltAttached) runCatching { LiquidGlassTiltController.detach(this) }
         tiltAttached = false
         screenCapture.release()
+        currentFrame?.takeIf { !it.isRecycled }?.recycle()
+        currentFrame = null
         hostView.clear()
         child.callback = null
         callback = null
@@ -253,6 +290,8 @@ internal class LiquidGlassDrawable(
         const val DEFAULT_LIGHT_X = -0.45f
         const val DEFAULT_LIGHT_Y = -0.89f
         const val TILT_STRENGTH = 2.2f
+        const val BLUR_SAMPLE_SCALE = 0.25f
+        const val MAX_BLUR_SAMPLE_RADIUS = 20f
 
         val RIM_SHADER = """
             uniform float2 uOrigin;
@@ -293,9 +332,10 @@ internal class LiquidGlassDrawable(
                     * (1.0 - edge) * uRefraction;
                 float dispersion = facing * edge * uDispersion * 0.22;
                 float alpha = clamp(bright + shadow + lensBand, 0.0, 1.0);
-                float3 tint = float3(1.0 + max(dispersion, 0.0), 0.99,
-                    0.96 + max(-dispersion, 0.0));
-                float3 color = tint * (bright + lensBand * 0.45);
+                float3 primary = float3(1.0 + max(dispersion, 0.0), 0.99,
+                    0.96 + max(-dispersion, 0.0)) * (bright + lensBand * 0.45);
+                float3 secondary = float3(0.92, 0.96, 1.0) * shadow;
+                float3 color = primary + secondary;
                 return half4(half3(color), half(alpha));
             }
         """.trimIndent()
@@ -309,11 +349,44 @@ internal class LiquidGlassDrawable(
             uniform float uCornerRadius;
             uniform float uRefractionHeight;
             uniform float uRefractionAmount;
+            uniform float uDepthEffect;
             uniform float uDispersion;
+            uniform float uBlurRadius;
 
             float sdRoundedBox(float2 p, float2 halfSize, float radius) {
                 float2 q = abs(p) - halfSize + float2(radius);
                 return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - radius;
+            }
+
+            float2 gradRoundedBox(float2 p, float2 halfSize, float radius) {
+                float2 q = abs(p) - halfSize + float2(radius);
+                float2 s = sign(p);
+                s.x = s.x == 0.0 ? 1.0 : s.x;
+                s.y = s.y == 0.0 ? 1.0 : s.y;
+                if (q.x >= 0.0 || q.y >= 0.0) {
+                    return s * normalize(max(q, 0.0) + float2(0.0001));
+                }
+                float gx = step(q.y, q.x);
+                return s * float2(gx, 1.0 - gx);
+            }
+
+            float circleMap(float x) {
+                return 1.0 - sqrt(max(1.0 - x * x, 0.0));
+            }
+
+            half4 sampleContent(float2 coord) {
+                float nearRadius = uBlurRadius * 0.55;
+                float diagonalRadius = uBlurRadius * 0.7;
+                half4 color = uContent.eval(coord) * 0.2;
+                color += uContent.eval(coord + float2(nearRadius, 0.0)) * 0.12;
+                color += uContent.eval(coord - float2(nearRadius, 0.0)) * 0.12;
+                color += uContent.eval(coord + float2(0.0, nearRadius)) * 0.12;
+                color += uContent.eval(coord - float2(0.0, nearRadius)) * 0.12;
+                color += uContent.eval(coord + float2(diagonalRadius, diagonalRadius)) * 0.08;
+                color += uContent.eval(coord + float2(diagonalRadius, -diagonalRadius)) * 0.08;
+                color += uContent.eval(coord + float2(-diagonalRadius, diagonalRadius)) * 0.08;
+                color += uContent.eval(coord - float2(diagonalRadius, diagonalRadius)) * 0.08;
+                return color;
             }
 
             half4 main(float2 fragCoord) {
@@ -322,27 +395,28 @@ internal class LiquidGlassDrawable(
                 float distance = sdRoundedBox(p, halfSize, uCornerRadius);
                 if (distance > 0.0) return half4(0.0);
 
-                float2 dx = float2(1.0, 0.0);
-                float2 dy = float2(0.0, 1.0);
-                float2 normal = normalize(float2(
-                    sdRoundedBox(p + dx, halfSize, uCornerRadius)
-                        - sdRoundedBox(p - dx, halfSize, uCornerRadius),
-                    sdRoundedBox(p + dy, halfSize, uCornerRadius)
-                        - sdRoundedBox(p - dy, halfSize, uCornerRadius)
-                ) + float2(0.0001));
-
-                float depth = clamp(-distance / uRefractionHeight, 0.0, 1.0);
-                float fade = 1.0 - depth * depth * (3.0 - 2.0 * depth);
-                float displacement = sqrt(max(1.0 - depth * depth, 0.0))
-                    * uRefractionAmount * fade;
                 float2 screenCoord = fragCoord + uScreenOrigin;
+                if (-distance >= uRefractionHeight) {
+                    return sampleContent(screenCoord * uCaptureScale);
+                }
+
+                float depth = clamp(-min(distance, 0.0) / uRefractionHeight, 0.0, 1.0);
+                float fade = 1.0 - depth * depth * (3.0 - 2.0 * depth);
+                float displacement = circleMap(1.0 - depth) * uRefractionAmount * fade;
+                float2 centerDirection = normalize(p + float2(0.0001));
+                float2 normal = normalize(
+                    gradRoundedBox(p, halfSize, uCornerRadius) +
+                        uDepthEffect * fade * centerDirection
+                );
                 float2 refracted = screenCoord + normal * displacement;
-                float2 dispersion = normal * uDispersion * fade;
-                half red = uContent.eval((refracted + dispersion) * uCaptureScale).r;
-                half4 center = uContent.eval(refracted * uCaptureScale);
-                half blue = uContent.eval((refracted - dispersion) * uCaptureScale).b;
-                half alpha = half(fade);
-                return half4(half3(red, center.g, blue) * alpha, alpha);
+                float positionFactor = abs(p.x * p.y) /
+                    max(halfSize.x * halfSize.y, 1.0);
+                float2 dispersion = displacement * normal * uDispersion *
+                    (0.4 + 0.6 * positionFactor);
+                half red = sampleContent((refracted + dispersion) * uCaptureScale).r;
+                half4 center = sampleContent(refracted * uCaptureScale);
+                half blue = sampleContent((refracted - dispersion) * uCaptureScale).b;
+                return half4(half3(red, center.g, blue), center.a);
             }
         """.trimIndent()
     }
@@ -384,13 +458,18 @@ private class RefractiveScreenCapture(
         val access = runCatching { CaptureAccess.create(view) }
             .onFailure { logWarn("$TAG unavailable: ${it.message}") }
             .getOrNull() ?: return
+        val initialFrame = runCatching { access.capture() }
+            .onFailure { logWarn("$TAG initial capture failed: ${it.message}") }
+            .getOrNull() ?: return
         captureAccess = access
+        hasFrame = true
+        onFrame(initialFrame.bitmap, initialFrame.scaleX, initialFrame.scaleY)
         val captureThread = HandlerThread("HyperIslandTrueRefraction").apply { start() }
         thread = captureThread
         worker = Handler(captureThread.looper)
         generation++
-        scheduleCapture(generation, 0L)
-        logWarn("$TAG started path=${access.path} with excluded island surface")
+        scheduleCapture(generation, CAPTURE_INTERVAL_MS)
+        logWarn("$TAG started path=${access.path} with excluded island layers")
     }
 
     fun stop() {
@@ -401,6 +480,7 @@ private class RefractiveScreenCapture(
         thread = null
         captureAccess = null
         hasFrame = false
+        host.get()?.postInvalidateOnAnimation()
     }
 
     fun release() {
@@ -469,23 +549,16 @@ private class RefractiveScreenCapture(
 
         companion object {
             fun create(view: View): CaptureAccess {
-                val viewRoot = findMethod(view.javaClass, "getViewRootImpl")?.invoke(view)
-                    ?: error("ViewRootImpl unavailable")
-                val surface = findMethod(viewRoot.javaClass, "getSurfaceControl")
-                    ?.invoke(viewRoot) ?: error("island SurfaceControl unavailable")
                 val surfaceClass = Class.forName("android.view.SurfaceControl")
-                if (!surfaceClass.isInstance(surface)) error("invalid island SurfaceControl")
                 val screenCaptureClass = Class.forName("android.window.ScreenCapture")
                 val metrics = view.resources.displayMetrics
                 val width = metrics.widthPixels
                 val height = metrics.heightPixels
-                val excludeArray = java.lang.reflect.Array.newInstance(surfaceClass, 1)
-                java.lang.reflect.Array.set(excludeArray, 0, surface)
 
                 return createWindowManagerAccess(
                     view,
                     screenCaptureClass,
-                    excludeArray,
+                    surfaceClass,
                     width,
                     height,
                 )
@@ -494,7 +567,7 @@ private class RefractiveScreenCapture(
             private fun createWindowManagerAccess(
                 view: View,
                 screenCaptureClass: Class<*>,
-                excludeArray: Any,
+                surfaceClass: Class<*>,
                 width: Int,
                 height: Int,
             ): CaptureAccess {
@@ -504,9 +577,8 @@ private class RefractiveScreenCapture(
                 val constructor = builderClass.declaredConstructors.firstOrNull {
                     it.parameterCount == 0
                 }?.apply { isAccessible = true } ?: error("CaptureArgs.Builder unavailable")
-                val builder = constructor.newInstance()
-                configureCaptureBuilder(builderClass, builder, excludeArray, width, height)
-                val args = findMethod(builderClass, "build")?.invoke(builder)
+                val captureArgsClass = Class.forName("android.window.ScreenCapture\$CaptureArgs")
+                val buildMethod = findMethod(builderClass, "build")
                     ?: error("CaptureArgs unavailable")
 
                 val windowManagerGlobal = Class.forName("android.view.WindowManagerGlobal")
@@ -515,20 +587,31 @@ private class RefractiveScreenCapture(
                 val createListener = findMethod(screenCaptureClass, "createSyncCaptureListener")
                     ?: error("sync capture listener unavailable")
                 val captureMethod = service.javaClass.methods.firstOrNull { method ->
-                    method.name == "captureDisplay" &&
-                        method.parameterCount == 3 &&
-                        method.parameterTypes[0] == Int::class.javaPrimitiveType &&
-                        method.parameterTypes[1].isInstance(args)
-                }?.apply { isAccessible = true } ?: service.javaClass.declaredMethods.firstOrNull { method ->
-                    method.name == "captureDisplay" &&
-                        method.parameterCount == 3 &&
-                        method.parameterTypes[0] == Int::class.javaPrimitiveType &&
-                        method.parameterTypes[1].isInstance(args)
-                }?.apply { isAccessible = true } ?: error("IWindowManager.captureDisplay unavailable")
+                        method.name == "captureDisplay" &&
+                            method.parameterCount == 3 &&
+                            method.parameterTypes[0] == Int::class.javaPrimitiveType &&
+                            method.parameterTypes[1].isAssignableFrom(captureArgsClass)
+                    }?.apply { isAccessible = true } ?: service.javaClass.declaredMethods.firstOrNull { method ->
+                        method.name == "captureDisplay" &&
+                            method.parameterCount == 3 &&
+                            method.parameterTypes[0] == Int::class.javaPrimitiveType &&
+                            method.parameterTypes[1].isAssignableFrom(captureArgsClass)
+                    }?.apply { isAccessible = true } ?: error("IWindowManager.captureDisplay unavailable")
                 val displayId = view.display?.displayId ?: 0
                 return CaptureAccess(
                     path = "iwm",
                     captureBuffer = {
+                        val builder = constructor.newInstance()
+                        val excludeArray = currentExcludeLayers(view, surfaceClass)
+                        configureCaptureBuilder(
+                            builderClass,
+                            builder,
+                            excludeArray,
+                            width,
+                            height,
+                        )
+                        val args = buildMethod.invoke(builder)
+                            ?: error("CaptureArgs unavailable")
                         val listener = createListener.invoke(null)
                             ?: error("sync capture listener creation failed")
                         captureMethod.invoke(service, displayId, args, listener)
@@ -540,10 +623,24 @@ private class RefractiveScreenCapture(
                 )
             }
 
+            private fun currentExcludeLayers(view: View, surfaceClass: Class<*>): Any? {
+                val rootView = view.rootView ?: view
+                val viewRoot = findMethod(rootView.javaClass, "getViewRootImpl")
+                    ?.invoke(rootView) ?: return null
+                val surface = findMethod(viewRoot.javaClass, "getSurfaceControl")
+                    ?.invoke(viewRoot) ?: return null
+                if (!surfaceClass.isInstance(surface)) return null
+                val isValid = findMethod(surfaceClass, "isValid")?.invoke(surface) as? Boolean
+                if (isValid == false) return null
+                return java.lang.reflect.Array.newInstance(surfaceClass, 1).also {
+                    java.lang.reflect.Array.set(it, 0, surface)
+                }
+            }
+
             private fun configureCaptureBuilder(
                 builderClass: Class<*>,
                 builder: Any,
-                excludeArray: Any,
+                excludeArray: Any?,
                 width: Int,
                 height: Int,
             ) {
@@ -577,13 +674,41 @@ private class RefractiveScreenCapture(
                         else -> error("capture scale unsupported")
                     }
                 }
+                findMethod(
+                    builderClass,
+                    "setCaptureMode",
+                    Int::class.javaPrimitiveType!!,
+                )?.invoke(builder, 1)
+                val setLayerNames = findMethod(
+                    builderClass,
+                    "setExcludeOrIncludeLayerNames",
+                    Array<String>::class.java,
+                )
+                setLayerNames?.invoke(builder, EXCLUDED_LAYER_NAMES)
                 val setExcludeLayers = builderClass.methods.firstOrNull {
                     it.name == "setExcludeLayers" && it.parameterCount == 1
                 } ?: builderClass.declaredMethods.firstOrNull {
                     it.name == "setExcludeLayers" && it.parameterCount == 1
-                }?.apply { isAccessible = true } ?: error("excludeLayers unsupported")
-                setExcludeLayers.invoke(builder, excludeArray)
+                }?.apply { isAccessible = true }
+                if (excludeArray != null && setExcludeLayers != null) {
+                    setExcludeLayers.invoke(builder, excludeArray)
+                } else if (setLayerNames == null) {
+                    error("no supported island exclusion mechanism")
+                }
             }
+
+            private val EXCLUDED_LAYER_NAMES = arrayOf(
+                "NotificationShade#",
+                "StatusBar#",
+                "StatusBar1#",
+                "NavigationBar0#",
+                "DynamicIslandWindow#",
+                "VolumePanelDialogController#",
+                "ShellDropTarget#",
+                "MiuiShellDropTarget#",
+                "NotificationModalWindowManager#",
+                "SecondaryHomeHandle0#",
+            )
 
             private fun findMethod(clazz: Class<*>, name: String, vararg types: Class<*>): java.lang.reflect.Method? {
                 runCatching {
