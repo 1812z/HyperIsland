@@ -220,6 +220,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
 
   Future<void> _showIslandBlurDialog(_IslandBlurType type) async {
     final l10n = AppLocalizations.of(context)!;
+    final maxBlurRadius = _ctrl.islandGlassTrueRefraction ? 20 : 100;
     final title = switch (type) {
       _IslandBlurType.small => l10n.islandBlurSmallTitle,
       _IslandBlurType.big => l10n.islandBlurBigTitle,
@@ -234,7 +235,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
       _IslandBlurType.small => _ctrl.islandBlurSmallRadius,
       _IslandBlurType.big => _ctrl.islandBlurBigRadius,
       _IslandBlurType.expand => _ctrl.islandBlurExpandRadius,
-    }.clamp(0, 20).toInt();
+    }.clamp(0, maxBlurRadius).toInt();
     var color = switch (type) {
       _IslandBlurType.small => _ctrl.islandBlurSmallColor,
       _IslandBlurType.big => _ctrl.islandBlurBigColor,
@@ -270,8 +271,8 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                   child: Slider(
                     value: radius.toDouble(),
                     min: 0,
-                    max: 20,
-                    divisions: 20,
+                    max: maxBlurRadius.toDouble(),
+                    divisions: maxBlurRadius,
                     onChanged: enabled
                         ? (value) =>
                               setDialogState(() => radius = value.round())
