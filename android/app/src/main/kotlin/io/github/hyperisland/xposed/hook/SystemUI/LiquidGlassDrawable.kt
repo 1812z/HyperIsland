@@ -27,6 +27,8 @@ import android.os.SystemClock
 import android.view.View
 import io.github.hyperisland.xposed.logWarn
 import java.lang.ref.WeakReference
+import java.lang.reflect.Method
+import java.util.ArrayDeque
 import java.util.Collections
 import java.util.WeakHashMap
 import kotlin.math.PI
@@ -73,7 +75,6 @@ internal class LiquidGlassDrawable(
     private val refractionPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { shader = refractionShader }
     private val screenCapture = RefractiveScreenCapture(
         host,
-        ::shouldCaptureNow,
         ::applySystemBlur,
         ::onScreenCaptured,
     )
@@ -82,6 +83,12 @@ internal class LiquidGlassDrawable(
     private var lightY = DEFAULT_LIGHT_Y
     private var drawableAlpha = 1f
     private var currentFrame: Bitmap? = null
+    private val retiredFrames = ArrayDeque<Bitmap>()
+    private val frameReleaseHandler = Handler(Looper.getMainLooper())
+    private val blurResourceLock = Any()
+    private val blurNode = RenderNode("HyperIslandSystemBlur")
+    private var blurEffectRadius = -1f
+    private var blurEffect: RenderEffect? = null
     @Volatile
     private var backgroundBlurRadius = 0f
     private var loggedFirstDraw = false
@@ -143,8 +150,13 @@ internal class LiquidGlassDrawable(
     }
 
     private fun updateCaptureState() {
-        if (shouldCaptureNow()) {
-            screenCapture.updateScreenPosition()
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            hostView.get()?.post { updateCaptureState() }
+            return
+        }
+        val canCapture = shouldCaptureNow()
+        screenCapture.updateViewSnapshot(canCapture)
+        if (canCapture) {
             screenCapture.start()
         } else {
             stopCapture()
@@ -153,8 +165,9 @@ internal class LiquidGlassDrawable(
 
     private fun stopCapture() {
         screenCapture.stop()
-        currentFrame?.takeIf { !it.isRecycled }?.recycle()
+        currentFrame?.let(::retireFrameLater)
         currentFrame = null
+        while (retiredFrames.isNotEmpty()) retireFrameLater(retiredFrames.removeFirst())
     }
 
     private fun shouldCaptureNow(): Boolean {
@@ -181,6 +194,8 @@ internal class LiquidGlassDrawable(
         bitmap: Bitmap,
         scaleX: Float,
         scaleY: Float,
+        cropX: Float,
+        cropY: Float,
     ) {
         val runtimeShader = refractionShader ?: return
         val previousFrame = currentFrame
@@ -189,34 +204,56 @@ internal class LiquidGlassDrawable(
             "uContent",
             BitmapShader(bitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP),
         )
-        refractionShader?.setFloatUniform("uCaptureScale", scaleX, scaleY)
+        runtimeShader.setFloatUniform("uCaptureScale", scaleX, scaleY)
+        runtimeShader.setFloatUniform("uCaptureOrigin", cropX, cropY)
         if (previousFrame !== bitmap && previousFrame?.isRecycled == false) {
-            previousFrame.recycle()
+            retiredFrames.addLast(previousFrame)
+            if (retiredFrames.size > RETAINED_FRAME_COUNT) {
+                retiredFrames.removeFirst().recycle()
+            }
         }
         hostView.get()?.postInvalidateOnAnimation()
     }
 
+    private fun retireFrameLater(bitmap: Bitmap) {
+        if (bitmap.isRecycled) return
+        frameReleaseHandler.postDelayed(
+            { if (!bitmap.isRecycled) bitmap.recycle() },
+            STOPPED_FRAME_RELEASE_DELAY_MS,
+        )
+    }
+
     @SuppressLint("BlockedPrivateApi")
     private fun applySystemBlur(bitmap: Bitmap): Bitmap {
-        val radius = backgroundBlurRadius.coerceAtLeast(0f)
+        val radius = trueRefractionBlurRadius()
         if (radius <= 0f || bitmap.isRecycled) return bitmap
-        val node = RenderNode("HyperIslandSystemBlur")
         val blurred = runCatching {
-            node.setPosition(0, 0, bitmap.width, bitmap.height)
-            val recordingCanvas = node.beginRecording(bitmap.width, bitmap.height)
-            recordingCanvas.drawBitmap(bitmap, 0f, 0f, null)
-            node.endRecording()
-            node.setRenderEffect(
-                RenderEffect.createBlurEffect(radius, radius, Shader.TileMode.CLAMP),
-            )
-            val method = HardwareRenderer::class.java.getDeclaredMethod(
-                "createHardwareBitmap",
-                RenderNode::class.java,
-                Int::class.javaPrimitiveType,
-                Int::class.javaPrimitiveType,
-            ).apply { isAccessible = true }
-            method.invoke(null, node, bitmap.width, bitmap.height) as? Bitmap
-                ?: error("HardwareRenderer.createHardwareBitmap returned no bitmap")
+            synchronized(blurResourceLock) {
+                blurNode.setPosition(0, 0, bitmap.width, bitmap.height)
+                val recordingCanvas = blurNode.beginRecording(bitmap.width, bitmap.height)
+                recordingCanvas.drawBitmap(bitmap, 0f, 0f, null)
+                blurNode.endRecording()
+                if (blurEffect == null || blurEffectRadius != radius) {
+                    blurEffectRadius = radius
+                    blurEffect = RenderEffect.createBlurEffect(
+                        radius,
+                        radius,
+                        Shader.TileMode.CLAMP,
+                    )
+                    blurNode.setRenderEffect(blurEffect)
+                }
+                try {
+                    createHardwareBitmapMethod.invoke(
+                        null,
+                        blurNode,
+                        bitmap.width,
+                        bitmap.height,
+                    ) as? Bitmap
+                        ?: error("HardwareRenderer.createHardwareBitmap returned no bitmap")
+                } finally {
+                    blurNode.discardDisplayList()
+                }
+            }
         }.onFailure { error ->
             logWarn("HyperIsland[TrueRefraction] system blur failed: ${error.message}")
         }.getOrNull() ?: return bitmap
@@ -243,13 +280,12 @@ internal class LiquidGlassDrawable(
 
     override fun onBoundsChange(bounds: Rect) {
         child.bounds = bounds
-        updateGlassRect(bounds)
+        if (updateGlassRect(bounds)) updateCaptureRegion()
         updateCaptureState()
     }
 
     override fun draw(canvas: Canvas) {
         updateCaptureState()
-        screenCapture.updateScreenPosition()
         if (!loggedFirstDraw) {
             loggedFirstDraw = true
             logWarn(
@@ -261,6 +297,7 @@ internal class LiquidGlassDrawable(
             child.draw(canvas)
             return
         }
+        updateCaptureRegion()
 
         val width = glassRect.width()
         val height = glassRect.height()
@@ -309,6 +346,20 @@ internal class LiquidGlassDrawable(
         refractionPaint.alpha = (drawableAlpha * 255f).toInt().coerceIn(0, 255)
         canvas.drawRect(glassRect, refractionPaint)
         return true
+    }
+
+    private fun updateCaptureRegion() {
+        screenCapture.updateCaptureRegion(
+            glassRect,
+            trueRefractionBlurRadius() / config.captureScale.coerceAtLeast(0.1f),
+            minOf(glassRect.width(), glassRect.height()) * config.refraction * 2f,
+        )
+    }
+
+    private fun trueRefractionBlurRadius(): Float {
+        // True refraction exposes a dedicated 0..20 range in the UI. Keep this
+        // value in capture-texture pixels so capture quality does not weaken it.
+        return backgroundBlurRadius.coerceIn(0f, 20f)
     }
 
     private fun drawDirectionalRim(canvas: Canvas, width: Float, height: Float, radius: Float) {
@@ -379,12 +430,33 @@ internal class LiquidGlassDrawable(
         hostView.clear()
         child.callback = null
         callback = null
+        synchronized(blurResourceLock) {
+            blurNode.discardDisplayList()
+            blurNode.setRenderEffect(null)
+            blurEffect = null
+        }
     }
 
     private companion object {
         const val DEFAULT_LIGHT_X = -0.45f
         const val DEFAULT_LIGHT_Y = -0.89f
         const val TILT_STRENGTH = 2.2f
+        const val RETAINED_FRAME_COUNT = 2
+        const val STOPPED_FRAME_RELEASE_DELAY_MS = 150L
+
+        val createHardwareBitmapMethod: Method by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
+            resolveCreateHardwareBitmapMethod()
+        }
+
+        @SuppressLint("BlockedPrivateApi")
+        fun resolveCreateHardwareBitmapMethod(): Method {
+            return HardwareRenderer::class.java.getDeclaredMethod(
+                "createHardwareBitmap",
+                RenderNode::class.java,
+                Int::class.javaPrimitiveType,
+                Int::class.javaPrimitiveType,
+            ).apply { isAccessible = true }
+        }
 
         val RIM_SHADER = """
             uniform float2 uOrigin;
@@ -438,6 +510,7 @@ internal class LiquidGlassDrawable(
             uniform float2 uOrigin;
             uniform float2 uScreenOrigin;
             uniform float2 uCaptureScale;
+            uniform float2 uCaptureOrigin;
             uniform float2 uSize;
             uniform float uCornerRadius;
             uniform float uRefractionHeight;
@@ -467,7 +540,7 @@ internal class LiquidGlassDrawable(
             }
 
             half4 sampleContent(float2 screenCoord) {
-                return uContent.eval(screenCoord * uCaptureScale);
+                return uContent.eval((screenCoord - uCaptureOrigin) * uCaptureScale);
             }
 
             half4 main(float2 fragCoord) {
@@ -506,9 +579,8 @@ internal class LiquidGlassDrawable(
 
 private class RefractiveScreenCapture(
     host: View,
-    private val canCapture: () -> Boolean,
     private val prepareFrame: (Bitmap) -> Bitmap,
-    private val onFrame: (Bitmap, Float, Float) -> Unit,
+    private val onFrame: (Bitmap, Float, Float, Float, Float) -> Unit,
 ) {
     companion object {
         private const val TAG = "HyperIsland[TrueRefraction]"
@@ -516,13 +588,19 @@ private class RefractiveScreenCapture(
 
     private val host = WeakReference(host)
     private val mainHandler = Handler(Looper.getMainLooper())
-    private var thread: HandlerThread? = null
+    @Volatile
     private var worker: Handler? = null
+    @Volatile
     private var generation = 0
+    @Volatile
     private var captureAccess: CaptureAccess? = null
     private var captureFps = 20
     private var captureScale = 0.3f
     private val location = IntArray(2)
+    @Volatile
+    private var viewSnapshot = ViewSnapshot.EMPTY
+    @Volatile
+    private var captureRegion: Rect? = null
     @Volatile
     var hasFrame = false
         private set
@@ -546,23 +624,29 @@ private class RefractiveScreenCapture(
 
     fun start() {
         if (worker != null) return
-        if (!canCapture()) return
-        val view = host.get() ?: return
-        val captureThread = HandlerThread("HyperIslandTrueRefraction").apply { start() }
-        thread = captureThread
-        worker = Handler(captureThread.looper)
+        val snapshot = viewSnapshot
+        if (!snapshot.canCapture) return
+        val captureWorker = GlassCaptureManager.acquire(this) ?: return
+        worker = captureWorker
         generation++
         val token = generation
-        worker?.post { initializeCapture(token, view) }
+        captureWorker.post { initializeCapture(token, snapshot.displayId) }
     }
 
-    private fun initializeCapture(token: Int, view: View) {
+    private fun initializeCapture(token: Int, displayId: Int) {
         if (token != generation) return
-        if (!canCapture()) {
+        if (!viewSnapshot.canCapture) {
             mainHandler.post { if (token == generation) stop() }
             return
         }
-        val access = runCatching { CaptureAccess.create(view, captureScale) }
+        val access = runCatching {
+            CaptureAccess.create(
+                displayId,
+                captureScale,
+                { captureRegion },
+                { viewSnapshot.excludeLayers },
+            )
+        }
             .onFailure { logWarn("$TAG unavailable: ${it.message}") }
             .getOrNull()
         if (access == null) {
@@ -580,10 +664,8 @@ private class RefractiveScreenCapture(
     fun stop() {
         if (worker == null && captureAccess == null && !hasFrame) return
         generation++
-        worker?.removeCallbacksAndMessages(null)
-        thread?.quitSafely()
+        GlassCaptureManager.release(this)
         worker = null
-        thread = null
         captureAccess = null
         hasFrame = false
         host.get()?.postInvalidateOnAnimation()
@@ -594,12 +676,48 @@ private class RefractiveScreenCapture(
         host.clear()
     }
 
-    fun updateScreenPosition() {
+    fun updateViewSnapshot(canCapture: Boolean) {
         val view = host.get() ?: return
         runCatching {
             view.getLocationOnScreen(location)
             screenX = location[0].toFloat()
             screenY = location[1].toFloat()
+            viewSnapshot = ViewSnapshot(
+                canCapture = canCapture,
+                displayId = view.display?.displayId ?: 0,
+                excludeLayers = CaptureAccess.currentExcludeLayers(view),
+            )
+        }.onFailure {
+            viewSnapshot = ViewSnapshot.EMPTY
+        }
+    }
+
+    fun updateCaptureRegion(
+        localBounds: RectF,
+        blurRadius: Float,
+        refractionDistance: Float,
+    ) {
+        val view = host.get() ?: return
+        if (localBounds.isEmpty) return
+        runCatching {
+            view.getLocationOnScreen(location)
+            screenX = location[0].toFloat()
+            screenY = location[1].toFloat()
+            val metrics = view.resources.displayMetrics
+            val padding = kotlin.math.ceil(
+                maxOf(blurRadius * 2f, refractionDistance * 1.25f, 1f),
+            ).toInt()
+            val left = kotlin.math.floor(screenX + localBounds.left - padding).toInt()
+                .coerceIn(0, metrics.widthPixels)
+            val top = kotlin.math.floor(screenY + localBounds.top - padding).toInt()
+                .coerceIn(0, metrics.heightPixels)
+            val right = kotlin.math.ceil(screenX + localBounds.right + padding).toInt()
+                .coerceIn(0, metrics.widthPixels)
+            val bottom = kotlin.math.ceil(screenY + localBounds.bottom + padding).toInt()
+                .coerceIn(0, metrics.heightPixels)
+            captureRegion = Rect(left, top, right, bottom).takeIf {
+                it.width() > 0 && it.height() > 0
+            }
         }
     }
 
@@ -609,7 +727,7 @@ private class RefractiveScreenCapture(
 
     private fun capture(token: Int) {
         if (token != generation) return
-        if (!canCapture()) {
+        if (!viewSnapshot.canCapture) {
             mainHandler.post { if (token == generation) stop() }
             return
         }
@@ -640,6 +758,8 @@ private class RefractiveScreenCapture(
                 preparedBitmap,
                 frame.scaleX,
                 frame.scaleY,
+                frame.cropX,
+                frame.cropY,
             )
         }
         val elapsed = SystemClock.uptimeMillis() - startedAt
@@ -653,50 +773,50 @@ private class RefractiveScreenCapture(
         val bitmap: Bitmap,
         val scaleX: Float,
         val scaleY: Float,
+        val cropX: Float,
+        val cropY: Float,
     )
+
+    private data class ViewSnapshot(
+        val canCapture: Boolean,
+        val displayId: Int,
+        val excludeLayers: Any?,
+    ) {
+        companion object {
+            val EMPTY = ViewSnapshot(false, 0, null)
+        }
+    }
 
     private class CaptureAccess(
         val path: String,
-        private val captureBuffer: () -> Any?,
-        private val sourceWidth: Int,
-        private val sourceHeight: Int,
+        private val captureFrame: () -> CapturedFrame?,
     ) {
-        fun capture(): CapturedFrame? {
-            val buffer = captureBuffer() ?: return null
-            val bitmap = findMethod(buffer.javaClass, "asBitmap")?.invoke(buffer) as? Bitmap
-                ?: return null
-            return CapturedFrame(
-                bitmap,
-                bitmap.width.toFloat() / sourceWidth,
-                bitmap.height.toFloat() / sourceHeight,
-            )
-        }
+        fun capture(): CapturedFrame? = captureFrame()
 
         companion object {
-            fun create(view: View, captureScale: Float): CaptureAccess {
-                val surfaceClass = Class.forName("android.view.SurfaceControl")
+            fun create(
+                displayId: Int,
+                captureScale: Float,
+                getCaptureRegion: () -> Rect?,
+                getExcludeLayers: () -> Any?,
+            ): CaptureAccess {
                 val screenCaptureClass = Class.forName("android.window.ScreenCapture")
-                val metrics = view.resources.displayMetrics
-                val width = metrics.widthPixels
-                val height = metrics.heightPixels
 
                 return createWindowManagerAccess(
-                    view,
+                    displayId,
                     screenCaptureClass,
-                    surfaceClass,
-                    width,
-                    height,
                     captureScale,
+                    getCaptureRegion,
+                    getExcludeLayers,
                 )
             }
 
             private fun createWindowManagerAccess(
-                view: View,
+                displayId: Int,
                 screenCaptureClass: Class<*>,
-                surfaceClass: Class<*>,
-                width: Int,
-                height: Int,
                 captureScale: Float,
+                getCaptureRegion: () -> Rect?,
+                getExcludeLayers: () -> Any?,
             ): CaptureAccess {
                 val builderClass = Class.forName(
                     "android.window.ScreenCapture\$CaptureArgs\$Builder",
@@ -723,18 +843,17 @@ private class RefractiveScreenCapture(
                             method.parameterTypes[0] == Int::class.javaPrimitiveType &&
                             method.parameterTypes[1].isAssignableFrom(captureArgsClass)
                     }?.apply { isAccessible = true } ?: error("IWindowManager.captureDisplay unavailable")
-                val displayId = view.display?.displayId ?: 0
                 return CaptureAccess(
-                    path = "iwm",
-                    captureBuffer = {
+                    path = "iwm-local",
+                    captureFrame = {
+                        val region = getCaptureRegion()
+                            ?: return@CaptureAccess null
                         val builder = constructor.newInstance()
-                        val excludeArray = currentExcludeLayers(view, surfaceClass)
                         configureCaptureBuilder(
                             builderClass,
                             builder,
-                            excludeArray,
-                            width,
-                            height,
+                            getExcludeLayers(),
+                            region,
                             captureScale,
                         )
                         val args = buildMethod.invoke(builder)
@@ -742,15 +861,25 @@ private class RefractiveScreenCapture(
                         val listener = createListener.invoke(null)
                             ?: error("sync capture listener creation failed")
                         captureMethod.invoke(service, displayId, args, listener)
-                        findMethod(listener.javaClass, "getBuffer")?.invoke(listener)
+                        val buffer = findMethod(listener.javaClass, "getBuffer")?.invoke(listener)
                             ?: error("sync capture returned no buffer")
+                        val bitmap = findMethod(buffer.javaClass, "asBitmap")?.invoke(buffer) as? Bitmap
+                            ?: return@CaptureAccess null
+                        CapturedFrame(
+                            bitmap = bitmap,
+                            scaleX = bitmap.width.toFloat() / region.width(),
+                            scaleY = bitmap.height.toFloat() / region.height(),
+                            cropX = region.left.toFloat(),
+                            cropY = region.top.toFloat(),
+                        )
                     },
-                    sourceWidth = width,
-                    sourceHeight = height,
                 )
             }
 
-            private fun currentExcludeLayers(view: View, surfaceClass: Class<*>): Any? {
+            fun currentExcludeLayers(view: View): Any? {
+                val surfaceClass = runCatching {
+                    Class.forName("android.view.SurfaceControl")
+                }.getOrNull() ?: return null
                 val rootView = view.rootView ?: view
                 val viewRoot = findMethod(rootView.javaClass, "getViewRootImpl")
                     ?.invoke(rootView) ?: return null
@@ -768,10 +897,12 @@ private class RefractiveScreenCapture(
                 builderClass: Class<*>,
                 builder: Any,
                 excludeArray: Any?,
-                width: Int,
-                height: Int,
+                region: Rect,
                 captureScale: Float,
             ) {
+                val setSourceCrop = findMethod(builderClass, "setSourceCrop", Rect::class.java)
+                    ?: error("local capture crop unsupported")
+                setSourceCrop.invoke(builder, region)
                 val setSize = findMethod(
                     builderClass,
                     "setSize",
@@ -781,8 +912,8 @@ private class RefractiveScreenCapture(
                 if (setSize != null) {
                     setSize.invoke(
                         builder,
-                        (width * captureScale).toInt().coerceAtLeast(1),
-                        (height * captureScale).toInt().coerceAtLeast(1),
+                        (region.width() * captureScale).toInt().coerceAtLeast(1),
+                        (region.height() * captureScale).toInt().coerceAtLeast(1),
                     )
                 } else {
                     val oneScale = findMethod(
@@ -852,6 +983,25 @@ private class RefractiveScreenCapture(
                 return null
             }
         }
+    }
+}
+
+/** Serializes true-refraction capture across every island drawable in SystemUI. */
+private object GlassCaptureManager {
+    private val thread = HandlerThread("HyperIslandTrueRefraction").apply { start() }
+    private val handler = Handler(thread.looper)
+    private var owner: RefractiveScreenCapture? = null
+
+    @Synchronized
+    fun acquire(candidate: RefractiveScreenCapture): Handler? {
+        if (owner != null && owner !== candidate) return null
+        owner = candidate
+        return handler
+    }
+
+    @Synchronized
+    fun release(candidate: RefractiveScreenCapture) {
+        if (owner === candidate) owner = null
     }
 }
 
