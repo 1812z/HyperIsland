@@ -723,7 +723,7 @@ object IslandBlurHook : BaseHook() {
             }
             candidate = owned
             if (!setCurrentBackgroundBounds(backgroundView, owned.drawable)) {
-                owned.clippedDrawable.release()
+                owned.release()
                 candidate = null
                 return@runCatching
             }
@@ -753,7 +753,7 @@ object IslandBlurHook : BaseHook() {
             logWarn("$TAG realization failed for ${pending.type}: ${error.message}")
             candidate?.let { owned ->
                 runCatching { owned.methods.setRadius.invoke(owned.effectDrawable, 0) }
-                owned.clippedDrawable.release()
+                owned.release()
             }
             pendingOuterBlurs.remove(backgroundView)
             val failed = outerBlurs.remove(backgroundView)
@@ -855,14 +855,20 @@ object IslandBlurHook : BaseHook() {
 
         return runCatching {
             val drawableClass = drawable.javaClass
+            val strokeWidth = resolveStrokeWidth(view)
             val clippedDrawable = ClippedBlurDrawable(
                 drawable,
-                resolveStrokeWidth(view),
+                strokeWidth,
+            )
+            val liquidDrawable = LiquidGlassDrawable(
+                clippedDrawable,
+                strokeWidth,
             )
             OwnedBlur(
-                drawable = clippedDrawable,
+                drawable = liquidDrawable,
                 effectDrawable = drawable,
                 clippedDrawable = clippedDrawable,
+                liquidDrawable = liquidDrawable,
                 type = type,
                 methods = BlurDrawableMethods(
                     setRadius = findMethod(
@@ -896,6 +902,7 @@ object IslandBlurHook : BaseHook() {
     ) {
         val radius = resolveCornerRadius(view, owned.type, shapeView)
         owned.clippedDrawable.setCornerRadius(radius)
+        owned.liquidDrawable.setCornerRadius(radius)
         owned.methods.setCornerRadius.invoke(
             owned.effectDrawable,
             radius,
@@ -1018,7 +1025,7 @@ object IslandBlurHook : BaseHook() {
             runCatching { owned.methods.setRadius.invoke(owned.effectDrawable, 0) }
             IslandOutlineHook.releaseOutline(renderDrawable)
             renderDrawable.callback = null
-            owned.clippedDrawable.release()
+            owned.release()
             owned.active = false
             active = false
         }
@@ -1028,10 +1035,16 @@ object IslandBlurHook : BaseHook() {
         val drawable: Drawable,
         val effectDrawable: Drawable,
         val clippedDrawable: ClippedBlurDrawable,
+        val liquidDrawable: LiquidGlassDrawable,
         val type: IslandType,
         val methods: BlurDrawableMethods,
         var active: Boolean = false,
-    )
+    ) {
+        fun release() {
+            liquidDrawable.release()
+            clippedDrawable.release()
+        }
+    }
 
     /** Keeps the blur region inside the same stroked rounded bounds as image backgrounds. */
     private class ClippedBlurDrawable(
