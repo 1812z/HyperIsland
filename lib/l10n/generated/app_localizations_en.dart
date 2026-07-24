@@ -829,6 +829,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get seconds => 's';
 
   @override
+  String get defaultTimeoutSubtitle =>
+      'Default auto-dismiss duration for notification islands';
+
+  @override
+  String get timeoutUseDefault => 'Use default duration';
+
+  @override
+  String get timeoutUseDefaultSubtitle =>
+      'Follow the duration set in Default Config';
+
+  @override
   String get highlightColorLabel => 'Highlight color';
 
   @override
@@ -1185,6 +1196,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aiTriggerCharCountAlways =>
       'Always trigger AI regardless of notification length';
+
+  @override
+  String defaultTimeoutHint(int seconds) {
+    return 'Default (${seconds}s)';
+  }
 
   @override
   String get aiDefaultPromptFull =>

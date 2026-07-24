@@ -413,6 +413,9 @@
   "updateFloatLabel": "更新展开",
   "autoDisappear": "自动消失",
   "seconds": "秒",
+  "defaultTimeoutSubtitle": "通知岛默认自动消失时长",
+  "timeoutUseDefault": "使用默认时长",
+  "timeoutUseDefaultSubtitle": "跟随默认配置中的时长",
   "highlightColorLabel": "高亮颜色",
   "dynamicHighlightColorLabel": "高亮动态取色",
   "dynamicHighlightColorLabelSubtitle": "开启后默认使用图标自动取色",
@@ -554,6 +557,14 @@
   "aiTriggerCharCountSubtitle": "通知标题和正文达到此字符数时触发 AI",
   "aiTriggerCharCountAlways": "无论通知字数多少都触发 AI",
   "@aiTimeoutLabel": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "defaultTimeoutHint": "默认（{seconds}秒）",
+  "@defaultTimeoutHint": {
     "placeholders": {
       "seconds": {
         "type": "int"

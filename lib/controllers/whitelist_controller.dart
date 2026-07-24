@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../l10n/generated/app_localizations.dart';
+import '../controllers/settings_controller.dart';
 import '../services/app_cache_service.dart';
 import '../services/app_config_store.dart';
 
@@ -69,7 +70,7 @@ class WhitelistController extends ChangeNotifier {
     'show_island_icon': kTriOptDefault,
     'first_float': kTriOptDefault,
     'enable_float': kTriOptDefault,
-    'timeout': '5',
+    'timeout': kTriOptDefault,
     'marquee': kTriOptDefault,
     'marquee_auto_hide': kTriOptDefault,
     'restore_lockscreen': kTriOptDefault,
@@ -461,11 +462,35 @@ class WhitelistController extends ChangeNotifier {
   }
 
   Future<String> getToastTimeout(String packageName) async {
-    return AppConfigStore.getToast(packageName, 'timeout', '5');
+    final stored = await AppConfigStore.getToast<String?>(
+      packageName,
+      'timeout',
+      null,
+    );
+    if (stored == null || stored.isEmpty) {
+      return kTriOptDefault;
+    }
+    // 存的就是当前默认值 → 等同跟随默认，统一用全局值显示
+    final defaultStr = SettingsController.instance.defaultTimeout.toString();
+    if (stored == defaultStr || stored == '5') {
+      return kTriOptDefault;
+    }
+    return stored;
   }
 
   Future<void> setToastTimeout(String packageName, String value) async {
-    await AppConfigStore.setToast(packageName, 'timeout', value, '5');
+    final trimmed = value.trim();
+    if (trimmed.isEmpty || trimmed == kTriOptDefault) {
+      await AppConfigStore.setToast(packageName, 'timeout', kTriOptDefault, kTriOptDefault);
+      return;
+    }
+    // 设的值与默认值相同 → 等同跟随默认，不单独存
+    final defaultStr = SettingsController.instance.defaultTimeout.toString();
+    if (trimmed == defaultStr) {
+      await AppConfigStore.setToast(packageName, 'timeout', kTriOptDefault, kTriOptDefault);
+      return;
+    }
+    await AppConfigStore.setToast(packageName, 'timeout', trimmed, kTriOptDefault);
   }
 
   Future<String> getToastHighlightColor(String packageName) async {
@@ -715,7 +740,7 @@ class WhitelistController extends ChangeNotifier {
         );
       }
       if (timeout != null) {
-        await AppConfigStore.setToast(pkg, 'timeout', timeout, '5');
+        await AppConfigStore.setToast(pkg, 'timeout', timeout, kTriOptDefault);
       }
       if (highlightColor != null) {
         await AppConfigStore.setToast(
@@ -875,7 +900,7 @@ class WhitelistController extends ChangeNotifier {
             settings['preserve_small_icon'] ?? kTriOptDefault,
         'first_float': settings['first_float'] ?? kTriOptDefault,
         'enable_float': settings['enable_float'] ?? kTriOptDefault,
-        'timeout': settings['timeout'] ?? '5',
+        'timeout': settings['timeout'] ?? kTriOptDefault,
         'marquee': settings['marquee'] ?? kTriOptDefault,
         'marquee_auto_hide': settings['marquee_auto_hide'] ?? kTriOptDefault,
         'renderer': settings['renderer'] ?? kRendererImageTextWithButtons4,
@@ -1112,7 +1137,7 @@ class WhitelistController extends ChangeNotifier {
     String channelId,
     String value,
   ) async {
-    await _setChannelSetting(packageName, channelId, 'timeout', value, '5');
+    await _setChannelSetting(packageName, channelId, 'timeout', value, kTriOptDefault);
   }
 
   Future<void> setChannelMarquee(

@@ -355,6 +355,7 @@ object ConfigManager {
         "pref_default_island_outer_glow_color",
         "pref_default_restore_lockscreen",
         "pref_default_preserve_small_icon",
+        "pref_default_timeout",
         "pref_fullscreen_behavior",
         "pref_landscape_behavior",
         "pref_scene_dnd",

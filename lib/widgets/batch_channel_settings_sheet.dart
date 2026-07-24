@@ -320,7 +320,9 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
       _showIslandIcon = m.showIslandIcon;
       _firstFloat = m.firstFloat;
       _enableFloat = m.enableFloat;
-      _islandTimeout = m.islandTimeout;
+      _islandTimeout = m.islandTimeout.trim().isEmpty
+          ? kTriOptDefault
+          : m.islandTimeout;
       _marquee = m.marquee;
       _marqueeAutoHide = m.marqueeAutoHide;
       _restoreLockscreen = m.restoreLockscreen;
@@ -342,7 +344,9 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
       _whitelistKeywords = List.from(m.whitelistKeywords);
       _blacklistKeywords = List.from(m.blacklistKeywords);
       _islandEnabled = m.islandEnabled;
-      _timeoutController = TextEditingController(text: m.islandTimeout);
+      _timeoutController = TextEditingController(
+        text: _islandTimeout == kTriOptDefault ? '' : _islandTimeout,
+      );
       _highlightColorController = TextEditingController(text: m.highlightColor);
       _islandOuterGlowColorController = TextEditingController(
         text: m.islandOuterGlowColor,
@@ -1097,7 +1101,9 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
           'show_island_icon': _showIslandIcon,
           'first_float': _firstFloat,
           'enable_float': _enableFloat,
-          'timeout': _islandTimeout,
+          'timeout': _islandTimeout?.trim().isEmpty == true
+              ? kTriOptDefault
+              : _islandTimeout,
           'marquee': _marquee,
           'marquee_auto_hide': _marqueeAutoHide,
           'restore_lockscreen': _restoreLockscreen,
@@ -1509,13 +1515,54 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly,
                           ],
-                          decoration: _fieldDecoration(
-                            context,
-                            hintText: _isSingle ? null : l10n.noChange,
-                            suffixText: _islandTimeout != null
-                                ? l10n.seconds
-                                : null,
-                          ),
+                          decoration:
+                              _fieldDecoration(
+                                context,
+                                hintText: _islandTimeout == kTriOptDefault
+                                    ? l10n.defaultTimeoutHint(
+                                        _ctrl.defaultTimeout,
+                                      )
+                                    : (!_isSingle && _islandTimeout == null
+                                          ? l10n.noChange
+                                          : null),
+                              ).copyWith(
+                                suffixIconConstraints: const BoxConstraints(
+                                  minWidth: 0,
+                                  minHeight: 0,
+                                ),
+                                suffixIcon: Padding(
+                                  padding: const EdgeInsets.only(right: 12),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Tooltip(
+                                        message: l10n.restoreDefault,
+                                        child: InkResponse(
+                                          onTap: () {
+                                            _timeoutController.clear();
+                                            setState(() {
+                                              _islandTimeout = kTriOptDefault;
+                                            });
+                                          },
+                                          radius: 16,
+                                          child: const SizedBox.square(
+                                            dimension: 28,
+                                            child: Icon(
+                                              Icons.restart_alt_rounded,
+                                              size: 18,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      if (_islandTimeout != kTriOptDefault &&
+                                          _islandTimeout != null) ...[
+                                        const SizedBox(width: 2),
+                                        Text(l10n.seconds),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ),
                           onChanged: (v) {
                             final trimmed = v.trim();
                             final n = int.tryParse(trimmed);
@@ -1524,8 +1571,8 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
                             setState(() {
                               if (valid) {
                                 _islandTimeout = trimmed;
-                              } else if (!_isSingle) {
-                                _islandTimeout = null;
+                              } else if (trimmed.isEmpty) {
+                                _islandTimeout = kTriOptDefault;
                               }
                             });
                           },

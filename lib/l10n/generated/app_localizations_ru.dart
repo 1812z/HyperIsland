@@ -838,6 +838,16 @@ class AppLocalizationsRu extends AppLocalizations {
   String get seconds => 'с';
 
   @override
+  String get defaultTimeoutSubtitle => 'Время автоскрытия острова по умолчанию';
+
+  @override
+  String get timeoutUseDefault => 'Использовать время по умолчанию';
+
+  @override
+  String get timeoutUseDefaultSubtitle =>
+      'Использовать время из Дефолтных настроек';
+
+  @override
   String get highlightColorLabel => 'Цвет подсветки';
 
   @override
@@ -1199,6 +1209,11 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get aiTriggerCharCountAlways =>
       'Всегда запускать ИИ независимо от длины уведомления';
+
+  @override
+  String defaultTimeoutHint(int seconds) {
+    return 'По умолчанию ($secondsс)';
+  }
 
   @override
   String get aiDefaultPromptFull =>

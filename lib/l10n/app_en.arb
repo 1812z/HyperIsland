@@ -284,6 +284,9 @@
   "updateFloatLabel": "Update float",
   "autoDisappear": "Auto dismiss",
   "seconds": "s",
+  "defaultTimeoutSubtitle": "Default auto-dismiss duration for notification islands",
+  "timeoutUseDefault": "Use default duration",
+  "timeoutUseDefaultSubtitle": "Follow the duration set in Default Config",
   "highlightColorLabel": "Highlight color",
   "dynamicHighlightColorLabel": "Dynamic highlight color",
   "dynamicHighlightColorLabelSubtitle": "Use icon-based dynamic color by default",
@@ -400,6 +403,14 @@
   "aiTimeoutTitle": "AI Response Timeout",
   "aiTimeoutLabel": "{seconds}s",
   "@aiTimeoutLabel": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "defaultTimeoutHint": "Default ({seconds}s)",
+  "@defaultTimeoutHint": {
     "placeholders": {
       "seconds": {
         "type": "int"

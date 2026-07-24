@@ -1056,7 +1056,7 @@ class _AppChannelsPageState extends State<AppChannelsPage> {
                             extras['show_island_icon'] ?? kTriOptDefault,
                         firstFloat: extras['first_float'] ?? kTriOptDefault,
                         enableFloat: extras['enable_float'] ?? kTriOptDefault,
-                        islandTimeout: extras['timeout'] ?? '5',
+                        islandTimeout: extras['timeout'] ?? kTriOptDefault,
                         marquee: extras['marquee'] ?? kTriOptDefault,
                         marqueeAutoHide:
                             extras['marquee_auto_hide'] ?? kTriOptDefault,
