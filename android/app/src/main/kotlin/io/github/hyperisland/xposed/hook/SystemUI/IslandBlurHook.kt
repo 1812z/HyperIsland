@@ -465,14 +465,22 @@ object IslandBlurHook : BaseHook() {
                 method.parameterTypes[0] == Boolean::class.javaPrimitiveType
         } ?: return
         module.hook(tempHideMethod).intercept { chain ->
-            val hidden = aggregateTempHidden(chain.thisObject)
+            val wasHidden = islandTempHidden
+            val hidden = chain.args.getOrNull(0) as? Boolean
             when (hidden) {
-                true -> enterTempHidden()
-                false -> islandTempHidden = false
-                null -> Unit
+                true -> if (!wasHidden) enterTempHidden()
+                false, null -> Unit
             }
             val result = chain.proceed()
             if (hidden == false) {
+                // Keep the hidden gate active while SystemUI synchronously dispatches
+                // the visibility event, otherwise onPreDraw can clear pending state.
+                islandTempHidden = false
+                if (wasHidden) {
+                    mainHandler.removeCallbacks(refreshRunnable)
+                    mainHandler.post(refreshRunnable)
+                    mainHandler.postDelayed(refreshRunnable, 80L)
+                }
                 val pendingViews = synchronized(pendingOuterBlurs) {
                     pendingOuterBlurs.keys.toList()
                 }
@@ -480,25 +488,6 @@ object IslandBlurHook : BaseHook() {
             }
             result
         }
-    }
-
-    private fun aggregateTempHidden(windowView: Any?): Boolean? {
-        if (windowView == null) return null
-        return runCatching {
-            val controller = findMethod(
-                windowView.javaClass,
-                "getWindowViewController",
-            )?.invoke(windowView) ?: return@runCatching null
-            val windowState = findMethod(
-                controller.javaClass,
-                "getWindowState",
-            )?.invoke(controller) ?: return@runCatching null
-            val stateFlow = findMethod(
-                windowState.javaClass,
-                "getTempHidden",
-            )?.invoke(windowState) ?: return@runCatching null
-            findMethod(stateFlow.javaClass, "getValue")?.invoke(stateFlow) as? Boolean
-        }.getOrNull()
     }
 
     private fun enterTempHidden() {
@@ -691,8 +680,14 @@ object IslandBlurHook : BaseHook() {
                     null
                 }
                 if (backgroundView != null && previouslyVisible != false && visible == false) {
-                    deactivateOuterBlur(backgroundView, outerDrawableField)
-                    lastIslandType = null
+                    // A temp-hidden window keeps its island state. Preserve the
+                    // pending blur so it can be rebuilt when the window returns.
+                    deactivateOuterBlur(
+                        backgroundView,
+                        outerDrawableField,
+                        clearPending = !islandTempHidden,
+                    )
+                    if (!islandTempHidden) lastIslandType = null
                 }
                 result
             }
