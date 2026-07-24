@@ -5,6 +5,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapShader
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.ColorFilter
 import android.graphics.HardwareRenderer
 import android.graphics.Paint
@@ -91,6 +92,7 @@ internal class LiquidGlassDrawable(
     private var blurEffect: RenderEffect? = null
     @Volatile
     private var backgroundBlurRadius = 0f
+    private var blendColor = Color.TRANSPARENT
     private var loggedFirstDraw = false
     private var config = initialConfig
     private var tiltAttached = false
@@ -118,6 +120,13 @@ internal class LiquidGlassDrawable(
         val value = radius.coerceAtLeast(0f)
         if (backgroundBlurRadius == value) return
         backgroundBlurRadius = value
+        invalidateSelf()
+        hostView.get()?.postInvalidateOnAnimation()
+    }
+
+    fun setBlendColor(color: Int) {
+        if (blendColor == color) return
+        blendColor = color
         invalidateSelf()
         hostView.get()?.postInvalidateOnAnimation()
     }
@@ -302,16 +311,17 @@ internal class LiquidGlassDrawable(
         val width = glassRect.width()
         val height = glassRect.height()
         val radius = cornerRadius.coerceAtMost(minOf(width, height) / 2f)
-        // Keep native backdrop blur as a capture/shader failure fallback. A valid
-        // direct RuntimeShader draw is opaque inside the island and replaces it.
-        child.draw(canvas)
         val hasTrueRefraction = config.enabled && config.trueRefraction && screenCapture.hasFrame &&
             canvas.isHardwareAccelerated && refractionShader != null
-        if (hasTrueRefraction) {
-            runCatching { drawTrueRefraction(canvas, width, height, radius) }
-                .onFailure { error ->
-                    logWarn("HyperIsland[TrueRefraction] render failed: ${error.message}")
-                }
+        val drewTrueRefraction = hasTrueRefraction && runCatching {
+            drawTrueRefraction(canvas, width, height, radius)
+        }.onFailure { error ->
+            logWarn("HyperIsland[TrueRefraction] render failed: ${error.message}")
+        }.getOrDefault(false)
+        if (!drewTrueRefraction) {
+            // Native backdrop blur is only needed while capture is unavailable or
+            // true-refraction rendering fails; otherwise it would be fully covered.
+            child.draw(canvas)
         }
         if (config.enabled) {
             drawDirectionalRim(canvas, width, height, radius)
@@ -343,6 +353,13 @@ internal class LiquidGlassDrawable(
         )
         runtimeShader.setFloatUniform("uDepthEffect", 1f)
         runtimeShader.setFloatUniform("uDispersion", config.dispersion * 0.12f)
+        runtimeShader.setFloatUniform(
+            "uBlendColor",
+            Color.red(blendColor) / 255f,
+            Color.green(blendColor) / 255f,
+            Color.blue(blendColor) / 255f,
+            Color.alpha(blendColor) / 255f,
+        )
         refractionPaint.alpha = (drawableAlpha * 255f).toInt().coerceIn(0, 255)
         canvas.drawRect(glassRect, refractionPaint)
         return true
@@ -517,6 +534,7 @@ internal class LiquidGlassDrawable(
             uniform float uRefractionAmount;
             uniform float uDepthEffect;
             uniform float uDispersion;
+            uniform float4 uBlendColor;
 
             float sdRoundedBox(float2 p, float2 halfSize, float radius) {
                 float2 q = abs(p) - halfSize + float2(radius);
@@ -540,7 +558,13 @@ internal class LiquidGlassDrawable(
             }
 
             half4 sampleContent(float2 screenCoord) {
-                return uContent.eval((screenCoord - uCaptureOrigin) * uCaptureScale);
+                half4 content = uContent.eval(
+                    (screenCoord - uCaptureOrigin) * uCaptureScale
+                );
+                return half4(
+                    mix(content.rgb, half3(uBlendColor.rgb), half(uBlendColor.a)),
+                    content.a
+                );
             }
 
             half4 main(float2 fragCoord) {
@@ -626,7 +650,7 @@ private class RefractiveScreenCapture(
         if (worker != null) return
         val snapshot = viewSnapshot
         if (!snapshot.canCapture) return
-        val captureWorker = GlassCaptureManager.acquire(this) ?: return
+        val captureWorker = GlassCaptureManager.acquire()
         worker = captureWorker
         generation++
         val token = generation
@@ -664,7 +688,6 @@ private class RefractiveScreenCapture(
     fun stop() {
         if (worker == null && captureAccess == null && !hasFrame) return
         generation++
-        GlassCaptureManager.release(this)
         worker = null
         captureAccess = null
         hasFrame = false
@@ -986,23 +1009,12 @@ private class RefractiveScreenCapture(
     }
 }
 
-/** Serializes true-refraction capture across every island drawable in SystemUI. */
+/** Serializes all true-refraction work on one process-wide capture thread. */
 private object GlassCaptureManager {
     private val thread = HandlerThread("HyperIslandTrueRefraction").apply { start() }
     private val handler = Handler(thread.looper)
-    private var owner: RefractiveScreenCapture? = null
 
-    @Synchronized
-    fun acquire(candidate: RefractiveScreenCapture): Handler? {
-        if (owner != null && owner !== candidate) return null
-        owner = candidate
-        return handler
-    }
-
-    @Synchronized
-    fun release(candidate: RefractiveScreenCapture) {
-        if (owner === candidate) owner = null
-    }
+    fun acquire(): Handler = handler
 }
 
 /** Shares one pose sensor listener between all currently active glass drawables. */

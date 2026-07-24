@@ -983,7 +983,7 @@ object IslandBlurHook : BaseHook() {
                 view,
                 clippedDrawable,
                 strokeWidth,
-                glassConfig.copy(trueRefraction = glassConfig.trueRefraction && type != IslandType.SMALL),
+                glassConfig,
             )
             OwnedBlur(
                 drawable = liquidDrawable,
@@ -1007,11 +1007,8 @@ object IslandBlurHook : BaseHook() {
         owned.liquidDrawable.setContentView(shapeView)
         owned.liquidDrawable.setCornerRadius(radius)
         owned.liquidDrawable.setBackgroundBlurRadius(config.radius.toFloat())
-        owned.liquidDrawable.updateConfig(
-            glassConfig.copy(
-                trueRefraction = glassConfig.trueRefraction && owned.type != IslandType.SMALL,
-            ),
-        )
+        owned.liquidDrawable.setBlendColor(config.blendColor)
+        owned.liquidDrawable.updateConfig(glassConfig)
         owned.methods.setCornerRadius.invoke(
             owned.effectDrawable,
             radius,
