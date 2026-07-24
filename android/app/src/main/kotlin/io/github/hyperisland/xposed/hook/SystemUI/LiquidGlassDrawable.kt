@@ -638,7 +638,7 @@ private class RefractiveScreenCapture(
         private set
 
     fun updateSettings(fps: Int, scale: Float) {
-        val nextFps = fps.coerceIn(10, 60)
+        val nextFps = fps.coerceIn(1, 90)
         val nextScale = scale.coerceIn(0.1f, 1f)
         if (captureFps == nextFps && captureScale == nextScale) return
         if (worker != null) stop()

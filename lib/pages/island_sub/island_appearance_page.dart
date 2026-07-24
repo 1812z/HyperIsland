@@ -459,9 +459,9 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                   data: ModernSliderTheme.theme(context),
                   child: Slider(
                     value: fps.toDouble(),
-                    min: 10,
+                    min: 1,
                     max: 90,
-                    divisions: 80,
+                    divisions: 89,
                     onChanged: (value) =>
                         setDialogState(() => fps = value.round()),
                   ),

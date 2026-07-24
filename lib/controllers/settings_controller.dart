@@ -526,7 +526,7 @@ class SettingsController extends ChangeNotifier {
       }
     }
     islandGlassCaptureFps = (prefs.getInt(kPrefIslandGlassCaptureFps) ?? 20)
-        .clamp(10, 90);
+        .clamp(1, 90);
     islandGlassCaptureQuality =
         (prefs.getInt(kPrefIslandGlassCaptureQuality) ?? 30).clamp(10, 100);
     islandHeight = prefs.getDouble(kPrefIslandHeight) ?? 0;
@@ -1461,7 +1461,7 @@ class SettingsController extends ChangeNotifier {
     required int fps,
     required int quality,
   }) async {
-    final normalizedFps = fps.clamp(10, 60);
+    final normalizedFps = fps.clamp(1, 90);
     final normalizedQuality = quality.clamp(10, 100);
     final prefs = await _getPrefs();
     await prefs.setInt(kPrefIslandGlassCaptureFps, normalizedFps);

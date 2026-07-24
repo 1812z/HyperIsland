@@ -196,7 +196,7 @@ object IslandBlurHook : BaseHook() {
                 .coerceIn(0, 100) / 100f,
             gyroscope = ConfigManager.getBoolean(KEY_GLASS_GYROSCOPE, true),
             trueRefraction = glassStates.anyRefractionEnabled,
-            captureFps = ConfigManager.getInt(KEY_GLASS_CAPTURE_FPS, 20).coerceIn(10, 60),
+            captureFps = ConfigManager.getInt(KEY_GLASS_CAPTURE_FPS, 20).coerceIn(1, 90),
             captureScale = ConfigManager.getInt(KEY_GLASS_CAPTURE_QUALITY, 30)
                 .coerceIn(10, 100) / 100f,
         )
