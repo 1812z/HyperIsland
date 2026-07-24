@@ -50,6 +50,9 @@ object IslandBlurHook : BaseHook() {
     private const val KEY_EXPAND_RADIUS = "pref_island_blur_expand_radius"
     private const val KEY_EXPAND_COLOR = "pref_island_blur_expand_color"
     private const val KEY_GLASS_ENABLED = "pref_island_glass_enabled"
+    private const val KEY_GLASS_SMALL_ENABLED = "pref_island_glass_small_enabled"
+    private const val KEY_GLASS_BIG_ENABLED = "pref_island_glass_big_enabled"
+    private const val KEY_GLASS_EXPAND_ENABLED = "pref_island_glass_expand_enabled"
     private const val KEY_GLASS_EDGE_WIDTH = "pref_island_glass_edge_width"
     private const val KEY_GLASS_REFRACTION = "pref_island_glass_refraction"
     private const val KEY_GLASS_HIGHLIGHT = "pref_island_glass_highlight"
@@ -58,6 +61,9 @@ object IslandBlurHook : BaseHook() {
     private const val KEY_GLASS_DISPERSION = "pref_island_glass_dispersion"
     private const val KEY_GLASS_GYROSCOPE = "pref_island_glass_gyroscope"
     private const val KEY_GLASS_TRUE_REFRACTION = "pref_island_glass_true_refraction"
+    private const val KEY_REFRACTION_SMALL_ENABLED = "pref_island_refraction_small_enabled"
+    private const val KEY_REFRACTION_BIG_ENABLED = "pref_island_refraction_big_enabled"
+    private const val KEY_REFRACTION_EXPAND_ENABLED = "pref_island_refraction_expand_enabled"
     private const val KEY_GLASS_CAPTURE_FPS = "pref_island_glass_capture_fps"
     private const val KEY_GLASS_CAPTURE_QUALITY = "pref_island_glass_capture_quality"
 
@@ -93,6 +99,9 @@ object IslandBlurHook : BaseHook() {
 
     @Volatile
     private var glassConfig = LiquidGlassConfig.disabled()
+
+    @Volatile
+    private var glassStates = GlassStates.disabled()
 
     @Volatile
     private var anyBlurEnabled = false
@@ -153,8 +162,30 @@ object IslandBlurHook : BaseHook() {
             ),
         )
         anyBlurEnabled = configs.small.isActive || configs.big.isActive || configs.expand.isActive
+        val legacyGlassEnabled = ConfigManager.getBoolean(KEY_GLASS_ENABLED, false)
+        val legacyRefractionEnabled = ConfigManager.getBoolean(KEY_GLASS_TRUE_REFRACTION, false)
+        glassStates = GlassStates(
+            small = readGlassState(
+                KEY_GLASS_SMALL_ENABLED,
+                KEY_REFRACTION_SMALL_ENABLED,
+                legacyGlassEnabled,
+                legacyRefractionEnabled,
+            ),
+            big = readGlassState(
+                KEY_GLASS_BIG_ENABLED,
+                KEY_REFRACTION_BIG_ENABLED,
+                legacyGlassEnabled,
+                legacyRefractionEnabled,
+            ),
+            expand = readGlassState(
+                KEY_GLASS_EXPAND_ENABLED,
+                KEY_REFRACTION_EXPAND_ENABLED,
+                legacyGlassEnabled,
+                legacyRefractionEnabled,
+            ),
+        )
         glassConfig = LiquidGlassConfig(
-            enabled = ConfigManager.getBoolean(KEY_GLASS_ENABLED, false) && anyBlurEnabled,
+            enabled = glassStates.anyEnabled && anyBlurEnabled,
             edgeWidth = ConfigManager.getInt(KEY_GLASS_EDGE_WIDTH, 16).coerceIn(4, 40) / 100f,
             refraction = ConfigManager.getInt(KEY_GLASS_REFRACTION, 16).coerceIn(0, 40) / 100f,
             highlight = ConfigManager.getInt(KEY_GLASS_HIGHLIGHT, 42).coerceIn(0, 100) / 100f,
@@ -164,10 +195,37 @@ object IslandBlurHook : BaseHook() {
             dispersion = ConfigManager.getInt(KEY_GLASS_DISPERSION, 18)
                 .coerceIn(0, 100) / 100f,
             gyroscope = ConfigManager.getBoolean(KEY_GLASS_GYROSCOPE, true),
-            trueRefraction = ConfigManager.getBoolean(KEY_GLASS_TRUE_REFRACTION, false),
+            trueRefraction = glassStates.anyRefractionEnabled,
             captureFps = ConfigManager.getInt(KEY_GLASS_CAPTURE_FPS, 20).coerceIn(10, 60),
             captureScale = ConfigManager.getInt(KEY_GLASS_CAPTURE_QUALITY, 30)
                 .coerceIn(10, 100) / 100f,
+        )
+    }
+
+    private fun readGlassState(
+        glassKey: String,
+        refractionKey: String,
+        legacyGlassEnabled: Boolean,
+        legacyRefractionEnabled: Boolean,
+    ): GlassState {
+        val enabled = if (ConfigManager.contains(glassKey)) {
+            ConfigManager.getBoolean(glassKey, false)
+        } else {
+            legacyGlassEnabled
+        }
+        val refractionEnabled = if (ConfigManager.contains(refractionKey)) {
+            ConfigManager.getBoolean(refractionKey, false)
+        } else {
+            legacyRefractionEnabled
+        }
+        return GlassState(enabled, enabled && refractionEnabled)
+    }
+
+    private fun glassConfigForType(type: IslandType): LiquidGlassConfig {
+        val state = glassStates.forType(type)
+        return glassConfig.copy(
+            enabled = state.enabled && configForType(type).isActive,
+            trueRefraction = state.refractionEnabled && configForType(type).isActive,
         )
     }
 
@@ -983,7 +1041,7 @@ object IslandBlurHook : BaseHook() {
                 view,
                 clippedDrawable,
                 strokeWidth,
-                glassConfig,
+                glassConfigForType(type),
             )
             OwnedBlur(
                 drawable = liquidDrawable,
@@ -1008,7 +1066,7 @@ object IslandBlurHook : BaseHook() {
         owned.liquidDrawable.setCornerRadius(radius)
         owned.liquidDrawable.setBackgroundBlurRadius(config.radius.toFloat())
         owned.liquidDrawable.setBlendColor(config.blendColor)
-        owned.liquidDrawable.updateConfig(glassConfig)
+        owned.liquidDrawable.updateConfig(glassConfigForType(owned.type))
         owned.methods.setCornerRadius.invoke(
             owned.effectDrawable,
             radius,
@@ -1087,6 +1145,34 @@ object IslandBlurHook : BaseHook() {
                     DEFAULT_BLEND_COLOR,
                 )
                 return BlurConfigs(disabled, disabled, disabled)
+            }
+        }
+    }
+
+    private data class GlassState(
+        val enabled: Boolean,
+        val refractionEnabled: Boolean,
+    )
+
+    private data class GlassStates(
+        val small: GlassState,
+        val big: GlassState,
+        val expand: GlassState,
+    ) {
+        val anyEnabled = small.enabled || big.enabled || expand.enabled
+        val anyRefractionEnabled = small.refractionEnabled ||
+            big.refractionEnabled || expand.refractionEnabled
+
+        fun forType(type: IslandType): GlassState = when (type) {
+            IslandType.SMALL -> small
+            IslandType.BIG -> big
+            IslandType.EXPAND -> expand
+        }
+
+        companion object {
+            fun disabled(): GlassStates {
+                val disabled = GlassState(false, false)
+                return GlassStates(disabled, disabled, disabled)
             }
         }
     }

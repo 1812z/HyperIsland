@@ -87,6 +87,9 @@ const kPrefIslandBlurExpandEnabled = 'pref_island_blur_expand_enabled';
 const kPrefIslandBlurExpandRadius = 'pref_island_blur_expand_radius';
 const kPrefIslandBlurExpandColor = 'pref_island_blur_expand_color';
 const kPrefIslandGlassEnabled = 'pref_island_glass_enabled';
+const kPrefIslandGlassSmallEnabled = 'pref_island_glass_small_enabled';
+const kPrefIslandGlassBigEnabled = 'pref_island_glass_big_enabled';
+const kPrefIslandGlassExpandEnabled = 'pref_island_glass_expand_enabled';
 const kPrefIslandGlassEdgeWidth = 'pref_island_glass_edge_width';
 const kPrefIslandGlassRefraction = 'pref_island_glass_refraction';
 const kPrefIslandGlassHighlight = 'pref_island_glass_highlight';
@@ -95,6 +98,11 @@ const kPrefIslandGlassLightDirection = 'pref_island_glass_light_direction';
 const kPrefIslandGlassDispersion = 'pref_island_glass_dispersion';
 const kPrefIslandGlassGyroscope = 'pref_island_glass_gyroscope';
 const kPrefIslandGlassTrueRefraction = 'pref_island_glass_true_refraction';
+const kPrefIslandRefractionSmallEnabled =
+    'pref_island_refraction_small_enabled';
+const kPrefIslandRefractionBigEnabled = 'pref_island_refraction_big_enabled';
+const kPrefIslandRefractionExpandEnabled =
+    'pref_island_refraction_expand_enabled';
 const kPrefIslandGlassCaptureFps = 'pref_island_glass_capture_fps';
 const kPrefIslandGlassCaptureQuality = 'pref_island_glass_capture_quality';
 const kPrefIslandHeight = 'pref_island_height';
@@ -283,6 +291,9 @@ class SettingsController extends ChangeNotifier {
   int islandBlurExpandRadius = 80;
   String islandBlurExpandColor = '#20FFFFFF';
   bool islandGlassEnabled = false;
+  bool islandGlassSmallEnabled = false;
+  bool islandGlassBigEnabled = false;
+  bool islandGlassExpandEnabled = false;
   int islandGlassEdgeWidth = 16;
   int islandGlassRefraction = 16;
   int islandGlassHighlight = 42;
@@ -291,6 +302,9 @@ class SettingsController extends ChangeNotifier {
   int islandGlassDispersion = 18;
   bool islandGlassGyroscope = true;
   bool islandGlassTrueRefraction = false;
+  bool islandRefractionSmallEnabled = false;
+  bool islandRefractionBigEnabled = false;
+  bool islandRefractionExpandEnabled = false;
   int islandGlassCaptureFps = 20;
   int islandGlassCaptureQuality = 30;
   double islandHeight = 0;
@@ -466,6 +480,12 @@ class SettingsController extends ChangeNotifier {
     islandBlurExpandColor =
         prefs.getString(kPrefIslandBlurExpandColor) ?? '#20FFFFFF';
     islandGlassEnabled = prefs.getBool(kPrefIslandGlassEnabled) ?? false;
+    islandGlassSmallEnabled =
+        prefs.getBool(kPrefIslandGlassSmallEnabled) ?? islandGlassEnabled;
+    islandGlassBigEnabled =
+        prefs.getBool(kPrefIslandGlassBigEnabled) ?? islandGlassEnabled;
+    islandGlassExpandEnabled =
+        prefs.getBool(kPrefIslandGlassExpandEnabled) ?? islandGlassEnabled;
     islandGlassEdgeWidth = (prefs.getInt(kPrefIslandGlassEdgeWidth) ?? 16)
         .clamp(4, 40);
     islandGlassRefraction = (prefs.getInt(kPrefIslandGlassRefraction) ?? 16)
@@ -483,8 +503,30 @@ class SettingsController extends ChangeNotifier {
     islandGlassGyroscope = prefs.getBool(kPrefIslandGlassGyroscope) ?? true;
     islandGlassTrueRefraction =
         prefs.getBool(kPrefIslandGlassTrueRefraction) ?? false;
+    islandRefractionSmallEnabled =
+        prefs.getBool(kPrefIslandRefractionSmallEnabled) ??
+        islandGlassTrueRefraction;
+    islandRefractionBigEnabled =
+        prefs.getBool(kPrefIslandRefractionBigEnabled) ??
+        islandGlassTrueRefraction;
+    islandRefractionExpandEnabled =
+        prefs.getBool(kPrefIslandRefractionExpandEnabled) ??
+        islandGlassTrueRefraction;
+    final migratedGlassSettings = <String, bool>{
+      kPrefIslandGlassSmallEnabled: islandGlassSmallEnabled,
+      kPrefIslandGlassBigEnabled: islandGlassBigEnabled,
+      kPrefIslandGlassExpandEnabled: islandGlassExpandEnabled,
+      kPrefIslandRefractionSmallEnabled: islandRefractionSmallEnabled,
+      kPrefIslandRefractionBigEnabled: islandRefractionBigEnabled,
+      kPrefIslandRefractionExpandEnabled: islandRefractionExpandEnabled,
+    };
+    for (final entry in migratedGlassSettings.entries) {
+      if (!prefs.containsKey(entry.key)) {
+        await prefs.setBool(entry.key, entry.value);
+      }
+    }
     islandGlassCaptureFps = (prefs.getInt(kPrefIslandGlassCaptureFps) ?? 20)
-        .clamp(10, 60);
+        .clamp(10, 90);
     islandGlassCaptureQuality =
         (prefs.getInt(kPrefIslandGlassCaptureQuality) ?? 30).clamp(10, 100);
     islandHeight = prefs.getDouble(kPrefIslandHeight) ?? 0;
@@ -1335,6 +1377,36 @@ class SettingsController extends ChangeNotifier {
   Future<void> setIslandGlassTrueRefraction(bool value) =>
       _setIslandGlassBool(kPrefIslandGlassTrueRefraction, value, () {
         islandGlassTrueRefraction = value;
+      });
+
+  Future<void> setIslandGlassSmallEnabled(bool value) =>
+      _setIslandGlassBool(kPrefIslandGlassSmallEnabled, value, () {
+        islandGlassSmallEnabled = value;
+      });
+
+  Future<void> setIslandGlassBigEnabled(bool value) =>
+      _setIslandGlassBool(kPrefIslandGlassBigEnabled, value, () {
+        islandGlassBigEnabled = value;
+      });
+
+  Future<void> setIslandGlassExpandEnabled(bool value) =>
+      _setIslandGlassBool(kPrefIslandGlassExpandEnabled, value, () {
+        islandGlassExpandEnabled = value;
+      });
+
+  Future<void> setIslandRefractionSmallEnabled(bool value) =>
+      _setIslandGlassBool(kPrefIslandRefractionSmallEnabled, value, () {
+        islandRefractionSmallEnabled = value;
+      });
+
+  Future<void> setIslandRefractionBigEnabled(bool value) =>
+      _setIslandGlassBool(kPrefIslandRefractionBigEnabled, value, () {
+        islandRefractionBigEnabled = value;
+      });
+
+  Future<void> setIslandRefractionExpandEnabled(bool value) =>
+      _setIslandGlassBool(kPrefIslandRefractionExpandEnabled, value, () {
+        islandRefractionExpandEnabled = value;
       });
 
   Future<void> setIslandGlassEdgeWidth(int value) => _setIslandGlassInt(

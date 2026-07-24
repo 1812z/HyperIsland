@@ -52,7 +52,9 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _ctrl.islandBlurExpandEnabled,
     _ctrl.islandBlurExpandRadius,
     _ctrl.islandBlurExpandColor,
-    _ctrl.islandGlassEnabled,
+    _ctrl.islandGlassSmallEnabled,
+    _ctrl.islandGlassBigEnabled,
+    _ctrl.islandGlassExpandEnabled,
     _ctrl.islandGlassEdgeWidth,
     _ctrl.islandGlassRefraction,
     _ctrl.islandGlassHighlight,
@@ -60,7 +62,9 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _ctrl.islandGlassLightDirection,
     _ctrl.islandGlassDispersion,
     _ctrl.islandGlassGyroscope,
-    _ctrl.islandGlassTrueRefraction,
+    _ctrl.islandRefractionSmallEnabled,
+    _ctrl.islandRefractionBigEnabled,
+    _ctrl.islandRefractionExpandEnabled,
     _ctrl.islandGlassCaptureFps,
     _ctrl.islandGlassCaptureQuality,
     _ctrl.islandTextColorMode,
@@ -125,10 +129,21 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _glassDispersionDraft = _ctrl.islandGlassDispersion;
   }
 
-  bool get _hasAnyBlur =>
-      _ctrl.islandBlurSmallEnabled ||
-      _ctrl.islandBlurBigEnabled ||
-      _ctrl.islandBlurExpandEnabled;
+  bool get _hasAnyGlass =>
+      (_ctrl.islandBlurSmallEnabled && _ctrl.islandGlassSmallEnabled) ||
+      (_ctrl.islandBlurBigEnabled && _ctrl.islandGlassBigEnabled) ||
+      (_ctrl.islandBlurExpandEnabled && _ctrl.islandGlassExpandEnabled);
+
+  bool get _hasAnyRefraction =>
+      (_ctrl.islandBlurSmallEnabled &&
+          _ctrl.islandGlassSmallEnabled &&
+          _ctrl.islandRefractionSmallEnabled) ||
+      (_ctrl.islandBlurBigEnabled &&
+          _ctrl.islandGlassBigEnabled &&
+          _ctrl.islandRefractionBigEnabled) ||
+      (_ctrl.islandBlurExpandEnabled &&
+          _ctrl.islandGlassExpandEnabled &&
+          _ctrl.islandRefractionExpandEnabled);
 
   bool _hasBackground(IslandBgType type) => switch (type) {
     IslandBgType.small => _ctrl.islandBgSmallPath.isNotEmpty,
@@ -220,7 +235,6 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
 
   Future<void> _showIslandBlurDialog(_IslandBlurType type) async {
     final l10n = AppLocalizations.of(context)!;
-    final maxBlurRadius = _ctrl.islandGlassTrueRefraction ? 20 : 100;
     final title = switch (type) {
       _IslandBlurType.small => l10n.islandBlurSmallTitle,
       _IslandBlurType.big => l10n.islandBlurBigTitle,
@@ -231,11 +245,21 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
       _IslandBlurType.big => _ctrl.islandBlurBigEnabled,
       _IslandBlurType.expand => _ctrl.islandBlurExpandEnabled,
     };
+    var glassEnabled = switch (type) {
+      _IslandBlurType.small => _ctrl.islandGlassSmallEnabled,
+      _IslandBlurType.big => _ctrl.islandGlassBigEnabled,
+      _IslandBlurType.expand => _ctrl.islandGlassExpandEnabled,
+    };
+    var refractionEnabled = switch (type) {
+      _IslandBlurType.small => _ctrl.islandRefractionSmallEnabled,
+      _IslandBlurType.big => _ctrl.islandRefractionBigEnabled,
+      _IslandBlurType.expand => _ctrl.islandRefractionExpandEnabled,
+    };
     var radius = switch (type) {
       _IslandBlurType.small => _ctrl.islandBlurSmallRadius,
       _IslandBlurType.big => _ctrl.islandBlurBigRadius,
       _IslandBlurType.expand => _ctrl.islandBlurExpandRadius,
-    }.clamp(0, maxBlurRadius).toInt();
+    }.clamp(0, refractionEnabled ? 20 : 100).toInt();
     var color = switch (type) {
       _IslandBlurType.small => _ctrl.islandBlurSmallColor,
       _IslandBlurType.big => _ctrl.islandBlurBigColor,
@@ -259,6 +283,30 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                   value: enabled,
                   onChanged: (value) => setDialogState(() => enabled = value),
                 ),
+                SwitchListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(l10n.islandGlassEnabled),
+                  value: glassEnabled,
+                  onChanged: enabled
+                      ? (value) => setDialogState(() {
+                          glassEnabled = value;
+                          if (!value) refractionEnabled = false;
+                        })
+                      : null,
+                ),
+                SwitchListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(l10n.islandGlassTrueRefraction),
+                  value: refractionEnabled,
+                  onChanged: enabled && glassEnabled
+                      ? (value) => setDialogState(() {
+                          refractionEnabled = value;
+                          if (value) radius = radius.clamp(0, 20).toInt();
+                        })
+                      : null,
+                ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
@@ -271,8 +319,8 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                   child: Slider(
                     value: radius.toDouble(),
                     min: 0,
-                    max: maxBlurRadius.toDouble(),
-                    divisions: maxBlurRadius,
+                    max: refractionEnabled ? 20 : 100,
+                    divisions: refractionEnabled ? 20 : 100,
                     onChanged: enabled
                         ? (value) =>
                               setDialogState(() => radius = value.round())
@@ -326,7 +374,13 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
             FilledButton(
               onPressed: () => Navigator.pop(
                 dialogContext,
-                _IslandBlurSettings(enabled, radius, color),
+                _IslandBlurSettings(
+                  enabled,
+                  radius,
+                  color,
+                  glassEnabled,
+                  refractionEnabled,
+                ),
               ),
               child: Text(l10n.save),
             ),
@@ -344,21 +398,28 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
           radius: result.radius,
           color: result.color,
         );
+        await _ctrl.setIslandGlassSmallEnabled(result.glassEnabled);
+        await _ctrl.setIslandRefractionSmallEnabled(
+          result.refractionEnabled,
+        );
       case _IslandBlurType.big:
         await _ctrl.setIslandBlurBig(
           enabled: result.enabled,
           radius: result.radius,
           color: result.color,
         );
+        await _ctrl.setIslandGlassBigEnabled(result.glassEnabled);
+        await _ctrl.setIslandRefractionBigEnabled(result.refractionEnabled);
       case _IslandBlurType.expand:
         await _ctrl.setIslandBlurExpand(
           enabled: result.enabled,
           radius: result.radius,
           color: result.color,
         );
-    }
-    if (!_hasAnyBlur && _ctrl.islandGlassEnabled) {
-      await _ctrl.setIslandGlassEnabled(false);
+        await _ctrl.setIslandGlassExpandEnabled(result.glassEnabled);
+        await _ctrl.setIslandRefractionExpandEnabled(
+          result.refractionEnabled,
+        );
     }
     if (type == _IslandBlurType.big && result.enabled && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -399,8 +460,8 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                   child: Slider(
                     value: fps.toDouble(),
                     min: 10,
-                    max: 60,
-                    divisions: 50,
+                    max: 90,
+                    divisions: 80,
                     onChanged: (value) =>
                         setDialogState(() => fps = value.round()),
                   ),
@@ -769,32 +830,13 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                   color: cs.surfaceContainerHighest,
                   child: Column(
                     children: [
-                      SwitchListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 4,
-                        ),
-                        title: Text(l10n.islandGlassEnabled, style: titleStyle),
-                        subtitle: Text(
-                          _hasAnyBlur
-                              ? l10n.islandGlassEnabledSubtitle
-                              : l10n.islandGlassRequiresBlur,
-                        ),
-                        value: _hasAnyBlur && _ctrl.islandGlassEnabled,
-                        onChanged: _hasAnyBlur
-                            ? InteractionHaptics.interceptToggle(
-                                _ctrl.setIslandGlassEnabled,
-                              )
-                            : null,
-                      ),
-                      const Divider(height: 1, indent: 16, endIndent: 16),
                       _GlassSliderTile(
                         title: l10n.islandGlassEdgeWidth,
                         value: _glassEdgeWidthDraft,
                         min: 4,
                         max: 40,
                         unit: '%',
-                        enabled: _ctrl.islandGlassEnabled && _hasAnyBlur,
+                        enabled: _hasAnyGlass,
                         onChanged: (value) =>
                             setState(() => _glassEdgeWidthDraft = value),
                         onPersist: _ctrl.setIslandGlassEdgeWidth,
@@ -805,7 +847,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                         min: 0,
                         max: 40,
                         unit: '%',
-                        enabled: _ctrl.islandGlassEnabled && _hasAnyBlur,
+                        enabled: _hasAnyGlass,
                         onChanged: (value) =>
                             setState(() => _glassRefractionDraft = value),
                         onPersist: _ctrl.setIslandGlassRefraction,
@@ -816,7 +858,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                         min: 0,
                         max: 100,
                         unit: '%',
-                        enabled: _ctrl.islandGlassEnabled && _hasAnyBlur,
+                        enabled: _hasAnyGlass,
                         onChanged: (value) =>
                             setState(() => _glassHighlightDraft = value),
                         onPersist: _ctrl.setIslandGlassHighlight,
@@ -827,7 +869,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                         min: 0,
                         max: 100,
                         unit: '%',
-                        enabled: _ctrl.islandGlassEnabled && _hasAnyBlur,
+                        enabled: _hasAnyGlass,
                         onChanged: (value) =>
                             setState(() => _glassShadowDraft = value),
                         onPersist: _ctrl.setIslandGlassShadow,
@@ -838,7 +880,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                         min: 0,
                         max: 359,
                         unit: '°',
-                        enabled: _ctrl.islandGlassEnabled && _hasAnyBlur,
+                        enabled: _hasAnyGlass,
                         onChanged: (value) =>
                             setState(() => _glassLightDirectionDraft = value),
                         onPersist: _ctrl.setIslandGlassLightDirection,
@@ -849,7 +891,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                         min: 0,
                         max: 100,
                         unit: '%',
-                        enabled: _ctrl.islandGlassEnabled && _hasAnyBlur,
+                        enabled: _hasAnyGlass,
                         onChanged: (value) =>
                             setState(() => _glassDispersionDraft = value),
                         onPersist: _ctrl.setIslandGlassDispersion,
@@ -866,27 +908,9 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                         ),
                         subtitle: Text(l10n.islandGlassGyroscopeSubtitle),
                         value: _ctrl.islandGlassGyroscope,
-                        onChanged: _ctrl.islandGlassEnabled && _hasAnyBlur
+                        onChanged: _hasAnyGlass
                             ? InteractionHaptics.interceptToggle(
                                 _ctrl.setIslandGlassGyroscope,
-                              )
-                            : null,
-                      ),
-                      const Divider(height: 1, indent: 16, endIndent: 16),
-                      SwitchListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 4,
-                        ),
-                        title: Text(
-                          l10n.islandGlassTrueRefraction,
-                          style: titleStyle,
-                        ),
-                        subtitle: Text(l10n.islandGlassTrueRefractionSubtitle),
-                        value: _ctrl.islandGlassTrueRefraction,
-                        onChanged: _ctrl.islandGlassEnabled && _hasAnyBlur
-                            ? InteractionHaptics.interceptToggle(
-                                _ctrl.setIslandGlassTrueRefraction,
                               )
                             : null,
                       ),
@@ -906,14 +930,8 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                           '${_ctrl.islandGlassCaptureQuality}%',
                         ),
                         trailing: const Icon(Icons.chevron_right),
-                        enabled:
-                            _ctrl.islandGlassEnabled &&
-                            _hasAnyBlur &&
-                            _ctrl.islandGlassTrueRefraction,
-                        onTap:
-                            _ctrl.islandGlassEnabled &&
-                                _hasAnyBlur &&
-                                _ctrl.islandGlassTrueRefraction
+                        enabled: _hasAnyRefraction,
+                        onTap: _hasAnyRefraction
                             ? _showGlassCaptureSettings
                             : null,
                       ),
@@ -1142,11 +1160,19 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
 enum _IslandBlurType { small, big, expand }
 
 class _IslandBlurSettings {
-  const _IslandBlurSettings(this.enabled, this.radius, this.color);
+  const _IslandBlurSettings(
+    this.enabled,
+    this.radius,
+    this.color,
+    this.glassEnabled,
+    this.refractionEnabled,
+  );
 
   final bool enabled;
   final int radius;
   final String color;
+  final bool glassEnabled;
+  final bool refractionEnabled;
 }
 
 class _SectionLabel extends StatelessWidget {
