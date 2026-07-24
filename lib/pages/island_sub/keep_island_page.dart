@@ -484,7 +484,7 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
                     ),
                     const SizedBox(height: 8),
                     _PlaceholderCategory(
-                      title: l10n.aiLastLogTimeLabel,
+                      title: l10n.keepIslandTimeCategory,
                       icon: Icons.schedule,
                       placeholders: _timePlaceholders,
                       onCopy: _copyPlaceholder,

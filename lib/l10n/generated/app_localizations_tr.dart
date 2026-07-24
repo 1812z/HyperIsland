@@ -1202,73 +1202,6 @@ class AppLocalizationsTr extends AppLocalizations {
   String get aiTestUrlEmpty => 'Lütfen önce API adresini girin';
 
   @override
-  String get aiLastLogTitle => 'Son AI İstek Günlüğü';
-
-  @override
-  String get aiLastLogSubtitle =>
-      'Bağlantı testi veya bildirimler tarafından tetiklenen AI istekleri burada gösterilir';
-
-  @override
-  String get aiLastLogEmpty => 'Henüz gösterilecek AI istek günlüğü yok';
-
-  @override
-  String get aiLastLogSourceLabel => 'Kaynak';
-
-  @override
-  String get aiLastLogTimeLabel => 'Zaman';
-
-  @override
-  String get aiLastLogStatusLabel => 'Durum';
-
-  @override
-  String get aiLastLogDurationLabel => 'Süre';
-
-  @override
-  String get aiLastLogSourceNotification => 'Bildirim Tetiklemesi';
-
-  @override
-  String get aiLastLogSourceSettingsTest => 'Ayar Testi';
-
-  @override
-  String get aiLastLogRendered => 'İşlenmiş';
-
-  @override
-  String get aiLastLogRaw => 'Ham';
-
-  @override
-  String get aiLastLogCopy => 'Günlüğü Kopyala';
-
-  @override
-  String get aiLastLogCopied => 'AI istek günlüğü kopyalandı';
-
-  @override
-  String get aiLastLogRequest => 'İstek';
-
-  @override
-  String get aiLastLogResponse => 'Yanıt';
-
-  @override
-  String get aiLastLogUsage => 'Token Kullanımı';
-
-  @override
-  String get aiLastLogMessages => 'Mesajlar';
-
-  @override
-  String get aiLastLogError => 'Hata';
-
-  @override
-  String get aiLastLogHttpCode => 'HTTP Durum Kodu';
-
-  @override
-  String get aiLastLogLeftText => 'Sol Metin';
-
-  @override
-  String get aiLastLogRightText => 'Sağ Metin';
-
-  @override
-  String get aiLastLogAssistantContent => 'Model Yanıt İçeriği';
-
-  @override
   String get aiConfigSaveButton => 'Kaydet';
 
   @override
@@ -1689,6 +1622,9 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get keepIslandPlaceholdersTitle => 'Kullanılabilir yer tutucular';
+
+  @override
+  String get keepIslandTimeCategory => 'Zaman';
 
   @override
   String get keepIslandWeatherCategory => 'Hava durumu';

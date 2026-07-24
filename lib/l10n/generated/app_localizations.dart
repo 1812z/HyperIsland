@@ -2234,138 +2234,6 @@ abstract class AppLocalizations {
   /// **'请先填写 API 地址'**
   String get aiTestUrlEmpty;
 
-  /// No description provided for @aiLastLogTitle.
-  ///
-  /// In zh, this message translates to:
-  /// **'最近一次 AI 请求日志'**
-  String get aiLastLogTitle;
-
-  /// No description provided for @aiLastLogSubtitle.
-  ///
-  /// In zh, this message translates to:
-  /// **'测试连接和通知触发的 AI 请求都会显示在这里'**
-  String get aiLastLogSubtitle;
-
-  /// No description provided for @aiLastLogEmpty.
-  ///
-  /// In zh, this message translates to:
-  /// **'还没有可显示的 AI 请求日志'**
-  String get aiLastLogEmpty;
-
-  /// No description provided for @aiLastLogSourceLabel.
-  ///
-  /// In zh, this message translates to:
-  /// **'来源'**
-  String get aiLastLogSourceLabel;
-
-  /// No description provided for @aiLastLogTimeLabel.
-  ///
-  /// In zh, this message translates to:
-  /// **'时间'**
-  String get aiLastLogTimeLabel;
-
-  /// No description provided for @aiLastLogStatusLabel.
-  ///
-  /// In zh, this message translates to:
-  /// **'状态'**
-  String get aiLastLogStatusLabel;
-
-  /// No description provided for @aiLastLogDurationLabel.
-  ///
-  /// In zh, this message translates to:
-  /// **'耗时'**
-  String get aiLastLogDurationLabel;
-
-  /// No description provided for @aiLastLogSourceNotification.
-  ///
-  /// In zh, this message translates to:
-  /// **'通知触发'**
-  String get aiLastLogSourceNotification;
-
-  /// No description provided for @aiLastLogSourceSettingsTest.
-  ///
-  /// In zh, this message translates to:
-  /// **'设置页测试'**
-  String get aiLastLogSourceSettingsTest;
-
-  /// No description provided for @aiLastLogRendered.
-  ///
-  /// In zh, this message translates to:
-  /// **'渲染'**
-  String get aiLastLogRendered;
-
-  /// No description provided for @aiLastLogRaw.
-  ///
-  /// In zh, this message translates to:
-  /// **'原始'**
-  String get aiLastLogRaw;
-
-  /// No description provided for @aiLastLogCopy.
-  ///
-  /// In zh, this message translates to:
-  /// **'复制日志'**
-  String get aiLastLogCopy;
-
-  /// No description provided for @aiLastLogCopied.
-  ///
-  /// In zh, this message translates to:
-  /// **'AI 请求日志已复制'**
-  String get aiLastLogCopied;
-
-  /// No description provided for @aiLastLogRequest.
-  ///
-  /// In zh, this message translates to:
-  /// **'请求'**
-  String get aiLastLogRequest;
-
-  /// No description provided for @aiLastLogResponse.
-  ///
-  /// In zh, this message translates to:
-  /// **'回复'**
-  String get aiLastLogResponse;
-
-  /// No description provided for @aiLastLogUsage.
-  ///
-  /// In zh, this message translates to:
-  /// **'Token 用量'**
-  String get aiLastLogUsage;
-
-  /// No description provided for @aiLastLogMessages.
-  ///
-  /// In zh, this message translates to:
-  /// **'消息'**
-  String get aiLastLogMessages;
-
-  /// No description provided for @aiLastLogError.
-  ///
-  /// In zh, this message translates to:
-  /// **'错误'**
-  String get aiLastLogError;
-
-  /// No description provided for @aiLastLogHttpCode.
-  ///
-  /// In zh, this message translates to:
-  /// **'HTTP 状态'**
-  String get aiLastLogHttpCode;
-
-  /// No description provided for @aiLastLogLeftText.
-  ///
-  /// In zh, this message translates to:
-  /// **'左侧文本'**
-  String get aiLastLogLeftText;
-
-  /// No description provided for @aiLastLogRightText.
-  ///
-  /// In zh, this message translates to:
-  /// **'右侧文本'**
-  String get aiLastLogRightText;
-
-  /// No description provided for @aiLastLogAssistantContent.
-  ///
-  /// In zh, this message translates to:
-  /// **'模型回复内容'**
-  String get aiLastLogAssistantContent;
-
   /// No description provided for @aiConfigSaveButton.
   ///
   /// In zh, this message translates to:
@@ -3145,6 +3013,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'可用占位符'**
   String get keepIslandPlaceholdersTitle;
+
+  /// No description provided for @keepIslandTimeCategory.
+  ///
+  /// In zh, this message translates to:
+  /// **'时间'**
+  String get keepIslandTimeCategory;
 
   /// No description provided for @keepIslandWeatherCategory.
   ///

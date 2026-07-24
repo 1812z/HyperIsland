@@ -1211,73 +1211,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get aiTestUrlEmpty => 'Сначала введите URL API';
 
   @override
-  String get aiLastLogTitle => 'Журнал последних запросов ИИ';
-
-  @override
-  String get aiLastLogSubtitle =>
-      'Здесь отображаются запросы ИИ, вызванные тестами соединения или уведомлениями';
-
-  @override
-  String get aiLastLogEmpty => 'Журналы запросов ИИ пока отсутствуют';
-
-  @override
-  String get aiLastLogSourceLabel => 'Источник';
-
-  @override
-  String get aiLastLogTimeLabel => 'Время';
-
-  @override
-  String get aiLastLogStatusLabel => 'Статус';
-
-  @override
-  String get aiLastLogDurationLabel => 'Длительность';
-
-  @override
-  String get aiLastLogSourceNotification => 'Триггер уведомления';
-
-  @override
-  String get aiLastLogSourceSettingsTest => 'Тест настроек';
-
-  @override
-  String get aiLastLogRendered => 'Отрисовано';
-
-  @override
-  String get aiLastLogRaw => 'Исходные данные';
-
-  @override
-  String get aiLastLogCopy => 'Копировать журнал';
-
-  @override
-  String get aiLastLogCopied => 'Журнал запросов ИИ скопирован';
-
-  @override
-  String get aiLastLogRequest => 'Запрос';
-
-  @override
-  String get aiLastLogResponse => 'Ответ';
-
-  @override
-  String get aiLastLogUsage => 'Использование токенов';
-
-  @override
-  String get aiLastLogMessages => 'Сообщения';
-
-  @override
-  String get aiLastLogError => 'Ошибка';
-
-  @override
-  String get aiLastLogHttpCode => 'Статус HTTP';
-
-  @override
-  String get aiLastLogLeftText => 'Левый текст';
-
-  @override
-  String get aiLastLogRightText => 'Правый текст';
-
-  @override
-  String get aiLastLogAssistantContent => 'Содержимое ответа модели';
-
-  @override
   String get aiConfigSaveButton => 'Сохранить';
 
   @override
@@ -1706,6 +1639,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get keepIslandPlaceholdersTitle => 'Доступные плейсхолдеры';
+
+  @override
+  String get keepIslandTimeCategory => 'Время';
 
   @override
   String get keepIslandWeatherCategory => 'Погода';

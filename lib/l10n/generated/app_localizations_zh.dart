@@ -1136,72 +1136,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiTestUrlEmpty => '请先填写 API 地址';
 
   @override
-  String get aiLastLogTitle => '最近一次 AI 请求日志';
-
-  @override
-  String get aiLastLogSubtitle => '测试连接和通知触发的 AI 请求都会显示在这里';
-
-  @override
-  String get aiLastLogEmpty => '还没有可显示的 AI 请求日志';
-
-  @override
-  String get aiLastLogSourceLabel => '来源';
-
-  @override
-  String get aiLastLogTimeLabel => '时间';
-
-  @override
-  String get aiLastLogStatusLabel => '状态';
-
-  @override
-  String get aiLastLogDurationLabel => '耗时';
-
-  @override
-  String get aiLastLogSourceNotification => '通知触发';
-
-  @override
-  String get aiLastLogSourceSettingsTest => '设置页测试';
-
-  @override
-  String get aiLastLogRendered => '渲染';
-
-  @override
-  String get aiLastLogRaw => '原始';
-
-  @override
-  String get aiLastLogCopy => '复制日志';
-
-  @override
-  String get aiLastLogCopied => 'AI 请求日志已复制';
-
-  @override
-  String get aiLastLogRequest => '请求';
-
-  @override
-  String get aiLastLogResponse => '回复';
-
-  @override
-  String get aiLastLogUsage => 'Token 用量';
-
-  @override
-  String get aiLastLogMessages => '消息';
-
-  @override
-  String get aiLastLogError => '错误';
-
-  @override
-  String get aiLastLogHttpCode => 'HTTP 状态';
-
-  @override
-  String get aiLastLogLeftText => '左侧文本';
-
-  @override
-  String get aiLastLogRightText => '右侧文本';
-
-  @override
-  String get aiLastLogAssistantContent => '模型回复内容';
-
-  @override
   String get aiConfigSaveButton => '保存';
 
   @override
@@ -1603,6 +1537,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get keepIslandPlaceholdersTitle => '可用占位符';
+
+  @override
+  String get keepIslandTimeCategory => '时间';
 
   @override
   String get keepIslandWeatherCategory => '天气';

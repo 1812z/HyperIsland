@@ -1197,73 +1197,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiTestUrlEmpty => 'Please enter an API URL first';
 
   @override
-  String get aiLastLogTitle => 'Recent AI Request Log';
-
-  @override
-  String get aiLastLogSubtitle =>
-      'AI requests triggered by connection tests or notifications are displayed here';
-
-  @override
-  String get aiLastLogEmpty => 'No AI request logs to display yet';
-
-  @override
-  String get aiLastLogSourceLabel => 'Source';
-
-  @override
-  String get aiLastLogTimeLabel => 'Time';
-
-  @override
-  String get aiLastLogStatusLabel => 'Status';
-
-  @override
-  String get aiLastLogDurationLabel => 'Duration';
-
-  @override
-  String get aiLastLogSourceNotification => 'Notification Trigger';
-
-  @override
-  String get aiLastLogSourceSettingsTest => 'Settings Test';
-
-  @override
-  String get aiLastLogRendered => 'Rendered';
-
-  @override
-  String get aiLastLogRaw => 'Raw';
-
-  @override
-  String get aiLastLogCopy => 'Copy Log';
-
-  @override
-  String get aiLastLogCopied => 'AI request log copied';
-
-  @override
-  String get aiLastLogRequest => 'Request';
-
-  @override
-  String get aiLastLogResponse => 'Response';
-
-  @override
-  String get aiLastLogUsage => 'Token Usage';
-
-  @override
-  String get aiLastLogMessages => 'Messages';
-
-  @override
-  String get aiLastLogError => 'Error';
-
-  @override
-  String get aiLastLogHttpCode => 'HTTP Status';
-
-  @override
-  String get aiLastLogLeftText => 'Left Text';
-
-  @override
-  String get aiLastLogRightText => 'Right Text';
-
-  @override
-  String get aiLastLogAssistantContent => 'Model Response Content';
-
-  @override
   String get aiConfigSaveButton => 'Save';
 
   @override
@@ -1693,6 +1626,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get keepIslandPlaceholdersTitle => 'Available placeholders';
+
+  @override
+  String get keepIslandTimeCategory => 'Time';
 
   @override
   String get keepIslandWeatherCategory => 'Weather';

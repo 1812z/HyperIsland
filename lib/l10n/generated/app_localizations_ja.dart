@@ -1151,72 +1151,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get aiTestUrlEmpty => '始めに API URL を入力してください';
 
   @override
-  String get aiLastLogTitle => '最近の AI リクエストログ';
-
-  @override
-  String get aiLastLogSubtitle => 'テスト接続や通知によってトリガーされた AI リクエストがここに表示されます';
-
-  @override
-  String get aiLastLogEmpty => '表示できる AI リクエストログがまだありません';
-
-  @override
-  String get aiLastLogSourceLabel => 'ソース';
-
-  @override
-  String get aiLastLogTimeLabel => '時間';
-
-  @override
-  String get aiLastLogStatusLabel => 'ステータス';
-
-  @override
-  String get aiLastLogDurationLabel => '実行時間';
-
-  @override
-  String get aiLastLogSourceNotification => '通知トリガー';
-
-  @override
-  String get aiLastLogSourceSettingsTest => '設定テスト';
-
-  @override
-  String get aiLastLogRendered => 'レンダリング済み';
-
-  @override
-  String get aiLastLogRaw => 'オリジナル';
-
-  @override
-  String get aiLastLogCopy => 'ログをコピー';
-
-  @override
-  String get aiLastLogCopied => 'AI リクエストログをコピーしました';
-
-  @override
-  String get aiLastLogRequest => 'リクエスト';
-
-  @override
-  String get aiLastLogResponse => 'レスポンス';
-
-  @override
-  String get aiLastLogUsage => 'トークン使用量';
-
-  @override
-  String get aiLastLogMessages => 'メッセージ';
-
-  @override
-  String get aiLastLogError => 'エラー';
-
-  @override
-  String get aiLastLogHttpCode => 'HTTP ステータス';
-
-  @override
-  String get aiLastLogLeftText => '左側のテキスト';
-
-  @override
-  String get aiLastLogRightText => '右側のテキスト';
-
-  @override
-  String get aiLastLogAssistantContent => 'モデルのレスポンスコンテンツ';
-
-  @override
   String get aiConfigSaveButton => '保存';
 
   @override
@@ -1626,6 +1560,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get keepIslandPlaceholdersTitle => '利用可能なプレースホルダー';
+
+  @override
+  String get keepIslandTimeCategory => '時間';
 
   @override
   String get keepIslandWeatherCategory => '天気';

@@ -72,7 +72,6 @@ const kPrefAiTimeout = 'pref_ai_timeout';
 const kPrefAiTemperature = 'pref_ai_temperature';
 const kPrefAiMaxTokens = 'pref_ai_max_tokens';
 const kPrefAiTriggerCharCount = 'pref_ai_trigger_char_count';
-const kPrefAiLastLogJson = 'pref_ai_last_log_json';
 const kPrefConfigAppVersion = 'pref_config_app_version';
 const kPrefIslandBgSmallPath = 'pref_island_bg_small_path';
 const kPrefIslandBgBigPath = 'pref_island_bg_big_path';
@@ -158,58 +157,6 @@ const kChargeIslandDurationDefault = 'default';
 const kChargeIslandDurationCustom = 'custom';
 const kChargeIslandDurationPersistent = 'persistent';
 
-class AiLogEntry {
-  const AiLogEntry({
-    required this.timestamp,
-    required this.source,
-    required this.url,
-    required this.model,
-    required this.requestBody,
-    required this.responseBody,
-    required this.error,
-    required this.statusCode,
-    required this.durationMs,
-  });
-
-  final DateTime timestamp;
-  final String source;
-  final String url;
-  final String model;
-  final String requestBody;
-  final String responseBody;
-  final String error;
-  final int? statusCode;
-  final int? durationMs;
-
-  Map<String, dynamic> toJson() => {
-    'timestamp': timestamp.toIso8601String(),
-    'source': source,
-    'url': url,
-    'model': model,
-    'requestBody': requestBody,
-    'responseBody': responseBody,
-    'error': error,
-    'statusCode': statusCode,
-    'durationMs': durationMs,
-  };
-
-  factory AiLogEntry.fromJson(Map<String, dynamic> json) {
-    return AiLogEntry(
-      timestamp:
-          DateTime.tryParse(json['timestamp'] as String? ?? '')?.toLocal() ??
-          DateTime.fromMillisecondsSinceEpoch(0),
-      source: json['source'] as String? ?? '',
-      url: json['url'] as String? ?? '',
-      model: json['model'] as String? ?? '',
-      requestBody: json['requestBody'] as String? ?? '',
-      responseBody: json['responseBody'] as String? ?? '',
-      error: json['error'] as String? ?? '',
-      statusCode: (json['statusCode'] as num?)?.toInt(),
-      durationMs: (json['durationMs'] as num?)?.toInt(),
-    );
-  }
-}
-
 class SettingsController extends ChangeNotifier {
   static final SettingsController instance = SettingsController._();
   SharedPreferences? _prefs;
@@ -275,7 +222,6 @@ class SettingsController extends ChangeNotifier {
   double aiTemperature = 0.1;
   int aiMaxTokens = 50;
   int aiTriggerCharCount = 10;
-  AiLogEntry? aiLastLog;
   String configAppVersion = '';
   ThemeMode themeMode = ThemeMode.system;
   String islandBgSmallPath = '';
@@ -448,7 +394,6 @@ class SettingsController extends ChangeNotifier {
       0,
       100,
     );
-    aiLastLog = _parseAiLog(prefs.getString(kPrefAiLastLogJson));
     configAppVersion = prefs.getString(kPrefConfigAppVersion) ?? '';
     themeMode = switch (prefs.getString(kPrefThemeMode)) {
       'light' => ThemeMode.light,
@@ -1204,25 +1149,6 @@ class SettingsController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> saveAiLastLog(AiLogEntry? entry) async {
-    final prefs = await SharedPreferences.getInstance();
-    if (entry == null) {
-      await prefs.remove(kPrefAiLastLogJson);
-      aiLastLog = null;
-    } else {
-      await prefs.setString(kPrefAiLastLogJson, jsonEncode(entry.toJson()));
-      aiLastLog = entry;
-    }
-    notifyListeners();
-  }
-
-  Future<void> refreshAiLastLog() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
-    aiLastLog = _parseAiLog(prefs.getString(kPrefAiLastLogJson));
-    notifyListeners();
-  }
-
   Future<void> setThemeMode(ThemeMode mode) async {
     if (themeMode == mode) return;
     final prefs = await _getPrefs();
@@ -1811,16 +1737,5 @@ class SettingsController extends ChangeNotifier {
       kIslandTextColorInvertStatusBar => kIslandTextColorInvertStatusBar,
       _ => kIslandTextColorDefault,
     };
-  }
-
-  AiLogEntry? _parseAiLog(String? raw) {
-    if (raw == null || raw.isEmpty) return null;
-    try {
-      return AiLogEntry.fromJson(
-        Map<String, dynamic>.from(jsonDecode(raw) as Map),
-      );
-    } catch (_) {
-      return null;
-    }
   }
 }

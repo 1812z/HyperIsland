@@ -272,9 +272,6 @@ class _AiConfigPageState extends State<AiConfigPage> {
     final url = _urlCtrl.text.trim();
     final key = _keyCtrl.text.trim();
     final model = _modelCtrl.text.trim();
-    final effectiveModel = _effectiveModel(model);
-    final requestTime = DateTime.now();
-    String requestBody = '';
 
     if (url.isEmpty) {
       setState(
@@ -294,27 +291,13 @@ class _AiConfigPageState extends State<AiConfigPage> {
       final sampleUserContent = AppLocalizations.of(
         context,
       )!.aiTestSampleUserContent;
-      requestBody = jsonEncode(
+      final requestBody = jsonEncode(
         _buildRequestPayload(
           model: model,
           promptText: '',
           userContent: sampleUserContent,
         ),
       );
-      await _ctrl.saveAiLastLog(
-        AiLogEntry(
-          timestamp: requestTime,
-          source: 'settings_test',
-          url: url,
-          model: effectiveModel,
-          requestBody: requestBody,
-          responseBody: '',
-          error: '',
-          statusCode: null,
-          durationMs: null,
-        ),
-      );
-
       final response = await http
           .post(
             Uri.parse(url),
@@ -333,34 +316,8 @@ class _AiConfigPageState extends State<AiConfigPage> {
             (json['choices'] as List?)?.firstOrNull?['message']?['content']
                 as String? ??
             '';
-        await _ctrl.saveAiLastLog(
-          AiLogEntry(
-            timestamp: requestTime,
-            source: 'settings_test',
-            url: url,
-            model: effectiveModel,
-            requestBody: requestBody,
-            responseBody: response.body,
-            error: '',
-            statusCode: response.statusCode,
-            durationMs: DateTime.now().difference(requestTime).inMilliseconds,
-          ),
-        );
         setState(() => _testResult = _TestResult.ok(content.trim()));
       } else {
-        await _ctrl.saveAiLastLog(
-          AiLogEntry(
-            timestamp: requestTime,
-            source: 'settings_test',
-            url: url,
-            model: effectiveModel,
-            requestBody: requestBody,
-            responseBody: response.body,
-            error: 'HTTP ${response.statusCode}',
-            statusCode: response.statusCode,
-            durationMs: DateTime.now().difference(requestTime).inMilliseconds,
-          ),
-        );
         setState(
           () => _testResult = _TestResult.fail(
             'HTTP ${response.statusCode}\n${response.body}',
@@ -368,19 +325,6 @@ class _AiConfigPageState extends State<AiConfigPage> {
         );
       }
     } on Exception catch (e) {
-      await _ctrl.saveAiLastLog(
-        AiLogEntry(
-          timestamp: requestTime,
-          source: 'settings_test',
-          url: url,
-          model: effectiveModel,
-          requestBody: requestBody,
-          responseBody: '',
-          error: e.toString(),
-          statusCode: null,
-          durationMs: DateTime.now().difference(requestTime).inMilliseconds,
-        ),
-      );
       setState(() => _testResult = _TestResult.fail(e.toString()));
     } finally {
       if (mounted) setState(() => _testing = false);
@@ -1198,11 +1142,7 @@ class _ModelPickerDialogState extends State<_ModelPickerDialog> {
     return AlertDialog(
       title: Row(
         children: [
-          FaIcon(
-            FontAwesomeIcons.magnifyingGlass,
-            size: 18,
-            color: cs.primary,
-          ),
+          FaIcon(FontAwesomeIcons.magnifyingGlass, size: 18, color: cs.primary),
           const SizedBox(width: 8),
           Expanded(child: Text(l10n.aiModelPickerTitle)),
         ],
@@ -1266,9 +1206,9 @@ class _ModelPickerDialogState extends State<_ModelPickerDialog> {
                 padding: const EdgeInsets.symmetric(vertical: 24),
                 child: Text(
                   l10n.aiModelPickerEmpty,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: cs.onSurfaceVariant,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
                   textAlign: TextAlign.center,
                 ),
               )
