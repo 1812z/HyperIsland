@@ -204,4 +204,10 @@ export const donors: DonorItem[] = [
     date: '2026-07-23',
     message: '开发更多功能'
   },
+  {
+    name: "匿名",
+    amount: '10',
+    date: '2026-07-24',
+    message: '火车站很满意，又来支持了'
+  },
 ]
