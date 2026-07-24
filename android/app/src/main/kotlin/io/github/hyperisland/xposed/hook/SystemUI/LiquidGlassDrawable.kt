@@ -980,7 +980,6 @@ private class RefractiveScreenCapture(
             }
 
             private val EXCLUDED_LAYER_NAMES = arrayOf(
-                "NotificationShade#",
                 "StatusBar#",
                 "StatusBar1#",
                 "NavigationBar0#",
