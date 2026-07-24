@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../controllers/settings_controller.dart';
 import '../../controllers/whitelist_controller.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -16,22 +17,64 @@ class DefaultConfigPage extends StatefulWidget {
 
 class _DefaultConfigPageState extends State<DefaultConfigPage> {
   final _ctrl = SettingsController.instance;
+  late final TextEditingController _defaultTimeoutController;
 
   @override
   void initState() {
     super.initState();
+    _defaultTimeoutController = TextEditingController(
+      text: _ctrl.defaultTimeout.toString(),
+    );
     _ctrl.addListener(_onChanged);
   }
 
   @override
   void dispose() {
+    _defaultTimeoutController.dispose();
     _ctrl.removeListener(_onChanged);
     super.dispose();
   }
 
   void _onChanged() {
     if (!mounted) return;
+    final current = _ctrl.defaultTimeout.toString();
+    if (_defaultTimeoutController.text != current) {
+      _defaultTimeoutController.text = current;
+    }
     setState(() {});
+  }
+
+  Future<void> _persistDefaultTimeout(String raw) async {
+    final n = int.tryParse(raw.trim());
+    final next = (n == null || n < 1 || n > 60)
+        ? _ctrl.defaultTimeout
+        : n;
+    if (next == _ctrl.defaultTimeout) {
+      if (_defaultTimeoutController.text != next.toString()) {
+        _defaultTimeoutController.text = next.toString();
+      }
+      return;
+    }
+    setState(() => _defaultTimeoutController.text = next.toString());
+    await _ctrl.setDefaultTimeout(next);
+  }
+
+  InputDecoration _numberFieldDecoration(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: cs.outlineVariant),
+    );
+    return InputDecoration(
+      suffixText: AppLocalizations.of(context)!.seconds,
+      isDense: true,
+      filled: true,
+      fillColor: cs.surfaceContainerHigh,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      border: border,
+      enabledBorder: border,
+      focusedBorder: border.copyWith(borderSide: BorderSide(color: cs.primary)),
+    );
   }
 
   String _outerGlowModeLabel(AppLocalizations l10n, String value) {
@@ -423,6 +466,35 @@ class _DefaultConfigPageState extends State<DefaultConfigPage> {
                                 ),
                               ),
                             ),
+                          ),
+                        ),
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        title: Text(l10n.autoDisappear, style: titleStyle),
+                        subtitle: Text(l10n.defaultTimeoutSubtitle),
+                        trailing: SizedBox(
+                          width: dropdownWidth,
+                          child: TextFormField(
+                            controller: _defaultTimeoutController,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            textAlign: TextAlign.center,
+                            textInputAction: TextInputAction.done,
+                            onTapOutside: (_) {
+                              FocusManager.instance.primaryFocus?.unfocus();
+                              _persistDefaultTimeout(
+                                _defaultTimeoutController.text,
+                              );
+                            },
+                            onFieldSubmitted: _persistDefaultTimeout,
+                            decoration: _numberFieldDecoration(context),
                           ),
                         ),
                       ),

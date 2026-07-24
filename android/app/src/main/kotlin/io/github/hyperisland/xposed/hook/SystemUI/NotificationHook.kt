@@ -356,7 +356,7 @@ object GenericProgressHook : BaseHook() {
             val effectiveFirstFloat = sceneDecision.applyToTriOpt(firstFloat)
             val effectiveEnableFloat = sceneDecision.applyToTriOpt(enableFloatMode)
             val islandTimeoutStr = loadChannelStringSetting(
-                "timeout:$pkg/$channelId", "pref_channel_timeout_${pkg}_$channelId", "5"
+                "timeout:$pkg/$channelId", "pref_channel_timeout_${pkg}_$channelId", "default"
             )
             val isOngoing = (notif.flags and Notification.FLAG_ONGOING_EVENT) != 0
             val marqueeEnabled = resolveTriOpt(
@@ -382,8 +382,10 @@ object GenericProgressHook : BaseHook() {
                 marqueeAutoHide in setOf("1_override", "2_override")
             val islandTimeout = if (overrideMarqueeTimeout) {
                 Int.MAX_VALUE
+            } else if (islandTimeoutStr == "default") {
+                ConfigManager.getInt("pref_default_timeout", 5).coerceIn(1, 60)
             } else {
-                islandTimeoutStr.toIntOrNull() ?: 5
+                islandTimeoutStr.toIntOrNull()?.coerceAtLeast(1) ?: 5
             }
             val renderer = loadChannelStringSetting(
                 "renderer:$pkg/$channelId", "pref_channel_renderer_${pkg}_$channelId", "image_text_with_buttons_4"

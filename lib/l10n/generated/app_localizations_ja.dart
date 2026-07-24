@@ -799,6 +799,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get seconds => '秒';
 
   @override
+  String get defaultTimeoutSubtitle => '通知アイランドのデフォルト自動消去時間';
+
+  @override
+  String get timeoutUseDefault => 'デフォルトの時間を使用';
+
+  @override
+  String get timeoutUseDefaultSubtitle => 'デフォルト設定の時間を使用';
+
+  @override
   String get highlightColorLabel => 'ハイライト色';
 
   @override
@@ -1139,6 +1148,11 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get aiTriggerCharCountAlways => '通知の文字数に関係なく常に AI を起動します';
+
+  @override
+  String defaultTimeoutHint(int seconds) {
+    return 'デフォルト（$seconds秒）';
+  }
 
   @override
   String get aiDefaultPromptFull =>

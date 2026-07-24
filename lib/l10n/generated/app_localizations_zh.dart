@@ -789,6 +789,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get seconds => '秒';
 
   @override
+  String get defaultTimeoutSubtitle => '通知岛默认自动消失时长';
+
+  @override
+  String get timeoutUseDefault => '使用默认时长';
+
+  @override
+  String get timeoutUseDefaultSubtitle => '跟随默认配置中的时长';
+
+  @override
   String get highlightColorLabel => '高亮颜色';
 
   @override
@@ -1124,6 +1133,11 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aiTriggerCharCountAlways => '无论通知字数多少都触发 AI';
+
+  @override
+  String defaultTimeoutHint(int seconds) {
+    return '默认（$seconds秒）';
+  }
 
   @override
   String get aiDefaultPromptFull =>

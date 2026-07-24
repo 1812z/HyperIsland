@@ -57,6 +57,7 @@ const kPrefDefaultForceIslandOuterGlow = 'pref_default_force_island_outer_glow';
 const kPrefDefaultOutEffectColor = 'pref_default_out_effect_color';
 const kPrefDefaultIslandOuterGlowColor = 'pref_default_island_outer_glow_color';
 const kPrefDefaultRestoreLockscreen = 'pref_default_restore_lockscreen';
+const kPrefDefaultTimeout = 'pref_default_timeout';
 const kPrefDefaultPreserveSmallIcon = 'pref_default_preserve_small_icon';
 const kPrefFullscreenBehavior = 'pref_fullscreen_behavior';
 const kPrefLandscapeBehavior = 'pref_landscape_behavior';
@@ -208,6 +209,7 @@ class SettingsController extends ChangeNotifier {
   bool defaultRestoreLockscreen = false;
   bool defaultPreserveSmallIcon = false;
   String defaultOutEffectColor = '';
+  int defaultTimeout = 5;
   String defaultIslandOuterGlowColor = '';
   String fullscreenBehavior = 'off';
   String landscapeBehavior = 'off';
@@ -372,6 +374,7 @@ class SettingsController extends ChangeNotifier {
     defaultPreserveSmallIcon =
         prefs.getBool(kPrefDefaultPreserveSmallIcon) ?? false;
     defaultOutEffectColor = prefs.getString(kPrefDefaultOutEffectColor) ?? '';
+    defaultTimeout = (prefs.getInt(kPrefDefaultTimeout) ?? 5).clamp(1, 60);
     defaultIslandOuterGlowColor =
         prefs.getString(kPrefDefaultIslandOuterGlowColor) ?? '';
     fullscreenBehavior = _normalizeSceneBehavior(
@@ -955,6 +958,15 @@ class SettingsController extends ChangeNotifier {
     final prefs = await _getPrefs();
     await prefs.setBool(kPrefDefaultPreserveSmallIcon, value);
     defaultPreserveSmallIcon = value;
+    notifyListeners();
+  }
+
+  Future<void> setDefaultTimeout(int value) async {
+    final clamped = value.clamp(1, 60);
+    if (defaultTimeout == clamped) return;
+    final prefs = await _getPrefs();
+    await prefs.setInt(kPrefDefaultTimeout, clamped);
+    defaultTimeout = clamped;
     notifyListeners();
   }
 

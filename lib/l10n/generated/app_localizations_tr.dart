@@ -834,6 +834,17 @@ class AppLocalizationsTr extends AppLocalizations {
   String get seconds => 'sn';
 
   @override
+  String get defaultTimeoutSubtitle =>
+      'Bildirim adası varsayılan otomatik kapanma süresi';
+
+  @override
+  String get timeoutUseDefault => 'Varsayılan süreyi kullan';
+
+  @override
+  String get timeoutUseDefaultSubtitle =>
+      'Varsayılan Yapılandırma\'daki süreyi kullan';
+
+  @override
   String get highlightColorLabel => 'Vurgu Rengi';
 
   @override
@@ -1190,6 +1201,11 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get aiTriggerCharCountAlways =>
       'Bildirim uzunluğundan bağımsız olarak AI\'ı her zaman tetikle';
+
+  @override
+  String defaultTimeoutHint(int seconds) {
+    return 'Varsayılan (${seconds}sn)';
+  }
 
   @override
   String get aiDefaultPromptFull =>

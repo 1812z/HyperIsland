@@ -278,6 +278,9 @@
   "updateFloatLabel": "Обновление всплытия",
   "autoDisappear": "Автоматическое скрытие",
   "seconds": "с",
+  "defaultTimeoutSubtitle": "Время автоскрытия острова по умолчанию",
+  "timeoutUseDefault": "Использовать время по умолчанию",
+  "timeoutUseDefaultSubtitle": "Использовать время из Дефолтных настроек",
   "highlightColorLabel": "Цвет подсветки",
   "dynamicHighlightColorLabel": "Динамический цвет подсветки",
   "dynamicHighlightColorLabelSubtitle": "По умолчанию использовать динамический цвет на основе иконки",
@@ -394,6 +397,14 @@
   "aiTimeoutTitle": "Тайм-аут ответа ИИ",
   "aiTimeoutLabel": "Тайм-аут ответа ИИ",
   "@aiTimeoutLabel": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "defaultTimeoutHint": "По умолчанию ({seconds}с)",
+  "@defaultTimeoutHint": {
     "placeholders": {
       "seconds": {
         "type": "int"

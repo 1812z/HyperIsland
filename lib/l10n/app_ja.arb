@@ -237,6 +237,9 @@
   "updateFloatLabel": "更新時にフロート表示",
   "autoDisappear": "自動で無視",
   "seconds": "秒",
+  "defaultTimeoutSubtitle": "通知アイランドのデフォルト自動消去時間",
+  "timeoutUseDefault": "デフォルトの時間を使用",
+  "timeoutUseDefaultSubtitle": "デフォルト設定の時間を使用",
   "highlightColorLabel": "ハイライト色",
   "dynamicHighlightColorLabel": "ハイライトの動的色取得",
   "dynamicHighlightColorLabelSubtitle": "有効時はデフォルトでアイコンから動的に色を取得します",
@@ -372,6 +375,14 @@
   "aiTimeoutTitle": "AI レスポンスのタイムアウト",
   "aiTimeoutLabel": "AI レスポンスのタイムアウト",
   "@aiTimeoutLabel": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "defaultTimeoutHint": "デフォルト（{seconds}秒）",
+  "@defaultTimeoutHint": {
     "placeholders": {
       "seconds": {
         "type": "int"

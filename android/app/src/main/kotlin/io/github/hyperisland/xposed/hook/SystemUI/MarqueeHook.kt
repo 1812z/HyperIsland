@@ -541,13 +541,28 @@ object MarqueeHook : BaseHook() {
                                 ?: 0
                             val overrideTimeout = effectiveAutoHide.endsWith("_override")
                             val originalTimeoutSecs = if (isToastSource) {
-                                ConfigManager.getString("pref_toast_timeout_$pkgName", "5")
-                            } else {
-                                ConfigManager.getString(
-                                    "pref_channel_timeout_${pkgName}_${channelId}",
-                                    "5",
+                                val rawTimeout = ConfigManager.getString(
+                                    "pref_toast_timeout_$pkgName",
+                                    "default",
                                 )
-                            }.toIntOrNull()?.coerceAtLeast(1) ?: 5
+                                if (rawTimeout == "default") {
+                                    ConfigManager.getInt("pref_default_timeout", 5)
+                                        .coerceIn(1, 60)
+                                } else {
+                                    rawTimeout.toIntOrNull()?.coerceAtLeast(1) ?: 5
+                                }
+                            } else {
+                                val rawChannelTimeout = ConfigManager.getString(
+                                    "pref_channel_timeout_${pkgName}_${channelId}",
+                                    "default",
+                                )
+                                if (rawChannelTimeout == "default") {
+                                    ConfigManager.getInt("pref_default_timeout", 5)
+                                        .coerceIn(1, 60)
+                                } else {
+                                    rawChannelTimeout.toIntOrNull()?.coerceAtLeast(1) ?: 5
+                                }
+                            }
                             
                             if (!enabled || isOngoing) {
                                 traverseAndApplyMarquee(islandView, false)
