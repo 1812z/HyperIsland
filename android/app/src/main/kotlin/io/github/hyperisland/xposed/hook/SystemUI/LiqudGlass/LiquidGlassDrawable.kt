@@ -26,6 +26,7 @@ import android.os.HandlerThread
 import android.os.Looper
 import android.os.SystemClock
 import android.view.View
+import io.github.hyperisland.xposed.logError
 import io.github.hyperisland.xposed.logWarn
 import java.lang.ref.WeakReference
 import java.lang.reflect.Method
@@ -266,7 +267,7 @@ internal class LiquidGlassDrawable(
                 }
             }
         }.onFailure { error ->
-            logWarn("HyperIsland[TrueRefraction] system blur failed: ${error.message}")
+            logError("HyperIsland[TrueRefraction] system blur failed: ${error.message}")
         }.getOrNull() ?: return bitmap
         if (blurred !== bitmap && !bitmap.isRecycled) bitmap.recycle()
         return blurred
@@ -299,10 +300,6 @@ internal class LiquidGlassDrawable(
         updateCaptureState()
         if (!loggedFirstDraw) {
             loggedFirstDraw = true
-            logWarn(
-                "HyperIsland[LiquidGlassTilt] first draw shader=${edgeHighlight.isAvailable} " +
-                    "bounds=$bounds hardware=${canvas.isHardwareAccelerated}",
-            )
         }
         if (!updateGlassRect(bounds)) {
             edgeHighlight.hide()
@@ -319,7 +316,7 @@ internal class LiquidGlassDrawable(
         val drewTrueRefraction = hasTrueRefraction && runCatching {
             drawTrueRefraction(canvas, width, height, radius)
         }.onFailure { error ->
-            logWarn("HyperIsland[TrueRefraction] render failed: ${error.message}")
+            logError("HyperIsland[TrueRefraction] render failed: ${error.message}")
         }.getOrDefault(false)
         if (!drewTrueRefraction) {
             // Native backdrop blur is only needed while capture is unavailable or
@@ -632,17 +629,17 @@ private class RefractiveScreenCapture(
                 { viewSnapshot.excludeLayers },
             )
         }
-            .onFailure { logWarn("$TAG unavailable: ${it.message}") }
+            .onFailure { logError("$TAG unavailable: ${it.message}") }
             .getOrNull()
         if (access == null) {
             mainHandler.post { if (token == generation) stop() }
             return
         }
         captureAccess = access
-        logWarn(
-            "$TAG started path=${access.path} fps=$captureFps scale=$captureScale " +
-                "with excluded island layers",
-        )
+//        logWarn(
+//            "$TAG started path=${access.path} fps=$captureFps scale=$captureScale " +
+//                "with excluded island layers",
+//        )
         capture(token)
     }
 
@@ -720,7 +717,7 @@ private class RefractiveScreenCapture(
         val result = runCatching { access.capture() }
         val frame = result.getOrNull()
         if (result.isFailure || frame == null) {
-            logWarn(
+            logError(
                 "$TAG capture failed, falling back to native blur: " +
                     (result.exceptionOrNull()?.message ?: "empty frame"),
             )
@@ -1032,10 +1029,6 @@ private object LiquidGlassTiltController : SensorEventListener {
                 sensorManager = manager
                 activeSensor = sensor
                 receivedFirstEvent = false
-                logWarn(
-                    "$TAG registered type=${sensor.type} name=${sensor.name} " +
-                        "vendor=${sensor.vendor} targets=${targets.size}",
-                )
             } else {
                 logWarn("$TAG registration returned false for type=${sensor.type} name=${sensor.name}")
             }
@@ -1052,7 +1045,7 @@ private object LiquidGlassTiltController : SensorEventListener {
             filteredTiltX = 0f
             filteredTiltY = 0f
             receivedFirstEvent = false
-            logWarn("$TAG unregistered: no active glass targets")
+            //logWarn("$TAG unregistered: no active glass targets")
         }
     }
 
