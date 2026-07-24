@@ -198,4 +198,10 @@ export const donors: DonorItem[] = [
     date: '2026-07-15',
     message: '芥子我祝你星途璀璨'
   },
+  {
+    name: "Dr、wumou",
+    amount: '5',
+    date: '2026-07-23',
+    message: '开发更多功能'
+  },
 ]
