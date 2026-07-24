@@ -62,6 +62,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _ctrl.islandGlassLightDirection,
     _ctrl.islandGlassDispersion,
     _ctrl.islandGlassGyroscope,
+    _ctrl.islandGlassHdrHighlight,
     _ctrl.islandRefractionSmallEnabled,
     _ctrl.islandRefractionBigEnabled,
     _ctrl.islandRefractionExpandEnabled,
@@ -911,6 +912,24 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                         onChanged: _hasAnyGlass
                             ? InteractionHaptics.interceptToggle(
                                 _ctrl.setIslandGlassGyroscope,
+                              )
+                            : null,
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      SwitchListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        title: Text(
+                          l10n.islandGlassHdrHighlight,
+                          style: titleStyle,
+                        ),
+                        subtitle: Text(l10n.islandGlassHdrHighlightSubtitle),
+                        value: _ctrl.islandGlassHdrHighlight,
+                        onChanged: _hasAnyGlass
+                            ? InteractionHaptics.interceptToggle(
+                                _ctrl.setIslandGlassHdrHighlight,
                               )
                             : null,
                       ),

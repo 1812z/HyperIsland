@@ -1472,6 +1472,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get islandGlassGyroscopeSubtitle => '根据设备姿态实时移动边缘光照';
 
   @override
+  String get islandGlassHdrHighlight => 'HDR高光';
+
+  @override
+  String get islandGlassHdrHighlightSubtitle => '以HDR显示高光边缘';
+
+  @override
   String get islandGlassTrueRefraction => '液态玻璃';
 
   @override

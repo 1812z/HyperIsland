@@ -1492,6 +1492,12 @@ class AppLocalizationsJa extends AppLocalizations {
       'Move rim lighting with the device pose';
 
   @override
+  String get islandGlassHdrHighlight => 'HDR高光';
+
+  @override
+  String get islandGlassHdrHighlightSubtitle => '以HDR显示高光边缘';
+
+  @override
   String get islandGlassTrueRefraction => 'リキッドグラス';
 
   @override

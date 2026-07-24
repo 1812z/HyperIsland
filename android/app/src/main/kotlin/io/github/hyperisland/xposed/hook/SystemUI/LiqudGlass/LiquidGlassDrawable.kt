@@ -46,13 +46,14 @@ internal data class LiquidGlassConfig(
     val lightDirection: Int,
     val dispersion: Float,
     val gyroscope: Boolean,
+    val hdrHighlight: Boolean,
     val trueRefraction: Boolean,
     val captureFps: Int,
     val captureScale: Float,
 ) {
     companion object {
         fun disabled() = LiquidGlassConfig(
-            false, 0.16f, 0.16f, 0.42f, 0.14f, 243, 0.18f, false, false, 20, 0.3f,
+            false, 0.16f, 0.16f, 0.42f, 0.14f, 243, 0.18f, false, false, false, 20, 0.3f,
         )
     }
 }
@@ -342,6 +343,7 @@ internal class LiquidGlassDrawable(
                         config.refraction
                     },
                     dispersion = config.dispersion,
+                    hdrEnabled = config.hdrHighlight,
                 ),
             )
         } else {

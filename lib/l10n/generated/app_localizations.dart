@@ -2876,6 +2876,18 @@ abstract class AppLocalizations {
   /// **'根据设备姿态实时移动边缘光照'**
   String get islandGlassGyroscopeSubtitle;
 
+  /// No description provided for @islandGlassHdrHighlight.
+  ///
+  /// In zh, this message translates to:
+  /// **'HDR高光'**
+  String get islandGlassHdrHighlight;
+
+  /// No description provided for @islandGlassHdrHighlightSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'以HDR显示高光边缘'**
+  String get islandGlassHdrHighlightSubtitle;
+
   /// No description provided for @islandGlassTrueRefraction.
   ///
   /// In zh, this message translates to:

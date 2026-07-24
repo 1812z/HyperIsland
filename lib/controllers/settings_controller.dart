@@ -97,6 +97,7 @@ const kPrefIslandGlassShadow = 'pref_island_glass_shadow';
 const kPrefIslandGlassLightDirection = 'pref_island_glass_light_direction';
 const kPrefIslandGlassDispersion = 'pref_island_glass_dispersion';
 const kPrefIslandGlassGyroscope = 'pref_island_glass_gyroscope';
+const kPrefIslandGlassHdrHighlight = 'pref_island_glass_hdr_highlight';
 const kPrefIslandGlassTrueRefraction = 'pref_island_glass_true_refraction';
 const kPrefIslandRefractionSmallEnabled =
     'pref_island_refraction_small_enabled';
@@ -249,6 +250,7 @@ class SettingsController extends ChangeNotifier {
   int islandGlassLightDirection = 243;
   int islandGlassDispersion = 18;
   bool islandGlassGyroscope = true;
+  bool islandGlassHdrHighlight = false;
   bool islandGlassTrueRefraction = false;
   bool islandRefractionSmallEnabled = false;
   bool islandRefractionBigEnabled = false;
@@ -449,6 +451,8 @@ class SettingsController extends ChangeNotifier {
     islandGlassDispersion = (prefs.getInt(kPrefIslandGlassDispersion) ?? 18)
         .clamp(0, 100);
     islandGlassGyroscope = prefs.getBool(kPrefIslandGlassGyroscope) ?? true;
+    islandGlassHdrHighlight =
+        prefs.getBool(kPrefIslandGlassHdrHighlight) ?? false;
     islandGlassTrueRefraction =
         prefs.getBool(kPrefIslandGlassTrueRefraction) ?? false;
     islandRefractionSmallEnabled =
@@ -1310,6 +1314,11 @@ class SettingsController extends ChangeNotifier {
   Future<void> setIslandGlassGyroscope(bool value) =>
       _setIslandGlassBool(kPrefIslandGlassGyroscope, value, () {
         islandGlassGyroscope = value;
+      });
+
+  Future<void> setIslandGlassHdrHighlight(bool value) =>
+      _setIslandGlassBool(kPrefIslandGlassHdrHighlight, value, () {
+        islandGlassHdrHighlight = value;
       });
 
   Future<void> setIslandGlassTrueRefraction(bool value) =>

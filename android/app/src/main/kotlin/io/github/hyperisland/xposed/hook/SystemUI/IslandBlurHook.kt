@@ -62,6 +62,7 @@ object IslandBlurHook : BaseHook() {
     private const val KEY_GLASS_LIGHT_DIRECTION = "pref_island_glass_light_direction"
     private const val KEY_GLASS_DISPERSION = "pref_island_glass_dispersion"
     private const val KEY_GLASS_GYROSCOPE = "pref_island_glass_gyroscope"
+    private const val KEY_GLASS_HDR_HIGHLIGHT = "pref_island_glass_hdr_highlight"
     private const val KEY_GLASS_TRUE_REFRACTION = "pref_island_glass_true_refraction"
     private const val KEY_REFRACTION_SMALL_ENABLED = "pref_island_refraction_small_enabled"
     private const val KEY_REFRACTION_BIG_ENABLED = "pref_island_refraction_big_enabled"
@@ -197,6 +198,7 @@ object IslandBlurHook : BaseHook() {
             dispersion = ConfigManager.getInt(KEY_GLASS_DISPERSION, 18)
                 .coerceIn(0, 100) / 100f,
             gyroscope = ConfigManager.getBoolean(KEY_GLASS_GYROSCOPE, true),
+            hdrHighlight = ConfigManager.getBoolean(KEY_GLASS_HDR_HIGHLIGHT, false),
             trueRefraction = glassStates.anyRefractionEnabled,
             captureFps = ConfigManager.getInt(KEY_GLASS_CAPTURE_FPS, 20).coerceIn(1, 90),
             captureScale = ConfigManager.getInt(KEY_GLASS_CAPTURE_QUALITY, 30)

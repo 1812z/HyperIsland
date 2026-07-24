@@ -284,6 +284,7 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
             "pref_island_glass_light_direction",
             "pref_island_glass_dispersion",
             "pref_island_glass_gyroscope",
+            "pref_island_glass_hdr_highlight",
             "pref_island_glass_true_refraction",
             "pref_island_refraction_small_enabled",
             "pref_island_refraction_big_enabled",

@@ -45,6 +45,7 @@ internal data class LiquidGlassEdgeState(
     val shadow: Float,
     val refraction: Float,
     val dispersion: Float,
+    val hdrEnabled: Boolean,
 )
 
 /** Coordinates the SDR rim details and the HDR-only highlight from one edge state. */
@@ -61,7 +62,11 @@ internal class LiquidGlassEdgeHighlight(
 
     fun draw(canvas: Canvas, state: LiquidGlassEdgeState) {
         drawSdr(canvas, state)
-        hdrSurface.update(state)
+        if (state.hdrEnabled) {
+            hdrSurface.update(state)
+        } else {
+            hdrSurface.hide()
+        }
     }
 
     fun hide() = hdrSurface.hide()

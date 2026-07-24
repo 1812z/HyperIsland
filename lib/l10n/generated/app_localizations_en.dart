@@ -1556,6 +1556,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Move rim lighting with the device pose';
 
   @override
+  String get islandGlassHdrHighlight => 'HDR highlights';
+
+  @override
+  String get islandGlassHdrHighlightSubtitle =>
+      'Display highlighted edges in HDR';
+
+  @override
   String get islandGlassTrueRefraction => 'Liquid glass';
 
   @override
