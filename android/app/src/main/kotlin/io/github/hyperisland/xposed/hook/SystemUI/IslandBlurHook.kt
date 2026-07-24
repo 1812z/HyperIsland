@@ -1,7 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI
 
-import android.graphics.Color
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.ColorFilter
 import android.graphics.Path
 import android.graphics.PixelFormat
@@ -14,6 +14,8 @@ import android.view.View
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.hyperisland.xposed.hook.IslandBackgroundHook
+import io.github.hyperisland.xposed.hook.SystemUI.LiqudGlass.LiquidGlassConfig
+import io.github.hyperisland.xposed.hook.SystemUI.LiqudGlass.LiquidGlassDrawable
 import io.github.hyperisland.xposed.log
 import io.github.hyperisland.xposed.logError
 import io.github.hyperisland.xposed.logWarn
