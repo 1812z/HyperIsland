@@ -359,6 +359,9 @@
   "updateFloatLabel": "Güncellemede Yeniden Genişlet",
   "autoDisappear": "Otomatik Kapanma",
   "seconds": "sn",
+  "defaultTimeoutSubtitle": "Bildirim adası varsayılan otomatik kapanma süresi",
+  "timeoutUseDefault": "Varsayılan süreyi kullan",
+  "timeoutUseDefaultSubtitle": "Varsayılan Yapılandırma'daki süreyi kullan",
   "highlightColorLabel": "Vurgu Rengi",
   "dynamicHighlightColorLabel": "Dinamik vurgu rengi",
   "dynamicHighlightColorLabelSubtitle": "Varsayılan olarak simgeden dinamik renk kullan",
@@ -519,6 +522,14 @@
   "aiTimeoutTitle": "AI Yanıt Zaman Aşımı",
   "aiTimeoutLabel": "AI Yanıt Zaman Aşımı",
   "@aiTimeoutLabel": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "defaultTimeoutHint": "Varsayılan ({seconds}sn)",
+  "@defaultTimeoutHint": {
     "placeholders": {
       "seconds": {
         "type": "int"

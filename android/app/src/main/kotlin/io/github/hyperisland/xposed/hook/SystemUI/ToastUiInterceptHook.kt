@@ -220,10 +220,15 @@ object ToastUiInterceptHook : BaseHook() {
             ConfigManager.getString("pref_toast_enable_float_$pkg", "default"),
             defaultEnableFloat,
         )
-        val clampedTimeout = ConfigManager.getString("pref_toast_timeout_$pkg", "5")
-            .toIntOrNull()
-            ?.coerceIn(1, 20)
-            ?: 5
+        val rawTimeout = ConfigManager.getString("pref_toast_timeout_$pkg", "default")
+        val clampedTimeout = if (rawTimeout == "default") {
+            ConfigManager.getInt("pref_default_timeout", 5)
+                .coerceIn(1, 60)
+        } else {
+            rawTimeout.toIntOrNull()
+                ?.coerceIn(1, 20)
+                ?: 5
+        }
         val marqueeEnabled = resolveTriOpt(
             ConfigManager.getString("pref_toast_marquee_$pkg", "default"),
             ConfigManager.getBoolean("pref_default_marquee", false),

@@ -1562,6 +1562,24 @@ abstract class AppLocalizations {
   /// **'秒'**
   String get seconds;
 
+  /// No description provided for @defaultTimeoutSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'通知岛默认自动消失时长'**
+  String get defaultTimeoutSubtitle;
+
+  /// No description provided for @timeoutUseDefault.
+  ///
+  /// In zh, this message translates to:
+  /// **'使用默认时长'**
+  String get timeoutUseDefault;
+
+  /// No description provided for @timeoutUseDefaultSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'跟随默认配置中的时长'**
+  String get timeoutUseDefaultSubtitle;
+
   /// No description provided for @highlightColorLabel.
   ///
   /// In zh, this message translates to:
@@ -2215,6 +2233,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'无论通知字数多少都触发 AI'**
   String get aiTriggerCharCountAlways;
+
+  /// No description provided for @defaultTimeoutHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'默认（{seconds}秒）'**
+  String defaultTimeoutHint(int seconds);
 
   /// No description provided for @aiDefaultPromptFull.
   ///

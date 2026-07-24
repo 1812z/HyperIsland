@@ -5,6 +5,7 @@ import '../controllers/settings_controller.dart';
 import '../controllers/whitelist_controller.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../services/app_cache_service.dart';
+import '../services/interaction_haptics.dart';
 import '../widgets/color_picker_dialog.dart';
 import '../widgets/color_value_field.dart';
 import '../widgets/toast_settings_panel.dart';
@@ -92,16 +93,30 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
     _highlightColorController = TextEditingController();
     _outEffectColorController = TextEditingController();
     _islandOuterGlowColorController = TextEditingController();
+    _ctrl.addListener(_onDefaultConfigChanged);
     _load();
   }
 
   @override
   void dispose() {
+    _ctrl.removeListener(_onDefaultConfigChanged);
     _timeoutController.dispose();
     _highlightColorController.dispose();
     _outEffectColorController.dispose();
     _islandOuterGlowColorController.dispose();
     super.dispose();
+  }
+
+  void _onDefaultConfigChanged() {
+    if (!mounted) return;
+    final defaultStr = _ctrl.defaultTimeout.toString();
+    // 跟随默认或存的就是默认值 → 显示新的全局默认
+    if (_usesDefaultTimeout || _timeout == defaultStr) {
+      setState(() {
+        _timeout = kTriOptDefault;
+        _timeoutController.text = defaultStr;
+      });
+    }
   }
 
   Future<void> _load() async {
@@ -185,7 +200,10 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
       _filterMode = filterMode;
       _whitelistKeywords = whitelistKeywords;
       _blacklistKeywords = blacklistKeywords;
-      _timeoutController.text = timeout;
+      // 全部用默认值覆盖显示：跟随默认或存的就是默认值 → 显示全局默认
+      final defaultStr = _ctrl.defaultTimeout.toString();
+      _timeoutController.text =
+          (_usesDefaultTimeout || timeout == defaultStr) ? defaultStr : timeout;
       _highlightColorController.text = highlightColor;
       _outEffectColorController.text = outEffectColor;
       _islandOuterGlowColorController.text = islandOuterGlowColor;
@@ -250,14 +268,45 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
     );
   }
 
+  bool get _usesDefaultTimeout =>
+      _timeout.isEmpty || _timeout == kTriOptDefault;
+
   Future<void> _persistTimeout(String raw) async {
     final trimmed = raw.trim();
+    final defaultStr = _ctrl.defaultTimeout.toString();
+    if (trimmed.isEmpty || trimmed == kTriOptDefault || trimmed == defaultStr) {
+      if (_usesDefaultTimeout) return;
+      setState(() => _timeout = kTriOptDefault);
+      _timeoutController.text = defaultStr;
+      await widget.controller.setToastTimeout(
+        widget.app.packageName,
+        kTriOptDefault,
+      );
+      return;
+    }
     final n = int.tryParse(trimmed);
     if (n == null || n < 1 || n > 20) return;
     final value = n.toString();
     if (value == _timeout) return;
     setState(() => _timeout = value);
     await widget.controller.setToastTimeout(widget.app.packageName, value);
+  }
+
+  Future<void> _setTimeoutUseDefault(bool useDefault) async {
+    final pkg = widget.app.packageName;
+    final defaultStr = _ctrl.defaultTimeout.toString();
+    if (useDefault) {
+      if (_usesDefaultTimeout) return;
+      setState(() => _timeout = kTriOptDefault);
+      _timeoutController.text = defaultStr;
+      await widget.controller.setToastTimeout(pkg, kTriOptDefault);
+    } else {
+      // 从默认切回自定义，直接用全局默认值作为起点
+      if (_timeout == defaultStr) return;
+      setState(() => _timeout = defaultStr);
+      _timeoutController.text = defaultStr;
+      await widget.controller.setToastTimeout(pkg, defaultStr);
+    }
   }
 
   Future<void> _setHighlightColor(String value) async {
@@ -500,11 +549,32 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
                       ),
                     ),
                     const SizedBox(height: 10),
+                    SwitchListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
+                      title: Text(
+                        l10n.timeoutUseDefault,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      subtitle: Text(
+                        '${l10n.timeoutUseDefaultSubtitle} · '
+                        '${l10n.defaultTimeoutHint(_ctrl.defaultTimeout)}',
+                      ),
+                      value: _usesDefaultTimeout,
+                      onChanged: islandEnabled
+                          ? InteractionHaptics.interceptToggle(
+                              _setTimeoutUseDefault,
+                            )
+                          : null,
+                    ),
+                    const SizedBox(height: 10),
                     ToastSettingField(
                       label: l10n.autoDisappear,
                       child: TextFormField(
                         controller: _timeoutController,
-                        enabled: islandEnabled,
+                        enabled: islandEnabled && !_usesDefaultTimeout,
                         keyboardType: TextInputType.number,
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly,
@@ -517,6 +587,9 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
                         onFieldSubmitted: _persistTimeout,
                         decoration: toastFieldDecoration(
                           context,
+                          hintText: _usesDefaultTimeout
+                              ? l10n.defaultTimeoutHint(_ctrl.defaultTimeout)
+                              : null,
                           suffixText: l10n.seconds,
                         ),
                       ),
