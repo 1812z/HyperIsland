@@ -41,6 +41,7 @@ class _DefaultConfigPageState extends State<DefaultConfigPage> {
     if (_defaultTimeoutController.text != current) {
       _defaultTimeoutController.text = current;
     }
+    setState(() {});
   }
 
   Future<void> _persistDefaultTimeout(String raw) async {

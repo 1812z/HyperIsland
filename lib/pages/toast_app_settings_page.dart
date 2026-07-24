@@ -110,10 +110,9 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
   void _onDefaultConfigChanged() {
     if (!mounted) return;
     final defaultStr = _ctrl.defaultTimeout.toString();
-    // 跟随默认或存的就是默认值 → 显示新的全局默认
-    if (_usesDefaultTimeout || _timeout == defaultStr) {
+    // 仅在"跟随默认"时刷新显示，避免覆盖用户正在编辑的自定义值
+    if (_usesDefaultTimeout) {
       setState(() {
-        _timeout = kTriOptDefault;
         _timeoutController.text = defaultStr;
       });
     }
