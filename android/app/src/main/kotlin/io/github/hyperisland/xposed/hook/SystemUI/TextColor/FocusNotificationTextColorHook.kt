@@ -42,6 +42,12 @@ object FocusNotificationTextColorHook : BaseHook() {
     private val originalTextColors = Collections.synchronizedMap(
         WeakHashMap<Any, List<OriginalTextColor>>()
     )
+    private val originalButtonColors = Collections.synchronizedMap(
+        WeakHashMap<Any, List<OriginalButtonColor>>()
+    )
+    private val trackedButtonHolders = Collections.synchronizedSet(
+        Collections.newSetFromMap(WeakHashMap<Any, Boolean>())
+    )
     private val colorSetters = Collections.synchronizedMap(
         WeakHashMap<Any, Map<String, Method>>()
     )
@@ -74,6 +80,10 @@ object FocusNotificationTextColorHook : BaseHook() {
     override fun onConfigChanged() {
         val holders = synchronized(trackedHolders) { trackedHolders.toList() }
         holders.forEach(::reapplyHolderColors)
+        val buttonHolders = synchronized(trackedButtonHolders) {
+            trackedButtonHolders.toList()
+        }
+        buttonHolders.forEach(::reapplyButtonColors)
     }
 
     private fun hookClasses(module: XposedModule, classLoader: ClassLoader) {
@@ -116,6 +126,35 @@ object FocusNotificationTextColorHook : BaseHook() {
             }
         }
 
+        BUTTON_HOLDER_CLASSES.forEach { className ->
+            runCatching {
+                val buttonHolderClass = classLoader.loadClass(className)
+                if (hookedClasses.add(buttonHolderClass)) {
+                    hookButtonTextColors(module, buttonHolderClass)
+                }
+            }.onFailure { error ->
+                if (error !is ClassNotFoundException) {
+                    logError(module, "failed to hook $className: ${error.message}")
+                }
+            }
+        }
+
+    }
+
+    private fun hookButtonTextColors(module: XposedModule, holderClass: Class<*>) {
+        holderClass.declaredMethods
+            .filter { method -> method.name == "bind" && method.parameterTypes.size == 2 }
+            .forEach { method ->
+                module.hook(method).intercept { chain ->
+                    val result = chain.proceed()
+                    chain.thisObject?.let { holder ->
+                        trackedButtonHolders.add(holder)
+                        captureAndApplyButtonColors(holder)
+                    }
+                    result
+                }
+                log(module, "hooked ${holderClass.simpleName}#bind button text colors")
+            }
     }
 
     private fun hookCollapseDirection(module: XposedModule, coordinatorClass: Class<*>) {
@@ -329,6 +368,75 @@ object FocusNotificationTextColorHook : BaseHook() {
                 if (original.field in fields) applyTextColor(textView, color)
             }
         }
+        val buttonHolders = synchronized(trackedButtonHolders) {
+            trackedButtonHolders.toList()
+        }
+        buttonHolders.forEach(::applyButtonColors)
+    }
+
+    private fun captureAndApplyButtonColors(holder: Any) {
+        val root = getHolderView(holder) ?: return
+        val buttons = mutableListOf<TextView>()
+        collectButtonTextViews(root, buttons)
+        if (buttons.isEmpty()) return
+
+        originalButtonColors[holder] = buttons.map { button ->
+            OriginalButtonColor(WeakReference(button), button.textColors)
+        }
+        applyButtonColors(holder)
+        root.post { applyButtonColors(holder) }
+    }
+
+    private fun reapplyButtonColors(holder: Any) {
+        val mode = getConfiguredMode()
+        if (mode == MODE_DEFAULT) {
+            originalButtonColors[holder].orEmpty().forEach { original ->
+                original.view.get()?.setTextColor(original.colors)
+            }
+        } else {
+            applyButtonColors(holder)
+        }
+    }
+
+    private fun applyButtonColors(holder: Any) {
+        val mode = getConfiguredMode()
+        if (mode == MODE_DEFAULT) return
+        val primaryColor = resolveTextColor(mode)
+        originalButtonColors[holder].orEmpty().forEach { original ->
+            val button = original.view.get() ?: return@forEach
+            if (isLightColor(primaryColor)) {
+                button.setTextColor(original.colors)
+            } else {
+                applyTextColor(
+                    button,
+                    resolveDarkButtonTextColor(original.colors.defaultColor)
+                )
+            }
+        }
+    }
+
+    private fun collectButtonTextViews(view: View, buttons: MutableList<TextView>) {
+        if (view is TextView && resourceEntryName(view) == BUTTON_TITLE_ID) {
+            buttons.add(view)
+        }
+        if (view is ViewGroup) {
+            for (index in 0 until view.childCount) {
+                collectButtonTextViews(view.getChildAt(index), buttons)
+            }
+        }
+    }
+
+    private fun getHolderView(holder: Any): View? {
+        return runCatching {
+            holder.javaClass.methods.firstOrNull { method ->
+                method.name == "getView" && method.parameterTypes.isEmpty()
+            }?.invoke(holder) as? View
+        }.getOrNull()
+    }
+
+    private fun resourceEntryName(view: View): String? {
+        if (view.id == View.NO_ID) return null
+        return runCatching { view.resources.getResourceEntryName(view.id) }.getOrNull()
     }
 
     private fun applyHolderFieldColors(holder: Any, color: Int) {
@@ -398,6 +506,13 @@ object FocusNotificationTextColorHook : BaseHook() {
         }
     }
 
+    private fun resolveDarkButtonTextColor(originalColor: Int): Int {
+        val luminance = colorLuminance(originalColor)
+        val gray = BUTTON_DARK_MIN +
+            ((BUTTON_DARK_MAX - BUTTON_DARK_MIN) * luminance / MAX_COLOR_LUMINANCE)
+        return Color.argb(Color.alpha(originalColor), gray, gray, gray)
+    }
+
     private fun getConfiguredMode(): String {
         return when (val mode = ConfigManager.getString(KEY_TEXT_COLOR_MODE, MODE_DEFAULT)) {
             MODE_BLACK, MODE_FOLLOW_STATUS_BAR, MODE_INVERT_STATUS_BAR -> mode
@@ -406,7 +521,11 @@ object FocusNotificationTextColorHook : BaseHook() {
     }
 
     private fun isLightColor(color: Int): Boolean {
-        return Color.red(color) * 299 + Color.green(color) * 587 + Color.blue(color) * 114 >= 128000
+        return colorLuminance(color) >= 128000
+    }
+
+    private fun colorLuminance(color: Int): Int {
+        return Color.red(color) * 299 + Color.green(color) * 587 + Color.blue(color) * 114
     }
 
     private fun targetColorField(view: TextView): String? {
@@ -450,6 +569,32 @@ object FocusNotificationTextColorHook : BaseHook() {
         val colors: ColorStateList,
         val field: String,
     )
+
+    private data class OriginalButtonColor(
+        val view: WeakReference<TextView>,
+        val colors: ColorStateList,
+    )
+
+    private val BUTTON_HOLDER_CLASSES = listOf(
+        "miui.systemui.notification.focus.moduleV3.ModuleButtonViewHolder",
+        "miui.systemui.notification.focus.moduleV3.ModuleTextButtonViewHolder",
+        "miui.systemui.notification.focus.moduleV3.ModuleTextButton4ViewHolder",
+        "miui.systemui.notification.focus.moduleV3.ModuleTextButton5ViewHolder",
+        "miui.systemui.notification.focus.moduleV3.ModuleTinyTextButtonViewHolder",
+        "miui.systemui.notification.focus.moduleV3.ModuleTinyTextButton4ViewHolder",
+        "miui.systemui.notification.focus.moduleV3.ModuleTinyTextButton5ViewHolder",
+        "miui.systemui.notification.focus.moduleV3.ModuleDecoLandTextButtonViewHolder",
+        "miui.systemui.notification.focus.moduleV3.ModuleDecoLandTextButton4ViewHolder",
+        "miui.systemui.notification.focus.moduleV3.ModuleDecoLandTextButton5ViewHolder",
+        "miui.systemui.notification.focus.moduleV3.ModuleDecoPortTextButtonViewHolder",
+        "miui.systemui.notification.focus.moduleV3.ModuleDecoPortTextButton4ViewHolder",
+        "miui.systemui.notification.focus.moduleV3.ModuleDecoPortTextButton5ViewHolder",
+    )
+
+    private const val BUTTON_TITLE_ID = "focus_button_title"
+    private const val BUTTON_DARK_MIN = 0x33
+    private const val BUTTON_DARK_MAX = 0x66
+    private const val MAX_COLOR_LUMINANCE = 255000
 
     private const val COLLAPSE_EVENT_CLASS =
         "miui.systemui.dynamicisland.event.DynamicIslandEvent\$Collapse"
