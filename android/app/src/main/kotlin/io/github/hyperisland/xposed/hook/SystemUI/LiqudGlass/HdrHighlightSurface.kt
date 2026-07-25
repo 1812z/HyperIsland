@@ -7,6 +7,7 @@ import android.graphics.Paint
 import android.graphics.PixelFormat
 import android.graphics.PorterDuff
 import android.graphics.RuntimeShader
+import android.view.Choreographer
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.view.View
@@ -16,46 +17,95 @@ import io.github.hyperisland.xposed.logError
 import io.github.hyperisland.xposed.logWarn
 import java.lang.ref.WeakReference
 import java.lang.reflect.Method
+import java.util.IdentityHashMap
+import java.util.WeakHashMap
 import kotlin.math.ceil
 
-/** Owns the transparent F16 Surface used only for luminance above the SDR white point. */
+/** A per-drawable slot in the fixed, window-level F16 HDR highlight surface. */
 internal class HdrHighlightSurface(
     context: Context,
     host: View,
-) : SurfaceHolder.Callback {
+) {
+    private val context = context
     private val host = WeakReference(host)
+    private var compositor: HdrHighlightCompositor? = null
+    private var released = false
+
+    fun update(state: LiquidGlassEdgeState) {
+        if (released) return
+        val hostView = host.get() ?: run {
+            release()
+            return
+        }
+        if (!hostView.isAttachedToWindow || state.highlight <= 0f) {
+            hide()
+            return
+        }
+        val root = hostView.rootView as? ViewGroup ?: return
+        var target = compositor
+        if (target == null || !target.owns(root)) {
+            target?.remove(this)
+            target = HdrHighlightCompositor.obtain(context, root)
+            compositor = target
+        }
+        target.update(this, hostView, state)
+    }
+
+    fun hide() {
+        compositor?.hide(this)
+    }
+
+    fun release() {
+        if (released) return
+        released = true
+        compositor?.remove(this)
+        compositor = null
+        host.clear()
+    }
+}
+
+/**
+ * Keeps one non-moving HDR Surface per island window. All drawable slots are
+ * cleared and redrawn into one F16 buffer at the frame commit boundary.
+ */
+private class HdrHighlightCompositor(
+    context: Context,
+    root: ViewGroup,
+) : SurfaceHolder.Callback {
+    private val root = WeakReference(root)
     private val shader = runCatching { RuntimeShader(HDR_HIGHLIGHT_SHADER) }.getOrNull()
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        shader = this@HdrHighlightSurface.shader
+        shader = this@HdrHighlightCompositor.shader
     }
+    private val states = IdentityHashMap<HdrHighlightSurface, HighlightState>()
     private val hostLocation = IntArray(2)
     private val rootLocation = IntArray(2)
-    private var surfaceView: SurfaceView? = null
     private var surfaceReady = false
     private var rendererConfigurationAttempted = false
     private var rendererSetupLogged = false
     private var metadataSetupLogged = false
     private var requestLogged = false
-    private var surfaceAlphaEnabled = false
     private var attachPosted = false
     private var released = false
-    private var shown = false
-    private var frameDirty = true
-    private var width = 0
-    private var height = 0
+    private var frameScheduled = false
     private var bufferWidth = 0
     private var bufferHeight = 0
-    private var originX = 0f
-    private var originY = 0f
-    private var radius = 0f
-    private var lightX = 0f
-    private var lightY = 0f
-    private var edgeWidth = 1f
-    private var intensity = 0f
     private var wideColorCanvasMethod: Method? = null
     private var wideColorCanvasMethodResolved = false
-    private val hideSurface = Runnable {
-        if (!shown && !released) view.visibility = View.INVISIBLE
+    private var postCommitMethod: Method? = null
+    private var removeCommitMethod: Method? = null
+    private var commitMethodsResolved = false
+    private val drawFrame = Runnable {
+        frameScheduled = false
+        drawLatestStates()
+    }
+    private val fallbackFrame = Choreographer.FrameCallback { drawFrame.run() }
+    private val rootAttachListener = object : View.OnAttachStateChangeListener {
+        override fun onViewAttachedToWindow(v: View) = Unit
+
+        override fun onViewDetachedFromWindow(v: View) {
+            release()
+        }
     }
 
     private val view = SurfaceView(context).apply {
@@ -65,11 +115,12 @@ internal class HdrHighlightSurface(
         isFocusable = false
         importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
         visibility = View.INVISIBLE
-        holder.addCallback(this@HdrHighlightSurface)
-        surfaceAlphaEnabled = runCatching {
+        holder.addCallback(this@HdrHighlightCompositor)
+        runCatching {
             javaClass.getMethod("setUseAlpha").invoke(this)
-            true
-        }.getOrDefault(false)
+        }.onFailure { error ->
+            logWarn("HyperIsland[LiquidGlassHDR] Surface alpha unavailable: ${error.message}")
+        }
         runCatching {
             javaClass.getMethod(
                 "setDesiredHdrHeadroom",
@@ -81,129 +132,134 @@ internal class HdrHighlightSurface(
     }
 
     init {
+        root.addOnAttachStateChangeListener(rootAttachListener)
         if (shader == null) {
             logError("HyperIsland[LiquidGlassHDR] RuntimeShader creation failed")
         }
     }
 
-    fun update(state: LiquidGlassEdgeState) {
+    fun owns(candidate: ViewGroup): Boolean = !released && root.get() === candidate
+
+    fun update(slot: HdrHighlightSurface, host: View, state: LiquidGlassEdgeState) {
         if (released || shader == null) return
-        val hostView = host.get() ?: run {
+        val rootView = root.get() ?: run {
             release()
             return
         }
-        if (!hostView.isAttachedToWindow || state.highlight <= 0f) {
-            hide()
-            return
+        ensureAttached(rootView)
+        host.getLocationOnScreen(hostLocation)
+        if (view.parent != null) {
+            view.getLocationOnScreen(rootLocation)
+        } else {
+            rootView.getLocationOnScreen(rootLocation)
         }
+        val offsetX = (hostLocation[0] - rootLocation[0]).toFloat()
+        val offsetY = (hostLocation[1] - rootLocation[1]).toFloat()
+        val bounds = state.bounds
+        states[slot] = HighlightState(
+            left = bounds.left + offsetX,
+            top = bounds.top + offsetY,
+            width = ceil(bounds.width()).coerceAtLeast(1f),
+            height = ceil(bounds.height()).coerceAtLeast(1f),
+            radius = state.cornerRadius,
+            lightX = state.lightX,
+            lightY = state.lightY,
+            edgeWidth = state.edgeWidth,
+            intensity = state.highlight,
+        )
+        ensureBufferSize(rootView)
         if (!requestLogged) {
             requestLogged = true
-            log("HyperIsland[LiquidGlassHDR] highlight requested")
+            log("HyperIsland[LiquidGlassHDR] fixed highlight compositor requested")
         }
-        ensureAttached(hostView)
-        val overlay = surfaceView ?: return
-        val root = overlay.parent as? View ?: return
-        val bounds = state.bounds
-        val nextWidth = ceil(bounds.width()).toInt().coerceAtLeast(1)
-        val nextHeight = ceil(bounds.height()).toInt().coerceAtLeast(1)
-        val nextBufferWidth = roundBufferDimension(
-            ceil(maxOf(hostView.width.toFloat(), bounds.right)).toInt().coerceAtLeast(nextWidth),
-        )
-        val nextBufferHeight = roundBufferDimension(
-            ceil(maxOf(hostView.height.toFloat(), bounds.bottom)).toInt().coerceAtLeast(nextHeight),
-        )
-        hostView.getLocationOnScreen(hostLocation)
-        root.getLocationOnScreen(rootLocation)
-        val nextX = (hostLocation[0] - rootLocation[0]).toFloat()
-        val nextY = (hostLocation[1] - rootLocation[1]).toFloat()
-        if (overlay.x != nextX) overlay.x = nextX
-        if (overlay.y != nextY) overlay.y = nextY
-        if (nextBufferWidth > bufferWidth || nextBufferHeight > bufferHeight) {
-            bufferWidth = maxOf(bufferWidth, nextBufferWidth)
-            bufferHeight = maxOf(bufferHeight, nextBufferHeight)
-            frameDirty = true
-            overlay.layoutParams = overlay.layoutParams.apply {
-                this.width = bufferWidth
-                this.height = bufferHeight
-            }
-        }
-        frameDirty = frameDirty ||
-            width != nextWidth || height != nextHeight ||
-            originX != bounds.left || originY != bounds.top ||
-            radius != state.cornerRadius ||
-            lightX != state.lightX || lightY != state.lightY ||
-            edgeWidth != state.edgeWidth || intensity != state.highlight
-        width = nextWidth
-        height = nextHeight
-        originX = bounds.left
-        originY = bounds.top
-        radius = state.cornerRadius
-        lightX = state.lightX
-        lightY = state.lightY
-        edgeWidth = state.edgeWidth
-        intensity = state.highlight
-        if (!shown) {
-            shown = true
-            frameDirty = true
-            overlay.removeCallbacks(hideSurface)
-            overlay.alpha = 1f
-            overlay.visibility = View.VISIBLE
-        }
-        if (frameDirty) drawFrame()
+        scheduleFrame()
     }
 
-    fun hide() {
-        if (!shown) return
-        shown = false
-        surfaceView?.let { overlay ->
-            if (surfaceAlphaEnabled) {
-                overlay.alpha = 0f
-                overlay.removeCallbacks(hideSurface)
-                overlay.postDelayed(hideSurface, HIDE_SURFACE_DELAY_MS)
-            } else {
-                overlay.visibility = View.INVISIBLE
-            }
-        }
+    fun hide(slot: HdrHighlightSurface) {
+        if (states.remove(slot) != null) scheduleFrame()
     }
 
-    fun release() {
-        if (released) return
-        released = true
-        shown = false
-        surfaceReady = false
-        view.removeCallbacks(hideSurface)
-        view.holder.removeCallback(this)
-        val parent = view.parent as? ViewGroup
-        if (parent != null) {
-            // release() can be reached while DynamicIslandWindowView is dispatching
-            // its children. Mutating that child array synchronously crashes dispatchDraw.
-            parent.post { if (view.parent === parent) parent.removeView(view) }
-        }
-        surfaceView = null
-        paint.shader = null
-        host.clear()
+    fun remove(slot: HdrHighlightSurface) {
+        hide(slot)
     }
 
-    private fun ensureAttached(hostView: View) {
-        if (surfaceView != null || attachPosted || released) return
-        val root = hostView.rootView as? ViewGroup ?: return
+    private fun ensureAttached(rootView: ViewGroup) {
+        if (view.parent != null || attachPosted || released) return
         attachPosted = true
-        root.post {
+        rootView.post {
             attachPosted = false
-            if (released || view.parent != null) return@post
+            if (released || view.parent != null || !rootView.isAttachedToWindow) return@post
             runCatching {
-                root.addView(view, ViewGroup.LayoutParams(1, 1))
-                surfaceView = view
-                log("HyperIsland[LiquidGlassHDR] overlay attached to window root")
-                hostView.postInvalidateOnAnimation()
+                rootView.addView(view, ViewGroup.LayoutParams(1, 1))
+                log("HyperIsland[LiquidGlassHDR] fixed overlay attached to window root")
+                ensureBufferSize(rootView)
+                view.visibility = View.VISIBLE
+                scheduleFrame()
+                rootView.postInvalidateOnAnimation()
             }.onFailure { error ->
                 logError("HyperIsland[LiquidGlassHDR] overlay attach failed: ${error.message}")
             }
         }
     }
 
-    private fun drawFrame() {
-        if (!surfaceReady || width <= 0 || height <= 0 || intensity <= 0f) return
+    private fun ensureBufferSize(rootView: ViewGroup) {
+        val contentRight = states.values.maxOfOrNull { ceil(it.left + it.width).toInt() } ?: 1
+        val contentBottom = states.values.maxOfOrNull { ceil(it.top + it.height).toInt() } ?: 1
+        val nextWidth = roundBufferDimension(maxOf(rootView.width, contentRight, 1))
+        val nextHeight = roundBufferDimension(maxOf(contentBottom, 1))
+        bufferWidth = maxOf(bufferWidth, nextWidth)
+        bufferHeight = maxOf(bufferHeight, nextHeight)
+        if (view.parent != null &&
+            (view.layoutParams.width != bufferWidth || view.layoutParams.height != bufferHeight)
+        ) {
+            view.layoutParams = view.layoutParams.apply {
+                width = bufferWidth
+                height = bufferHeight
+            }
+        }
+    }
+
+    private fun scheduleFrame() {
+        if (frameScheduled || released || view.parent == null) return
+        frameScheduled = true
+        val choreographer = Choreographer.getInstance()
+        if (!postCommitCallback(choreographer)) {
+            choreographer.postFrameCallback(fallbackFrame)
+        }
+    }
+
+    private fun postCommitCallback(choreographer: Choreographer): Boolean {
+        resolveCommitMethods(choreographer)
+        return runCatching {
+            val method = postCommitMethod ?: return false
+            method.invoke(choreographer, CALLBACK_COMMIT, drawFrame, this)
+            true
+        }.getOrDefault(false)
+    }
+
+    private fun resolveCommitMethods(choreographer: Choreographer) {
+        if (commitMethodsResolved) return
+        commitMethodsResolved = true
+        postCommitMethod = runCatching {
+            choreographer.javaClass.getMethod(
+                "postCallback",
+                Int::class.javaPrimitiveType!!,
+                Runnable::class.java,
+                Any::class.java,
+            )
+        }.getOrNull()
+        removeCommitMethod = runCatching {
+            choreographer.javaClass.getMethod(
+                "removeCallbacks",
+                Int::class.javaPrimitiveType!!,
+                Runnable::class.java,
+                Any::class.java,
+            )
+        }.getOrNull()
+    }
+
+    private fun drawLatestStates() {
+        if (!surfaceReady || released) return
         val runtimeShader = shader ?: return
         val surface = view.holder.surface
         if (!surface.isValid) return
@@ -214,15 +270,22 @@ internal class HdrHighlightSurface(
                 configureHdrRenderer(surface)
             }
             canvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR)
-            runtimeShader.setFloatUniform("uSize", width.toFloat(), height.toFloat())
-            runtimeShader.setFloatUniform("uOrigin", originX, originY)
-            runtimeShader.setFloatUniform("uCornerRadius", radius)
-            runtimeShader.setFloatUniform("uLightDir", lightX, lightY)
-            runtimeShader.setFloatUniform("uEdgeWidth", edgeWidth)
-            runtimeShader.setFloatUniform("uIntensity", intensity)
-            runtimeShader.setFloatUniform("uHdrHeadroom", HDR_HEADROOM)
-            canvas.drawRect(originX, originY, originX + width, originY + height, paint)
-            frameDirty = false
+            states.values.forEach { state ->
+                runtimeShader.setFloatUniform("uSize", state.width, state.height)
+                runtimeShader.setFloatUniform("uOrigin", state.left, state.top)
+                runtimeShader.setFloatUniform("uCornerRadius", state.radius)
+                runtimeShader.setFloatUniform("uLightDir", state.lightX, state.lightY)
+                runtimeShader.setFloatUniform("uEdgeWidth", state.edgeWidth)
+                runtimeShader.setFloatUniform("uIntensity", state.intensity)
+                runtimeShader.setFloatUniform("uHdrHeadroom", HDR_HEADROOM)
+                canvas.drawRect(
+                    state.left,
+                    state.top,
+                    state.left + state.width,
+                    state.top + state.height,
+                    paint,
+                )
+            }
         } finally {
             runCatching { view.holder.unlockCanvasAndPost(canvas) }
         }
@@ -301,6 +364,30 @@ internal class HdrHighlightSurface(
         }
     }
 
+    private fun release() {
+        if (released) return
+        released = true
+        frameScheduled = false
+        val choreographer = Choreographer.getInstance()
+        runCatching {
+            removeCommitMethod?.invoke(choreographer, CALLBACK_COMMIT, drawFrame, this)
+        }
+        choreographer.removeFrameCallback(fallbackFrame)
+        states.clear()
+        surfaceReady = false
+        view.holder.removeCallback(this)
+        val rootView = root.get()
+        rootView?.removeOnAttachStateChangeListener(rootAttachListener)
+        unregister(rootView, this)
+        val parent = view.parent as? ViewGroup
+        if (parent != null) {
+            // Never mutate DynamicIslandWindowView's child array during dispatchDraw.
+            parent.post { if (view.parent === parent) parent.removeView(view) }
+        }
+        paint.shader = null
+        root.clear()
+    }
+
     private fun findField(clazz: Class<*>, name: String): java.lang.reflect.Field? {
         var current: Class<*>? = clazz
         while (current != null) {
@@ -320,31 +407,50 @@ internal class HdrHighlightSurface(
     override fun surfaceCreated(holder: SurfaceHolder) {
         surfaceReady = true
         rendererConfigurationAttempted = false
-        frameDirty = true
         applyHdrMetadata()
-        log("HyperIsland[LiquidGlassHDR] highlight surface ready headroom=$HDR_HEADROOM")
-        drawFrame()
+        log("HyperIsland[LiquidGlassHDR] fixed highlight surface ready headroom=$HDR_HEADROOM")
+        scheduleFrame()
     }
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
         surfaceReady = true
         rendererConfigurationAttempted = false
-        frameDirty = true
         applyHdrMetadata()
-        drawFrame()
+        scheduleFrame()
     }
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
         surfaceReady = false
         rendererConfigurationAttempted = false
-        frameDirty = true
     }
 
-    private companion object {
+    private data class HighlightState(
+        val left: Float,
+        val top: Float,
+        val width: Float,
+        val height: Float,
+        val radius: Float,
+        val lightX: Float,
+        val lightY: Float,
+        val edgeWidth: Float,
+        val intensity: Float,
+    )
+
+    companion object {
         const val HDR_HEADROOM = 4.99f
         const val HDR_COLOR_MODE = 2
-        const val HIDE_SURFACE_DELAY_MS = 250L
+        const val CALLBACK_COMMIT = 4
         const val BUFFER_ALLOCATION_STEP = 64
+        val compositors = WeakHashMap<ViewGroup, HdrHighlightCompositor>()
+
+        fun obtain(context: Context, root: ViewGroup): HdrHighlightCompositor {
+            return compositors[root]?.takeIf { it.owns(root) }
+                ?: HdrHighlightCompositor(context, root).also { compositors[root] = it }
+        }
+
+        fun unregister(root: ViewGroup?, compositor: HdrHighlightCompositor) {
+            if (root != null && compositors[root] === compositor) compositors.remove(root)
+        }
 
         val HDR_HIGHLIGHT_SHADER = """
             uniform float2 uSize;
