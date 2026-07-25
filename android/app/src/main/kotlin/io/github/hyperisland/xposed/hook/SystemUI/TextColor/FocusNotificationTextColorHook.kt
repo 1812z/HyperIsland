@@ -8,8 +8,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import io.github.hyperisland.xposed.ConfigManager
-import io.github.hyperisland.xposed.log
-import io.github.hyperisland.xposed.logError
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
