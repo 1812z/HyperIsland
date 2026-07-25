@@ -285,8 +285,6 @@
   "autoDisappear": "Auto dismiss",
   "seconds": "s",
   "defaultTimeoutSubtitle": "Default auto-dismiss duration for notification islands",
-  "timeoutUseDefault": "Use default duration",
-  "timeoutUseDefaultSubtitle": "Follow the duration set in Default Config",
   "highlightColorLabel": "Highlight color",
   "dynamicHighlightColorLabel": "Dynamic highlight color",
   "dynamicHighlightColorLabelSubtitle": "Use icon-based dynamic color by default",

@@ -279,8 +279,6 @@
   "autoDisappear": "Автоматическое скрытие",
   "seconds": "с",
   "defaultTimeoutSubtitle": "Время автоскрытия острова по умолчанию",
-  "timeoutUseDefault": "Использовать время по умолчанию",
-  "timeoutUseDefaultSubtitle": "Использовать время из Дефолтных настроек",
   "highlightColorLabel": "Цвет подсветки",
   "dynamicHighlightColorLabel": "Динамический цвет подсветки",
   "dynamicHighlightColorLabelSubtitle": "По умолчанию использовать динамический цвет на основе иконки",

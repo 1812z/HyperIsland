@@ -838,13 +838,6 @@ class AppLocalizationsTr extends AppLocalizations {
       'Bildirim adası varsayılan otomatik kapanma süresi';
 
   @override
-  String get timeoutUseDefault => 'Varsayılan süreyi kullan';
-
-  @override
-  String get timeoutUseDefaultSubtitle =>
-      'Varsayılan Yapılandırma\'daki süreyi kullan';
-
-  @override
   String get highlightColorLabel => 'Vurgu Rengi';
 
   @override

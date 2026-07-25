@@ -1568,18 +1568,6 @@ abstract class AppLocalizations {
   /// **'通知岛默认自动消失时长'**
   String get defaultTimeoutSubtitle;
 
-  /// No description provided for @timeoutUseDefault.
-  ///
-  /// In zh, this message translates to:
-  /// **'使用默认时长'**
-  String get timeoutUseDefault;
-
-  /// No description provided for @timeoutUseDefaultSubtitle.
-  ///
-  /// In zh, this message translates to:
-  /// **'跟随默认配置中的时长'**
-  String get timeoutUseDefaultSubtitle;
-
   /// No description provided for @highlightColorLabel.
   ///
   /// In zh, this message translates to:

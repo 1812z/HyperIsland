@@ -5,7 +5,6 @@ import '../controllers/settings_controller.dart';
 import '../controllers/whitelist_controller.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../services/app_cache_service.dart';
-import '../services/interaction_haptics.dart';
 import '../widgets/color_picker_dialog.dart';
 import '../widgets/color_value_field.dart';
 import '../widgets/toast_settings_panel.dart';
@@ -109,12 +108,8 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
 
   void _onDefaultConfigChanged() {
     if (!mounted) return;
-    final defaultStr = _ctrl.defaultTimeout.toString();
-    // 仅在"跟随默认"时刷新显示，避免覆盖用户正在编辑的自定义值
     if (_usesDefaultTimeout) {
-      setState(() {
-        _timeoutController.text = defaultStr;
-      });
+      setState(() {});
     }
   }
 
@@ -199,10 +194,7 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
       _filterMode = filterMode;
       _whitelistKeywords = whitelistKeywords;
       _blacklistKeywords = blacklistKeywords;
-      // 全部用默认值覆盖显示：跟随默认或存的就是默认值 → 显示全局默认
-      final defaultStr = _ctrl.defaultTimeout.toString();
-      _timeoutController.text =
-          (_usesDefaultTimeout || timeout == defaultStr) ? defaultStr : timeout;
+      _timeoutController.text = _usesDefaultTimeout ? '' : timeout;
       _highlightColorController.text = highlightColor;
       _outEffectColorController.text = outEffectColor;
       _islandOuterGlowColorController.text = islandOuterGlowColor;
@@ -272,15 +264,16 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
 
   Future<void> _persistTimeout(String raw) async {
     final trimmed = raw.trim();
-    final defaultStr = _ctrl.defaultTimeout.toString();
-    if (trimmed.isEmpty || trimmed == kTriOptDefault || trimmed == defaultStr) {
-      if (_usesDefaultTimeout) return;
+    if (trimmed.isEmpty || trimmed == kTriOptDefault) {
+      final wasDefault = _usesDefaultTimeout;
       setState(() => _timeout = kTriOptDefault);
-      _timeoutController.text = defaultStr;
-      await widget.controller.setToastTimeout(
-        widget.app.packageName,
-        kTriOptDefault,
-      );
+      _timeoutController.clear();
+      if (!wasDefault) {
+        await widget.controller.setToastTimeout(
+          widget.app.packageName,
+          kTriOptDefault,
+        );
+      }
       return;
     }
     final n = int.tryParse(trimmed);
@@ -291,21 +284,9 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
     await widget.controller.setToastTimeout(widget.app.packageName, value);
   }
 
-  Future<void> _setTimeoutUseDefault(bool useDefault) async {
-    final pkg = widget.app.packageName;
-    final defaultStr = _ctrl.defaultTimeout.toString();
-    if (useDefault) {
-      if (_usesDefaultTimeout) return;
-      setState(() => _timeout = kTriOptDefault);
-      _timeoutController.text = defaultStr;
-      await widget.controller.setToastTimeout(pkg, kTriOptDefault);
-    } else {
-      // 从默认切回自定义，直接用全局默认值作为起点
-      if (_timeout == defaultStr) return;
-      setState(() => _timeout = defaultStr);
-      _timeoutController.text = defaultStr;
-      await widget.controller.setToastTimeout(pkg, defaultStr);
-    }
+  Future<void> _resetTimeout() async {
+    _timeoutController.clear();
+    await _persistTimeout('');
   }
 
   Future<void> _setHighlightColor(String value) async {
@@ -548,32 +529,11 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
                       ),
                     ),
                     const SizedBox(height: 10),
-                    SwitchListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 4,
-                      ),
-                      title: Text(
-                        l10n.timeoutUseDefault,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      subtitle: Text(
-                        '${l10n.timeoutUseDefaultSubtitle} · '
-                        '${l10n.defaultTimeoutHint(_ctrl.defaultTimeout)}',
-                      ),
-                      value: _usesDefaultTimeout,
-                      onChanged: islandEnabled
-                          ? InteractionHaptics.interceptToggle(
-                              _setTimeoutUseDefault,
-                            )
-                          : null,
-                    ),
-                    const SizedBox(height: 10),
                     ToastSettingField(
                       label: l10n.autoDisappear,
                       child: TextFormField(
                         controller: _timeoutController,
-                        enabled: islandEnabled && !_usesDefaultTimeout,
+                        enabled: islandEnabled,
                         keyboardType: TextInputType.number,
                         inputFormatters: [
                           FilteringTextInputFormatter.digitsOnly,
@@ -584,13 +544,53 @@ class _ToastAppSettingsPageState extends State<ToastAppSettingsPage> {
                           _persistTimeout(_timeoutController.text);
                         },
                         onFieldSubmitted: _persistTimeout,
-                        decoration: toastFieldDecoration(
-                          context,
-                          hintText: _usesDefaultTimeout
-                              ? l10n.defaultTimeoutHint(_ctrl.defaultTimeout)
-                              : null,
-                          suffixText: l10n.seconds,
-                        ),
+                        onChanged: (value) async {
+                          if (value.isEmpty) {
+                            await _persistTimeout(value);
+                          } else {
+                            setState(() {});
+                          }
+                        },
+                        decoration:
+                            toastFieldDecoration(
+                              context,
+                              hintText: l10n.defaultTimeoutHint(
+                                _ctrl.defaultTimeout,
+                              ),
+                            ).copyWith(
+                              suffixIconConstraints: const BoxConstraints(
+                                minWidth: 0,
+                                minHeight: 0,
+                              ),
+                              suffixIcon: Padding(
+                                padding: const EdgeInsets.only(right: 12),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Tooltip(
+                                      message: l10n.restoreDefault,
+                                      child: InkResponse(
+                                        onTap: islandEnabled
+                                            ? _resetTimeout
+                                            : null,
+                                        radius: 16,
+                                        child: const SizedBox.square(
+                                          dimension: 28,
+                                          child: Icon(
+                                            Icons.restart_alt_rounded,
+                                            size: 18,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    if (_timeoutController.text.isNotEmpty) ...[
+                                      const SizedBox(width: 2),
+                                      Text(l10n.seconds),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ),
                       ),
                     ),
                   ],

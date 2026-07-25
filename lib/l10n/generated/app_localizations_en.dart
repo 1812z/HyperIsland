@@ -833,13 +833,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Default auto-dismiss duration for notification islands';
 
   @override
-  String get timeoutUseDefault => 'Use default duration';
-
-  @override
-  String get timeoutUseDefaultSubtitle =>
-      'Follow the duration set in Default Config';
-
-  @override
   String get highlightColorLabel => 'Highlight color';
 
   @override

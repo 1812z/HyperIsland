@@ -414,8 +414,6 @@
   "autoDisappear": "自动消失",
   "seconds": "秒",
   "defaultTimeoutSubtitle": "通知岛默认自动消失时长",
-  "timeoutUseDefault": "使用默认时长",
-  "timeoutUseDefaultSubtitle": "跟随默认配置中的时长",
   "highlightColorLabel": "高亮颜色",
   "dynamicHighlightColorLabel": "高亮动态取色",
   "dynamicHighlightColorLabelSubtitle": "开启后默认使用图标自动取色",

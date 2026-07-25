@@ -802,12 +802,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get defaultTimeoutSubtitle => '通知アイランドのデフォルト自動消去時間';
 
   @override
-  String get timeoutUseDefault => 'デフォルトの時間を使用';
-
-  @override
-  String get timeoutUseDefaultSubtitle => 'デフォルト設定の時間を使用';
-
-  @override
   String get highlightColorLabel => 'ハイライト色';
 
   @override

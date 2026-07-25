@@ -792,12 +792,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get defaultTimeoutSubtitle => '通知岛默认自动消失时长';
 
   @override
-  String get timeoutUseDefault => '使用默认时长';
-
-  @override
-  String get timeoutUseDefaultSubtitle => '跟随默认配置中的时长';
-
-  @override
   String get highlightColorLabel => '高亮颜色';
 
   @override

@@ -841,13 +841,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get defaultTimeoutSubtitle => 'Время автоскрытия острова по умолчанию';
 
   @override
-  String get timeoutUseDefault => 'Использовать время по умолчанию';
-
-  @override
-  String get timeoutUseDefaultSubtitle =>
-      'Использовать время из Дефолтных настроек';
-
-  @override
   String get highlightColorLabel => 'Цвет подсветки';
 
   @override
