@@ -73,7 +73,7 @@ object ActiveIslandDismissHook : BaseHook() {
                         val sbn = chain.args.getOrNull(0) as? StatusBarNotification
                         if (sbn != null) {
                             focusControllerRef = WeakReference(chain.thisObject)
-                            diag("focus controller captured key=${sbn.key}")
+                            //diag("focus controller captured key=${sbn.key}")
                         }
                         chain.proceed()
                     }
