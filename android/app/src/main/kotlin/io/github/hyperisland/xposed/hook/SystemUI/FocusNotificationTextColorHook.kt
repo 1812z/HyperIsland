@@ -8,6 +8,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import io.github.hyperisland.xposed.ConfigManager
+import io.github.hyperisland.xposed.log
+import io.github.hyperisland.xposed.logError
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
@@ -16,7 +18,7 @@ import java.lang.reflect.Method
 import java.util.Collections
 import java.util.WeakHashMap
 
-/** Overrides only the fallback colors of V3 focus-notification text fields. */
+/** Overrides V3 focus-notification text colors. */
 object FocusNotificationTextColorHook : BaseHook() {
 
     private const val TAG = "HyperIsland[FocusNotificationTextColor]"
@@ -48,7 +50,6 @@ object FocusNotificationTextColorHook : BaseHook() {
     private val attachRefreshViews = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<TextView, Boolean>())
     )
-
     @Volatile private var islandAnimationRunning = false
     @Volatile private var collapseAnimationRunning = false
     @Volatile private var pendingTintRefresh = false
@@ -66,6 +67,7 @@ object FocusNotificationTextColorHook : BaseHook() {
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
         IslandTextColorHook.addStatusBarTintListener(statusBarTintListener)
+        hookClasses(module, param.defaultClassLoader)
         HookUtils.hookDynamicClassLoaders(module, ClassLoader.getSystemClassLoader()) { classLoader ->
             hookClasses(module, classLoader)
         }
@@ -115,6 +117,7 @@ object FocusNotificationTextColorHook : BaseHook() {
                 logError(module, "failed to hook CollapseEventCoordinator: ${error.message}")
             }
         }
+
     }
 
     private fun hookCollapseDirection(module: XposedModule, coordinatorClass: Class<*>) {
@@ -336,14 +339,6 @@ object FocusNotificationTextColorHook : BaseHook() {
         fields.forEach { field ->
             runCatching { setters[field]?.invoke(holder, color) }
         }
-    }
-
-    private fun getHolderView(holder: Any): View? {
-        return runCatching {
-            holder.javaClass.methods.firstOrNull { method ->
-                method.name == "getView" && method.parameterTypes.isEmpty()
-            }?.invoke(holder) as? View
-        }.getOrNull()
     }
 
     private fun applyVisibleTextColor(view: View, fields: Set<String>, color: Int) {

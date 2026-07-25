@@ -111,6 +111,8 @@ const kPrefIslandTopOffset = 'pref_island_top_offset';
 const kPrefIslandTextColorMode = 'pref_island_text_color_mode';
 const kPrefFocusNotificationTextColorMode =
     'pref_focus_notification_text_color_mode';
+const kPrefMediaNotificationTextColorMode =
+    'pref_media_notification_text_color_mode';
 const kPrefAlwaysShowIslandOutline = 'pref_always_show_island_outline';
 const kPrefAlwaysShowFocusOutline = 'pref_always_show_focus_outline';
 const kPrefOuterGlowRange = 'pref_outer_glow_range';
@@ -261,6 +263,7 @@ class SettingsController extends ChangeNotifier {
   double islandTopOffset = 0;
   String islandTextColorMode = kIslandTextColorDefault;
   String focusNotificationTextColorMode = kIslandTextColorDefault;
+  String mediaNotificationTextColorMode = kIslandTextColorDefault;
   bool alwaysShowIslandOutline = false;
   bool alwaysShowFocusOutline = false;
   int outerGlowRange = 0;
@@ -495,6 +498,16 @@ class SettingsController extends ChangeNotifier {
     if (storedFocusTextColorMode != null &&
         storedFocusTextColorMode != focusNotificationTextColorMode) {
       await prefs.remove(kPrefFocusNotificationTextColorMode);
+    }
+    final storedMediaTextColorMode = prefs.getString(
+      kPrefMediaNotificationTextColorMode,
+    );
+    mediaNotificationTextColorMode = _normalizeFocusTextColorMode(
+      storedMediaTextColorMode,
+    );
+    if (storedMediaTextColorMode != null &&
+        storedMediaTextColorMode != mediaNotificationTextColorMode) {
+      await prefs.remove(kPrefMediaNotificationTextColorMode);
     }
     alwaysShowIslandOutline =
         prefs.getBool(kPrefAlwaysShowIslandOutline) ?? false;
@@ -1504,6 +1517,19 @@ class SettingsController extends ChangeNotifier {
       await prefs.setString(kPrefFocusNotificationTextColorMode, normalized);
     }
     focusNotificationTextColorMode = normalized;
+    notifyListeners();
+  }
+
+  Future<void> setMediaNotificationTextColorMode(String value) async {
+    final normalized = _normalizeFocusTextColorMode(value);
+    if (mediaNotificationTextColorMode == normalized) return;
+    final prefs = await _getPrefs();
+    if (normalized == kIslandTextColorDefault) {
+      await prefs.remove(kPrefMediaNotificationTextColorMode);
+    } else {
+      await prefs.setString(kPrefMediaNotificationTextColorMode, normalized);
+    }
+    mediaNotificationTextColorMode = normalized;
     notifyListeners();
   }
 

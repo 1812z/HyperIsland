@@ -371,6 +371,7 @@ object ConfigManager {
         "pref_island_top_offset",
         "pref_island_text_color_mode",
         "pref_focus_notification_text_color_mode",
+        "pref_media_notification_text_color_mode",
         "pref_island_blur_small_enabled",
         "pref_island_blur_small_radius",
         "pref_island_blur_small_color",

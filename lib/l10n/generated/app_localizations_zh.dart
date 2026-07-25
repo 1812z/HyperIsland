@@ -1983,6 +1983,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get focusNotificationTextColorTitle => '焦点通知文本颜色';
 
   @override
+  String get mediaNotificationTextColorTitle => '媒体通知文本颜色';
+
+  @override
   String get islandTextColorBlack => '黑色';
 
   @override

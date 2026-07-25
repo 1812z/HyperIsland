@@ -3857,6 +3857,12 @@ abstract class AppLocalizations {
   /// **'焦点通知文本颜色'**
   String get focusNotificationTextColorTitle;
 
+  /// No description provided for @mediaNotificationTextColorTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'媒体通知文本颜色'**
+  String get mediaNotificationTextColorTitle;
+
   /// No description provided for @islandTextColorBlack.
   ///
   /// In zh, this message translates to:

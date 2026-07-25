@@ -11,6 +11,7 @@ import io.github.hyperisland.xposed.hook.ChargeIslandHook
 import io.github.hyperisland.xposed.hook.DownloadHook
 import io.github.hyperisland.xposed.hook.FocusNotifStatusBarIconHook
 import io.github.hyperisland.xposed.hook.FocusNotificationTextColorHook
+import io.github.hyperisland.xposed.hook.MediaNotificationTextColorHook
 import io.github.hyperisland.xposed.hook.SystemUI.GenericProgressHook
 import io.github.hyperisland.xposed.hook.IslandBackgroundHook
 import io.github.hyperisland.xposed.hook.IslandDimenHook
@@ -54,6 +55,7 @@ class HyperIslandModule : XposedModule() {
                 IslandBlurHook.init(this, param)
                 IslandTextColorHook.init(this, param)
                 FocusNotificationTextColorHook.init(this, param)
+                MediaNotificationTextColorHook.init(this, param)
                 TextShadeHook.init(this, param)
                 IslandDimenHook.init(this, param)
                 IslandTopOffsetHook.init(this, param)

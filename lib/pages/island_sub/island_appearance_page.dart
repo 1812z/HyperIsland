@@ -70,6 +70,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _ctrl.islandGlassCaptureQuality,
     _ctrl.islandTextColorMode,
     _ctrl.focusNotificationTextColorMode,
+    _ctrl.mediaNotificationTextColorMode,
     _ctrl.alwaysShowIslandOutline,
     _ctrl.alwaysShowFocusOutline,
     _ctrl.outerGlowRange,
@@ -400,9 +401,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
           color: result.color,
         );
         await _ctrl.setIslandGlassSmallEnabled(result.glassEnabled);
-        await _ctrl.setIslandRefractionSmallEnabled(
-          result.refractionEnabled,
-        );
+        await _ctrl.setIslandRefractionSmallEnabled(result.refractionEnabled);
       case _IslandBlurType.big:
         await _ctrl.setIslandBlurBig(
           enabled: result.enabled,
@@ -418,9 +417,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
           color: result.color,
         );
         await _ctrl.setIslandGlassExpandEnabled(result.glassEnabled);
-        await _ctrl.setIslandRefractionExpandEnabled(
-          result.refractionEnabled,
-        );
+        await _ctrl.setIslandRefractionExpandEnabled(result.refractionEnabled);
     }
     if (type == _IslandBlurType.big && result.enabled && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -995,6 +992,23 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                           l10n,
                           _ctrl.focusNotificationTextColorMode,
                           _ctrl.setFocusNotificationTextColorMode,
+                          includeBackgroundModes: false,
+                        ),
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        title: Text(
+                          l10n.mediaNotificationTextColorTitle,
+                          style: titleStyle,
+                        ),
+                        trailing: _buildTextColorDropdown(
+                          l10n,
+                          _ctrl.mediaNotificationTextColorMode,
+                          _ctrl.setMediaNotificationTextColorMode,
                           includeBackgroundModes: false,
                         ),
                       ),
