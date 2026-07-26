@@ -3722,7 +3722,7 @@ abstract class AppLocalizations {
   /// No description provided for @hideBehaviorMasterSwitch.
   ///
   /// In zh, this message translates to:
-  /// **'启用隐藏行为 Hook'**
+  /// **'启用拦截隐藏注入'**
   String get hideBehaviorMasterSwitch;
 
   /// No description provided for @hideBehaviorMasterSwitchSubtitle.
@@ -3802,6 +3802,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'通知栏展开或下滑过渡时隐藏超级岛'**
   String get hideBehaviorNotificationCenterSubtitle;
+
+  /// No description provided for @hideBehaviorForegroundApp.
+  ///
+  /// In zh, this message translates to:
+  /// **'前台应用'**
+  String get hideBehaviorForegroundApp;
+
+  /// No description provided for @hideBehaviorForegroundAppSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'前台应用打开时隐藏自身超级岛'**
+  String get hideBehaviorForegroundAppSubtitle;
 
   /// No description provided for @off.
   ///

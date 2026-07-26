@@ -653,7 +653,7 @@
   "restoreDefault": "デフォルトに戻す",
   "hideBehaviorTitle": "Hide Behavior",
   "hideBehaviorDescription": "Control whether system scenes are allowed to temporarily hide the island. Turning an item off blocks the matching system hide logic.",
-  "hideBehaviorMasterSwitch": "Enable hide behavior hook",
+  "hideBehaviorMasterSwitch": "非表示インターセプト注入を有効化",
   "hideBehaviorMasterSwitchSubtitle": "有効にすると非表示動作のインターセプト機能が有効になります；オフにすると完全に無効になります",
   "hideBehaviorScreenPinning": "Screen pinning",
   "hideBehaviorScreenPinningSubtitle": "Hide the island while screen pinning is active",
@@ -665,6 +665,8 @@
   "hideBehaviorScreenLockedSubtitle": "Hide the island during lock screen or screen-off flows",
   "hideBehaviorNotificationCenter": "Notification center",
   "hideBehaviorNotificationCenterSubtitle": "Hide the island while the notification shade expands or transitions",
+  "hideBehaviorForegroundApp": "フォアグラウンドアプリ",
+  "hideBehaviorForegroundAppSubtitle": "アプリがフォアグラウンドのとき、そのアプリ自身のアイランドを非表示にします",
   "tapToSelectImage": "タップして画像またはGIFを選択",
   "autoExpandNotification": "通知を自動展開",
   "off": "オフ"

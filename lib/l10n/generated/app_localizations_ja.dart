@@ -1945,7 +1945,7 @@ class AppLocalizationsJa extends AppLocalizations {
       'Control whether system scenes are allowed to temporarily hide the island. Turning an item off blocks the matching system hide logic.';
 
   @override
-  String get hideBehaviorMasterSwitch => 'Enable hide behavior hook';
+  String get hideBehaviorMasterSwitch => '非表示インターセプト注入を有効化';
 
   @override
   String get hideBehaviorMasterSwitchSubtitle =>
@@ -1992,6 +1992,13 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get hideBehaviorNotificationCenterSubtitle =>
       'Hide the island while the notification shade expands or transitions';
+
+  @override
+  String get hideBehaviorForegroundApp => 'フォアグラウンドアプリ';
+
+  @override
+  String get hideBehaviorForegroundAppSubtitle =>
+      'アプリがフォアグラウンドのとき、そのアプリ自身のアイランドを非表示にします';
 
   @override
   String get off => 'オフ';

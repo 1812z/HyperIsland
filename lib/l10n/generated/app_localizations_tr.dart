@@ -2016,7 +2016,8 @@ class AppLocalizationsTr extends AppLocalizations {
       'Control whether system scenes are allowed to temporarily hide the island. Turning an item off blocks the matching system hide logic.';
 
   @override
-  String get hideBehaviorMasterSwitch => 'Enable hide behavior hook';
+  String get hideBehaviorMasterSwitch =>
+      'Gizleme engelleme enjeksiyonunu etkinleştir';
 
   @override
   String get hideBehaviorMasterSwitchSubtitle =>
@@ -2063,6 +2064,13 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get hideBehaviorNotificationCenterSubtitle =>
       'Hide the island while the notification shade expands or transitions';
+
+  @override
+  String get hideBehaviorForegroundApp => 'Ön plan uygulaması';
+
+  @override
+  String get hideBehaviorForegroundAppSubtitle =>
+      'Uygulama ön plandayken kendi adasını gizle';
 
   @override
   String get off => 'Kapalı';

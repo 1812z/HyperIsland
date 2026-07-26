@@ -1913,7 +1913,7 @@ class AppLocalizationsZh extends AppLocalizations {
       '控制系统场景是否允许临时隐藏超级岛。关闭某项后，会拦截对应场景的系统隐藏逻辑。';
 
   @override
-  String get hideBehaviorMasterSwitch => '启用隐藏行为 Hook';
+  String get hideBehaviorMasterSwitch => '启用拦截隐藏注入';
 
   @override
   String get hideBehaviorMasterSwitchSubtitle => '开启后才启用拦截隐藏行为功能；关闭后完全禁用';
@@ -1954,6 +1954,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get hideBehaviorNotificationCenterSubtitle => '通知栏展开或下滑过渡时隐藏超级岛';
+
+  @override
+  String get hideBehaviorForegroundApp => '前台应用';
+
+  @override
+  String get hideBehaviorForegroundAppSubtitle => '前台应用打开时隐藏自身超级岛';
 
   @override
   String get off => '关闭';

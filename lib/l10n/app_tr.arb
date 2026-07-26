@@ -800,7 +800,7 @@
   "restoreDefault": "Varsayılanı geri yükle",
   "hideBehaviorTitle": "Hide Behavior",
   "hideBehaviorDescription": "Control whether system scenes are allowed to temporarily hide the island. Turning an item off blocks the matching system hide logic.",
-  "hideBehaviorMasterSwitch": "Enable hide behavior hook",
+  "hideBehaviorMasterSwitch": "Gizleme engelleme enjeksiyonunu etkinleştir",
   "hideBehaviorMasterSwitchSubtitle": "Açıldığında gizleme davranışı engelleme özelliği etkinleştirilir; kapandığında tamamen devre dışı bırakılır",
   "hideBehaviorScreenPinning": "Screen pinning",
   "hideBehaviorScreenPinningSubtitle": "Hide the island while screen pinning is active",
@@ -812,6 +812,8 @@
   "hideBehaviorScreenLockedSubtitle": "Hide the island during lock screen or screen-off flows",
   "hideBehaviorNotificationCenter": "Notification center",
   "hideBehaviorNotificationCenterSubtitle": "Hide the island while the notification shade expands or transitions",
+  "hideBehaviorForegroundApp": "Ön plan uygulaması",
+  "hideBehaviorForegroundAppSubtitle": "Uygulama ön plandayken kendi adasını gizle",
   "tapToSelectImage": "Resim veya GIF seçmek için dokunun",
   "autoExpandNotification": "Bildirimi otomatik genişlet",
   "off": "Kapalı"

@@ -69,10 +69,31 @@ object TempHiddenBehaviorHook : BaseHook() {
         hookBooleanMethod(module, clazz, "notificationAppearance", HideBehavior.NOTIFICATION_CENTER) { count++ }
         hookStatusBarAppearance(module, clazz) { count++ }
         hookBooleanMethod(module, clazz, "screenPinningActive", HideBehavior.SCREEN_PINNING) { count++ }
+        hookCanEnterAppState(module, clazz) { count++ }
         hookNotificationPanelExpandHeightChanged(module, clazz) { count++ }
         hookCommandQueueDisable(module, clazz) { count++ }
         log(module, "hooked windowViewController temp hide methods=$count")
         return count > 0
+    }
+
+    private fun hookCanEnterAppState(
+        module: XposedModule,
+        clazz: Class<*>,
+        onHooked: () -> Unit,
+    ) {
+        clazz.declaredMethods
+            .filter {
+                it.name == "canEnterAppState" &&
+                    it.returnType == Boolean::class.javaPrimitiveType
+            }
+            .forEach { method ->
+                module.hook(method).intercept { chain ->
+                    val enabled = HideBehavior.FOREGROUND_APP.enabled()
+                    log(module, "${clazz.simpleName}.canEnterAppState enabled=$enabled blocked=${!enabled}")
+                    if (enabled) chain.proceed() else false
+                }
+                onHooked()
+            }
     }
 
     private fun hookBooleanMethod(
@@ -202,7 +223,8 @@ object TempHiddenBehaviorHook : BaseHook() {
         SCREEN_PINNING("pref_temp_hide_screen_pinning"),
         FULLSCREEN("pref_temp_hide_fullscreen"),
         SCREEN_LOCKED("pref_temp_hide_screen_locked"),
-        NOTIFICATION_CENTER("pref_temp_hide_notification_center");
+        NOTIFICATION_CENTER("pref_temp_hide_notification_center"),
+        FOREGROUND_APP("pref_temp_hide_foreground_app");
 
         fun enabled(): Boolean = ConfigManager.getBoolean(prefKey, true)
     }

@@ -2026,7 +2026,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Control whether system scenes are allowed to temporarily hide the island. Turning an item off blocks the matching system hide logic.';
 
   @override
-  String get hideBehaviorMasterSwitch => 'Enable hide behavior hook';
+  String get hideBehaviorMasterSwitch => 'Enable hide interception injection';
 
   @override
   String get hideBehaviorMasterSwitchSubtitle =>
@@ -2074,6 +2074,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get hideBehaviorNotificationCenterSubtitle =>
       'Hide the island while the notification shade expands or transitions';
+
+  @override
+  String get hideBehaviorForegroundApp => 'Foreground app';
+
+  @override
+  String get hideBehaviorForegroundAppSubtitle =>
+      'Hide the app\'s own island while it is in the foreground';
 
   @override
   String get off => 'Off';

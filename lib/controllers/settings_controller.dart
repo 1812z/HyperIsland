@@ -136,6 +136,7 @@ const kPrefTempHideBouncerShowing = 'pref_temp_hide_bouncer_showing';
 const kPrefTempHideFullscreen = 'pref_temp_hide_fullscreen';
 const kPrefTempHideScreenLocked = 'pref_temp_hide_screen_locked';
 const kPrefTempHideNotificationCenter = 'pref_temp_hide_notification_center';
+const kPrefTempHideForegroundApp = 'pref_temp_hide_foreground_app';
 const kPrefTempHideFullscreenLandscapeDisable =
     'pref_temp_hide_fullscreen_landscape_disable';
 const kPrefThemeSeedColor = 'pref_theme_seed_color';
@@ -286,6 +287,7 @@ class SettingsController extends ChangeNotifier {
   bool tempHideFullscreen = true;
   bool tempHideScreenLocked = true;
   bool tempHideNotificationCenter = true;
+  bool tempHideForegroundApp = true;
   bool tempHideFullscreenLandscapeDisable = false;
   int themeSeedColor = 0xFF6750A4;
   bool blurBars = true;
@@ -544,6 +546,7 @@ class SettingsController extends ChangeNotifier {
     tempHideScreenLocked = prefs.getBool(kPrefTempHideScreenLocked) ?? true;
     tempHideNotificationCenter =
         prefs.getBool(kPrefTempHideNotificationCenter) ?? true;
+    tempHideForegroundApp = prefs.getBool(kPrefTempHideForegroundApp) ?? true;
     tempHideFullscreenLandscapeDisable =
         prefs.getBool(kPrefTempHideFullscreenLandscapeDisable) ?? false;
     themeSeedColor = prefs.getInt(kPrefThemeSeedColor) ?? 0xFF6750A4;
@@ -1658,6 +1661,12 @@ class SettingsController extends ChangeNotifier {
     kPrefTempHideNotificationCenter,
     value,
     (v) => tempHideNotificationCenter = v,
+  );
+
+  Future<void> setTempHideForegroundApp(bool value) => _setBoolPref(
+    kPrefTempHideForegroundApp,
+    value,
+    (v) => tempHideForegroundApp = v,
   );
 
   Future<void> setTempHideFullscreenLandscapeDisable(bool value) =>

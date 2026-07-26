@@ -2038,8 +2038,7 @@ class AppLocalizationsRu extends AppLocalizations {
       'Управлять тем, разрешено ли системным сценам временно скрывать Остров. Отключение элемента блокирует соответствующую системную логику скрытия.';
 
   @override
-  String get hideBehaviorMasterSwitch =>
-      'Включить перехват поведения при скрытии';
+  String get hideBehaviorMasterSwitch => 'Включить инъекцию перехвата скрытия';
 
   @override
   String get hideBehaviorMasterSwitchSubtitle =>
@@ -2086,6 +2085,13 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get hideBehaviorNotificationCenterSubtitle =>
       'Скрывать Остров, пока шторка уведомлений разворачивается или переходит';
+
+  @override
+  String get hideBehaviorForegroundApp => 'Приложение на переднем плане';
+
+  @override
+  String get hideBehaviorForegroundAppSubtitle =>
+      'Скрывать собственный Остров приложения, когда оно находится на переднем плане';
 
   @override
   String get off => 'Выкл';

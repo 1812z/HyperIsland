@@ -418,6 +418,7 @@ object ConfigManager {
         "pref_temp_hide_fullscreen_landscape_disable",
         "pref_temp_hide_screen_locked",
         "pref_temp_hide_notification_center",
+        "pref_temp_hide_foreground_app",
         "pref_blur_bars",
         "pref_debug_log"
     )

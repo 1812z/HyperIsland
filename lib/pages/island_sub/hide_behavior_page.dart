@@ -62,9 +62,9 @@ class _HideBehaviorPageState extends State<HideBehaviorPage> {
                 const SizedBox(height: 8),
                 Text(
                   l10n.hideBehaviorDescription,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: cs.onSurfaceVariant,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
                 ),
                 const SizedBox(height: 12),
                 Card(
@@ -119,7 +119,8 @@ class _HideBehaviorPageState extends State<HideBehaviorPage> {
                         subtitle:
                             l10n.hideBehaviorFullscreenLandscapeDisableSubtitle,
                         value: _ctrl.tempHideFullscreenLandscapeDisable,
-                        onChanged: _ctrl.tempHideBehaviorEnabled &&
+                        onChanged:
+                            _ctrl.tempHideBehaviorEnabled &&
                                 !_ctrl.tempHideFullscreen
                             ? _ctrl.setTempHideFullscreenLandscapeDisable
                             : null,
@@ -142,6 +143,16 @@ class _HideBehaviorPageState extends State<HideBehaviorPage> {
                         value: _ctrl.tempHideNotificationCenter,
                         onChanged: _ctrl.tempHideBehaviorEnabled
                             ? _ctrl.setTempHideNotificationCenter
+                            : null,
+                        titleStyle: titleStyle,
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      _SwitchTile(
+                        title: l10n.hideBehaviorForegroundApp,
+                        subtitle: l10n.hideBehaviorForegroundAppSubtitle,
+                        value: _ctrl.tempHideForegroundApp,
+                        onChanged: _ctrl.tempHideBehaviorEnabled
+                            ? _ctrl.setTempHideForegroundApp
                             : null,
                         titleStyle: titleStyle,
                       ),
