@@ -574,7 +574,8 @@ class MainActivity : FlutterActivity() {
                     firstFloat       = false,
                     highlightColor   = "#E040FB",
                     showNotification = true,
-                    islandOuterGlow  = true
+                    islandOuterGlow  = true,
+                    outerGlow = true,
                 )
             )
             result.success(true)
