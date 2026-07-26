@@ -5,7 +5,7 @@ object ExpressionResolver {
 
     fun resolve(expr: String, vars: Map<String, String>): String {
         val safeExpr = expr.take(MAX_EXPR_LEN)
-        val tokenRegex = Regex("\\$\\{([^}]*)\\}")
+        val tokenRegex = Regex("\\$\\{([^}{]*(?:\\{[^}{]*\\}[^}{]*)*)\\}")
         return tokenRegex.replace(safeExpr) { m ->
             evaluateToken(m.groupValues[1], vars)
         }
