@@ -210,4 +210,16 @@ export const donors: DonorItem[] = [
     date: '2026-07-24',
     message: '火车站很满意，又来支持了'
   },
+  {
+    name: " ",
+    amount: 8.88,
+    date: '2026-07-25',
+    message: '❤️'
+  },
+  {
+    name: "尘世中一个迷途妖精十八怪尾巴",
+    amount: '10',
+    date: '2026-07-26',
+    message: '继续努力'
+  },
 ]
