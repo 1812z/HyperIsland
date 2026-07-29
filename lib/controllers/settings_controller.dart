@@ -381,7 +381,8 @@ class SettingsController extends ChangeNotifier {
     defaultPreserveSmallIcon =
         prefs.getBool(kPrefDefaultPreserveSmallIcon) ?? false;
     defaultOutEffectColor = prefs.getString(kPrefDefaultOutEffectColor) ?? '';
-    defaultTimeout = (prefs.getInt(kPrefDefaultTimeout) ?? 5).clamp(1, 60);
+    final storedDefaultTimeout = prefs.getInt(kPrefDefaultTimeout) ?? 5;
+    defaultTimeout = storedDefaultTimeout < 1 ? 1 : storedDefaultTimeout;
     defaultIslandOuterGlowColor =
         prefs.getString(kPrefDefaultIslandOuterGlowColor) ?? '';
     fullscreenBehavior = _normalizeSceneBehavior(
@@ -982,8 +983,8 @@ class SettingsController extends ChangeNotifier {
   }
 
   Future<void> setDefaultTimeout(int value) async {
-    final clamped = value.clamp(1, 60);
-    if (defaultTimeout == clamped) return;
+    final normalized = value < 1 ? 1 : value;
+    if (defaultTimeout == normalized) return;
     final prefs = await _getPrefs();
     await prefs.setInt(kPrefDefaultTimeout, clamped);
     defaultTimeout = clamped;

@@ -46,9 +46,7 @@ class _DefaultConfigPageState extends State<DefaultConfigPage> {
 
   Future<void> _persistDefaultTimeout(String raw) async {
     final n = int.tryParse(raw.trim());
-    final next = (n == null || n < 1 || n > 60)
-        ? _ctrl.defaultTimeout
-        : n;
+    final next = (n == null || n < 1) ? _ctrl.defaultTimeout : n;
     if (next == _ctrl.defaultTimeout) {
       if (_defaultTimeoutController.text != next.toString()) {
         _defaultTimeoutController.text = next.toString();

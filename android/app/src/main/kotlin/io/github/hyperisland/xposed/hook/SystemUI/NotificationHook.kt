@@ -383,7 +383,7 @@ object GenericProgressHook : BaseHook() {
             val islandTimeout = if (overrideMarqueeTimeout) {
                 Int.MAX_VALUE
             } else if (islandTimeoutStr == "default") {
-                ConfigManager.getInt("pref_default_timeout", 5).coerceIn(1, 60)
+                ConfigManager.getInt("pref_default_timeout", 5).coerceAtLeast(1)
             } else {
                 islandTimeoutStr.toIntOrNull()?.coerceAtLeast(1) ?: 5
             }
