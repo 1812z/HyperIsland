@@ -986,8 +986,8 @@ class SettingsController extends ChangeNotifier {
     final normalized = value < 1 ? 1 : value;
     if (defaultTimeout == normalized) return;
     final prefs = await _getPrefs();
-    await prefs.setInt(kPrefDefaultTimeout, clamped);
-    defaultTimeout = clamped;
+    await prefs.setInt(kPrefDefaultTimeout, normalized);
+    defaultTimeout = normalized;
     notifyListeners();
   }
 
