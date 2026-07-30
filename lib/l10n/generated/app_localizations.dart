@@ -413,7 +413,7 @@ abstract class AppLocalizations {
   /// No description provided for @note3.
   ///
   /// In zh, this message translates to:
-  /// **'3.LSPosed 管理器中激活后，必须重启相关作用域软件'**
+  /// **'3.A16 系统界面组件版本建议>17.1'**
   String get note3;
 
   /// No description provided for @note4.

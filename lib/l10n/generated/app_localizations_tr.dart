@@ -184,7 +184,7 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get note3 =>
-      '3. LSPosed Manager\'da etkinleştirdikten sonra ilgili etki alanındaki uygulamaları yeniden başlatmanız gerekir';
+      '3. A16 için Sistem Arayüzü bileşeninin 17.1\'den yeni bir sürümü önerilir';
 
   @override
   String get note4 =>
@@ -2133,5 +2133,5 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get alwaysOnIsland => '常驻岛';
+  String get alwaysOnIsland => 'Kalıcı Ada';
 }

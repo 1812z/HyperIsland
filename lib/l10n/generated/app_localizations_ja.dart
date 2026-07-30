@@ -175,7 +175,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get note2 => '2. ほとんどの設定はホットリロードに対応しています。異常が発生した場合はスコープを再起動してください';
 
   @override
-  String get note3 => '3. LSPosed Manager で有効化後、関連するスコープアプリを再起動する必要があります';
+  String get note3 => '3. A16 では、システム UI コンポーネントのバージョンは 17.1 より上を推奨します';
 
   @override
   String get note4 => '4. このページはダイナミックアイランドとグロー効果の対応テスト用であり、実際の効果を示すものではありません';
@@ -2060,5 +2060,5 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get alwaysOnIsland => '常驻岛';
+  String get alwaysOnIsland => '常駐アイランド';
 }

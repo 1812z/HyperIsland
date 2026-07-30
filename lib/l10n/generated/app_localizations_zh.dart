@@ -174,7 +174,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get note2 => '2.大部分配置支持热重载，如遇异常请重启作用域';
 
   @override
-  String get note3 => '3.LSPosed 管理器中激活后，必须重启相关作用域软件';
+  String get note3 => '3.A16 系统界面组件版本建议>17.1';
 
   @override
   String get note4 => '4.此页面仅用于测试是否支持超级岛及光效，并不代表实际效果';

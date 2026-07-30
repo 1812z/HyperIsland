@@ -186,7 +186,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get note3 =>
-      '3. После активации в LSPosed Manager необходимо перезапустить связанные приложения в области';
+      '3. Для A16 рекомендуется версия компонента системного интерфейса выше 17.1';
 
   @override
   String get note4 =>
@@ -2155,5 +2155,5 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
-  String get alwaysOnIsland => '常驻岛';
+  String get alwaysOnIsland => 'Постоянный остров';
 }
