@@ -132,6 +132,7 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
+          export BUILD_TIME="$(date -u '+%Y-%m-%d %H:%M')"
           flutter build apk --release --no-pub \
             --target-platform android-arm64 \
             --build-name="${{ steps.version.outputs.build_version_name }}" \
