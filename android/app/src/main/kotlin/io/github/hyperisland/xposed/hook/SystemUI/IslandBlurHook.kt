@@ -115,6 +115,9 @@ object IslandBlurHook : BaseHook() {
     @Volatile
     private var islandTempHidden = false
 
+    @Volatile
+    private var tempHiddenRebuildAllowedAt = 0L
+
     override fun getTag() = TAG
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
@@ -515,9 +518,9 @@ object IslandBlurHook : BaseHook() {
     }
 
     /**
-     * A native BackgroundBlurDrawable must not survive or be created while the
-     * island window is temporarily hidden. Its RenderThread region otherwise
-     * starts without the island's published geometry and can become a full rect.
+     * Release the native blur when temporary hiding starts. A focus island can
+     * still become visible while the status bar remains hidden; in that case the
+     * real draw pass is allowed to rebuild it after validating visible geometry.
      */
     private fun hookTempHiddenLifecycle(
         module: XposedModule,
@@ -556,6 +559,7 @@ object IslandBlurHook : BaseHook() {
 
     private fun enterTempHidden() {
         islandTempHidden = true
+        tempHiddenRebuildAllowedAt = android.os.SystemClock.uptimeMillis() + 32L
         val active = synchronized(outerBlurs) {
             outerBlurs.entries.map { it.key to it.value }
         }
@@ -916,8 +920,7 @@ object IslandBlurHook : BaseHook() {
         drawableField: java.lang.reflect.Field,
     ) {
         val pending = pendingOuterBlurs[backgroundView] ?: return
-        if (islandTempHidden ||
-            !backgroundView.isAttachedToWindow ||
+        if (!backgroundView.isAttachedToWindow ||
             backgroundView.visibility != View.VISIBLE
         ) return
         val config = configForType(pending.type)
@@ -928,6 +931,14 @@ object IslandBlurHook : BaseHook() {
         val shapeView = pending.shapeView.get() ?: run {
             pendingOuterBlurs.remove(backgroundView)
             return
+        }
+        if (islandTempHidden) {
+            val now = android.os.SystemClock.uptimeMillis()
+            if (now < tempHiddenRebuildAllowedAt) {
+                mainHandler.postAtTime({ backgroundView.invalidate() }, tempHiddenRebuildAllowedAt)
+                return
+            }
+            if (!hasVisibleGeometry(backgroundView, shapeView)) return
         }
         if (currentBackgroundBounds(backgroundView) == null) return
 
@@ -1296,6 +1307,26 @@ object IslandBlurHook : BaseHook() {
             owned.active = false
             active = false
         }
+    }
+
+    /** A hidden status bar does not imply that a newly focused island is hidden. */
+    private fun hasVisibleGeometry(backgroundView: View, shapeView: View): Boolean {
+        if (!backgroundView.isShown || !shapeView.isShown ||
+            backgroundView.windowVisibility != View.VISIBLE ||
+            shapeView.windowVisibility != View.VISIBLE
+        ) return false
+
+        val visibleRect = android.graphics.Rect()
+        if (!shapeView.getGlobalVisibleRect(visibleRect) ||
+            visibleRect.width() <= 0 || visibleRect.height() <= 0
+        ) return false
+
+        var current: View? = shapeView
+        while (current != null) {
+            if (current.visibility != View.VISIBLE || current.alpha <= 0.01f) return false
+            current = current.parent as? View
+        }
+        return true
     }
 
     private class TransitionBlur(
