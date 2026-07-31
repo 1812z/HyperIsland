@@ -263,6 +263,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get roundIconSubtitle => '通知アイコンの角を丸めます';
 
   @override
+  String get roundIconRadiusTitle => '角の丸み';
+
+  @override
   String get marqueeChannelTitle => 'Island のテキストをスクロール';
 
   @override

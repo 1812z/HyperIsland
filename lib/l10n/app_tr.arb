@@ -121,6 +121,7 @@
   "alreadyLatest": "Zaten en güncel sürümdesiniz",
   "roundIconTitle": "Simge Köşelerini Yuvarla",
   "roundIconSubtitle": "Bildirim simgelerine yuvarlatılmış köşe uygular.",
+  "roundIconRadiusTitle": "Köşe yuvarlaklığı",
   "marqueeChannelTitle": "Ada Metnini Kaydır",
   "marqueeAutoHideOnceOverride": "1 kez kaydır (zaman aşımını geçersiz kıl)",
   "marqueeAutoHideTwiceOverride": "2 kez kaydır (zaman aşımını geçersiz kıl)",

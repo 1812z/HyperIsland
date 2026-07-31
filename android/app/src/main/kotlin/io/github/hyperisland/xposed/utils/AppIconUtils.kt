@@ -24,9 +24,9 @@ internal fun Context.moduleContext(): Context = try {
 
 /**
  * 将 Icon 转为圆角版本。失败时原样返回。
- * @param radiusFraction 圆角半径占图标尺寸的比例，默认 0.25（25%）
+ * 圆角程度由配置控制：0 为直角，100 为圆形。
  */
-fun Icon.toRounded(context: Context, radiusFraction: Float = 0.25f): Icon {
+fun Icon.toRounded(context: Context): Icon {
     if (!isRoundIconEnabled()) return this
     return try {
         val drawable = loadDrawable(context) ?: return this
@@ -38,7 +38,8 @@ fun Icon.toRounded(context: Context, radiusFraction: Float = 0.25f): Icon {
         val dst = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(dst)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        val r = size * radiusFraction
+        val radiusPercent = ConfigManager.getInt("pref_round_icon_radius", 50).coerceIn(0, 100)
+        val r = size * radiusPercent / 200f
         canvas.drawRoundRect(RectF(0f, 0f, size.toFloat(), size.toFloat()), r, r, paint)
         paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
         canvas.drawBitmap(src, 0f, 0f, paint)

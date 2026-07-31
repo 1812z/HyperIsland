@@ -258,6 +258,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get roundIconSubtitle => '为通知图标添加圆角效果';
 
   @override
+  String get roundIconRadiusTitle => '圆角程度';
+
+  @override
   String get marqueeChannelTitle => '消息滚动';
 
   @override

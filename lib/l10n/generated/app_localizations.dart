@@ -578,6 +578,12 @@ abstract class AppLocalizations {
   /// **'为通知图标添加圆角效果'**
   String get roundIconSubtitle;
 
+  /// No description provided for @roundIconRadiusTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'圆角程度'**
+  String get roundIconRadiusTitle;
+
   /// No description provided for @marqueeChannelTitle.
   ///
   /// In zh, this message translates to:

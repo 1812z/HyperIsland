@@ -284,6 +284,9 @@ class AppLocalizationsRu extends AppLocalizations {
       'Добавить скругленные углы к иконкам уведомлений';
 
   @override
+  String get roundIconRadiusTitle => 'Степень скругления';
+
+  @override
   String get marqueeChannelTitle => 'Бегущая строка на Острове';
 
   @override

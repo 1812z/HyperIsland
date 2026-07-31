@@ -114,6 +114,7 @@
   "alreadyLatest": "Already on the latest version",
   "roundIconTitle": "Round icon corners",
   "roundIconSubtitle": "Add rounded corners to notification icons",
+  "roundIconRadiusTitle": "Corner roundness",
   "marqueeChannelTitle": "Text Scrolling Island",
   "marqueeAutoHideTitle": "Hide Island after scrolling",
   "marqueeAutoHideSubtitle": "Hide the current Island after the message scrolls the selected number of times",

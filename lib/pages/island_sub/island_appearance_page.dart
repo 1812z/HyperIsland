@@ -25,6 +25,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
   late double _islandTopOffsetDraft;
   late int _bigIslandMaxWidthDraft;
   late int _bigIslandMinWidthDraft;
+  late int _roundIconRadiusDraft;
   late int _outerGlowRangeDraft;
   late int _glassEdgeWidthDraft;
   late int _glassRefractionDraft;
@@ -40,6 +41,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _ctrl.bigIslandMaxWidth,
     _ctrl.bigIslandMinWidth,
     _ctrl.roundIcon,
+    _ctrl.roundIconRadius,
     _ctrl.islandBgSmallPath,
     _ctrl.islandBgBigPath,
     _ctrl.islandBgExpandPath,
@@ -83,6 +85,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _islandTopOffsetDraft = _ctrl.islandTopOffset;
     _bigIslandMaxWidthDraft = _ctrl.bigIslandMaxWidth;
     _bigIslandMinWidthDraft = _ctrl.bigIslandMinWidth;
+    _roundIconRadiusDraft = _ctrl.roundIconRadius;
     _outerGlowRangeDraft = _ctrl.outerGlowRange;
     _syncGlassDrafts();
     _buildHash = _computeHash();
@@ -102,12 +105,14 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     final nextTopOffset = _ctrl.islandTopOffset;
     final nextMaxWidth = _ctrl.bigIslandMaxWidth;
     final nextMinWidth = _ctrl.bigIslandMinWidth;
+    final nextRoundIconRadius = _ctrl.roundIconRadius;
     final nextGlowRange = _ctrl.outerGlowRange;
     if (nextHash == _buildHash &&
         nextHeight == _islandHeightDraft &&
         nextTopOffset == _islandTopOffsetDraft &&
         nextMaxWidth == _bigIslandMaxWidthDraft &&
         nextMinWidth == _bigIslandMinWidthDraft &&
+        nextRoundIconRadius == _roundIconRadiusDraft &&
         nextGlowRange == _outerGlowRangeDraft) {
       return;
     }
@@ -117,6 +122,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
       _islandTopOffsetDraft = nextTopOffset;
       _bigIslandMaxWidthDraft = nextMaxWidth;
       _bigIslandMinWidthDraft = nextMinWidth;
+      _roundIconRadiusDraft = nextRoundIconRadius;
       _outerGlowRangeDraft = nextGlowRange;
       _syncGlassDrafts();
     });
@@ -1022,17 +1028,40 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                 Card(
                   elevation: 0,
                   color: cs.surfaceContainerHighest,
-                  child: SwitchListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 4,
-                    ),
-                    title: Text(l10n.roundIconTitle, style: titleStyle),
-                    subtitle: Text(l10n.roundIconSubtitle),
-                    value: _ctrl.roundIcon,
-                    onChanged: InteractionHaptics.interceptToggle(
-                      _onRoundIconChanged,
-                    ),
+                  child: Column(
+                    children: [
+                      SwitchListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        title: Text(l10n.roundIconTitle, style: titleStyle),
+                        subtitle: Text(l10n.roundIconSubtitle),
+                        value: _ctrl.roundIcon,
+                        onChanged: InteractionHaptics.interceptToggle(
+                          _onRoundIconChanged,
+                        ),
+                      ),
+                      if (_ctrl.roundIcon) ...[
+                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        _DimenTile(
+                          title: l10n.roundIconRadiusTitle,
+                          value: _roundIconRadiusDraft.toDouble(),
+                          min: 0,
+                          max: 100,
+                          unit: '%',
+                          defaultVal: 50,
+                          followSystemLabel: '50 %',
+                          onChanged: (value) {
+                            final next = value.round();
+                            if (_roundIconRadiusDraft == next) return;
+                            setState(() => _roundIconRadiusDraft = next);
+                          },
+                          onPersist: (value) =>
+                              _ctrl.setRoundIconRadius(value.round()),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
                 const SizedBox(height: 8),

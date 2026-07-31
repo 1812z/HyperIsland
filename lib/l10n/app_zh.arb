@@ -121,6 +121,7 @@
   "alreadyLatest": "已是最新版本",
   "roundIconTitle": "图标圆角",
   "roundIconSubtitle": "为通知图标添加圆角效果",
+  "roundIconRadiusTitle": "圆角程度",
   "marqueeChannelTitle": "消息滚动",
   "marqueeAutoHideTitle": "滚动后隐藏岛",
   "marqueeAutoHideSubtitle": "消息滚动达到指定次数后隐藏当前岛",

@@ -280,6 +280,9 @@ class AppLocalizationsTr extends AppLocalizations {
       'Bildirim simgelerine yuvarlatılmış köşe uygular.';
 
   @override
+  String get roundIconRadiusTitle => 'Köşe yuvarlaklığı';
+
+  @override
   String get marqueeChannelTitle => 'Ada Metnini Kaydır';
 
   @override

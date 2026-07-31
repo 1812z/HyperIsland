@@ -114,6 +114,7 @@
   "alreadyLatest": "Уже установлена последняя версия",
   "roundIconTitle": "Скругленные углы иконок",
   "roundIconSubtitle": "Добавить скругленные углы к иконкам уведомлений",
+  "roundIconRadiusTitle": "Степень скругления",
   "marqueeChannelTitle": "Бегущая строка на Острове",
   "marqueeAutoHideOnceOverride": "1 прокрутка (вместо тайм-аута)",
   "marqueeAutoHideTwiceOverride": "2 прокрутки (вместо тайм-аута)",

@@ -278,6 +278,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roundIconSubtitle => 'Add rounded corners to notification icons';
 
   @override
+  String get roundIconRadiusTitle => 'Corner roundness';
+
+  @override
   String get marqueeChannelTitle => 'Text Scrolling Island';
 
   @override
