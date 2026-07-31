@@ -548,6 +548,21 @@ object IslandBackgroundHook : BaseHook() {
         )
     }
 
+    /** Creates an independent image drawable for a fake transition island. */
+    internal fun createTransitionBackground(view: View, typeName: String): Drawable? {
+        val type = when (typeName) {
+            "SMALL" -> IslandType.SMALL
+            "BIG" -> IslandType.BIG
+            "EXPAND" -> IslandType.EXPAND
+            else -> return null
+        }
+        if (!hasBgFileForType(type)) return null
+        val module = hookModule ?: return null
+        return loadCustomDrawable(type, view.context, module)
+            ?.let(::newDrawableInstance)
+            ?.also { setWeakCallback(it, view) }
+    }
+
     internal fun updateStockOutline(
         backgroundView: Any?,
         stockDrawable: Drawable?,
