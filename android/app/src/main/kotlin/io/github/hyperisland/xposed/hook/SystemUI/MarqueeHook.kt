@@ -547,7 +547,7 @@ object MarqueeHook : BaseHook() {
                                 )
                                 if (rawTimeout == "default") {
                                     ConfigManager.getInt("pref_default_timeout", 5)
-                                        .coerceIn(1, 60)
+                                        .coerceAtLeast(1)
                                 } else {
                                     rawTimeout.toIntOrNull()?.coerceAtLeast(1) ?: 5
                                 }
@@ -558,7 +558,7 @@ object MarqueeHook : BaseHook() {
                                 )
                                 if (rawChannelTimeout == "default") {
                                     ConfigManager.getInt("pref_default_timeout", 5)
-                                        .coerceIn(1, 60)
+                                        .coerceAtLeast(1)
                                 } else {
                                     rawChannelTimeout.toIntOrNull()?.coerceAtLeast(1) ?: 5
                                 }

@@ -1,8 +1,8 @@
 import java.util.Properties
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 
-val buildTime: String = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+val buildTime = providers.gradleProperty("buildTime")
+    .orElse(providers.environmentVariable("BUILD_TIME"))
+    .getOrElse("dev")
 
 plugins {
     id("com.android.application")

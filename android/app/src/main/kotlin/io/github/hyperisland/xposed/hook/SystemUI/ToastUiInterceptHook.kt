@@ -223,7 +223,7 @@ object ToastUiInterceptHook : BaseHook() {
         val rawTimeout = ConfigManager.getString("pref_toast_timeout_$pkg", "default")
         val clampedTimeout = if (rawTimeout == "default") {
             ConfigManager.getInt("pref_default_timeout", 5)
-                .coerceIn(1, 60)
+                .coerceAtLeast(1)
         } else {
             rawTimeout.toIntOrNull()
                 ?.coerceIn(1, 20)

@@ -103,7 +103,7 @@
   "restartRootRequired": "このアプリに root 権限が付与されているか確認してください",
   "note1": "1. 使用前に右上隅の使用チュートリアルを必ずご確認ください",
   "note2": "2. ほとんどの設定はホットリロードに対応しています。異常が発生した場合はスコープを再起動してください",
-  "note3": "3. LSPosed Manager で有効化後、関連するスコープアプリを再起動する必要があります",
+  "note3": "3. A16 では、システム UI コンポーネントのバージョンは 17.1 より上を推奨します",
   "note4": "4. このページはダイナミックアイランドとグロー効果の対応テスト用であり、実際の効果を示すものではありません",
   "note5": "5. ダウンロード上島には「ダウンロードマネージャー」を手動で有効にしてください。「ダウンロード」テンプレートをおすすめします",
   "behaviorSection": "動作",
@@ -131,6 +131,7 @@
   "alreadyLatest": "最新のバージョンを使用しています",
   "roundIconTitle": "アイコンの角を丸める",
   "roundIconSubtitle": "通知アイコンの角を丸めます",
+  "roundIconRadiusTitle": "角の丸み",
   "marqueeChannelTitle": "Island のテキストをスクロール",
   "marqueeAutoHideOnceOverride": "1回スクロール（タイムアウトを上書き）",
   "marqueeAutoHideTwiceOverride": "2回スクロール（タイムアウトを上書き）",
@@ -688,5 +689,6 @@
   "hideBehaviorForegroundAppSubtitle": "アプリがフォアグラウンドのとき、そのアプリ自身のアイランドを非表示にします",
   "tapToSelectImage": "タップして画像またはGIFを選択",
   "autoExpandNotification": "通知を自動展開",
-  "off": "オフ"
+  "off": "オフ",
+  "alwaysOnIsland": "常駐アイランド"
 }

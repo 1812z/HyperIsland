@@ -215,7 +215,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get note3 =>
-      '3. After activating in LSPosed Manager, you must restart the related scope apps';
+      '3. For A16, System UI component version >17.1 is recommended';
 
   @override
   String get note4 =>
@@ -308,6 +308,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get roundIconSubtitle => 'Add rounded corners to notification icons';
+
+  @override
+  String get roundIconRadiusTitle => 'Corner roundness';
 
   @override
   String get marqueeChannelTitle => 'Text Scrolling Island';

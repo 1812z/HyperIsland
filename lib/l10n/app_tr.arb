@@ -110,7 +110,7 @@
   "restartRootRequired": "Lütfen bu uygulamaya root izni verildiğini doğrulayın",
   "note1": "1. Kullanmadan önce sağ üst köşedeki kullanım kılavuzunu mutlaka okuyun",
   "note2": "2. Çoğu ayar sıcak yeniden yüklemeyi destekler; sorun yaşarsanız etki alanını yeniden başlatın",
-  "note3": "3. LSPosed Manager'da etkinleştirdikten sonra ilgili etki alanındaki uygulamaları yeniden başlatmanız gerekir",
+  "note3": "3. A16 için Sistem Arayüzü bileşeninin 17.1'den yeni bir sürümü önerilir",
   "note4": "4. Bu sayfa yalnızca Dynamic Island ve dış parlama desteğini test etmek içindir; gerçek görünümü yansıtmaz",
   "note5": "5. İndirme adası için lütfen \"İndirme Yöneticisi\" kapsamını manuel olarak etkinleştirin; \"İndirme\" şablonu önerilir",
   "behaviorSection": "Davranış",
@@ -138,6 +138,7 @@
   "alreadyLatest": "Zaten en güncel sürümdesiniz",
   "roundIconTitle": "Simge Köşelerini Yuvarla",
   "roundIconSubtitle": "Bildirim simgelerine yuvarlatılmış köşe uygular.",
+  "roundIconRadiusTitle": "Köşe yuvarlaklığı",
   "marqueeChannelTitle": "Ada Metnini Kaydır",
   "marqueeAutoHideOnceOverride": "1 kez kaydır (zaman aşımını geçersiz kıl)",
   "marqueeAutoHideTwiceOverride": "2 kez kaydır (zaman aşımını geçersiz kıl)",
@@ -835,5 +836,6 @@
   "hideBehaviorForegroundAppSubtitle": "Uygulama ön plandayken kendi adasını gizle",
   "tapToSelectImage": "Resim veya GIF seçmek için dokunun",
   "autoExpandNotification": "Bildirimi otomatik genişlet",
-  "off": "Kapalı"
+  "off": "Kapalı",
+  "alwaysOnIsland": "Kalıcı Ada"
 }

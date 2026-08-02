@@ -398,10 +398,13 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
 
     final json = _decodeJson(merged);
     _rebuildFocusControllers(schema, json);
+    final compacted = _focusCustom == null || schema == null
+        ? _focusCustom
+        : _encodeCustomizationOverrides(schema, _focusControllers);
 
     setState(() {
       _focusSchema = schema;
-      _focusCustom = merged;
+      _focusCustom = compacted;
       _loadingFocusSchema = false;
     });
     _loadIslandSchema();
@@ -423,9 +426,12 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
 
     final json = _decodeJson(merged);
     _rebuildIslandControllers(schema, json);
+    final compacted = _islandCustom == null || schema == null
+        ? _islandCustom
+        : _encodeCustomizationOverrides(schema, _islandControllers);
     setState(() {
       _islandSchema = schema;
-      _islandCustom = merged;
+      _islandCustom = compacted;
       _loadingIslandSchema = false;
     });
     _loadAodSchema();
@@ -445,9 +451,12 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
 
     final json = _decodeJson(merged);
     _rebuildAodControllers(schema, json);
+    final compacted = _aodCustom == null || schema == null
+        ? _aodCustom
+        : _encodeCustomizationOverrides(schema, _aodControllers);
     setState(() {
       _aodSchema = schema;
-      _aodCustom = merged;
+      _aodCustom = compacted;
       _loadingAodSchema = false;
     });
   }
@@ -459,6 +468,24 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
     } catch (_) {
       return <String, dynamic>{};
     }
+  }
+
+  String _encodeCustomizationOverrides(
+    Map<String, dynamic>? schema,
+    Map<String, TextEditingController> controllers,
+  ) {
+    final overrides = <String, dynamic>{};
+    final fields = (schema?['fields'] as List?)?.cast<Map>() ?? const [];
+    for (final field in fields) {
+      final key = (field['key'] ?? '').toString();
+      final controller = controllers[key];
+      if (key.isEmpty || controller == null) continue;
+      final defaultValue = (field['defaultValue'] ?? '').toString();
+      if (controller.text != defaultValue) {
+        overrides[key] = controller.text;
+      }
+    }
+    return overrides.isEmpty ? '' : jsonEncode(overrides);
   }
 
   void _rebuildFocusControllers(
@@ -489,11 +516,10 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
   }
 
   void _syncFocusCustomFromControllers() {
-    final map = <String, dynamic>{};
-    _focusControllers.forEach((key, ctl) {
-      map[key] = ctl.text;
-    });
-    _focusCustom = jsonEncode(map);
+    _focusCustom = _encodeCustomizationOverrides(
+      _focusSchema,
+      _focusControllers,
+    );
   }
 
   void _rebuildIslandControllers(
@@ -515,11 +541,10 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
   }
 
   void _syncIslandCustomFromControllers() {
-    final map = <String, dynamic>{};
-    _islandControllers.forEach((key, ctl) {
-      map[key] = ctl.text;
-    });
-    _islandCustom = jsonEncode(map);
+    _islandCustom = _encodeCustomizationOverrides(
+      _islandSchema,
+      _islandControllers,
+    );
   }
 
   void _rebuildAodControllers(
@@ -541,11 +566,7 @@ class _BatchChannelSettingsSheetState extends State<BatchChannelSettingsSheet> {
   }
 
   void _syncAodCustomFromControllers() {
-    final map = <String, dynamic>{};
-    _aodControllers.forEach((key, ctl) {
-      map[key] = ctl.text;
-    });
-    _aodCustom = jsonEncode(map);
+    _aodCustom = _encodeCustomizationOverrides(_aodSchema, _aodControllers);
   }
 
   Widget _buildFocusCustomizationFields() {

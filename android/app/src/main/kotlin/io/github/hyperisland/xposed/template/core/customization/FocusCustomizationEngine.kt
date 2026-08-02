@@ -71,7 +71,6 @@ object FocusCustomizationEngine {
 
     fun apply(context: Context, data: NotifData, vm: IslandViewModel): ApplyResult {
         val raw = data.focusCustomizationJson?.trim().orEmpty()
-        if (raw.isEmpty()) return ApplyResult(vm = vm)
 
         val template = TemplateRegistry.getTemplate(vm.templateId)
         val renderer = resolveRenderer(data.renderer)
@@ -80,7 +79,7 @@ object FocusCustomizationEngine {
         if (focusFields.isEmpty() && contributor == null) return ApplyResult(vm = vm)
 
         val config = try {
-            JSONObject(raw)
+            if (raw.isEmpty()) JSONObject() else JSONObject(raw)
         } catch (_: Exception) {
             return ApplyResult(vm = vm)
         }

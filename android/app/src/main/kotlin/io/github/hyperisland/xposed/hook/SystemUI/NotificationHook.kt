@@ -26,6 +26,9 @@ import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import io.github.libxposed.api.XposedModule
 import java.lang.reflect.Method
+import java.util.Collections
+import java.util.WeakHashMap
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * 通用通知 Hook — 在 SystemUI 进程内 Hook MiuiBaseNotifUtil.generateInnerNotifBean()。
@@ -69,6 +72,10 @@ object GenericProgressHook : BaseHook() {
 
     private val lastProgressCache = mutableMapOf<String, Int>()
     private val trackedForCancel = mutableMapOf<String, Int>()
+    private val cachedMediaEnabled = ConcurrentHashMap<String, Boolean>()
+    private val hookedMediaFilterClasses = Collections.synchronizedMap(
+        WeakHashMap<Class<*>, Boolean>(),
+    )
 
     /** LRU 缓存上限（超限自动淘汰最久未访问的条目） */
     private const val MAX_TEMPLATES_SIZE = 5000
@@ -76,6 +83,7 @@ object GenericProgressHook : BaseHook() {
     /** 非 LRU 缓存上限（超限时整体清空再写入） */
     private const val MAX_PROGRESS_CACHE_SIZE = 500
     private const val MAX_TRACKED_CANCEL_SIZE = 500
+    private const val MAX_MEDIA_ENABLED_CACHE_SIZE = 500
 
     private fun loadChannelStringSetting(cacheKey: String, prefKey: String, default: String): String {
         cachedChannelSettings[cacheKey]?.let { return it }
@@ -112,12 +120,23 @@ object GenericProgressHook : BaseHook() {
             else -> globalDefault
         }
 
+    private fun isMediaEnabled(pkg: String): Boolean {
+        cachedMediaEnabled[pkg]?.let { return it }
+        if (cachedMediaEnabled.size >= MAX_MEDIA_ENABLED_CACHE_SIZE) {
+            cachedMediaEnabled.clear()
+        }
+        return cachedMediaEnabled.computeIfAbsent(pkg) {
+            ConfigManager.getBoolean("pref_media_island_enabled_$pkg", true)
+        }
+    }
+
     private fun clearAllCaches() {
         cachedWhitelist = null
         cachedTemplates.clear()
         cachedChannelSettings.clear()
         lastProgressCache.clear()
         trackedForCancel.clear()
+        cachedMediaEnabled.clear()
     }
 
     fun loadChannelTemplate(pkg: String, channelId: String): String {
@@ -149,6 +168,11 @@ object GenericProgressHook : BaseHook() {
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
         val classLoader = param.defaultClassLoader
+
+        hookMediaNotificationFilter(module, classLoader)
+        HookUtils.hookDynamicClassLoaders(module, ClassLoader.getSystemClassLoader()) { pluginClassLoader ->
+            hookMediaNotificationFilter(module, pluginClassLoader)
+        }
 
         // Hook generateInnerNotifBean (before)
         try {
@@ -242,7 +266,7 @@ object GenericProgressHook : BaseHook() {
             if (isHyperIslandProxy && extras.containsKey("miui.focus.param")) return
 
             if (isMediaNotification(notif, extras)) {
-                handleMediaNotification(pkg, channelId, sbn.id, sbn.key, notif, extras, context, module, classLoader)
+                handleMediaNotification(pkg, channelId, sbn.id, sbn.key, notif, extras, context, module)
                 return
             }
 
@@ -652,7 +676,6 @@ object GenericProgressHook : BaseHook() {
         extras: Bundle,
         context: Context,
         module: XposedModule,
-        classLoader: ClassLoader,
     ) {
 //        val hasMediaSession = extras.containsKey(Notification.EXTRA_MEDIA_SESSION)
 //        val template = extras.getString(Notification.EXTRA_TEMPLATE).orEmpty()
@@ -661,9 +684,7 @@ object GenericProgressHook : BaseHook() {
 //            module, "media notification detected: pkg=$pkg channel=$channelId id=$notifId hasSession=$hasMediaSession template=$template mediaFocus=${!mediaFocus.isNullOrBlank()}",
 //        )
 
-        if (!ConfigManager.getBoolean("pref_media_island_enabled_$pkg", true)) {
-            cancelPostedNotification(sbnKey, module, classLoader)
-            log(module, "media notification canceled: pkg=$pkg channel=$channelId id=$notifId key=$sbnKey")
+        if (!isMediaEnabled(pkg)) {
             return
         }
 
@@ -757,21 +778,58 @@ object GenericProgressHook : BaseHook() {
         )
     }
 
-    private fun cancelPostedNotification(
-        sbnKey: String?,
-        module: XposedModule,
-        classLoader: ClassLoader,
-    ) {
-        if (sbnKey.isNullOrBlank()) return
-        runCatching {
-            val listenerClass = classLoader.loadClass("android.service.notification.NotificationListenerService")
-            val method = findMethod(listenerClass, "cancelNotification", String::class.java)
-            val context = HookUtils.getContext(classLoader) ?: return@runCatching
-            if (listenerClass.isInstance(context)) {
-                method.invoke(context, sbnKey)
+    private fun hookMediaNotificationFilter(module: XposedModule, classLoader: ClassLoader) {
+        var hookedClass: Class<*>? = null
+        try {
+            val pluginClass = classLoader.loadClass(
+                "miui.systemui.notification.FocusNotificationPluginImpl",
+            )
+            hookedClass = pluginClass
+            synchronized(hookedMediaFilterClasses) {
+                if (hookedMediaFilterClasses.put(pluginClass, true) != null) return
             }
-        }.onFailure {
-            logError(module, "cancel media notification failed: ${it.message}")
+            val method = pluginClass.declaredMethods.firstOrNull { method ->
+                method.name == "onNotificationPosted" &&
+                    method.returnType == Boolean::class.javaPrimitiveType &&
+                    method.parameterCount == 2 &&
+                    method.parameterTypes[0] == StatusBarNotification::class.java &&
+                    method.parameterTypes[1].name ==
+                    "android.service.notification.NotificationListenerService\$RankingMap"
+            }
+            if (method == null) {
+                hookedMediaFilterClasses.remove(pluginClass)
+                logError(module, "FocusNotificationPluginImpl.onNotificationPosted hook failed: method not found")
+                return
+            }
+            module.hook(method).intercept { chain ->
+                val sbn = chain.args.firstOrNull() as? StatusBarNotification
+                val shouldFilter = runCatching {
+                    val notification = sbn?.notification ?: return@runCatching false
+                    isMediaNotification(notification, notification.extras) &&
+                        !isMediaEnabled(sbn.packageName)
+                }.getOrElse { error ->
+                    logError(
+                        module,
+                        "media notification filter check failed: ${error.message}",
+                    )
+                    false
+                }
+                if (shouldFilter && sbn != null) {
+                    if (ConfigManager.isDebugLogEnabled()) {
+                        log(
+                            module,
+                            "media notification filtered: pkg=${sbn.packageName} id=${sbn.id} key=${sbn.key}",
+                        )
+                    }
+                    return@intercept true
+                }
+                chain.proceed()
+            }
+            log(module, "hooked FocusNotificationPluginImpl.onNotificationPosted")
+        } catch (_: ClassNotFoundException) {
+        } catch (e: Throwable) {
+            hookedClass?.let { hookedMediaFilterClasses.remove(it) }
+            logError(module, "FocusNotificationPluginImpl hook failed: ${e.message}")
         }
     }
 

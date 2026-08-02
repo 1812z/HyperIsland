@@ -84,6 +84,9 @@ object IslandBlurHook : BaseHook() {
     private val pendingOuterBlurs = Collections.synchronizedMap(
         WeakHashMap<View, PendingBlur>()
     )
+    private val transitionBlurs = Collections.synchronizedMap(
+        WeakHashMap<View, TransitionBlur>()
+    )
     private val detachListeners = Collections.synchronizedMap(
         WeakHashMap<View, View.OnAttachStateChangeListener>()
     )
@@ -111,6 +114,9 @@ object IslandBlurHook : BaseHook() {
 
     @Volatile
     private var islandTempHidden = false
+
+    @Volatile
+    private var tempHiddenRebuildAllowedAt = 0L
 
     override fun getTag() = TAG
 
@@ -319,7 +325,6 @@ object IslandBlurHook : BaseHook() {
                 outerDrawableField,
             )
             hookTempHiddenLifecycle(module, windowViewClass)
-            hookTransitionBlur(module, animationDelegateClass, fakeViewClass, methods)
             module.hook(updateMethod).intercept { chain ->
                 val result = chain.proceed()
                 val view = chain.args.getOrNull(0) as? View ?: return@intercept result
@@ -513,9 +518,9 @@ object IslandBlurHook : BaseHook() {
     }
 
     /**
-     * A native BackgroundBlurDrawable must not survive or be created while the
-     * island window is temporarily hidden. Its RenderThread region otherwise
-     * starts without the island's published geometry and can become a full rect.
+     * Release the native blur when temporary hiding starts. A focus island can
+     * still become visible while the status bar remains hidden; in that case the
+     * real draw pass is allowed to rebuild it after validating visible geometry.
      */
     private fun hookTempHiddenLifecycle(
         module: XposedModule,
@@ -554,6 +559,7 @@ object IslandBlurHook : BaseHook() {
 
     private fun enterTempHidden() {
         islandTempHidden = true
+        tempHiddenRebuildAllowedAt = android.os.SystemClock.uptimeMillis() + 32L
         val active = synchronized(outerBlurs) {
             outerBlurs.entries.map { it.key to it.value }
         }
@@ -762,6 +768,75 @@ object IslandBlurHook : BaseHook() {
         IslandType.EXPAND -> configs.expand
     }
 
+    internal fun isTransitionBlurEnabled(typeName: String): Boolean {
+        val type = typeFromName(typeName) ?: return false
+        return configForType(type).isActive
+    }
+
+    /** Installs the same native blur/liquid-glass pipeline on an animated fake island. */
+    internal fun applyTransitionBlur(view: View, typeName: String): Boolean {
+        val type = typeFromName(typeName) ?: return false
+        val config = configForType(type)
+        if (!config.isActive || !view.isAttachedToWindow) {
+            releaseTransitionBlur(view)
+            return false
+        }
+
+        return runCatching {
+            var transition = transitionBlurs[view]
+            if (transition?.owned?.type != type) {
+                releaseTransitionBlur(view)
+                val owned = createBackgroundBlurDrawable(view, type) ?: return@runCatching false
+                transition = TransitionBlur(owned, view.background)
+                transitionBlurs[view] = transition
+            }
+            val active = transition ?: return@runCatching false
+            updateOwnedBlur(view, active.owned, config, view)
+            if (view.background !== active.owned.drawable) {
+                view.background = active.owned.drawable
+            }
+            active.owned.active = true
+            ensureTransitionDetachCleanup(view)
+            view.invalidate()
+            true
+        }.getOrDefault(false)
+    }
+
+    internal fun releaseTransitionBlur(view: View) {
+        val transition = transitionBlurs.remove(view) ?: return
+        if (view.background === transition.owned.drawable) {
+            view.background = transition.stockDrawable
+        }
+        runCatching {
+            transition.owned.methods.setRadius.invoke(transition.owned.effectDrawable, 0)
+        }
+        transition.owned.release()
+        transition.owned.active = false
+        view.invalidate()
+    }
+
+    private fun typeFromName(typeName: String): IslandType? = when (typeName) {
+        "SMALL" -> IslandType.SMALL
+        "BIG" -> IslandType.BIG
+        "EXPAND" -> IslandType.EXPAND
+        else -> null
+    }
+
+    private fun ensureTransitionDetachCleanup(view: View) {
+        if (view.getTag(TRANSITION_BLUR_LISTENER_TAG) != null) return
+        val listener = object : View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(view: View) = Unit
+
+            override fun onViewDetachedFromWindow(view: View) {
+                releaseTransitionBlur(view)
+                view.setTag(TRANSITION_BLUR_LISTENER_TAG, null)
+                view.removeOnAttachStateChangeListener(this)
+            }
+        }
+        view.setTag(TRANSITION_BLUR_LISTENER_TAG, listener)
+        view.addOnAttachStateChangeListener(listener)
+    }
+
     private fun typeForView(view: View): IslandType? {
         val resourceName = runCatching {
             if (view.id == View.NO_ID) "" else view.resources.getResourceEntryName(view.id)
@@ -845,8 +920,7 @@ object IslandBlurHook : BaseHook() {
         drawableField: java.lang.reflect.Field,
     ) {
         val pending = pendingOuterBlurs[backgroundView] ?: return
-        if (islandTempHidden ||
-            !backgroundView.isAttachedToWindow ||
+        if (!backgroundView.isAttachedToWindow ||
             backgroundView.visibility != View.VISIBLE
         ) return
         val config = configForType(pending.type)
@@ -857,6 +931,14 @@ object IslandBlurHook : BaseHook() {
         val shapeView = pending.shapeView.get() ?: run {
             pendingOuterBlurs.remove(backgroundView)
             return
+        }
+        if (islandTempHidden) {
+            val now = android.os.SystemClock.uptimeMillis()
+            if (now < tempHiddenRebuildAllowedAt) {
+                mainHandler.postAtTime({ backgroundView.invalidate() }, tempHiddenRebuildAllowedAt)
+                return
+            }
+            if (!hasVisibleGeometry(backgroundView, shapeView)) return
         }
         if (currentBackgroundBounds(backgroundView) == null) return
 
@@ -1227,6 +1309,31 @@ object IslandBlurHook : BaseHook() {
         }
     }
 
+    /** A hidden status bar does not imply that a newly focused island is hidden. */
+    private fun hasVisibleGeometry(backgroundView: View, shapeView: View): Boolean {
+        if (!backgroundView.isShown || !shapeView.isShown ||
+            backgroundView.windowVisibility != View.VISIBLE ||
+            shapeView.windowVisibility != View.VISIBLE
+        ) return false
+
+        val visibleRect = android.graphics.Rect()
+        if (!shapeView.getGlobalVisibleRect(visibleRect) ||
+            visibleRect.width() <= 0 || visibleRect.height() <= 0
+        ) return false
+
+        var current: View? = shapeView
+        while (current != null) {
+            if (current.visibility != View.VISIBLE || current.alpha <= 0.01f) return false
+            current = current.parent as? View
+        }
+        return true
+    }
+
+    private class TransitionBlur(
+        val owned: OwnedBlur,
+        val stockDrawable: Drawable?,
+    )
+
     private class OwnedBlur(
         val drawable: Drawable,
         val effectDrawable: Drawable,
@@ -1241,6 +1348,8 @@ object IslandBlurHook : BaseHook() {
             clippedDrawable.release()
         }
     }
+
+    private const val TRANSITION_BLUR_LISTENER_TAG = 0x4859424c
 
     /** Keeps the blur region inside the same stroked rounded bounds as image backgrounds. */
     private class ClippedBlurDrawable(
