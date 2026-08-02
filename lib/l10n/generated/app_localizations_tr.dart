@@ -143,6 +143,38 @@ class AppLocalizationsTr extends AppLocalizations {
   String get notActivated => 'Etkin Değil';
 
   @override
+  String get homeModuleActive => 'Modül Etkin';
+
+  @override
+  String get homeModuleInactive => 'Modül Etkin Değil';
+
+  @override
+  String get homeTestHint => 'Test göndermek için dokunun';
+
+  @override
+  String get homeApps => 'Uygulamalar';
+
+  @override
+  String homeEnabledCount(int count) {
+    return '$count etkin';
+  }
+
+  @override
+  String get homeModuleVersion => 'Modül sürümü';
+
+  @override
+  String get homeLsposedVersion => 'LSPosed sürümü';
+
+  @override
+  String get homeAndroidVersion => 'Android sürümü';
+
+  @override
+  String get homeSystemVersion => 'Sistem sürümü';
+
+  @override
+  String get homeDeviceModel => 'Cihaz modeli';
+
+  @override
   String get enableInLSPosed => 'Lütfen bu modülü LSPosed içinde etkinleştirin';
 
   @override
@@ -1959,6 +1991,13 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get themePageTitle => 'Tema';
+
+  @override
+  String get monetThemeTitle => 'Monet dinamik renkleri';
+
+  @override
+  String get monetThemeSubtitle =>
+      'Etkinleştirildiğinde bir tohum renginden tam Miuix renk şeması oluşturur';
 
   @override
   String get themeSeedColorTitle => 'Tema Rengi';

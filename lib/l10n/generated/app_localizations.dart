@@ -350,6 +350,66 @@ abstract class AppLocalizations {
   /// **'未激活'**
   String get notActivated;
 
+  /// No description provided for @homeModuleActive.
+  ///
+  /// In zh, this message translates to:
+  /// **'模块已激活'**
+  String get homeModuleActive;
+
+  /// No description provided for @homeModuleInactive.
+  ///
+  /// In zh, this message translates to:
+  /// **'模块未激活'**
+  String get homeModuleInactive;
+
+  /// No description provided for @homeTestHint.
+  ///
+  /// In zh, this message translates to:
+  /// **'点击发送测试'**
+  String get homeTestHint;
+
+  /// No description provided for @homeApps.
+  ///
+  /// In zh, this message translates to:
+  /// **'应用'**
+  String get homeApps;
+
+  /// No description provided for @homeEnabledCount.
+  ///
+  /// In zh, this message translates to:
+  /// **'已启用 {count} 个'**
+  String homeEnabledCount(int count);
+
+  /// No description provided for @homeModuleVersion.
+  ///
+  /// In zh, this message translates to:
+  /// **'模块版本'**
+  String get homeModuleVersion;
+
+  /// No description provided for @homeLsposedVersion.
+  ///
+  /// In zh, this message translates to:
+  /// **'LSPosed 版本'**
+  String get homeLsposedVersion;
+
+  /// No description provided for @homeAndroidVersion.
+  ///
+  /// In zh, this message translates to:
+  /// **'Android 版本'**
+  String get homeAndroidVersion;
+
+  /// No description provided for @homeSystemVersion.
+  ///
+  /// In zh, this message translates to:
+  /// **'系统版本'**
+  String get homeSystemVersion;
+
+  /// No description provided for @homeDeviceModel.
+  ///
+  /// In zh, this message translates to:
+  /// **'设备型号'**
+  String get homeDeviceModel;
+
   /// No description provided for @enableInLSPosed.
   ///
   /// In zh, this message translates to:
@@ -3616,6 +3676,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'主题'**
   String get themePageTitle;
+
+  /// No description provided for @monetThemeTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'Monet 动态取色'**
+  String get monetThemeTitle;
+
+  /// No description provided for @monetThemeSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'开启后可使用种子色生成整套 Miuix 配色'**
+  String get monetThemeSubtitle;
 
   /// No description provided for @themeSeedColorTitle.
   ///

@@ -62,6 +62,23 @@
   "moduleStatus": "模块状态",
   "activated": "已激活",
   "notActivated": "未激活",
+  "homeModuleActive": "模块已激活",
+  "homeModuleInactive": "模块未激活",
+  "homeTestHint": "点击发送测试",
+  "homeApps": "应用",
+  "homeEnabledCount": "已启用 {count} 个",
+  "@homeEnabledCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeModuleVersion": "模块版本",
+  "homeLsposedVersion": "LSPosed 版本",
+  "homeAndroidVersion": "Android 版本",
+  "homeSystemVersion": "系统版本",
+  "homeDeviceModel": "设备型号",
   "enableInLSPosed": "请在 LSPosed 中启用本模块",
   "enableSystemUiScopeInLSPosed": "请在 LSPosed 作用域勾选系统界面",
   "lsposedApiVersion": "LSPosed API: {version}",
@@ -890,6 +907,8 @@
   "hookScopeXMSF": "小米服务框架",
   "downloadManagerSection": "下载管理程序",
   "themePageTitle": "主题",
+  "monetThemeTitle": "Monet 动态取色",
+  "monetThemeSubtitle": "开启后可使用种子色生成整套 Miuix 配色",
   "themeSeedColorTitle": "主题色",
   "themeSeedColorSubtitle": "自定义应用强调色",
   "presetColors": "预设色板",

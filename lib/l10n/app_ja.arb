@@ -70,6 +70,23 @@
   "moduleStatus": "モジュールの状態",
   "activated": "有効",
   "notActivated": "無効",
+  "homeModuleActive": "モジュール有効",
+  "homeModuleInactive": "モジュール無効",
+  "homeTestHint": "タップしてテストを送信",
+  "homeApps": "アプリ",
+  "homeEnabledCount": "{count} 個有効",
+  "@homeEnabledCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeModuleVersion": "モジュールバージョン",
+  "homeLsposedVersion": "LSPosed バージョン",
+  "homeAndroidVersion": "Android バージョン",
+  "homeSystemVersion": "システムバージョン",
+  "homeDeviceModel": "デバイスモデル",
   "enableInLSPosed": "LSPosed でこのモジュールを有効化してください",
   "enableSystemUiScopeInLSPosed": "LSPosed のスコープで System UI を選択してください",
   "updateLSPosedRequired": "LSPosed バージョンを更新してください",
@@ -628,6 +645,8 @@
   "hookScopeXMSF": "Xiaomiサービスフレームワーク (XMSF)",
   "downloadManagerSection": "ダウンロードマネージャー",
   "themePageTitle": "テーマ",
+  "monetThemeTitle": "Monet ダイナミックカラー",
+  "monetThemeSubtitle": "有効にすると、シードカラーから Miuix 配色全体を生成します",
   "themeSeedColorTitle": "テーマカラー",
   "themeSeedColorSubtitle": "アプリのアクセントカラーをカスタマイズ",
   "presetColors": "プリセットカラー",

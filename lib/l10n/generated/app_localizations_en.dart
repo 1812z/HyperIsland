@@ -142,6 +142,38 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notActivated => 'Not Activated';
 
   @override
+  String get homeModuleActive => 'Module Active';
+
+  @override
+  String get homeModuleInactive => 'Module Inactive';
+
+  @override
+  String get homeTestHint => 'Tap to send a test';
+
+  @override
+  String get homeApps => 'Apps';
+
+  @override
+  String homeEnabledCount(int count) {
+    return '$count enabled';
+  }
+
+  @override
+  String get homeModuleVersion => 'Module version';
+
+  @override
+  String get homeLsposedVersion => 'LSPosed version';
+
+  @override
+  String get homeAndroidVersion => 'Android version';
+
+  @override
+  String get homeSystemVersion => 'System version';
+
+  @override
+  String get homeDeviceModel => 'Device model';
+
+  @override
   String get enableInLSPosed => 'Please enable this module in LSPosed';
 
   @override
@@ -1964,6 +1996,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get themePageTitle => 'Theme';
+
+  @override
+  String get monetThemeTitle => 'Monet dynamic colors';
+
+  @override
+  String get monetThemeSubtitle =>
+      'Generate the full Miuix color scheme from a seed color when enabled';
 
   @override
   String get themeSeedColorTitle => 'Theme Color';

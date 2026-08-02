@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_miuix/miuix.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../controllers/home_controller.dart';
@@ -6,8 +9,8 @@ import '../controllers/settings_controller.dart';
 import '../controllers/update_controller.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../services/app_info_service.dart';
-import '../widgets/blur_app_bar.dart';
-import '../widgets/section_label.dart';
+import '../services/system_font_weight.dart';
+import '../widgets/miuix_page_scaffold.dart';
 
 const _channel = MethodChannel('io.github.hyperisland/test');
 
@@ -22,6 +25,24 @@ class _HomePageState extends State<HomePage> {
   late final HomeController _ctrl;
   bool _restarting = false;
   String _version = '';
+  final _snackbarHost = MiuixSnackbarHostState();
+  bool _showSponsor = false;
+  bool _showRestart = false;
+  bool _showCustomTest = false;
+  bool _showVersionUpdated = false;
+  String _updatedVersion = '';
+  bool _restartSystemUI = false;
+  bool _restartDownloadManager = false;
+  bool _restartXmsf = false;
+  bool _restartSettings = false;
+  String _customTitle = '';
+  String _customContent = '';
+  bool _customClearPrevious = true;
+  bool _customEnableFloat = true;
+  final _customTitleController = TextEditingController();
+  final _customContentController = TextEditingController();
+  Completer<bool>? _restartCompleter;
+  Completer<void>? _versionUpdatedCompleter;
 
   @override
   void initState() {
@@ -46,182 +67,91 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
+    final restartCompleter = _restartCompleter;
+    if (restartCompleter != null && !restartCompleter.isCompleted) {
+      restartCompleter.complete(false);
+    }
+    final versionCompleter = _versionUpdatedCompleter;
+    if (versionCompleter != null && !versionCompleter.isCompleted) {
+      versionCompleter.complete();
+    }
+    _customTitleController.dispose();
+    _customContentController.dispose();
     _ctrl.dispose();
+    _snackbarHost.dispose();
     super.dispose();
   }
 
   List<Widget> _actions(AppLocalizations l10n) => [
-        IconButton(
-          tooltip: l10n.documentation,
-          icon: const Icon(Icons.menu_book_outlined),
-          onPressed: () =>
-              launchUrl(Uri.parse('https://hyperisland.1812z.top/')),
-        ),
-        IconButton(
-          tooltip: l10n.sponsorAuthor,
-          icon: const Icon(Icons.favorite_border),
-          onPressed: _showSponsorDialog,
-        ),
-        _restarting
-            ? const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              )
-            : IconButton(
-                tooltip: l10n.restartScope,
-                icon: const Icon(Icons.restart_alt),
-                onPressed: _showRestartDialog,
-              ),
-      ];
+    MiuixIconButton(
+      onPressed: () => launchUrl(Uri.parse('https://hyperisland.1812z.top/')),
+      child: Tooltip(
+        message: l10n.documentation,
+        child: const Icon(Icons.menu_book_outlined),
+      ),
+    ),
+    MiuixIconButton(
+      onPressed: _showSponsorDialog,
+      child: Tooltip(
+        message: l10n.sponsorAuthor,
+        child: const Icon(Icons.favorite_border),
+      ),
+    ),
+    _restarting
+        ? const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: MiuixCircularProgressIndicator(strokeWidth: 2),
+            ),
+          )
+        : MiuixIconButton(
+            onPressed: _showRestartDialog,
+            child: Tooltip(
+              message: l10n.restartScope,
+              child: const Icon(Icons.restart_alt),
+            ),
+          ),
+  ];
 
   void _showSponsorDialog() {
-    final l10n = AppLocalizations.of(context)!;
-    const donorsUrl = 'https://hyperisland.1812z.top/donors.html';
-    showDialog(
-      context: context,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 4, 0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      l10n.sponsorSupport,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(ctx),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
-              ),
-            ),
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                bottom: Radius.circular(16),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Image.asset('assets/images/wechat.jpg', fit: BoxFit.contain),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: () => launchUrl(Uri.parse(donorsUrl)),
-                        icon: const Icon(Icons.format_list_bulleted),
-                        label: Text(l10n.donorList),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    setState(() => _showSponsor = true);
   }
 
   Future<void> _showRestartDialog() async {
-    final l10n = AppLocalizations.of(context)!;
-    bool restartSystemUI = false;
-    bool restartDownloadManager = false;
-    bool restartXmsf = false;
-    bool restartSettings = false;
+    _restartCompleter?.complete(false);
+    final completer = Completer<bool>();
+    _restartCompleter = completer;
+    setState(() {
+      _restartSystemUI = false;
+      _restartDownloadManager = false;
+      _restartXmsf = false;
+      _restartSettings = false;
+      _showRestart = true;
+    });
+    final confirmed = await completer.future;
+    if (_restartCompleter == completer) _restartCompleter = null;
 
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: Text(l10n.restartScope),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CheckboxListTile(
-                title: Text(l10n.systemUI),
-                subtitle: const Text('com.android.systemui'),
-                value: restartSystemUI,
-                onChanged: (v) =>
-                    setDialogState(() => restartSystemUI = v ?? false),
-                controlAffinity: ListTileControlAffinity.leading,
-                contentPadding: EdgeInsets.zero,
-              ),
-              CheckboxListTile(
-                title: Text(l10n.downloadManager),
-                subtitle: const Text('com.android.providers.downloads'),
-                value: restartDownloadManager,
-                onChanged: (v) =>
-                    setDialogState(() => restartDownloadManager = v ?? false),
-                controlAffinity: ListTileControlAffinity.leading,
-                contentPadding: EdgeInsets.zero,
-              ),
-              CheckboxListTile(
-                title: Text(l10n.xmsf),
-                subtitle: const Text('com.xiaomi.xmsf'),
-                value: restartXmsf,
-                onChanged: (v) =>
-                    setDialogState(() => restartXmsf = v ?? false),
-                controlAffinity: ListTileControlAffinity.leading,
-                contentPadding: EdgeInsets.zero,
-              ),
-              CheckboxListTile(
-                title: Text(l10n.hookScopeSettings),
-                subtitle: const Text('com.android.settings'),
-                value: restartSettings,
-                onChanged: (v) =>
-                    setDialogState(() => restartSettings = v ?? false),
-                controlAffinity: ListTileControlAffinity.leading,
-                contentPadding: EdgeInsets.zero,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l10n.cancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l10n.confirm),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (confirmed != true) return;
-    if (!restartSystemUI &&
-        !restartDownloadManager &&
-        !restartXmsf &&
-        !restartSettings) {
+    if (!confirmed) return;
+    if (!_restartSystemUI &&
+        !_restartDownloadManager &&
+        !_restartXmsf &&
+        !_restartSettings) {
       return;
     }
 
     setState(() => _restarting = true);
     try {
       final commands = <String>[];
-      if (restartSystemUI) commands.add('killall com.android.systemui');
-      if (restartDownloadManager) {
+      if (_restartSystemUI) commands.add('killall com.android.systemui');
+      if (_restartDownloadManager) {
         commands.add('am force-stop com.android.providers.downloads');
       }
-      if (restartXmsf) {
+      if (_restartXmsf) {
         commands.add('am force-stop com.xiaomi.xmsf');
       }
-      if (restartSettings) {
+      if (_restartSettings) {
         commands.add('am force-stop com.android.settings');
       }
       await _channel.invokeMethod('restartProcesses', {'commands': commands});
@@ -231,9 +161,7 @@ class _HomePageState extends State<HomePage> {
         final msg = (e.code == 'ROOT_ERROR' || e.code == 'ROOT_REQUIRED')
             ? l10n.restartRootRequired
             : l10n.restartFailed(e.message ?? '');
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(msg)));
+        _snackbarHost.showSnackbar(msg, withDismissAction: true);
       }
     } finally {
       if (mounted) setState(() => _restarting = false);
@@ -241,194 +169,485 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showCustomTestDialog() {
-    final l10n = AppLocalizations.of(context)!;
-    String title = '';
-    String content = '';
-    bool clearPrevious = true;
-    bool enableFloat = true;
+    _customTitleController.clear();
+    _customContentController.clear();
+    setState(() {
+      _customTitle = '';
+      _customContent = '';
+      _customClearPrevious = true;
+      _customEnableFloat = true;
+      _showCustomTest = true;
+    });
+  }
 
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: Text(l10n.customTestNotification),
+  void _closeRestartDialog(bool confirmed) {
+    setState(() => _showRestart = false);
+    final completer = _restartCompleter;
+    if (completer != null && !completer.isCompleted) {
+      completer.complete(confirmed);
+    }
+  }
+
+  void _closeVersionUpdatedDialog() {
+    setState(() => _showVersionUpdated = false);
+    final completer = _versionUpdatedCompleter;
+    if (completer != null && !completer.isCompleted) {
+      completer.complete();
+    }
+  }
+
+  Widget _buildOverlays(AppLocalizations l10n) {
+    const donorsUrl = 'https://hyperisland.1812z.top/donors.html';
+    const changelogUrl = 'https://hyperisland.1812z.top/CHANGELOG.html';
+
+    return Stack(
+      children: [
+        MiuixOverlayDialog(
+          show: _showSponsor,
+          title: l10n.sponsorSupport,
+          largeScreen: false,
+          maxWidth: double.infinity,
+          onDismissRequest: () => setState(() => _showSponsor = false),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
-                decoration: InputDecoration(
-                  labelText: l10n.customTestTitle,
-                  hintText: l10n.customTestTitleHint,
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.asset(
+                  'assets/images/wechat.jpg',
+                  fit: BoxFit.contain,
                 ),
-                onChanged: (v) => title = v,
               ),
-              const SizedBox(height: 12),
-              TextField(
-                decoration: InputDecoration(
-                  labelText: l10n.customTestContent,
-                  hintText: l10n.customTestContentHint,
-                ),
-                onChanged: (v) => content = v,
-              ),
-              const SizedBox(height: 8),
-              CheckboxListTile(
-                title: Text(l10n.clearPreviousNotification),
-                subtitle: Text(l10n.clearPreviousNotificationSubtitle),
-                value: clearPrevious,
-                onChanged: (v) =>
-                    setDialogState(() => clearPrevious = v ?? true),
-                controlAffinity: ListTileControlAffinity.leading,
-                contentPadding: EdgeInsets.zero,
-              ),
-              CheckboxListTile(
-                title: Text(l10n.autoExpandNotification),
-                subtitle: Text(l10n.enableFloatNotificationSubtitle),
-                value: enableFloat,
-                onChanged: (v) => setDialogState(() => enableFloat = v ?? true),
-                controlAffinity: ListTileControlAffinity.leading,
-                contentPadding: EdgeInsets.zero,
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: MiuixButton(
+                      onPressed: () => launchUrl(Uri.parse(donorsUrl)),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.format_list_bulleted),
+                          const SizedBox(width: 8),
+                          MiuixText(l10n.donorList),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: MiuixButton(
+                      onPressed: () => setState(() => _showSponsor = false),
+                      child: MiuixText(l10n.cancel),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text(l10n.cancel),
-            ),
-            FilledButton(
-              onPressed: () {
-                _ctrl.sendCustomTest(
-                  title: title,
-                  content: content,
-                  clearPrevious: clearPrevious,
-                  enableFloat: enableFloat,
-                );
-              },
-              child: Text(l10n.sendTestNotification),
-            ),
-          ],
         ),
-      ),
+        MiuixOverlayDialog(
+          show: _showRestart,
+          title: l10n.restartScope,
+          largeScreen: false,
+          maxWidth: double.infinity,
+          onDismissRequest: () => _closeRestartDialog(false),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              MiuixCheckboxPreference(
+                title: l10n.systemUI,
+                summary: 'com.android.systemui',
+                value: _restartSystemUI,
+                onChanged: (v) => setState(() => _restartSystemUI = v),
+              ),
+              MiuixCheckboxPreference(
+                title: l10n.downloadManager,
+                summary: 'com.android.providers.downloads',
+                value: _restartDownloadManager,
+                onChanged: (v) => setState(() => _restartDownloadManager = v),
+              ),
+              MiuixCheckboxPreference(
+                title: l10n.xmsf,
+                summary: 'com.xiaomi.xmsf',
+                value: _restartXmsf,
+                onChanged: (v) => setState(() => _restartXmsf = v),
+              ),
+              MiuixCheckboxPreference(
+                title: l10n.hookScopeSettings,
+                summary: 'com.android.settings',
+                value: _restartSettings,
+                onChanged: (v) => setState(() => _restartSettings = v),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: MiuixButton(
+                      onPressed: () => _closeRestartDialog(false),
+                      child: MiuixText(l10n.cancel),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: MiuixButton(
+                      colors: MiuixButtonDefaults.buttonColorsPrimary(context),
+                      onPressed: () => _closeRestartDialog(true),
+                      child: MiuixText(l10n.confirm),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        MiuixOverlayDialog(
+          show: _showCustomTest,
+          title: l10n.customTestNotification,
+          largeScreen: false,
+          maxWidth: double.infinity,
+          onDismissRequest: () => setState(() => _showCustomTest = false),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              MiuixTextField(
+                controller: _customTitleController,
+                label: l10n.customTestTitle,
+                useLabelAsPlaceholder: true,
+                singleLine: true,
+                onChanged: (v) => _customTitle = v,
+              ),
+              const SizedBox(height: 12),
+              MiuixTextField(
+                controller: _customContentController,
+                label: l10n.customTestContent,
+                useLabelAsPlaceholder: true,
+                singleLine: true,
+                onChanged: (v) => _customContent = v,
+              ),
+              const SizedBox(height: 8),
+              MiuixCheckboxPreference(
+                title: l10n.clearPreviousNotification,
+                summary: l10n.clearPreviousNotificationSubtitle,
+                value: _customClearPrevious,
+                onChanged: (v) => setState(() => _customClearPrevious = v),
+              ),
+              MiuixCheckboxPreference(
+                title: l10n.autoExpandNotification,
+                summary: l10n.enableFloatNotificationSubtitle,
+                value: _customEnableFloat,
+                onChanged: (v) => setState(() => _customEnableFloat = v),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: MiuixButton(
+                      onPressed: () => setState(() => _showCustomTest = false),
+                      child: MiuixText(l10n.cancel),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: MiuixButton(
+                      colors: MiuixButtonDefaults.buttonColorsPrimary(context),
+                      onPressed: () {
+                        _ctrl.sendCustomTest(
+                          title: _customTitle,
+                          content: _customContent,
+                          clearPrevious: _customClearPrevious,
+                          enableFloat: _customEnableFloat,
+                        );
+                        setState(() => _showCustomTest = false);
+                      },
+                      child: MiuixText(l10n.sendTestNotification),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        MiuixOverlayDialog(
+          show: _showVersionUpdated,
+          title: l10n.versionUpdatedTitle(_updatedVersion),
+          largeScreen: false,
+          maxWidth: double.infinity,
+          onDismissRequest: null,
+          content: PopScope(
+            canPop: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                MiuixText(l10n.versionUpdatedContent),
+                const SizedBox(height: 10),
+                MiuixCard(
+                  onPressed: () => launchUrl(Uri.parse(changelogUrl)),
+                  feedbackType: MiuixPressFeedbackType.sink,
+                  insideMargin: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.history),
+                      const SizedBox(width: 10),
+                      Expanded(child: MiuixText(l10n.versionUpdatedChangelog)),
+                      const Icon(Icons.open_in_new, size: 18),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                MiuixText(
+                  l10n.versionUpdatedStarHint,
+                  color: MiuixTheme.of(context).colors.onSurfaceVariantSummary,
+                  style: MiuixTheme.of(context).textStyles.body2,
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: MiuixButton(
+                        onPressed: () {
+                          _closeVersionUpdatedDialog();
+                          _showRestartDialog();
+                        },
+                        child: MiuixText(l10n.restartScope),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: MiuixButton(
+                        colors: MiuixButtonDefaults.buttonColorsPrimary(
+                          context,
+                        ),
+                        onPressed: _closeVersionUpdatedDialog,
+                        child: MiuixText(l10n.confirm),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
   Future<void> _showVersionUpdatedDialog(String version) async {
-    final l10n = AppLocalizations.of(context)!;
-    const changelogUrl = 'https://hyperisland.1812z.top/CHANGELOG.html';
-
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => PopScope(
-        canPop: false,
-        child: AlertDialog(
-          title: Text(l10n.versionUpdatedTitle(version)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(l10n.versionUpdatedContent),
-              const SizedBox(height: 10),
-              InkWell(
-                onTap: () => launchUrl(Uri.parse(changelogUrl)),
-                child: Text(
-                  l10n.versionUpdatedChangelog,
-                  style: TextStyle(decoration: TextDecoration.underline),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(l10n.versionUpdatedStarHint),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                _showRestartDialog();
-              },
-              child: Text(l10n.restartScope),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text(l10n.confirm),
-            ),
-          ],
-        ),
-      ),
-    );
+    _versionUpdatedCompleter?.complete();
+    final completer = Completer<void>();
+    _versionUpdatedCompleter = completer;
+    setState(() {
+      _updatedVersion = version;
+      _showVersionUpdated = true;
+    });
+    await completer.future;
+    if (_versionUpdatedCompleter == completer) {
+      _versionUpdatedCompleter = null;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
-    final bottomPad = SettingsController.instance.blurBars ? 80.0 : 0.0;
-
-    return Scaffold(
-      backgroundColor: cs.surface,
-      body: BlurAppBarHost(
-        title: 'HyperIsland',
-        titleWidget: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'HyperIsland',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: cs.onSurface,
-                  ),
-            ),
-            if (_version.isNotEmpty)
-              Text(
-                _version,
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: cs.onSurfaceVariant),
-              ),
-          ],
+    return MiuixPageScaffold(
+      title: 'HyperIsland',
+      subtitle: _version,
+      actions: _actions(l10n),
+      snackbarHost: MiuixSnackbarHost(state: _snackbarHost),
+      overlay: _buildOverlays(l10n),
+      children: [
+        _HomeStatusGrid(
+          controller: _ctrl,
+          onTest: _ctrl.isSending ? null : _ctrl.sendTest,
+          onCustomTest: _ctrl.isSending ? null : _showCustomTestDialog,
         ),
-        largeTitle: true,
-        actions: _actions(l10n),
-        bottomPadding: bottomPad,
-        slivers: [
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                _ModuleStatusCard(
-                  active: _ctrl.moduleActive,
-                  apiVersion: _ctrl.lsposedApiVersion,
-                  frameworkName: _ctrl.xposedFrameworkName,
-                  frameworkVersion: _ctrl.xposedFrameworkVersion,
-                  hasSystemUiScope: _ctrl.hasSystemUiScope,
-                ),
-                if (_ctrl.focusProtocolVersion != null &&
-                    _ctrl.focusProtocolVersion != 3) ...[
-                  const SizedBox(height: 12),
-                  _SystemNotSupportedCard(version: _ctrl.focusProtocolVersion!),
-                ],
-                const SizedBox(height: 16),
+        const SizedBox(height: 12),
+        _SystemInfoCard(
+          moduleVersion: _ctrl.moduleVersion,
+          lsposedVersion: _ctrl.lsposedVersion,
+          androidVersion: _ctrl.androidVersion,
+          systemVersion: _ctrl.systemVersion,
+          deviceModel: _ctrl.deviceModel,
+        ),
+      ],
+    );
+  }
+}
 
-                SectionLabel(l10n.notificationTest),
-                const SizedBox(height: 8),
-                FilledButton.icon(
-                  onPressed: _ctrl.isSending ? null : _ctrl.sendTest,
-                  onLongPress: _ctrl.isSending ? null : _showCustomTestDialog,
-                  icon: const Icon(Icons.notifications_active_outlined),
-                  label: Text(l10n.sendTestNotification),
-                  style: FilledButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                ),
-                const SizedBox(height: 24),
+// ── 页面专属组件 ──────────────────────────────────────────────────────────────
 
-                SectionLabel(l10n.notes),
-                const SizedBox(height: 8),
-                const _NotesCard(),
-                const SizedBox(height: 24),
-              ]),
+class _HomeStatusGrid extends StatelessWidget {
+  const _HomeStatusGrid({
+    required this.controller,
+    required this.onTest,
+    required this.onCustomTest,
+  });
+
+  final HomeController controller;
+  final VoidCallback? onTest;
+  final VoidCallback? onCustomTest;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final statusCard = _ModuleStatusCard(
+          controller: controller,
+          onPressed: onTest,
+          onLongPress: onCustomTest,
+        );
+        final stats = [
+          _StatCard(
+            title: l10n.homeApps,
+            value: l10n.homeEnabledCount(controller.enabledAppCount),
+          ),
+          _StatCard(
+            title: 'Toast',
+            value: l10n.homeEnabledCount(controller.enabledToastCount),
+          ),
+        ];
+
+        if (constraints.maxWidth >= 600) {
+          return SizedBox(
+            height: 112,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: statusCard),
+                const SizedBox(width: 12),
+                Expanded(child: stats[0]),
+                const SizedBox(width: 12),
+                Expanded(child: stats[1]),
+              ],
             ),
+          );
+        }
+
+        return SizedBox(
+          height: (constraints.maxWidth - 12) / 2,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: statusCard),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  children: [
+                    Expanded(child: SizedBox.expand(child: stats[0])),
+                    const SizedBox(height: 12),
+                    Expanded(child: SizedBox.expand(child: stats[1])),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ModuleStatusCard extends StatelessWidget {
+  const _ModuleStatusCard({
+    required this.controller,
+    required this.onPressed,
+    required this.onLongPress,
+  });
+
+  final HomeController controller;
+  final VoidCallback? onPressed;
+  final VoidCallback? onLongPress;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = MiuixTheme.of(context).colors;
+    final textStyles = MiuixTheme.of(context).textStyles;
+    final l10n = AppLocalizations.of(context)!;
+    final active = controller.moduleActive;
+    final isActive = active == true;
+    final isDark = MiuixTheme.of(context).brightness == Brightness.dark;
+    final statusColor = isActive ? const Color(0xFF36D167) : colors.error;
+    final background = isActive
+        ? const Color(0xFFDFFAE4)
+        : colors.errorContainer;
+    final reasons = <String>[];
+    if ((controller.lsposedApiVersion ?? 0) < 101) {
+      reasons.add(
+        (controller.lsposedApiVersion ?? 0) == 0
+            ? l10n.enableInLSPosed
+            : l10n.updateLSPosedRequired,
+      );
+    }
+    if (controller.hasSystemUiScope == false) {
+      reasons.add(l10n.enableSystemUiScopeInLSPosed);
+    }
+    final protocol = controller.focusProtocolVersion;
+    if (protocol != null && protocol != 3) {
+      reasons.add(l10n.systemNotSupportedSubtitle(protocol));
+    }
+    final summary = active == null
+        ? l10n.detectingModuleStatus
+        : isActive
+        ? l10n.homeTestHint
+        : reasons.isEmpty
+        ? l10n.enableInLSPosed
+        : reasons.join('\n');
+
+    return MiuixCard(
+      colors: MiuixCardColors(
+        color: background,
+        contentColor: colors.onSurface,
+      ),
+      onPressed: onPressed,
+      onLongPress: onLongPress,
+      feedbackType: MiuixPressFeedbackType.tilt,
+      insideMargin: const EdgeInsets.all(16),
+      child: Stack(
+        clipBehavior: Clip.hardEdge,
+        children: [
+          Positioned(
+            right: -14,
+            bottom: -18,
+            child: Opacity(
+              opacity: 0.78,
+              child: Icon(
+                Icons.notifications_active_rounded,
+                size: 112,
+                color: statusColor,
+              ),
+            ),
+          ),
+          Column(
+            mainAxisSize: MainAxisSize.max,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              MiuixText(
+                isActive ? l10n.homeModuleActive : l10n.homeModuleInactive,
+                style: textStyles.title3,
+                color: isActive
+                    ? const Color(0xFF101010)
+                    : isDark
+                    ? Colors.white
+                    : const Color(0xFF101010),
+                fontWeight: SystemFontWeight.resolve(FontWeight.w600),
+              ),
+              const SizedBox(height: 3),
+              MiuixText(
+                summary,
+                style: textStyles.footnote1,
+                color: isActive ? const Color(0xC72F3A32) : statusColor,
+                maxLines: 5,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
         ],
       ),
@@ -436,228 +655,100 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-// ── 页面专属组件 ──────────────────────────────────────────────────────────────
+class _StatCard extends StatelessWidget {
+  const _StatCard({required this.title, required this.value});
 
-class _ModuleStatusCard extends StatelessWidget {
-  final bool? active;
-  final int? apiVersion;
-  final String? frameworkName;
-  final String? frameworkVersion;
-  final bool? hasSystemUiScope;
-  const _ModuleStatusCard({
-    required this.active,
-    this.apiVersion,
-    this.frameworkName,
-    this.frameworkVersion,
-    this.hasSystemUiScope,
+  final String title;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = MiuixTheme.of(context).colors;
+    return MiuixCard(
+      insideMargin: const EdgeInsets.all(14),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          MiuixText(
+            title,
+            style: MiuixTheme.of(context).textStyles.footnote1,
+            color: colors.onSurfaceVariantSummary,
+          ),
+          const SizedBox(height: 2),
+          MiuixText(value, style: MiuixTheme.of(context).textStyles.title3),
+        ],
+      ),
+    );
+  }
+}
+
+class _SystemInfoCard extends StatelessWidget {
+  const _SystemInfoCard({
+    required this.moduleVersion,
+    required this.lsposedVersion,
+    required this.androidVersion,
+    required this.systemVersion,
+    required this.deviceModel,
   });
 
+  final String moduleVersion;
+  final String lsposedVersion;
+  final String androidVersion;
+  final String systemVersion;
+  final String deviceModel;
+
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final l10n = AppLocalizations.of(context)!;
-
-    if (active == null) {
-      return Card(
-        elevation: 0,
-        color: cs.surfaceContainerHighest,
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Row(
-            children: [
-              const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-              const SizedBox(width: 16),
-              Text(l10n.detectingModuleStatus),
-            ],
+    return MiuixCard(
+      insideMargin: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          _InfoText(title: l10n.homeModuleVersion, content: moduleVersion),
+          _InfoText(title: l10n.homeLsposedVersion, content: lsposedVersion),
+          _InfoText(title: l10n.homeAndroidVersion, content: androidVersion),
+          _InfoText(title: l10n.homeSystemVersion, content: systemVersion),
+          _InfoText(
+            title: l10n.homeDeviceModel,
+            content: deviceModel,
+            bottomPadding: 0,
           ),
-        ),
-      );
-    }
-
-    final bool isActive = active!;
-    final bool isApiOutdated = apiVersion != null && apiVersion! > 0 && apiVersion! < 101;
-    final statusMessage = hasSystemUiScope == false
-        ? l10n.enableSystemUiScopeInLSPosed
-        : isApiOutdated
-            ? l10n.updateLSPosedRequired
-            : l10n.enableInLSPosed;
-    final frameworkLabel = [
-      frameworkName?.trim(),
-      frameworkVersion?.trim(),
-    ].where((part) => part != null && part.isNotEmpty).join(' ');
-    final color = isActive ? Colors.green : cs.error;
-    final bgColor = isActive
-        ? Colors.green.withValues(alpha: 0.12)
-        : cs.errorContainer;
-
-    return Card(
-      elevation: 0,
-      color: bgColor,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                isActive ? Icons.check_circle : Icons.cancel,
-                color: color,
-                size: 28,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.moduleStatus,
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: color.withValues(alpha: 0.8),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    isActive ? l10n.activated : l10n.notActivated,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: color,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  if (!isActive) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      statusMessage,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: color.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ],
-                  if (apiVersion != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      frameworkLabel.isEmpty
-                          ? 'API: $apiVersion'
-                          : '$frameworkLabel API: $apiVersion',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: color.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }
 }
 
-class _SystemNotSupportedCard extends StatelessWidget {
-  final int version;
-  const _SystemNotSupportedCard({required this.version});
+class _InfoText extends StatelessWidget {
+  const _InfoText({
+    required this.title,
+    required this.content,
+    this.bottomPadding = 20,
+  });
+
+  final String title;
+  final String content;
+  final double bottomPadding;
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final l10n = AppLocalizations.of(context)!;
-    final color = cs.error;
-
-    return Card(
-      elevation: 0,
-      color: cs.errorContainer,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.warning_amber_rounded, color: color, size: 28),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.systemNotSupported,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: color,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    l10n.systemNotSupportedSubtitle(version),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: color.withValues(alpha: 0.8),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _NotesCard extends StatelessWidget {
-  const _NotesCard();
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final l10n = AppLocalizations.of(context)!;
-    final items = [l10n.note1, l10n.note2, l10n.note3, l10n.note4, l10n.note5];
-
-    return Card(
-      elevation: 0,
-      color: cs.surfaceContainerHighest,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+    final theme = MiuixTheme.of(context);
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottomPadding),
+      child: Align(
+        alignment: Alignment.centerLeft,
         child: Column(
-          children: items
-              .map(
-                (text) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        Icons.arrow_right,
-                        size: 20,
-                        color: cs.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          text,
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: cs.onSurfaceVariant),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-              .toList(),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            MiuixText(title, style: theme.textStyles.headline1),
+            const SizedBox(height: 2),
+            MiuixText(
+              content.isEmpty ? '-' : content,
+              style: theme.textStyles.body2,
+              color: theme.colors.onSurfaceVariantSummary,
+            ),
+          ],
         ),
       ),
     );

@@ -31,6 +31,7 @@ class MainActivity : FlutterActivity() {
     private val REQUEST_BT_CONNECT_PERMISSION = 1003
     private val notificationChannelRepository = NotificationChannelRepository(TAG)
     private val appService = AppService()
+    private var platformChannel: MethodChannel? = null
 
     private var pendingAppsResult: MethodChannel.Result? = null
     private var pendingAppsIncludeSystem: Boolean = false
@@ -67,7 +68,8 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
+        platformChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
+        platformChannel?.setMethodCallHandler { call, result ->
             when (call.method) {
                 "showTest" -> {
                     handleShowTest(result)
@@ -88,6 +90,30 @@ class MainActivity : FlutterActivity() {
 
                 "getBuildTime" -> {
                     result.success(BuildConfig.BUILD_TIME)
+                }
+
+                "getHomeSystemInfo" -> {
+                    val info = packageManager.getPackageInfo(packageName, 0)
+                    val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        info.longVersionCode
+                    } else {
+                        @Suppress("DEPRECATION")
+                        info.versionCode.toLong()
+                    }
+                    result.success(
+                        mapOf(
+                            "moduleVersion" to "${info.versionName ?: "unknown"} ($versionCode)",
+                            "androidVersion" to "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})",
+                            "systemVersion" to Build.DISPLAY,
+                            "deviceModel" to listOf(Build.MANUFACTURER, Build.MODEL)
+                                .filter { it.isNotBlank() }
+                                .joinToString(" ")
+                        )
+                    )
+                }
+
+                "getSystemFontWeightAdjustment" -> {
+                    result.success(systemFontWeightAdjustment())
                 }
 
                 "getInstalledApps" -> {
@@ -397,6 +423,22 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        platformChannel?.invokeMethod(
+            "systemFontWeightAdjustmentChanged",
+            systemFontWeightAdjustment(newConfig)
+        )
+    }
+
+    private fun systemFontWeightAdjustment(
+        configuration: Configuration = resources.configuration
+    ): Int {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return 0
+        val adjustment = configuration.fontWeightAdjustment
+        return if (adjustment == Configuration.FONT_WEIGHT_ADJUSTMENT_UNDEFINED) 0 else adjustment
     }
 
     fun isModuleActive(): Boolean {

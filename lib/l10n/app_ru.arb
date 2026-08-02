@@ -70,6 +70,23 @@
   "moduleStatus": "Статус модуля",
   "activated": "Активирован",
   "notActivated": "Не активирован",
+  "homeModuleActive": "Модуль активирован",
+  "homeModuleInactive": "Модуль не активирован",
+  "homeTestHint": "Нажмите, чтобы отправить тест",
+  "homeApps": "Приложения",
+  "homeEnabledCount": "Включено: {count}",
+  "@homeEnabledCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeModuleVersion": "Версия модуля",
+  "homeLsposedVersion": "Версия LSPosed",
+  "homeAndroidVersion": "Версия Android",
+  "homeSystemVersion": "Версия системы",
+  "homeDeviceModel": "Модель устройства",
   "enableInLSPosed": "Пожалуйста, включите этот модуль в LSPosed",
   "enableSystemUiScopeInLSPosed": "Пожалуйста, выберите Системный UI в области LSPosed",
   "updateLSPosedRequired": "Пожалуйста, обновите версию LSPosed",
@@ -688,6 +705,8 @@
   "hookScopeXMSF": "Xiaomi Service Framework (XMSF)",
   "downloadManagerSection": "Менеджер загрузок",
   "themePageTitle": "Тема",
+  "monetThemeTitle": "Динамические цвета Monet",
+  "monetThemeSubtitle": "Создавать полную палитру Miuix из исходного цвета после включения",
   "themeSeedColorTitle": "Цвет темы",
   "themeSeedColorSubtitle": "Настроить акцентный цвет приложения",
   "presetColors": "Предустановленные цвета",

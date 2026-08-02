@@ -16,10 +16,10 @@ class _ThemePageState extends State<ThemePage> {
   final _ctrl = SettingsController.instance;
   late int _uiStateHash;
 
-  static const _defaultSeedColor = 0xFF6750A4;
+  static const _defaultSeedColor = kDefaultThemeSeedColor;
 
   static const _presetColors = <int>[
-    0xFF6750A4, // Material Default (Purple)
+    0xFF3482FF, // Miuix Default
     0xFFB7254D, // Rose
     0xFF984061, // Mauve
     0xFF7C5800, // Mellow Apricot
@@ -34,10 +34,11 @@ class _ThemePageState extends State<ThemePage> {
   ];
 
   int _buildUiStateHash() => Object.hashAll([
-        _ctrl.themeSeedColor,
-        _ctrl.themeMode,
-        _ctrl.blurBars,
-      ]);
+    _ctrl.themeSeedColor,
+    _ctrl.monetTheme,
+    _ctrl.themeMode,
+    _ctrl.blurBars,
+  ]);
 
   void _onChanged() {
     if (!mounted) return;
@@ -61,10 +62,10 @@ class _ThemePageState extends State<ThemePage> {
 
   // --- 颜色模式 ---
   String _themeModeLabel(AppLocalizations l10n) => switch (_ctrl.themeMode) {
-        ThemeMode.light => l10n.themeModeLight,
-        ThemeMode.dark => l10n.themeModeDark,
-        ThemeMode.system => l10n.themeModeSystem,
-      };
+    ThemeMode.light => l10n.themeModeLight,
+    ThemeMode.dark => l10n.themeModeDark,
+    ThemeMode.system => l10n.themeModeSystem,
+  };
 
   Future<void> _showThemeModeDialog(AppLocalizations l10n) async {
     if (!mounted) return;
@@ -131,11 +132,33 @@ class _ThemePageState extends State<ThemePage> {
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             sliver: SliverList(
-              delegate: SliverChildListDelegate(
-                [
+              delegate: SliverChildListDelegate([
+                const SizedBox(height: 8),
+
+                Card(
+                  elevation: 0,
+                  color: cs.surfaceContainerHighest,
+                  clipBehavior: Clip.antiAlias,
+                  child: SwitchListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    secondary: const Icon(Icons.color_lens_outlined),
+                    title: Text(l10n.monetThemeTitle, style: titleStyle),
+                    subtitle: Text(l10n.monetThemeSubtitle),
+                    value: _ctrl.monetTheme,
+                    onChanged: InteractionHaptics.interceptToggle(
+                      _ctrl.setMonetTheme,
+                      force: true,
+                    ),
+                  ),
+                ),
+
+                if (_ctrl.monetTheme) ...[
                   const SizedBox(height: 8),
 
-                  // --- 主题色 Card ---
+                  // --- Monet 种子色 Card ---
                   Card(
                     elevation: 0,
                     color: cs.surfaceContainerHighest,
@@ -152,12 +175,15 @@ class _ThemePageState extends State<ThemePage> {
                               top: Radius.circular(16),
                             ),
                           ),
-                          title: Text(l10n.themeSeedColorTitle,
-                              style: titleStyle),
+                          title: Text(
+                            l10n.themeSeedColorTitle,
+                            style: titleStyle,
+                          ),
                           subtitle: Text(l10n.themeSeedColorSubtitle),
                           trailing: _ColorDot(color: seedColor),
-                          onTap:
-                              InteractionHaptics.interceptButton(_pickSeedColor),
+                          onTap: InteractionHaptics.interceptButton(
+                            _pickSeedColor,
+                          ),
                         ),
                         // 预设色板
                         Padding(
@@ -183,8 +209,8 @@ class _ThemePageState extends State<ThemePage> {
                                   return _PresetColorChip(
                                     color: color,
                                     selected: isSelected,
-                                    onTap: () => _ctrl
-                                        .setThemeSeedColor(colorValue),
+                                    onTap: () =>
+                                        _ctrl.setThemeSeedColor(colorValue),
                                   );
                                 }).toList(),
                               ),
@@ -203,8 +229,9 @@ class _ThemePageState extends State<ThemePage> {
                               alignment: Alignment.centerRight,
                               child: TextButton.icon(
                                 onPressed: InteractionHaptics.interceptButton(
-                                  () => _ctrl
-                                      .setThemeSeedColor(_defaultSeedColor),
+                                  () => _ctrl.setThemeSeedColor(
+                                    _defaultSeedColor,
+                                  ),
                                 ),
                                 icon: const Icon(Icons.refresh, size: 16),
                                 label: Text(l10n.themeResetColor),
@@ -216,56 +243,55 @@ class _ThemePageState extends State<ThemePage> {
                       ],
                     ),
                   ),
-
-                  const SizedBox(height: 8),
-
-                  // --- 毛玻璃效果 Card ---
-                  Card(
-                    elevation: 0,
-                    color: cs.surfaceContainerHighest,
-                    clipBehavior: Clip.antiAlias,
-                    child: SwitchListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 4,
-                      ),
-                      secondary: const Icon(Icons.blur_on),
-                      title: Text(l10n.blurBarsTitle, style: titleStyle),
-                      subtitle: Text(l10n.blurBarsSubtitle),
-                      value: _ctrl.blurBars,
-                      onChanged: InteractionHaptics.interceptToggle(
-                        (value) => _ctrl.setBlurBars(value),
-                        force: true,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  // --- 颜色模式 Card ---
-                  Card(
-                    elevation: 0,
-                    color: cs.surfaceContainerHighest,
-                    clipBehavior: Clip.antiAlias,
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 4,
-                      ),
-                      leading: const Icon(Icons.dark_mode_outlined),
-                      title: Text(l10n.themeModeTitle, style: titleStyle),
-                      subtitle: Text(_themeModeLabel(l10n)),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: InteractionHaptics.interceptButton(
-                        () => _showThemeModeDialog(l10n),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 32),
                 ],
-                addAutomaticKeepAlives: false,
-              ),
+
+                const SizedBox(height: 8),
+
+                // --- 毛玻璃效果 Card ---
+                Card(
+                  elevation: 0,
+                  color: cs.surfaceContainerHighest,
+                  clipBehavior: Clip.antiAlias,
+                  child: SwitchListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    secondary: const Icon(Icons.blur_on),
+                    title: Text(l10n.blurBarsTitle, style: titleStyle),
+                    subtitle: Text(l10n.blurBarsSubtitle),
+                    value: _ctrl.blurBars,
+                    onChanged: InteractionHaptics.interceptToggle(
+                      (value) => _ctrl.setBlurBars(value),
+                      force: true,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                // --- 颜色模式 Card ---
+                Card(
+                  elevation: 0,
+                  color: cs.surfaceContainerHighest,
+                  clipBehavior: Clip.antiAlias,
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    leading: const Icon(Icons.dark_mode_outlined),
+                    title: Text(l10n.themeModeTitle, style: titleStyle),
+                    subtitle: Text(_themeModeLabel(l10n)),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: InteractionHaptics.interceptButton(
+                      () => _showThemeModeDialog(l10n),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+              ], addAutomaticKeepAlives: false),
             ),
           ),
         ],
@@ -333,7 +359,8 @@ class _PresetColorChip extends StatelessWidget {
               ? Icon(
                   Icons.check,
                   size: 20,
-                  color: ThemeData.estimateBrightnessForColor(color) ==
+                  color:
+                      ThemeData.estimateBrightnessForColor(color) ==
                           Brightness.light
                       ? Colors.black
                       : Colors.white,

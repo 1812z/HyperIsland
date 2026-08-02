@@ -70,6 +70,23 @@
   "moduleStatus": "Module Status",
   "activated": "Activated",
   "notActivated": "Not Activated",
+  "homeModuleActive": "Module Active",
+  "homeModuleInactive": "Module Inactive",
+  "homeTestHint": "Tap to send a test",
+  "homeApps": "Apps",
+  "homeEnabledCount": "{count} enabled",
+  "@homeEnabledCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeModuleVersion": "Module version",
+  "homeLsposedVersion": "LSPosed version",
+  "homeAndroidVersion": "Android version",
+  "homeSystemVersion": "System version",
+  "homeDeviceModel": "Device model",
   "enableInLSPosed": "Please enable this module in LSPosed",
   "enableSystemUiScopeInLSPosed": "Please select System UI in the LSPosed scope",
   "updateLSPosedRequired": "Please update LSPosed version",
@@ -738,6 +755,8 @@
   "hookScopeXMSF": "Xiaomi Service Framework (XMSF)",
   "downloadManagerSection": "Download Manager",
   "themePageTitle": "Theme",
+  "monetThemeTitle": "Monet dynamic colors",
+  "monetThemeSubtitle": "Generate the full Miuix color scheme from a seed color when enabled",
   "themeSeedColorTitle": "Theme Color",
   "themeSeedColorSubtitle": "Customize the app accent color",
   "presetColors": "Preset Colors",

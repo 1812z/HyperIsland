@@ -70,6 +70,23 @@
   "moduleStatus": "Modül Durumu",
   "activated": "Etkin",
   "notActivated": "Etkin Değil",
+  "homeModuleActive": "Modül Etkin",
+  "homeModuleInactive": "Modül Etkin Değil",
+  "homeTestHint": "Test göndermek için dokunun",
+  "homeApps": "Uygulamalar",
+  "homeEnabledCount": "{count} etkin",
+  "@homeEnabledCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "homeModuleVersion": "Modül sürümü",
+  "homeLsposedVersion": "LSPosed sürümü",
+  "homeAndroidVersion": "Android sürümü",
+  "homeSystemVersion": "Sistem sürümü",
+  "homeDeviceModel": "Cihaz modeli",
   "enableInLSPosed": "Lütfen bu modülü LSPosed içinde etkinleştirin",
   "enableSystemUiScopeInLSPosed": "Lütfen LSPosed kapsamında Sistem Arayüzü'nü seçin",
   "updateLSPosedRequired": "Lütfen LSPosed sürümünü güncelleyin",
@@ -775,6 +792,8 @@
   "hookScopeXMSF": "Xiaomi Servis Çerçevesi (XMSF)",
   "downloadManagerSection": "İndirme Yöneticisi",
   "themePageTitle": "Tema",
+  "monetThemeTitle": "Monet dinamik renkleri",
+  "monetThemeSubtitle": "Etkinleştirildiğinde bir tohum renginden tam Miuix renk şeması oluşturur",
   "themeSeedColorTitle": "Tema Rengi",
   "themeSeedColorSubtitle": "Uygulama vurgu rengini özelleştir",
   "presetColors": "Hazır Renkler",

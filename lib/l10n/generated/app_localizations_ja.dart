@@ -138,6 +138,38 @@ class AppLocalizationsJa extends AppLocalizations {
   String get notActivated => '無効';
 
   @override
+  String get homeModuleActive => 'モジュール有効';
+
+  @override
+  String get homeModuleInactive => 'モジュール無効';
+
+  @override
+  String get homeTestHint => 'タップしてテストを送信';
+
+  @override
+  String get homeApps => 'アプリ';
+
+  @override
+  String homeEnabledCount(int count) {
+    return '$count 個有効';
+  }
+
+  @override
+  String get homeModuleVersion => 'モジュールバージョン';
+
+  @override
+  String get homeLsposedVersion => 'LSPosed バージョン';
+
+  @override
+  String get homeAndroidVersion => 'Android バージョン';
+
+  @override
+  String get homeSystemVersion => 'システムバージョン';
+
+  @override
+  String get homeDeviceModel => 'デバイスモデル';
+
+  @override
   String get enableInLSPosed => 'LSPosed でこのモジュールを有効化してください';
 
   @override
@@ -1889,6 +1921,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get themePageTitle => 'テーマ';
+
+  @override
+  String get monetThemeTitle => 'Monet ダイナミックカラー';
+
+  @override
+  String get monetThemeSubtitle => '有効にすると、シードカラーから Miuix 配色全体を生成します';
 
   @override
   String get themeSeedColorTitle => 'テーマカラー';

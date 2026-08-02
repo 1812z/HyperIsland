@@ -140,9 +140,13 @@ const kPrefTempHideForegroundApp = 'pref_temp_hide_foreground_app';
 const kPrefTempHideFullscreenLandscapeDisable =
     'pref_temp_hide_fullscreen_landscape_disable';
 const kPrefThemeSeedColor = 'pref_theme_seed_color';
+const kPrefMonetTheme = 'pref_monet_theme';
 const kPrefBlurBars = 'pref_blur_bars';
 const kPrefDebugLog = 'pref_debug_log';
 const kPrefOnboardingCompleted = 'pref_onboarding_completed';
+
+const kDefaultThemeSeedColor = 0xFF3482FF;
+const _kLegacyDefaultThemeSeedColor = 0xFF6750A4;
 
 const kIslandTextColorDefault = 'default';
 const kIslandTextColorBlack = 'black';
@@ -289,7 +293,8 @@ class SettingsController extends ChangeNotifier {
   bool tempHideNotificationCenter = true;
   bool tempHideForegroundApp = true;
   bool tempHideFullscreenLandscapeDisable = false;
-  int themeSeedColor = 0xFF6750A4;
+  int themeSeedColor = kDefaultThemeSeedColor;
+  bool monetTheme = false;
   bool blurBars = true;
   bool debugLog = false;
   bool onboardingCompleted = false;
@@ -550,7 +555,16 @@ class SettingsController extends ChangeNotifier {
     tempHideForegroundApp = prefs.getBool(kPrefTempHideForegroundApp) ?? true;
     tempHideFullscreenLandscapeDisable =
         prefs.getBool(kPrefTempHideFullscreenLandscapeDisable) ?? false;
-    themeSeedColor = prefs.getInt(kPrefThemeSeedColor) ?? 0xFF6750A4;
+    final savedThemeSeedColor = prefs.getInt(kPrefThemeSeedColor);
+    themeSeedColor =
+        savedThemeSeedColor == null ||
+            savedThemeSeedColor == _kLegacyDefaultThemeSeedColor
+        ? kDefaultThemeSeedColor
+        : savedThemeSeedColor;
+    if (savedThemeSeedColor == _kLegacyDefaultThemeSeedColor) {
+      await prefs.setInt(kPrefThemeSeedColor, kDefaultThemeSeedColor);
+    }
+    monetTheme = prefs.getBool(kPrefMonetTheme) ?? false;
     blurBars = prefs.getBool(kPrefBlurBars) ?? true;
     debugLog = prefs.getBool(kPrefDebugLog) ?? false;
     onboardingCompleted = prefs.getBool(kPrefOnboardingCompleted) ?? false;
@@ -986,8 +1000,8 @@ class SettingsController extends ChangeNotifier {
     final normalized = value < 1 ? 1 : value;
     if (defaultTimeout == normalized) return;
     final prefs = await _getPrefs();
-    await prefs.setInt(kPrefDefaultTimeout, clamped);
-    defaultTimeout = clamped;
+    await prefs.setInt(kPrefDefaultTimeout, normalized);
+    defaultTimeout = normalized;
     notifyListeners();
   }
 
@@ -1720,6 +1734,14 @@ class SettingsController extends ChangeNotifier {
     final prefs = await _getPrefs();
     await prefs.setInt(kPrefThemeSeedColor, value);
     themeSeedColor = value;
+    notifyListeners();
+  }
+
+  Future<void> setMonetTheme(bool value) async {
+    if (monetTheme == value) return;
+    final prefs = await _getPrefs();
+    await prefs.setBool(kPrefMonetTheme, value);
+    monetTheme = value;
     notifyListeners();
   }
 

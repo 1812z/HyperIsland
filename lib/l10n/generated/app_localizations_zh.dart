@@ -138,6 +138,38 @@ class AppLocalizationsZh extends AppLocalizations {
   String get notActivated => '未激活';
 
   @override
+  String get homeModuleActive => '模块已激活';
+
+  @override
+  String get homeModuleInactive => '模块未激活';
+
+  @override
+  String get homeTestHint => '点击发送测试';
+
+  @override
+  String get homeApps => '应用';
+
+  @override
+  String homeEnabledCount(int count) {
+    return '已启用 $count 个';
+  }
+
+  @override
+  String get homeModuleVersion => '模块版本';
+
+  @override
+  String get homeLsposedVersion => 'LSPosed 版本';
+
+  @override
+  String get homeAndroidVersion => 'Android 版本';
+
+  @override
+  String get homeSystemVersion => '系统版本';
+
+  @override
+  String get homeDeviceModel => '设备型号';
+
+  @override
   String get enableInLSPosed => '请在 LSPosed 中启用本模块';
 
   @override
@@ -1857,6 +1889,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get themePageTitle => '主题';
+
+  @override
+  String get monetThemeTitle => 'Monet 动态取色';
+
+  @override
+  String get monetThemeSubtitle => '开启后可使用种子色生成整套 Miuix 配色';
 
   @override
   String get themeSeedColorTitle => '主题色';

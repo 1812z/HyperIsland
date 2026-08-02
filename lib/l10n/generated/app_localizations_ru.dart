@@ -145,6 +145,38 @@ class AppLocalizationsRu extends AppLocalizations {
   String get notActivated => 'Не активирован';
 
   @override
+  String get homeModuleActive => 'Модуль активирован';
+
+  @override
+  String get homeModuleInactive => 'Модуль не активирован';
+
+  @override
+  String get homeTestHint => 'Нажмите, чтобы отправить тест';
+
+  @override
+  String get homeApps => 'Приложения';
+
+  @override
+  String homeEnabledCount(int count) {
+    return 'Включено: $count';
+  }
+
+  @override
+  String get homeModuleVersion => 'Версия модуля';
+
+  @override
+  String get homeLsposedVersion => 'Версия LSPosed';
+
+  @override
+  String get homeAndroidVersion => 'Версия Android';
+
+  @override
+  String get homeSystemVersion => 'Версия системы';
+
+  @override
+  String get homeDeviceModel => 'Модель устройства';
+
+  @override
   String get enableInLSPosed => 'Пожалуйста, включите этот модуль в LSPosed';
 
   @override
@@ -1975,6 +2007,13 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get themePageTitle => 'Тема';
+
+  @override
+  String get monetThemeTitle => 'Динамические цвета Monet';
+
+  @override
+  String get monetThemeSubtitle =>
+      'Создавать полную палитру Miuix из исходного цвета после включения';
 
   @override
   String get themeSeedColorTitle => 'Цвет темы';
