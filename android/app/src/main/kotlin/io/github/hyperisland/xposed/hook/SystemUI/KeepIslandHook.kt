@@ -458,6 +458,7 @@ object KeepIslandHook : BaseHook() {
                 islandOnly = !focusEnabled,
                 focusTitle = focusTexts.first,
                 focusContent = focusTexts.second,
+                bypassSceneBehavior = true
             )
             IslandDispatcher.post(context, request)
             lastContentUpdateAt = now
