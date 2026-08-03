@@ -3,6 +3,7 @@ package io.github.hyperisland.xposed
 import android.content.SharedPreferences
 import io.github.libxposed.api.XposedModule
 import org.json.JSONObject
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * 基于 RemotePreferences 的配置管理器。RemotePreferences 打开时会初始化整组数据，
@@ -23,11 +24,15 @@ object ConfigManager {
     @Volatile private var module: XposedModule? = null
 
     private val shardPrefs = arrayOfNulls<SharedPreferences>(SHARD_COUNT)
+    private val appConfigCache = ConcurrentHashMap<String, CachedAppConfig>()
+
+    @Volatile private var appPackagesCache = AppPackagesCache("", emptyList())
 
     private val changeListeners = mutableListOf<() -> Unit>()
 
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         module?.log("$TAG: prefs changed: key=$key")
+        invalidateCaches(key)
         notifyListeners()
     }
 
@@ -171,12 +176,22 @@ object ConfigManager {
     }
 
     private fun appConfigJson(pkg: String): JSONObject? {
+        val prefKey = "pref_app_config_$pkg"
         val raw = try {
-            prefsForKey("pref_app_config_$pkg")?.getString(fk("pref_app_config_$pkg"), null)
+            prefsForKey(prefKey)?.getString(fk(prefKey), null)
         } catch (_: Throwable) {
             null
-        } ?: return null
-        return try { JSONObject(raw) } catch (_: Throwable) { null }
+        } ?: run {
+            appConfigCache.remove(pkg)
+            return null
+        }
+        appConfigCache[pkg]?.takeIf { it.raw == raw }?.let { return it.json }
+        return try {
+            JSONObject(raw).also { appConfigCache[pkg] = CachedAppConfig(raw, it) }
+        } catch (_: Throwable) {
+            appConfigCache.remove(pkg)
+            null
+        }
     }
 
     private fun parseAppField(key: String, fields: Map<String, String>): AppField? {
@@ -190,9 +205,7 @@ object ConfigManager {
         for ((prefix, name) in CHANNEL_FIELDS.entries.sortedByDescending { it.key.length }) {
             if (!key.startsWith(prefix)) continue
             val rest = key.removePrefix(prefix)
-            val pkg = appPackages()
-                .filter { rest == it || rest.startsWith("${it}_") }
-                .maxByOrNull { it.length }
+            val pkg = appPackages().firstOrNull { rest == it || rest.startsWith("${it}_") }
                 ?: continue
             if (rest.length <= pkg.length + 1) continue
             return ChannelField(pkg, rest.substring(pkg.length + 1), name)
@@ -200,10 +213,34 @@ object ConfigManager {
         return null
     }
 
-    private fun appPackages(): Set<String> {
+    private fun appPackages(): List<String> {
         val csv = try { prefsForKey("pref_generic_whitelist")?.getString(fk("pref_generic_whitelist"), "") }
         catch (_: Throwable) { "" }
-        return csv.orEmpty().split(',').map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+        val normalized = csv.orEmpty()
+        appPackagesCache.takeIf { it.raw == normalized }?.let { return it.packages }
+        return normalized.split(',')
+            .asSequence()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .distinct()
+            .sortedByDescending { it.length }
+            .toList()
+            .also { appPackagesCache = AppPackagesCache(normalized, it) }
+    }
+
+    private fun invalidateCaches(key: String?) {
+        if (key == null) {
+            appConfigCache.clear()
+            appPackagesCache = AppPackagesCache("", emptyList())
+            return
+        }
+        val rawKey = key.removePrefix(FLUTTER_KEY_PREFIX)
+        if (rawKey.startsWith("pref_app_config_")) {
+            appConfigCache.remove(rawKey.removePrefix("pref_app_config_"))
+        }
+        if (rawKey == "pref_generic_whitelist") {
+            appPackagesCache = AppPackagesCache("", emptyList())
+        }
     }
 
     private fun prefsForKey(key: String): SharedPreferences? {
@@ -240,6 +277,8 @@ object ConfigManager {
 
     private data class AppField(val pkg: String, val name: String)
     private data class ChannelField(val pkg: String, val channelId: String, val name: String)
+    private data class CachedAppConfig(val raw: String, val json: JSONObject)
+    private data class AppPackagesCache(val raw: String, val packages: List<String>)
     private object AppConfigMissing
 
     private val TOAST_FIELDS = linkedMapOf(

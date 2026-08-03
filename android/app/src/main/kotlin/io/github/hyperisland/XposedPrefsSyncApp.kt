@@ -6,6 +6,7 @@ import android.content.SharedPreferences
 import android.util.Log
 import io.github.libxposed.service.XposedService
 import io.github.libxposed.service.XposedServiceHelper
+import java.security.MessageDigest
 
 /**
  * 自定义 Application，负责将 Flutter 端写入的 SharedPreferences 镜像同步到
@@ -24,6 +25,8 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
 
     @Volatile
     private var xposedService: XposedService? = null
+
+    private val syncLock = Any()
 
     private val flutterPrefsListener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
         syncKeyToRemote(prefs, key)
@@ -66,30 +69,31 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
         syncToRemote(service, prefs, key)
     }
 
-    /** Service 刚绑定时，将所有 FlutterSharedPreferences 条目全量同步。 */
+    /** Service 刚绑定时，仅在配置摘要变化后按分组差异同步。 */
     private fun syncAllToRemote(service: XposedService) {
         syncToRemote(service, flutterPrefs, key = null)
     }
 
     private fun syncToRemote(service: XposedService, sourcePrefs: SharedPreferences, key: String?) {
-        try {
-            if (key == null) {
-                writeAllSharded(service, sourcePrefs)
-            } else {
-                if (!shouldSyncKey(key)) return
-                val remote = service.getRemotePreferences(remotePrefsNameForKey(key))
-                val editor = remote.edit() ?: return
-                writeValue(editor, key, sourcePrefs.all[key])
-                editor.apply()
+        synchronized(syncLock) {
+            try {
+                if (key == null) {
+                    syncAllIfChanged(service, sourcePrefs)
+                } else {
+                    if (!shouldSyncKey(key)) return
+                    invalidateRemoteDigest(service)
+                    val remote = service.getRemotePreferences(remotePrefsNameForKey(key))
+                    val editor = remote.edit() ?: error("remote editor unavailable")
+                    check(writeValue(editor, key, sourcePrefs.all[key])) {
+                        "unsupported preference value for $key"
+                    }
+                    check(editor.commit()) { "remote commit failed for $key" }
+                    Log.d(TAG, "synced key=$key to remote prefs")
+                }
+            } catch (e: Exception) {
+                val scope = if (key == null) "all" else key
+                Log.w(TAG, "syncToRemote failed (key=$scope): ${e.message}")
             }
-            if (key == null) {
-                Log.d(TAG, "full sync done: ${sourcePrefs.all.size} keys")
-            } else {
-                Log.d(TAG, "synced key=$key to remote prefs")
-            }
-        } catch (e: Exception) {
-            val scope = if (key == null) "all" else key
-            Log.w(TAG, "syncToRemote failed (key=$scope): ${e.message}")
         }
     }
 
@@ -129,42 +133,122 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
         )
     }
 
-    private fun writeAllSharded(service: XposedService, src: SharedPreferences) {
-        clearAllRemotePrefs(service)
+    private fun syncAllIfChanged(service: XposedService, src: SharedPreferences) {
+        val source = src.all.filterKeys(::shouldSyncKey)
+        val digest = configDigest(source)
+        val meta = service.getRemotePreferences(REMOTE_PREFS_META)
+        if (meta.getInt(META_FORMAT_VERSION, 0) == SYNC_FORMAT_VERSION &&
+            meta.getString(META_CONFIG_DIGEST, null) == digest
+        ) {
+            Log.d(TAG, "config unchanged, skipped full sync (${source.size} keys)")
+            return
+        }
 
-        val grouped = src.all
-            .filterKeys { shouldSyncKey(it) }
-            .entries
-            .groupBy { remotePrefsNameForKey(it.key) }
+        val grouped = source.entries.groupBy({ remotePrefsNameForKey(it.key) }, { it })
+        var changedGroups = 0
+        for (prefsName in allRemotePrefsNames()) {
+            val entries = grouped[prefsName].orEmpty()
+            if (syncGroupDiff(service, prefsName, entries)) changedGroups++
+        }
+        updateRemoteDigest(service, digest)
+        Log.d(TAG, "diff sync done: ${source.size} keys, $changedGroups changed groups")
+    }
 
-        for ((prefsName, entries) in grouped) {
-            val remote = service.getRemotePreferences(prefsName)
-            var editor = remote.edit() ?: continue
-            for ((key, value) in entries) {
-                writeValue(editor, key, value)
+    private fun syncGroupDiff(
+        service: XposedService,
+        prefsName: String,
+        entries: List<Map.Entry<String, Any?>>,
+    ): Boolean {
+        val remote = service.getRemotePreferences(prefsName)
+        val current = remote.all
+        val target = entries.associate { it.key to it.value }
+        val removedKeys = current.keys - target.keys
+        val changedEntries = target.filter { (key, value) -> current[key] != value }
+        if (removedKeys.isEmpty() && changedEntries.isEmpty()) return false
+
+        val editor = remote.edit() ?: error("remote editor unavailable for $prefsName")
+        removedKeys.forEach(editor::remove)
+        for ((key, value) in changedEntries) {
+            check(writeValue(editor, key, value)) { "unsupported preference value for $key" }
+        }
+        check(editor.commit()) { "remote commit failed for $prefsName" }
+        Log.d(
+            TAG,
+            "diff synced $prefsName: ${changedEntries.size} changed, ${removedKeys.size} removed",
+        )
+        return true
+    }
+
+    private fun updateRemoteDigest(service: XposedService, digest: String) {
+        val editor = service.getRemotePreferences(REMOTE_PREFS_META).edit()
+            ?: error("remote metadata editor unavailable")
+        editor.putInt(META_FORMAT_VERSION, SYNC_FORMAT_VERSION)
+        editor.putString(META_CONFIG_DIGEST, digest)
+        check(editor.commit()) { "remote metadata commit failed" }
+    }
+
+    private fun invalidateRemoteDigest(service: XposedService) {
+        val editor = service.getRemotePreferences(REMOTE_PREFS_META).edit()
+            ?: error("remote metadata editor unavailable")
+        editor.remove(META_CONFIG_DIGEST)
+        check(editor.commit()) { "remote metadata invalidation failed" }
+    }
+
+    private fun configDigest(values: Map<String, *>): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        values.asSequence()
+            .filter { shouldSyncKey(it.key) }
+            .sortedBy { it.key }
+            .forEach { (key, value) ->
+                updateDigestPart(digest, key)
+                when (value) {
+                    is Boolean -> updateDigestPart(digest, "b:$value")
+                    is Int -> updateDigestPart(digest, "i:$value")
+                    is Long -> updateDigestPart(digest, "l:$value")
+                    is Float -> updateDigestPart(digest, "f:${value.toRawBits()}")
+                    is String -> updateDigestPart(digest, "s:$value")
+                    is Set<*> -> {
+                        updateDigestPart(digest, "set")
+                        value.filterIsInstance<String>().sorted().forEach {
+                            updateDigestPart(digest, it)
+                        }
+                    }
+                    null -> updateDigestPart(digest, "null")
+                    else -> updateDigestPart(digest, "unsupported:${value::class.java.name}:$value")
+                }
             }
-            editor.apply()
-            Log.d(TAG, "synced ${entries.size} keys to $prefsName")
-        }
+        return digest.digest().joinToString("") { "%02x".format(it) }
     }
 
-    private fun clearAllRemotePrefs(service: XposedService) {
-        service.getRemotePreferences(REMOTE_PREFS_CORE).edit()?.clear()?.apply()
-        for (index in 0 until SHARD_COUNT) {
-            service.getRemotePreferences("$REMOTE_PREFS_SHARD_PREFIX$index").edit()?.clear()?.apply()
-        }
+    private fun updateDigestPart(digest: MessageDigest, value: String) {
+        val bytes = value.toByteArray(Charsets.UTF_8)
+        digest.update((bytes.size ushr 24).toByte())
+        digest.update((bytes.size ushr 16).toByte())
+        digest.update((bytes.size ushr 8).toByte())
+        digest.update(bytes.size.toByte())
+        digest.update(bytes)
     }
 
-    private fun writeValue(editor: SharedPreferences.Editor, key: String, value: Any?) {
+    private fun allRemotePrefsNames(): List<String> = buildList(SHARD_COUNT + 1) {
+        add(REMOTE_PREFS_CORE)
+        for (index in 0 until SHARD_COUNT) add("$REMOTE_PREFS_SHARD_PREFIX$index")
+    }
+
+    private fun writeValue(editor: SharedPreferences.Editor, key: String, value: Any?): Boolean {
         when (value) {
             is Boolean -> editor.putBoolean(key, value)
             is Int     -> editor.putInt(key, value)
             is Long    -> editor.putLong(key, value)
             is Float   -> editor.putFloat(key, value)
             is String  -> editor.putString(key, value)
-            is Set<*>  -> editor.putStringSet(key, value.filterIsInstance<String>().toSet())
+            is Set<*>  -> {
+                if (value.any { it !is String }) return false
+                editor.putStringSet(key, value.filterIsInstance<String>().toSet())
+            }
             null       -> editor.remove(key)
+            else       -> return false
         }
+        return true
     }
 
     private fun shouldSyncKey(key: String): Boolean {
@@ -200,7 +284,11 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
         private const val FLUTTER_KEY_PREFIX = "flutter."
         const val REMOTE_PREFS_CORE = "HyperIslandXposedCore"
         const val REMOTE_PREFS_SHARD_PREFIX = "HyperIslandXposedShard"
+        private const val REMOTE_PREFS_META = "HyperIslandXposedMeta"
         const val SHARD_COUNT = 32
+        private const val META_FORMAT_VERSION = "sync_format_version"
+        private const val META_CONFIG_DIGEST = "config_digest"
+        private const val SYNC_FORMAT_VERSION = 1
 
         private val CORE_PREF_KEYS = setOf(
             "pref_show_welcome",
