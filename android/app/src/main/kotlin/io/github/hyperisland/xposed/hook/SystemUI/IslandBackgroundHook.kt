@@ -1112,28 +1112,19 @@ object IslandBackgroundHook : BaseHook() {
             isFilterBitmap = true
         }
 
-        private val defaultStoke by lazy {
-            TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP, 4f,
-                android.content.res.Resources.getSystem().displayMetrics
-            ).toInt()
-        }
-
         override fun draw(canvas: Canvas) {
             val bounds = getBounds()
             if (bounds.isEmpty || bitmap.isRecycled) return
 
-            val s = if (stokeWidth > 0) stokeWidth.toFloat() else defaultStoke.toFloat()
-            val contentLeft = (bounds.left + s).coerceAtLeast(bounds.left.toFloat())
-            val contentTop = (bounds.top + s).coerceAtLeast(bounds.top.toFloat())
-            val contentRight = (bounds.right - s).coerceAtMost(bounds.right.toFloat())
-            val contentBottom = (bounds.bottom - s).coerceAtMost(bounds.bottom.toFloat())
-
-            if (contentRight > contentLeft && contentBottom > contentTop) {
-                rect.set(contentLeft, contentTop, contentRight, contentBottom)
-            } else {
-                rect.set(bounds.left.toFloat(), bounds.top.toFloat(), bounds.right.toFloat(), bounds.bottom.toFloat())
-            }
+            // The stock stroke is drawn inside the same outer bounds. Insetting the fill by
+            // stokeWidth exposes that cleared stock layer as a ring and makes focus cards
+            // visibly smaller than their original geometry.
+            rect.set(
+                bounds.left.toFloat(),
+                bounds.top.toFloat(),
+                bounds.right.toFloat(),
+                bounds.bottom.toFloat(),
+            )
 
             clipPath.reset()
             clipPath.addRoundRect(rect, cornerRadius, cornerRadius, Path.Direction.CW)
@@ -1178,13 +1169,6 @@ object IslandBackgroundHook : BaseHook() {
         private val rect = RectF()
         private val childRect = Rect()
 
-        private val defaultStoke by lazy {
-            TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP, 4f,
-                android.content.res.Resources.getSystem().displayMetrics
-            ).toInt()
-        }
-
         init {
             child.callback = this
             start()
@@ -1211,17 +1195,12 @@ object IslandBackgroundHook : BaseHook() {
             val bounds = getBounds()
             if (bounds.isEmpty) return
 
-            val s = if (stokeWidth > 0) stokeWidth.toFloat() else defaultStoke.toFloat()
-            val contentLeft = (bounds.left + s).coerceAtLeast(bounds.left.toFloat())
-            val contentTop = (bounds.top + s).coerceAtLeast(bounds.top.toFloat())
-            val contentRight = (bounds.right - s).coerceAtMost(bounds.right.toFloat())
-            val contentBottom = (bounds.bottom - s).coerceAtMost(bounds.bottom.toFloat())
-
-            if (contentRight > contentLeft && contentBottom > contentTop) {
-                rect.set(contentLeft, contentTop, contentRight, contentBottom)
-            } else {
-                rect.set(bounds.left.toFloat(), bounds.top.toFloat(), bounds.right.toFloat(), bounds.bottom.toFloat())
-            }
+            rect.set(
+                bounds.left.toFloat(),
+                bounds.top.toFloat(),
+                bounds.right.toFloat(),
+                bounds.bottom.toFloat(),
+            )
 
             clipPath.reset()
             clipPath.addRoundRect(rect, cornerRadius, cornerRadius, Path.Direction.CW)
