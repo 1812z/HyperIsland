@@ -9,6 +9,7 @@ import 'whitelist_controller.dart';
 const kPrefShowWelcome = 'pref_show_welcome';
 const kPrefResumeNotification = 'pref_resume_notification';
 const kPrefSettingsHomeEntry = 'pref_settings_home_entry';
+const kPrefSettingsHomeEntryIconStyle = 'pref_settings_home_entry_icon_style';
 const kPrefBluetoothIsland = 'pref_bluetooth_island';
 const kPrefBluetoothIslandShowDeviceName =
     'pref_bluetooth_island_show_device_name';
@@ -165,6 +166,9 @@ const kChargeIslandDurationDefault = 'default';
 const kChargeIslandDurationCustom = 'custom';
 const kChargeIslandDurationPersistent = 'persistent';
 
+const kSettingsHomeEntryIconStyleDefault = 'default';
+const kSettingsHomeEntryIconStyleOutline = 'outline';
+
 class SettingsController extends ChangeNotifier {
   static final SettingsController instance = SettingsController._();
   SharedPreferences? _prefs;
@@ -176,6 +180,7 @@ class SettingsController extends ChangeNotifier {
   bool showWelcome = true;
   bool resumeNotification = true;
   bool settingsHomeEntry = true;
+  String settingsHomeEntryIconStyle = kSettingsHomeEntryIconStyleDefault;
   bool bluetoothIsland = false;
   bool bluetoothIslandShowDeviceName = true;
   int bluetoothIslandDisplayDurationSeconds = 2;
@@ -314,6 +319,9 @@ class SettingsController extends ChangeNotifier {
     showWelcome = prefs.getBool(kPrefShowWelcome) ?? true;
     resumeNotification = prefs.getBool(kPrefResumeNotification) ?? true;
     settingsHomeEntry = prefs.getBool(kPrefSettingsHomeEntry) ?? true;
+    settingsHomeEntryIconStyle = _normalizeSettingsHomeEntryIconStyle(
+      prefs.getString(kPrefSettingsHomeEntryIconStyle),
+    );
     bluetoothIsland = prefs.getBool(kPrefBluetoothIsland) ?? false;
     bluetoothIslandShowDeviceName =
         prefs.getBool(kPrefBluetoothIslandShowDeviceName) ?? true;
@@ -600,6 +608,15 @@ class SettingsController extends ChangeNotifier {
     final prefs = await _getPrefs();
     await prefs.setBool(kPrefSettingsHomeEntry, value);
     settingsHomeEntry = value;
+    notifyListeners();
+  }
+
+  Future<void> setSettingsHomeEntryIconStyle(String value) async {
+    final normalized = _normalizeSettingsHomeEntryIconStyle(value);
+    if (settingsHomeEntryIconStyle == normalized) return;
+    final prefs = await _getPrefs();
+    await prefs.setString(kPrefSettingsHomeEntryIconStyle, normalized);
+    settingsHomeEntryIconStyle = normalized;
     notifyListeners();
   }
 
@@ -1060,6 +1077,12 @@ class SettingsController extends ChangeNotifier {
       'expand' => 'expand',
       _ => 'off',
     };
+  }
+
+  String _normalizeSettingsHomeEntryIconStyle(String? value) {
+    return value == kSettingsHomeEntryIconStyleOutline
+        ? kSettingsHomeEntryIconStyleOutline
+        : kSettingsHomeEntryIconStyleDefault;
   }
 
   String _normalizeChargeIslandMode(String? value) {

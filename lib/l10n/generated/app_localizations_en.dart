@@ -1856,6 +1856,15 @@ class AppLocalizationsEn extends AppLocalizations {
       'Show the HyperIsland entry on the System Settings home page';
 
   @override
+  String get settingsHomeEntryIconStyle => 'Icon style';
+
+  @override
+  String get settingsHomeEntryIconStyleDefault => 'Default';
+
+  @override
+  String get settingsHomeEntryIconStyleOutline => 'No background';
+
+  @override
   String get xposedScopeRequestFailed =>
       'Scope request failed. Make sure the module is enabled in LSPosed';
 

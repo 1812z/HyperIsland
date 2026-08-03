@@ -23,6 +23,7 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
   int _buildUiStateHash() => Object.hashAll([
     _ctrl.resumeNotification,
     _ctrl.settingsHomeEntry,
+    _ctrl.settingsHomeEntryIconStyle,
     _ctrl.bluetoothIsland,
     _ctrl.bluetoothIslandShowDeviceName,
     _ctrl.bluetoothIslandDisplayDurationSeconds,
@@ -85,6 +86,18 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
       return;
     }
     await _ctrl.setSettingsHomeEntry(value);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.restartScopeApp),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
+  }
+
+  Future<void> _onSettingsHomeEntryIconStyleChanged(String value) async {
+    await _ctrl.setSettingsHomeEntryIconStyle(value);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -277,17 +290,57 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
                   elevation: 0,
                   color: cs.surfaceContainerHighest,
                   clipBehavior: Clip.antiAlias,
-                  child: SwitchListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 4,
-                    ),
-                    title: Text(l10n.settingsHomeEntryTitle, style: titleStyle),
-                    subtitle: Text(l10n.settingsHomeEntrySubtitle),
-                    value: _ctrl.settingsHomeEntry,
-                    onChanged: InteractionHaptics.interceptToggle(
-                      _onSettingsHomeEntryChanged,
-                    ),
+                  child: Column(
+                    children: [
+                      SwitchListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        title: Text(
+                          l10n.settingsHomeEntryTitle,
+                          style: titleStyle,
+                        ),
+                        subtitle: Text(l10n.settingsHomeEntrySubtitle),
+                        value: _ctrl.settingsHomeEntry,
+                        onChanged: InteractionHaptics.interceptToggle(
+                          _onSettingsHomeEntryChanged,
+                        ),
+                      ),
+                      if (_ctrl.settingsHomeEntry) ...[
+                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                          child: DropdownButtonFormField<String>(
+                            initialValue: _ctrl.settingsHomeEntryIconStyle,
+                            decoration: InputDecoration(
+                              labelText: l10n.settingsHomeEntryIconStyle,
+                              border: const OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            items: [
+                              DropdownMenuItem(
+                                value: kSettingsHomeEntryIconStyleDefault,
+                                child: Text(
+                                  l10n.settingsHomeEntryIconStyleDefault,
+                                ),
+                              ),
+                              DropdownMenuItem(
+                                value: kSettingsHomeEntryIconStyleOutline,
+                                child: Text(
+                                  l10n.settingsHomeEntryIconStyleOutline,
+                                ),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              if (value != null) {
+                                _onSettingsHomeEntryIconStyleChanged(value);
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
                 const SizedBox(height: 8),

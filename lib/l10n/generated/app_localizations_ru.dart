@@ -1868,6 +1868,15 @@ class AppLocalizationsRu extends AppLocalizations {
       'Показывать запись HyperIsland на главной странице Системных настроек';
 
   @override
+  String get settingsHomeEntryIconStyle => 'Стиль значка';
+
+  @override
+  String get settingsHomeEntryIconStyleDefault => 'По умолчанию';
+
+  @override
+  String get settingsHomeEntryIconStyleOutline => 'Без фона';
+
+  @override
   String get xposedScopeRequestFailed =>
       'Ошибка запроса области. Убедитесь, что модуль включен в LSPosed';
 

@@ -3413,6 +3413,24 @@ abstract class AppLocalizations {
   /// **'在系统设置首页显示 HyperIsland 入口'**
   String get settingsHomeEntrySubtitle;
 
+  /// No description provided for @settingsHomeEntryIconStyle.
+  ///
+  /// In zh, this message translates to:
+  /// **'图标样式'**
+  String get settingsHomeEntryIconStyle;
+
+  /// No description provided for @settingsHomeEntryIconStyleDefault.
+  ///
+  /// In zh, this message translates to:
+  /// **'默认'**
+  String get settingsHomeEntryIconStyleDefault;
+
+  /// No description provided for @settingsHomeEntryIconStyleOutline.
+  ///
+  /// In zh, this message translates to:
+  /// **'镂空'**
+  String get settingsHomeEntryIconStyleOutline;
+
   /// No description provided for @xposedScopeRequestFailed.
   ///
   /// In zh, this message translates to:

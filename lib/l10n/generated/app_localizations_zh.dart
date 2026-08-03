@@ -1755,6 +1755,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get settingsHomeEntrySubtitle => '在系统设置首页显示 HyperIsland 入口';
 
   @override
+  String get settingsHomeEntryIconStyle => '图标样式';
+
+  @override
+  String get settingsHomeEntryIconStyleDefault => '默认';
+
+  @override
+  String get settingsHomeEntryIconStyleOutline => '镂空';
+
+  @override
   String get xposedScopeRequestFailed => '作用域申请失败，请确认模块已在 LSPosed 中启用';
 
   @override

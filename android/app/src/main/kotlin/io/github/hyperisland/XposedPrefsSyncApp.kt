@@ -294,6 +294,7 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
             "pref_show_welcome",
             "pref_resume_notification",
             "pref_settings_home_entry",
+            "pref_settings_home_entry_icon_style",
             "pref_bluetooth_island",
             "pref_bluetooth_island_show_device_name",
             "pref_bluetooth_island_display_duration_seconds",

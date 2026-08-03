@@ -1851,6 +1851,15 @@ class AppLocalizationsTr extends AppLocalizations {
       'Sistem Ayarları ana sayfasında HyperIsland girişini göster';
 
   @override
+  String get settingsHomeEntryIconStyle => 'Simge stili';
+
+  @override
+  String get settingsHomeEntryIconStyleDefault => 'Varsayılan';
+
+  @override
+  String get settingsHomeEntryIconStyleOutline => 'Arka plansız';
+
+  @override
   String get xposedScopeRequestFailed =>
       'Kapsam isteği başarısız oldu. Modülün LSPosed\'de etkin olduğundan emin olun';
 

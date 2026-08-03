@@ -1781,6 +1781,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsHomeEntrySubtitle => 'システム設定のホーム画面に HyperIsland の入口を表示します';
 
   @override
+  String get settingsHomeEntryIconStyle => 'アイコンスタイル';
+
+  @override
+  String get settingsHomeEntryIconStyleDefault => 'デフォルト';
+
+  @override
+  String get settingsHomeEntryIconStyleOutline => '背景なし';
+
+  @override
   String get xposedScopeRequestFailed =>
       'スコープの申請に失敗しました。LSPosed でモジュールが有効になっているか確認してください';
 

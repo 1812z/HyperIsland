@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Resources
 import android.graphics.drawable.Drawable
+import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
@@ -16,7 +17,7 @@ object SettingsHomeEntryHook : BaseHook() {
     private const val HEADER_ID = 0x68797065726C // "hyperl"
     private const val ICON_FAKE_RES_ID = 0x7e00f001
     private var iconHookInstalled = false
-    private var moduleIconState: Drawable.ConstantState? = null
+    private val moduleIconStates = mutableMapOf<String, Drawable.ConstantState>()
 
     override fun getTag(): String = "HyperIsland[SettingsHomeEntry]"
 
@@ -102,7 +103,7 @@ object SettingsHomeEntryHook : BaseHook() {
             module.hook(method).intercept { chain ->
                 val resId = chain.args.getOrNull(0) as? Int
                 if (resId == ICON_FAKE_RES_ID) {
-                    moduleIconState?.newDrawable() ?: loadModuleIcon(chain.thisObject as? Resources)
+                    loadModuleIcon(chain.thisObject as? Resources)
                 } else {
                     chain.proceed()
                 }
@@ -114,17 +115,31 @@ object SettingsHomeEntryHook : BaseHook() {
     }
 
     private fun loadModuleIcon(resources: Resources?): Drawable? = try {
-        val context = HookUtils.getContext(ClassLoader.getSystemClassLoader())
-            ?.createPackageContext(MODULE_PACKAGE, Context.CONTEXT_IGNORE_SECURITY)
-        val iconId = context?.resources?.getIdentifier("ic_settings_entry", "drawable", MODULE_PACKAGE) ?: 0
-        if (context != null && iconId != 0) {
-            context.resources.getDrawable(iconId, null)?.also { moduleIconState = it.constantState }
-        } else {
-            resources?.getDrawable(android.R.drawable.ic_dialog_info, null)
+        val iconStyle = ConfigManager.getString(PREF_ICON_STYLE, ICON_STYLE_DEFAULT)
+        moduleIconStates[iconStyle]?.newDrawable() ?: run {
+            val context = HookUtils.getContext(ClassLoader.getSystemClassLoader())
+                ?.createPackageContext(MODULE_PACKAGE, Context.CONTEXT_IGNORE_SECURITY)
+            val iconName = if (iconStyle == ICON_STYLE_OUTLINE) {
+                "ic_settings_entry_outline"
+            } else {
+                "ic_settings_entry"
+            }
+            val iconId = context?.resources?.getIdentifier(iconName, "drawable", MODULE_PACKAGE) ?: 0
+            if (context != null && iconId != 0) {
+                context.resources.getDrawable(iconId, null)?.also {
+                    it.constantState?.let { state -> moduleIconStates[iconStyle] = state }
+                }
+            } else {
+                resources?.getDrawable(android.R.drawable.ic_dialog_info, null)
+            }
         }
     } catch (_: Throwable) {
         resources?.getDrawable(android.R.drawable.ic_dialog_info, null)
     }
+
+    private const val PREF_ICON_STYLE = "pref_settings_home_entry_icon_style"
+    private const val ICON_STYLE_DEFAULT = "default"
+    private const val ICON_STYLE_OUTLINE = "outline"
 
     private fun createLaunchIntent(): Intent = Intent().apply {
         setClassName(MODULE_PACKAGE, MAIN_ACTIVITY)
