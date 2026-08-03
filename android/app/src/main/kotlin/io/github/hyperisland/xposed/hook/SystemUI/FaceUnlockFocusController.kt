@@ -42,7 +42,13 @@ object FaceUnlockFocusController {
         val appContext = context.applicationContext ?: context
         val updateState = Runnable {
             synchronized(stateLock) {
-                if (state == currentState) return@synchronized
+                if (
+                    state == currentState &&
+                    state != FaceState.SUCCESS &&
+                    state != FaceState.FAILED
+                ) {
+                    return@synchronized
+                }
                 when (state) {
                     FaceState.AUTHENTICATING -> {
                         cancelTerminalRemoval()
