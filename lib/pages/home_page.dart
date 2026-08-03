@@ -9,7 +9,6 @@ import '../controllers/settings_controller.dart';
 import '../controllers/update_controller.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../services/app_info_service.dart';
-import '../services/system_font_weight.dart';
 import '../widgets/miuix_page_scaffold.dart';
 
 const _channel = MethodChannel('io.github.hyperisland/test');
@@ -637,7 +636,7 @@ class _ModuleStatusCard extends StatelessWidget {
                     : isDark
                     ? Colors.white
                     : const Color(0xFF101010),
-                fontWeight: SystemFontWeight.resolve(FontWeight.w600),
+                fontWeight: FontWeight.w600,
               ),
               const SizedBox(height: 3),
               MiuixText(
@@ -741,7 +740,7 @@ class _InfoText extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            MiuixText(title, style: theme.textStyles.headline1),
+            MiuixText(title, style: theme.textStyles.headline1, fontWeight: FontWeight(500)),
             const SizedBox(height: 2),
             MiuixText(
               content.isEmpty ? '-' : content,

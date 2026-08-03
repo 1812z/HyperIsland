@@ -435,8 +435,14 @@ class MainActivity : FlutterActivity() {
 
     private fun systemFontWeightAdjustment(
         configuration: Configuration = resources.configuration
-    ): Int {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return 0
+    ): Int? {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return null
+        val miuiAdjustment = Settings.System.getString(
+            contentResolver,
+            "key_miui_font_weight_scale"
+        )?.toIntOrNull()
+        if (miuiAdjustment != null) return miuiAdjustment
+
         val adjustment = configuration.fontWeightAdjustment
         return if (adjustment == Configuration.FONT_WEIGHT_ADJUSTMENT_UNDEFINED) 0 else adjustment
     }

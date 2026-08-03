@@ -7,7 +7,6 @@ import 'l10n/generated/app_localizations.dart';
 import 'pages/main_page.dart';
 import 'pages/onboarding_page.dart';
 import 'services/app_cache_service.dart';
-import 'services/system_font_weight.dart';
 
 const _platform = MethodChannel('io.github.hyperisland/test');
 
@@ -33,7 +32,7 @@ class _MyAppState extends State<MyApp> {
   bool _settingsLoading = true;
   bool _onboardingCompleted = false;
   bool _appCacheInitialized = false;
-  int _fontWeightAdjustment = 0;
+  int? _systemFontWeightAdjustment;
 
   @override
   void initState() {
@@ -60,66 +59,24 @@ class _MyAppState extends State<MyApp> {
 
   Future<void> _loadSystemFontWeightAdjustment() async {
     try {
-      final adjustment =
-          await _platform.invokeMethod<int>('getSystemFontWeightAdjustment') ??
-          0;
-      _setFontWeightAdjustment(adjustment);
-    } catch (_) {}
+      final adjustment = await _platform.invokeMethod<int?>(
+        'getSystemFontWeightAdjustment',
+      );
+      _setSystemFontWeightAdjustment(adjustment);
+    } on PlatformException {
+      // Unsupported platforms keep Miuix's MediaQuery.boldText fallback.
+    }
   }
 
   Future<void> _handlePlatformCall(MethodCall call) async {
     if (call.method == 'systemFontWeightAdjustmentChanged') {
-      _setFontWeightAdjustment(call.arguments as int? ?? 0);
+      _setSystemFontWeightAdjustment(call.arguments as int?);
     }
   }
 
-  void _setFontWeightAdjustment(int adjustment) {
-    if (!mounted || adjustment == _fontWeightAdjustment) return;
-    SystemFontWeight.adjustment = adjustment;
-    setState(() => _fontWeightAdjustment = adjustment);
-  }
-
-  TextTheme _adjustTextTheme(TextTheme theme) {
-    return theme.copyWith(
-      displayLarge: _adjustTextStyle(theme.displayLarge),
-      displayMedium: _adjustTextStyle(theme.displayMedium),
-      displaySmall: _adjustTextStyle(theme.displaySmall),
-      headlineLarge: _adjustTextStyle(theme.headlineLarge),
-      headlineMedium: _adjustTextStyle(theme.headlineMedium),
-      headlineSmall: _adjustTextStyle(theme.headlineSmall),
-      titleLarge: _adjustTextStyle(theme.titleLarge),
-      titleMedium: _adjustTextStyle(theme.titleMedium),
-      titleSmall: _adjustTextStyle(theme.titleSmall),
-      bodyLarge: _adjustTextStyle(theme.bodyLarge),
-      bodyMedium: _adjustTextStyle(theme.bodyMedium),
-      bodySmall: _adjustTextStyle(theme.bodySmall),
-      labelLarge: _adjustTextStyle(theme.labelLarge),
-      labelMedium: _adjustTextStyle(theme.labelMedium),
-      labelSmall: _adjustTextStyle(theme.labelSmall),
-    );
-  }
-
-  TextStyle? _adjustTextStyle(TextStyle? style) {
-    return style == null ? null : SystemFontWeight.style(style);
-  }
-
-  MiuixTextStyles _adjustMiuixTextStyles(MiuixTextStyles styles) {
-    return styles.copy(
-      main: SystemFontWeight.style(styles.main),
-      paragraph: SystemFontWeight.style(styles.paragraph),
-      body1: SystemFontWeight.style(styles.body1),
-      body2: SystemFontWeight.style(styles.body2),
-      button: SystemFontWeight.style(styles.button),
-      footnote1: SystemFontWeight.style(styles.footnote1),
-      footnote2: SystemFontWeight.style(styles.footnote2),
-      headline1: SystemFontWeight.style(styles.headline1),
-      headline2: SystemFontWeight.style(styles.headline2),
-      subtitle: SystemFontWeight.style(styles.subtitle),
-      title1: SystemFontWeight.style(styles.title1),
-      title2: SystemFontWeight.style(styles.title2),
-      title3: SystemFontWeight.style(styles.title3),
-      title4: SystemFontWeight.style(styles.title4),
-    );
+  void _setSystemFontWeightAdjustment(int? adjustment) {
+    if (!mounted || adjustment == _systemFontWeightAdjustment) return;
+    setState(() => _systemFontWeightAdjustment = adjustment);
   }
 
   void _onSettingsChanged() {
@@ -250,7 +207,7 @@ class _MyAppState extends State<MyApp> {
             : colorScheme.surface,
       ),
     );
-    return theme.copyWith(textTheme: _adjustTextTheme(theme.textTheme));
+    return theme;
   }
 
   ThemeData _buildMiuixTheme({
@@ -337,7 +294,8 @@ class _MyAppState extends State<MyApp> {
     return MiuixThemeController(
       colorSchemeMode: miuixMode,
       keyColor: _monetTheme ? seedColor : null,
-      textStyles: _adjustMiuixTextStyles(defaultTextStyles()),
+      fontWeightAdjustment: _systemFontWeightAdjustment,
+      boldTextFontWeightAdjustment: 100,
       child: Builder(
         builder: (context) {
           final miuix = MiuixTheme.of(context);
