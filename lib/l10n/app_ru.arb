@@ -686,6 +686,22 @@
   "bluetoothIslandShowDeviceNameTitle": "Показывать имя устройства",
   "bluetoothIslandShowDeviceNameSubtitle": "При подключении сначала показать имя устройства справа, затем показать статус подключения",
   "bluetoothIslandDisplayDurationTitle": "Длительность показа",
+  "faceUnlockIslandTitle": "Остров разблокировки лицом",
+  "faceUnlockIslandSubtitle": "{status} · Автоматически разворачивать остров при распознавании лица",
+  "@faceUnlockIslandSubtitle": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "faceUnlockIslandSettingsTitle": "Настройки острова разблокировки лицом",
+  "faceUnlockIslandEnableTitle": "Включить остров разблокировки лицом",
+  "faceUnlockIslandEnableSubtitle": "После отключения перезапустите System UI. Перехваты разблокировки лицом не будут зарегистрированы",
+  "faceUnlockIslandFirstFloatTitle": "Автоматически разворачивать остров",
+  "faceUnlockIslandFirstFloatSubtitle": "Использовать islandFirstFloat при запуске распознавания лица",
+  "hideLockscreenFaceUnlockIconTitle": "Отключить значок разблокировки лицом",
+  "hideLockscreenFaceUnlockIconSubtitle": "Скрыть графику распознавания лица на экране блокировки, не отключая разблокировку лицом",
   "outerGlowTitle": "Внешнее свечение",
   "bluetoothIslandOuterGlowSubtitle": "Управлять эффектом внешнего свечения Bluetooth Острова",
   "outerGlowColorTitle": "Цвет внешнего свечения",

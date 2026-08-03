@@ -746,6 +746,22 @@
   "chargeIslandDurationPersistent": "Persistent",
   "chargeIslandDurationSecondsTitle": "Custom Duration",
   "chargeIslandOuterGlowSubtitle": "Control the outer glow effect of Charging Island",
+  "faceUnlockIslandTitle": "Face Unlock Island",
+  "faceUnlockIslandSubtitle": "{status} · Control whether the island expands automatically during face recognition",
+  "@faceUnlockIslandSubtitle": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "faceUnlockIslandSettingsTitle": "Face Unlock Island Settings",
+  "faceUnlockIslandEnableTitle": "Enable Face Unlock Island",
+  "faceUnlockIslandEnableSubtitle": "After disabling, restart System UI to apply it. Face unlock hooks will not be registered",
+  "faceUnlockIslandFirstFloatTitle": "Expand Island Automatically",
+  "faceUnlockIslandFirstFloatSubtitle": "Use islandFirstFloat to expand the island when face recognition starts",
+  "hideLockscreenFaceUnlockIconTitle": "Disable Face Unlock Icon",
+  "hideLockscreenFaceUnlockIconSubtitle": "Hide the face recognition graphic on the lock screen without affecting face unlock",
   "outerGlowTitle": "Outer Glow",
   "bluetoothIslandOuterGlowSubtitle": "Control the outer glow effect of Bluetooth Island",
   "outerGlowColorTitle": "Outer Glow Color",

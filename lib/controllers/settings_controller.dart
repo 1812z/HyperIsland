@@ -40,6 +40,10 @@ const kPrefChargeIslandRightMode = 'pref_charge_island_right_mode';
 const kPrefChargeIslandDurationMode = 'pref_charge_island_duration_mode';
 const kPrefChargeIslandDurationSeconds = 'pref_charge_island_duration_seconds';
 const kPrefChargeIslandOuterGlow = 'pref_charge_island_outer_glow';
+const kPrefFaceUnlockIsland = 'pref_face_unlock_island';
+const kPrefFaceUnlockIslandFirstFloat = 'pref_face_unlock_island_first_float';
+const kPrefHideLockscreenFaceUnlockIcon =
+    'pref_hide_lockscreen_face_unlock_icon';
 const kPrefThemeMode = 'pref_theme_mode';
 const kPrefLocale = 'pref_locale';
 const kPrefCheckUpdateOnLaunch = 'pref_check_update_on_launch';
@@ -205,6 +209,9 @@ class SettingsController extends ChangeNotifier {
   String chargeIslandDurationMode = kChargeIslandDurationDefault;
   int chargeIslandDurationSeconds = 10;
   bool chargeIslandOuterGlow = false;
+  bool faceUnlockIsland = false;
+  bool faceUnlockIslandFirstFloat = true;
+  bool hideLockscreenFaceUnlockIcon = false;
   bool checkUpdateOnLaunch = true;
   bool defaultFirstFloat = false;
   bool defaultEnableFloat = false;
@@ -363,6 +370,11 @@ class SettingsController extends ChangeNotifier {
       prefs.getInt(kPrefChargeIslandDurationSeconds),
     );
     chargeIslandOuterGlow = prefs.getBool(kPrefChargeIslandOuterGlow) ?? false;
+    faceUnlockIsland = prefs.getBool(kPrefFaceUnlockIsland) ?? false;
+    faceUnlockIslandFirstFloat =
+        prefs.getBool(kPrefFaceUnlockIslandFirstFloat) ?? true;
+    hideLockscreenFaceUnlockIcon =
+        prefs.getBool(kPrefHideLockscreenFaceUnlockIcon) ?? false;
     checkUpdateOnLaunch = prefs.getBool(kPrefCheckUpdateOnLaunch) ?? true;
     defaultFirstFloat = prefs.getBool(kPrefDefaultFirstFloat) ?? false;
     defaultEnableFloat = prefs.getBool(kPrefDefaultEnableFloat) ?? false;
@@ -837,6 +849,30 @@ class SettingsController extends ChangeNotifier {
     final prefs = await _getPrefs();
     await prefs.setBool(kPrefChargeIslandOuterGlow, value);
     chargeIslandOuterGlow = value;
+    notifyListeners();
+  }
+
+  Future<void> setFaceUnlockIslandFirstFloat(bool value) async {
+    if (faceUnlockIslandFirstFloat == value) return;
+    final prefs = await _getPrefs();
+    await prefs.setBool(kPrefFaceUnlockIslandFirstFloat, value);
+    faceUnlockIslandFirstFloat = value;
+    notifyListeners();
+  }
+
+  Future<void> setFaceUnlockIsland(bool value) async {
+    if (faceUnlockIsland == value) return;
+    final prefs = await _getPrefs();
+    await prefs.setBool(kPrefFaceUnlockIsland, value);
+    faceUnlockIsland = value;
+    notifyListeners();
+  }
+
+  Future<void> setHideLockscreenFaceUnlockIcon(bool value) async {
+    if (hideLockscreenFaceUnlockIcon == value) return;
+    final prefs = await _getPrefs();
+    await prefs.setBool(kPrefHideLockscreenFaceUnlockIcon, value);
+    hideLockscreenFaceUnlockIcon = value;
     notifyListeners();
   }
 

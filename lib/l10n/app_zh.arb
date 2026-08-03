@@ -898,6 +898,22 @@
   "chargeIslandDurationPersistent": "常驻",
   "chargeIslandDurationSecondsTitle": "自定义时长",
   "chargeIslandOuterGlowSubtitle": "控制充电超级岛的外圈光效",
+  "faceUnlockIslandTitle": "人脸解锁岛",
+  "faceUnlockIslandSubtitle": "{status} · 控制人脸识别时是否自动展开超级岛",
+  "@faceUnlockIslandSubtitle": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "faceUnlockIslandSettingsTitle": "人脸解锁岛设置",
+  "faceUnlockIslandEnableTitle": "启用人脸解锁岛",
+  "faceUnlockIslandEnableSubtitle": "关闭后重启 SystemUI 生效，且不会注册人脸解锁 Hook",
+  "faceUnlockIslandFirstFloatTitle": "自动展开超级岛",
+  "faceUnlockIslandFirstFloatSubtitle": "人脸识别开始时通过 islandFirstFloat 自动展开超级岛",
+  "hideLockscreenFaceUnlockIconTitle": "禁用人脸解锁图标",
+  "hideLockscreenFaceUnlockIconSubtitle": "隐藏锁屏界面的人脸识别图案，不影响人脸解锁功能",
   "outerGlowTitle": "外圈光效",
   "bluetoothIslandOuterGlowSubtitle": "控制蓝牙超级岛的外圈光效",
   "outerGlowColorTitle": "外圈光效颜色",

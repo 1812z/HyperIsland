@@ -40,7 +40,7 @@ internal object IslandDispatcherNotifier {
                 sourcePackage = request.sourcePackage.orEmpty(),
                 channelId = request.sourceChannelId.orEmpty(),
             )
-            if (sceneDecision.shouldSuppress) {
+            if (!request.bypassSceneBehavior && sceneDecision.shouldSuppress) {
                 IslandDispatchState.module?.log(
                     "${IslandDispatchContract.TAG}: skip dispatcher post by scene rule",
                 )
@@ -49,6 +49,11 @@ internal object IslandDispatcherNotifier {
 
             val nm = context.getSystemService(NotificationManager::class.java) ?: return
             ensureChannel(context)
+
+            request.notificationExtras?.let { extras ->
+                postNotificationWithExtras(context, nm, request, extras)
+                return
+            }
 
             val appIcon = resolveIcon(request.icon, context)
             val focusTitle = request.focusTitle ?: request.title
@@ -233,6 +238,37 @@ internal object IslandDispatcherNotifier {
         } catch (e: Exception) {
             IslandDispatchState.module?.logError("${IslandDispatchContract.TAG}: cancel error: ${e.message}")
         }
+    }
+
+    private fun postNotificationWithExtras(
+        context: Context,
+        nm: NotificationManager,
+        request: IslandRequest,
+        extras: Bundle,
+    ) {
+        val notif = Notification.Builder(context, IslandDispatchContract.CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_lock_idle_lock)
+            .setContentTitle(request.title)
+            .setContentText(request.content)
+            .setVisibility(request.notificationVisibility)
+            .setOnlyAlertOnce(request.notificationOnlyAlertOnce)
+            .setOngoing(request.isOngoing)
+            .apply {
+                if (request.notificationSilent) {
+                    setSound(null)
+                    setVibrate(null)
+                    setDefaults(0)
+                }
+            }
+            .build()
+        notif.extras.putAll(extras)
+        notif.extras.putString(EXTRA_OWNER, OWNER_MARKER)
+        if (request.clearBeforePost) nm.cancel(request.notifId)
+        nm.notify(request.notifId, notif)
+        IslandDispatchState.postedIds.add(request.notifId)
+        IslandDispatchState.module?.log(
+            "${IslandDispatchContract.TAG}: posted custom extras notifId=${request.notifId}",
+        )
     }
 
     fun ensureChannel(context: Context) {

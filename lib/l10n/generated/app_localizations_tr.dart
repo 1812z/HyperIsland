@@ -1971,6 +1971,39 @@ class AppLocalizationsTr extends AppLocalizations {
   String get chargeIslandOuterGlowSubtitle => '控制充电超级岛的外圈光效';
 
   @override
+  String get faceUnlockIslandTitle => 'Yüz Kilidi Adası';
+
+  @override
+  String faceUnlockIslandSubtitle(String status) {
+    return '$status · Yüz tanıma sırasında adanın otomatik genişlemesini kontrol et';
+  }
+
+  @override
+  String get faceUnlockIslandSettingsTitle => 'Yüz Kilidi Adası Ayarları';
+
+  @override
+  String get faceUnlockIslandEnableTitle => 'Yüz Kilidi Adasını Etkinleştir';
+
+  @override
+  String get faceUnlockIslandEnableSubtitle =>
+      'Devre dışı bıraktıktan sonra System UI\'ı yeniden başlatın. Yüz kilidi hook\'ları kaydedilmez';
+
+  @override
+  String get faceUnlockIslandFirstFloatTitle => 'Adayı Otomatik Genişlet';
+
+  @override
+  String get faceUnlockIslandFirstFloatSubtitle =>
+      'Yüz tanıma başladığında adayı islandFirstFloat ile genişlet';
+
+  @override
+  String get hideLockscreenFaceUnlockIconTitle =>
+      'Yüz Kilidi Simgesini Devre Dışı Bırak';
+
+  @override
+  String get hideLockscreenFaceUnlockIconSubtitle =>
+      'Yüz kilidi işlevini etkilemeden kilit ekranındaki yüz tanıma grafiğini gizle';
+
+  @override
   String get outerGlowTitle => 'Dış Parlama';
 
   @override

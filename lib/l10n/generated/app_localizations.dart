@@ -3635,6 +3635,60 @@ abstract class AppLocalizations {
   /// **'控制充电超级岛的外圈光效'**
   String get chargeIslandOuterGlowSubtitle;
 
+  /// No description provided for @faceUnlockIslandTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'人脸解锁岛'**
+  String get faceUnlockIslandTitle;
+
+  /// No description provided for @faceUnlockIslandSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'{status} · 控制人脸识别时是否自动展开超级岛'**
+  String faceUnlockIslandSubtitle(String status);
+
+  /// No description provided for @faceUnlockIslandSettingsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'人脸解锁岛设置'**
+  String get faceUnlockIslandSettingsTitle;
+
+  /// No description provided for @faceUnlockIslandEnableTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'启用人脸解锁岛'**
+  String get faceUnlockIslandEnableTitle;
+
+  /// No description provided for @faceUnlockIslandEnableSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'关闭后重启 SystemUI 生效，且不会注册人脸解锁 Hook'**
+  String get faceUnlockIslandEnableSubtitle;
+
+  /// No description provided for @faceUnlockIslandFirstFloatTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'自动展开超级岛'**
+  String get faceUnlockIslandFirstFloatTitle;
+
+  /// No description provided for @faceUnlockIslandFirstFloatSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'人脸识别开始时通过 islandFirstFloat 自动展开超级岛'**
+  String get faceUnlockIslandFirstFloatSubtitle;
+
+  /// No description provided for @hideLockscreenFaceUnlockIconTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'禁用人脸解锁图标'**
+  String get hideLockscreenFaceUnlockIconTitle;
+
+  /// No description provided for @hideLockscreenFaceUnlockIconSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'隐藏锁屏界面的人脸识别图案，不影响人脸解锁功能'**
+  String get hideLockscreenFaceUnlockIconSubtitle;
+
   /// No description provided for @outerGlowTitle.
   ///
   /// In zh, this message translates to:

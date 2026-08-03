@@ -1870,6 +1870,37 @@ class AppLocalizationsZh extends AppLocalizations {
   String get chargeIslandOuterGlowSubtitle => '控制充电超级岛的外圈光效';
 
   @override
+  String get faceUnlockIslandTitle => '人脸解锁岛';
+
+  @override
+  String faceUnlockIslandSubtitle(String status) {
+    return '$status · 控制人脸识别时是否自动展开超级岛';
+  }
+
+  @override
+  String get faceUnlockIslandSettingsTitle => '人脸解锁岛设置';
+
+  @override
+  String get faceUnlockIslandEnableTitle => '启用人脸解锁岛';
+
+  @override
+  String get faceUnlockIslandEnableSubtitle =>
+      '关闭后重启 SystemUI 生效，且不会注册人脸解锁 Hook';
+
+  @override
+  String get faceUnlockIslandFirstFloatTitle => '自动展开超级岛';
+
+  @override
+  String get faceUnlockIslandFirstFloatSubtitle =>
+      '人脸识别开始时通过 islandFirstFloat 自动展开超级岛';
+
+  @override
+  String get hideLockscreenFaceUnlockIconTitle => '禁用人脸解锁图标';
+
+  @override
+  String get hideLockscreenFaceUnlockIconSubtitle => '隐藏锁屏界面的人脸识别图案，不影响人脸解锁功能';
+
+  @override
   String get outerGlowTitle => '外圈光效';
 
   @override

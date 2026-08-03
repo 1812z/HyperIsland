@@ -40,6 +40,11 @@ data class IslandRequest(
     val islandEnabled: Boolean = true,
     val focusTitle: String? = null,
     val focusContent: String? = null,
+    val notificationExtras: Bundle? = null,
+    val notificationVisibility: Int = Notification.VISIBILITY_PRIVATE,
+    val notificationOnlyAlertOnce: Boolean = false,
+    val notificationSilent: Boolean = false,
+    val bypassSceneBehavior: Boolean = false,
 ) {
     fun toBundle(): Bundle = Bundle().apply {
         putString(KEY_TITLE, title)
@@ -75,6 +80,11 @@ data class IslandRequest(
         putBoolean(KEY_ISLAND_ENABLED, islandEnabled)
         putString(KEY_FOCUS_TITLE, focusTitle)
         putString(KEY_FOCUS_CONTENT, focusContent)
+        putBundle(KEY_NOTIFICATION_EXTRAS, notificationExtras)
+        putInt(KEY_NOTIFICATION_VISIBILITY, notificationVisibility)
+        putBoolean(KEY_NOTIFICATION_ONLY_ALERT_ONCE, notificationOnlyAlertOnce)
+        putBoolean(KEY_NOTIFICATION_SILENT, notificationSilent)
+        putBoolean(KEY_BYPASS_SCENE_BEHAVIOR, bypassSceneBehavior)
     }
 
     companion object {
@@ -111,6 +121,11 @@ data class IslandRequest(
         private const val KEY_ISLAND_ENABLED = "islandEnabled"
         private const val KEY_FOCUS_TITLE = "focusTitle"
         private const val KEY_FOCUS_CONTENT = "focusContent"
+        private const val KEY_NOTIFICATION_EXTRAS = "notificationExtras"
+        private const val KEY_NOTIFICATION_VISIBILITY = "notificationVisibility"
+        private const val KEY_NOTIFICATION_ONLY_ALERT_ONCE = "notificationOnlyAlertOnce"
+        private const val KEY_NOTIFICATION_SILENT = "notificationSilent"
+        private const val KEY_BYPASS_SCENE_BEHAVIOR = "bypassSceneBehavior"
 
         fun fromBundle(b: Bundle) = IslandRequest(
             title = b.getString(KEY_TITLE, ""),
@@ -146,6 +161,14 @@ data class IslandRequest(
             islandEnabled = b.getBoolean(KEY_ISLAND_ENABLED, true),
             focusTitle = b.getString(KEY_FOCUS_TITLE),
             focusContent = b.getString(KEY_FOCUS_CONTENT),
+            notificationExtras = b.getBundle(KEY_NOTIFICATION_EXTRAS),
+            notificationVisibility = b.getInt(
+                KEY_NOTIFICATION_VISIBILITY,
+                Notification.VISIBILITY_PRIVATE,
+            ),
+            notificationOnlyAlertOnce = b.getBoolean(KEY_NOTIFICATION_ONLY_ALERT_ONCE, false),
+            notificationSilent = b.getBoolean(KEY_NOTIFICATION_SILENT, false),
+            bypassSceneBehavior = b.getBoolean(KEY_BYPASS_SCENE_BEHAVIOR, false),
         )
 
         private fun iconFromBundle(b: Bundle): Icon? =

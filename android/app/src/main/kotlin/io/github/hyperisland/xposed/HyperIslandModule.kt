@@ -12,6 +12,8 @@ import io.github.hyperisland.xposed.hook.ChargeIslandHook
 import io.github.hyperisland.xposed.hook.DownloadHook
 import io.github.hyperisland.xposed.hook.FocusNotifStatusBarIconHook
 import io.github.hyperisland.xposed.hook.FocusNotificationTextColorHook
+import io.github.hyperisland.xposed.hook.FaceUnlockStateHook
+import io.github.hyperisland.xposed.hook.LockscreenFaceUnlockUiHook
 import io.github.hyperisland.xposed.hook.MediaNotificationTextColorHook
 import io.github.hyperisland.xposed.hook.SystemUI.GenericProgressHook
 import io.github.hyperisland.xposed.hook.IslandBackgroundHook
@@ -43,7 +45,13 @@ class HyperIslandModule : XposedModule() {
         log("onPackageLoaded: pkg=${param.packageName}")
         
         when (param.packageName) {
-            "com.android.systemui"-> {
+            "com.android.systemui" -> {
+                if (ConfigManager.getBoolean("pref_face_unlock_island", false)) {
+                    FaceUnlockStateHook.init(this, param)
+                }
+                if (ConfigManager.getBoolean("pref_hide_lockscreen_face_unlock_icon", false)) {
+                    LockscreenFaceUnlockUiHook.init(this, param)
+                }
                 IslandDispatcherHook.init(this, param)
                 GenericProgressHook.init(this, param)
                 ActiveIslandDismissHook.init(this, param)

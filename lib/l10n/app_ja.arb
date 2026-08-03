@@ -626,6 +626,22 @@
   "chargeIslandDurationCustom": "カスタム",
   "chargeIslandDurationPersistent": "常駐",
   "chargeIslandDurationSecondsTitle": "カスタム時間",
+  "faceUnlockIslandTitle": "顔認証 Island",
+  "faceUnlockIslandSubtitle": "{status} · 顔認証時に Island を自動展開するかを設定します",
+  "@faceUnlockIslandSubtitle": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "faceUnlockIslandSettingsTitle": "顔認証 Island 設定",
+  "faceUnlockIslandEnableTitle": "顔認証 Island を有効化",
+  "faceUnlockIslandEnableSubtitle": "無効化後に System UI を再起動すると、顔認証 Hook は登録されません",
+  "faceUnlockIslandFirstFloatTitle": "Island を自動展開",
+  "faceUnlockIslandFirstFloatSubtitle": "顔認証開始時に islandFirstFloat で Island を自動展開します",
+  "hideLockscreenFaceUnlockIconTitle": "顔認証アイコンを無効化",
+  "hideLockscreenFaceUnlockIconSubtitle": "顔認証機能に影響を与えず、ロック画面の顔認証表示を非表示にします",
   "outerGlowTitle": "外側のグロー",
   "bluetoothIslandOuterGlowSubtitle": "Bluetooth Island の外側のグロー効果を制御します",
   "outerGlowColorTitle": "外側のグローの色",

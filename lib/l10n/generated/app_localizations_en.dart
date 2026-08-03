@@ -1977,6 +1977,38 @@ class AppLocalizationsEn extends AppLocalizations {
       'Control the outer glow effect of Charging Island';
 
   @override
+  String get faceUnlockIslandTitle => 'Face Unlock Island';
+
+  @override
+  String faceUnlockIslandSubtitle(String status) {
+    return '$status · Control whether the island expands automatically during face recognition';
+  }
+
+  @override
+  String get faceUnlockIslandSettingsTitle => 'Face Unlock Island Settings';
+
+  @override
+  String get faceUnlockIslandEnableTitle => 'Enable Face Unlock Island';
+
+  @override
+  String get faceUnlockIslandEnableSubtitle =>
+      'After disabling, restart System UI to apply it. Face unlock hooks will not be registered';
+
+  @override
+  String get faceUnlockIslandFirstFloatTitle => 'Expand Island Automatically';
+
+  @override
+  String get faceUnlockIslandFirstFloatSubtitle =>
+      'Use islandFirstFloat to expand the island when face recognition starts';
+
+  @override
+  String get hideLockscreenFaceUnlockIconTitle => 'Disable Face Unlock Icon';
+
+  @override
+  String get hideLockscreenFaceUnlockIconSubtitle =>
+      'Hide the face recognition graphic on the lock screen without affecting face unlock';
+
+  @override
   String get outerGlowTitle => 'Outer Glow';
 
   @override
