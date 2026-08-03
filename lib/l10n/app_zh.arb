@@ -735,6 +735,15 @@
   "keepIslandHighlightRight": "右",
   "keepIslandLeftContentTitle": "岛左边内容",
   "keepIslandRightContentTitle": "岛右边内容",
+  "keepIslandCarouselIntervalTitle": "轮播间隔",
+  "keepIslandCarouselIntervalSubtitle": "每隔 1-6000 秒切换多条左右内容",
+  "keepIslandAddCarouselItem": "添加内容",
+  "keepIslandCarouselItem": "内容 {index}",
+  "@keepIslandCarouselItem": {
+    "placeholders": {
+      "index": { "type": "int" }
+    }
+  },
   "keepIslandFocusNotificationTitle": "岛可点击",
   "keepIslandFocusNotificationSubtitle": "显示焦点通知内容，并支持点击展开",
   "keepIslandNotificationTitle": "通知标题",

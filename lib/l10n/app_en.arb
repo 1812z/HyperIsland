@@ -583,6 +583,15 @@
   "keepIslandHighlightRight": "Right",
   "keepIslandLeftContentTitle": "Left island content",
   "keepIslandRightContentTitle": "Right island content",
+  "keepIslandCarouselIntervalTitle": "Carousel interval",
+  "keepIslandCarouselIntervalSubtitle": "Switch between multiple left and right contents every 1-6000 seconds",
+  "keepIslandAddCarouselItem": "Add content",
+  "keepIslandCarouselItem": "Content {index}",
+  "@keepIslandCarouselItem": {
+    "placeholders": {
+      "index": { "type": "int" }
+    }
+  },
   "keepIslandFocusNotificationTitle": "Clickable island",
   "keepIslandFocusNotificationSubtitle": "Show focus notification content and support tap to expand",
   "keepIslandNotificationTitle": "Notification title",

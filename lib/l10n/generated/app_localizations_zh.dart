@@ -1529,6 +1529,20 @@ class AppLocalizationsZh extends AppLocalizations {
   String get keepIslandRightContentTitle => '岛右边内容';
 
   @override
+  String get keepIslandCarouselIntervalTitle => '轮播间隔';
+
+  @override
+  String get keepIslandCarouselIntervalSubtitle => '每隔 1-6000 秒切换多条左右内容';
+
+  @override
+  String get keepIslandAddCarouselItem => '添加内容';
+
+  @override
+  String keepIslandCarouselItem(int index) {
+    return '内容 $index';
+  }
+
+  @override
   String get keepIslandFocusNotificationTitle => '岛可点击';
 
   @override

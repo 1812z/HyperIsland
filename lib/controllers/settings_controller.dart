@@ -125,6 +125,8 @@ const kPrefKeepIslandLeftHighlight = 'pref_keep_island_left_highlight';
 const kPrefKeepIslandRightHighlight = 'pref_keep_island_right_highlight';
 const kPrefKeepIslandLeftContent = 'pref_keep_island_left_content';
 const kPrefKeepIslandRightContent = 'pref_keep_island_right_content';
+const kPrefKeepIslandCarouselInterval =
+    'pref_keep_island_carousel_interval_seconds';
 const kPrefKeepIslandFocusNotification = 'pref_keep_island_focus_notification';
 const kPrefKeepIslandNotificationTitle = 'pref_keep_island_notification_title';
 const kPrefKeepIslandNotificationContent =
@@ -276,8 +278,9 @@ class SettingsController extends ChangeNotifier {
   String keepIslandHighlightColor = '';
   bool keepIslandLeftHighlight = false;
   bool keepIslandRightHighlight = false;
-  String keepIslandLeftContent = '';
-  String keepIslandRightContent = '';
+  List<String> keepIslandLeftContents = const ['{time.HH:mm}'];
+  List<String> keepIslandRightContents = const ['{battery.level}'];
+  int keepIslandCarouselInterval = 5;
   bool keepIslandFocusNotification = false;
   String keepIslandNotificationTitle = '';
   String keepIslandNotificationContent = '';
@@ -530,8 +533,16 @@ class SettingsController extends ChangeNotifier {
         prefs.getBool(kPrefKeepIslandLeftHighlight) ?? false;
     keepIslandRightHighlight =
         prefs.getBool(kPrefKeepIslandRightHighlight) ?? false;
-    keepIslandLeftContent = prefs.getString(kPrefKeepIslandLeftContent) ?? '';
-    keepIslandRightContent = prefs.getString(kPrefKeepIslandRightContent) ?? '';
+    keepIslandLeftContents = _decodeKeepIslandContents(
+      prefs.getString(kPrefKeepIslandLeftContent),
+      const ['{time.HH:mm}'],
+    );
+    keepIslandRightContents = _decodeKeepIslandContents(
+      prefs.getString(kPrefKeepIslandRightContent),
+      const ['{battery.level}'],
+    );
+    keepIslandCarouselInterval =
+        (prefs.getInt(kPrefKeepIslandCarouselInterval) ?? 5).clamp(1, 6000);
     keepIslandFocusNotification =
         prefs.getBool(kPrefKeepIslandFocusNotification) ?? false;
     keepIslandNotificationTitle =
@@ -1598,17 +1609,58 @@ class SettingsController extends ChangeNotifier {
     (v) => keepIslandRightHighlight = v,
   );
 
-  Future<void> setKeepIslandLeftContent(String value) => _setStringPref(
-    kPrefKeepIslandLeftContent,
-    value.trim(),
-    (v) => keepIslandLeftContent = v,
-  );
+  Future<void> setKeepIslandLeftContents(List<String> values) =>
+      _setKeepIslandContents(
+        kPrefKeepIslandLeftContent,
+        values,
+        (v) => keepIslandLeftContents = v,
+      );
 
-  Future<void> setKeepIslandRightContent(String value) => _setStringPref(
-    kPrefKeepIslandRightContent,
-    value.trim(),
-    (v) => keepIslandRightContent = v,
-  );
+  Future<void> setKeepIslandRightContents(List<String> values) =>
+      _setKeepIslandContents(
+        kPrefKeepIslandRightContent,
+        values,
+        (v) => keepIslandRightContents = v,
+      );
+
+  Future<void> setKeepIslandCarouselInterval(int value) async {
+    final normalized = value.clamp(1, 6000);
+    if (keepIslandCarouselInterval == normalized) return;
+    final prefs = await _getPrefs();
+    await prefs.setInt(kPrefKeepIslandCarouselInterval, normalized);
+    keepIslandCarouselInterval = normalized;
+    notifyListeners();
+  }
+
+  Future<void> _setKeepIslandContents(
+    String key,
+    List<String> values,
+    void Function(List<String>) assign,
+  ) async {
+    final normalized = values.map((value) => value.trim()).toList();
+    final prefs = await _getPrefs();
+    await prefs.setString(key, jsonEncode(normalized));
+    assign(List.unmodifiable(normalized));
+    notifyListeners();
+  }
+
+  static List<String> _decodeKeepIslandContents(
+    String? raw,
+    List<String> defaults,
+  ) {
+    if (raw == null) return List.unmodifiable(defaults);
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is List) {
+        return List.unmodifiable(
+          decoded.map((value) => value.toString()).toList(),
+        );
+      }
+    } catch (_) {
+      // Existing versions stored one plain expression under the same key.
+    }
+    return List.unmodifiable([raw]);
+  }
 
   Future<void> setKeepIslandFocusNotification(bool value) => _setBoolPref(
     kPrefKeepIslandFocusNotification,

@@ -301,6 +301,7 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
             "pref_keep_island_right_highlight",
             "pref_keep_island_left_content",
             "pref_keep_island_right_content",
+            "pref_keep_island_carousel_interval_seconds",
             "pref_keep_island_focus_notification",
             "pref_keep_island_notification_title",
             "pref_keep_island_notification_content",

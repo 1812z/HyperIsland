@@ -2990,6 +2990,30 @@ abstract class AppLocalizations {
   /// **'岛右边内容'**
   String get keepIslandRightContentTitle;
 
+  /// No description provided for @keepIslandCarouselIntervalTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'轮播间隔'**
+  String get keepIslandCarouselIntervalTitle;
+
+  /// No description provided for @keepIslandCarouselIntervalSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'每隔 1-6000 秒切换多条左右内容'**
+  String get keepIslandCarouselIntervalSubtitle;
+
+  /// No description provided for @keepIslandAddCarouselItem.
+  ///
+  /// In zh, this message translates to:
+  /// **'添加内容'**
+  String get keepIslandAddCarouselItem;
+
+  /// No description provided for @keepIslandCarouselItem.
+  ///
+  /// In zh, this message translates to:
+  /// **'内容 {index}'**
+  String keepIslandCarouselItem(int index);
+
   /// No description provided for @keepIslandFocusNotificationTitle.
   ///
   /// In zh, this message translates to:

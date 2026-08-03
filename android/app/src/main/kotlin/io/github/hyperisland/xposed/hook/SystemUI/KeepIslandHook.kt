@@ -25,6 +25,7 @@ import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
+import org.json.JSONArray
 
 object KeepIslandHook : BaseHook() {
 
@@ -44,6 +45,8 @@ object KeepIslandHook : BaseHook() {
     private const val PREF_KEY_LEFT_CONTENT = "pref_keep_island_left_content"
 
     private const val PREF_KEY_RIGHT_CONTENT = "pref_keep_island_right_content"
+
+    private const val PREF_KEY_CAROUSEL_INTERVAL = "pref_keep_island_carousel_interval_seconds"
 
     private const val PREF_KEY_FOCUS_NOTIFICATION = "pref_keep_island_focus_notification"
 
@@ -80,6 +83,12 @@ object KeepIslandHook : BaseHook() {
 
     private var periodicDataUpdateRunnable: Runnable? = null
 
+    private var carouselIndex = 0L
+
+    private var lastCarouselAdvanceAt = 0L
+
+    private var cachedContentConfig: ContentConfig? = null
+
     private val dataChangedListener: () -> Unit = { scheduleContentUpdateFromDataChange() }
 
     private var dataListenerRegistered = false
@@ -103,6 +112,9 @@ object KeepIslandHook : BaseHook() {
 
     override fun onConfigChanged() {
         mainHandler.postDelayed({
+            cachedContentConfig = null
+            carouselIndex = 0L
+            lastCarouselAdvanceAt = System.currentTimeMillis()
             evaluateKeepIsland()
             if (posted) {
                 if (hasConfiguredKeepIslandContent()) {
@@ -458,8 +470,10 @@ object KeepIslandHook : BaseHook() {
     }
 
     private fun resolveKeepIslandTexts(): Pair<String, String> {
-        val leftExpression = ConfigManager.getString(PREF_KEY_LEFT_CONTENT, "")
-        val rightExpression = ConfigManager.getString(PREF_KEY_RIGHT_CONTENT, "")
+        val config = contentConfig()
+        advanceCarouselIfNeeded(config)
+        val leftExpression = config.left.getOrNull((carouselIndex % config.left.size).toInt()).orEmpty()
+        val rightExpression = config.right.getOrNull((carouselIndex % config.right.size).toInt()).orEmpty()
         if (leftExpression.isBlank() && rightExpression.isBlank()) {
             return " " to ""
         }
@@ -550,13 +564,51 @@ object KeepIslandHook : BaseHook() {
     }
 
     private fun hasConfiguredKeepIslandContent(): Boolean {
-        val hasIslandContent =
-            ConfigManager.getString(PREF_KEY_LEFT_CONTENT, "").isNotBlank() ||
-                    ConfigManager.getString(PREF_KEY_RIGHT_CONTENT, "").isNotBlank()
+        val config = contentConfig()
+        val hasIslandContent = config.left.any { it.isNotBlank() } || config.right.any { it.isNotBlank() }
         if (hasIslandContent) return true
         if (!ConfigManager.getBoolean(PREF_KEY_FOCUS_NOTIFICATION, false)) return false
         return ConfigManager.getString(PREF_KEY_NOTIFICATION_TITLE, "").isNotBlank() ||
                 ConfigManager.getString(PREF_KEY_NOTIFICATION_CONTENT, "").isNotBlank()
+    }
+
+    private fun contentConfig(): ContentConfig {
+        cachedContentConfig?.let { return it }
+        return ContentConfig(
+            left = decodeContentList(
+                ConfigManager.getString(PREF_KEY_LEFT_CONTENT, ""),
+                DEFAULT_LEFT_CONTENT,
+                ConfigManager.contains(PREF_KEY_LEFT_CONTENT),
+            ),
+            right = decodeContentList(
+                ConfigManager.getString(PREF_KEY_RIGHT_CONTENT, ""),
+                DEFAULT_RIGHT_CONTENT,
+                ConfigManager.contains(PREF_KEY_RIGHT_CONTENT),
+            ),
+            intervalMillis = ConfigManager.getInt(PREF_KEY_CAROUSEL_INTERVAL, 5)
+                .coerceIn(1, 6000) * 1000L,
+        ).also { cachedContentConfig = it }
+    }
+
+    private fun decodeContentList(raw: String, defaultContent: String, isConfigured: Boolean): List<String> {
+        if (!isConfigured) return listOf(defaultContent)
+        return runCatching {
+            val array = JSONArray(raw)
+            List(array.length()) { index -> array.optString(index) }
+                .ifEmpty { listOf("") }
+        }.getOrElse { listOf(raw) }
+    }
+
+    private fun advanceCarouselIfNeeded(config: ContentConfig) {
+        val now = System.currentTimeMillis()
+        if (lastCarouselAdvanceAt == 0L) {
+            lastCarouselAdvanceAt = now
+            return
+        }
+        val elapsed = now - lastCarouselAdvanceAt
+        if (elapsed < config.intervalMillis) return
+        carouselIndex += elapsed / config.intervalMillis
+        lastCarouselAdvanceAt += elapsed / config.intervalMillis * config.intervalMillis
     }
 
     private fun cancelKeepIsland(context: android.content.Context) {
@@ -723,4 +775,13 @@ object KeepIslandHook : BaseHook() {
         }
         return null
     }
+
+    private data class ContentConfig(
+        val left: List<String>,
+        val right: List<String>,
+        val intervalMillis: Long,
+    )
+
+    private const val DEFAULT_LEFT_CONTENT = "{time.HH:mm}"
+    private const val DEFAULT_RIGHT_CONTENT = "{battery.level}"
 }

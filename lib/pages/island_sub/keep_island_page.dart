@@ -70,8 +70,9 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
     _ctrl.keepIslandHighlightColor,
     _ctrl.keepIslandLeftHighlight,
     _ctrl.keepIslandRightHighlight,
-    _ctrl.keepIslandLeftContent,
-    _ctrl.keepIslandRightContent,
+    Object.hashAll(_ctrl.keepIslandLeftContents),
+    Object.hashAll(_ctrl.keepIslandRightContents),
+    _ctrl.keepIslandCarouselInterval,
     _ctrl.keepIslandFocusNotification,
     _ctrl.keepIslandNotificationTitle,
     _ctrl.keepIslandNotificationContent,
@@ -99,24 +100,66 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
     setState(() => _buildHash = nextHash);
   }
 
-  Future<void> _editContent({required bool left}) async {
+  Future<void> _editContents({required bool left}) async {
     final initial = left
-        ? _ctrl.keepIslandLeftContent
-        : _ctrl.keepIslandRightContent;
+        ? _ctrl.keepIslandLeftContents
+        : _ctrl.keepIslandRightContents;
     final l10n = AppLocalizations.of(context)!;
     final title = left
         ? l10n.keepIslandLeftContentTitle
         : l10n.keepIslandRightContentTitle;
-    final result = await showDialog<String>(
+    final result = await showDialog<List<String>>(
       context: context,
-      builder: (context) => _ContentDialog(title: title, initialValue: initial),
+      builder: (context) =>
+          _ContentListDialog(title: title, initialValues: initial),
     );
     if (result == null) return;
     if (left) {
-      await _ctrl.setKeepIslandLeftContent(result);
+      await _ctrl.setKeepIslandLeftContents(result);
     } else {
-      await _ctrl.setKeepIslandRightContent(result);
+      await _ctrl.setKeepIslandRightContents(result);
     }
+  }
+
+  Future<void> _editCarouselInterval() async {
+    final controller = TextEditingController(
+      text: _ctrl.keepIslandCarouselInterval.toString(),
+    );
+    final l10n = AppLocalizations.of(context)!;
+    final result = await showDialog<int>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.keepIslandCarouselIntervalTitle),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          decoration: InputDecoration(
+            hintText: '1-6000',
+            suffixText: l10n.seconds,
+            border: const OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () {
+              final value = int.tryParse(
+                controller.text,
+              )?.clamp(1, 6000).toInt();
+              if (value != null) Navigator.pop(context, value);
+            },
+            child: Text(l10n.save),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (result != null) await _ctrl.setKeepIslandCarouselInterval(result);
   }
 
   Future<void> _editNotificationContent({required bool title}) async {
@@ -265,16 +308,31 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
                         ),
                       ),
                       const Divider(height: 1, indent: 16, endIndent: 16),
-                      _ContentTile(
+                      _ContentListTile(
                         title: l10n.keepIslandLeftContentTitle,
-                        value: _ctrl.keepIslandLeftContent,
-                        onTap: () => _editContent(left: true),
+                        values: _ctrl.keepIslandLeftContents,
+                        onTap: () => _editContents(left: true),
                       ),
                       const Divider(height: 1, indent: 16, endIndent: 16),
-                      _ContentTile(
+                      _ContentListTile(
                         title: l10n.keepIslandRightContentTitle,
-                        value: _ctrl.keepIslandRightContent,
-                        onTap: () => _editContent(left: false),
+                        values: _ctrl.keepIslandRightContents,
+                        onTap: () => _editContents(left: false),
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        title: Text(l10n.keepIslandCarouselIntervalTitle),
+                        subtitle: Text(l10n.keepIslandCarouselIntervalSubtitle),
+                        trailing: Text(
+                          '${_ctrl.keepIslandCarouselInterval} ${l10n.seconds}',
+                        ),
+                        onTap: InteractionHaptics.interceptButton(
+                          _editCarouselInterval,
+                        ),
                       ),
                       const Divider(height: 1, indent: 16, endIndent: 16),
                       SwitchListTile(
@@ -712,6 +770,150 @@ class _ContentTile extends StatelessWidget {
       ),
       trailing: const Icon(Icons.chevron_right),
       onTap: enabled ? InteractionHaptics.interceptButton(onTap) : null,
+    );
+  }
+}
+
+class _ContentListTile extends StatelessWidget {
+  const _ContentListTile({
+    required this.title,
+    required this.values,
+    required this.onTap,
+  });
+
+  final String title;
+  final List<String> values;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final preview = values.where((value) => value.isNotEmpty).join('  |  ');
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      title: Text(title),
+      subtitle: Text(
+        preview.isEmpty
+            ? AppLocalizations.of(context)!.keepIslandDefaultEmpty
+            : preview,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+      ),
+      trailing: Badge(
+        label: Text(values.length.toString()),
+        child: const Icon(Icons.chevron_right),
+      ),
+      onTap: InteractionHaptics.interceptButton(onTap),
+    );
+  }
+}
+
+class _ContentListDialog extends StatefulWidget {
+  const _ContentListDialog({required this.title, required this.initialValues});
+
+  final String title;
+  final List<String> initialValues;
+
+  @override
+  State<_ContentListDialog> createState() => _ContentListDialogState();
+}
+
+class _ContentListDialogState extends State<_ContentListDialog> {
+  late final List<TextEditingController> _controllers;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllers = widget.initialValues
+        .map((value) => TextEditingController(text: value))
+        .toList();
+    if (_controllers.isEmpty) _controllers.add(TextEditingController());
+  }
+
+  @override
+  void dispose() {
+    for (final controller in _controllers) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  void _add() => setState(() => _controllers.add(TextEditingController()));
+
+  void _remove(int index) {
+    if (_controllers.length == 1) {
+      _controllers.single.clear();
+      return;
+    }
+    setState(() => _controllers.removeAt(index).dispose());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return AlertDialog(
+      title: Text(widget.title),
+      content: SizedBox(
+        width: 420,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (var index = 0; index < _controllers.length; index++) ...[
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _controllers[index],
+                        maxLines: 2,
+                        decoration: InputDecoration(
+                          labelText: l10n.keepIslandCarouselItem(index + 1),
+                          hintText: l10n.keepIslandContentHint(
+                            '{battery.level}',
+                          ),
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: l10n.removeKeyword,
+                      onPressed: () => _remove(index),
+                      icon: const Icon(Icons.delete_outline),
+                    ),
+                  ],
+                ),
+                if (index != _controllers.length - 1)
+                  const SizedBox(height: 12),
+              ],
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: _add,
+                  icon: const Icon(Icons.add),
+                  label: Text(l10n.keepIslandAddCarouselItem),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(
+            context,
+            _controllers.map((controller) => controller.text).toList(),
+          ),
+          child: Text(l10n.save),
+        ),
+      ],
     );
   }
 }

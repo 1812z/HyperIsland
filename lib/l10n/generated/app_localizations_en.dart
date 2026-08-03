@@ -1618,6 +1618,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get keepIslandRightContentTitle => 'Right island content';
 
   @override
+  String get keepIslandCarouselIntervalTitle => 'Carousel interval';
+
+  @override
+  String get keepIslandCarouselIntervalSubtitle =>
+      'Switch between multiple left and right contents every 1-6000 seconds';
+
+  @override
+  String get keepIslandAddCarouselItem => 'Add content';
+
+  @override
+  String keepIslandCarouselItem(int index) {
+    return 'Content $index';
+  }
+
+  @override
   String get keepIslandFocusNotificationTitle => 'Clickable island';
 
   @override
