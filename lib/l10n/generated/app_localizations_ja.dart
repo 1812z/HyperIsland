@@ -1588,6 +1588,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get keepIslandDisplayCategory => 'ディスプレイ';
 
   @override
+  String get keepIslandNetworkCategory => '网络';
+
+  @override
   String keepIslandPlaceholdersDescription(
     String batteryLevel,
     String cpuUsage,

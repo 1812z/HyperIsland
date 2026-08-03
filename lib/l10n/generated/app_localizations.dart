@@ -3062,6 +3062,12 @@ abstract class AppLocalizations {
   /// **'显示'**
   String get keepIslandDisplayCategory;
 
+  /// No description provided for @keepIslandNetworkCategory.
+  ///
+  /// In zh, this message translates to:
+  /// **'网络'**
+  String get keepIslandNetworkCategory;
+
   /// No description provided for @keepIslandPlaceholdersDescription.
   ///
   /// In zh, this message translates to:

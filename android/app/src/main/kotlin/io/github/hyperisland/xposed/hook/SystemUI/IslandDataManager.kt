@@ -4,12 +4,14 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.hardware.display.DisplayManager
+import android.net.TrafficStats
 import android.net.Uri
 import android.os.BatteryManager
 import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
+import android.os.SystemClock
 import android.view.Display
 import java.io.File
 import java.text.SimpleDateFormat
@@ -18,6 +20,7 @@ import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 
 object IslandDataManager {
     const val MODE_POWER = "power"
@@ -32,12 +35,18 @@ object IslandDataManager {
     const val MODE_CPU_TEMPERATURE = "cpu_temperature"
     const val MODE_GPU_USAGE = "gpu_usage"
     const val MODE_GPU_FREQUENCY = "gpu_frequency"
+    const val MODE_NETWORK_DOWNLOAD = "network_download"
+    const val MODE_NETWORK_UPLOAD = "network_upload"
+    const val MODE_NETWORK_SPEED = "network_speed"
+    const val MODE_NETWORK_RECEIVED = "network_received"
+    const val MODE_NETWORK_SENT = "network_sent"
 
     @Volatile private var appContext: Context? = null
     @Volatile private var battery = BatterySnapshot()
     @Volatile private var cpu = CpuSnapshot()
     @Volatile private var memory = MemorySnapshot()
     @Volatile private var gpu = GpuSnapshot()
+    @Volatile private var network = NetworkSnapshot()
     @Volatile private var weather = WeatherSnapshot()
     @Volatile private var lastBatteryBroadcastRefreshAt = 0L
     @Volatile private var lastBatteryCurrentRefreshAt = 0L
@@ -47,6 +56,8 @@ object IslandDataManager {
     @Volatile private var lastMemoryRefreshAt = 0L
     @Volatile private var lastGpuUsageRefreshAt = 0L
     @Volatile private var lastGpuFrequencyRefreshAt = 0L
+    @Volatile private var lastNetworkRefreshAt = 0L
+    @Volatile private var lastNetworkSample: NetworkSample? = null
     @Volatile private var lastWeatherRefreshAt = 0L
     @Volatile private var lastCpuTimes: CpuTimes? = null
     @Volatile private var notifyScheduled = false
@@ -160,6 +171,26 @@ object IslandDataManager {
                     refreshGpuFrequency()
                     gpu.frequencyHz?.let { formatFrequencyHz(it) }
                 }
+                MODE_NETWORK_DOWNLOAD -> {
+                    refreshNetwork()
+                    formatBytesPerSecond(network.downloadBytesPerSecond)
+                }
+                MODE_NETWORK_UPLOAD -> {
+                    refreshNetwork()
+                    formatBytesPerSecond(network.uploadBytesPerSecond)
+                }
+                MODE_NETWORK_SPEED -> {
+                    refreshNetwork()
+                    formatBytesPerSecond(network.downloadBytesPerSecond + network.uploadBytesPerSecond)
+                }
+                MODE_NETWORK_RECEIVED -> {
+                    refreshNetwork()
+                    network.receivedBytes?.let(::formatBytes)
+                }
+                MODE_NETWORK_SENT -> {
+                    refreshNetwork()
+                    network.sentBytes?.let(::formatBytes)
+                }
                 else -> null
             }
         }.getOrNull()
@@ -196,6 +227,11 @@ object IslandDataManager {
                 "{cpu.temperature}" -> format(MODE_CPU_TEMPERATURE)
                 "{gpu.usage}" -> format(MODE_GPU_USAGE)
                 "{gpu.frequency}" -> format(MODE_GPU_FREQUENCY)
+                "{network.download}" -> format(MODE_NETWORK_DOWNLOAD)
+                "{network.upload}" -> format(MODE_NETWORK_UPLOAD)
+                "{network.speed}" -> format(MODE_NETWORK_SPEED)
+                "{network.received}" -> format(MODE_NETWORK_RECEIVED)
+                "{network.sent}" -> format(MODE_NETWORK_SENT)
                 "{weather.location}" -> weather.location
                 "{weather.condition}" -> weather.condition
                 "{weather.temperature}" -> weather.temperature
@@ -420,6 +456,12 @@ object IslandDataManager {
         scheduleNotifyListeners()
     }
 
+    private fun setNetwork(next: NetworkSnapshot) {
+        if (next == network) return
+        network = next
+        scheduleNotifyListeners()
+    }
+
     private fun readCpuTimes(): CpuTimes? = runCatching {
         val line = File("/proc/stat").bufferedReader().use { it.readLine() } ?: return null
         val parts = line.trim().split(Regex("\\s+"))
@@ -487,6 +529,43 @@ object IslandDataManager {
         readFirstLong(GPU_FREQUENCY_PATHS)
             ?.let { normalizeFrequencyHz(it) }
             ?.let { setGpu(gpu.copy(frequencyHz = it)) }
+    }
+
+    @Synchronized
+    private fun refreshNetwork() {
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastNetworkRefreshAt < DATA_REFRESH_INTERVAL_MS) return
+        lastNetworkRefreshAt = now
+
+        val receivedBytes = TrafficStats.getTotalRxBytes()
+            .takeIf { it != TrafficStats.UNSUPPORTED.toLong() }
+        val sentBytes = TrafficStats.getTotalTxBytes()
+            .takeIf { it != TrafficStats.UNSUPPORTED.toLong() }
+        if (receivedBytes == null || sentBytes == null) return
+
+        val previous = lastNetworkSample
+        val elapsedMillis = previous?.let { now - it.elapsedRealtimeMillis } ?: 0L
+        val countersAdvanced = previous != null &&
+                receivedBytes >= previous.receivedBytes && sentBytes >= previous.sentBytes
+        val downloadBytesPerSecond = if (countersAdvanced && elapsedMillis > 0L) {
+            (receivedBytes - previous.receivedBytes).toDouble() * 1000.0 / elapsedMillis
+        } else {
+            0.0
+        }
+        val uploadBytesPerSecond = if (countersAdvanced && elapsedMillis > 0L) {
+            (sentBytes - previous.sentBytes).toDouble() * 1000.0 / elapsedMillis
+        } else {
+            0.0
+        }
+        lastNetworkSample = NetworkSample(receivedBytes, sentBytes, now)
+        setNetwork(
+            NetworkSnapshot(
+                downloadBytesPerSecond = downloadBytesPerSecond,
+                uploadBytesPerSecond = uploadBytesPerSecond,
+                receivedBytes = receivedBytes,
+                sentBytes = sentBytes,
+            ),
+        )
     }
 
     private fun readGpuUsagePercent(): Double? {
@@ -635,6 +714,19 @@ object IslandDataManager {
         }
     }
 
+    private fun formatBytes(bytes: Long): String {
+        if (bytes < 1024L) return bytes.toString() + "B"
+        val kb = bytes / 1024.0
+        if (kb < 1024.0) return trimNumber(kb, 1) + "KB"
+        val mb = kb / 1024.0
+        if (mb < 1024.0) return trimNumber(mb, 1) + "MB"
+        return trimNumber(mb / 1024.0, 2) + "GB"
+    }
+
+    private fun formatBytesPerSecond(bytesPerSecond: Double): String {
+        return formatBytes(bytesPerSecond.coerceAtLeast(0.0).roundToLong()) + "/s"
+    }
+
     private fun formatTemperatureMilliCelsius(value: Int): String {
         return trimNumber(value / 1000.0, 1) + "°C"
     }
@@ -769,6 +861,13 @@ object IslandDataManager {
         val frequencyHz: Long? = null,
     )
 
+    data class NetworkSnapshot(
+        val downloadBytesPerSecond: Double = 0.0,
+        val uploadBytesPerSecond: Double = 0.0,
+        val receivedBytes: Long? = null,
+        val sentBytes: Long? = null,
+    )
+
     data class MemorySnapshot(
         val totalKb: Long? = null,
         val availableKb: Long? = null,
@@ -797,6 +896,12 @@ object IslandDataManager {
     private data class CpuTimes(
         val total: Long,
         val idle: Long,
+    )
+
+    private data class NetworkSample(
+        val receivedBytes: Long,
+        val sentBytes: Long,
+        val elapsedRealtimeMillis: Long,
     )
 
     private data class SysfsBatterySnapshot(

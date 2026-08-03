@@ -595,6 +595,7 @@
   "keepIslandTimeCategory": "Time",
   "keepIslandWeatherCategory": "Weather",
   "keepIslandDisplayCategory": "Display",
+  "keepIslandNetworkCategory": "Network",
   "keepIslandPlaceholdersDescription": "Enter plain text or expressions for either side, for example: Battery {batteryLevel}, CPU {cpuUsage}. Tap a tag to copy it.",
   "@keepIslandPlaceholdersDescription": {
     "placeholders": {

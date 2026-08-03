@@ -1667,6 +1667,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get keepIslandDisplayCategory => 'Экран';
 
   @override
+  String get keepIslandNetworkCategory => '网络';
+
+  @override
   String keepIslandPlaceholdersDescription(
     String batteryLevel,
     String cpuUsage,

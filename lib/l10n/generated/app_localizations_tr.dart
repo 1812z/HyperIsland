@@ -1651,6 +1651,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get keepIslandDisplayCategory => 'Ekran';
 
   @override
+  String get keepIslandNetworkCategory => '网络';
+
+  @override
   String keepIslandPlaceholdersDescription(
     String batteryLevel,
     String cpuUsage,

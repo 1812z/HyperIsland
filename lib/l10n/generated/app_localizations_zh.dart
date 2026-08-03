@@ -1565,6 +1565,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get keepIslandDisplayCategory => '显示';
 
   @override
+  String get keepIslandNetworkCategory => '网络';
+
+  @override
   String keepIslandPlaceholdersDescription(
     String batteryLevel,
     String cpuUsage,

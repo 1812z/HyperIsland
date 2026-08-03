@@ -37,6 +37,13 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
     '{memory.used}',
     '{memory.total}',
   ];
+  static const _networkPlaceholders = [
+    '{network.download}',
+    '{network.upload}',
+    '{network.speed}',
+    '{network.received}',
+    '{network.sent}',
+  ];
   static const _timePlaceholders = [
     '{time.HH}',
     '{time.hh}',
@@ -480,6 +487,13 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
                       title: 'RAM',
                       icon: Icons.memory,
                       placeholders: _memoryPlaceholders,
+                      onCopy: _copyPlaceholder,
+                    ),
+                    const SizedBox(height: 8),
+                    _PlaceholderCategory(
+                      title: l10n.keepIslandNetworkCategory,
+                      icon: Icons.network_check,
+                      placeholders: _networkPlaceholders,
                       onCopy: _copyPlaceholder,
                     ),
                     const SizedBox(height: 8),
