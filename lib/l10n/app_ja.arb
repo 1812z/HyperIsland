@@ -626,8 +626,8 @@
   "chargeIslandDurationCustom": "カスタム",
   "chargeIslandDurationPersistent": "常駐",
   "chargeIslandDurationSecondsTitle": "カスタム時間",
-  "faceUnlockIslandTitle": "顔認証 Island",
-  "faceUnlockIslandSubtitle": "{status} · 顔認証時に Island を自動展開するかを設定します",
+  "faceUnlockIslandTitle": "ロック解除アイランド",
+  "faceUnlockIslandSubtitle": "{status} · ロック画面にロック解除状態のスーパーアイランドを追加します",
   "@faceUnlockIslandSubtitle": {
     "placeholders": {
       "status": {
@@ -635,11 +635,11 @@
       }
     }
   },
-  "faceUnlockIslandSettingsTitle": "顔認証 Island 設定",
-  "faceUnlockIslandEnableTitle": "顔認証 Island を有効化",
-  "faceUnlockIslandEnableSubtitle": "無効化後に System UI を再起動すると、顔認証 Hook は登録されません",
-  "faceUnlockIslandFirstFloatTitle": "Island を自動展開",
-  "faceUnlockIslandFirstFloatSubtitle": "顔認証開始時に islandFirstFloat で Island を自動展開します",
+  "faceUnlockIslandSettingsTitle": "ロック解除アイランド設定",
+  "faceUnlockIslandEnableTitle": "ロック解除アイランドを有効化",
+  "faceUnlockIslandEnableSubtitle": "切り替え後に SystemUI の再起動が必要です",
+  "faceUnlockIslandFirstFloatTitle": "スーパーアイランドを自動展開",
+  "faceUnlockIslandFirstFloatSubtitle": "フォーカス通知として展開します",
   "hideLockscreenFaceUnlockIconTitle": "顔認証アイコンを無効化",
   "hideLockscreenFaceUnlockIconSubtitle": "顔認証機能に影響を与えず、ロック画面の顔認証表示を非表示にします",
   "outerGlowTitle": "外側のグロー",

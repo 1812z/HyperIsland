@@ -1987,32 +1987,30 @@ class AppLocalizationsRu extends AppLocalizations {
   String get chargeIslandOuterGlowSubtitle => '控制充电超级岛的外圈光效';
 
   @override
-  String get faceUnlockIslandTitle => 'Остров разблокировки лицом';
+  String get faceUnlockIslandTitle => 'Остров разблокировки';
 
   @override
   String faceUnlockIslandSubtitle(String status) {
-    return '$status · Автоматически разворачивать остров при распознавании лица';
+    return '$status · Добавляет остров разблокировки на экран блокировки';
   }
 
   @override
-  String get faceUnlockIslandSettingsTitle =>
-      'Настройки острова разблокировки лицом';
+  String get faceUnlockIslandSettingsTitle => 'Настройки острова разблокировки';
 
   @override
-  String get faceUnlockIslandEnableTitle =>
-      'Включить остров разблокировки лицом';
+  String get faceUnlockIslandEnableTitle => 'Включить остров разблокировки';
 
   @override
   String get faceUnlockIslandEnableSubtitle =>
-      'После отключения перезапустите System UI. Перехваты разблокировки лицом не будут зарегистрированы';
+      'После переключения требуется перезапуск SystemUI';
 
   @override
   String get faceUnlockIslandFirstFloatTitle =>
-      'Автоматически разворачивать остров';
+      'Автоматически разворачивать супер-остров';
 
   @override
   String get faceUnlockIslandFirstFloatSubtitle =>
-      'Использовать islandFirstFloat при запуске распознавания лица';
+      'Разворачивать как уведомление в фокусе';
 
   @override
   String get hideLockscreenFaceUnlockIconTitle =>

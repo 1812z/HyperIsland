@@ -773,8 +773,8 @@
   "chargeIslandDurationCustom": "Özel",
   "chargeIslandDurationPersistent": "Kalıcı",
   "chargeIslandDurationSecondsTitle": "Özel Süre",
-  "faceUnlockIslandTitle": "Yüz Kilidi Adası",
-  "faceUnlockIslandSubtitle": "{status} · Yüz tanıma sırasında adanın otomatik genişlemesini kontrol et",
+  "faceUnlockIslandTitle": "Kilit Açma Adası",
+  "faceUnlockIslandSubtitle": "{status} · Kilit ekranına kilit açma durumu süper adası ekler",
   "@faceUnlockIslandSubtitle": {
     "placeholders": {
       "status": {
@@ -782,11 +782,11 @@
       }
     }
   },
-  "faceUnlockIslandSettingsTitle": "Yüz Kilidi Adası Ayarları",
-  "faceUnlockIslandEnableTitle": "Yüz Kilidi Adasını Etkinleştir",
-  "faceUnlockIslandEnableSubtitle": "Devre dışı bıraktıktan sonra System UI'ı yeniden başlatın. Yüz kilidi hook'ları kaydedilmez",
-  "faceUnlockIslandFirstFloatTitle": "Adayı Otomatik Genişlet",
-  "faceUnlockIslandFirstFloatSubtitle": "Yüz tanıma başladığında adayı islandFirstFloat ile genişlet",
+  "faceUnlockIslandSettingsTitle": "Kilit Açma Adası Ayarları",
+  "faceUnlockIslandEnableTitle": "Kilit Açma Adasını Etkinleştir",
+  "faceUnlockIslandEnableSubtitle": "Açma/kapamadan sonra SystemUI yeniden başlatma gerekir",
+  "faceUnlockIslandFirstFloatTitle": "Süper Adayı Otomatik Genişlet",
+  "faceUnlockIslandFirstFloatSubtitle": "Odak bildirimi olarak genişlet",
   "hideLockscreenFaceUnlockIconTitle": "Yüz Kilidi Simgesini Devre Dışı Bırak",
   "hideLockscreenFaceUnlockIconSubtitle": "Yüz kilidi işlevini etkilemeden kilit ekranındaki yüz tanıma grafiğini gizle",
   "outerGlowTitle": "Dış Parlama",

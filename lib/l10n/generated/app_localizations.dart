@@ -3638,31 +3638,31 @@ abstract class AppLocalizations {
   /// No description provided for @faceUnlockIslandTitle.
   ///
   /// In zh, this message translates to:
-  /// **'人脸解锁岛'**
+  /// **'解锁岛'**
   String get faceUnlockIslandTitle;
 
   /// No description provided for @faceUnlockIslandSubtitle.
   ///
   /// In zh, this message translates to:
-  /// **'{status} · 控制人脸识别时是否自动展开超级岛'**
+  /// **'{status} · 为锁屏界面新增解锁状态超级岛'**
   String faceUnlockIslandSubtitle(String status);
 
   /// No description provided for @faceUnlockIslandSettingsTitle.
   ///
   /// In zh, this message translates to:
-  /// **'人脸解锁岛设置'**
+  /// **'解锁岛设置'**
   String get faceUnlockIslandSettingsTitle;
 
   /// No description provided for @faceUnlockIslandEnableTitle.
   ///
   /// In zh, this message translates to:
-  /// **'启用人脸解锁岛'**
+  /// **'启用解锁岛'**
   String get faceUnlockIslandEnableTitle;
 
   /// No description provided for @faceUnlockIslandEnableSubtitle.
   ///
   /// In zh, this message translates to:
-  /// **'关闭后重启 SystemUI 生效，且不会注册人脸解锁 Hook'**
+  /// **'开关后需要重启 SystemUI'**
   String get faceUnlockIslandEnableSubtitle;
 
   /// No description provided for @faceUnlockIslandFirstFloatTitle.
@@ -3674,7 +3674,7 @@ abstract class AppLocalizations {
   /// No description provided for @faceUnlockIslandFirstFloatSubtitle.
   ///
   /// In zh, this message translates to:
-  /// **'人脸识别开始时通过 islandFirstFloat 自动展开超级岛'**
+  /// **'展开为焦点通知'**
   String get faceUnlockIslandFirstFloatSubtitle;
 
   /// No description provided for @hideLockscreenFaceUnlockIconTitle.

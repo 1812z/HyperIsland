@@ -1901,29 +1901,27 @@ class AppLocalizationsJa extends AppLocalizations {
   String get chargeIslandOuterGlowSubtitle => '控制充电超级岛的外圈光效';
 
   @override
-  String get faceUnlockIslandTitle => '顔認証 Island';
+  String get faceUnlockIslandTitle => 'ロック解除アイランド';
 
   @override
   String faceUnlockIslandSubtitle(String status) {
-    return '$status · 顔認証時に Island を自動展開するかを設定します';
+    return '$status · ロック画面にロック解除状態のスーパーアイランドを追加します';
   }
 
   @override
-  String get faceUnlockIslandSettingsTitle => '顔認証 Island 設定';
+  String get faceUnlockIslandSettingsTitle => 'ロック解除アイランド設定';
 
   @override
-  String get faceUnlockIslandEnableTitle => '顔認証 Island を有効化';
+  String get faceUnlockIslandEnableTitle => 'ロック解除アイランドを有効化';
 
   @override
-  String get faceUnlockIslandEnableSubtitle =>
-      '無効化後に System UI を再起動すると、顔認証 Hook は登録されません';
+  String get faceUnlockIslandEnableSubtitle => '切り替え後に SystemUI の再起動が必要です';
 
   @override
-  String get faceUnlockIslandFirstFloatTitle => 'Island を自動展開';
+  String get faceUnlockIslandFirstFloatTitle => 'スーパーアイランドを自動展開';
 
   @override
-  String get faceUnlockIslandFirstFloatSubtitle =>
-      '顔認証開始時に islandFirstFloat で Island を自動展開します';
+  String get faceUnlockIslandFirstFloatSubtitle => 'フォーカス通知として展開します';
 
   @override
   String get hideLockscreenFaceUnlockIconTitle => '顔認証アイコンを無効化';
