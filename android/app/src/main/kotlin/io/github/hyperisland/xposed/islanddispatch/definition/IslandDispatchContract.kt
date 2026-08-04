@@ -12,5 +12,7 @@ object IslandDispatchContract {
 
     const val CHANNEL_ID = "hyperisland_dispatcher"
     const val CHANNEL_NAME = "HyperIsland"
+    const val SILENT_CHANNEL_ID = "hyperisland_dispatcher_silent"
+    const val SILENT_CHANNEL_NAME = "HyperIsland Silent"
     const val TAG = "HyperIsland[Dispatcher]"
 }

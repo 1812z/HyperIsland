@@ -18,6 +18,7 @@ object IslandDispatcher {
     const val PERM = IslandDispatchContract.PERM
     const val NOTIF_ID = IslandDispatchContract.NOTIF_ID
     const val CHANNEL_ID = IslandDispatchContract.CHANNEL_ID
+    const val SILENT_CHANNEL_ID = IslandDispatchContract.SILENT_CHANNEL_ID
 
     private val registerLock = Any()
 
@@ -27,7 +28,7 @@ object IslandDispatcher {
             if (IslandDispatchState.registered) return
             val appCtx = context.applicationContext ?: context
             IslandDispatchState.module = xposedModule
-            IslandDispatcherNotifier.ensureChannel(appCtx)
+            IslandDispatcherNotifier.ensureChannels(appCtx)
             IslandDispatcherReceiver.register(appCtx)
             IslandDispatchState.registered = true
             xposedModule.log("${IslandDispatchContract.TAG}: registered in pid=${android.os.Process.myPid()}")

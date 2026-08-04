@@ -8,7 +8,6 @@ import java.lang.reflect.Method
 import java.util.ArrayDeque
 import java.util.Collections
 import java.util.WeakHashMap
-import java.util.concurrent.ConcurrentHashMap
 
 object FaceUnlockStateHook : BaseHook() {
 
@@ -53,13 +52,20 @@ object FaceUnlockStateHook : BaseHook() {
         "cancelFaceAuthentication",
     )
 
-    private val hookedClassLoaders = ConcurrentHashMap.newKeySet<Int>()
+    private val hookedClassLoaders = Collections.newSetFromMap(
+        WeakHashMap<ClassLoader, Boolean>(),
+    )
     private val hookedMethods = Collections.newSetFromMap(WeakHashMap<Method, Boolean>())
+    @Volatile private var initialized = false
 
     override fun getTag() = TAG
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
-        if (param.packageName != "com.android.systemui") return
+        if (param.packageName != "com.android.systemui" || initialized) return
+        synchronized(this) {
+            if (initialized) return
+            initialized = true
+        }
 
         hookMonitorClasses(module, param.defaultClassLoader)
         HookUtils.hookDynamicClassLoaders(module, ClassLoader.getSystemClassLoader()) { classLoader ->
@@ -68,7 +74,9 @@ object FaceUnlockStateHook : BaseHook() {
     }
 
     private fun hookMonitorClasses(module: XposedModule, classLoader: ClassLoader) {
-        if (!hookedClassLoaders.add(System.identityHashCode(classLoader))) return
+        synchronized(hookedClassLoaders) {
+            if (!hookedClassLoaders.add(classLoader)) return
+        }
 
         if (hookRepositoryCallback(module, classLoader)) return
 
@@ -269,7 +277,11 @@ object FaceUnlockStateHook : BaseHook() {
                 method.isAccessible = true
                 module.hook(method).intercept { chain ->
                     val result = chain.proceed()
-                    if (isFaceCallback(chain.args)) {
+                    if (isFaceCallback(
+                            chain.args,
+                            assumeFaceWhenSourceMissing = method.name != "onBiometricAuthFailed",
+                        )
+                    ) {
                         dispatch(module, clazz.classLoader, state, "${clazz.simpleName}.${method.name}")
                     }
                     result
@@ -341,10 +353,13 @@ object FaceUnlockStateHook : BaseHook() {
             }
     }
 
-    private fun isFaceCallback(args: List<*>): Boolean {
+    private fun isFaceCallback(
+        args: List<*>,
+        assumeFaceWhenSourceMissing: Boolean = true,
+    ): Boolean {
         val biometricSource = args.firstOrNull {
             it?.javaClass?.name == "android.hardware.biometrics.BiometricSourceType"
-        } ?: return true
+        } ?: return assumeFaceWhenSourceMissing
         return biometricSource.toString().equals("FACE", ignoreCase = true)
     }
 

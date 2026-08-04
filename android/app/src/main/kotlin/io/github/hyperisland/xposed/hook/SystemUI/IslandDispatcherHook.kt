@@ -16,10 +16,16 @@ import io.github.libxposed.api.XposedModule
 object IslandDispatcherHook : BaseHook() {
 
     private const val TAG = "HyperIsland[DispatcherHook]"
+    @Volatile private var hooked = false
 
     override fun getTag() = TAG
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
+        if (hooked) return
+        synchronized(this) {
+            if (hooked) return
+            hooked = true
+        }
         try {
             val method = param.defaultClassLoader
                 .loadClass("android.app.Application")
@@ -43,6 +49,7 @@ object IslandDispatcherHook : BaseHook() {
             }
             log(module, "hooked Application.onCreate in SystemUI")
         } catch (e: Throwable) {
+            hooked = false
             logError(module, "hook failed: ${e.message}")
         }
     }

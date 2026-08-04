@@ -63,15 +63,23 @@ object GenericProgressHook : BaseHook() {
      * LRU 缓存：accessOrder=true 时，get/put 都会将被访问的条目移到尾部，
      * 超过容量时自动淘汰头部（最久未访问）的条目，无需整清空。
      */
-    private val cachedTemplates = object : LinkedHashMap<String, String>(256, 0.75f, true) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>?): Boolean = size > MAX_TEMPLATES_SIZE
-    }
-    private val cachedChannelSettings = object : LinkedHashMap<String, String>(256, 0.75f, true) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, String>?): Boolean = size > MAX_CHANNEL_SETTINGS_SIZE
-    }
+    private val cachedTemplates = Collections.synchronizedMap(
+        object : LinkedHashMap<String, String>(256, 0.75f, true) {
+            override fun removeEldestEntry(
+                eldest: MutableMap.MutableEntry<String, String>?,
+            ): Boolean = size > MAX_TEMPLATES_SIZE
+        },
+    )
+    private val cachedChannelSettings = Collections.synchronizedMap(
+        object : LinkedHashMap<String, String>(256, 0.75f, true) {
+            override fun removeEldestEntry(
+                eldest: MutableMap.MutableEntry<String, String>?,
+            ): Boolean = size > MAX_CHANNEL_SETTINGS_SIZE
+        },
+    )
 
-    private val lastProgressCache = mutableMapOf<String, Int>()
-    private val trackedForCancel = mutableMapOf<String, Int>()
+    private val lastProgressCache = ConcurrentHashMap<String, Int>()
+    private val trackedForCancel = ConcurrentHashMap<String, Int>()
     private val cachedMediaEnabled = ConcurrentHashMap<String, Boolean>()
     private val hookedMediaFilterClasses = Collections.synchronizedMap(
         WeakHashMap<Class<*>, Boolean>(),
@@ -238,8 +246,7 @@ object GenericProgressHook : BaseHook() {
     ) {
         sbn ?: return
         IslandOuterGlowHook.removeMediaGlowRequest(sbn.packageName, sbn.key)
-        val key = "${sbn.packageName}#${sbn.id}"
-        val proxyId = trackedForCancel.remove(key) ?: return
+        val proxyId = trackedForCancel.remove(sbn.key) ?: return
         val context = HookUtils.getContext(classLoader) ?: return
         IslandDispatcher.cancel(context, proxyId)
     }
@@ -249,20 +256,22 @@ object GenericProgressHook : BaseHook() {
             val pkg = sbn.packageName ?: return
             val notif = sbn.notification ?: return
             val extras = notif.extras ?: return
-            val isHyperIslandProxy = extras.getString(EXTRA_OWNER) == OWNER_MARKER
+            val channelId = notif.channelId ?: ""
+            val isDispatcherChannel =
+                channelId == IslandDispatcher.CHANNEL_ID ||
+                    channelId == IslandDispatcher.SILENT_CHANNEL_ID
+            val isHyperIslandProxy =
+                pkg == "com.android.systemui" &&
+                    extras.getString(EXTRA_OWNER) == OWNER_MARKER
 
             if (pkg == "com.android.systemui" &&
-                notif.channelId == IslandDispatcher.CHANNEL_ID &&
+                isDispatcherChannel &&
                 !isHyperIslandProxy) return
 
-        val context = HookUtils.getContext(classLoader) ?: return
+            val context = HookUtils.getContext(classLoader) ?: return
 
-            val channelId = notif.channelId ?: ""
             val sourcePkg = extras.getString("hyperisland_source_pkg") ?: pkg
             val sourceChannelId = extras.getString("hyperisland_source_channel") ?: channelId
-            extras.putString("hyperisland_source_pkg", sourcePkg)
-            extras.putString("hyperisland_channel_id", sourceChannelId)
-            extras.putString(EXTRA_OWNER, OWNER_MARKER)
             if (
                 isHyperIslandProxy &&
                 (extras.containsKey("miui.focus.param") ||
@@ -303,6 +312,10 @@ object GenericProgressHook : BaseHook() {
 
             if (extras.containsKey("miui.focus.param")) return
 
+            extras.putString("hyperisland_source_pkg", sourcePkg)
+            extras.putString("hyperisland_channel_id", sourceChannelId)
+            extras.putString(EXTRA_OWNER, OWNER_MARKER)
+
             val progressMax   = extras.getInt(Notification.EXTRA_PROGRESS_MAX, 0)
             val indeterminate = extras.getBoolean(Notification.EXTRA_PROGRESS_INDETERMINATE, false)
             val hasProgressBar = progressMax > 0 && !indeterminate
@@ -311,7 +324,7 @@ object GenericProgressHook : BaseHook() {
                 if (extras.getBoolean("hyperisland_processed", false)) return
             }
 
-            val cacheKey = "$pkg#${sbn.id}"
+            val cacheKey = sbn.key
             val progressPercent: Int
             if (hasProgressBar) {
                 val progressRaw = extras.getInt(Notification.EXTRA_PROGRESS, -1)
@@ -585,7 +598,7 @@ object GenericProgressHook : BaseHook() {
             )
 
             if (trackedForCancel.size >= MAX_TRACKED_CANCEL_SIZE) trackedForCancel.clear()
-            trackedForCancel["$pkg#${sbn.id}"] = IslandDispatcher.NOTIF_ID
+            trackedForCancel[sbn.key] = IslandDispatcher.NOTIF_ID
 
         } catch (e: Throwable) {
             logError(module, "handleSbn error: ${e.message}")
@@ -854,18 +867,6 @@ object GenericProgressHook : BaseHook() {
             )
             if (bitmap != null) Icon.createWithBitmap(bitmap) else null
         } catch (_: Exception) { null }
-    }
-
-    private fun getContext(classLoader: ClassLoader): Context? {
-        return try {
-            val at = classLoader.loadClass("android.app.ActivityThread")
-            at.getMethod("currentApplication").invoke(null) as? Context
-        } catch (_: Exception) {
-            try {
-                val at = classLoader.loadClass("android.app.ActivityThread")
-                (at.getMethod("getSystemContext").invoke(null) as? Context)?.applicationContext
-            } catch (_: Exception) { null }
-        }
     }
 
     private fun findMethod(clazz: Class<*>, name: String, vararg paramTypes: Class<*>): Method {

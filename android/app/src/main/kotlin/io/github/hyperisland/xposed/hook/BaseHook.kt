@@ -72,7 +72,7 @@ abstract class BaseHook {
         log(module, "initializing for ${param.packageName}")
         try {
             onInit(module, param)
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             logError(module, "init failed: ${e.message}")
         }
     }

@@ -31,6 +31,8 @@ internal object IslandDispatcherNotifier {
     private const val OWNER_MARKER = "io.github.hyperisland"
     private const val EFFECT_SRC = "outer_glow"
     private const val KEEP_ISLAND_NOTIF_ID = 0x4B494B49
+    private val channelLock = Any()
+    @Volatile private var channelReady = false
 
     fun post(context: Context, request: IslandRequest) {
         try {
@@ -48,10 +50,15 @@ internal object IslandDispatcherNotifier {
             }
 
             val nm = context.getSystemService(NotificationManager::class.java) ?: return
-            ensureChannel(context)
+            ensureChannels(context)
+            val channelId = if (request.notificationSilent) {
+                IslandDispatchContract.SILENT_CHANNEL_ID
+            } else {
+                IslandDispatchContract.CHANNEL_ID
+            }
 
             request.notificationExtras?.let { extras ->
-                postNotificationWithExtras(context, nm, request, extras)
+                postNotificationWithExtras(context, nm, request, extras, channelId)
                 return
             }
 
@@ -132,7 +139,7 @@ internal object IslandDispatcherNotifier {
             }
 
             val resourceBundle = islandBuilder.buildResourceBundle()
-            val publicVersion = Notification.Builder(context, IslandDispatchContract.CHANNEL_ID)
+            val publicVersion = Notification.Builder(context, channelId)
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
                 .setContentTitle(IslandDispatchContract.CHANNEL_NAME)
                 .setContentText("")
@@ -145,7 +152,7 @@ internal object IslandDispatcherNotifier {
                 Notification.VISIBILITY_SECRET
             }
 
-            val notif = Notification.Builder(context, IslandDispatchContract.CHANNEL_ID)
+            val notif = Notification.Builder(context, channelId)
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
                 .setContentTitle(focusTitle)
                 .setContentText(focusContent)
@@ -245,8 +252,9 @@ internal object IslandDispatcherNotifier {
         nm: NotificationManager,
         request: IslandRequest,
         extras: Bundle,
+        channelId: String,
     ) {
-        val notif = Notification.Builder(context, IslandDispatchContract.CHANNEL_ID)
+        val notif = Notification.Builder(context, channelId)
             .setSmallIcon(android.R.drawable.ic_lock_idle_lock)
             .setContentTitle(request.title)
             .setContentText(request.content)
@@ -271,27 +279,47 @@ internal object IslandDispatcherNotifier {
         )
     }
 
-    fun ensureChannel(context: Context) {
+    fun ensureChannels(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
-        val nm = context.getSystemService(NotificationManager::class.java) ?: return
-        val existing = nm.getNotificationChannel(IslandDispatchContract.CHANNEL_ID)
-        if (existing != null) {
-            existing.setShowBadge(false)
-            existing.lockscreenVisibility = Notification.VISIBILITY_PRIVATE
-            nm.createNotificationChannel(existing)
-            return
+        if (channelReady) return
+        synchronized(channelLock) {
+            if (channelReady) return
+            val nm = context.getSystemService(NotificationManager::class.java) ?: return
+            val existing = nm.getNotificationChannel(IslandDispatchContract.CHANNEL_ID)
+            if (existing != null) {
+                existing.setShowBadge(false)
+                existing.lockscreenVisibility = Notification.VISIBILITY_PRIVATE
+                nm.createNotificationChannel(existing)
+            } else {
+                nm.createNotificationChannel(
+                    NotificationChannel(
+                        IslandDispatchContract.CHANNEL_ID,
+                        IslandDispatchContract.CHANNEL_NAME,
+                        NotificationManager.IMPORTANCE_HIGH,
+                    ).apply {
+                        setShowBadge(false)
+                        lockscreenVisibility = Notification.VISIBILITY_PRIVATE
+                    },
+                )
+            }
+            val silentChannel = nm.getNotificationChannel(IslandDispatchContract.SILENT_CHANNEL_ID)
+            if (silentChannel == null) {
+                nm.createNotificationChannel(
+                    NotificationChannel(
+                        IslandDispatchContract.SILENT_CHANNEL_ID,
+                        IslandDispatchContract.SILENT_CHANNEL_NAME,
+                        NotificationManager.IMPORTANCE_HIGH,
+                    ).apply {
+                        setShowBadge(false)
+                        lockscreenVisibility = Notification.VISIBILITY_PRIVATE
+                        setSound(null, null)
+                        enableVibration(false)
+                        vibrationPattern = null
+                    },
+                )
+            }
+            channelReady = true
         }
-
-        nm.createNotificationChannel(
-            NotificationChannel(
-                IslandDispatchContract.CHANNEL_ID,
-                IslandDispatchContract.CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_HIGH,
-            ).apply {
-                setShowBadge(false)
-                lockscreenVisibility = Notification.VISIBILITY_PRIVATE
-            },
-        )
     }
 
     private fun resolveIcon(icon: Icon?, context: Context): Icon {

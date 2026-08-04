@@ -10,7 +10,6 @@ import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.lang.reflect.Method
 import java.util.Collections
 import java.util.WeakHashMap
-import java.util.concurrent.ConcurrentHashMap
 
 object KeyguardUnlockStateHook : BaseHook() {
 
@@ -24,14 +23,21 @@ object KeyguardUnlockStateHook : BaseHook() {
         "com.android.keyguard.KeyguardUpdateMonitor",
         "com.android.systemui.keyguard.KeyguardUpdateMonitor",
     )
-    private val hookedClassLoaders = ConcurrentHashMap.newKeySet<Int>()
+    private val hookedClassLoaders = Collections.newSetFromMap(
+        WeakHashMap<ClassLoader, Boolean>(),
+    )
     private val hookedMethods = Collections.newSetFromMap(WeakHashMap<Method, Boolean>())
+    @Volatile private var initialized = false
     @Volatile private var screenReceiverRegistered = false
 
     override fun getTag() = TAG
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
-        if (param.packageName != "com.android.systemui") return
+        if (param.packageName != "com.android.systemui" || initialized) return
+        synchronized(this) {
+            if (initialized) return
+            initialized = true
+        }
         hookClasses(module, param.defaultClassLoader)
         HookUtils.hookDynamicClassLoaders(module, ClassLoader.getSystemClassLoader()) { classLoader ->
             hookClasses(module, classLoader)
@@ -63,7 +69,9 @@ object KeyguardUnlockStateHook : BaseHook() {
     }
 
     private fun hookClasses(module: XposedModule, classLoader: ClassLoader) {
-        if (!hookedClassLoaders.add(System.identityHashCode(classLoader))) return
+        synchronized(hookedClassLoaders) {
+            if (!hookedClassLoaders.add(classLoader)) return
+        }
         controllerClassNames.forEach { className ->
             val clazz = runCatching { classLoader.loadClass(className) }.getOrNull() ?: return@forEach
             hookGoingAwayMethods(module, clazz)

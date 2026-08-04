@@ -8,6 +8,7 @@ import io.github.hyperisland.xposed.islanddispatch.definition.IslandRequest
 internal object IslandDispatcherBroadcaster {
     fun send(context: Context, request: IslandRequest) {
         val intent = Intent(IslandDispatchContract.ACTION).apply {
+            setPackage("com.android.systemui")
             putExtras(request.toBundle())
         }
         context.sendBroadcast(intent)

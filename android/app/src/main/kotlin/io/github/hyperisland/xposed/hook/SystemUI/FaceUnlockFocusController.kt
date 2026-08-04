@@ -41,6 +41,7 @@ object FaceUnlockFocusController {
     private const val ANIMATION_STYLE_LOCK = "lock"
     private const val LOCK_PICTURE_KEY_PREFIX = "miui.focus.pic_hyperisland_unlock_lock"
     private const val LOCK_FRAME_DELAY_MS = 70L
+    private const val LOCK_FRAME_COUNT = 8
 
     private const val FACE_RECOGNITION = "face_recognition"
     private const val FACE_RECOGNITION_SMALL = "face_recognition_small"
@@ -62,6 +63,8 @@ object FaceUnlockFocusController {
     @Volatile private var screenInteractive = false
     @Volatile private var screenReconcileGeneration = 0
     @Volatile private var screenOnSettling = false
+    private val lockFrameCache = HashMap<Int, Bitmap>(LOCK_FRAME_COUNT)
+    @Volatile private var cachedModuleContext: Context? = null
 
     fun onFaceState(context: Context, state: FaceState) {
         val appContext = context.applicationContext ?: context
@@ -119,6 +122,8 @@ object FaceUnlockFocusController {
                         if (usesLockAnimation()) {
                             return@synchronized
                         } else {
+                            screenOnSettling = false
+                            screenReconcileGeneration++
                             currentState = state
                             postFaceNotification(appContext, state)
                         }
@@ -135,6 +140,8 @@ object FaceUnlockFocusController {
                             }
                             return@synchronized
                         } else {
+                            screenOnSettling = false
+                            screenReconcileGeneration++
                             currentState = state
                             terminalStartedAt = SystemClock.uptimeMillis()
                             postFaceNotification(appContext, state)
@@ -297,6 +304,13 @@ object FaceUnlockFocusController {
                         normalizeHidden(appContext)
                         return@synchronized
                     }
+                    if (
+                        keyguardShowing &&
+                        currentState == FaceState.LOCKED &&
+                        !unlockCommitted
+                    ) {
+                        return@synchronized
+                    }
                     keyguardShowing = true
                     unlockCommitted = false
                     terminalStartedAt = 0L
@@ -348,7 +362,7 @@ object FaceUnlockFocusController {
 
     private fun postFaceNotification(context: Context, state: FaceState) {
         if (!isScreenInteractive(context)) return
-        val moduleContext = context.moduleContext()
+        val moduleContext = getModuleContext(context)
         val remoteViews = RemoteViews(moduleContext.packageName, R.layout.focus_notification_face_unlock)
         val faceType = when (state) {
             FaceState.LOCKED -> return
@@ -443,9 +457,9 @@ object FaceUnlockFocusController {
 
     private fun postLockNotification(context: Context, progress: Float, terminal: Boolean) {
         if (!isScreenInteractive(context)) return
-        val moduleContext = context.moduleContext()
+        val moduleContext = getModuleContext(context)
         val firstFloat = ConfigManager.getBoolean(PREF_FIRST_FLOAT, true)
-        val bitmap = drawLockFrame(progress.coerceIn(0f, 1f))
+        val bitmap = getLockFrame(progress.coerceIn(0f, 1f))
         val sequence = ++animationSequence
         val pictureKey = "${LOCK_PICTURE_KEY_PREFIX}_$sequence"
         val remoteViews = RemoteViews(
@@ -535,21 +549,23 @@ object FaceUnlockFocusController {
 
     private fun startLockOpeningAnimation(context: Context) {
         val generation = ++animationGeneration
-        val frames = 8
         postLockNotification(context, 0f, terminal = true)
-        for (frame in 1 until frames) {
+        for (frame in 1 until LOCK_FRAME_COUNT) {
             mainHandler.postDelayed({
                 synchronized(stateLock) {
                     if (generation != animationGeneration || currentState != FaceState.SUCCESS) {
                         return@synchronized
                     }
-                    val raw = frame.toFloat() / (frames - 1)
+                    val raw = frame.toFloat() / (LOCK_FRAME_COUNT - 1)
                     val eased = 1f - (1f - raw) * (1f - raw)
                     postLockNotification(context, eased, terminal = true)
                 }
-            }, (frame - 1) * LOCK_FRAME_DELAY_MS)
+            }, frame * LOCK_FRAME_DELAY_MS)
         }
     }
+
+    private fun getLockFrame(progress: Float): Bitmap =
+        lockFrameCache.getOrPut(progress.toBits()) { drawLockFrame(progress) }
 
     private fun drawLockFrame(progress: Float): Bitmap {
         val size = 192
@@ -589,6 +605,11 @@ object FaceUnlockFocusController {
 
     private fun usesLockAnimation(): Boolean =
         ConfigManager.getString(PREF_ANIMATION_STYLE, "default") == ANIMATION_STYLE_LOCK
+
+    private fun getModuleContext(context: Context): Context =
+        cachedModuleContext ?: synchronized(this) {
+            cachedModuleContext ?: context.moduleContext().also { cachedModuleContext = it }
+        }
 
     private fun scheduleTerminalRemoval(context: Context) {
         scheduleTerminalRemoval(context, TERMINAL_CANCEL_DELAY_MS)
