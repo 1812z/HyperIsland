@@ -42,6 +42,8 @@ const kPrefChargeIslandDurationSeconds = 'pref_charge_island_duration_seconds';
 const kPrefChargeIslandOuterGlow = 'pref_charge_island_outer_glow';
 const kPrefFaceUnlockIsland = 'pref_face_unlock_island';
 const kPrefFaceUnlockIslandFirstFloat = 'pref_face_unlock_island_first_float';
+const kPrefFaceUnlockIslandAnimationStyle =
+    'pref_face_unlock_island_animation_style';
 const kPrefHideLockscreenFaceUnlockIcon =
     'pref_hide_lockscreen_face_unlock_icon';
 const kPrefThemeMode = 'pref_theme_mode';
@@ -170,6 +172,9 @@ const kChargeIslandDurationDefault = 'default';
 const kChargeIslandDurationCustom = 'custom';
 const kChargeIslandDurationPersistent = 'persistent';
 
+const kFaceUnlockIslandAnimationDefault = 'default';
+const kFaceUnlockIslandAnimationLock = 'lock';
+
 const kSettingsHomeEntryIconStyleDefault = 'default';
 const kSettingsHomeEntryIconStyleOutline = 'outline';
 
@@ -211,6 +216,7 @@ class SettingsController extends ChangeNotifier {
   bool chargeIslandOuterGlow = false;
   bool faceUnlockIsland = false;
   bool faceUnlockIslandFirstFloat = true;
+  String faceUnlockIslandAnimationStyle = kFaceUnlockIslandAnimationDefault;
   bool hideLockscreenFaceUnlockIcon = false;
   bool checkUpdateOnLaunch = true;
   bool defaultFirstFloat = false;
@@ -373,6 +379,9 @@ class SettingsController extends ChangeNotifier {
     faceUnlockIsland = prefs.getBool(kPrefFaceUnlockIsland) ?? false;
     faceUnlockIslandFirstFloat =
         prefs.getBool(kPrefFaceUnlockIslandFirstFloat) ?? true;
+    faceUnlockIslandAnimationStyle = _normalizeFaceUnlockIslandAnimationStyle(
+      prefs.getString(kPrefFaceUnlockIslandAnimationStyle),
+    );
     hideLockscreenFaceUnlockIcon =
         prefs.getBool(kPrefHideLockscreenFaceUnlockIcon) ?? false;
     checkUpdateOnLaunch = prefs.getBool(kPrefCheckUpdateOnLaunch) ?? true;
@@ -868,6 +877,15 @@ class SettingsController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setFaceUnlockIslandAnimationStyle(String value) async {
+    final normalized = _normalizeFaceUnlockIslandAnimationStyle(value);
+    if (faceUnlockIslandAnimationStyle == normalized) return;
+    final prefs = await _getPrefs();
+    await prefs.setString(kPrefFaceUnlockIslandAnimationStyle, normalized);
+    faceUnlockIslandAnimationStyle = normalized;
+    notifyListeners();
+  }
+
   Future<void> setHideLockscreenFaceUnlockIcon(bool value) async {
     if (hideLockscreenFaceUnlockIcon == value) return;
     final prefs = await _getPrefs();
@@ -1130,6 +1148,12 @@ class SettingsController extends ChangeNotifier {
       kChargeIslandModeTemperature => kChargeIslandModeTemperature,
       _ => kChargeIslandModeDefault,
     };
+  }
+
+  String _normalizeFaceUnlockIslandAnimationStyle(String? value) {
+    return value == kFaceUnlockIslandAnimationLock
+        ? kFaceUnlockIslandAnimationLock
+        : kFaceUnlockIslandAnimationDefault;
   }
 
   String _normalizeChargeIslandDurationMode(String? value) {

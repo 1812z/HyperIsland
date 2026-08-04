@@ -1893,6 +1893,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get faceUnlockIslandFirstFloatSubtitle => '展开为焦点通知';
 
   @override
+  String get faceUnlockIslandAnimationStyleTitle => '动画样式';
+
+  @override
+  String get faceUnlockIslandAnimationStyleSubtitle =>
+      '锁头样式会在锁定时显示锁头，并在任意方式解锁成功后播放右转开锁动画';
+
+  @override
+  String get faceUnlockIslandAnimationDefault => '默认';
+
+  @override
+  String get faceUnlockIslandAnimationLock => '锁头';
+
+  @override
   String get hideLockscreenFaceUnlockIconTitle => '禁用人脸解锁图标';
 
   @override

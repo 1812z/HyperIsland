@@ -263,7 +263,13 @@ object GenericProgressHook : BaseHook() {
             extras.putString("hyperisland_source_pkg", sourcePkg)
             extras.putString("hyperisland_channel_id", sourceChannelId)
             extras.putString(EXTRA_OWNER, OWNER_MARKER)
-            if (isHyperIslandProxy && extras.containsKey("miui.focus.param")) return
+            if (
+                isHyperIslandProxy &&
+                (extras.containsKey("miui.focus.param") ||
+                    extras.containsKey("miui.focus.param.custom"))
+            ) {
+                return
+            }
 
             if (isMediaNotification(notif, extras)) {
                 handleMediaNotification(pkg, channelId, sbn.id, sbn.key, notif, extras, context, module)

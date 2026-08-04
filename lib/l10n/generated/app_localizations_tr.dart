@@ -1996,6 +1996,19 @@ class AppLocalizationsTr extends AppLocalizations {
       'Odak bildirimi olarak genişlet';
 
   @override
+  String get faceUnlockIslandAnimationStyleTitle => 'Animasyon Stili';
+
+  @override
+  String get faceUnlockIslandAnimationStyleSubtitle =>
+      'Kilit stili, ekran kilitliyken kapalı kilit gösterir ve herhangi bir yöntemle kilit açılınca kelepçeyi sağa döndürür';
+
+  @override
+  String get faceUnlockIslandAnimationDefault => 'Varsayılan';
+
+  @override
+  String get faceUnlockIslandAnimationLock => 'Kilit';
+
+  @override
   String get hideLockscreenFaceUnlockIconTitle =>
       'Yüz Kilidi Simgesini Devre Dışı Bırak';
 

@@ -3677,6 +3677,30 @@ abstract class AppLocalizations {
   /// **'展开为焦点通知'**
   String get faceUnlockIslandFirstFloatSubtitle;
 
+  /// No description provided for @faceUnlockIslandAnimationStyleTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'动画样式'**
+  String get faceUnlockIslandAnimationStyleTitle;
+
+  /// No description provided for @faceUnlockIslandAnimationStyleSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'锁头样式会在锁定时显示锁头，并在任意方式解锁成功后播放右转开锁动画'**
+  String get faceUnlockIslandAnimationStyleSubtitle;
+
+  /// No description provided for @faceUnlockIslandAnimationDefault.
+  ///
+  /// In zh, this message translates to:
+  /// **'默认'**
+  String get faceUnlockIslandAnimationDefault;
+
+  /// No description provided for @faceUnlockIslandAnimationLock.
+  ///
+  /// In zh, this message translates to:
+  /// **'锁头'**
+  String get faceUnlockIslandAnimationLock;
+
   /// No description provided for @hideLockscreenFaceUnlockIconTitle.
   ///
   /// In zh, this message translates to:

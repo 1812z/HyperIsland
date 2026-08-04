@@ -1924,6 +1924,19 @@ class AppLocalizationsJa extends AppLocalizations {
   String get faceUnlockIslandFirstFloatSubtitle => 'フォーカス通知として展開します';
 
   @override
+  String get faceUnlockIslandAnimationStyleTitle => 'アニメーションスタイル';
+
+  @override
+  String get faceUnlockIslandAnimationStyleSubtitle =>
+      'ロックスタイルではロック中に錠前を表示し、いずれかの方法で解除に成功するとシャックルが右に回転します';
+
+  @override
+  String get faceUnlockIslandAnimationDefault => 'デフォルト';
+
+  @override
+  String get faceUnlockIslandAnimationLock => '錠前';
+
+  @override
   String get hideLockscreenFaceUnlockIconTitle => '顔認証アイコンを無効化';
 
   @override

@@ -79,6 +79,7 @@ object FaceUnlockStateHook : BaseHook() {
                 clazz,
                 sessionStartMethods,
                 FaceUnlockFocusController.FaceState.AUTHENTICATING,
+                authenticationActivity = true,
             )
             hookMethods(
                 module,
@@ -117,6 +118,7 @@ object FaceUnlockStateHook : BaseHook() {
                 clazz,
                 setOf("onAuthenticationAcquired", "onAuthenticationHelp"),
                 FaceUnlockFocusController.FaceState.AUTHENTICATING,
+                authenticationActivity = true,
             )
             hookMethods(
                 module,
@@ -149,8 +151,6 @@ object FaceUnlockStateHook : BaseHook() {
                     val result = chain.proceed()
                     val errorCode = chain.args.firstOrNull { it is Int } as? Int
                     val state = when (errorCode) {
-                        FACE_ERROR_HW_UNAVAILABLE,
-                        FACE_ERROR_UNABLE_TO_PROCESS -> FaceUnlockFocusController.FaceState.AUTHENTICATING
                         FACE_ERROR_CANCELED,
                         FACE_ERROR_USER_CANCELED -> FaceUnlockFocusController.FaceState.STOPPED
                         else -> FaceUnlockFocusController.FaceState.FAILED
@@ -225,7 +225,10 @@ object FaceUnlockStateHook : BaseHook() {
                 }
                 method.isAccessible = true
                 module.hook(method).intercept { chain ->
-                    if (state == FaceUnlockFocusController.FaceState.SUCCESS) {
+                    val dispatchBeforeProceed =
+                        state == FaceUnlockFocusController.FaceState.SUCCESS ||
+                            method.name in sessionStartMethods
+                    if (dispatchBeforeProceed) {
                         dispatch(
                             module,
                             clazz.classLoader,
@@ -236,7 +239,7 @@ object FaceUnlockStateHook : BaseHook() {
                         )
                     }
                     val result = chain.proceed()
-                    if (state != FaceUnlockFocusController.FaceState.SUCCESS) {
+                    if (!dispatchBeforeProceed) {
                         dispatch(
                             module,
                             clazz.classLoader,
@@ -369,8 +372,6 @@ object FaceUnlockStateHook : BaseHook() {
 
     private const val FACE_ERROR_CANCELED = 5
     private const val FACE_ERROR_USER_CANCELED = 10
-    private const val FACE_ERROR_HW_UNAVAILABLE = 1
-    private const val FACE_ERROR_UNABLE_TO_PROCESS = 2
     private const val FACE_RUNNING_STATE_STOPPED = 0
     private const val FACE_RUNNING_STATE_RUNNING = 1
 }

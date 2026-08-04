@@ -43,6 +43,7 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
     _ctrl.chargeIslandOuterGlow,
     _ctrl.faceUnlockIsland,
     _ctrl.faceUnlockIslandFirstFloat,
+    _ctrl.faceUnlockIslandAnimationStyle,
     _ctrl.hideLockscreenFaceUnlockIcon,
   ]);
 
@@ -240,32 +241,35 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
       builder: (dialogContext) => _FaceUnlockIslandSettingsDialog(
         enabled: _ctrl.faceUnlockIsland,
         firstFloat: _ctrl.faceUnlockIslandFirstFloat,
+        animationStyle: _ctrl.faceUnlockIslandAnimationStyle,
         hideLockscreenIcon: _ctrl.hideLockscreenFaceUnlockIcon,
-        onApply: (enabled, firstFloat, hideLockscreenIcon) async {
-          final enabledChanged = enabled != _ctrl.faceUnlockIsland;
-          final hideIconChanged =
-              hideLockscreenIcon != _ctrl.hideLockscreenFaceUnlockIcon;
-          if (!await _requestScopesIfEnabled(
-            enabled || hideLockscreenIcon,
-            const [
-              'com.android.systemui',
-            ],
-          )) {
-            return false;
-          }
-          await _ctrl.setFaceUnlockIsland(enabled);
-          await _ctrl.setFaceUnlockIslandFirstFloat(firstFloat);
-          await _ctrl.setHideLockscreenFaceUnlockIcon(hideLockscreenIcon);
-          if (mounted && (enabledChanged || hideIconChanged)) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(AppLocalizations.of(context)!.restartScopeApp),
-                duration: const Duration(seconds: 4),
-              ),
-            );
-          }
-          return true;
-        },
+        onApply:
+            (enabled, firstFloat, animationStyle, hideLockscreenIcon) async {
+              final enabledChanged = enabled != _ctrl.faceUnlockIsland;
+              final hideIconChanged =
+                  hideLockscreenIcon != _ctrl.hideLockscreenFaceUnlockIcon;
+              if (!await _requestScopesIfEnabled(
+                enabled || hideLockscreenIcon,
+                const ['com.android.systemui'],
+              )) {
+                return false;
+              }
+              await _ctrl.setFaceUnlockIsland(enabled);
+              await _ctrl.setFaceUnlockIslandFirstFloat(firstFloat);
+              await _ctrl.setFaceUnlockIslandAnimationStyle(animationStyle);
+              await _ctrl.setHideLockscreenFaceUnlockIcon(hideLockscreenIcon);
+              if (mounted && (enabledChanged || hideIconChanged)) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      AppLocalizations.of(context)!.restartScopeApp,
+                    ),
+                    duration: const Duration(seconds: 4),
+                  ),
+                );
+              }
+              return true;
+            },
       ),
     );
   }
@@ -568,18 +572,22 @@ class _FaceUnlockIslandSettingsDialog extends StatefulWidget {
   const _FaceUnlockIslandSettingsDialog({
     required this.enabled,
     required this.firstFloat,
+    required this.animationStyle,
     required this.hideLockscreenIcon,
     required this.onApply,
   });
 
   final bool enabled;
   final bool firstFloat;
+  final String animationStyle;
   final bool hideLockscreenIcon;
   final Future<bool> Function(
     bool enabled,
     bool firstFloat,
+    String animationStyle,
     bool hideLockscreenIcon,
-  ) onApply;
+  )
+  onApply;
 
   @override
   State<_FaceUnlockIslandSettingsDialog> createState() =>
@@ -590,6 +598,7 @@ class _FaceUnlockIslandSettingsDialogState
     extends State<_FaceUnlockIslandSettingsDialog> {
   late bool _enabled;
   late bool _firstFloat;
+  late String _animationStyle;
   late bool _hideLockscreenIcon;
 
   @override
@@ -597,6 +606,7 @@ class _FaceUnlockIslandSettingsDialogState
     super.initState();
     _enabled = widget.enabled;
     _firstFloat = widget.firstFloat;
+    _animationStyle = widget.animationStyle;
     _hideLockscreenIcon = widget.hideLockscreenIcon;
   }
 
@@ -605,35 +615,77 @@ class _FaceUnlockIslandSettingsDialogState
     final l10n = AppLocalizations.of(context)!;
     return AlertDialog(
       title: Text(l10n.faceUnlockIslandSettingsTitle),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(l10n.faceUnlockIslandEnableTitle),
-            subtitle: Text(l10n.faceUnlockIslandEnableSubtitle),
-            value: _enabled,
-            onChanged: (value) => setState(() => _enabled = value),
-          ),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(l10n.faceUnlockIslandFirstFloatTitle),
-            subtitle: Text(l10n.faceUnlockIslandFirstFloatSubtitle),
-            value: _firstFloat,
-            onChanged: _enabled
-                ? (value) => setState(() => _firstFloat = value)
-                : null,
-          ),
-          const Divider(height: 24),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(l10n.hideLockscreenFaceUnlockIconTitle),
-            subtitle: Text(l10n.hideLockscreenFaceUnlockIconSubtitle),
-            value: _hideLockscreenIcon,
-            onChanged: (value) =>
-                setState(() => _hideLockscreenIcon = value),
-          ),
-        ],
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(l10n.faceUnlockIslandEnableTitle),
+              subtitle: Text(l10n.faceUnlockIslandEnableSubtitle),
+              value: _enabled,
+              onChanged: (value) => setState(() => _enabled = value),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(l10n.faceUnlockIslandFirstFloatTitle),
+              subtitle: Text(l10n.faceUnlockIslandFirstFloatSubtitle),
+              value: _firstFloat,
+              onChanged: _enabled
+                  ? (value) => setState(() => _firstFloat = value)
+                  : null,
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: Text(
+                l10n.faceUnlockIslandAnimationStyleTitle,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<String>(
+                segments: [
+                  ButtonSegment(
+                    value: kFaceUnlockIslandAnimationDefault,
+                    icon: const Icon(Icons.auto_awesome_motion_outlined),
+                    label: Text(l10n.faceUnlockIslandAnimationDefault),
+                  ),
+                  ButtonSegment(
+                    value: kFaceUnlockIslandAnimationLock,
+                    icon: const Icon(Icons.lock_outline),
+                    label: Text(l10n.faceUnlockIslandAnimationLock),
+                  ),
+                ],
+                selected: {_animationStyle},
+                onSelectionChanged: _enabled
+                    ? (selection) =>
+                          setState(() => _animationStyle = selection.first)
+                    : null,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: Text(
+                l10n.faceUnlockIslandAnimationStyleSubtitle,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+            const Divider(height: 24),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(l10n.hideLockscreenFaceUnlockIconTitle),
+              subtitle: Text(l10n.hideLockscreenFaceUnlockIconSubtitle),
+              value: _hideLockscreenIcon,
+              onChanged: (value) => setState(() => _hideLockscreenIcon = value),
+            ),
+          ],
+        ),
       ),
       actions: [
         TextButton(
@@ -647,6 +699,7 @@ class _FaceUnlockIslandSettingsDialogState
             final applied = await widget.onApply(
               _enabled,
               _firstFloat,
+              _animationStyle,
               _hideLockscreenIcon,
             );
             if (!applied) return;

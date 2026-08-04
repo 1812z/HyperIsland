@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook
 
+import android.app.KeyguardManager
+import android.os.PowerManager
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
@@ -28,6 +30,14 @@ object IslandDispatcherHook : BaseHook() {
                 if (app != null) {
                     IslandDispatcher.register(app, module)
                     ConfigManager.init(module)
+                    if (ConfigManager.getBoolean("pref_face_unlock_island", false)) {
+                        KeyguardUnlockStateHook.registerScreenReceiver(app)
+                        val locked = app.getSystemService(KeyguardManager::class.java)
+                            ?.isKeyguardLocked == true
+                        val interactive = app.getSystemService(PowerManager::class.java)
+                            ?.isInteractive == true
+                        FaceUnlockFocusController.initialize(app, locked, interactive)
+                    }
                 }
                 result
             }

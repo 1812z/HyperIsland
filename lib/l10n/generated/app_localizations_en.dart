@@ -2002,6 +2002,19 @@ class AppLocalizationsEn extends AppLocalizations {
       'Expand as focus notification';
 
   @override
+  String get faceUnlockIslandAnimationStyleTitle => 'Animation Style';
+
+  @override
+  String get faceUnlockIslandAnimationStyleSubtitle =>
+      'Lock style shows a closed lock while locked, then rotates the shackle right when any unlock method succeeds';
+
+  @override
+  String get faceUnlockIslandAnimationDefault => 'Default';
+
+  @override
+  String get faceUnlockIslandAnimationLock => 'Lock';
+
+  @override
   String get hideLockscreenFaceUnlockIconTitle => 'Disable Face Unlock Icon';
 
   @override

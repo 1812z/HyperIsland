@@ -2013,6 +2013,19 @@ class AppLocalizationsRu extends AppLocalizations {
       'Разворачивать как уведомление в фокусе';
 
   @override
+  String get faceUnlockIslandAnimationStyleTitle => 'Стиль анимации';
+
+  @override
+  String get faceUnlockIslandAnimationStyleSubtitle =>
+      'Стиль замка показывает закрытый замок, а после успешной разблокировки любым способом поворачивает дужку вправо';
+
+  @override
+  String get faceUnlockIslandAnimationDefault => 'По умолчанию';
+
+  @override
+  String get faceUnlockIslandAnimationLock => 'Замок';
+
+  @override
   String get hideLockscreenFaceUnlockIconTitle =>
       'Отключить значок разблокировки лицом';
 
