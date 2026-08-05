@@ -244,22 +244,17 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
         firstFloat: _ctrl.faceUnlockIslandFirstFloat,
         animationStyle: _ctrl.faceUnlockIslandAnimationStyle,
         keepUntilKeyguardHidden: _ctrl.faceUnlockIslandKeepUntilKeyguardHidden,
-        hideLockscreenIcon: _ctrl.hideLockscreenFaceUnlockIcon,
         onApply:
             (
               enabled,
               firstFloat,
               animationStyle,
               keepUntilKeyguardHidden,
-              hideLockscreenIcon,
             ) async {
               final enabledChanged = enabled != _ctrl.faceUnlockIsland;
-              final hideIconChanged =
-                  hideLockscreenIcon != _ctrl.hideLockscreenFaceUnlockIcon;
-              if (!await _requestScopesIfEnabled(
-                enabled || hideLockscreenIcon,
-                const ['com.android.systemui'],
-              )) {
+              if (!await _requestScopesIfEnabled(enabled, const [
+                'com.android.systemui',
+              ])) {
                 return false;
               }
               await _ctrl.setFaceUnlockIsland(enabled);
@@ -268,8 +263,7 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
               await _ctrl.setFaceUnlockIslandKeepUntilKeyguardHidden(
                 keepUntilKeyguardHidden,
               );
-              await _ctrl.setHideLockscreenFaceUnlockIcon(hideLockscreenIcon);
-              if (mounted && (enabledChanged || hideIconChanged)) {
+              if (mounted && enabledChanged) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
@@ -283,6 +277,21 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
             },
       ),
     );
+  }
+
+  Future<void> _onHideLockscreenFaceUnlockIconChanged(bool value) async {
+    if (!await _requestScopesIfEnabled(value, const ['com.android.systemui'])) {
+      return;
+    }
+    await _ctrl.setHideLockscreenFaceUnlockIcon(value);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.restartScopeApp),
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    }
   }
 
   Future<void> _onUnlockFocusAuthChanged(bool value) async {
@@ -530,6 +539,27 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
                   ),
                 ),
                 const SizedBox(height: 8),
+                Card(
+                  elevation: 0,
+                  color: cs.surfaceContainerHighest,
+                  clipBehavior: Clip.antiAlias,
+                  child: SwitchListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    title: Text(
+                      l10n.hideLockscreenFaceUnlockIconTitle,
+                      style: titleStyle,
+                    ),
+                    subtitle: Text(l10n.hideLockscreenFaceUnlockIconSubtitle),
+                    value: _ctrl.hideLockscreenFaceUnlockIcon,
+                    onChanged: InteractionHaptics.interceptToggle(
+                      _onHideLockscreenFaceUnlockIconChanged,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
                 _SectionLabel(l10n.hookScopeXMSF),
                 const SizedBox(height: 8),
                 Card(
@@ -585,7 +615,6 @@ class _FaceUnlockIslandSettingsDialog extends StatefulWidget {
     required this.firstFloat,
     required this.animationStyle,
     required this.keepUntilKeyguardHidden,
-    required this.hideLockscreenIcon,
     required this.onApply,
   });
 
@@ -593,13 +622,11 @@ class _FaceUnlockIslandSettingsDialog extends StatefulWidget {
   final bool firstFloat;
   final String animationStyle;
   final bool keepUntilKeyguardHidden;
-  final bool hideLockscreenIcon;
   final Future<bool> Function(
     bool enabled,
     bool firstFloat,
     String animationStyle,
     bool keepUntilKeyguardHidden,
-    bool hideLockscreenIcon,
   )
   onApply;
 
@@ -614,7 +641,6 @@ class _FaceUnlockIslandSettingsDialogState
   late bool _firstFloat;
   late String _animationStyle;
   late bool _keepUntilKeyguardHidden;
-  late bool _hideLockscreenIcon;
 
   @override
   void initState() {
@@ -623,7 +649,6 @@ class _FaceUnlockIslandSettingsDialogState
     _firstFloat = widget.firstFloat;
     _animationStyle = widget.animationStyle;
     _keepUntilKeyguardHidden = widget.keepUntilKeyguardHidden;
-    _hideLockscreenIcon = widget.hideLockscreenIcon;
   }
 
   @override
@@ -704,14 +729,6 @@ class _FaceUnlockIslandSettingsDialogState
                   ? (value) => setState(() => _keepUntilKeyguardHidden = value)
                   : null,
             ),
-            const Divider(height: 24),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: Text(l10n.hideLockscreenFaceUnlockIconTitle),
-              subtitle: Text(l10n.hideLockscreenFaceUnlockIconSubtitle),
-              value: _hideLockscreenIcon,
-              onChanged: (value) => setState(() => _hideLockscreenIcon = value),
-            ),
           ],
         ),
       ),
@@ -729,7 +746,6 @@ class _FaceUnlockIslandSettingsDialogState
               _firstFloat,
               _animationStyle,
               _keepUntilKeyguardHidden,
-              _hideLockscreenIcon,
             );
             if (!applied) return;
             if (context.mounted) Navigator.pop(context);
