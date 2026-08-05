@@ -643,6 +643,8 @@ object FaceUnlockFocusController {
         faceUnlockSucceeded &&
             ConfigManager.getBoolean(PREF_KEEP_UNTIL_KEYGUARD_HIDDEN, false)
 
+    fun shouldKeepPluginFaceSuccess(): Boolean = shouldKeepFaceSuccessUntilKeyguardHidden()
+
     private fun getModuleContext(context: Context): Context =
         cachedModuleContext ?: synchronized(this) {
             cachedModuleContext ?: context.moduleContext().also { cachedModuleContext = it }
