@@ -3,6 +3,7 @@ package io.github.hyperisland.xposed.hook
 import android.app.KeyguardManager
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -35,6 +36,7 @@ object FaceUnlockFocusController {
     private const val NOTIFICATION_ID = 0x48494641
     private const val MIN_TERMINAL_VISIBLE_MS = 800L
     private const val TERMINAL_CANCEL_DELAY_MS = 1_200L
+    private const val STATIC_SUCCESS_POST_DELAY_MS = 1_150L
     private const val SCREEN_ON_RECONCILE_DELAY_MS = 250L
     private const val PREF_FIRST_FLOAT = "pref_face_unlock_island_first_float"
     private const val PREF_ANIMATION_STYLE = "pref_face_unlock_island_animation_style"
@@ -51,12 +53,16 @@ object FaceUnlockFocusController {
     private const val FACE_RECOGNITION_SUCCESS_SMALL = "face_recognition_success_small"
     private const val FACE_RECOGNITION_FAILED = "face_recognition_failed"
     private const val FACE_RECOGNITION_FAILED_SMALL = "face_recognition_failed_small"
+    private const val FACE_SUCCESS_EXPAND_PICTURE = "hyperisland_face_success_expand"
+    private const val FACE_SUCCESS_SMALL_PICTURE = "hyperisland_face_success_small"
+    private const val STATIC_SUCCESS_EXPANDED_SECONDS = 2
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val stateLock = Any()
 
     @Volatile private var currentState = FaceState.STOPPED
     @Volatile private var terminalCancel: Runnable? = null
+    @Volatile private var staticSuccessPost: Runnable? = null
     @Volatile private var animationGeneration = 0
     @Volatile private var animationSequence = 0L
     @Volatile private var keyguardShowing = false
@@ -67,6 +73,8 @@ object FaceUnlockFocusController {
     @Volatile private var screenReconcileGeneration = 0
     @Volatile private var screenOnSettling = false
     private val lockFrameCache = HashMap<Int, Bitmap>(LOCK_FRAME_COUNT)
+    @Volatile private var faceSuccessExpandBitmap: Bitmap? = null
+    @Volatile private var faceSuccessSmallBitmap: Bitmap? = null
     @Volatile private var cachedModuleContext: Context? = null
 
     fun onFaceState(context: Context, state: FaceState) {
@@ -152,7 +160,11 @@ object FaceUnlockFocusController {
                             currentState = state
                             terminalStartedAt = SystemClock.uptimeMillis()
                             postFaceNotification(appContext, state)
-                            scheduleTerminalRemoval(appContext)
+                            if (shouldKeepFaceSuccessUntilKeyguardHidden()) {
+                                scheduleStaticFaceSuccess(appContext)
+                            } else {
+                                scheduleTerminalRemoval(appContext)
+                            }
                         }
                     }
                     FaceState.STOPPED -> {
@@ -374,8 +386,6 @@ object FaceUnlockFocusController {
         if (!isScreenInteractive(context)) return
         val moduleContext = getModuleContext(context)
         val remoteViews = RemoteViews(moduleContext.packageName, R.layout.focus_notification_face_unlock)
-        val keepUntilKeyguardHidden =
-            state == FaceState.SUCCESS && shouldKeepFaceSuccessUntilKeyguardHidden()
         val faceType = when (state) {
             FaceState.LOCKED -> return
             FaceState.AUTHENTICATING -> FACE_RECOGNITION
@@ -390,7 +400,7 @@ object FaceUnlockFocusController {
             putInt("face_id", R.id.face_unlock_animation_container)
             putString(
                 "miui.focus.param.custom",
-                buildFocusParam(faceType, state, firstFloat, keepUntilKeyguardHidden),
+                buildFocusParam(faceType, state, firstFloat),
             )
             putBoolean("miui.island.firstFloat", firstFloat)
             putBoolean("miui.enableFloat", true)
@@ -403,7 +413,7 @@ object FaceUnlockFocusController {
                 title = "Face unlock",
                 content = "",
                 notifId = NOTIFICATION_ID,
-                isOngoing = state == FaceState.AUTHENTICATING || keepUntilKeyguardHidden,
+                isOngoing = state == FaceState.AUTHENTICATING,
                 preserveStatusBarSmallIcon = false,
                 notificationExtras = extras,
                 notificationVisibility = android.app.Notification.VISIBILITY_SECRET,
@@ -414,11 +424,118 @@ object FaceUnlockFocusController {
         )
     }
 
+    private fun postStaticFaceSuccessNotification(context: Context) {
+        val moduleContext = getModuleContext(context)
+        val expandBitmap = getFaceSuccessBitmap(moduleContext, small = false)
+        val smallBitmap = getFaceSuccessBitmap(moduleContext, small = true)
+        val remoteViews = RemoteViews(
+            moduleContext.packageName,
+            R.layout.focus_notification_lock_unlock,
+        ).apply {
+            setImageViewBitmap(R.id.lock_unlock_bitmap, expandBitmap)
+        }
+        val pictures = Bundle().apply {
+            putParcelable(FACE_SUCCESS_EXPAND_PICTURE, Icon.createWithBitmap(smallBitmap))
+            putParcelable(FACE_SUCCESS_SMALL_PICTURE, Icon.createWithBitmap(smallBitmap))
+        }
+        val firstFloat = ConfigManager.getBoolean(PREF_FIRST_FLOAT, true)
+        val sequence = ++animationSequence
+        val extras = Bundle().apply {
+            putParcelable("miui.focus.rv", remoteViews)
+            putParcelable("miui.focus.rv.island.expand", remoteViews)
+            putBundle("miui.focus.pics", pictures)
+            putString("miui.focus.ticker", " ")
+            putString(
+                "miui.focus.param.custom",
+                buildStaticFaceSuccessFocusParam(firstFloat, sequence),
+            )
+            putBoolean("miui.island.firstFloat", firstFloat)
+            putBoolean("miui.enableFloat", true)
+            putBoolean("show_notification", false)
+            putBoolean("hyperisland_focus_proxy", true)
+        }
+        IslandDispatcher.post(
+            context,
+            IslandRequest(
+                title = "Face unlock",
+                content = "",
+                notifId = NOTIFICATION_ID,
+                isOngoing = true,
+                preserveStatusBarSmallIcon = false,
+                notificationExtras = extras,
+                notificationVisibility = android.app.Notification.VISIBILITY_SECRET,
+                notificationOnlyAlertOnce = true,
+                notificationSilent = true,
+                bypassSceneBehavior = true,
+            ),
+        )
+    }
+
+    private fun getFaceSuccessBitmap(context: Context, small: Boolean): Bitmap {
+        val cached = if (small) faceSuccessSmallBitmap else faceSuccessExpandBitmap
+        if (cached != null) return cached
+        return synchronized(this) {
+            val current = if (small) faceSuccessSmallBitmap else faceSuccessExpandBitmap
+            if (current != null) return@synchronized current
+            val resource = if (small) {
+                R.drawable.face_unlock_success_small
+            } else {
+                R.drawable.face_unlock_success_expand
+            }
+            requireNotNull(BitmapFactory.decodeResource(context.resources, resource)).also {
+                if (small) faceSuccessSmallBitmap = it else faceSuccessExpandBitmap = it
+            }
+        }
+    }
+
+    private fun buildStaticFaceSuccessFocusParam(
+        firstFloat: Boolean,
+        sequence: Long,
+    ): String {
+        val expandPicInfo = JSONObject()
+            .put("type", 1)
+            .put("pic", FACE_SUCCESS_EXPAND_PICTURE)
+        val smallPicInfo = JSONObject()
+            .put("type", 1)
+            .put("pic", FACE_SUCCESS_SMALL_PICTURE)
+        val leftArea = JSONObject()
+            .put("type", 1)
+            .put("picInfo", expandPicInfo)
+            .put(
+                "textInfo",
+                JSONObject()
+                    .put("title", " ")
+                    .put("showHighlightColor", false),
+            )
+        val island = JSONObject()
+            .put("islandProperty", 0)
+            .put("islandPriority", 0)
+            .put("islandTimeout", Int.MAX_VALUE)
+            .put("expandedTime", STATIC_SUCCESS_EXPANDED_SECONDS)
+            .put(
+                "bigIslandArea",
+                JSONObject().put("imageTextInfoLeft", leftArea),
+            )
+            .put(
+                "smallIslandArea",
+                JSONObject().put("picInfo", smallPicInfo),
+            )
+
+        return JSONObject()
+            .put("isShowNotification", false)
+            .put("islandFirstFloat", firstFloat)
+            .put("enableFloat", true)
+            .put("updatable", true)
+            .put("sequence", sequence)
+            .put("timeout", -1)
+            .put("param_island", island)
+            .toString()
+    }
+
     private fun buildFocusParam(
         faceType: String,
         state: FaceState,
         firstFloat: Boolean,
-        keepUntilKeyguardHidden: Boolean,
     ): String {
         val smallPic = when (state) {
             FaceState.LOCKED -> FACE_RECOGNITION_SMALL
@@ -451,7 +568,6 @@ object FaceUnlockFocusController {
             .put("imageTextInfoLeft", unlockImageText)
 
         val duration = when {
-            keepUntilKeyguardHidden -> Int.MAX_VALUE
             state == FaceState.AUTHENTICATING -> 60
             else -> 2
         }
@@ -643,8 +759,6 @@ object FaceUnlockFocusController {
         faceUnlockSucceeded &&
             ConfigManager.getBoolean(PREF_KEEP_UNTIL_KEYGUARD_HIDDEN, false)
 
-    fun shouldKeepPluginFaceSuccess(): Boolean = shouldKeepFaceSuccessUntilKeyguardHidden()
-
     private fun getModuleContext(context: Context): Context =
         cachedModuleContext ?: synchronized(this) {
             cachedModuleContext ?: context.moduleContext().also { cachedModuleContext = it }
@@ -679,6 +793,29 @@ object FaceUnlockFocusController {
     private fun cancelTerminalRemoval() {
         terminalCancel?.let(mainHandler::removeCallbacks)
         terminalCancel = null
+        staticSuccessPost?.let(mainHandler::removeCallbacks)
+        staticSuccessPost = null
+    }
+
+    private fun scheduleStaticFaceSuccess(context: Context) {
+        staticSuccessPost?.let(mainHandler::removeCallbacks)
+        val generation = animationGeneration
+        val runnable = Runnable {
+            synchronized(stateLock) {
+                if (
+                    generation != animationGeneration ||
+                    currentState != FaceState.SUCCESS ||
+                    !shouldKeepFaceSuccessUntilKeyguardHidden() ||
+                    !keyguardShowing
+                ) {
+                    return@synchronized
+                }
+                postStaticFaceSuccessNotification(context)
+                staticSuccessPost = null
+            }
+        }
+        staticSuccessPost = runnable
+        mainHandler.postDelayed(runnable, STATIC_SUCCESS_POST_DELAY_MS)
     }
 
     private fun cancelNotification(context: Context) {
