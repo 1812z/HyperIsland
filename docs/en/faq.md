@@ -1,12 +1,16 @@
 # FAQ
 
-::: details No effect after installation?
+::: details Not receiving notifications?
+- Check whether notification permissions for the system interface are enabled
+- Try tapping the test notification button and check the FAQ below
+:::
+
+::: details Test notification not working?
 Please confirm:
-1. Module is enabled in LSPosed with correct scope settings
-2. Scope has been restarted
-3. Focus Notification whitelist bypass is enabled in HyperCeiler
-4. System is HyperOS 3 with LSPosed API 101
-5. Tap the test button on the app's main page — if no notification appears, LSPosed module is not working; if a standard Android notification appears, Focus Notification bypass is not working
+1. The module is enabled in LSPosed and the correct scope is selected
+2. The apps within the scope have been restarted
+3. Both crack focus notification whitelist switches are turned on
+4. The system version is HyperOS3, and the LSPosed API is 101+
 :::
 
 ::: details Notifications not showing in Super Island style?
