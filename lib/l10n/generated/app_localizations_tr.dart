@@ -2009,6 +2009,14 @@ class AppLocalizationsTr extends AppLocalizations {
   String get faceUnlockIslandAnimationLock => 'Kilit';
 
   @override
+  String get faceUnlockIslandKeepUntilKeyguardHiddenTitle =>
+      'Yüz Kilidinden Sonra Adayı Koru';
+
+  @override
+  String get faceUnlockIslandKeepUntilKeyguardHiddenSubtitle =>
+      'Yüz tanıma başarılı olduktan sonra kilit ekranında göstermeye devam eder ve masaüstüne girildiğinde gizler. Diğer kilit açma yöntemleri etkilenmez';
+
+  @override
   String get hideLockscreenFaceUnlockIconTitle =>
       'Yüz Kilidi Simgesini Devre Dışı Bırak';
 

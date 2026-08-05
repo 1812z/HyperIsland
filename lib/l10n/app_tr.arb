@@ -791,6 +791,8 @@
   "faceUnlockIslandAnimationStyleSubtitle": "Kilit stili, ekran kilitliyken kapalı kilit gösterir ve herhangi bir yöntemle kilit açılınca kelepçeyi sağa döndürür",
   "faceUnlockIslandAnimationDefault": "Varsayılan",
   "faceUnlockIslandAnimationLock": "Kilit",
+  "faceUnlockIslandKeepUntilKeyguardHiddenTitle": "Yüz Kilidinden Sonra Adayı Koru",
+  "faceUnlockIslandKeepUntilKeyguardHiddenSubtitle": "Yüz tanıma başarılı olduktan sonra kilit ekranında göstermeye devam eder ve masaüstüne girildiğinde gizler. Diğer kilit açma yöntemleri etkilenmez",
   "hideLockscreenFaceUnlockIconTitle": "Yüz Kilidi Simgesini Devre Dışı Bırak",
   "hideLockscreenFaceUnlockIconSubtitle": "Yüz kilidi işlevini etkilemeden kilit ekranındaki yüz tanıma grafiğini gizle",
   "outerGlowTitle": "Dış Parlama",

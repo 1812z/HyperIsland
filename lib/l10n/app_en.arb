@@ -764,6 +764,8 @@
   "faceUnlockIslandAnimationStyleSubtitle": "Lock style shows a closed lock while locked, then rotates the shackle right when any unlock method succeeds",
   "faceUnlockIslandAnimationDefault": "Default",
   "faceUnlockIslandAnimationLock": "Lock",
+  "faceUnlockIslandKeepUntilKeyguardHiddenTitle": "Keep Island After Face Unlock",
+  "faceUnlockIslandKeepUntilKeyguardHiddenSubtitle": "Keep showing it on the lock screen after face recognition succeeds, then hide it when the desktop appears. Other unlock methods are unaffected",
   "hideLockscreenFaceUnlockIconTitle": "Disable Face Unlock Icon",
   "hideLockscreenFaceUnlockIconSubtitle": "Hide the face recognition graphic on the lock screen without affecting face unlock",
   "outerGlowTitle": "Outer Glow",

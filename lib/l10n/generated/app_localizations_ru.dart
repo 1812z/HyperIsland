@@ -2026,6 +2026,14 @@ class AppLocalizationsRu extends AppLocalizations {
   String get faceUnlockIslandAnimationLock => 'Замок';
 
   @override
+  String get faceUnlockIslandKeepUntilKeyguardHiddenTitle =>
+      'Сохранять остров после разблокировки лицом';
+
+  @override
+  String get faceUnlockIslandKeepUntilKeyguardHiddenSubtitle =>
+      'Оставлять остров на экране блокировки после распознавания лица и скрывать при переходе на рабочий стол. Другие способы разблокировки не затрагиваются';
+
+  @override
   String get hideLockscreenFaceUnlockIconTitle =>
       'Отключить значок разблокировки лицом';
 

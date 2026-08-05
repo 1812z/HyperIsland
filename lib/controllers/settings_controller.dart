@@ -44,6 +44,8 @@ const kPrefFaceUnlockIsland = 'pref_face_unlock_island';
 const kPrefFaceUnlockIslandFirstFloat = 'pref_face_unlock_island_first_float';
 const kPrefFaceUnlockIslandAnimationStyle =
     'pref_face_unlock_island_animation_style';
+const kPrefFaceUnlockIslandKeepUntilKeyguardHidden =
+    'pref_face_unlock_island_keep_until_keyguard_hidden';
 const kPrefHideLockscreenFaceUnlockIcon =
     'pref_hide_lockscreen_face_unlock_icon';
 const kPrefThemeMode = 'pref_theme_mode';
@@ -217,6 +219,7 @@ class SettingsController extends ChangeNotifier {
   bool faceUnlockIsland = false;
   bool faceUnlockIslandFirstFloat = true;
   String faceUnlockIslandAnimationStyle = kFaceUnlockIslandAnimationDefault;
+  bool faceUnlockIslandKeepUntilKeyguardHidden = false;
   bool hideLockscreenFaceUnlockIcon = false;
   bool checkUpdateOnLaunch = true;
   bool defaultFirstFloat = false;
@@ -382,6 +385,8 @@ class SettingsController extends ChangeNotifier {
     faceUnlockIslandAnimationStyle = _normalizeFaceUnlockIslandAnimationStyle(
       prefs.getString(kPrefFaceUnlockIslandAnimationStyle),
     );
+    faceUnlockIslandKeepUntilKeyguardHidden =
+        prefs.getBool(kPrefFaceUnlockIslandKeepUntilKeyguardHidden) ?? false;
     hideLockscreenFaceUnlockIcon =
         prefs.getBool(kPrefHideLockscreenFaceUnlockIcon) ?? false;
     checkUpdateOnLaunch = prefs.getBool(kPrefCheckUpdateOnLaunch) ?? true;
@@ -883,6 +888,14 @@ class SettingsController extends ChangeNotifier {
     final prefs = await _getPrefs();
     await prefs.setString(kPrefFaceUnlockIslandAnimationStyle, normalized);
     faceUnlockIslandAnimationStyle = normalized;
+    notifyListeners();
+  }
+
+  Future<void> setFaceUnlockIslandKeepUntilKeyguardHidden(bool value) async {
+    if (faceUnlockIslandKeepUntilKeyguardHidden == value) return;
+    final prefs = await _getPrefs();
+    await prefs.setBool(kPrefFaceUnlockIslandKeepUntilKeyguardHidden, value);
+    faceUnlockIslandKeepUntilKeyguardHidden = value;
     notifyListeners();
   }
 

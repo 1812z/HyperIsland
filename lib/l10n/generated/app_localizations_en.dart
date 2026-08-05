@@ -2015,6 +2015,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get faceUnlockIslandAnimationLock => 'Lock';
 
   @override
+  String get faceUnlockIslandKeepUntilKeyguardHiddenTitle =>
+      'Keep Island After Face Unlock';
+
+  @override
+  String get faceUnlockIslandKeepUntilKeyguardHiddenSubtitle =>
+      'Keep showing it on the lock screen after face recognition succeeds, then hide it when the desktop appears. Other unlock methods are unaffected';
+
+  @override
   String get hideLockscreenFaceUnlockIconTitle => 'Disable Face Unlock Icon';
 
   @override

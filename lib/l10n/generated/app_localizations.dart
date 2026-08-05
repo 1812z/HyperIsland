@@ -3701,6 +3701,18 @@ abstract class AppLocalizations {
   /// **'锁头'**
   String get faceUnlockIslandAnimationLock;
 
+  /// No description provided for @faceUnlockIslandKeepUntilKeyguardHiddenTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'人脸解锁后保留岛'**
+  String get faceUnlockIslandKeepUntilKeyguardHiddenTitle;
+
+  /// No description provided for @faceUnlockIslandKeepUntilKeyguardHiddenSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'人脸识别成功后仍在锁屏界面显示，进入桌面时隐藏；其他解锁方式不受影响'**
+  String get faceUnlockIslandKeepUntilKeyguardHiddenSubtitle;
+
   /// No description provided for @hideLockscreenFaceUnlockIconTitle.
   ///
   /// In zh, this message translates to:

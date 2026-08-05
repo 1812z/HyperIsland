@@ -44,6 +44,7 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
     _ctrl.faceUnlockIsland,
     _ctrl.faceUnlockIslandFirstFloat,
     _ctrl.faceUnlockIslandAnimationStyle,
+    _ctrl.faceUnlockIslandKeepUntilKeyguardHidden,
     _ctrl.hideLockscreenFaceUnlockIcon,
   ]);
 
@@ -242,9 +243,16 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
         enabled: _ctrl.faceUnlockIsland,
         firstFloat: _ctrl.faceUnlockIslandFirstFloat,
         animationStyle: _ctrl.faceUnlockIslandAnimationStyle,
+        keepUntilKeyguardHidden: _ctrl.faceUnlockIslandKeepUntilKeyguardHidden,
         hideLockscreenIcon: _ctrl.hideLockscreenFaceUnlockIcon,
         onApply:
-            (enabled, firstFloat, animationStyle, hideLockscreenIcon) async {
+            (
+              enabled,
+              firstFloat,
+              animationStyle,
+              keepUntilKeyguardHidden,
+              hideLockscreenIcon,
+            ) async {
               final enabledChanged = enabled != _ctrl.faceUnlockIsland;
               final hideIconChanged =
                   hideLockscreenIcon != _ctrl.hideLockscreenFaceUnlockIcon;
@@ -257,6 +265,9 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
               await _ctrl.setFaceUnlockIsland(enabled);
               await _ctrl.setFaceUnlockIslandFirstFloat(firstFloat);
               await _ctrl.setFaceUnlockIslandAnimationStyle(animationStyle);
+              await _ctrl.setFaceUnlockIslandKeepUntilKeyguardHidden(
+                keepUntilKeyguardHidden,
+              );
               await _ctrl.setHideLockscreenFaceUnlockIcon(hideLockscreenIcon);
               if (mounted && (enabledChanged || hideIconChanged)) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -573,6 +584,7 @@ class _FaceUnlockIslandSettingsDialog extends StatefulWidget {
     required this.enabled,
     required this.firstFloat,
     required this.animationStyle,
+    required this.keepUntilKeyguardHidden,
     required this.hideLockscreenIcon,
     required this.onApply,
   });
@@ -580,11 +592,13 @@ class _FaceUnlockIslandSettingsDialog extends StatefulWidget {
   final bool enabled;
   final bool firstFloat;
   final String animationStyle;
+  final bool keepUntilKeyguardHidden;
   final bool hideLockscreenIcon;
   final Future<bool> Function(
     bool enabled,
     bool firstFloat,
     String animationStyle,
+    bool keepUntilKeyguardHidden,
     bool hideLockscreenIcon,
   )
   onApply;
@@ -599,6 +613,7 @@ class _FaceUnlockIslandSettingsDialogState
   late bool _enabled;
   late bool _firstFloat;
   late String _animationStyle;
+  late bool _keepUntilKeyguardHidden;
   late bool _hideLockscreenIcon;
 
   @override
@@ -607,6 +622,7 @@ class _FaceUnlockIslandSettingsDialogState
     _enabled = widget.enabled;
     _firstFloat = widget.firstFloat;
     _animationStyle = widget.animationStyle;
+    _keepUntilKeyguardHidden = widget.keepUntilKeyguardHidden;
     _hideLockscreenIcon = widget.hideLockscreenIcon;
   }
 
@@ -679,6 +695,18 @@ class _FaceUnlockIslandSettingsDialogState
             const Divider(height: 24),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
+              title: Text(l10n.faceUnlockIslandKeepUntilKeyguardHiddenTitle),
+              subtitle: Text(
+                l10n.faceUnlockIslandKeepUntilKeyguardHiddenSubtitle,
+              ),
+              value: _keepUntilKeyguardHidden,
+              onChanged: _enabled
+                  ? (value) => setState(() => _keepUntilKeyguardHidden = value)
+                  : null,
+            ),
+            const Divider(height: 24),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
               title: Text(l10n.hideLockscreenFaceUnlockIconTitle),
               subtitle: Text(l10n.hideLockscreenFaceUnlockIconSubtitle),
               value: _hideLockscreenIcon,
@@ -700,6 +728,7 @@ class _FaceUnlockIslandSettingsDialogState
               _enabled,
               _firstFloat,
               _animationStyle,
+              _keepUntilKeyguardHidden,
               _hideLockscreenIcon,
             );
             if (!applied) return;

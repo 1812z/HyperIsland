@@ -38,6 +38,8 @@ object FaceUnlockFocusController {
     private const val SCREEN_ON_RECONCILE_DELAY_MS = 250L
     private const val PREF_FIRST_FLOAT = "pref_face_unlock_island_first_float"
     private const val PREF_ANIMATION_STYLE = "pref_face_unlock_island_animation_style"
+    private const val PREF_KEEP_UNTIL_KEYGUARD_HIDDEN =
+        "pref_face_unlock_island_keep_until_keyguard_hidden"
     private const val ANIMATION_STYLE_LOCK = "lock"
     private const val LOCK_PICTURE_KEY_PREFIX = "miui.focus.pic_hyperisland_unlock_lock"
     private const val LOCK_FRAME_DELAY_MS = 70L
@@ -59,6 +61,7 @@ object FaceUnlockFocusController {
     @Volatile private var animationSequence = 0L
     @Volatile private var keyguardShowing = false
     @Volatile private var unlockCommitted = false
+    @Volatile private var faceUnlockSucceeded = false
     @Volatile private var terminalStartedAt = 0L
     @Volatile private var screenInteractive = false
     @Volatile private var screenReconcileGeneration = 0
@@ -80,6 +83,7 @@ object FaceUnlockFocusController {
                     if (!canRecoverLockedCycle) return@synchronized
                     keyguardShowing = true
                     unlockCommitted = false
+                    faceUnlockSucceeded = false
                     terminalStartedAt = 0L
                     cancelTerminalRemoval()
                     animationGeneration++
@@ -107,6 +111,7 @@ object FaceUnlockFocusController {
                     FaceState.LOCKED -> {
                         keyguardShowing = true
                         unlockCommitted = false
+                        faceUnlockSucceeded = false
                         terminalStartedAt = 0L
                         cancelTerminalRemoval()
                         animationGeneration++
@@ -119,6 +124,7 @@ object FaceUnlockFocusController {
                     }
                     FaceState.AUTHENTICATING -> {
                         cancelTerminalRemoval()
+                        faceUnlockSucceeded = false
                         if (usesLockAnimation()) {
                             return@synchronized
                         } else {
@@ -131,6 +137,7 @@ object FaceUnlockFocusController {
                     FaceState.SUCCESS,
                     FaceState.FAILED -> {
                         cancelTerminalRemoval()
+                        faceUnlockSucceeded = state == FaceState.SUCCESS
                         if (usesLockAnimation()) {
                             if (state == FaceState.SUCCESS && keyguardShowing) {
                                 screenOnSettling = false
@@ -157,6 +164,7 @@ object FaceUnlockFocusController {
                         } else {
                             cancelTerminalRemoval()
                             animationGeneration++
+                            faceUnlockSucceeded = false
                             currentState = state
                             cancelNotification(appContext)
                         }
@@ -336,7 +344,9 @@ object FaceUnlockFocusController {
                     normalizeHidden(appContext)
                     return@synchronized
                 }
-                if (!unlockCommitted && usesLockAnimation() && keyguardShowing) {
+                if (shouldKeepFaceSuccessUntilKeyguardHidden()) {
+                    normalizeHidden(appContext)
+                } else if (!unlockCommitted && usesLockAnimation() && keyguardShowing) {
                     needsFallback = true
                 } else {
                     keyguardShowing = false
@@ -364,6 +374,8 @@ object FaceUnlockFocusController {
         if (!isScreenInteractive(context)) return
         val moduleContext = getModuleContext(context)
         val remoteViews = RemoteViews(moduleContext.packageName, R.layout.focus_notification_face_unlock)
+        val keepUntilKeyguardHidden =
+            state == FaceState.SUCCESS && shouldKeepFaceSuccessUntilKeyguardHidden()
         val faceType = when (state) {
             FaceState.LOCKED -> return
             FaceState.AUTHENTICATING -> FACE_RECOGNITION
@@ -376,7 +388,10 @@ object FaceUnlockFocusController {
             putParcelable("miui.focus.rv", remoteViews)
             putParcelable("miui.focus.rv.island.expand", remoteViews)
             putInt("face_id", R.id.face_unlock_animation_container)
-            putString("miui.focus.param.custom", buildFocusParam(faceType, state, firstFloat))
+            putString(
+                "miui.focus.param.custom",
+                buildFocusParam(faceType, state, firstFloat, keepUntilKeyguardHidden),
+            )
             putBoolean("miui.island.firstFloat", firstFloat)
             putBoolean("miui.enableFloat", true)
             putBoolean("show_notification", true)
@@ -388,7 +403,7 @@ object FaceUnlockFocusController {
                 title = "Face unlock",
                 content = "",
                 notifId = NOTIFICATION_ID,
-                isOngoing = state == FaceState.AUTHENTICATING,
+                isOngoing = state == FaceState.AUTHENTICATING || keepUntilKeyguardHidden,
                 preserveStatusBarSmallIcon = false,
                 notificationExtras = extras,
                 notificationVisibility = android.app.Notification.VISIBILITY_SECRET,
@@ -403,6 +418,7 @@ object FaceUnlockFocusController {
         faceType: String,
         state: FaceState,
         firstFloat: Boolean,
+        keepUntilKeyguardHidden: Boolean,
     ): String {
         val smallPic = when (state) {
             FaceState.LOCKED -> FACE_RECOGNITION_SMALL
@@ -434,12 +450,17 @@ object FaceUnlockFocusController {
         val bigIslandArea = JSONObject()
             .put("imageTextInfoLeft", unlockImageText)
 
+        val duration = when {
+            keepUntilKeyguardHidden -> Int.MAX_VALUE
+            state == FaceState.AUTHENTICATING -> 60
+            else -> 2
+        }
         val island = JSONObject()
             .put("business", FACE_RECOGNITION)
             .put("islandProperty", 0)
             .put("islandPriority", 0)
-            .put("islandTimeout", if (state == FaceState.AUTHENTICATING) 60 else 2)
-            .put("expandedTime", if (state == FaceState.AUTHENTICATING) 60 else 2)
+            .put("islandTimeout", duration)
+            .put("expandedTime", duration)
             .put("bigIslandArea", bigIslandArea)
             .put("smallIslandArea", JSONObject().put("picInfo", smallPicInfo))
 
@@ -459,6 +480,7 @@ object FaceUnlockFocusController {
         if (!isScreenInteractive(context)) return
         val moduleContext = getModuleContext(context)
         val firstFloat = ConfigManager.getBoolean(PREF_FIRST_FLOAT, true)
+        val keepUntilKeyguardHidden = terminal && shouldKeepFaceSuccessUntilKeyguardHidden()
         val bitmap = getLockFrame(progress.coerceIn(0f, 1f))
         val sequence = ++animationSequence
         val pictureKey = "${LOCK_PICTURE_KEY_PREFIX}_$sequence"
@@ -478,7 +500,13 @@ object FaceUnlockFocusController {
             putString("miui.focus.ticker", " ")
             putString(
                 "miui.focus.param.custom",
-                buildLockFocusParam(pictureKey, sequence, terminal, firstFloat),
+                buildLockFocusParam(
+                    pictureKey,
+                    sequence,
+                    terminal,
+                    firstFloat,
+                    keepUntilKeyguardHidden,
+                ),
             )
             putBoolean("miui.island.firstFloat", firstFloat)
             putBoolean("miui.enableFloat", true)
@@ -491,7 +519,7 @@ object FaceUnlockFocusController {
                 title = "Unlock",
                 content = "",
                 notifId = NOTIFICATION_ID,
-                isOngoing = !terminal,
+                isOngoing = !terminal || keepUntilKeyguardHidden,
                 preserveStatusBarSmallIcon = false,
                 notificationExtras = extras,
                 notificationVisibility = android.app.Notification.VISIBILITY_SECRET,
@@ -507,6 +535,7 @@ object FaceUnlockFocusController {
         sequence: Long,
         terminal: Boolean,
         firstFloat: Boolean,
+        keepUntilKeyguardHidden: Boolean,
     ): String {
         val picInfo = JSONObject()
             .put("type", 1)
@@ -520,7 +549,11 @@ object FaceUnlockFocusController {
                     .put("title", " ")
                     .put("showHighlightColor", false),
             )
-        val duration = if (terminal) 2 else 60
+        val duration = when {
+            keepUntilKeyguardHidden -> Int.MAX_VALUE
+            terminal -> 2
+            else -> 60
+        }
         val island = JSONObject()
             .put("islandProperty", 0)
             .put("islandPriority", 0)
@@ -606,6 +639,10 @@ object FaceUnlockFocusController {
     private fun usesLockAnimation(): Boolean =
         ConfigManager.getString(PREF_ANIMATION_STYLE, "default") == ANIMATION_STYLE_LOCK
 
+    private fun shouldKeepFaceSuccessUntilKeyguardHidden(): Boolean =
+        faceUnlockSucceeded &&
+            ConfigManager.getBoolean(PREF_KEEP_UNTIL_KEYGUARD_HIDDEN, false)
+
     private fun getModuleContext(context: Context): Context =
         cachedModuleContext ?: synchronized(this) {
             cachedModuleContext ?: context.moduleContext().also { cachedModuleContext = it }
@@ -616,6 +653,10 @@ object FaceUnlockFocusController {
     }
 
     private fun scheduleTerminalRemoval(context: Context, delayMs: Long) {
+        if (shouldKeepFaceSuccessUntilKeyguardHidden()) {
+            cancelTerminalRemoval()
+            return
+        }
         cancelTerminalRemoval()
         val generation = animationGeneration
         val runnable = Runnable {
@@ -623,6 +664,7 @@ object FaceUnlockFocusController {
                 if (generation != animationGeneration) return@synchronized
                 cancelNotification(context)
                 currentState = FaceState.STOPPED
+                faceUnlockSucceeded = false
                 animationGeneration++
                 terminalStartedAt = 0L
                 terminalCancel = null
@@ -644,6 +686,7 @@ object FaceUnlockFocusController {
     private fun normalizeHidden(context: Context) {
         keyguardShowing = false
         unlockCommitted = true
+        faceUnlockSucceeded = false
         screenOnSettling = false
         terminalStartedAt = 0L
         currentState = FaceState.STOPPED

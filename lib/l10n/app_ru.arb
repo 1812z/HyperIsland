@@ -704,6 +704,8 @@
   "faceUnlockIslandAnimationStyleSubtitle": "Стиль замка показывает закрытый замок, а после успешной разблокировки любым способом поворачивает дужку вправо",
   "faceUnlockIslandAnimationDefault": "По умолчанию",
   "faceUnlockIslandAnimationLock": "Замок",
+  "faceUnlockIslandKeepUntilKeyguardHiddenTitle": "Сохранять остров после разблокировки лицом",
+  "faceUnlockIslandKeepUntilKeyguardHiddenSubtitle": "Оставлять остров на экране блокировки после распознавания лица и скрывать при переходе на рабочий стол. Другие способы разблокировки не затрагиваются",
   "hideLockscreenFaceUnlockIconTitle": "Отключить значок разблокировки лицом",
   "hideLockscreenFaceUnlockIconSubtitle": "Скрыть графику распознавания лица на экране блокировки, не отключая разблокировку лицом",
   "outerGlowTitle": "Внешнее свечение",

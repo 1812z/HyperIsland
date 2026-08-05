@@ -1906,6 +1906,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get faceUnlockIslandAnimationLock => '锁头';
 
   @override
+  String get faceUnlockIslandKeepUntilKeyguardHiddenTitle => '人脸解锁后保留岛';
+
+  @override
+  String get faceUnlockIslandKeepUntilKeyguardHiddenSubtitle =>
+      '人脸识别成功后仍在锁屏界面显示，进入桌面时隐藏；其他解锁方式不受影响';
+
+  @override
   String get hideLockscreenFaceUnlockIconTitle => '禁用人脸解锁图标';
 
   @override

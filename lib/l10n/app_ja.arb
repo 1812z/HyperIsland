@@ -644,6 +644,8 @@
   "faceUnlockIslandAnimationStyleSubtitle": "ロックスタイルではロック中に錠前を表示し、いずれかの方法で解除に成功するとシャックルが右に回転します",
   "faceUnlockIslandAnimationDefault": "デフォルト",
   "faceUnlockIslandAnimationLock": "錠前",
+  "faceUnlockIslandKeepUntilKeyguardHiddenTitle": "顔認証後もアイランドを保持",
+  "faceUnlockIslandKeepUntilKeyguardHiddenSubtitle": "顔認証成功後もロック画面に表示し、ホーム画面に入ると非表示にします。他の解除方法には影響しません",
   "hideLockscreenFaceUnlockIconTitle": "顔認証アイコンを無効化",
   "hideLockscreenFaceUnlockIconSubtitle": "顔認証機能に影響を与えず、ロック画面の顔認証表示を非表示にします",
   "outerGlowTitle": "外側のグロー",

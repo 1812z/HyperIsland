@@ -1937,6 +1937,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get faceUnlockIslandAnimationLock => '錠前';
 
   @override
+  String get faceUnlockIslandKeepUntilKeyguardHiddenTitle => '顔認証後もアイランドを保持';
+
+  @override
+  String get faceUnlockIslandKeepUntilKeyguardHiddenSubtitle =>
+      '顔認証成功後もロック画面に表示し、ホーム画面に入ると非表示にします。他の解除方法には影響しません';
+
+  @override
   String get hideLockscreenFaceUnlockIconTitle => '顔認証アイコンを無効化';
 
   @override

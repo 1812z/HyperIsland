@@ -916,6 +916,8 @@
   "faceUnlockIslandAnimationStyleSubtitle": "锁头样式会在锁定时显示锁头，并在任意方式解锁成功后播放右转开锁动画",
   "faceUnlockIslandAnimationDefault": "默认",
   "faceUnlockIslandAnimationLock": "锁头",
+  "faceUnlockIslandKeepUntilKeyguardHiddenTitle": "人脸解锁后保留岛",
+  "faceUnlockIslandKeepUntilKeyguardHiddenSubtitle": "人脸识别成功后仍在锁屏界面显示，进入桌面时隐藏；其他解锁方式不受影响",
   "hideLockscreenFaceUnlockIconTitle": "禁用人脸解锁图标",
   "hideLockscreenFaceUnlockIconSubtitle": "隐藏锁屏界面的人脸识别图案，不影响人脸解锁功能",
   "outerGlowTitle": "外圈光效",
