@@ -1511,6 +1511,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get keepIslandSubtitle => '显示一条空白通知使岛始终可见';
 
   @override
+  String get keepIslandIslandConfigTitle => '岛配置';
+
+  @override
+  String get keepIslandFocusConfigTitle => '焦点通知配置';
+
+  @override
+  String get keepIslandEnableIslandTitle => '启用岛';
+
+  @override
+  String get keepIslandShowNotificationTitle => '通知中心显示';
+
+  @override
+  String get keepIslandConfigEnabled => '已启用';
+
+  @override
+  String get keepIslandConfigDisabled => '未启用';
+
+  @override
   String get keepIslandAutoHideTitle => '自动隐藏';
 
   @override
@@ -1576,7 +1594,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get keepIslandFocusContentDevice => '设备面板';
 
   @override
-  String get keepIslandFocusContentCharging => '充电面板';
+  String get keepIslandFocusContentCharging => '电池面板';
 
   @override
   String get keepIslandNotificationTitle => '通知标题';

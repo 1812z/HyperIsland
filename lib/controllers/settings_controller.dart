@@ -127,6 +127,7 @@ const kPrefAlwaysShowIslandOutline = 'pref_always_show_island_outline';
 const kPrefAlwaysShowFocusOutline = 'pref_always_show_focus_outline';
 const kPrefOuterGlowRange = 'pref_outer_glow_range';
 const kPrefKeepIsland = 'pref_keep_island';
+const kPrefKeepIslandShowNotification = 'pref_keep_island_show_notification';
 const kPrefKeepIslandAutoHide = 'pref_keep_island_auto_hide';
 const kPrefKeepIslandHideLandscape = 'pref_keep_island_hide_landscape';
 const kPrefKeepIslandHighlightColor = 'pref_keep_island_highlight_color';
@@ -300,6 +301,7 @@ class SettingsController extends ChangeNotifier {
   bool alwaysShowFocusOutline = false;
   int outerGlowRange = 0;
   bool keepIsland = false;
+  bool keepIslandShowNotification = false;
   bool keepIslandAutoHide = true;
   bool keepIslandHideLandscape = false;
   String keepIslandHighlightColor = '';
@@ -565,6 +567,8 @@ class SettingsController extends ChangeNotifier {
         prefs.getBool(kPrefAlwaysShowFocusOutline) ?? false;
     outerGlowRange = (prefs.getInt(kPrefOuterGlowRange) ?? 0).clamp(0, 100);
     keepIsland = prefs.getBool(kPrefKeepIsland) ?? false;
+    keepIslandShowNotification =
+        prefs.getBool(kPrefKeepIslandShowNotification) ?? false;
     keepIslandAutoHide = prefs.getBool(kPrefKeepIslandAutoHide) ?? true;
     keepIslandHideLandscape =
         prefs.getBool(kPrefKeepIslandHideLandscape) ?? false;
@@ -586,6 +590,10 @@ class SettingsController extends ChangeNotifier {
         (prefs.getInt(kPrefKeepIslandCarouselInterval) ?? 5).clamp(1, 6000);
     keepIslandFocusNotification =
         prefs.getBool(kPrefKeepIslandFocusNotification) ?? false;
+    if (!keepIslandFocusNotification && keepIslandShowNotification) {
+      keepIslandShowNotification = false;
+      await prefs.setBool(kPrefKeepIslandShowNotification, false);
+    }
     keepIslandFocusContentType = switch (prefs.getString(
       kPrefKeepIslandFocusContentType,
     )) {
@@ -1679,6 +1687,15 @@ class SettingsController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setKeepIslandShowNotification(bool value) async {
+    if (value && !keepIslandFocusNotification) return;
+    if (keepIslandShowNotification == value) return;
+    final prefs = await _getPrefs();
+    await prefs.setBool(kPrefKeepIslandShowNotification, value);
+    keepIslandShowNotification = value;
+    notifyListeners();
+  }
+
   Future<void> setKeepIslandAutoHide(bool value) async {
     if (keepIslandAutoHide == value) return;
     final prefs = await _getPrefs();
@@ -1773,11 +1790,20 @@ class SettingsController extends ChangeNotifier {
     return List.unmodifiable([raw]);
   }
 
-  Future<void> setKeepIslandFocusNotification(bool value) => _setBoolPref(
-    kPrefKeepIslandFocusNotification,
-    value,
-    (v) => keepIslandFocusNotification = v,
-  );
+  Future<void> setKeepIslandFocusNotification(bool value) async {
+    if (keepIslandFocusNotification == value &&
+        (value || !keepIslandShowNotification)) {
+      return;
+    }
+    final prefs = await _getPrefs();
+    await prefs.setBool(kPrefKeepIslandFocusNotification, value);
+    keepIslandFocusNotification = value;
+    if (!value) {
+      await prefs.setBool(kPrefKeepIslandShowNotification, false);
+      keepIslandShowNotification = false;
+    }
+    notifyListeners();
+  }
 
   Future<void> setKeepIslandFocusContentType(String value) => _setStringPref(
     kPrefKeepIslandFocusContentType,

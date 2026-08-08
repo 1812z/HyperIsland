@@ -1594,6 +1594,24 @@ class AppLocalizationsTr extends AppLocalizations {
       'Adayı sürekli görünür tutmak için boş bir bildirim gönder';
 
   @override
+  String get keepIslandIslandConfigTitle => 'Ada yapılandırması';
+
+  @override
+  String get keepIslandFocusConfigTitle => 'Odak bildirimi yapılandırması';
+
+  @override
+  String get keepIslandEnableIslandTitle => 'Adayı etkinleştir';
+
+  @override
+  String get keepIslandShowNotificationTitle => 'Bildirim merkezinde göster';
+
+  @override
+  String get keepIslandConfigEnabled => 'Etkin';
+
+  @override
+  String get keepIslandConfigDisabled => 'Devre dışı';
+
+  @override
   String get keepIslandAutoHideTitle => 'Otomatik Gizle';
 
   @override
@@ -1663,7 +1681,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get keepIslandFocusContentDevice => 'Cihaz paneli';
 
   @override
-  String get keepIslandFocusContentCharging => 'Şarj paneli';
+  String get keepIslandFocusContentCharging => 'Pil paneli';
 
   @override
   String get keepIslandNotificationTitle => 'Bildirim başlığı';

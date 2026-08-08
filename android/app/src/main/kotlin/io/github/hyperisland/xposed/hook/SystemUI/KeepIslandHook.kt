@@ -47,6 +47,8 @@ object KeepIslandHook : BaseHook() {
     private const val TAG = "HyperIsland[KeepIsland]"
     private const val PREF_KEY = "pref_keep_island"
 
+    private const val PREF_KEY_SHOW_NOTIFICATION = "pref_keep_island_show_notification"
+
     private const val PREF_KEY_AUTO_HIDE = "pref_keep_island_auto_hide"
 
     private const val PREF_KEY_HIDE_LANDSCAPE = "pref_keep_island_hide_landscape"
@@ -133,6 +135,8 @@ object KeepIslandHook : BaseHook() {
     private var chargingSampleIntervalMs = CHARGING_SAMPLE_INTERVAL_MS
 
     private var chargingChartMode = ChargingChartMode.POWER
+
+    private var chargingSessionIsCharging: Boolean? = null
 
     private var chargingReceiverRegistered = false
 
@@ -271,8 +275,7 @@ object KeepIslandHook : BaseHook() {
 
     private fun handleStateChange(stateObj: Any) {
         val ctx = appContext ?: return
-        val enabled = ConfigManager.getBoolean(PREF_KEY, false)
-        if (!enabled) return
+        if (!ConfigManager.getBoolean(PREF_KEY, false)) return
 
         val autoHide = ConfigManager.getBoolean(PREF_KEY_AUTO_HIDE, true)
         if (!autoHide) return
@@ -300,23 +303,20 @@ object KeepIslandHook : BaseHook() {
                 cancelPendingRestore()
                 if (key != null) activeRealKeys.add(key)
                 if (posted) {
-                    cancelKeepIsland(ctx)
+                    updateKeepIslandContent(ctx, force = true)
                 }
             }
 
             isDeleted || (!isBigIsland && !isExpanded && !isSmallIsland) -> {
                 if (key != null) activeRealKeys.remove(key)
-                if (!posted) {
-                    scheduleRestore()
-                }
+                scheduleRestore()
             }
         }
     }
 
     private fun handleContentPreDraw(controllerObj: Any) {
         val ctx = appContext ?: return
-        val enabled = ConfigManager.getBoolean(PREF_KEY, false)
-        if (!enabled) return
+        if (!ConfigManager.getBoolean(PREF_KEY, false)) return
 
         val autoHide = ConfigManager.getBoolean(PREF_KEY_AUTO_HIDE, true)
         if (!autoHide) return
@@ -348,15 +348,13 @@ object KeepIslandHook : BaseHook() {
         cancelPendingRestore()
         activeRealKeys.add(key)
         if (posted) {
-            cancelKeepIsland(ctx)
+            updateKeepIslandContent(ctx, force = true)
         }
     }
 
     private fun removeActiveRealKey(ctx: Context, key: String) {
         activeRealKeys.remove(key)
-        if (!posted) {
-            scheduleRestore()
-        }
+        scheduleRestore()
     }
 
     private fun isContentViewVisible(controllerObj: Any, view: View): Boolean {
@@ -372,19 +370,31 @@ object KeepIslandHook : BaseHook() {
 
     private fun evaluateKeepIsland() {
         val ctx = appContext ?: return
-        val enabled = ConfigManager.getBoolean(PREF_KEY, false)
+        val islandEnabled = ConfigManager.getBoolean(PREF_KEY, false)
         val autoHide = ConfigManager.getBoolean(PREF_KEY_AUTO_HIDE, true)
-        if (!enabled || !autoHide) activeRealKeys.clear()
-        if (shouldShowKeepIsland(ctx)) {
+        if (!islandEnabled || !autoHide) activeRealKeys.clear()
+        if (shouldPostKeepNotification()) {
             cancelPendingRestore()
-            if (!posted) postKeepIsland(ctx, restore = true)
+            if (!posted) {
+                postKeepIsland(ctx, restore = true)
+            } else {
+                updateKeepIslandContent(ctx, force = true)
+            }
         } else {
             cancelPendingRestore()
             if (posted) cancelKeepIsland(ctx)
         }
     }
 
-    private fun shouldShowKeepIsland(context: Context): Boolean {
+    private fun shouldPostKeepNotification(): Boolean =
+        ConfigManager.getBoolean(PREF_KEY, false) ||
+                shouldShowNotification()
+
+    private fun shouldShowNotification(): Boolean =
+        ConfigManager.getBoolean(PREF_KEY_FOCUS_NOTIFICATION, false) &&
+                ConfigManager.getBoolean(PREF_KEY_SHOW_NOTIFICATION, false)
+
+    private fun shouldEnableIsland(context: Context): Boolean {
         if (!ConfigManager.getBoolean(PREF_KEY, false)) return false
         val hideForRealNotification = ConfigManager.getBoolean(PREF_KEY_AUTO_HIDE, true) &&
                 activeRealKeys.isNotEmpty()
@@ -404,7 +414,9 @@ object KeepIslandHook : BaseHook() {
                     ConfigManager.getBoolean(PREF_KEY_RIGHT_HIGHLIGHT, false)
             val texts: Pair<String, String> = resolveKeepIslandTexts()
             val focusEnabled = ConfigManager.getBoolean(PREF_KEY_FOCUS_NOTIFICATION, false)
-            val focusContent = resolveFocusContent(context, focusEnabled)
+            val showNotification = shouldShowNotification()
+            val focusContent = resolveFocusContent(context, focusEnabled || showNotification)
+            val islandEnabled = shouldEnableIsland(context)
             val showIslandIcon = ConfigManager.getBoolean(PREF_KEY_SHOW_ISLAND_ICON, false)
             val customIconPath = ConfigManager.getString(PREF_KEY_CUSTOM_ICON_PATH, "")
             val request = IslandRequest(
@@ -415,7 +427,7 @@ object KeepIslandHook : BaseHook() {
                 timeoutSecs = Int.MAX_VALUE,
                 firstFloat = false,
                 enableFloat = false,
-                showNotification = false,
+                showNotification = showNotification,
                 preserveStatusBarSmallIcon = false,
                 isOngoing = true,
                 showIslandIcon = showIslandIcon,
@@ -426,8 +438,13 @@ object KeepIslandHook : BaseHook() {
                 showLeftHighlightColor = showLeftHighlight,
                 showRightHighlightColor = showRightHighlight,
                 islandOnly = !focusEnabled,
+                islandEnabled = islandEnabled,
                 focusRemoteViews = focusContent.remoteViews,
-                focusIslandExpandRemoteViews = focusContent.islandExpandRemoteViews,
+                focusIslandExpandRemoteViews = if (focusEnabled) {
+                    focusContent.islandExpandRemoteViews
+                } else {
+                    null
+                },
             )
             IslandDispatcher.post(context, request)
             posted = true
@@ -454,7 +471,7 @@ object KeepIslandHook : BaseHook() {
         context: android.content.Context,
         force: Boolean = false,
     ) {
-        if (!posted || !shouldShowKeepIsland(context)) return
+        if (!posted || !shouldPostKeepNotification()) return
         val texts: Pair<String, String> = resolveKeepIslandTexts()
         try {
             val highlightColor = ConfigManager.getString(PREF_KEY_HIGHLIGHT_COLOR, "")
@@ -464,7 +481,9 @@ object KeepIslandHook : BaseHook() {
             val showRightHighlight = highlightColor != null &&
                     ConfigManager.getBoolean(PREF_KEY_RIGHT_HIGHLIGHT, false)
             val focusEnabled = ConfigManager.getBoolean(PREF_KEY_FOCUS_NOTIFICATION, false)
-            val focusContent = resolveFocusContent(context, focusEnabled)
+            val showNotification = shouldShowNotification()
+            val focusContent = resolveFocusContent(context, focusEnabled || showNotification)
+            val islandEnabled = shouldEnableIsland(context)
             val showIslandIcon = ConfigManager.getBoolean(PREF_KEY_SHOW_ISLAND_ICON, false)
             val customIconPath = ConfigManager.getString(PREF_KEY_CUSTOM_ICON_PATH, "")
             val signature = contentSignature(
@@ -488,7 +507,7 @@ object KeepIslandHook : BaseHook() {
                 timeoutSecs = Int.MAX_VALUE,
                 firstFloat = false,
                 enableFloat = false,
-                showNotification = false,
+                showNotification = showNotification,
                 preserveStatusBarSmallIcon = false,
                 isOngoing = true,
                 showIslandIcon = showIslandIcon,
@@ -499,8 +518,13 @@ object KeepIslandHook : BaseHook() {
                 showLeftHighlightColor = showLeftHighlight,
                 showRightHighlightColor = showRightHighlight,
                 islandOnly = !focusEnabled,
+                islandEnabled = islandEnabled,
                 focusRemoteViews = focusContent.remoteViews,
-                focusIslandExpandRemoteViews = focusContent.islandExpandRemoteViews,
+                focusIslandExpandRemoteViews = if (focusEnabled) {
+                    focusContent.islandExpandRemoteViews
+                } else {
+                    null
+                },
                 bypassSceneBehavior = true,
                 notificationSilent = true
             )
@@ -604,7 +628,7 @@ object KeepIslandHook : BaseHook() {
         return FocusContent(
             title = "性能概览",
             content = "$cpuText · $memoryText",
-            remoteViews = null,
+            remoteViews = remoteViews,
             islandExpandRemoteViews = remoteViews,
             signature = signature,
         )
@@ -651,7 +675,7 @@ object KeepIslandHook : BaseHook() {
         return FocusContent(
             title = snapshot.manufacturer,
             content = snapshot.model,
-            remoteViews = null,
+            remoteViews = remoteViews,
             islandExpandRemoteViews = remoteViews,
             signature = signature,
         )
@@ -661,6 +685,7 @@ object KeepIslandHook : BaseHook() {
         val snapshot = IslandDataManager.chargingPanelSnapshot()
         updateChargingSession(snapshot)
         val powerText = snapshot.powerWatt?.let { String.format(Locale.US, "%.1fW", it) } ?: "--W"
+        val primaryText = if (snapshot.isCharging || snapshot.powerWatt == null) powerText else "-$powerText"
         val currentText = snapshot.currentAmp?.let { String.format(Locale.US, "%.2fA", it) } ?: "--A"
         val voltageText = snapshot.voltageVolt?.let { String.format(Locale.US, "%.2fV", it) } ?: "--V"
         val temperatureText = snapshot.temperatureCelsius?.let {
@@ -677,8 +702,15 @@ object KeepIslandHook : BaseHook() {
             moduleContext.packageName,
             R.layout.focus_notification_charging,
         ).apply {
-            setTextViewText(R.id.charging_primary, powerText)
-            setTextViewText(R.id.charging_mode, chargingChartMode.label)
+            setTextViewText(R.id.charging_primary, primaryText)
+            setTextViewText(
+                R.id.charging_mode,
+                if (!snapshot.isCharging && chargingChartMode == ChargingChartMode.POWER) {
+                    "耗电"
+                } else {
+                    chargingChartMode.label
+                },
+            )
             setTextViewText(
                 R.id.charging_details,
                 "$currentText · $voltageText · $temperatureText",
@@ -690,7 +722,7 @@ object KeepIslandHook : BaseHook() {
         val signature = buildString {
             append("charging\u0000")
             append(snapshot.isCharging).append('\u0000')
-            append(powerText).append('\u0000')
+            append(primaryText).append('\u0000')
             append(currentText).append('\u0000')
             append(voltageText).append('\u0000')
             append(temperatureText).append('\u0000')
@@ -704,9 +736,9 @@ object KeepIslandHook : BaseHook() {
             }
         }
         return FocusContent(
-            title = "充电",
-            content = powerText,
-            remoteViews = null,
+            title = if (snapshot.isCharging) "充电" else "耗电",
+            content = primaryText,
+            remoteViews = remoteViews,
             islandExpandRemoteViews = remoteViews,
             signature = signature,
         )
@@ -714,14 +746,13 @@ object KeepIslandHook : BaseHook() {
 
     private fun updateChargingSession(snapshot: IslandDataManager.ChargingPanelSnapshot) {
         val now = SystemClock.elapsedRealtime()
-        if (!snapshot.isCharging) {
-            resetChargingSession()
-            return
-        }
-        if (chargingSessionStartedAt == 0L) {
+        if (chargingSessionStartedAt == 0L || chargingSessionIsCharging != snapshot.isCharging) {
+            chargingTrend.clear()
             chargingSessionStartedAt = now
             lastChargingSampleAt = 0L
+            chargingSampleIntervalMs = CHARGING_SAMPLE_INTERVAL_MS
             chargingChartMode = ChargingChartMode.POWER
+            chargingSessionIsCharging = snapshot.isCharging
         }
         if (lastChargingSampleAt != 0L && now - lastChargingSampleAt < chargingSampleIntervalMs) return
         lastChargingSampleAt = now
@@ -733,7 +764,13 @@ object KeepIslandHook : BaseHook() {
                 temperatureCelsius = snapshot.temperatureCelsius,
             ),
         )
-        if (chargingTrend.size > CHARGING_MAX_SAMPLES) compactChargingTrend()
+        if (chargingTrend.size > CHARGING_MAX_SAMPLES) {
+            if (snapshot.isCharging) {
+                compactChargingTrend()
+            } else {
+                chargingTrend.removeFirst()
+            }
+        }
     }
 
     private fun resetChargingSession() {
@@ -742,6 +779,7 @@ object KeepIslandHook : BaseHook() {
         lastChargingSampleAt = 0L
         chargingSampleIntervalMs = CHARGING_SAMPLE_INTERVAL_MS
         chargingChartMode = ChargingChartMode.POWER
+        chargingSessionIsCharging = null
     }
 
     private fun compactChargingTrend() {
@@ -819,9 +857,12 @@ object KeepIslandHook : BaseHook() {
             val value = maxValue * (2 - row) / 2.0
             canvas.drawText(chargingChartMode.formatAxis(value), 0f, y + 6f, labelPaint)
         }
-        val maxElapsed = samples.lastOrNull()?.elapsedMillis?.coerceAtLeast(1L) ?: 1L
+        val firstElapsed = samples.firstOrNull()?.elapsedMillis ?: 0L
+        val maxElapsed = samples.lastOrNull()?.elapsedMillis?.coerceAtLeast(firstElapsed + 1L)
+            ?: (firstElapsed + 1L)
+        val visibleElapsed = (maxElapsed - firstElapsed).coerceAtLeast(1L)
         canvas.drawText("0", left, height - 4f, labelPaint)
-        val elapsedLabel = formatChargingElapsed(maxElapsed)
+        val elapsedLabel = formatChargingElapsed(visibleElapsed)
         canvas.drawText(
             elapsedLabel,
             right - labelPaint.measureText(elapsedLabel),
@@ -833,7 +874,7 @@ object KeepIslandHook : BaseHook() {
             var firstX = left
             var lastX = left
             values.forEachIndexed { index, (elapsed, value) ->
-                val x = left + (right - left) * elapsed / maxElapsed.toFloat()
+                val x = left + (right - left) * (elapsed - firstElapsed) / visibleElapsed.toFloat()
                 val y = bottom - (bottom - top) * (value / maxValue).coerceIn(0.0, 1.0).toFloat()
                 if (index == 0) {
                     firstX = x
@@ -1070,7 +1111,7 @@ object KeepIslandHook : BaseHook() {
 
     private fun scheduleContentUpdateFromDataChange() {
         val ctx = appContext ?: return
-        if (!posted || !shouldShowKeepIsland(ctx) || !hasConfiguredKeepIslandContent()) return
+        if (!posted || !shouldPostKeepNotification() || !hasConfiguredKeepIslandContent()) return
         mainHandler.post { updateKeepIslandContent(ctx) }
     }
 
@@ -1079,7 +1120,7 @@ object KeepIslandHook : BaseHook() {
         cancelPeriodicDataUpdate()
         periodicDataUpdateRunnable = Runnable {
             val ctx = appContext
-            if (ctx != null && posted && shouldShowKeepIsland(ctx) && hasConfiguredKeepIslandContent()) {
+            if (ctx != null && posted && shouldPostKeepNotification() && hasConfiguredKeepIslandContent()) {
                 updateKeepIslandContent(ctx)
                 mainHandler.postDelayed(periodicDataUpdateRunnable!!, DATA_UPDATE_INTERVAL_MS)
             } else {

@@ -72,6 +72,7 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
 
   int _computeHash() => Object.hashAll([
     _ctrl.keepIsland,
+    _ctrl.keepIslandShowNotification,
     _ctrl.keepIslandAutoHide,
     _ctrl.keepIslandHideLandscape,
     _ctrl.keepIslandHighlightColor,
@@ -244,6 +245,282 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
     }
   }
 
+  Future<void> _showIslandConfig() => showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    builder: (context) => ListenableBuilder(
+      listenable: _ctrl,
+      builder: (context, _) {
+        final l10n = AppLocalizations.of(context)!;
+        final cs = Theme.of(context).colorScheme;
+        final islandEnabled = _ctrl.keepIsland;
+        return SafeArea(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(
+              16,
+              0,
+              16,
+              16 + MediaQuery.viewInsetsOf(context).bottom,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SwitchListTile(
+                  title: Text(l10n.keepIslandEnableIslandTitle),
+                  value: _ctrl.keepIsland,
+                  onChanged: InteractionHaptics.interceptToggle(
+                    _ctrl.setKeepIsland,
+                  ),
+                ),
+                SwitchListTile(
+                  title: Text(l10n.keepIslandAutoHideTitle),
+                  subtitle: Text(l10n.keepIslandAutoHideSubtitle),
+                  value: _ctrl.keepIslandAutoHide,
+                  onChanged: islandEnabled
+                      ? InteractionHaptics.interceptToggle(
+                          _ctrl.setKeepIslandAutoHide,
+                        )
+                      : null,
+                ),
+                SwitchListTile(
+                  title: Text(l10n.keepIslandHideLandscapeTitle),
+                  subtitle: Text(l10n.keepIslandHideLandscapeSubtitle),
+                  value: _ctrl.keepIslandHideLandscape,
+                  onChanged: islandEnabled && _ctrl.keepIslandAutoHide
+                      ? InteractionHaptics.interceptToggle(
+                          _ctrl.setKeepIslandHideLandscape,
+                        )
+                      : null,
+                ),
+                _ContentListTile(
+                  title: l10n.keepIslandLeftContentTitle,
+                  values: _ctrl.keepIslandLeftContents,
+                  enabled: islandEnabled,
+                  onTap: () => _editContents(left: true),
+                ),
+                _ContentListTile(
+                  title: l10n.keepIslandRightContentTitle,
+                  values: _ctrl.keepIslandRightContents,
+                  enabled: islandEnabled,
+                  onTap: () => _editContents(left: false),
+                ),
+                ListTile(
+                  title: Text(l10n.keepIslandCarouselIntervalTitle),
+                  subtitle: Text(l10n.keepIslandCarouselIntervalSubtitle),
+                  trailing: Text(
+                    '${_ctrl.keepIslandCarouselInterval} ${l10n.seconds}',
+                  ),
+                  enabled: islandEnabled,
+                  onTap: islandEnabled
+                      ? InteractionHaptics.interceptButton(
+                          _editCarouselInterval,
+                        )
+                      : null,
+                ),
+                ListTile(
+                  title: Text(l10n.keepIslandHighlightColorTitle),
+                  subtitle: Text(l10n.keepIslandHighlightColorSubtitle),
+                  enabled: islandEnabled,
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          color:
+                              parseHexColor(_ctrl.keepIslandHighlightColor) ??
+                              cs.surfaceContainerHigh,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: cs.outlineVariant),
+                        ),
+                      ),
+                      if (_ctrl.keepIslandHighlightColor.isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(Icons.refresh, size: 18),
+                          visualDensity: VisualDensity.compact,
+                          tooltip: l10n.clear,
+                          onPressed: islandEnabled
+                              ? InteractionHaptics.interceptButton(
+                                  () => _ctrl.setKeepIslandHighlightColor(''),
+                                )
+                              : null,
+                        ),
+                      ],
+                    ],
+                  ),
+                  onTap: islandEnabled
+                      ? InteractionHaptics.interceptButton(() async {
+                          final color = await showColorPickerDialog(
+                            context,
+                            initialHex: _ctrl.keepIslandHighlightColor.isEmpty
+                                ? null
+                                : _ctrl.keepIslandHighlightColor,
+                            title: l10n.keepIslandHighlightColorTitle,
+                            enableAlpha: true,
+                          );
+                          if (color != null) {
+                            await _ctrl.setKeepIslandHighlightColor(
+                              colorToArgbHex(color),
+                            );
+                          }
+                        })
+                      : null,
+                ),
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(start: 16, end: 24),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _HighlightSwitch(
+                          label: l10n.keepIslandHighlightLeft,
+                          value: _ctrl.keepIslandLeftHighlight,
+                          onChanged:
+                              !islandEnabled ||
+                                  _ctrl.keepIslandHighlightColor.isEmpty
+                              ? null
+                              : _ctrl.setKeepIslandLeftHighlight,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _HighlightSwitch(
+                          label: l10n.keepIslandHighlightRight,
+                          value: _ctrl.keepIslandRightHighlight,
+                          onChanged:
+                              !islandEnabled ||
+                                  _ctrl.keepIslandHighlightColor.isEmpty
+                              ? null
+                              : _ctrl.setKeepIslandRightHighlight,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SwitchListTile(
+                  title: Text(l10n.keepIslandShowIslandIconTitle),
+                  subtitle: Text(l10n.keepIslandShowIslandIconSubtitle),
+                  value: _ctrl.keepIslandShowIslandIcon,
+                  onChanged: islandEnabled
+                      ? InteractionHaptics.interceptToggle(
+                          _ctrl.setKeepIslandShowIslandIcon,
+                        )
+                      : null,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    ),
+  );
+
+  Future<void> _showFocusConfig() => showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    builder: (context) => ListenableBuilder(
+      listenable: _ctrl,
+      builder: (context, _) {
+        final l10n = AppLocalizations.of(context)!;
+        final keepActive = _ctrl.keepIsland || _ctrl.keepIslandShowNotification;
+        final focusContentEnabled =
+            keepActive &&
+            (_ctrl.keepIslandFocusNotification ||
+                _ctrl.keepIslandShowNotification);
+        return SafeArea(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(
+              16,
+              0,
+              16,
+              16 + MediaQuery.viewInsetsOf(context).bottom,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SwitchListTile(
+                  title: Text(l10n.keepIslandFocusNotificationTitle),
+                  subtitle: Text(l10n.keepIslandFocusNotificationSubtitle),
+                  value: _ctrl.keepIslandFocusNotification,
+                  onChanged: keepActive
+                      ? InteractionHaptics.interceptToggle(
+                          _ctrl.setKeepIslandFocusNotification,
+                        )
+                      : null,
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _ctrl.keepIslandFocusContentType,
+                    decoration: InputDecoration(
+                      labelText: l10n.keepIslandFocusContentType,
+                      border: const OutlineInputBorder(),
+                    ),
+                    items: [
+                      DropdownMenuItem(
+                        value: kKeepIslandFocusContentNotification,
+                        child: Text(l10n.keepIslandFocusContentNotification),
+                      ),
+                      DropdownMenuItem(
+                        value: kKeepIslandFocusContentPerformance,
+                        child: Text(l10n.keepIslandFocusContentPerformance),
+                      ),
+                      DropdownMenuItem(
+                        value: kKeepIslandFocusContentDevice,
+                        child: Text(l10n.keepIslandFocusContentDevice),
+                      ),
+                      DropdownMenuItem(
+                        value: kKeepIslandFocusContentCharging,
+                        child: Text(l10n.keepIslandFocusContentCharging),
+                      ),
+                    ],
+                    onChanged: focusContentEnabled
+                        ? (value) {
+                            if (value != null) {
+                              _ctrl.setKeepIslandFocusContentType(value);
+                            }
+                          }
+                        : null,
+                  ),
+                ),
+                if (_ctrl.keepIslandFocusContentType ==
+                    kKeepIslandFocusContentNotification) ...[
+                  _ContentTile(
+                    title: l10n.keepIslandNotificationTitle,
+                    value: _ctrl.keepIslandNotificationTitle,
+                    enabled: focusContentEnabled,
+                    onTap: () => _editNotificationContent(title: true),
+                  ),
+                  _ContentTile(
+                    title: l10n.keepIslandNotificationContent,
+                    value: _ctrl.keepIslandNotificationContent,
+                    enabled: focusContentEnabled,
+                    onTap: () => _editNotificationContent(title: false),
+                  ),
+                ],
+                SwitchListTile(
+                  title: Text(l10n.keepIslandShowNotificationTitle),
+                  value: _ctrl.keepIslandShowNotification,
+                  onChanged: _ctrl.keepIslandFocusNotification
+                      ? InteractionHaptics.interceptToggle(
+                          _ctrl.setKeepIslandShowNotification,
+                        )
+                      : null,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -266,16 +543,24 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
                   color: cs.surfaceContainerHighest,
                   child: Column(
                     children: [
-                      SwitchListTile(
+                      ListTile(
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
-                          vertical: 4,
+                          vertical: 8,
                         ),
-                        title: Text(l10n.keepIslandTitle, style: titleStyle),
-                        subtitle: Text(l10n.keepIslandSubtitle),
-                        value: _ctrl.keepIsland,
-                        onChanged: InteractionHaptics.interceptToggle(
-                          (v) => _ctrl.setKeepIsland(v),
+                        leading: const Icon(Icons.tune),
+                        title: Text(
+                          l10n.keepIslandIslandConfigTitle,
+                          style: titleStyle,
+                        ),
+                        subtitle: Text(
+                          _ctrl.keepIsland
+                              ? l10n.keepIslandConfigEnabled
+                              : l10n.keepIslandConfigDisabled,
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: InteractionHaptics.interceptButton(
+                          _showIslandConfig,
                         ),
                         shape: const RoundedRectangleBorder(
                           borderRadius: BorderRadius.vertical(
@@ -284,277 +569,45 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
                         ),
                       ),
                       const Divider(height: 1, indent: 16, endIndent: 16),
-                      SwitchListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 4,
-                        ),
-                        title: Text(
-                          l10n.keepIslandAutoHideTitle,
-                          style: titleStyle,
-                        ),
-                        subtitle: Text(l10n.keepIslandAutoHideSubtitle),
-                        value: _ctrl.keepIslandAutoHide,
-                        onChanged: InteractionHaptics.interceptToggle(
-                          (v) => _ctrl.setKeepIslandAutoHide(v),
-                        ),
-                      ),
-                      const Divider(height: 1, indent: 16, endIndent: 16),
-                      SwitchListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 4,
-                        ),
-                        title: Text(
-                          l10n.keepIslandHideLandscapeTitle,
-                          style: titleStyle,
-                        ),
-                        subtitle: Text(l10n.keepIslandHideLandscapeSubtitle),
-                        value: _ctrl.keepIslandHideLandscape,
-                        onChanged: InteractionHaptics.interceptToggle(
-                          (v) => _ctrl.setKeepIslandHideLandscape(v),
-                        ),
-                      ),
-                      const Divider(height: 1, indent: 16, endIndent: 16),
-                      _ContentListTile(
-                        title: l10n.keepIslandLeftContentTitle,
-                        values: _ctrl.keepIslandLeftContents,
-                        onTap: () => _editContents(left: true),
-                      ),
-                      const Divider(height: 1, indent: 16, endIndent: 16),
-                      _ContentListTile(
-                        title: l10n.keepIslandRightContentTitle,
-                        values: _ctrl.keepIslandRightContents,
-                        onTap: () => _editContents(left: false),
-                      ),
-                      const Divider(height: 1, indent: 16, endIndent: 16),
                       ListTile(
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
-                          vertical: 4,
+                          vertical: 8,
                         ),
-                        title: Text(l10n.keepIslandCarouselIntervalTitle),
-                        subtitle: Text(l10n.keepIslandCarouselIntervalSubtitle),
-                        trailing: Text(
-                          '${_ctrl.keepIslandCarouselInterval} ${l10n.seconds}',
-                        ),
-                        onTap: InteractionHaptics.interceptButton(
-                          _editCarouselInterval,
-                        ),
-                      ),
-                      const Divider(height: 1, indent: 16, endIndent: 16),
-                      SwitchListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 4,
-                        ),
+                        leading: const Icon(Icons.notifications_outlined),
                         title: Text(
-                          l10n.keepIslandFocusNotificationTitle,
+                          l10n.keepIslandFocusConfigTitle,
                           style: titleStyle,
                         ),
                         subtitle: Text(
-                          l10n.keepIslandFocusNotificationSubtitle,
+                          _ctrl.keepIslandShowNotification ||
+                                  _ctrl.keepIslandFocusNotification
+                              ? l10n.keepIslandConfigEnabled
+                              : l10n.keepIslandConfigDisabled,
                         ),
-                        value: _ctrl.keepIslandFocusNotification,
-                        onChanged: InteractionHaptics.interceptToggle(
-                          (v) => _ctrl.setKeepIslandFocusNotification(v),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: InteractionHaptics.interceptButton(
+                          _showFocusConfig,
                         ),
-                      ),
-                      if (_ctrl.keepIslandFocusNotification) ...[
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-                          child: DropdownButtonFormField<String>(
-                            initialValue: _ctrl.keepIslandFocusContentType,
-                            decoration: InputDecoration(
-                              labelText: l10n.keepIslandFocusContentType,
-                              prefixIcon: const Icon(Icons.dashboard_outlined),
-                              border: const OutlineInputBorder(),
-                            ),
-                            items: [
-                              DropdownMenuItem(
-                                value: kKeepIslandFocusContentNotification,
-                                child: Text(
-                                  l10n.keepIslandFocusContentNotification,
-                                ),
-                              ),
-                              DropdownMenuItem(
-                                value: kKeepIslandFocusContentPerformance,
-                                child: Text(
-                                  l10n.keepIslandFocusContentPerformance,
-                                ),
-                              ),
-                              DropdownMenuItem(
-                                value: kKeepIslandFocusContentDevice,
-                                child: Text(l10n.keepIslandFocusContentDevice),
-                              ),
-                              DropdownMenuItem(
-                                value: kKeepIslandFocusContentCharging,
-                                child: Text(
-                                  l10n.keepIslandFocusContentCharging,
-                                ),
-                              ),
-                            ],
-                            onChanged: (value) {
-                              if (value != null) {
-                                _ctrl.setKeepIslandFocusContentType(value);
-                              }
-                            },
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(
+                            bottom: Radius.circular(16),
                           ),
                         ),
-                        if (_ctrl.keepIslandFocusContentType ==
-                            kKeepIslandFocusContentNotification) ...[
-                          const Divider(height: 1, indent: 16, endIndent: 16),
-                          _ContentTile(
-                            title: l10n.keepIslandNotificationTitle,
-                            value: _ctrl.keepIslandNotificationTitle,
-                            onTap: () => _editNotificationContent(title: true),
-                          ),
-                          const Divider(height: 1, indent: 16, endIndent: 16),
-                          _ContentTile(
-                            title: l10n.keepIslandNotificationContent,
-                            value: _ctrl.keepIslandNotificationContent,
-                            onTap: () => _editNotificationContent(title: false),
-                          ),
-                        ],
-                      ],
-                      const Divider(height: 1, indent: 16, endIndent: 16),
-                      ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 4,
-                        ),
-                        title: Text(
-                          l10n.keepIslandHighlightColorTitle,
-                          style: titleStyle,
-                        ),
-                        subtitle: Text(l10n.keepIslandHighlightColorSubtitle),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (_ctrl.keepIslandHighlightColor.isNotEmpty)
-                              Container(
-                                width: 24,
-                                height: 24,
-                                decoration: BoxDecoration(
-                                  color:
-                                      parseHexColor(
-                                        _ctrl.keepIslandHighlightColor,
-                                      ) ??
-                                      cs.primary,
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(
-                                    color: cs.outline,
-                                    width: 1,
-                                  ),
-                                ),
-                              )
-                            else
-                              Icon(
-                                Icons.palette_outlined,
-                                color: cs.onSurfaceVariant,
-                              ),
-                            const SizedBox(width: 8),
-                            if (_ctrl.keepIslandHighlightColor.isNotEmpty)
-                              SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: IconButton(
-                                  icon: const Icon(Icons.refresh, size: 18),
-                                  padding: EdgeInsets.zero,
-                                  visualDensity: VisualDensity.compact,
-                                  onPressed: InteractionHaptics.interceptButton(
-                                    () => _ctrl.setKeepIslandHighlightColor(''),
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                        onTap: InteractionHaptics.interceptButton(() async {
-                          final color = await showColorPickerDialog(
-                            context,
-                            initialHex: _ctrl.keepIslandHighlightColor.isEmpty
-                                ? null
-                                : _ctrl.keepIslandHighlightColor,
-                            title: l10n.keepIslandHighlightColorTitle,
-                            enableAlpha: true,
-                          );
-                          if (color != null) {
-                            await _ctrl.setKeepIslandHighlightColor(
-                              colorToArgbHex(color),
-                            );
-                          }
-                        }),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              l10n.keepIslandTextHighlightTitle,
-                              style: Theme.of(context).textTheme.labelMedium
-                                  ?.copyWith(color: cs.onSurfaceVariant),
-                            ),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: _HighlightSwitch(
-                                    label: l10n.keepIslandHighlightLeft,
-                                    value: _ctrl.keepIslandLeftHighlight,
-                                    onChanged:
-                                        _ctrl.keepIslandHighlightColor.isEmpty
-                                        ? null
-                                        : (value) =>
-                                              _ctrl.setKeepIslandLeftHighlight(
-                                                value,
-                                              ),
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _HighlightSwitch(
-                                    label: l10n.keepIslandHighlightRight,
-                                    value: _ctrl.keepIslandRightHighlight,
-                                    onChanged:
-                                        _ctrl.keepIslandHighlightColor.isEmpty
-                                        ? null
-                                        : (value) =>
-                                              _ctrl.setKeepIslandRightHighlight(
-                                                value,
-                                              ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Divider(height: 1, indent: 16, endIndent: 16),
-                      SwitchListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 4,
-                        ),
-                        title: Text(
-                          l10n.keepIslandShowIslandIconTitle,
-                          style: titleStyle,
-                        ),
-                        subtitle: Text(l10n.keepIslandShowIslandIconSubtitle),
-                        value: _ctrl.keepIslandShowIslandIcon,
-                        onChanged: InteractionHaptics.interceptToggle(
-                          (v) => _ctrl.setKeepIslandShowIslandIcon(v),
-                        ),
-                      ),
-                      const Divider(height: 1, indent: 16, endIndent: 16),
-                      _CustomIconTile(
-                        imagePath: _ctrl.keepIslandCustomIconPath,
-                        onTap: _pickCustomIcon,
-                        onDelete: _ctrl.keepIslandCustomIconPath.isEmpty
-                            ? null
-                            : _deleteCustomIcon,
                       ),
                     ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Card(
+                  elevation: 0,
+                  color: cs.surfaceContainerHighest,
+                  child: _CustomIconTile(
+                    imagePath: _ctrl.keepIslandCustomIconPath,
+                    onTap: _pickCustomIcon,
+                    onDelete: _ctrl.keepIslandCustomIconPath.isEmpty
+                        ? null
+                        : _deleteCustomIcon,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -801,17 +854,20 @@ class _ContentTile extends StatelessWidget {
     required this.title,
     required this.value,
     required this.onTap,
+    this.enabled = true,
   });
 
   final String title;
   final String value;
   final VoidCallback onTap;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = Theme.of(context).colorScheme;
     return ListTile(
+      enabled: enabled,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       title: Text(title),
       subtitle: Text(
@@ -820,10 +876,12 @@ class _ContentTile extends StatelessWidget {
             : value,
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
-        style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: enabled ? cs.onSurfaceVariant : theme.disabledColor,
+        ),
       ),
       trailing: const Icon(Icons.chevron_right),
-      onTap: InteractionHaptics.interceptButton(onTap),
+      onTap: enabled ? InteractionHaptics.interceptButton(onTap) : null,
     );
   }
 }
@@ -833,11 +891,13 @@ class _ContentListTile extends StatelessWidget {
     required this.title,
     required this.values,
     required this.onTap,
+    this.enabled = true,
   });
 
   final String title;
   final List<String> values;
   final VoidCallback onTap;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -845,6 +905,7 @@ class _ContentListTile extends StatelessWidget {
     final cs = theme.colorScheme;
     final preview = values.where((value) => value.isNotEmpty).join('  |  ');
     return ListTile(
+      enabled: enabled,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       title: Text(title),
       subtitle: Text(
@@ -853,13 +914,15 @@ class _ContentListTile extends StatelessWidget {
             : preview,
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
-        style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: enabled ? cs.onSurfaceVariant : theme.disabledColor,
+        ),
       ),
       trailing: Badge(
         label: Text(values.length.toString()),
         child: const Icon(Icons.chevron_right),
       ),
-      onTap: InteractionHaptics.interceptButton(onTap),
+      onTap: enabled ? InteractionHaptics.interceptButton(onTap) : null,
     );
   }
 }

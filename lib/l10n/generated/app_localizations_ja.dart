@@ -1535,6 +1535,24 @@ class AppLocalizationsJa extends AppLocalizations {
   String get keepIslandSubtitle => '空白通知を投稿してアイランドを常に表示';
 
   @override
+  String get keepIslandIslandConfigTitle => 'アイランド設定';
+
+  @override
+  String get keepIslandFocusConfigTitle => 'フォーカス通知設定';
+
+  @override
+  String get keepIslandEnableIslandTitle => 'アイランドを有効化';
+
+  @override
+  String get keepIslandShowNotificationTitle => '通知センターに表示';
+
+  @override
+  String get keepIslandConfigEnabled => '有効';
+
+  @override
+  String get keepIslandConfigDisabled => '無効';
+
+  @override
   String get keepIslandAutoHideTitle => '自動非表示';
 
   @override
@@ -1602,7 +1620,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get keepIslandFocusContentDevice => 'デバイスパネル';
 
   @override
-  String get keepIslandFocusContentCharging => '充電パネル';
+  String get keepIslandFocusContentCharging => 'バッテリーパネル';
 
   @override
   String get keepIslandNotificationTitle => '通知タイトル';

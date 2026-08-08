@@ -152,13 +152,14 @@ internal object IslandDispatcherNotifier {
                 islandBuilder
                     .setTickerIcon(appIcon)
                     .setCustomRemoteView(mainRemoteViews)
-                    .setCustomTinyRemoteView(
+                if (request.islandEnabled) {
+                    islandBuilder.setCustomTinyRemoteView(
                         createIslandTinyTextRemoteViews(request.title, request.content),
                     )
-                    .setCustomIslandExpandRemoteView(
-                        request.focusIslandExpandRemoteViews
-                            ?: createFocusTextRemoteViews(focusTitle, focusContent),
-                    )
+                    request.focusIslandExpandRemoteViews?.let {
+                        islandBuilder.setCustomIslandExpandRemoteView(it)
+                    }
+                }
                 islandBuilder.buildCustomExtras()
             } else {
                 islandBuilder.buildResourceBundle()

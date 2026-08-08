@@ -2954,6 +2954,42 @@ abstract class AppLocalizations {
   /// **'显示一条空白通知使岛始终可见'**
   String get keepIslandSubtitle;
 
+  /// No description provided for @keepIslandIslandConfigTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'岛配置'**
+  String get keepIslandIslandConfigTitle;
+
+  /// No description provided for @keepIslandFocusConfigTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'焦点通知配置'**
+  String get keepIslandFocusConfigTitle;
+
+  /// No description provided for @keepIslandEnableIslandTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'启用岛'**
+  String get keepIslandEnableIslandTitle;
+
+  /// No description provided for @keepIslandShowNotificationTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'通知中心显示'**
+  String get keepIslandShowNotificationTitle;
+
+  /// No description provided for @keepIslandConfigEnabled.
+  ///
+  /// In zh, this message translates to:
+  /// **'已启用'**
+  String get keepIslandConfigEnabled;
+
+  /// No description provided for @keepIslandConfigDisabled.
+  ///
+  /// In zh, this message translates to:
+  /// **'未启用'**
+  String get keepIslandConfigDisabled;
+
   /// No description provided for @keepIslandAutoHideTitle.
   ///
   /// In zh, this message translates to:
@@ -3083,7 +3119,7 @@ abstract class AppLocalizations {
   /// No description provided for @keepIslandFocusContentCharging.
   ///
   /// In zh, this message translates to:
-  /// **'充电面板'**
+  /// **'电池面板'**
   String get keepIslandFocusContentCharging;
 
   /// No description provided for @keepIslandNotificationTitle.

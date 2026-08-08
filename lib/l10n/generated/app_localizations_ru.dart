@@ -1611,6 +1611,25 @@ class AppLocalizationsRu extends AppLocalizations {
       'Отправлять пустое уведомление, чтобы Остров всегда был виден';
 
   @override
+  String get keepIslandIslandConfigTitle => 'Настройка острова';
+
+  @override
+  String get keepIslandFocusConfigTitle => 'Настройка фокус-уведомления';
+
+  @override
+  String get keepIslandEnableIslandTitle => 'Включить остров';
+
+  @override
+  String get keepIslandShowNotificationTitle =>
+      'Показывать в центре уведомлений';
+
+  @override
+  String get keepIslandConfigEnabled => 'Включено';
+
+  @override
+  String get keepIslandConfigDisabled => 'Выключено';
+
+  @override
   String get keepIslandAutoHideTitle => 'Автоскрытие';
 
   @override
@@ -1680,7 +1699,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get keepIslandFocusContentDevice => 'Панель устройства';
 
   @override
-  String get keepIslandFocusContentCharging => 'Панель зарядки';
+  String get keepIslandFocusContentCharging => 'Панель батареи';
 
   @override
   String get keepIslandNotificationTitle => 'Заголовок уведомления';

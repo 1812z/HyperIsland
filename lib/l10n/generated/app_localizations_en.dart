@@ -1600,6 +1600,24 @@ class AppLocalizationsEn extends AppLocalizations {
       'Post a blank notification to keep the island always visible';
 
   @override
+  String get keepIslandIslandConfigTitle => 'Island configuration';
+
+  @override
+  String get keepIslandFocusConfigTitle => 'Focus notification configuration';
+
+  @override
+  String get keepIslandEnableIslandTitle => 'Enable island';
+
+  @override
+  String get keepIslandShowNotificationTitle => 'Show in notification center';
+
+  @override
+  String get keepIslandConfigEnabled => 'Enabled';
+
+  @override
+  String get keepIslandConfigDisabled => 'Disabled';
+
+  @override
   String get keepIslandAutoHideTitle => 'Auto Hide';
 
   @override
@@ -1670,7 +1688,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get keepIslandFocusContentDevice => 'Device panel';
 
   @override
-  String get keepIslandFocusContentCharging => 'Charging panel';
+  String get keepIslandFocusContentCharging => 'Battery panel';
 
   @override
   String get keepIslandNotificationTitle => 'Notification title';

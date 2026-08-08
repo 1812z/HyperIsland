@@ -165,7 +165,7 @@ object IslandDataManager {
             levelPercent = battery.levelPercent,
             temperatureCelsius = battery.temperatureCentiCelsius?.div(10.0),
             powerWatt = battery.powerWatt(),
-            currentAmp = battery.currentMicroAmp?.let { abs(it) / 1000000.0 },
+            currentAmp = battery.currentMicroAmp?.let { abs(it.toDouble()) / 1000000.0 },
             voltageVolt = battery.voltageMilliVolt?.div(1000.0),
         )
     }
@@ -416,10 +416,14 @@ object IslandDataManager {
 
     private fun readBatteryManagerCurrent(context: Context): Int? {
         val manager = context.getSystemService(Context.BATTERY_SERVICE) as? BatteryManager ?: return null
-        val currentMicroAmp = runCatching {
+        val currentNow = runCatching {
             manager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW)
         }.getOrDefault(Int.MIN_VALUE)
-        return currentMicroAmp.takeIf { it != Int.MIN_VALUE && it != 0 }
+        if (currentNow != Int.MIN_VALUE && currentNow != 0) return currentNow
+        val currentAverage = runCatching {
+            manager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_AVERAGE)
+        }.getOrDefault(Int.MIN_VALUE)
+        return currentAverage.takeIf { it != Int.MIN_VALUE && it != 0 }
     }
 
     private fun refreshBattery(
@@ -657,6 +661,7 @@ object IslandDataManager {
 
             val current = if (needCurrent && snapshot.currentMicroAmp == null && fromUevent.currentMicroAmp == null) {
                 readLongFile(File(dir, "current_now"))
+                    ?: readLongFile(File(dir, "current_avg"))
             } else {
                 null
             }
@@ -688,6 +693,7 @@ object IslandDataManager {
         val current = if (needCurrent) {
             values["POWER_SUPPLY_CURRENT_NOW"]
                 ?: values["POWER_SUPPLY_BATT_CURRENT_NOW"]
+                ?: values["POWER_SUPPLY_CURRENT_AVG"]
                 ?: values["POWER_SUPPLY_CONSTANT_CHARGE_CURRENT"]
         } else {
             null
