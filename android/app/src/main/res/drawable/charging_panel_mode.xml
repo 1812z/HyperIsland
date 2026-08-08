@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
-    <solid android:color="#18FFFFFF" />
+    <solid android:color="@color/focus_panel_card_background" />
     <corners android:radius="12dp" />
     <stroke
         android:width="1dp"
-        android:color="#24FFFFFF" />
+        android:color="@color/focus_panel_card_stroke" />
 </shape>

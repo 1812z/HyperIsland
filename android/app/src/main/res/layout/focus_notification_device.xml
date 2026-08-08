@@ -36,7 +36,7 @@
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:text="Xiaomi 15 Pro"
-                android:textColor="#FFFFFFFF"
+                android:textColor="@color/focus_panel_text_primary"
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
@@ -48,7 +48,7 @@
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:text="Snapdragon"
-                android:textColor="#BFFFFFFF"
+                android:textColor="@color/focus_panel_text_secondary"
                 android:textSize="11sp" />
 
             <TextView
@@ -59,7 +59,7 @@
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:text="运行时间 1d 3h 24m"
-                android:textColor="#8FFFFFFF"
+                android:textColor="@color/focus_panel_text_tertiary"
                 android:textSize="10sp" />
         </LinearLayout>
     </LinearLayout>
@@ -88,7 +88,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="CPU"
-                    android:textColor="#BFFFFFFF"
+                    android:textColor="@color/focus_panel_text_secondary"
                     android:textSize="11sp"
                     android:textStyle="bold" />
 
@@ -97,7 +97,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="--%"
-                    android:textColor="#FFFFFFFF"
+                    android:textColor="@color/focus_panel_text_primary"
                     android:textSize="11sp" />
             </LinearLayout>
 
@@ -130,7 +130,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="MEM"
-                    android:textColor="#BFFFFFFF"
+                    android:textColor="@color/focus_panel_text_secondary"
                     android:textSize="11sp"
                     android:textStyle="bold" />
 
@@ -139,7 +139,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="--%"
-                    android:textColor="#FFFFFFFF"
+                    android:textColor="@color/focus_panel_text_primary"
                     android:textSize="11sp" />
             </LinearLayout>
 

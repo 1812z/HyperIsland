@@ -28,7 +28,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="CPU"
-                android:textColor="#99FFFFFF"
+                android:textColor="@color/focus_panel_text_secondary"
                 android:textSize="10sp" />
 
             <TextView
@@ -36,7 +36,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="--%"
-                android:textColor="#FF72D6FF"
+                android:textColor="@color/focus_panel_cpu"
                 android:textSize="15sp"
                 android:textStyle="bold" />
         </LinearLayout>
@@ -55,7 +55,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="GPU"
-                android:textColor="#99FFFFFF"
+                android:textColor="@color/focus_panel_text_secondary"
                 android:textSize="10sp" />
 
             <TextView
@@ -63,7 +63,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="--%"
-                android:textColor="#FFFFB86B"
+                android:textColor="@color/focus_panel_gpu"
                 android:textSize="15sp"
                 android:textStyle="bold" />
         </LinearLayout>
@@ -82,7 +82,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="RAM"
-                android:textColor="#99FFFFFF"
+                android:textColor="@color/focus_panel_text_secondary"
                 android:textSize="10sp" />
 
             <TextView
@@ -90,7 +90,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="--%"
-                android:textColor="#FF9EE493"
+                android:textColor="@color/focus_panel_memory"
                 android:textSize="15sp"
                 android:textStyle="bold" />
         </LinearLayout>
@@ -117,7 +117,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="CPU --°C · BATTERY --°C · --W"
-            android:textColor="#BFFFFFFF"
+            android:textColor="@color/focus_panel_text_secondary"
             android:textSize="11sp" />
 
         <TextView
@@ -127,7 +127,7 @@
             android:drawableStart="@drawable/ic_performance_network"
             android:drawablePadding="5dp"
             android:text="↓ --  ↑ --"
-            android:textColor="#BFFFFFFF"
+            android:textColor="@color/focus_panel_text_secondary"
             android:textSize="11sp" />
     </LinearLayout>
 

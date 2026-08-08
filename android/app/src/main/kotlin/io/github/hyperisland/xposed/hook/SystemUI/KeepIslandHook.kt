@@ -832,6 +832,7 @@ object KeepIslandHook : BaseHook() {
     }
 
     private fun drawChargingChart(context: Context): Bitmap {
+        val darkMode = isDarkMode(context)
         val density = context.resources.displayMetrics.density.coerceAtMost(2f)
         val width = 660
         val height = 134
@@ -842,22 +843,28 @@ object KeepIslandHook : BaseHook() {
         val top = 9f
         val bottom = height - 25f
         val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.argb(145, 255, 255, 255)
+            color = if (darkMode) Color.argb(145, 255, 255, 255) else Color.argb(160, 0, 0, 0)
             textSize = 18f * density.coerceAtMost(1.4f)
         }
         val gridPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.argb(25, 255, 255, 255)
+            color = if (darkMode) Color.argb(25, 255, 255, 255) else Color.argb(30, 0, 0, 0)
             strokeWidth = density
         }
         val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = chargingChartMode.color
+            color = chargingChartMode.color(darkMode)
             strokeWidth = 2f * density
             style = Paint.Style.STROKE
             strokeCap = Paint.Cap.ROUND
             strokeJoin = Paint.Join.ROUND
         }
         val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.argb(38, Color.red(chargingChartMode.color), Color.green(chargingChartMode.color), Color.blue(chargingChartMode.color))
+            val lineColor = chargingChartMode.color(darkMode)
+            color = Color.argb(
+                if (darkMode) 38 else 48,
+                Color.red(lineColor),
+                Color.green(lineColor),
+                Color.blue(lineColor),
+            )
             style = Paint.Style.FILL
         }
         val samples = chargingTrend.toList()
@@ -989,6 +996,7 @@ object KeepIslandHook : BaseHook() {
     }
 
     private fun drawPerformanceChart(context: Context): Bitmap {
+        val darkMode = isDarkMode(context)
         val density = context.resources.displayMetrics.density.coerceAtMost(2f)
         val width = 660
         val height = 128
@@ -999,32 +1007,32 @@ object KeepIslandHook : BaseHook() {
         val chartWidth = width - horizontalPadding * 2f
         val chartHeight = height - verticalPadding * 2f
         val gridPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.argb(24, 255, 255, 255)
+            color = if (darkMode) Color.argb(24, 255, 255, 255) else Color.argb(28, 0, 0, 0)
             strokeWidth = density
         }
         val cpuLinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.rgb(70, 190, 240)
+            color = if (darkMode) Color.rgb(70, 190, 240) else Color.rgb(0, 118, 158)
             strokeWidth = 2f * density
             style = Paint.Style.STROKE
             strokeCap = Paint.Cap.ROUND
             strokeJoin = Paint.Join.ROUND
         }
         val ramLinePaint = Paint(cpuLinePaint).apply {
-            color = Color.rgb(117, 212, 130)
+            color = if (darkMode) Color.rgb(117, 212, 130) else Color.rgb(40, 122, 48)
         }
         val gpuLinePaint = Paint(cpuLinePaint).apply {
-            color = Color.rgb(255, 184, 107)
+            color = if (darkMode) Color.rgb(255, 184, 107) else Color.rgb(168, 82, 0)
         }
         val cpuFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.argb(42, 70, 190, 240)
+            color = withAlpha(cpuLinePaint.color, if (darkMode) 42 else 50)
             style = Paint.Style.FILL
         }
         val ramFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.argb(30, 117, 212, 130)
+            color = withAlpha(ramLinePaint.color, if (darkMode) 30 else 42)
             style = Paint.Style.FILL
         }
         val gpuFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.argb(24, 255, 184, 107)
+            color = withAlpha(gpuLinePaint.color, if (darkMode) 24 else 38)
             style = Paint.Style.FILL
         }
         for (row in 0..4) {
@@ -1067,6 +1075,17 @@ object KeepIslandHook : BaseHook() {
         )
         return bitmap
     }
+
+    private fun isDarkMode(context: Context): Boolean =
+        context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK ==
+                Configuration.UI_MODE_NIGHT_YES
+
+    private fun withAlpha(color: Int, alpha: Int): Int = Color.argb(
+        alpha,
+        Color.red(color),
+        Color.green(color),
+        Color.blue(color),
+    )
 
     private fun drawTrend(
         canvas: Canvas,
@@ -1423,12 +1442,15 @@ object KeepIslandHook : BaseHook() {
 
     private enum class ChargingChartMode(
         val label: String,
-        val color: Int,
+        val darkColor: Int,
+        val lightColor: Int,
         val defaultMax: Double,
     ) {
-        POWER("功率", Color.rgb(93, 220, 145), 20.0),
-        LEVEL("电量", Color.rgb(100, 190, 255), 100.0),
-        TEMPERATURE("温度", Color.rgb(255, 176, 90), 45.0);
+        POWER("功率", Color.rgb(93, 220, 145), Color.rgb(20, 125, 68), 20.0),
+        LEVEL("电量", Color.rgb(100, 190, 255), Color.rgb(0, 103, 170), 100.0),
+        TEMPERATURE("温度", Color.rgb(255, 176, 90), Color.rgb(174, 78, 0), 45.0);
+
+        fun color(darkMode: Boolean): Int = if (darkMode) darkColor else lightColor
 
         fun next(): ChargingChartMode = entries[(ordinal + 1) % entries.size]
 

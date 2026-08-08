@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="focus_panel_text_primary">#E6000000</color>
+    <color name="focus_panel_text_secondary">#A6000000</color>
+    <color name="focus_panel_text_tertiary">#73000000</color>
+    <color name="focus_panel_card_background">#0F000000</color>
+    <color name="focus_panel_card_stroke">#1F000000</color>
+    <color name="focus_panel_progress_track">#1F000000</color>
+    <color name="focus_panel_progress_fill">#CC000000</color>
+    <color name="focus_panel_cpu">#00769E</color>
+    <color name="focus_panel_gpu">#A85200</color>
+    <color name="focus_panel_memory">#287A30</color>
+</resources>

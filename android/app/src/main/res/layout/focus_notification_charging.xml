@@ -20,7 +20,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="24.6W"
-            android:textColor="#FFFFFFFF"
+            android:textColor="@color/focus_panel_text_primary"
             android:textSize="22sp"
             android:textStyle="bold" />
 
@@ -34,7 +34,7 @@
             android:paddingStart="10dp"
             android:paddingEnd="10dp"
             android:text="功率"
-            android:textColor="#CCFFFFFF"
+            android:textColor="@color/focus_panel_text_secondary"
             android:textSize="11sp" />
     </LinearLayout>
 
@@ -44,7 +44,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="2dp"
         android:text="3.85A · 6.39V · 36°C"
-        android:textColor="#AFFFFFFF"
+        android:textColor="@color/focus_panel_text_secondary"
         android:textSize="11sp" />
 
     <FrameLayout
