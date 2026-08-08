@@ -843,5 +843,7 @@
   "tapToSelectImage": "Resim veya GIF seçmek için dokunun",
   "autoExpandNotification": "Bildirimi otomatik genişlet",
   "off": "Kapalı",
-  "alwaysOnIsland": "Kalıcı Ada"
+  "alwaysOnIsland": "Kalıcı Ada",
+  "referencesTitle": "Referanslar",
+  "referencesDescription": "HyperIsland geliştirilirken aşağıdaki projelerin bir kısmından veya tamamından yararlanılmıştır. Destekleri için bu projelere teşekkür ederiz."
 }

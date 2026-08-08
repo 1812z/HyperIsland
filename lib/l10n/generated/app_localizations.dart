@@ -4078,6 +4078,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'常驻岛'**
   String get alwaysOnIsland;
+
+  /// No description provided for @referencesTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'引用'**
+  String get referencesTitle;
+
+  /// No description provided for @referencesDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'HyperIsland开发过程中参考或引用了以下项目的部分或全部内容，感谢这些项目提供的支持。'**
+  String get referencesDescription;
 }
 
 class _AppLocalizationsDelegate

@@ -2227,4 +2227,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get alwaysOnIsland => 'Always-on Island';
+
+  @override
+  String get referencesTitle => 'References';
+
+  @override
+  String get referencesDescription =>
+      'During the development of HyperIsland, parts or all of the following projects were referenced or used. Thank you to these projects for their support.';
 }

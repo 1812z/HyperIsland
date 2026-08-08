@@ -840,5 +840,7 @@
       }
     }
   },
-  "alwaysOnIsland": "Always-on Island"
+  "alwaysOnIsland": "Always-on Island",
+  "referencesTitle": "References",
+  "referencesDescription": "During the development of HyperIsland, parts or all of the following projects were referenced or used. Thank you to these projects for their support."
 }

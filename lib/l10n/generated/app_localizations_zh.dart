@@ -2100,4 +2100,11 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get alwaysOnIsland => '常驻岛';
+
+  @override
+  String get referencesTitle => '引用';
+
+  @override
+  String get referencesDescription =>
+      'HyperIsland开发过程中参考或引用了以下项目的部分或全部内容，感谢这些项目提供的支持。';
 }

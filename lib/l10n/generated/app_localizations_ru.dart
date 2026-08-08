@@ -2240,4 +2240,11 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get alwaysOnIsland => 'Постоянный остров';
+
+  @override
+  String get referencesTitle => 'Источники';
+
+  @override
+  String get referencesDescription =>
+      'При разработке HyperIsland частично или полностью использовались материалы следующих проектов. Благодарим эти проекты за поддержку.';
 }

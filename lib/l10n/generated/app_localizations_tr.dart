@@ -2217,4 +2217,11 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get alwaysOnIsland => 'Kalıcı Ada';
+
+  @override
+  String get referencesTitle => 'Referanslar';
+
+  @override
+  String get referencesDescription =>
+      'HyperIsland geliştirilirken aşağıdaki projelerin bir kısmından veya tamamından yararlanılmıştır. Destekleri için bu projelere teşekkür ederiz.';
 }

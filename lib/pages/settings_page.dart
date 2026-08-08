@@ -18,6 +18,7 @@ import 'island_sub/hide_behavior_page.dart';
 import 'island_sub/theme_page.dart';
 import 'ai_config_page.dart';
 import 'blacklist_page.dart';
+import 'references_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -264,9 +265,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       onTap: InteractionHaptics.interceptButton(
                         () => Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (_) => const MiscPage(),
-                          ),
+                          MaterialPageRoute(builder: (_) => const MiscPage()),
                         ),
                       ),
                     ),
@@ -356,7 +355,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             ),
                           ),
                           onTap: InteractionHaptics.interceptButton(
-                                () => _showLanguageDialog(l10n),
+                            () => _showLanguageDialog(l10n),
                           ),
                         ),
                       ],
@@ -405,18 +404,13 @@ class _SettingsPageState extends State<SettingsPage> {
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
                           subtitle: const Text('1812z/HyperIsland'),
-                          trailing:
-                              const Icon(Icons.open_in_new, size: 18),
-                          onTap: InteractionHaptics.interceptButton(
-                            () async {
-                              await launchUrl(
-                                Uri.parse(
-                                  'https://github.com/1812z/HyperIsland',
-                                ),
-                                mode: LaunchMode.externalApplication,
-                              );
-                            },
-                          ),
+                          trailing: const Icon(Icons.open_in_new, size: 18),
+                          onTap: InteractionHaptics.interceptButton(() async {
+                            await launchUrl(
+                              Uri.parse('https://github.com/1812z/HyperIsland'),
+                              mode: LaunchMode.externalApplication,
+                            );
+                          }),
                         ),
                         const Divider(height: 1, indent: 16, endIndent: 16),
                         ListTile(
@@ -426,18 +420,35 @@ class _SettingsPageState extends State<SettingsPage> {
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
                           subtitle: const Text('HyperIsland_Module'),
-                          trailing:
-                          const Icon(Icons.open_in_new, size: 18),
-                          onTap: InteractionHaptics.interceptButton(
-                                () async {
-                              await launchUrl(
-                                Uri.parse(
-                                  'https://t.me/HyperIsland_Module',
-                                ),
-                                mode: LaunchMode.externalApplication,
-                              );
-                            },
+                          trailing: const Icon(Icons.open_in_new, size: 18),
+                          onTap: InteractionHaptics.interceptButton(() async {
+                            await launchUrl(
+                              Uri.parse('https://t.me/HyperIsland_Module'),
+                              mode: LaunchMode.externalApplication,
+                            );
+                          }),
+                        ),
+                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        ListTile(
+                          leading: const Icon(Icons.group_outlined),
+                          title: Text(
+                            l10n.qqGroup,
+                            style: Theme.of(context).textTheme.titleMedium,
                           ),
+                          subtitle: const Text('1045114341'),
+                          trailing: const Icon(Icons.copy, size: 18),
+                          onTap: InteractionHaptics.interceptButton(() async {
+                            Clipboard.setData(
+                              const ClipboardData(text: '1045114341'),
+                            );
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(l10n.groupNumberCopied),
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          }),
                         ),
                         const Divider(height: 1, indent: 16, endIndent: 16),
                         ListTile(
@@ -446,26 +457,19 @@ class _SettingsPageState extends State<SettingsPage> {
                               bottom: Radius.circular(16),
                             ),
                           ),
-                          leading: const Icon(Icons.group_outlined),
+                          leading: const Icon(Icons.format_quote_outlined),
                           title: Text(
-                            l10n.qqGroup,
+                            l10n.referencesTitle,
                             style: Theme.of(context).textTheme.titleMedium,
                           ),
-                          subtitle: const Text('1045114341'),
-                          trailing: const Icon(Icons.copy, size: 18),
+                          trailing: const Icon(Icons.chevron_right),
                           onTap: InteractionHaptics.interceptButton(
-                            () async {
-                              Clipboard.setData(
-                                const ClipboardData(text: '1045114341'),
-                              );
-                              if (!mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(l10n.groupNumberCopied),
-                                  duration: const Duration(seconds: 2),
-                                ),
-                              );
-                            },
+                            () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const ReferencesPage(),
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -495,10 +499,10 @@ class _SectionLabel extends StatelessWidget {
       child: Text(
         text,
         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
-            ),
+          color: Theme.of(context).colorScheme.primary,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 0.5,
+        ),
       ),
     );
   }

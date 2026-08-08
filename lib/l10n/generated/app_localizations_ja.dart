@@ -2140,4 +2140,11 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get alwaysOnIsland => '常駐アイランド';
+
+  @override
+  String get referencesTitle => '参照プロジェクト';
+
+  @override
+  String get referencesDescription =>
+      'HyperIsland の開発では、以下のプロジェクトの一部または全部を参照・利用しています。これらのプロジェクトのご支援に感謝します。';
 }
