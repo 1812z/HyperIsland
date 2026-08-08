@@ -37,7 +37,7 @@ internal class HdrHighlightSurface(
             release()
             return
         }
-        if (!hostView.isAttachedToWindow || state.highlight <= 0f) {
+        if (!hostView.isAttachedToWindow || (state.highlight <= 0f && state.shadow <= 0f)) {
             hide()
             return
         }
@@ -168,6 +168,7 @@ private class HdrHighlightCompositor(
             lightY = state.lightY,
             edgeWidth = state.edgeWidth,
             intensity = state.highlight,
+            oppositeIntensity = state.shadow,
         )
         ensureBufferSize(rootView)
         if (!requestLogged) {
@@ -286,6 +287,7 @@ private class HdrHighlightCompositor(
                 runtimeShader.setFloatUniform("uLightDir", state.lightX, state.lightY)
                 runtimeShader.setFloatUniform("uEdgeWidth", state.edgeWidth)
                 runtimeShader.setFloatUniform("uIntensity", state.intensity)
+                runtimeShader.setFloatUniform("uOppositeIntensity", state.oppositeIntensity)
                 runtimeShader.setFloatUniform("uHdrHeadroom", HDR_HEADROOM)
                 canvas.drawRect(
                     state.left,
@@ -444,6 +446,7 @@ private class HdrHighlightCompositor(
         val lightY: Float,
         val edgeWidth: Float,
         val intensity: Float,
+        val oppositeIntensity: Float,
     )
 
     companion object {
@@ -470,6 +473,7 @@ private class HdrHighlightCompositor(
             uniform float2 uLightDir;
             uniform float uEdgeWidth;
             uniform float uIntensity;
+            uniform float uOppositeIntensity;
             uniform float uHdrHeadroom;
 
             $LIQUID_GLASS_EDGE_GEOMETRY
@@ -480,14 +484,21 @@ private class HdrHighlightCompositor(
                 float3 geometry = edgeGeometry(
                     p, halfSize, uCornerRadius, uEdgeWidth, uLightDir
                 );
-                if (geometry.x > 0.0 || uIntensity <= 0.0) return half4(0.0);
+                if (geometry.x > 0.0 ||
+                    (uIntensity <= 0.0 && uOppositeIntensity <= 0.0)) {
+                    return half4(0.0);
+                }
 
-                float facing = max(geometry.y, 0.0);
                 float edge = geometry.z;
-                float coverage = pow(facing * edge, 2.0);
-                float strength = clamp(uIntensity, 0.0, 1.0);
-                float peakLuminance = mix(1.0, uHdrHeadroom, strength);
-                float highlightCoverage = coverage * strength;
+                float primaryFacing = max(geometry.y, 0.0);
+                float oppositeFacing = max(-geometry.y, 0.0);
+                float primaryStrength = clamp(uIntensity, 0.0, 1.0);
+                float oppositeStrength = clamp(uOppositeIntensity, 0.0, 1.0);
+                float primaryCoverage = pow(primaryFacing * edge, 2.0) * primaryStrength;
+                float oppositeCoverage = pow(oppositeFacing * edge, 2.0) * oppositeStrength;
+                float highlightCoverage = primaryCoverage + oppositeCoverage;
+                float peakStrength = max(primaryStrength, oppositeStrength);
+                float peakLuminance = mix(1.0, uHdrHeadroom, peakStrength);
                 return half4(
                     half3(peakLuminance * highlightCoverage),
                     half(highlightCoverage)

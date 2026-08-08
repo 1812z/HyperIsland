@@ -1469,6 +1469,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get islandGlassGyroscopeSubtitle => '根据设备姿态实时移动边缘光照';
 
   @override
+  String get islandGlassCustomize => '玻璃效果自定义';
+
+  @override
+  String get islandGlassCustomizeSubtitle => '自定义玻璃效果参数';
+
+  @override
+  String get islandGlassEnableFirst => '请先开启玻璃效果';
+
+  @override
   String get islandGlassHdrHighlight => 'HDR高光';
 
   @override
@@ -1482,6 +1491,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get islandGlassCaptureSettings => '采样设置';
+
+  @override
+  String get islandGlassCaptureSettingsSubtitle => '自定义液态玻璃采样设置';
+
+  @override
+  String get islandGlassEnableLiquidFirst => '请先开启液态玻璃效果';
 
   @override
   String get islandGlassCaptureFps => '采样帧率';

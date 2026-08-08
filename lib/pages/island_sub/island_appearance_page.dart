@@ -27,12 +27,6 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
   late int _bigIslandMinWidthDraft;
   late int _roundIconRadiusDraft;
   late int _outerGlowRangeDraft;
-  late int _glassEdgeWidthDraft;
-  late int _glassRefractionDraft;
-  late int _glassHighlightDraft;
-  late int _glassShadowDraft;
-  late int _glassLightDirectionDraft;
-  late int _glassDispersionDraft;
   late int _buildHash;
 
   int _computeHash() => Object.hashAll([
@@ -87,7 +81,6 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _bigIslandMinWidthDraft = _ctrl.bigIslandMinWidth;
     _roundIconRadiusDraft = _ctrl.roundIconRadius;
     _outerGlowRangeDraft = _ctrl.outerGlowRange;
-    _syncGlassDrafts();
     _buildHash = _computeHash();
     _ctrl.addListener(_onChanged);
   }
@@ -124,17 +117,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
       _bigIslandMinWidthDraft = nextMinWidth;
       _roundIconRadiusDraft = nextRoundIconRadius;
       _outerGlowRangeDraft = nextGlowRange;
-      _syncGlassDrafts();
     });
-  }
-
-  void _syncGlassDrafts() {
-    _glassEdgeWidthDraft = _ctrl.islandGlassEdgeWidth;
-    _glassRefractionDraft = _ctrl.islandGlassRefraction;
-    _glassHighlightDraft = _ctrl.islandGlassHighlight;
-    _glassShadowDraft = _ctrl.islandGlassShadow;
-    _glassLightDirectionDraft = _ctrl.islandGlassLightDirection;
-    _glassDispersionDraft = _ctrl.islandGlassDispersion;
   }
 
   bool get _hasAnyGlass =>
@@ -437,6 +420,134 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     try {
       await channel.invokeMethod('showTest');
     } catch (_) {}
+  }
+
+  Future<void> _showGlassEffectSettings() async {
+    final l10n = AppLocalizations.of(context)!;
+    var edgeWidth = _ctrl.islandGlassEdgeWidth;
+    var refraction = _ctrl.islandGlassRefraction;
+    var highlight = _ctrl.islandGlassHighlight;
+    var shadow = _ctrl.islandGlassShadow;
+    var lightDirection = _ctrl.islandGlassLightDirection;
+    var dispersion = _ctrl.islandGlassDispersion;
+    final result =
+        await showDialog<
+          ({
+            int edgeWidth,
+            int refraction,
+            int highlight,
+            int shadow,
+            int lightDirection,
+            int dispersion,
+          })
+        >(
+          context: context,
+          builder: (dialogContext) => StatefulBuilder(
+            builder: (context, setDialogState) => AlertDialog(
+              title: Text(l10n.islandGlassCustomize),
+              content: SizedBox(
+                width: 360,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _GlassSliderTile(
+                        title: l10n.islandGlassEdgeWidth,
+                        value: edgeWidth,
+                        min: 4,
+                        max: 40,
+                        unit: '%',
+                        enabled: true,
+                        onChanged: (value) =>
+                            setDialogState(() => edgeWidth = value),
+                        onPersist: (_) {},
+                      ),
+                      _GlassSliderTile(
+                        title: l10n.islandGlassRefraction,
+                        value: refraction,
+                        min: 0,
+                        max: 40,
+                        unit: '%',
+                        enabled: true,
+                        onChanged: (value) =>
+                            setDialogState(() => refraction = value),
+                        onPersist: (_) {},
+                      ),
+                      _GlassSliderTile(
+                        title: l10n.islandGlassHighlight,
+                        value: highlight,
+                        min: 0,
+                        max: 100,
+                        unit: '%',
+                        enabled: true,
+                        onChanged: (value) =>
+                            setDialogState(() => highlight = value),
+                        onPersist: (_) {},
+                      ),
+                      _GlassSliderTile(
+                        title: l10n.islandGlassShadow,
+                        value: shadow,
+                        min: 0,
+                        max: 100,
+                        unit: '%',
+                        enabled: true,
+                        onChanged: (value) =>
+                            setDialogState(() => shadow = value),
+                        onPersist: (_) {},
+                      ),
+                      _GlassSliderTile(
+                        title: l10n.islandGlassLightDirection,
+                        value: lightDirection,
+                        min: 0,
+                        max: 359,
+                        unit: '°',
+                        enabled: true,
+                        onChanged: (value) =>
+                            setDialogState(() => lightDirection = value),
+                        onPersist: (_) {},
+                      ),
+                      _GlassSliderTile(
+                        title: l10n.islandGlassDispersion,
+                        value: dispersion,
+                        min: 0,
+                        max: 100,
+                        unit: '%',
+                        enabled: true,
+                        onChanged: (value) =>
+                            setDialogState(() => dispersion = value),
+                        onPersist: (_) {},
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext),
+                  child: Text(l10n.cancel),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(dialogContext, (
+                    edgeWidth: edgeWidth,
+                    refraction: refraction,
+                    highlight: highlight,
+                    shadow: shadow,
+                    lightDirection: lightDirection,
+                    dispersion: dispersion,
+                  )),
+                  child: Text(l10n.save),
+                ),
+              ],
+            ),
+          ),
+        );
+    if (result == null) return;
+    await _ctrl.setIslandGlassEdgeWidth(result.edgeWidth);
+    await _ctrl.setIslandGlassRefraction(result.refraction);
+    await _ctrl.setIslandGlassHighlight(result.highlight);
+    await _ctrl.setIslandGlassShadow(result.shadow);
+    await _ctrl.setIslandGlassLightDirection(result.lightDirection);
+    await _ctrl.setIslandGlassDispersion(result.dispersion);
   }
 
   Future<void> _showGlassCaptureSettings() async {
@@ -834,71 +945,24 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                   color: cs.surfaceContainerHighest,
                   child: Column(
                     children: [
-                      _GlassSliderTile(
-                        title: l10n.islandGlassEdgeWidth,
-                        value: _glassEdgeWidthDraft,
-                        min: 4,
-                        max: 40,
-                        unit: '%',
+                      ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        leading: const Icon(Icons.tune),
+                        title: Text(
+                          l10n.islandGlassCustomize,
+                          style: titleStyle,
+                        ),
+                        subtitle: Text(
+                          _hasAnyGlass
+                              ? l10n.islandGlassCustomizeSubtitle
+                              : l10n.islandGlassEnableFirst,
+                        ),
+                        trailing: const Icon(Icons.chevron_right),
                         enabled: _hasAnyGlass,
-                        onChanged: (value) =>
-                            setState(() => _glassEdgeWidthDraft = value),
-                        onPersist: _ctrl.setIslandGlassEdgeWidth,
-                      ),
-                      _GlassSliderTile(
-                        title: l10n.islandGlassRefraction,
-                        value: _glassRefractionDraft,
-                        min: 0,
-                        max: 40,
-                        unit: '%',
-                        enabled: _hasAnyGlass,
-                        onChanged: (value) =>
-                            setState(() => _glassRefractionDraft = value),
-                        onPersist: _ctrl.setIslandGlassRefraction,
-                      ),
-                      _GlassSliderTile(
-                        title: l10n.islandGlassHighlight,
-                        value: _glassHighlightDraft,
-                        min: 0,
-                        max: 100,
-                        unit: '%',
-                        enabled: _hasAnyGlass,
-                        onChanged: (value) =>
-                            setState(() => _glassHighlightDraft = value),
-                        onPersist: _ctrl.setIslandGlassHighlight,
-                      ),
-                      _GlassSliderTile(
-                        title: l10n.islandGlassShadow,
-                        value: _glassShadowDraft,
-                        min: 0,
-                        max: 100,
-                        unit: '%',
-                        enabled: _hasAnyGlass,
-                        onChanged: (value) =>
-                            setState(() => _glassShadowDraft = value),
-                        onPersist: _ctrl.setIslandGlassShadow,
-                      ),
-                      _GlassSliderTile(
-                        title: l10n.islandGlassLightDirection,
-                        value: _glassLightDirectionDraft,
-                        min: 0,
-                        max: 359,
-                        unit: '°',
-                        enabled: _hasAnyGlass,
-                        onChanged: (value) =>
-                            setState(() => _glassLightDirectionDraft = value),
-                        onPersist: _ctrl.setIslandGlassLightDirection,
-                      ),
-                      _GlassSliderTile(
-                        title: l10n.islandGlassDispersion,
-                        value: _glassDispersionDraft,
-                        min: 0,
-                        max: 100,
-                        unit: '%',
-                        enabled: _hasAnyGlass,
-                        onChanged: (value) =>
-                            setState(() => _glassDispersionDraft = value),
-                        onPersist: _ctrl.setIslandGlassDispersion,
+                        onTap: _hasAnyGlass ? _showGlassEffectSettings : null,
                       ),
                       const Divider(height: 1, indent: 16, endIndent: 16),
                       SwitchListTile(
@@ -948,8 +1012,9 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                           style: titleStyle,
                         ),
                         subtitle: Text(
-                          '${_ctrl.islandGlassCaptureFps} fps · '
-                          '${_ctrl.islandGlassCaptureQuality}%',
+                          _hasAnyRefraction
+                              ? l10n.islandGlassCaptureSettingsSubtitle
+                              : l10n.islandGlassEnableLiquidFirst,
                         ),
                         trailing: const Icon(Icons.chevron_right),
                         enabled: _hasAnyRefraction,

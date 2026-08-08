@@ -54,7 +54,8 @@ internal data class LiquidGlassConfig(
 ) {
     companion object {
         fun disabled() = LiquidGlassConfig(
-            false, 0.16f, 0.16f, 0.42f, 0.14f, 243, 0.18f, false, false, false, 20, 0.3f,
+            false, 0.16f, 0.16f, 0.42f, 0.14f, 243, 0.18f,
+            false, false, false, 20, 0.3f,
         )
     }
 }

@@ -1489,6 +1489,16 @@ class AppLocalizationsJa extends AppLocalizations {
       'Move rim lighting with the device pose';
 
   @override
+  String get islandGlassCustomize => 'Customize glass effect';
+
+  @override
+  String get islandGlassCustomizeSubtitle =>
+      'Customize glass effect parameters';
+
+  @override
+  String get islandGlassEnableFirst => 'Enable the glass effect first';
+
+  @override
   String get islandGlassHdrHighlight => 'HDR高光';
 
   @override
@@ -1503,6 +1513,14 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get islandGlassCaptureSettings => 'Capture settings';
+
+  @override
+  String get islandGlassCaptureSettingsSubtitle =>
+      'Customize liquid glass capture settings';
+
+  @override
+  String get islandGlassEnableLiquidFirst =>
+      'Enable the liquid glass effect first';
 
   @override
   String get islandGlassCaptureFps => 'Capture frame rate';

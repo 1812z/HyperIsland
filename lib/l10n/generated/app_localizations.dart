@@ -2870,6 +2870,24 @@ abstract class AppLocalizations {
   /// **'根据设备姿态实时移动边缘光照'**
   String get islandGlassGyroscopeSubtitle;
 
+  /// No description provided for @islandGlassCustomize.
+  ///
+  /// In zh, this message translates to:
+  /// **'玻璃效果自定义'**
+  String get islandGlassCustomize;
+
+  /// No description provided for @islandGlassCustomizeSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'自定义玻璃效果参数'**
+  String get islandGlassCustomizeSubtitle;
+
+  /// No description provided for @islandGlassEnableFirst.
+  ///
+  /// In zh, this message translates to:
+  /// **'请先开启玻璃效果'**
+  String get islandGlassEnableFirst;
+
   /// No description provided for @islandGlassHdrHighlight.
   ///
   /// In zh, this message translates to:
@@ -2899,6 +2917,18 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'采样设置'**
   String get islandGlassCaptureSettings;
+
+  /// No description provided for @islandGlassCaptureSettingsSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'自定义液态玻璃采样设置'**
+  String get islandGlassCaptureSettingsSubtitle;
+
+  /// No description provided for @islandGlassEnableLiquidFirst.
+  ///
+  /// In zh, this message translates to:
+  /// **'请先开启液态玻璃效果'**
+  String get islandGlassEnableLiquidFirst;
 
   /// No description provided for @islandGlassCaptureFps.
   ///

@@ -118,14 +118,14 @@ internal class LiquidGlassEdgeHighlight(
                 float facing = geometry.y;
                 float edge = geometry.z;
                 float bright = max(facing, 0.0) * edge * uEdgeAlpha;
-                float shadow = max(-facing, 0.0) * edge * uEdgeShadow;
+                float opposite = max(-facing, 0.0) * edge * uEdgeShadow;
                 float lensBand = pow(smoothstep(-uEdgeWidth * 2.2, -uEdgeWidth * 0.25, distance), 2.0)
                     * (1.0 - edge) * uRefraction;
                 float dispersion = facing * edge * uDispersion * 0.22;
-                float alpha = clamp(bright + shadow + lensBand, 0.0, 1.0);
+                float alpha = clamp(bright + opposite + lensBand, 0.0, 1.0);
                 float3 primary = float3(1.0 + max(dispersion, 0.0), 0.99,
                     0.96 + max(-dispersion, 0.0)) * (bright + lensBand * 0.45);
-                float3 secondary = float3(0.92, 0.96, 1.0) * shadow;
+                float3 secondary = float3(0.92, 0.96, 1.0) * opposite;
                 return half4(half3(primary + secondary), half(alpha));
             }
         """.trimIndent()
