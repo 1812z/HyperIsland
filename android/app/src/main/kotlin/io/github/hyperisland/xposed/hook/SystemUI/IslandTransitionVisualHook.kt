@@ -32,6 +32,9 @@ object IslandTransitionVisualHook : BaseHook() {
     private val targets = Collections.synchronizedMap(
         WeakHashMap<View, TransitionTarget>()
     )
+    private val fakeLayerTargets = Collections.synchronizedMap(
+        WeakHashMap<Any, FakeLayerTarget>()
+    )
     override fun getTag() = TAG
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
@@ -58,6 +61,8 @@ object IslandTransitionVisualHook : BaseHook() {
             small = findMethod(fakeClass, "getFakeSmallIsland"),
             big = findMethod(fakeClass, "getFakeBigIsland"),
             expand = findMethod(fakeClass, "getFakeExpandedView"),
+            container = findMethod(fakeClass, "getFakeContainer"),
+            mask = findMethod(fakeClass, "getFakeMask"),
         )
         hookRefreshAfter(module, fakeClass.getDeclaredMethod("onFinishInflate")) { owner ->
             fakeViews.add(owner)
@@ -105,11 +110,14 @@ object IslandTransitionVisualHook : BaseHook() {
                 small = findMethod(clazz, "getFakeSmallIsland"),
                 big = findMethod(clazz, "getFakeBigIsland"),
                 expand = findMethod(clazz, "getFakeExpandedView"),
+                container = findMethod(clazz, "getFakeContainer"),
+                mask = findMethod(clazz, "getFakeMask"),
             ),
         )
     }
 
     private fun refreshFakeView(fakeView: Any, access: FakeViewAccess) {
+        updateFakeLayerMask(fakeView, access)
         access.forEach(fakeView) { typeName, view ->
             val target = synchronized(targets) {
                 targets.getOrPut(view) { TransitionTarget(view.background) }
@@ -131,6 +139,34 @@ object IslandTransitionVisualHook : BaseHook() {
             } else {
                 restoreStockBackground(view, target)
             }
+        }
+    }
+
+    private fun updateFakeLayerMask(fakeView: Any, access: FakeViewAccess) {
+        val root = fakeView as? View ?: return
+        val container = access.container(fakeView)
+        val mask = access.mask(fakeView)
+        val target = synchronized(fakeLayerTargets) {
+            fakeLayerTargets.getOrPut(fakeView) {
+                FakeLayerTarget(
+                    root.background,
+                    container?.background,
+                    mask?.background,
+                )
+            }
+        }
+        val blurEnabled = sequenceOf("SMALL", "BIG", "EXPAND")
+            .any(IslandBlurHook::isTransitionBlurEnabled)
+        if (blurEnabled) {
+            root.background = null
+            if (container !== root) container?.background = null
+            mask?.background = null
+        } else {
+            if (root.background == null) root.background = target.rootBackground
+            if (container !== root && container?.background == null) {
+                container?.background = target.containerBackground
+            }
+            if (mask?.background == null) mask?.background = target.maskBackground
         }
     }
 
@@ -156,7 +192,13 @@ object IslandTransitionVisualHook : BaseHook() {
         private val small: Method?,
         private val big: Method?,
         private val expand: Method?,
+        private val container: Method?,
+        private val mask: Method?,
     ) {
+        fun container(owner: Any): View? = invokeView(owner, container)
+
+        fun mask(owner: Any): View? = invokeView(owner, mask)
+
         fun forEach(owner: Any, action: (String, View) -> Unit) {
             apply(owner, "SMALL", small, action)
             apply(owner, "BIG", big, action)
@@ -169,10 +211,20 @@ object IslandTransitionVisualHook : BaseHook() {
             getter: Method?,
             action: (String, View) -> Unit,
         ) {
-            val view = runCatching { getter?.invoke(owner) as? View }.getOrNull() ?: return
+            val view = invokeView(owner, getter) ?: return
             action(typeName, view)
         }
+
+        private fun invokeView(owner: Any, getter: Method?): View? {
+            return runCatching { getter?.invoke(owner) as? View }.getOrNull()
+        }
     }
+
+    private class FakeLayerTarget(
+        val rootBackground: Drawable?,
+        val containerBackground: Drawable?,
+        val maskBackground: Drawable?,
+    )
 
     private class TransitionTarget(stockDrawable: Drawable?) {
         val stockDrawable = WeakReference(stockDrawable)
