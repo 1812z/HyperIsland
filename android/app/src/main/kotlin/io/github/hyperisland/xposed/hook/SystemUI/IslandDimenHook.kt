@@ -41,6 +41,9 @@ object IslandDimenHook : BaseHook() {
     private var fIslandViewHeight: Field? = null
     private var fSmallIslandViewWidth: Field? = null
     private var fBigIslandView: Field? = null
+    private var fFakeBigIsland: Field? = null
+    private var fSmallIslandView: Field? = null
+    private var fFakeSmallIsland: Field? = null
 
     private var hookedReset = false
     private var hookedCtor = false
@@ -124,6 +127,9 @@ object IslandDimenHook : BaseHook() {
             fIslandViewHeight = clazz.getDeclaredField("islandViewHeight").apply { isAccessible = true }
             fSmallIslandViewWidth = clazz.getDeclaredField("smallIslandViewWidth").apply { isAccessible = true }
             fBigIslandView = clazz.getDeclaredField("bigIslandView").apply { isAccessible = true }
+            fFakeBigIsland = clazz.getDeclaredField("fakeBigIsland").apply { isAccessible = true }
+            fSmallIslandView = clazz.getDeclaredField("smallIslandView").apply { isAccessible = true }
+            fFakeSmallIsland = clazz.getDeclaredField("fakeSmallIsland").apply { isAccessible = true }
         } catch (e: Exception) {
             logError(m, "cacheFields partial fail: ${e.message}")
         }
@@ -154,13 +160,17 @@ object IslandDimenHook : BaseHook() {
         }
     }
 
-    /**
-     * 更新 bigIslandView 的 LayoutParams.height
-     * （使用缓存的 fBigIslandView 字段）
-     */
+    /** 同步真实岛、动画 fake 岛以及小岛内容宿主的高度。 */
     private fun updateViewHeight(obj: Any, heightPx: Int) {
+        updateViewHeight(fBigIslandView, obj, heightPx)
+        updateViewHeight(fFakeBigIsland, obj, heightPx)
+        updateViewHeight(fSmallIslandView, obj, heightPx)
+        updateViewHeight(fFakeSmallIsland, obj, heightPx)
+    }
+
+    private fun updateViewHeight(field: Field?, obj: Any, heightPx: Int) {
         try {
-            val view = fBigIslandView?.get(obj) as? View ?: return
+            val view = field?.get(obj) as? View ?: return
             val lp = view.layoutParams ?: return
             lp.height = heightPx
             view.layoutParams = lp
