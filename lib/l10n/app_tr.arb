@@ -627,6 +627,10 @@
   "keepIslandLeftContentTitle": "Sol ada içeriği",
   "keepIslandRightContentTitle": "Sağ ada içeriği",
   "keepIslandFocusNotificationTitle": "Tıklanabilir ada",
+  "keepIslandFocusContentType": "Genişletilmiş içerik",
+  "keepIslandFocusContentNotification": "Bildirim",
+  "keepIslandFocusContentPerformance": "Performans paneli",
+  "keepIslandFocusContentDevice": "Cihaz paneli",
   "keepIslandFocusNotificationSubtitle": "Odak bildirim içeriğini göster ve dokunarak genişletmeyi destekle",
   "keepIslandNotificationTitle": "Bildirim başlığı",
   "keepIslandNotificationContent": "Bildirim içeriği",
@@ -638,6 +642,7 @@
   "keepIslandTimeCategory": "Zaman",
   "keepIslandWeatherCategory": "Hava durumu",
   "keepIslandDisplayCategory": "Ekran",
+  "keepIslandDeviceCategory": "Cihaz",
   "keepIslandPlaceholdersDescription": "Her iki taraf için metin veya ifade girin, örneğin: Battery {batteryLevel}, CPU {cpuUsage}. Kopyalamak için etikete dokunun.",
   "@keepIslandPlaceholdersDescription": {
     "placeholders": {

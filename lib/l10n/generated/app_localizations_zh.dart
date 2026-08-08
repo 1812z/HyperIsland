@@ -1564,6 +1564,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get keepIslandFocusNotificationSubtitle => '显示焦点通知内容，并支持点击展开';
 
   @override
+  String get keepIslandFocusContentType => '展开内容';
+
+  @override
+  String get keepIslandFocusContentNotification => '普通通知';
+
+  @override
+  String get keepIslandFocusContentPerformance => '性能面板';
+
+  @override
+  String get keepIslandFocusContentDevice => '设备面板';
+
+  @override
   String get keepIslandNotificationTitle => '通知标题';
 
   @override
@@ -1592,6 +1604,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get keepIslandDisplayCategory => '显示';
+
+  @override
+  String get keepIslandDeviceCategory => '设备';
 
   @override
   String get keepIslandNetworkCategory => '网络';

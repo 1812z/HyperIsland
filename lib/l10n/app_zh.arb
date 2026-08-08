@@ -751,6 +751,10 @@
   },
   "keepIslandFocusNotificationTitle": "岛可点击",
   "keepIslandFocusNotificationSubtitle": "显示焦点通知内容，并支持点击展开",
+  "keepIslandFocusContentType": "展开内容",
+  "keepIslandFocusContentNotification": "普通通知",
+  "keepIslandFocusContentPerformance": "性能面板",
+  "keepIslandFocusContentDevice": "设备面板",
   "keepIslandNotificationTitle": "通知标题",
   "keepIslandNotificationContent": "通知正文",
   "keepIslandShowIslandIconTitle": "显示岛图标",
@@ -761,6 +765,7 @@
   "keepIslandTimeCategory": "时间",
   "keepIslandWeatherCategory": "天气",
   "keepIslandDisplayCategory": "显示",
+  "keepIslandDeviceCategory": "设备",
   "keepIslandNetworkCategory": "网络",
   "keepIslandPlaceholdersDescription": "可在左右内容中直接输入文本或表达式，例如：电量 {batteryLevel}、CPU {cpuUsage}。点击标签复制。",
   "@keepIslandPlaceholdersDescription": {

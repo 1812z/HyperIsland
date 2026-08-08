@@ -1668,6 +1668,18 @@ class AppLocalizationsRu extends AppLocalizations {
       'Показывать содержимое фокус-уведомления и раскрывать его по нажатию';
 
   @override
+  String get keepIslandFocusContentType => 'Содержимое панели';
+
+  @override
+  String get keepIslandFocusContentNotification => 'Уведомление';
+
+  @override
+  String get keepIslandFocusContentPerformance => 'Панель производительности';
+
+  @override
+  String get keepIslandFocusContentDevice => 'Панель устройства';
+
+  @override
   String get keepIslandNotificationTitle => 'Заголовок уведомления';
 
   @override
@@ -1697,6 +1709,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get keepIslandDisplayCategory => 'Экран';
+
+  @override
+  String get keepIslandDeviceCategory => 'Устройство';
 
   @override
   String get keepIslandNetworkCategory => '网络';

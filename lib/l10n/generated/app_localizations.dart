@@ -3056,6 +3056,30 @@ abstract class AppLocalizations {
   /// **'显示焦点通知内容，并支持点击展开'**
   String get keepIslandFocusNotificationSubtitle;
 
+  /// No description provided for @keepIslandFocusContentType.
+  ///
+  /// In zh, this message translates to:
+  /// **'展开内容'**
+  String get keepIslandFocusContentType;
+
+  /// No description provided for @keepIslandFocusContentNotification.
+  ///
+  /// In zh, this message translates to:
+  /// **'普通通知'**
+  String get keepIslandFocusContentNotification;
+
+  /// No description provided for @keepIslandFocusContentPerformance.
+  ///
+  /// In zh, this message translates to:
+  /// **'性能面板'**
+  String get keepIslandFocusContentPerformance;
+
+  /// No description provided for @keepIslandFocusContentDevice.
+  ///
+  /// In zh, this message translates to:
+  /// **'设备面板'**
+  String get keepIslandFocusContentDevice;
+
   /// No description provided for @keepIslandNotificationTitle.
   ///
   /// In zh, this message translates to:
@@ -3115,6 +3139,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'显示'**
   String get keepIslandDisplayCategory;
+
+  /// No description provided for @keepIslandDeviceCategory.
+  ///
+  /// In zh, this message translates to:
+  /// **'设备'**
+  String get keepIslandDeviceCategory;
 
   /// No description provided for @keepIslandNetworkCategory.
   ///

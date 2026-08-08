@@ -7,6 +7,7 @@ import android.content.Context
 import android.graphics.drawable.Icon
 import android.os.Build
 import android.os.Bundle
+import android.widget.RemoteViews
 import io.github.d4viddf.hyperisland_kit.HyperAction
 import io.github.d4viddf.hyperisland_kit.HyperIslandNotification
 import io.github.d4viddf.hyperisland_kit.HyperPicture
@@ -14,6 +15,7 @@ import io.github.d4viddf.hyperisland_kit.models.ImageTextInfoLeft
 import io.github.d4viddf.hyperisland_kit.models.ImageTextInfoRight
 import io.github.d4viddf.hyperisland_kit.models.PicInfo
 import io.github.d4viddf.hyperisland_kit.models.TextInfo
+import io.github.hyperisland.R
 import io.github.hyperisland.utils.getAppIcon
 import io.github.hyperisland.xposed.hook.FocusNotifStatusBarIconHook
 import io.github.hyperisland.xposed.hook.MarqueeHook
@@ -86,7 +88,11 @@ internal object IslandDispatcherNotifier {
             islandBuilder.setIslandFirstFloat(effectiveFirstFloat)
             islandBuilder.setEnableFloat(effectiveEnableFloat)
             islandBuilder.setShowNotification(request.showNotification)
-            islandBuilder.setIslandConfig(timeout = request.timeoutSecs)
+            islandBuilder.setIslandConfig(
+                timeout = request.timeoutSecs,
+                dismissible = request.dismissIsland,
+                highlightColor = request.highlightColor,
+            )
 
             // 小岛 + 大岛（islandEnabled=false 时不构建，param_island 自然不存在）
             if (request.islandEnabled) {
@@ -138,7 +144,25 @@ internal object IslandDispatcherNotifier {
                 islandBuilder.setTextButtons(*hyperActions.toTypedArray())
             }
 
-            val resourceBundle = islandBuilder.buildResourceBundle()
+            val customMode = request.focusRemoteViews != null ||
+                    request.focusIslandExpandRemoteViews != null
+            val notificationExtras = if (customMode) {
+                val mainRemoteViews = request.focusRemoteViews
+                    ?: createFocusTextRemoteViews(focusTitle, focusContent)
+                islandBuilder
+                    .setTickerIcon(appIcon)
+                    .setCustomRemoteView(mainRemoteViews)
+                    .setCustomTinyRemoteView(
+                        createIslandTinyTextRemoteViews(request.title, request.content),
+                    )
+                    .setCustomIslandExpandRemoteView(
+                        request.focusIslandExpandRemoteViews
+                            ?: createFocusTextRemoteViews(focusTitle, focusContent),
+                    )
+                islandBuilder.buildCustomExtras()
+            } else {
+                islandBuilder.buildResourceBundle()
+            }
             val publicVersion = Notification.Builder(context, channelId)
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
                 .setContentTitle(IslandDispatchContract.CHANNEL_NAME)
@@ -165,29 +189,31 @@ internal object IslandDispatcherNotifier {
                 }
                 .build()
 
-            notif.extras.putAll(resourceBundle)
-            flattenActionsToExtras(resourceBundle, notif.extras)
+            notif.extras.putAll(notificationExtras)
+            if (!customMode) flattenActionsToExtras(notificationExtras, notif.extras)
             val aodIconKey = "miui.focus.pic_aod"
             request.icon?.let { notif.extras.putParcelable(aodIconKey, it) }
 
-            val jsonParam = islandBuilder.buildJsonParam()
-                .let { fixTextButtonJson(it) }
-                .let {
-                    injectIslandAppearance(
-                        jsonParam = it,
-                        highlightColor = request.highlightColor,
-                        outerGlow = request.outerGlow,
-                        islandOuterGlow = request.islandOuterGlow,
-                        islandOuterGlowColor = request.islandOuterGlowColor,
-                        outEffectColor = request.outEffectColor,
-                        dismissIsland = request.dismissIsland,
-                        aodTitle = request.aodTitle ?: request.content.ifEmpty { request.title },
-                        aodPicKey = aodIconKey,
-                        islandEnabled = request.islandEnabled,
-                        updatable = request.notifId == KEEP_ISLAND_NOTIF_ID && !request.clearBeforePost,
-                    )
-                }
-            notif.extras.putString("miui.focus.param", jsonParam)
+            if (!customMode) {
+                val jsonParam = islandBuilder.buildJsonParam()
+                    .let { fixTextButtonJson(it) }
+                    .let {
+                        injectIslandAppearance(
+                            jsonParam = it,
+                            highlightColor = request.highlightColor,
+                            outerGlow = request.outerGlow,
+                            islandOuterGlow = request.islandOuterGlow,
+                            islandOuterGlowColor = request.islandOuterGlowColor,
+                            outEffectColor = request.outEffectColor,
+                            dismissIsland = request.dismissIsland,
+                            aodTitle = request.aodTitle ?: request.content.ifEmpty { request.title },
+                            aodPicKey = aodIconKey,
+                            islandEnabled = request.islandEnabled,
+                            updatable = request.notifId == KEEP_ISLAND_NOTIF_ID && !request.clearBeforePost,
+                        )
+                    }
+                notif.extras.putString("miui.focus.param", jsonParam)
+            }
             request.sourcePackage?.let { notif.extras.putString("hyperisland_source_pkg", it) }
             request.sourceChannelId?.let {
                 notif.extras.putString("hyperisland_source_channel", it)
@@ -408,4 +434,24 @@ internal object IslandDispatcherNotifier {
             if (action != null) extras.putParcelable(key, action)
         }
     }
+
+    private fun createFocusTextRemoteViews(title: String, content: String): RemoteViews =
+        RemoteViews(OWNER_MARKER, R.layout.focus_notification_text_fallback).apply {
+            setTextViewText(R.id.focus_fallback_title, title)
+            setTextViewText(R.id.focus_fallback_content, content)
+            setViewVisibility(
+                R.id.focus_fallback_content,
+                if (content.isBlank()) android.view.View.GONE else android.view.View.VISIBLE,
+            )
+        }
+
+    private fun createIslandTinyTextRemoteViews(title: String, content: String): RemoteViews =
+        RemoteViews(OWNER_MARKER, R.layout.focus_island_tiny_text).apply {
+            setTextViewText(R.id.focus_tiny_left, title)
+            setTextViewText(R.id.focus_tiny_right, content)
+            setViewVisibility(
+                R.id.focus_tiny_right,
+                if (content.isBlank()) android.view.View.GONE else android.view.View.VISIBLE,
+            )
+        }
 }

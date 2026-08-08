@@ -1658,6 +1658,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'Show focus notification content and support tap to expand';
 
   @override
+  String get keepIslandFocusContentType => 'Expanded content';
+
+  @override
+  String get keepIslandFocusContentNotification => 'Notification';
+
+  @override
+  String get keepIslandFocusContentPerformance => 'Performance panel';
+
+  @override
+  String get keepIslandFocusContentDevice => 'Device panel';
+
+  @override
   String get keepIslandNotificationTitle => 'Notification title';
 
   @override
@@ -1687,6 +1699,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get keepIslandDisplayCategory => 'Display';
+
+  @override
+  String get keepIslandDeviceCategory => 'Device';
 
   @override
   String get keepIslandNetworkCategory => 'Network';

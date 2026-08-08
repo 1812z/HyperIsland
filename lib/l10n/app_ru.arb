@@ -565,6 +565,10 @@
   "keepIslandLeftContentTitle": "Левое содержимое Острова",
   "keepIslandRightContentTitle": "Правое содержимое Острова",
   "keepIslandFocusNotificationTitle": "Интерактивный Остров",
+  "keepIslandFocusContentType": "Содержимое панели",
+  "keepIslandFocusContentNotification": "Уведомление",
+  "keepIslandFocusContentPerformance": "Панель производительности",
+  "keepIslandFocusContentDevice": "Панель устройства",
   "keepIslandFocusNotificationSubtitle": "Показывать содержимое фокус-уведомления и раскрывать его по нажатию",
   "keepIslandNotificationTitle": "Заголовок уведомления",
   "keepIslandNotificationContent": "Текст уведомления",
@@ -576,6 +580,7 @@
   "keepIslandTimeCategory": "Время",
   "keepIslandWeatherCategory": "Погода",
   "keepIslandDisplayCategory": "Экран",
+  "keepIslandDeviceCategory": "Устройство",
   "keepIslandPlaceholdersDescription": "Введите текст или выражения для любой стороны, например: Battery {batteryLevel}, CPU {cpuUsage}. Нажмите тег, чтобы скопировать.",
   "@keepIslandPlaceholdersDescription": {
     "placeholders": {

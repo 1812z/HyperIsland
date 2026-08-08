@@ -1590,6 +1590,18 @@ class AppLocalizationsJa extends AppLocalizations {
   String get keepIslandFocusNotificationSubtitle => 'フォーカス通知の内容を表示し、タップで展開できます';
 
   @override
+  String get keepIslandFocusContentType => '展開コンテンツ';
+
+  @override
+  String get keepIslandFocusContentNotification => '通常の通知';
+
+  @override
+  String get keepIslandFocusContentPerformance => 'パフォーマンスパネル';
+
+  @override
+  String get keepIslandFocusContentDevice => 'デバイスパネル';
+
+  @override
   String get keepIslandNotificationTitle => '通知タイトル';
 
   @override
@@ -1618,6 +1630,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get keepIslandDisplayCategory => 'ディスプレイ';
+
+  @override
+  String get keepIslandDeviceCategory => 'デバイス';
 
   @override
   String get keepIslandNetworkCategory => '网络';

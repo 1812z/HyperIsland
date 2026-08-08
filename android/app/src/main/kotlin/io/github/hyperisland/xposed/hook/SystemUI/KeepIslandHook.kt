@@ -5,7 +5,12 @@ import android.app.ActivityManager
 import android.content.ComponentCallbacks
 import android.content.Context
 import android.content.res.Configuration
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.Rect
 import android.graphics.drawable.Icon
 import android.hardware.display.DisplayManager
@@ -16,15 +21,20 @@ import android.service.notification.StatusBarNotification
 import android.view.Display
 import android.view.Surface
 import android.view.View
+import android.widget.RemoteViews
+import io.github.hyperisland.R
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
 import io.github.hyperisland.xposed.islanddispatch.definition.IslandRequest
 import io.github.hyperisland.xposed.utils.HookUtils
+import io.github.hyperisland.xposed.utils.moduleContext
 import io.github.hyperisland.xposed.utils.toRounded
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.io.File
+import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
+import kotlin.math.roundToInt
 import org.json.JSONArray
 
 object KeepIslandHook : BaseHook() {
@@ -49,6 +59,8 @@ object KeepIslandHook : BaseHook() {
     private const val PREF_KEY_CAROUSEL_INTERVAL = "pref_keep_island_carousel_interval_seconds"
 
     private const val PREF_KEY_FOCUS_NOTIFICATION = "pref_keep_island_focus_notification"
+
+    private const val PREF_KEY_FOCUS_CONTENT_TYPE = "pref_keep_island_focus_content_type"
 
     private const val PREF_KEY_NOTIFICATION_TITLE = "pref_keep_island_notification_title"
 
@@ -98,6 +110,14 @@ object KeepIslandHook : BaseHook() {
     private var lastContentUpdateAt = 0L
 
     private var lastContentUpdateSignature: String? = null
+
+    private val cpuTrend = ArrayDeque<Float>()
+
+    private val gpuTrend = ArrayDeque<Float>()
+
+    private val memoryTrend = ArrayDeque<Float>()
+
+    private var lastPerformanceSampleAt = 0L
 
     private var configurationCallbacksRegistered = false
 
@@ -361,7 +381,7 @@ object KeepIslandHook : BaseHook() {
                     ConfigManager.getBoolean(PREF_KEY_RIGHT_HIGHLIGHT, false)
             val texts: Pair<String, String> = resolveKeepIslandTexts()
             val focusEnabled = ConfigManager.getBoolean(PREF_KEY_FOCUS_NOTIFICATION, false)
-            val focusTexts = resolveFocusNotificationTexts()
+            val focusContent = resolveFocusContent(context, focusEnabled)
             val showIslandIcon = ConfigManager.getBoolean(PREF_KEY_SHOW_ISLAND_ICON, false)
             val customIconPath = ConfigManager.getString(PREF_KEY_CUSTOM_ICON_PATH, "")
             val request = IslandRequest(
@@ -383,15 +403,15 @@ object KeepIslandHook : BaseHook() {
                 showLeftHighlightColor = showLeftHighlight,
                 showRightHighlightColor = showRightHighlight,
                 islandOnly = !focusEnabled,
-                focusTitle = focusTexts.first,
-                focusContent = focusTexts.second,
+                focusRemoteViews = focusContent.remoteViews,
+                focusIslandExpandRemoteViews = focusContent.islandExpandRemoteViews,
             )
             IslandDispatcher.post(context, request)
             posted = true
             lastContentUpdateSignature = contentSignature(
                 texts,
                 focusEnabled,
-                focusTexts,
+                focusContent.signature,
                 showIslandIcon,
                 customIconPath,
                 highlightColor,
@@ -421,13 +441,13 @@ object KeepIslandHook : BaseHook() {
             val showRightHighlight = highlightColor != null &&
                     ConfigManager.getBoolean(PREF_KEY_RIGHT_HIGHLIGHT, false)
             val focusEnabled = ConfigManager.getBoolean(PREF_KEY_FOCUS_NOTIFICATION, false)
-            val focusTexts = resolveFocusNotificationTexts()
+            val focusContent = resolveFocusContent(context, focusEnabled)
             val showIslandIcon = ConfigManager.getBoolean(PREF_KEY_SHOW_ISLAND_ICON, false)
             val customIconPath = ConfigManager.getString(PREF_KEY_CUSTOM_ICON_PATH, "")
             val signature = contentSignature(
                 texts,
                 focusEnabled,
-                focusTexts,
+                focusContent.signature,
                 showIslandIcon,
                 customIconPath,
                 highlightColor,
@@ -456,9 +476,10 @@ object KeepIslandHook : BaseHook() {
                 showLeftHighlightColor = showLeftHighlight,
                 showRightHighlightColor = showRightHighlight,
                 islandOnly = !focusEnabled,
-                focusTitle = focusTexts.first,
-                focusContent = focusTexts.second,
-                bypassSceneBehavior = true
+                focusRemoteViews = focusContent.remoteViews,
+                focusIslandExpandRemoteViews = focusContent.islandExpandRemoteViews,
+                bypassSceneBehavior = true,
+                notificationSilent = true
             )
             IslandDispatcher.post(context, request)
             lastContentUpdateAt = now
@@ -496,10 +517,268 @@ object KeepIslandHook : BaseHook() {
         return title to content
     }
 
+    private fun resolveFocusContent(context: Context, enabled: Boolean): FocusContent {
+        if (!enabled) return FocusContent(" ", "", null, null, "disabled")
+        return when (ConfigManager.getString(PREF_KEY_FOCUS_CONTENT_TYPE, FOCUS_CONTENT_NOTIFICATION)) {
+            FOCUS_CONTENT_PERFORMANCE -> resolvePerformanceFocusContent(context)
+            FOCUS_CONTENT_DEVICE -> resolveDeviceFocusContent(context)
+            else -> {
+                val texts = resolveFocusNotificationTexts()
+                FocusContent(
+                    title = texts.first,
+                    content = texts.second,
+                    remoteViews = null,
+                    islandExpandRemoteViews = null,
+                    signature = "notification\u0000${texts.first}\u0000${texts.second}",
+                )
+            }
+        }
+    }
+
+    private fun resolvePerformanceFocusContent(context: Context): FocusContent {
+        val snapshot = IslandDataManager.performanceSnapshot()
+        samplePerformanceTrend(snapshot)
+        val cpuText = formatPercent(snapshot.cpuUsagePercent)
+        val gpuText = formatPercent(snapshot.gpuUsagePercent)
+        val memoryText = formatPercent(snapshot.memoryUsagePercent)
+        val cpuTemperature = snapshot.cpuTemperatureCelsius?.let {
+            String.format(Locale.US, "%.0f", it)
+        } ?: "--"
+        val batteryTemperature = snapshot.batteryTemperatureCelsius?.let {
+            String.format(Locale.US, "%.0f", it)
+        } ?: "--"
+        val batteryPower = snapshot.batteryPowerWatt?.let {
+            String.format(Locale.US, "%.1fW", it)
+        } ?: "--W"
+        val temperatureText =
+            "CPU $cpuTemperature°C · BATTERY $batteryTemperature°C · $batteryPower"
+        val networkText =
+            "↓ ${formatRate(snapshot.downloadBytesPerSecond)}  ↑ ${formatRate(snapshot.uploadBytesPerSecond)}"
+        val moduleContext = context.moduleContext()
+        val remoteViews = RemoteViews(
+            moduleContext.packageName,
+            R.layout.focus_notification_performance,
+        ).apply {
+            setTextViewText(R.id.performance_cpu, cpuText)
+            setTextViewText(R.id.performance_gpu, gpuText)
+            setTextViewText(R.id.performance_memory, memoryText)
+            setTextViewText(R.id.performance_temperature, temperatureText)
+            setTextViewText(R.id.performance_network, networkText)
+            setImageViewBitmap(R.id.performance_chart, drawPerformanceChart(context))
+        }
+        val signature = buildString {
+            append("performance\u0000")
+            append(cpuText).append('\u0000')
+            append(gpuText).append('\u0000')
+            append(memoryText).append('\u0000')
+            append(temperatureText).append('\u0000')
+            append(networkText).append('\u0000')
+            append(cpuTrend.joinToString(",") { it.roundToInt().toString() }).append('\u0000')
+            append(gpuTrend.joinToString(",") { it.roundToInt().toString() }).append('\u0000')
+            append(memoryTrend.joinToString(",") { it.roundToInt().toString() })
+        }
+        return FocusContent(
+            title = "性能概览",
+            content = "$cpuText · $memoryText",
+            remoteViews = null,
+            islandExpandRemoteViews = remoteViews,
+            signature = signature,
+        )
+    }
+
+    private fun resolveDeviceFocusContent(context: Context): FocusContent {
+        val snapshot = IslandDataManager.devicePanelSnapshot()
+        val cpuPercent = snapshot.cpuUsagePercent?.roundToInt()?.coerceIn(0, 100) ?: 0
+        val memoryPercent = snapshot.memoryUsagePercent?.roundToInt()?.coerceIn(0, 100) ?: 0
+        val cpuText = snapshot.cpuUsagePercent?.let { "$cpuPercent%" } ?: "--%"
+        val memoryText = snapshot.memoryUsagePercent?.let { "$memoryPercent%" } ?: "--%"
+        val moduleContext = context.moduleContext()
+        val logo = loadCustomIcon(ConfigManager.getString(PREF_KEY_CUSTOM_ICON_PATH, ""))
+            ?.toRounded(context)
+            ?: Icon.createWithResource(moduleContext, R.drawable.ic_launcher)
+        val remoteViews = RemoteViews(
+            moduleContext.packageName,
+            R.layout.focus_notification_device,
+        ).apply {
+            setImageViewIcon(R.id.device_logo, logo)
+            setTextViewText(
+                R.id.device_name,
+                listOf(snapshot.manufacturer, snapshot.model)
+                    .filter { it.isNotBlank() }
+                    .joinToString(" "),
+            )
+            setTextViewText(R.id.device_chipset, snapshot.chipset)
+            setTextViewText(R.id.device_uptime, "运行时间 ${snapshot.uptime}")
+            setTextViewText(R.id.device_cpu_value, cpuText)
+            setTextViewText(R.id.device_memory_value, memoryText)
+            setProgressBar(R.id.device_cpu_progress, 100, cpuPercent, false)
+            setProgressBar(R.id.device_memory_progress, 100, memoryPercent, false)
+        }
+        val signature = listOf(
+            "device",
+            snapshot.manufacturer,
+            snapshot.model,
+            snapshot.chipset,
+            snapshot.uptime,
+            cpuText,
+            memoryText,
+            ConfigManager.getString(PREF_KEY_CUSTOM_ICON_PATH, ""),
+        ).joinToString("\u0000")
+        return FocusContent(
+            title = snapshot.manufacturer,
+            content = snapshot.model,
+            remoteViews = null,
+            islandExpandRemoteViews = remoteViews,
+            signature = signature,
+        )
+    }
+
+    private fun samplePerformanceTrend(snapshot: IslandDataManager.PerformanceSnapshot) {
+        val now = System.currentTimeMillis()
+        if (now - lastPerformanceSampleAt < DATA_UPDATE_INTERVAL_MS) return
+        lastPerformanceSampleAt = now
+        appendTrend(cpuTrend, snapshot.cpuUsagePercent?.toFloat() ?: 0f)
+        appendTrend(gpuTrend, snapshot.gpuUsagePercent?.toFloat() ?: 0f)
+        appendTrend(memoryTrend, snapshot.memoryUsagePercent?.toFloat() ?: 0f)
+    }
+
+    private fun appendTrend(trend: ArrayDeque<Float>, value: Float) {
+        trend.addLast(value.coerceIn(0f, 100f))
+        while (trend.size > PERFORMANCE_TREND_POINTS) trend.removeFirst()
+    }
+
+    private fun drawPerformanceChart(context: Context): Bitmap {
+        val density = context.resources.displayMetrics.density.coerceAtMost(2f)
+        val width = 660
+        val height = 128
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val horizontalPadding = 3f * density
+        val verticalPadding = 4f * density
+        val chartWidth = width - horizontalPadding * 2f
+        val chartHeight = height - verticalPadding * 2f
+        val gridPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.argb(24, 255, 255, 255)
+            strokeWidth = density
+        }
+        val cpuLinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.rgb(70, 190, 240)
+            strokeWidth = 2f * density
+            style = Paint.Style.STROKE
+            strokeCap = Paint.Cap.ROUND
+            strokeJoin = Paint.Join.ROUND
+        }
+        val ramLinePaint = Paint(cpuLinePaint).apply {
+            color = Color.rgb(117, 212, 130)
+        }
+        val gpuLinePaint = Paint(cpuLinePaint).apply {
+            color = Color.rgb(255, 184, 107)
+        }
+        val cpuFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.argb(42, 70, 190, 240)
+            style = Paint.Style.FILL
+        }
+        val ramFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.argb(30, 117, 212, 130)
+            style = Paint.Style.FILL
+        }
+        val gpuFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.argb(24, 255, 184, 107)
+            style = Paint.Style.FILL
+        }
+        for (row in 0..4) {
+            val y = verticalPadding + chartHeight * row / 4f
+            canvas.drawLine(horizontalPadding, y, width - horizontalPadding, y, gridPaint)
+        }
+        for (column in 0..6) {
+            val x = horizontalPadding + chartWidth * column / 6f
+            canvas.drawLine(x, verticalPadding, x, height - verticalPadding, gridPaint)
+        }
+        drawTrend(
+            canvas = canvas,
+            values = memoryTrend,
+            width = chartWidth,
+            height = chartHeight,
+            offsetX = horizontalPadding,
+            offsetY = verticalPadding,
+            linePaint = ramLinePaint,
+            fillPaint = ramFillPaint,
+        )
+        drawTrend(
+            canvas = canvas,
+            values = gpuTrend,
+            width = chartWidth,
+            height = chartHeight,
+            offsetX = horizontalPadding,
+            offsetY = verticalPadding,
+            linePaint = gpuLinePaint,
+            fillPaint = gpuFillPaint,
+        )
+        drawTrend(
+            canvas = canvas,
+            values = cpuTrend,
+            width = chartWidth,
+            height = chartHeight,
+            offsetX = horizontalPadding,
+            offsetY = verticalPadding,
+            linePaint = cpuLinePaint,
+            fillPaint = cpuFillPaint,
+        )
+        return bitmap
+    }
+
+    private fun drawTrend(
+        canvas: Canvas,
+        values: ArrayDeque<Float>,
+        width: Float,
+        height: Float,
+        offsetX: Float,
+        offsetY: Float,
+        linePaint: Paint,
+        fillPaint: Paint,
+    ) {
+        if (values.size < 2) return
+        val step = width / (PERFORMANCE_TREND_POINTS - 1)
+        val start = PERFORMANCE_TREND_POINTS - values.size
+        val linePath = Path()
+        var firstX = 0f
+        var lastX = 0f
+        values.forEachIndexed { index, value ->
+            val x = offsetX + (start + index) * step
+            val y = offsetY + height * (1f - value / 100f)
+            if (index == 0) {
+                firstX = x
+                linePath.moveTo(x, y)
+            } else {
+                linePath.lineTo(x, y)
+            }
+            lastX = x
+        }
+        val fillPath = Path(linePath).apply {
+            lineTo(lastX, offsetY + height)
+            lineTo(firstX, offsetY + height)
+            close()
+        }
+        canvas.drawPath(fillPath, fillPaint)
+        canvas.drawPath(linePath, linePaint)
+    }
+
+    private fun formatPercent(value: Double?): String =
+        value?.let { "${it.roundToInt().coerceIn(0, 100)}%" } ?: "--%"
+
+    private fun formatRate(bytesPerSecond: Double): String {
+        val value = bytesPerSecond.coerceAtLeast(0.0)
+        return when {
+            value >= 1024.0 * 1024.0 -> String.format(Locale.US, "%.1fM", value / 1024.0 / 1024.0)
+            value >= 1024.0 -> String.format(Locale.US, "%.0fK", value / 1024.0)
+            else -> "${value.roundToInt()}B"
+        }
+    }
+
     private fun contentSignature(
         texts: Pair<String, String>,
         focusEnabled: Boolean,
-        focusTexts: Pair<String, String>,
+        focusSignature: String,
         showIslandIcon: Boolean,
         customIconPath: String,
         highlightColor: String?,
@@ -507,7 +786,7 @@ object KeepIslandHook : BaseHook() {
         showRightHighlight: Boolean,
     ): String {
         return "${texts.first}\u0000${texts.second}\u0000$focusEnabled\u0000" +
-                "${focusTexts.first}\u0000${focusTexts.second}\u0000$showIslandIcon\u0000" +
+                "$focusSignature\u0000$showIslandIcon\u0000" +
                 "$customIconPath\u0000${highlightColor.orEmpty()}\u0000" +
                 "$showLeftHighlight\u0000$showRightHighlight"
     }
@@ -569,6 +848,9 @@ object KeepIslandHook : BaseHook() {
         val hasIslandContent = config.left.any { it.isNotBlank() } || config.right.any { it.isNotBlank() }
         if (hasIslandContent) return true
         if (!ConfigManager.getBoolean(PREF_KEY_FOCUS_NOTIFICATION, false)) return false
+        if (ConfigManager.getString(PREF_KEY_FOCUS_CONTENT_TYPE, FOCUS_CONTENT_NOTIFICATION) in
+            setOf(FOCUS_CONTENT_PERFORMANCE, FOCUS_CONTENT_DEVICE)
+        ) return true
         return ConfigManager.getString(PREF_KEY_NOTIFICATION_TITLE, "").isNotBlank() ||
                 ConfigManager.getString(PREF_KEY_NOTIFICATION_CONTENT, "").isNotBlank()
     }
@@ -783,6 +1065,19 @@ object KeepIslandHook : BaseHook() {
         val intervalMillis: Long,
     )
 
+    private data class FocusContent(
+        val title: String,
+        val content: String,
+        val remoteViews: RemoteViews?,
+        val islandExpandRemoteViews: RemoteViews?,
+        val signature: String,
+    )
+
     private const val DEFAULT_LEFT_CONTENT = "{time.HH:mm}"
     private const val DEFAULT_RIGHT_CONTENT = "{battery.level}"
+
+    private const val FOCUS_CONTENT_NOTIFICATION = "notification"
+    private const val FOCUS_CONTENT_PERFORMANCE = "performance"
+    private const val FOCUS_CONTENT_DEVICE = "device"
+    private const val PERFORMANCE_TREND_POINTS = 24
 }

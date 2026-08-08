@@ -137,6 +137,7 @@ const kPrefKeepIslandRightContent = 'pref_keep_island_right_content';
 const kPrefKeepIslandCarouselInterval =
     'pref_keep_island_carousel_interval_seconds';
 const kPrefKeepIslandFocusNotification = 'pref_keep_island_focus_notification';
+const kPrefKeepIslandFocusContentType = 'pref_keep_island_focus_content_type';
 const kPrefKeepIslandNotificationTitle = 'pref_keep_island_notification_title';
 const kPrefKeepIslandNotificationContent =
     'pref_keep_island_notification_content';
@@ -173,6 +174,10 @@ const kChargeIslandModeTemperature = 'temperature';
 const kChargeIslandDurationDefault = 'default';
 const kChargeIslandDurationCustom = 'custom';
 const kChargeIslandDurationPersistent = 'persistent';
+
+const kKeepIslandFocusContentNotification = 'notification';
+const kKeepIslandFocusContentPerformance = 'performance';
+const kKeepIslandFocusContentDevice = 'device';
 
 const kFaceUnlockIslandAnimationDefault = 'default';
 const kFaceUnlockIslandAnimationLock = 'lock';
@@ -303,6 +308,7 @@ class SettingsController extends ChangeNotifier {
   List<String> keepIslandRightContents = const ['{battery.level}'];
   int keepIslandCarouselInterval = 5;
   bool keepIslandFocusNotification = false;
+  String keepIslandFocusContentType = kKeepIslandFocusContentNotification;
   String keepIslandNotificationTitle = '';
   String keepIslandNotificationContent = '';
   bool keepIslandShowIslandIcon = false;
@@ -579,6 +585,13 @@ class SettingsController extends ChangeNotifier {
         (prefs.getInt(kPrefKeepIslandCarouselInterval) ?? 5).clamp(1, 6000);
     keepIslandFocusNotification =
         prefs.getBool(kPrefKeepIslandFocusNotification) ?? false;
+    keepIslandFocusContentType = switch (prefs.getString(
+      kPrefKeepIslandFocusContentType,
+    )) {
+      kKeepIslandFocusContentPerformance => kKeepIslandFocusContentPerformance,
+      kKeepIslandFocusContentDevice => kKeepIslandFocusContentDevice,
+      _ => kKeepIslandFocusContentNotification,
+    };
     keepIslandNotificationTitle =
         prefs.getString(kPrefKeepIslandNotificationTitle) ?? '';
     keepIslandNotificationContent =
@@ -1762,6 +1775,16 @@ class SettingsController extends ChangeNotifier {
     kPrefKeepIslandFocusNotification,
     value,
     (v) => keepIslandFocusNotification = v,
+  );
+
+  Future<void> setKeepIslandFocusContentType(String value) => _setStringPref(
+    kPrefKeepIslandFocusContentType,
+    switch (value) {
+      kKeepIslandFocusContentPerformance => kKeepIslandFocusContentPerformance,
+      kKeepIslandFocusContentDevice => kKeepIslandFocusContentDevice,
+      _ => kKeepIslandFocusContentNotification,
+    },
+    (v) => keepIslandFocusContentType = v,
   );
 
   Future<void> setKeepIslandNotificationTitle(String value) => _setStringPref(

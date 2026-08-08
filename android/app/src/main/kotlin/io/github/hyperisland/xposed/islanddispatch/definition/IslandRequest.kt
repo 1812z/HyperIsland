@@ -5,6 +5,7 @@ import android.content.Intent
 import android.graphics.drawable.Icon
 import android.os.Build
 import android.os.Bundle
+import android.widget.RemoteViews
 
 data class IslandRequest(
     val title: String,
@@ -40,6 +41,8 @@ data class IslandRequest(
     val islandEnabled: Boolean = true,
     val focusTitle: String? = null,
     val focusContent: String? = null,
+    val focusRemoteViews: RemoteViews? = null,
+    val focusIslandExpandRemoteViews: RemoteViews? = null,
     val notificationExtras: Bundle? = null,
     val notificationVisibility: Int = Notification.VISIBILITY_PRIVATE,
     val notificationOnlyAlertOnce: Boolean = false,
@@ -80,6 +83,8 @@ data class IslandRequest(
         putBoolean(KEY_ISLAND_ENABLED, islandEnabled)
         putString(KEY_FOCUS_TITLE, focusTitle)
         putString(KEY_FOCUS_CONTENT, focusContent)
+        putParcelable(KEY_FOCUS_REMOTE_VIEWS, focusRemoteViews)
+        putParcelable(KEY_FOCUS_ISLAND_EXPAND_REMOTE_VIEWS, focusIslandExpandRemoteViews)
         putBundle(KEY_NOTIFICATION_EXTRAS, notificationExtras)
         putInt(KEY_NOTIFICATION_VISIBILITY, notificationVisibility)
         putBoolean(KEY_NOTIFICATION_ONLY_ALERT_ONCE, notificationOnlyAlertOnce)
@@ -121,6 +126,9 @@ data class IslandRequest(
         private const val KEY_ISLAND_ENABLED = "islandEnabled"
         private const val KEY_FOCUS_TITLE = "focusTitle"
         private const val KEY_FOCUS_CONTENT = "focusContent"
+        private const val KEY_FOCUS_REMOTE_VIEWS = "focusRemoteViews"
+        private const val KEY_FOCUS_ISLAND_EXPAND_REMOTE_VIEWS =
+            "focusIslandExpandRemoteViews"
         private const val KEY_NOTIFICATION_EXTRAS = "notificationExtras"
         private const val KEY_NOTIFICATION_VISIBILITY = "notificationVisibility"
         private const val KEY_NOTIFICATION_ONLY_ALERT_ONCE = "notificationOnlyAlertOnce"
@@ -161,6 +169,11 @@ data class IslandRequest(
             islandEnabled = b.getBoolean(KEY_ISLAND_ENABLED, true),
             focusTitle = b.getString(KEY_FOCUS_TITLE),
             focusContent = b.getString(KEY_FOCUS_CONTENT),
+            focusRemoteViews = remoteViewsFromBundle(b, KEY_FOCUS_REMOTE_VIEWS),
+            focusIslandExpandRemoteViews = remoteViewsFromBundle(
+                b,
+                KEY_FOCUS_ISLAND_EXPAND_REMOTE_VIEWS,
+            ),
             notificationExtras = b.getBundle(KEY_NOTIFICATION_EXTRAS),
             notificationVisibility = b.getInt(
                 KEY_NOTIFICATION_VISIBILITY,
@@ -193,6 +206,10 @@ data class IslandRequest(
                 b.getParcelable(KEY_CONTENT_INTENT, android.app.PendingIntent::class.java)
             else
                 @Suppress("DEPRECATION") b.getParcelable(KEY_CONTENT_INTENT)
+
+        private fun remoteViewsFromBundle(b: Bundle, key: String): RemoteViews? =
+            if (Build.VERSION.SDK_INT >= 33) b.getParcelable(key, RemoteViews::class.java)
+            else @Suppress("DEPRECATION") b.getParcelable(key)
 
         fun fromIntent(intent: Intent) = fromBundle(intent.extras ?: Bundle())
     }

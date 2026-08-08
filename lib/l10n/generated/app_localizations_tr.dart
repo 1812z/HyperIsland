@@ -1651,6 +1651,18 @@ class AppLocalizationsTr extends AppLocalizations {
       'Odak bildirim içeriğini göster ve dokunarak genişletmeyi destekle';
 
   @override
+  String get keepIslandFocusContentType => 'Genişletilmiş içerik';
+
+  @override
+  String get keepIslandFocusContentNotification => 'Bildirim';
+
+  @override
+  String get keepIslandFocusContentPerformance => 'Performans paneli';
+
+  @override
+  String get keepIslandFocusContentDevice => 'Cihaz paneli';
+
+  @override
   String get keepIslandNotificationTitle => 'Bildirim başlığı';
 
   @override
@@ -1681,6 +1693,9 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get keepIslandDisplayCategory => 'Ekran';
+
+  @override
+  String get keepIslandDeviceCategory => 'Cihaz';
 
   @override
   String get keepIslandNetworkCategory => '网络';

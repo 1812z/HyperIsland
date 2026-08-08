@@ -480,6 +480,10 @@
   "keepIslandLeftContentTitle": "左側の内容",
   "keepIslandRightContentTitle": "右側の内容",
   "keepIslandFocusNotificationTitle": "タップ可能なアイランド",
+  "keepIslandFocusContentType": "展開コンテンツ",
+  "keepIslandFocusContentNotification": "通常の通知",
+  "keepIslandFocusContentPerformance": "パフォーマンスパネル",
+  "keepIslandFocusContentDevice": "デバイスパネル",
   "keepIslandFocusNotificationSubtitle": "フォーカス通知の内容を表示し、タップで展開できます",
   "keepIslandNotificationTitle": "通知タイトル",
   "keepIslandNotificationContent": "通知本文",
@@ -491,6 +495,7 @@
   "keepIslandTimeCategory": "時間",
   "keepIslandWeatherCategory": "天気",
   "keepIslandDisplayCategory": "ディスプレイ",
+  "keepIslandDeviceCategory": "デバイス",
   "keepIslandPlaceholdersDescription": "左右の内容にテキストまたは式を入力できます。例：バッテリー {batteryLevel}、CPU {cpuUsage}。タグをタップしてコピーします。",
   "@keepIslandPlaceholdersDescription": {
     "placeholders": {

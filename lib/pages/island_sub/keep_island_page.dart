@@ -62,6 +62,13 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
     '{display.refreshRate}',
     '{display.actualRefreshRate}',
   ];
+  static const _devicePlaceholders = [
+    '{device.manufacturer}',
+    '{device.model}',
+    '{device.name}',
+    '{device.chipset}',
+    '{device.uptime}',
+  ];
 
   int _computeHash() => Object.hashAll([
     _ctrl.keepIsland,
@@ -74,6 +81,7 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
     Object.hashAll(_ctrl.keepIslandRightContents),
     _ctrl.keepIslandCarouselInterval,
     _ctrl.keepIslandFocusNotification,
+    _ctrl.keepIslandFocusContentType,
     _ctrl.keepIslandNotificationTitle,
     _ctrl.keepIslandNotificationContent,
     _ctrl.keepIslandShowIslandIcon,
@@ -352,20 +360,58 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
                           (v) => _ctrl.setKeepIslandFocusNotification(v),
                         ),
                       ),
-                      const Divider(height: 1, indent: 16, endIndent: 16),
-                      _ContentTile(
-                        title: l10n.keepIslandNotificationTitle,
-                        value: _ctrl.keepIslandNotificationTitle,
-                        enabled: _ctrl.keepIslandFocusNotification,
-                        onTap: () => _editNotificationContent(title: true),
-                      ),
-                      const Divider(height: 1, indent: 16, endIndent: 16),
-                      _ContentTile(
-                        title: l10n.keepIslandNotificationContent,
-                        value: _ctrl.keepIslandNotificationContent,
-                        enabled: _ctrl.keepIslandFocusNotification,
-                        onTap: () => _editNotificationContent(title: false),
-                      ),
+                      if (_ctrl.keepIslandFocusNotification) ...[
+                        const Divider(height: 1, indent: 16, endIndent: 16),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                          child: DropdownButtonFormField<String>(
+                            initialValue: _ctrl.keepIslandFocusContentType,
+                            decoration: InputDecoration(
+                              labelText: l10n.keepIslandFocusContentType,
+                              prefixIcon: const Icon(Icons.dashboard_outlined),
+                              border: const OutlineInputBorder(),
+                            ),
+                            items: [
+                              DropdownMenuItem(
+                                value: kKeepIslandFocusContentNotification,
+                                child: Text(
+                                  l10n.keepIslandFocusContentNotification,
+                                ),
+                              ),
+                              DropdownMenuItem(
+                                value: kKeepIslandFocusContentPerformance,
+                                child: Text(
+                                  l10n.keepIslandFocusContentPerformance,
+                                ),
+                              ),
+                              DropdownMenuItem(
+                                value: kKeepIslandFocusContentDevice,
+                                child: Text(l10n.keepIslandFocusContentDevice),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              if (value != null) {
+                                _ctrl.setKeepIslandFocusContentType(value);
+                              }
+                            },
+                          ),
+                        ),
+                        if (_ctrl.keepIslandFocusContentType ==
+                            kKeepIslandFocusContentNotification) ...[
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          _ContentTile(
+                            title: l10n.keepIslandNotificationTitle,
+                            value: _ctrl.keepIslandNotificationTitle,
+                            onTap: () => _editNotificationContent(title: true),
+                          ),
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          _ContentTile(
+                            title: l10n.keepIslandNotificationContent,
+                            value: _ctrl.keepIslandNotificationContent,
+                            onTap: () => _editNotificationContent(title: false),
+                          ),
+                        ],
+                      ],
                       const Divider(height: 1, indent: 16, endIndent: 16),
                       ListTile(
                         contentPadding: const EdgeInsets.symmetric(
@@ -575,6 +621,13 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
                       placeholders: _displayPlaceholders,
                       onCopy: _copyPlaceholder,
                     ),
+                    const SizedBox(height: 8),
+                    _PlaceholderCategory(
+                      title: l10n.keepIslandDeviceCategory,
+                      icon: Icons.phone_android_outlined,
+                      placeholders: _devicePlaceholders,
+                      onCopy: _copyPlaceholder,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 32),
@@ -742,20 +795,17 @@ class _ContentTile extends StatelessWidget {
     required this.title,
     required this.value,
     required this.onTap,
-    this.enabled = true,
   });
 
   final String title;
   final String value;
   final VoidCallback onTap;
-  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = Theme.of(context).colorScheme;
     return ListTile(
-      enabled: enabled,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       title: Text(title),
       subtitle: Text(
@@ -764,12 +814,10 @@ class _ContentTile extends StatelessWidget {
             : value,
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: enabled ? cs.onSurfaceVariant : theme.disabledColor,
-        ),
+        style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
       ),
       trailing: const Icon(Icons.chevron_right),
-      onTap: enabled ? InteractionHaptics.interceptButton(onTap) : null,
+      onTap: InteractionHaptics.interceptButton(onTap),
     );
   }
 }

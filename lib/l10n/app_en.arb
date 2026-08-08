@@ -599,6 +599,10 @@
   },
   "keepIslandFocusNotificationTitle": "Clickable island",
   "keepIslandFocusNotificationSubtitle": "Show focus notification content and support tap to expand",
+  "keepIslandFocusContentType": "Expanded content",
+  "keepIslandFocusContentNotification": "Notification",
+  "keepIslandFocusContentPerformance": "Performance panel",
+  "keepIslandFocusContentDevice": "Device panel",
   "keepIslandNotificationTitle": "Notification title",
   "keepIslandNotificationContent": "Notification content",
   "keepIslandShowIslandIconTitle": "Show island icon",
@@ -609,6 +613,7 @@
   "keepIslandTimeCategory": "Time",
   "keepIslandWeatherCategory": "Weather",
   "keepIslandDisplayCategory": "Display",
+  "keepIslandDeviceCategory": "Device",
   "keepIslandNetworkCategory": "Network",
   "keepIslandPlaceholdersDescription": "Enter plain text or expressions for either side, for example: Battery {batteryLevel}, CPU {cpuUsage}. Tap a tag to copy it.",
   "@keepIslandPlaceholdersDescription": {

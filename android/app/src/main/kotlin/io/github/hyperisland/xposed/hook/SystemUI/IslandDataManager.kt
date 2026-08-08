@@ -48,6 +48,7 @@ object IslandDataManager {
     @Volatile private var gpu = GpuSnapshot()
     @Volatile private var network = NetworkSnapshot()
     @Volatile private var weather = WeatherSnapshot()
+    @Volatile private var deviceInfo: DeviceInfoSnapshot? = null
     @Volatile private var lastBatteryBroadcastRefreshAt = 0L
     @Volatile private var lastBatteryCurrentRefreshAt = 0L
     @Volatile private var lastBatteryVoltageRefreshAt = 0L
@@ -119,6 +120,41 @@ object IslandDataManager {
     }
 
     fun snapshot(): BatterySnapshot = battery
+
+    fun performanceSnapshot(): PerformanceSnapshot {
+        format(MODE_CPU_USAGE)
+        format(MODE_CPU_TEMPERATURE)
+        format(MODE_GPU_USAGE)
+        format(MODE_MEMORY_USAGE)
+        format(MODE_TEMPERATURE)
+        format(MODE_POWER)
+        format(MODE_NETWORK_DOWNLOAD)
+        format(MODE_NETWORK_UPLOAD)
+        return PerformanceSnapshot(
+            cpuUsagePercent = cpu.usagePercent,
+            cpuTemperatureCelsius = cpu.temperatureMilliCelsius?.div(1000.0),
+            batteryTemperatureCelsius = battery.temperatureCentiCelsius?.div(10.0),
+            batteryPowerWatt = battery.powerWatt(),
+            gpuUsagePercent = gpu.usagePercent,
+            memoryUsagePercent = memory.usagePercent(),
+            downloadBytesPerSecond = network.downloadBytesPerSecond,
+            uploadBytesPerSecond = network.uploadBytesPerSecond,
+        )
+    }
+
+    fun devicePanelSnapshot(): DevicePanelSnapshot {
+        format(MODE_CPU_USAGE)
+        format(MODE_MEMORY_USAGE)
+        val info = resolveDeviceInfo()
+        return DevicePanelSnapshot(
+            manufacturer = info.manufacturer,
+            model = info.model,
+            chipset = info.chipset,
+            uptime = formatUptime(SystemClock.elapsedRealtime()),
+            cpuUsagePercent = cpu.usagePercent,
+            memoryUsagePercent = memory.usagePercent(),
+        )
+    }
 
     fun format(mode: String): String? {
         return runCatching {
@@ -237,6 +273,11 @@ object IslandDataManager {
                 "{weather.temperature}" -> weather.temperature
                 "{display.refreshRate}" -> formatDisplayRefreshRate()
                 "{display.actualRefreshRate}" -> formatActualDisplayRefreshRate()
+                "{device.manufacturer}" -> resolveDeviceInfo().manufacturer
+                "{device.model}" -> resolveDeviceInfo().model
+                "{device.name}" -> resolveDeviceInfo().displayName
+                "{device.chipset}" -> resolveDeviceInfo().chipset
+                "{device.uptime}" -> formatUptime(SystemClock.elapsedRealtime())
                 else -> null
             } ?: ""
         }
@@ -887,11 +928,94 @@ object IslandDataManager {
         }
     }
 
+    data class PerformanceSnapshot(
+        val cpuUsagePercent: Double? = null,
+        val cpuTemperatureCelsius: Double? = null,
+        val batteryTemperatureCelsius: Double? = null,
+        val batteryPowerWatt: Double? = null,
+        val gpuUsagePercent: Double? = null,
+        val memoryUsagePercent: Double? = null,
+        val downloadBytesPerSecond: Double = 0.0,
+        val uploadBytesPerSecond: Double = 0.0,
+    )
+
+    data class DevicePanelSnapshot(
+        val manufacturer: String,
+        val model: String,
+        val chipset: String,
+        val uptime: String,
+        val cpuUsagePercent: Double? = null,
+        val memoryUsagePercent: Double? = null,
+    )
+
+    private data class DeviceInfoSnapshot(
+        val manufacturer: String,
+        val model: String,
+        val chipset: String,
+    ) {
+        val displayName: String
+            get() = listOf(manufacturer, model)
+                .filter { it.isNotBlank() }
+                .distinctBy { it.lowercase(Locale.getDefault()) }
+                .joinToString(" ")
+    }
+
     private data class WeatherSnapshot(
         val location: String = "",
         val condition: String = "",
         val temperature: String = "",
     )
+
+    private fun resolveDeviceInfo(): DeviceInfoSnapshot {
+        deviceInfo?.let { return it }
+        val manufacturer = Build.MANUFACTURER
+            .trim()
+            .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+            .ifBlank { "Android" }
+        val marketName = readSystemProperty(
+            "ro.product.marketname",
+            "ro.product.vendor.marketname",
+            "ro.product.odm.marketname",
+        )
+        val rawModel = marketName.ifBlank { Build.MODEL.orEmpty().trim() }
+        val model = rawModel
+            .removePrefix(manufacturer)
+            .trim()
+            .ifBlank { rawModel.ifBlank { Build.DEVICE.orEmpty() } }
+        val chipset = readSystemProperty(
+            "ro.soc.model",
+            "ro.board.platform",
+            "ro.hardware",
+        ).ifBlank { Build.HARDWARE.orEmpty() }.ifBlank { "Unknown" }
+        return DeviceInfoSnapshot(manufacturer, model, chipset).also { deviceInfo = it }
+    }
+
+    private fun readSystemProperty(vararg keys: String): String {
+        val systemProperties = runCatching { Class.forName("android.os.SystemProperties") }.getOrNull()
+            ?: return ""
+        val get = runCatching { systemProperties.getMethod("get", String::class.java, String::class.java) }
+            .getOrNull() ?: return ""
+        keys.forEach { key ->
+            val value = runCatching { get.invoke(null, key, "") as? String }
+                .getOrNull()
+                .orEmpty()
+                .trim()
+            if (value.isNotBlank()) return value
+        }
+        return ""
+    }
+
+    private fun formatUptime(elapsedMillis: Long): String {
+        val totalMinutes = elapsedMillis.coerceAtLeast(0L) / 60000L
+        val days = totalMinutes / (24L * 60L)
+        val hours = totalMinutes / 60L % 24L
+        val minutes = totalMinutes % 60L
+        return when {
+            days > 0L -> "${days}d ${hours}h ${minutes}m"
+            hours > 0L -> "${hours}h ${minutes}m"
+            else -> "${minutes}m"
+        }
+    }
 
     private data class CpuTimes(
         val total: Long,
