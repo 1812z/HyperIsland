@@ -100,6 +100,7 @@ private class HdrHighlightCompositor(
         drawLatestStates()
     }
     private val fallbackFrame = Choreographer.FrameCallback { drawFrame.run() }
+    private val idleRelease = Runnable { if (states.isEmpty()) release() }
     private val rootAttachListener = object : View.OnAttachStateChangeListener {
         override fun onViewAttachedToWindow(v: View) = Unit
 
@@ -142,6 +143,7 @@ private class HdrHighlightCompositor(
 
     fun update(slot: HdrHighlightSurface, host: View, state: LiquidGlassEdgeState) {
         if (released || shader == null) return
+        view.removeCallbacks(idleRelease)
         val rootView = root.get() ?: run {
             release()
             return
@@ -176,7 +178,14 @@ private class HdrHighlightCompositor(
     }
 
     fun hide(slot: HdrHighlightSurface) {
-        if (states.remove(slot) != null) scheduleFrame()
+        if (states.remove(slot) == null) return
+        if (view.parent == null || !surfaceReady) {
+            release()
+        } else {
+            scheduleFrame()
+            view.removeCallbacks(idleRelease)
+            view.postDelayed(idleRelease, IDLE_RELEASE_DELAY_MS)
+        }
     }
 
     fun remove(slot: HdrHighlightSurface) {
@@ -368,6 +377,7 @@ private class HdrHighlightCompositor(
         if (released) return
         released = true
         frameScheduled = false
+        view.removeCallbacks(idleRelease)
         val choreographer = Choreographer.getInstance()
         runCatching {
             removeCommitMethod?.invoke(choreographer, CALLBACK_COMMIT, drawFrame, this)
@@ -441,6 +451,7 @@ private class HdrHighlightCompositor(
         const val HDR_COLOR_MODE = 2
         const val CALLBACK_COMMIT = 4
         const val BUFFER_ALLOCATION_STEP = 64
+        const val IDLE_RELEASE_DELAY_MS = 500L
         val compositors = WeakHashMap<ViewGroup, HdrHighlightCompositor>()
 
         fun obtain(context: Context, root: ViewGroup): HdrHighlightCompositor {

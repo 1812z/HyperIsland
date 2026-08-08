@@ -71,6 +71,9 @@ object IslandTransitionVisualHook : BaseHook() {
         hookRefreshAfter(module, fakeClass.getDeclaredMethod("setVisibility", Int::class.javaPrimitiveType)) {
             refreshFakeView(it, access)
         }
+        hookRefreshAfter(module, fakeClass.getDeclaredMethod("onDetachedFromWindow")) { owner ->
+            releaseFakeView(owner, access)
+        }
 
         val delegateClass = runCatching {
             Class.forName(ANIMATION_DELEGATE_CLASS, false, classLoader)
@@ -167,6 +170,15 @@ object IslandTransitionVisualHook : BaseHook() {
                 container?.background = target.containerBackground
             }
             if (mask?.background == null) mask?.background = target.maskBackground
+        }
+    }
+
+    private fun releaseFakeView(fakeView: Any, access: FakeViewAccess) {
+        fakeViews.remove(fakeView)
+        fakeLayerTargets.remove(fakeView)
+        access.forEach(fakeView) { _, view ->
+            IslandBlurHook.releaseTransitionBlur(view)
+            targets.remove(view)?.customDrawable?.callback = null
         }
     }
 

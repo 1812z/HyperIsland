@@ -110,6 +110,9 @@ object IslandBlurHook : BaseHook() {
     private var glassStates = GlassStates.disabled()
 
     @Volatile
+    private var glassConfigRevision = 0
+
+    @Volatile
     private var anyBlurEnabled = false
 
     @Volatile
@@ -210,6 +213,7 @@ object IslandBlurHook : BaseHook() {
             captureScale = ConfigManager.getInt(KEY_GLASS_CAPTURE_QUALITY, 30)
                 .coerceIn(10, 100) / 100f,
         )
+        glassConfigRevision++
     }
 
     private fun readGlassState(
@@ -1146,47 +1150,47 @@ object IslandBlurHook : BaseHook() {
         config: BlurConfig,
         shapeView: View,
     ) {
-        val radius = resolveCornerRadius(view, owned.type, shapeView)
-        owned.clippedDrawable.setCornerRadius(radius)
-        owned.liquidDrawable.setContentView(shapeView)
-        owned.liquidDrawable.setCornerRadius(radius)
-        owned.liquidDrawable.setBackgroundBlurRadius(config.radius.toFloat())
-        owned.liquidDrawable.setBlendColor(config.blendColor)
-        owned.liquidDrawable.updateConfig(glassConfigForType(owned.type))
-        owned.methods.setCornerRadius.invoke(
-            owned.effectDrawable,
-            radius,
-            radius,
-            radius,
-            radius,
-        )
-        owned.methods.setColor.invoke(owned.effectDrawable, config.blendColor)
-        // Radius activates the RenderThread blur region, so geometry, corners,
-        // and color must all be initialized before this final call.
-        owned.methods.setRadius.invoke(owned.effectDrawable, config.radius)
-    }
-
-    private fun resolveCornerRadius(view: View, type: IslandType, shapeView: View? = null): Float {
-        if (type == IslandType.EXPAND) {
-            val target = shapeView ?: view
-            // The expanded view inherits the pill outline (77dp on this device).
-            // It is not the focus card's rounded-rectangle corner radius.
-            return TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP,
-                32f,
-                target.resources.displayMetrics,
+        if (owned.cornerRadius.isNaN()) {
+            val radius = resolveCornerRadius(view)
+            owned.cornerRadius = radius
+            owned.clippedDrawable.setCornerRadius(radius)
+            owned.liquidDrawable.setCornerRadius(radius)
+            owned.methods.setCornerRadius.invoke(
+                owned.effectDrawable,
+                radius,
+                radius,
+                radius,
+                radius,
             )
         }
-        val resourceId = view.resources.getIdentifier(
-            "island_radius",
-            "dimen",
-            "com.android.systemui",
-        )
-        return if (resourceId > 0) {
-            view.resources.getDimension(resourceId)
-        } else {
-            view.height / 2f
+        owned.liquidDrawable.setContentView(shapeView)
+        owned.liquidDrawable.setBackgroundBlurRadius(config.radius.toFloat())
+        owned.liquidDrawable.setBlendColor(config.blendColor)
+        if (owned.glassConfigRevision != glassConfigRevision) {
+            owned.glassConfigRevision = glassConfigRevision
+            owned.liquidDrawable.updateConfig(glassConfigForType(owned.type))
         }
+        if (owned.blendColor != config.blendColor) {
+            owned.blendColor = config.blendColor
+            owned.methods.setColor.invoke(owned.effectDrawable, config.blendColor)
+        }
+        if (owned.blurRadius != config.radius) {
+            owned.blurRadius = config.radius
+            // Radius activates the RenderThread blur region, so geometry, corners,
+            // and color must all be initialized before this final call.
+            owned.methods.setRadius.invoke(owned.effectDrawable, config.radius)
+        }
+    }
+
+    private fun resolveCornerRadius(view: View): Float {
+        // Keep one base radius while actualWidth/actualHeight animate. Once the
+        // height drops below twice this value, rounded-rect geometry naturally
+        // becomes the target pill without a radius discontinuity at state change.
+        return TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP,
+            32f,
+            view.resources.displayMetrics,
+        )
     }
 
     private fun resolveStrokeWidth(view: View): Int {
@@ -1343,6 +1347,11 @@ object IslandBlurHook : BaseHook() {
         val methods: BlurDrawableMethods,
         var active: Boolean = false,
     ) {
+        var cornerRadius = Float.NaN
+        var blurRadius = Int.MIN_VALUE
+        var blendColor = Int.MIN_VALUE
+        var glassConfigRevision = Int.MIN_VALUE
+
         fun release() {
             liquidDrawable.release()
             clippedDrawable.release()

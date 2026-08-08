@@ -71,6 +71,7 @@ internal class LiquidGlassDrawable(
     private val context = context
     private val hostView = WeakReference(host)
     private var contentView: WeakReference<View>? = null
+    private val visibleRect = Rect()
     private val glassRect = RectF()
     private val refractionShader = runCatching { RuntimeShader(REFRACTION_SHADER) }.getOrNull()
     private val refractionPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -109,13 +110,16 @@ internal class LiquidGlassDrawable(
     }
 
     fun setCornerRadius(radius: Float) {
-        cornerRadius = radius.coerceAtLeast(0f)
+        val value = radius.coerceAtLeast(0f)
+        if (cornerRadius == value) return
+        cornerRadius = value
         updateCaptureState()
         invalidateSelf()
     }
 
     fun setContentView(view: View) {
-        if (contentView?.get() !== view) contentView = WeakReference(view)
+        if (contentView?.get() === view) return
+        contentView = WeakReference(view)
         updateCaptureState()
     }
 
@@ -192,7 +196,7 @@ internal class LiquidGlassDrawable(
 
     private fun isActuallyVisible(view: View): Boolean {
         if (!view.isAttachedToWindow || !view.isShown || view.windowVisibility != View.VISIBLE ||
-            view.width <= 0 || view.height <= 0 || !view.getGlobalVisibleRect(Rect())
+            view.width <= 0 || view.height <= 0 || !view.getGlobalVisibleRect(visibleRect)
         ) return false
         var current: View? = view
         while (current != null) {
@@ -659,13 +663,19 @@ private class RefractiveScreenCapture(
 
     fun updateViewSnapshot(canCapture: Boolean) {
         val view = host.get() ?: return
+        if (!canCapture) {
+            if (viewSnapshot.canCapture) viewSnapshot = ViewSnapshot.EMPTY
+            return
+        }
         runCatching {
             view.getLocationOnScreen(location)
             screenX = location[0].toFloat()
             screenY = location[1].toFloat()
+            val displayId = view.display?.displayId ?: 0
+            if (viewSnapshot.canCapture && viewSnapshot.displayId == displayId) return
             viewSnapshot = ViewSnapshot(
-                canCapture = canCapture,
-                displayId = view.display?.displayId ?: 0,
+                canCapture = true,
+                displayId = displayId,
                 excludeLayers = CaptureAccess.currentExcludeLayers(view),
             )
         }.onFailure {
@@ -696,8 +706,15 @@ private class RefractiveScreenCapture(
                 .coerceIn(0, metrics.widthPixels)
             val bottom = kotlin.math.ceil(screenY + localBounds.bottom + padding).toInt()
                 .coerceIn(0, metrics.heightPixels)
-            captureRegion = Rect(left, top, right, bottom).takeIf {
-                it.width() > 0 && it.height() > 0
+            if (right <= left || bottom <= top) {
+                captureRegion = null
+            } else {
+                val current = captureRegion
+                if (current == null || current.left != left || current.top != top ||
+                    current.right != right || current.bottom != bottom
+                ) {
+                    captureRegion = Rect(left, top, right, bottom)
+                }
             }
         }
     }
@@ -728,20 +745,35 @@ private class RefractiveScreenCapture(
             if (!frame.bitmap.isRecycled) frame.bitmap.recycle()
             return
         }
-        val preparedBitmap = prepareFrame(frame.bitmap)
+        val preparedBitmap = runCatching { prepareFrame(frame.bitmap) }
+            .onFailure { error ->
+                logError("$TAG frame preparation failed: ${error.message}")
+                if (!frame.bitmap.isRecycled) frame.bitmap.recycle()
+            }
+            .getOrNull() ?: run {
+                mainHandler.post { if (token == generation) stop() }
+                return
+            }
         mainHandler.post {
             if (token != generation) {
                 if (!preparedBitmap.isRecycled) preparedBitmap.recycle()
                 return@post
             }
-            hasFrame = true
-            onFrame(
-                preparedBitmap,
-                frame.scaleX,
-                frame.scaleY,
-                frame.cropX,
-                frame.cropY,
-            )
+            runCatching {
+                onFrame(
+                    preparedBitmap,
+                    frame.scaleX,
+                    frame.scaleY,
+                    frame.cropX,
+                    frame.cropY,
+                )
+            }.onSuccess {
+                hasFrame = true
+            }.onFailure { error ->
+                logError("$TAG frame delivery failed: ${error.message}")
+                if (!preparedBitmap.isRecycled) preparedBitmap.recycle()
+                if (token == generation) stop()
+            }
         }
         val elapsed = SystemClock.uptimeMillis() - startedAt
         scheduleCapture(token, (captureIntervalMs - elapsed).coerceAtLeast(0L))
