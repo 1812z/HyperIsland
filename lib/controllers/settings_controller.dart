@@ -127,6 +127,7 @@ const kPrefAlwaysShowIslandOutline = 'pref_always_show_island_outline';
 const kPrefAlwaysShowFocusOutline = 'pref_always_show_focus_outline';
 const kPrefOuterGlowRange = 'pref_outer_glow_range';
 const kPrefKeepIsland = 'pref_keep_island';
+const kPrefKeepIslandDisplayTiming = 'pref_keep_island_display_timing';
 const kPrefKeepIslandShowNotification = 'pref_keep_island_show_notification';
 const kPrefKeepIslandAutoHide = 'pref_keep_island_auto_hide';
 const kPrefKeepIslandHideLandscape = 'pref_keep_island_hide_landscape';
@@ -180,6 +181,9 @@ const kKeepIslandFocusContentNotification = 'notification';
 const kKeepIslandFocusContentPerformance = 'performance';
 const kKeepIslandFocusContentDevice = 'device';
 const kKeepIslandFocusContentCharging = 'charging';
+
+const kKeepIslandDisplayTimingAlways = 'always';
+const kKeepIslandDisplayTimingCharging = 'charging';
 
 const kFaceUnlockIslandAnimationDefault = 'default';
 const kFaceUnlockIslandAnimationLock = 'lock';
@@ -301,6 +305,7 @@ class SettingsController extends ChangeNotifier {
   bool alwaysShowFocusOutline = false;
   int outerGlowRange = 0;
   bool keepIsland = false;
+  String keepIslandDisplayTiming = kKeepIslandDisplayTimingAlways;
   bool keepIslandShowNotification = false;
   bool keepIslandAutoHide = true;
   bool keepIslandHideLandscape = false;
@@ -567,6 +572,12 @@ class SettingsController extends ChangeNotifier {
         prefs.getBool(kPrefAlwaysShowFocusOutline) ?? false;
     outerGlowRange = (prefs.getInt(kPrefOuterGlowRange) ?? 0).clamp(0, 100);
     keepIsland = prefs.getBool(kPrefKeepIsland) ?? false;
+    keepIslandDisplayTiming = switch (prefs.getString(
+      kPrefKeepIslandDisplayTiming,
+    )) {
+      kKeepIslandDisplayTimingCharging => kKeepIslandDisplayTimingCharging,
+      _ => kKeepIslandDisplayTimingAlways,
+    };
     keepIslandShowNotification =
         prefs.getBool(kPrefKeepIslandShowNotification) ?? false;
     keepIslandAutoHide = prefs.getBool(kPrefKeepIslandAutoHide) ?? true;
@@ -1686,6 +1697,14 @@ class SettingsController extends ChangeNotifier {
     keepIsland = value;
     notifyListeners();
   }
+
+  Future<void> setKeepIslandDisplayTiming(String value) => _setStringPref(
+    kPrefKeepIslandDisplayTiming,
+    value == kKeepIslandDisplayTimingCharging
+        ? kKeepIslandDisplayTimingCharging
+        : kKeepIslandDisplayTimingAlways,
+    (v) => keepIslandDisplayTiming = v,
+  );
 
   Future<void> setKeepIslandShowNotification(bool value) async {
     if (value && !keepIslandFocusNotification) return;

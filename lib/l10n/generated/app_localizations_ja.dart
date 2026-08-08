@@ -1538,6 +1538,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get keepIslandIslandConfigTitle => 'アイランド設定';
 
   @override
+  String get keepIslandDisplayTimingTitle => '表示タイミング';
+
+  @override
+  String get keepIslandDisplayTimingAlways => '常時';
+
+  @override
+  String get keepIslandDisplayTimingCharging => '充電中';
+
+  @override
   String get keepIslandFocusConfigTitle => 'フォーカス通知設定';
 
   @override

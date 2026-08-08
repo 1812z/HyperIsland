@@ -1614,6 +1614,15 @@ class AppLocalizationsRu extends AppLocalizations {
   String get keepIslandIslandConfigTitle => 'Настройка острова';
 
   @override
+  String get keepIslandDisplayTimingTitle => 'Когда показывать';
+
+  @override
+  String get keepIslandDisplayTimingAlways => 'Всегда';
+
+  @override
+  String get keepIslandDisplayTimingCharging => 'Во время зарядки';
+
+  @override
   String get keepIslandFocusConfigTitle => 'Настройка фокус-уведомления';
 
   @override

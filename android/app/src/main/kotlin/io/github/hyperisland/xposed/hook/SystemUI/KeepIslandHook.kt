@@ -3,6 +3,7 @@ package io.github.hyperisland.xposed.hook
 import android.app.Application
 import android.app.ActivityManager
 import android.app.PendingIntent
+import android.os.BatteryManager
 import android.content.BroadcastReceiver
 import android.content.ComponentCallbacks
 import android.content.Context
@@ -46,6 +47,8 @@ object KeepIslandHook : BaseHook() {
 
     private const val TAG = "HyperIsland[KeepIsland]"
     private const val PREF_KEY = "pref_keep_island"
+
+    private const val PREF_KEY_DISPLAY_TIMING = "pref_keep_island_display_timing"
 
     private const val PREF_KEY_SHOW_NOTIFICATION = "pref_keep_island_show_notification"
 
@@ -140,6 +143,11 @@ object KeepIslandHook : BaseHook() {
 
     private var chargingReceiverRegistered = false
 
+    private var displayTimingReceiverRegistered = false
+
+    @Volatile
+    private var powerConnected = false
+
     private var configurationCallbacksRegistered = false
 
     private var displayListenerRegistered = false
@@ -197,6 +205,7 @@ object KeepIslandHook : BaseHook() {
                     registerDisplayListener(app.applicationContext)
                     registerIslandDataManager(app.applicationContext)
                     registerChargingPanelReceiver(app.applicationContext)
+                    registerDisplayTimingReceiver(app.applicationContext)
                     mainHandler.postDelayed({ evaluateKeepIsland() }, 3000)
                 }
                 result
@@ -387,8 +396,14 @@ object KeepIslandHook : BaseHook() {
     }
 
     private fun shouldPostKeepNotification(): Boolean =
-        ConfigManager.getBoolean(PREF_KEY, false) ||
-                shouldShowNotification()
+        matchesDisplayTiming() && (
+                ConfigManager.getBoolean(PREF_KEY, false) ||
+                        shouldShowNotification()
+                )
+
+    private fun matchesDisplayTiming(): Boolean =
+        ConfigManager.getString(PREF_KEY_DISPLAY_TIMING, DISPLAY_TIMING_ALWAYS) !=
+                DISPLAY_TIMING_CHARGING || powerConnected
 
     private fun shouldShowNotification(): Boolean =
         ConfigManager.getBoolean(PREF_KEY_FOCUS_NOTIFICATION, false) &&
@@ -925,6 +940,40 @@ object KeepIslandHook : BaseHook() {
         }
     }
 
+    private fun registerDisplayTimingReceiver(context: Context) {
+        if (displayTimingReceiverRegistered) return
+        displayTimingReceiverRegistered = true
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(receiverContext: Context?, intent: Intent?) {
+                val nextPowerConnected = when (intent?.action) {
+                    Intent.ACTION_POWER_CONNECTED -> true
+                    Intent.ACTION_POWER_DISCONNECTED -> false
+                    Intent.ACTION_BATTERY_CHANGED ->
+                        intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0
+                    else -> return
+                }
+                if (powerConnected == nextPowerConnected) return
+                powerConnected = nextPowerConnected
+                mainHandler.post {
+                    if (!matchesDisplayTiming()) resetChargingSession()
+                    evaluateKeepIsland()
+                }
+            }
+        }
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_BATTERY_CHANGED)
+            addAction(Intent.ACTION_POWER_CONNECTED)
+            addAction(Intent.ACTION_POWER_DISCONNECTED)
+        }
+        val stickyIntent = if (android.os.Build.VERSION.SDK_INT >= 33) {
+            context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("DEPRECATION")
+            context.registerReceiver(receiver, filter)
+        }
+        powerConnected = stickyIntent?.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0
+    }
+
     private fun samplePerformanceTrend(snapshot: IslandDataManager.PerformanceSnapshot) {
         val now = System.currentTimeMillis()
         if (now - lastPerformanceSampleAt < DATA_UPDATE_INTERVAL_MS) return
@@ -1409,6 +1458,8 @@ object KeepIslandHook : BaseHook() {
     private const val FOCUS_CONTENT_PERFORMANCE = "performance"
     private const val FOCUS_CONTENT_DEVICE = "device"
     private const val FOCUS_CONTENT_CHARGING = "charging"
+    private const val DISPLAY_TIMING_ALWAYS = "always"
+    private const val DISPLAY_TIMING_CHARGING = "charging"
     private const val PERFORMANCE_TREND_POINTS = 24
     private const val CHARGING_MAX_SAMPLES = 120
     private const val CHARGING_SAMPLE_INTERVAL_MS = 5000L

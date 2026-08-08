@@ -1514,6 +1514,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get keepIslandIslandConfigTitle => '岛配置';
 
   @override
+  String get keepIslandDisplayTimingTitle => '显示时机';
+
+  @override
+  String get keepIslandDisplayTimingAlways => '常驻';
+
+  @override
+  String get keepIslandDisplayTimingCharging => '充电时';
+
+  @override
   String get keepIslandFocusConfigTitle => '焦点通知配置';
 
   @override

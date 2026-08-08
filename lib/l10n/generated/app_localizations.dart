@@ -2960,6 +2960,24 @@ abstract class AppLocalizations {
   /// **'岛配置'**
   String get keepIslandIslandConfigTitle;
 
+  /// No description provided for @keepIslandDisplayTimingTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'显示时机'**
+  String get keepIslandDisplayTimingTitle;
+
+  /// No description provided for @keepIslandDisplayTimingAlways.
+  ///
+  /// In zh, this message translates to:
+  /// **'常驻'**
+  String get keepIslandDisplayTimingAlways;
+
+  /// No description provided for @keepIslandDisplayTimingCharging.
+  ///
+  /// In zh, this message translates to:
+  /// **'充电时'**
+  String get keepIslandDisplayTimingCharging;
+
   /// No description provided for @keepIslandFocusConfigTitle.
   ///
   /// In zh, this message translates to:

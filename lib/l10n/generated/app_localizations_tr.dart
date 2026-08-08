@@ -1597,6 +1597,15 @@ class AppLocalizationsTr extends AppLocalizations {
   String get keepIslandIslandConfigTitle => 'Ada yapılandırması';
 
   @override
+  String get keepIslandDisplayTimingTitle => 'Gösterim zamanı';
+
+  @override
+  String get keepIslandDisplayTimingAlways => 'Her zaman';
+
+  @override
+  String get keepIslandDisplayTimingCharging => 'Şarj olurken';
+
+  @override
   String get keepIslandFocusConfigTitle => 'Odak bildirimi yapılandırması';
 
   @override

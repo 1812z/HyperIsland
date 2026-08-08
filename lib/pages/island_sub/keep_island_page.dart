@@ -72,6 +72,7 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
 
   int _computeHash() => Object.hashAll([
     _ctrl.keepIsland,
+    _ctrl.keepIslandDisplayTiming,
     _ctrl.keepIslandShowNotification,
     _ctrl.keepIslandAutoHide,
     _ctrl.keepIslandHideLandscape,
@@ -451,43 +452,27 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
                         )
                       : null,
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _ctrl.keepIslandFocusContentType,
-                    decoration: InputDecoration(
-                      labelText: l10n.keepIslandFocusContentType,
-                      border: const OutlineInputBorder(),
-                    ),
-                    items: [
-                      DropdownMenuItem(
-                        value: kKeepIslandFocusContentNotification,
-                        child: Text(l10n.keepIslandFocusContentNotification),
-                      ),
-                      DropdownMenuItem(
-                        value: kKeepIslandFocusContentPerformance,
-                        child: Text(l10n.keepIslandFocusContentPerformance),
-                      ),
-                      DropdownMenuItem(
-                        value: kKeepIslandFocusContentDevice,
-                        child: Text(l10n.keepIslandFocusContentDevice),
-                      ),
-                      DropdownMenuItem(
-                        value: kKeepIslandFocusContentCharging,
-                        child: Text(l10n.keepIslandFocusContentCharging),
-                      ),
-                    ],
-                    onChanged: focusContentEnabled
-                        ? (value) {
-                            if (value != null) {
-                              _ctrl.setKeepIslandFocusContentType(value);
-                            }
-                          }
-                        : null,
-                  ),
+                _KeepIslandDropdownTile(
+                  title: l10n.keepIslandFocusContentType,
+                  value: _ctrl.keepIslandFocusContentType,
+                  values: const [
+                    kKeepIslandFocusContentNotification,
+                    kKeepIslandFocusContentPerformance,
+                    kKeepIslandFocusContentDevice,
+                    kKeepIslandFocusContentCharging,
+                  ],
+                  labelForValue: (value) => switch (value) {
+                    kKeepIslandFocusContentPerformance =>
+                      l10n.keepIslandFocusContentPerformance,
+                    kKeepIslandFocusContentDevice =>
+                      l10n.keepIslandFocusContentDevice,
+                    kKeepIslandFocusContentCharging =>
+                      l10n.keepIslandFocusContentCharging,
+                    _ => l10n.keepIslandFocusContentNotification,
+                  },
+                  onChanged: focusContentEnabled
+                      ? _ctrl.setKeepIslandFocusContentType
+                      : null,
                 ),
                 if (_ctrl.keepIslandFocusContentType ==
                     kKeepIslandFocusContentNotification) ...[
@@ -538,6 +523,24 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 const SizedBox(height: 8),
+                Card(
+                  elevation: 0,
+                  color: cs.surfaceContainerHighest,
+                  child: _KeepIslandDropdownTile(
+                    title: l10n.keepIslandDisplayTimingTitle,
+                    value: _ctrl.keepIslandDisplayTiming,
+                    values: const [
+                      kKeepIslandDisplayTimingAlways,
+                      kKeepIslandDisplayTimingCharging,
+                    ],
+                    labelForValue: (value) =>
+                        value == kKeepIslandDisplayTimingCharging
+                        ? l10n.keepIslandDisplayTimingCharging
+                        : l10n.keepIslandDisplayTimingAlways,
+                    onChanged: _ctrl.setKeepIslandDisplayTiming,
+                  ),
+                ),
+                const SizedBox(height: 12),
                 Card(
                   elevation: 0,
                   color: cs.surfaceContainerHighest,
@@ -699,6 +702,80 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
   }
 }
 
+class _KeepIslandDropdownTile extends StatelessWidget {
+  const _KeepIslandDropdownTile({
+    required this.title,
+    required this.value,
+    required this.values,
+    required this.labelForValue,
+    required this.onChanged,
+  });
+
+  final String title;
+  final String value;
+  final List<String> values;
+  final String Function(String value) labelForValue;
+  final Future<void> Function(String value)? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final dropdownWidth = (MediaQuery.sizeOf(context).width * 0.36).clamp(
+      112.0,
+      172.0,
+    );
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      title: Text(title),
+      trailing: DropdownButtonHideUnderline(
+        child: SizedBox(
+          width: dropdownWidth,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: cs.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: cs.outlineVariant),
+            ),
+            child: DropdownButton<String>(
+              value: value,
+              isExpanded: true,
+              alignment: Alignment.center,
+              borderRadius: BorderRadius.circular(16),
+              onChanged: InteractionHaptics.interceptDropdown(
+                onChanged == null
+                    ? null
+                    : (next) async {
+                        if (next == null) return;
+                        await onChanged!(next);
+                      },
+              ),
+              selectedItemBuilder: (context) => [
+                for (final item in values)
+                  Center(
+                    child: Text(
+                      labelForValue(item),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+              ],
+              items: [
+                for (final item in values)
+                  DropdownMenuItem<String>(
+                    value: item,
+                    child: Text(labelForValue(item)),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _HighlightSwitch extends StatelessWidget {
   const _HighlightSwitch({
     required this.label,
@@ -819,7 +896,7 @@ class _CustomIconTile extends StatelessWidget {
                 child: Image.file(
                   File(imagePath),
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) =>
+                  errorBuilder: (_, _, _) =>
                       Icon(Icons.image_outlined, color: cs.onSurfaceVariant),
                 ),
               )

@@ -1603,6 +1603,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get keepIslandIslandConfigTitle => 'Island configuration';
 
   @override
+  String get keepIslandDisplayTimingTitle => 'Display timing';
+
+  @override
+  String get keepIslandDisplayTimingAlways => 'Always';
+
+  @override
+  String get keepIslandDisplayTimingCharging => 'While charging';
+
+  @override
   String get keepIslandFocusConfigTitle => 'Focus notification configuration';
 
   @override
