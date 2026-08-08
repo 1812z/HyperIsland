@@ -148,6 +148,15 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     IslandBgType.expand => _ctrl.islandBlurExpandEnabled,
   };
 
+  /// 任意背景图或模糊启用时，轮廓控制需要禁用
+  bool get _hasAnyBackgroundOrBlur =>
+      _hasBackground(IslandBgType.small) ||
+      _hasBackground(IslandBgType.big) ||
+      _hasBackground(IslandBgType.expand) ||
+      _isBlurEnabled(IslandBgType.small) ||
+      _isBlurEnabled(IslandBgType.big) ||
+      _isBlurEnabled(IslandBgType.expand);
+
   IslandBgType _backgroundTypeForBlur(_IslandBlurType type) => switch (type) {
     _IslandBlurType.small => IslandBgType.small,
     _IslandBlurType.big => IslandBgType.big,
@@ -1154,9 +1163,11 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                           style: titleStyle,
                         ),
                         value: _ctrl.alwaysShowIslandOutline,
-                        onChanged: InteractionHaptics.interceptToggle(
-                          _ctrl.setAlwaysShowIslandOutline,
-                        ),
+                        onChanged: _hasAnyBackgroundOrBlur
+                            ? null
+                            : InteractionHaptics.interceptToggle(
+                                _ctrl.setAlwaysShowIslandOutline,
+                              ),
                       ),
                       const Divider(height: 1, indent: 16, endIndent: 16),
                       SwitchListTile(
@@ -1169,9 +1180,11 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                           style: titleStyle,
                         ),
                         value: _ctrl.alwaysShowFocusOutline,
-                        onChanged: InteractionHaptics.interceptToggle(
-                          _ctrl.setAlwaysShowFocusOutline,
-                        ),
+                        onChanged: _hasAnyBackgroundOrBlur
+                            ? null
+                            : InteractionHaptics.interceptToggle(
+                                _ctrl.setAlwaysShowFocusOutline,
+                              ),
                       ),
                     ],
                   ),
