@@ -835,17 +835,20 @@ object KeepIslandHook : BaseHook() {
         val darkMode = isDarkMode(context)
         val density = context.resources.displayMetrics.density.coerceAtMost(2f)
         val width = 660
-        val height = 134
+        val height = 168
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         val left = 78f
         val right = width - 10f
-        val top = 9f
         val bottom = height - 25f
         val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = if (darkMode) Color.argb(145, 255, 255, 255) else Color.argb(160, 0, 0, 0)
             textSize = 18f * density.coerceAtMost(1.4f)
         }
+        val axisLabelPaint = Paint(labelPaint).apply {
+            textAlign = Paint.Align.RIGHT
+        }
+        val top = 3f - axisLabelPaint.fontMetrics.ascent
         val gridPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = if (darkMode) Color.argb(25, 255, 255, 255) else Color.argb(30, 0, 0, 0)
             strokeWidth = density
@@ -877,13 +880,27 @@ object KeepIslandHook : BaseHook() {
             val y = top + (bottom - top) * row / 2f
             canvas.drawLine(left, y, right, y, gridPaint)
             val value = maxValue * (2 - row) / 2.0
-            canvas.drawText(chargingChartMode.formatAxis(value), 0f, y + 6f, labelPaint)
+            val baseline = if (row == 0) top else y - axisLabelPaint.fontMetrics.ascent / 2f -
+                    axisLabelPaint.fontMetrics.descent / 2f
+            canvas.drawText(
+                chargingChartMode.formatAxis(value),
+                left - 10f,
+                baseline,
+                axisLabelPaint,
+            )
         }
         val firstElapsed = samples.firstOrNull()?.elapsedMillis ?: 0L
         val maxElapsed = samples.lastOrNull()?.elapsedMillis?.coerceAtLeast(firstElapsed + 1L)
             ?: (firstElapsed + 1L)
         val visibleElapsed = (maxElapsed - firstElapsed).coerceAtLeast(1L)
         canvas.drawText("0", left, height - 4f, labelPaint)
+        val middleElapsedLabel = formatChargingElapsed(visibleElapsed / 2L)
+        canvas.drawText(
+            middleElapsedLabel,
+            (left + right) / 2f - labelPaint.measureText(middleElapsedLabel) / 2f,
+            height - 4f,
+            labelPaint,
+        )
         val elapsedLabel = formatChargingElapsed(visibleElapsed)
         canvas.drawText(
             elapsedLabel,
@@ -918,6 +935,7 @@ object KeepIslandHook : BaseHook() {
     }
 
     private fun formatChargingElapsed(elapsedMillis: Long): String {
+        if (elapsedMillis < 60000L) return "${elapsedMillis / 1000L}s"
         val minutes = elapsedMillis / 60000L
         return if (minutes >= 60L) "${minutes / 60L}h${minutes % 60L}m" else "${minutes}m"
     }

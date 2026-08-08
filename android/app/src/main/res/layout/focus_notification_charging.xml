@@ -16,13 +16,28 @@
 
         <TextView
             android:id="@+id/charging_primary"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
             android:text="24.6W"
             android:textColor="@color/focus_panel_text_primary"
-            android:textSize="22sp"
+            android:textSize="17sp"
             android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/charging_details"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:gravity="end"
+            android:maxLines="1"
+            android:text="3.85A · 6.39V · 36°C"
+            android:textColor="@color/focus_panel_text_secondary"
+            android:textSize="10sp" />
 
         <TextView
             android:id="@+id/charging_mode"
@@ -38,20 +53,11 @@
             android:textSize="11sp" />
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/charging_details"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:text="3.85A · 6.39V · 36°C"
-        android:textColor="@color/focus_panel_text_secondary"
-        android:textSize="11sp" />
-
     <FrameLayout
         android:id="@+id/charging_chart_container"
         android:layout_width="match_parent"
-        android:layout_height="67dp"
-        android:layout_marginTop="7dp">
+        android:layout_height="84dp"
+        android:layout_marginTop="6dp">
 
         <ImageView
             android:id="@+id/charging_chart"
