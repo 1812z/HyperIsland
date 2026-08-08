@@ -438,7 +438,6 @@ object FaceUnlockFocusController {
             putParcelable(FACE_SUCCESS_EXPAND_PICTURE, Icon.createWithBitmap(smallBitmap))
             putParcelable(FACE_SUCCESS_SMALL_PICTURE, Icon.createWithBitmap(smallBitmap))
         }
-        val firstFloat = ConfigManager.getBoolean(PREF_FIRST_FLOAT, true)
         val sequence = ++animationSequence
         val extras = Bundle().apply {
             putParcelable("miui.focus.rv", remoteViews)
@@ -447,10 +446,10 @@ object FaceUnlockFocusController {
             putString("miui.focus.ticker", " ")
             putString(
                 "miui.focus.param.custom",
-                buildStaticFaceSuccessFocusParam(firstFloat, sequence),
+                buildStaticFaceSuccessFocusParam(sequence),
             )
-            putBoolean("miui.island.firstFloat", firstFloat)
-            putBoolean("miui.enableFloat", true)
+            putBoolean("miui.island.firstFloat", false)
+            putBoolean("miui.enableFloat", false)
             putBoolean("show_notification", false)
             putBoolean("hyperisland_focus_proxy", true)
         }
@@ -489,7 +488,6 @@ object FaceUnlockFocusController {
     }
 
     private fun buildStaticFaceSuccessFocusParam(
-        firstFloat: Boolean,
         sequence: Long,
     ): String {
         val expandPicInfo = JSONObject()
@@ -523,8 +521,8 @@ object FaceUnlockFocusController {
 
         return JSONObject()
             .put("isShowNotification", false)
-            .put("islandFirstFloat", firstFloat)
-            .put("enableFloat", true)
+            .put("islandFirstFloat", false)
+            .put("enableFloat", false)
             .put("updatable", true)
             .put("sequence", sequence)
             .put("timeout", -1)
