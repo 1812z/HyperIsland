@@ -3080,6 +3080,12 @@ abstract class AppLocalizations {
   /// **'设备面板'**
   String get keepIslandFocusContentDevice;
 
+  /// No description provided for @keepIslandFocusContentCharging.
+  ///
+  /// In zh, this message translates to:
+  /// **'充电面板'**
+  String get keepIslandFocusContentCharging;
+
   /// No description provided for @keepIslandNotificationTitle.
   ///
   /// In zh, this message translates to:

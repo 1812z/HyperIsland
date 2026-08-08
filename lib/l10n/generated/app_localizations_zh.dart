@@ -1576,6 +1576,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get keepIslandFocusContentDevice => '设备面板';
 
   @override
+  String get keepIslandFocusContentCharging => '充电面板';
+
+  @override
   String get keepIslandNotificationTitle => '通知标题';
 
   @override

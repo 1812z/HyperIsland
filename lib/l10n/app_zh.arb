@@ -755,6 +755,7 @@
   "keepIslandFocusContentNotification": "普通通知",
   "keepIslandFocusContentPerformance": "性能面板",
   "keepIslandFocusContentDevice": "设备面板",
+  "keepIslandFocusContentCharging": "充电面板",
   "keepIslandNotificationTitle": "通知标题",
   "keepIslandNotificationContent": "通知正文",
   "keepIslandShowIslandIconTitle": "显示岛图标",

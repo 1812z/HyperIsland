@@ -178,6 +178,7 @@ const kChargeIslandDurationPersistent = 'persistent';
 const kKeepIslandFocusContentNotification = 'notification';
 const kKeepIslandFocusContentPerformance = 'performance';
 const kKeepIslandFocusContentDevice = 'device';
+const kKeepIslandFocusContentCharging = 'charging';
 
 const kFaceUnlockIslandAnimationDefault = 'default';
 const kFaceUnlockIslandAnimationLock = 'lock';
@@ -590,6 +591,7 @@ class SettingsController extends ChangeNotifier {
     )) {
       kKeepIslandFocusContentPerformance => kKeepIslandFocusContentPerformance,
       kKeepIslandFocusContentDevice => kKeepIslandFocusContentDevice,
+      kKeepIslandFocusContentCharging => kKeepIslandFocusContentCharging,
       _ => kKeepIslandFocusContentNotification,
     };
     keepIslandNotificationTitle =
@@ -1782,6 +1784,7 @@ class SettingsController extends ChangeNotifier {
     switch (value) {
       kKeepIslandFocusContentPerformance => kKeepIslandFocusContentPerformance,
       kKeepIslandFocusContentDevice => kKeepIslandFocusContentDevice,
+      kKeepIslandFocusContentCharging => kKeepIslandFocusContentCharging,
       _ => kKeepIslandFocusContentNotification,
     },
     (v) => keepIslandFocusContentType = v,

@@ -1680,6 +1680,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get keepIslandFocusContentDevice => 'Панель устройства';
 
   @override
+  String get keepIslandFocusContentCharging => 'Панель зарядки';
+
+  @override
   String get keepIslandNotificationTitle => 'Заголовок уведомления';
 
   @override

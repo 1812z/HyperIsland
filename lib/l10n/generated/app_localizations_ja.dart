@@ -1602,6 +1602,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get keepIslandFocusContentDevice => 'デバイスパネル';
 
   @override
+  String get keepIslandFocusContentCharging => '充電パネル';
+
+  @override
   String get keepIslandNotificationTitle => '通知タイトル';
 
   @override

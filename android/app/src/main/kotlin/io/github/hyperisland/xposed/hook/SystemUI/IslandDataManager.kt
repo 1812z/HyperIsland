@@ -156,6 +156,20 @@ object IslandDataManager {
         )
     }
 
+    fun chargingPanelSnapshot(): ChargingPanelSnapshot {
+        format(MODE_LEVEL)
+        format(MODE_TEMPERATURE)
+        format(MODE_POWER)
+        return ChargingPanelSnapshot(
+            isCharging = battery.isCharging,
+            levelPercent = battery.levelPercent,
+            temperatureCelsius = battery.temperatureCentiCelsius?.div(10.0),
+            powerWatt = battery.powerWatt(),
+            currentAmp = battery.currentMicroAmp?.let { abs(it) / 1000000.0 },
+            voltageVolt = battery.voltageMilliVolt?.div(1000.0),
+        )
+    }
+
     fun format(mode: String): String? {
         return runCatching {
             when (mode) {
@@ -368,6 +382,8 @@ object IslandDataManager {
         val voltageMilliVolt = intent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, 0).takeIf { it > 0 }
         val temperatureCentiCelsius = intent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, Int.MIN_VALUE)
             .takeIf { it != Int.MIN_VALUE }
+        val status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, BatteryManager.BATTERY_STATUS_UNKNOWN)
+        val plugged = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0)
         setBattery(
             battery.copy(
                 levelPercent = percent,
@@ -375,6 +391,10 @@ object IslandDataManager {
                 voltageMilliVolt = voltageMilliVolt,
                 voltageSource = voltageMilliVolt?.let { "BATTERY_CHANGED" },
                 temperatureCentiCelsius = temperatureCentiCelsius,
+                isCharging = plugged != 0 && (
+                        status == BatteryManager.BATTERY_STATUS_CHARGING ||
+                                status == BatteryManager.BATTERY_STATUS_FULL
+                        ),
             ),
         )
     }
@@ -881,6 +901,7 @@ object IslandDataManager {
         val currentMicroAmp: Int? = null,
         val currentSource: String? = null,
         val temperatureCentiCelsius: Int? = null,
+        val isCharging: Boolean = false,
     ) {
         fun toLogString(): String {
             val powerWatt = if (voltageMilliVolt != null && currentMicroAmp != null) {
@@ -946,6 +967,15 @@ object IslandDataManager {
         val uptime: String,
         val cpuUsagePercent: Double? = null,
         val memoryUsagePercent: Double? = null,
+    )
+
+    data class ChargingPanelSnapshot(
+        val isCharging: Boolean,
+        val levelPercent: Double? = null,
+        val temperatureCelsius: Double? = null,
+        val powerWatt: Double? = null,
+        val currentAmp: Double? = null,
+        val voltageVolt: Double? = null,
     )
 
     private data class DeviceInfoSnapshot(

@@ -484,6 +484,7 @@
   "keepIslandFocusContentNotification": "通常の通知",
   "keepIslandFocusContentPerformance": "パフォーマンスパネル",
   "keepIslandFocusContentDevice": "デバイスパネル",
+  "keepIslandFocusContentCharging": "充電パネル",
   "keepIslandFocusNotificationSubtitle": "フォーカス通知の内容を表示し、タップで展開できます",
   "keepIslandNotificationTitle": "通知タイトル",
   "keepIslandNotificationContent": "通知本文",

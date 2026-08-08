@@ -603,6 +603,7 @@
   "keepIslandFocusContentNotification": "Notification",
   "keepIslandFocusContentPerformance": "Performance panel",
   "keepIslandFocusContentDevice": "Device panel",
+  "keepIslandFocusContentCharging": "Charging panel",
   "keepIslandNotificationTitle": "Notification title",
   "keepIslandNotificationContent": "Notification content",
   "keepIslandShowIslandIconTitle": "Show island icon",

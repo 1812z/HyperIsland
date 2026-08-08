@@ -2,8 +2,12 @@ package io.github.hyperisland.xposed.hook
 
 import android.app.Application
 import android.app.ActivityManager
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
 import android.content.ComponentCallbacks
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -17,6 +21,7 @@ import android.hardware.display.DisplayManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.service.notification.StatusBarNotification
 import android.view.Display
 import android.view.Surface
@@ -119,6 +124,18 @@ object KeepIslandHook : BaseHook() {
 
     private var lastPerformanceSampleAt = 0L
 
+    private val chargingTrend = ArrayDeque<ChargingSample>()
+
+    private var chargingSessionStartedAt = 0L
+
+    private var lastChargingSampleAt = 0L
+
+    private var chargingSampleIntervalMs = CHARGING_SAMPLE_INTERVAL_MS
+
+    private var chargingChartMode = ChargingChartMode.POWER
+
+    private var chargingReceiverRegistered = false
+
     private var configurationCallbacksRegistered = false
 
     private var displayListenerRegistered = false
@@ -135,6 +152,11 @@ object KeepIslandHook : BaseHook() {
             cachedContentConfig = null
             carouselIndex = 0L
             lastCarouselAdvanceAt = System.currentTimeMillis()
+            if (ConfigManager.getString(PREF_KEY_FOCUS_CONTENT_TYPE, FOCUS_CONTENT_NOTIFICATION) !=
+                FOCUS_CONTENT_CHARGING
+            ) {
+                resetChargingSession()
+            }
             evaluateKeepIsland()
             if (posted) {
                 if (hasConfiguredKeepIslandContent()) {
@@ -170,6 +192,7 @@ object KeepIslandHook : BaseHook() {
                     registerConfigurationCallbacks(app.applicationContext)
                     registerDisplayListener(app.applicationContext)
                     registerIslandDataManager(app.applicationContext)
+                    registerChargingPanelReceiver(app.applicationContext)
                     mainHandler.postDelayed({ evaluateKeepIsland() }, 3000)
                 }
                 result
@@ -522,6 +545,7 @@ object KeepIslandHook : BaseHook() {
         return when (ConfigManager.getString(PREF_KEY_FOCUS_CONTENT_TYPE, FOCUS_CONTENT_NOTIFICATION)) {
             FOCUS_CONTENT_PERFORMANCE -> resolvePerformanceFocusContent(context)
             FOCUS_CONTENT_DEVICE -> resolveDeviceFocusContent(context)
+            FOCUS_CONTENT_CHARGING -> resolveChargingFocusContent(context)
             else -> {
                 val texts = resolveFocusNotificationTexts()
                 FocusContent(
@@ -631,6 +655,233 @@ object KeepIslandHook : BaseHook() {
             islandExpandRemoteViews = remoteViews,
             signature = signature,
         )
+    }
+
+    private fun resolveChargingFocusContent(context: Context): FocusContent {
+        val snapshot = IslandDataManager.chargingPanelSnapshot()
+        updateChargingSession(snapshot)
+        val powerText = snapshot.powerWatt?.let { String.format(Locale.US, "%.1fW", it) } ?: "--W"
+        val currentText = snapshot.currentAmp?.let { String.format(Locale.US, "%.2fA", it) } ?: "--A"
+        val voltageText = snapshot.voltageVolt?.let { String.format(Locale.US, "%.2fV", it) } ?: "--V"
+        val temperatureText = snapshot.temperatureCelsius?.let {
+            String.format(Locale.US, "%.1f°C", it)
+        } ?: "--°C"
+        val moduleContext = context.moduleContext()
+        val switchIntent = PendingIntent.getBroadcast(
+            context,
+            CHARGING_MODE_REQUEST_CODE,
+            Intent(ACTION_SWITCH_CHARGING_CHART).setPackage(context.packageName),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val remoteViews = RemoteViews(
+            moduleContext.packageName,
+            R.layout.focus_notification_charging,
+        ).apply {
+            setTextViewText(R.id.charging_primary, powerText)
+            setTextViewText(R.id.charging_mode, chargingChartMode.label)
+            setTextViewText(
+                R.id.charging_details,
+                "$currentText · $voltageText · $temperatureText",
+            )
+            setImageViewBitmap(R.id.charging_chart, drawChargingChart(context))
+            setOnClickPendingIntent(R.id.charging_mode, switchIntent)
+            setOnClickPendingIntent(R.id.charging_chart_container, switchIntent)
+        }
+        val signature = buildString {
+            append("charging\u0000")
+            append(snapshot.isCharging).append('\u0000')
+            append(powerText).append('\u0000')
+            append(currentText).append('\u0000')
+            append(voltageText).append('\u0000')
+            append(temperatureText).append('\u0000')
+            append(chargingChartMode.name).append('\u0000')
+            append(chargingTrend.size).append('\u0000')
+            chargingTrend.lastOrNull()?.let {
+                append(it.elapsedMillis).append(':')
+                append(it.powerWatt).append(':')
+                append(it.levelPercent).append(':')
+                append(it.temperatureCelsius)
+            }
+        }
+        return FocusContent(
+            title = "充电",
+            content = powerText,
+            remoteViews = null,
+            islandExpandRemoteViews = remoteViews,
+            signature = signature,
+        )
+    }
+
+    private fun updateChargingSession(snapshot: IslandDataManager.ChargingPanelSnapshot) {
+        val now = SystemClock.elapsedRealtime()
+        if (!snapshot.isCharging) {
+            resetChargingSession()
+            return
+        }
+        if (chargingSessionStartedAt == 0L) {
+            chargingSessionStartedAt = now
+            lastChargingSampleAt = 0L
+            chargingChartMode = ChargingChartMode.POWER
+        }
+        if (lastChargingSampleAt != 0L && now - lastChargingSampleAt < chargingSampleIntervalMs) return
+        lastChargingSampleAt = now
+        chargingTrend.addLast(
+            ChargingSample(
+                elapsedMillis = now - chargingSessionStartedAt,
+                powerWatt = snapshot.powerWatt,
+                levelPercent = snapshot.levelPercent,
+                temperatureCelsius = snapshot.temperatureCelsius,
+            ),
+        )
+        if (chargingTrend.size > CHARGING_MAX_SAMPLES) compactChargingTrend()
+    }
+
+    private fun resetChargingSession() {
+        chargingTrend.clear()
+        chargingSessionStartedAt = 0L
+        lastChargingSampleAt = 0L
+        chargingSampleIntervalMs = CHARGING_SAMPLE_INTERVAL_MS
+        chargingChartMode = ChargingChartMode.POWER
+    }
+
+    private fun compactChargingTrend() {
+        if (chargingTrend.size < 3) return
+        val values = chargingTrend.toList()
+        chargingTrend.clear()
+        chargingTrend.addLast(values.first())
+        var index = 1
+        while (index < values.lastIndex) {
+            val first = values[index]
+            val second = values.getOrNull(index + 1) ?: first
+            chargingTrend.addLast(
+                ChargingSample(
+                    elapsedMillis = second.elapsedMillis,
+                    powerWatt = averageNullable(first.powerWatt, second.powerWatt),
+                    levelPercent = averageNullable(first.levelPercent, second.levelPercent),
+                    temperatureCelsius = averageNullable(
+                        first.temperatureCelsius,
+                        second.temperatureCelsius,
+                    ),
+                ),
+            )
+            index += 2
+        }
+        if (chargingTrend.last().elapsedMillis != values.last().elapsedMillis) {
+            chargingTrend.addLast(values.last())
+        }
+        chargingSampleIntervalMs *= 2L
+    }
+
+    private fun averageNullable(first: Double?, second: Double?): Double? = when {
+        first != null && second != null -> (first + second) / 2.0
+        first != null -> first
+        else -> second
+    }
+
+    private fun drawChargingChart(context: Context): Bitmap {
+        val density = context.resources.displayMetrics.density.coerceAtMost(2f)
+        val width = 660
+        val height = 134
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val left = 78f
+        val right = width - 10f
+        val top = 9f
+        val bottom = height - 25f
+        val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.argb(145, 255, 255, 255)
+            textSize = 18f * density.coerceAtMost(1.4f)
+        }
+        val gridPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.argb(25, 255, 255, 255)
+            strokeWidth = density
+        }
+        val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = chargingChartMode.color
+            strokeWidth = 2f * density
+            style = Paint.Style.STROKE
+            strokeCap = Paint.Cap.ROUND
+            strokeJoin = Paint.Join.ROUND
+        }
+        val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.argb(38, Color.red(chargingChartMode.color), Color.green(chargingChartMode.color), Color.blue(chargingChartMode.color))
+            style = Paint.Style.FILL
+        }
+        val samples = chargingTrend.toList()
+        val values = samples.mapNotNull { sample ->
+            chargingChartMode.value(sample)?.let { sample.elapsedMillis to it }
+        }
+        val rawMax = values.maxOfOrNull { it.second } ?: chargingChartMode.defaultMax
+        val maxValue = chargingChartMode.axisMax(rawMax)
+        for (row in 0..2) {
+            val y = top + (bottom - top) * row / 2f
+            canvas.drawLine(left, y, right, y, gridPaint)
+            val value = maxValue * (2 - row) / 2.0
+            canvas.drawText(chargingChartMode.formatAxis(value), 0f, y + 6f, labelPaint)
+        }
+        val maxElapsed = samples.lastOrNull()?.elapsedMillis?.coerceAtLeast(1L) ?: 1L
+        canvas.drawText("0", left, height - 4f, labelPaint)
+        val elapsedLabel = formatChargingElapsed(maxElapsed)
+        canvas.drawText(
+            elapsedLabel,
+            right - labelPaint.measureText(elapsedLabel),
+            height - 4f,
+            labelPaint,
+        )
+        if (values.size >= 2) {
+            val linePath = Path()
+            var firstX = left
+            var lastX = left
+            values.forEachIndexed { index, (elapsed, value) ->
+                val x = left + (right - left) * elapsed / maxElapsed.toFloat()
+                val y = bottom - (bottom - top) * (value / maxValue).coerceIn(0.0, 1.0).toFloat()
+                if (index == 0) {
+                    firstX = x
+                    linePath.moveTo(x, y)
+                } else {
+                    linePath.lineTo(x, y)
+                }
+                lastX = x
+            }
+            val fillPath = Path(linePath).apply {
+                lineTo(lastX, bottom)
+                lineTo(firstX, bottom)
+                close()
+            }
+            canvas.drawPath(fillPath, fillPaint)
+            canvas.drawPath(linePath, linePaint)
+        }
+        return bitmap
+    }
+
+    private fun formatChargingElapsed(elapsedMillis: Long): String {
+        val minutes = elapsedMillis / 60000L
+        return if (minutes >= 60L) "${minutes / 60L}h${minutes % 60L}m" else "${minutes}m"
+    }
+
+    private fun registerChargingPanelReceiver(context: Context) {
+        if (chargingReceiverRegistered) return
+        chargingReceiverRegistered = true
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(receiverContext: Context?, intent: Intent?) {
+                if (intent?.action != ACTION_SWITCH_CHARGING_CHART) return
+                if (ConfigManager.getString(PREF_KEY_FOCUS_CONTENT_TYPE, FOCUS_CONTENT_NOTIFICATION) !=
+                    FOCUS_CONTENT_CHARGING
+                ) return
+                chargingChartMode = chargingChartMode.next()
+                appContext?.let { updateKeepIslandContent(it, force = true) }
+            }
+        }
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            context.registerReceiver(
+                receiver,
+                IntentFilter(ACTION_SWITCH_CHARGING_CHART),
+                Context.RECEIVER_NOT_EXPORTED,
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            context.registerReceiver(receiver, IntentFilter(ACTION_SWITCH_CHARGING_CHART))
+        }
     }
 
     private fun samplePerformanceTrend(snapshot: IslandDataManager.PerformanceSnapshot) {
@@ -849,7 +1100,7 @@ object KeepIslandHook : BaseHook() {
         if (hasIslandContent) return true
         if (!ConfigManager.getBoolean(PREF_KEY_FOCUS_NOTIFICATION, false)) return false
         if (ConfigManager.getString(PREF_KEY_FOCUS_CONTENT_TYPE, FOCUS_CONTENT_NOTIFICATION) in
-            setOf(FOCUS_CONTENT_PERFORMANCE, FOCUS_CONTENT_DEVICE)
+            setOf(FOCUS_CONTENT_PERFORMANCE, FOCUS_CONTENT_DEVICE, FOCUS_CONTENT_CHARGING)
         ) return true
         return ConfigManager.getString(PREF_KEY_NOTIFICATION_TITLE, "").isNotBlank() ||
                 ConfigManager.getString(PREF_KEY_NOTIFICATION_CONTENT, "").isNotBlank()
@@ -872,7 +1123,7 @@ object KeepIslandHook : BaseHook() {
                 .coerceIn(1, 6000) * 1000L,
         ).also { cachedContentConfig = it }
     }
-
+    
     private fun decodeContentList(raw: String, defaultContent: String, isConfigured: Boolean): List<String> {
         if (!isConfigured) return listOf(defaultContent)
         return runCatching {
@@ -1073,11 +1324,54 @@ object KeepIslandHook : BaseHook() {
         val signature: String,
     )
 
+    private data class ChargingSample(
+        val elapsedMillis: Long,
+        val powerWatt: Double?,
+        val levelPercent: Double?,
+        val temperatureCelsius: Double?,
+    )
+
+    private enum class ChargingChartMode(
+        val label: String,
+        val color: Int,
+        val defaultMax: Double,
+    ) {
+        POWER("功率", Color.rgb(93, 220, 145), 20.0),
+        LEVEL("电量", Color.rgb(100, 190, 255), 100.0),
+        TEMPERATURE("温度", Color.rgb(255, 176, 90), 45.0);
+
+        fun next(): ChargingChartMode = entries[(ordinal + 1) % entries.size]
+
+        fun value(sample: ChargingSample): Double? = when (this) {
+            POWER -> sample.powerWatt
+            LEVEL -> sample.levelPercent
+            TEMPERATURE -> sample.temperatureCelsius
+        }
+
+        fun axisMax(rawMax: Double): Double = when (this) {
+            POWER -> ((rawMax.coerceAtLeast(5.0) / 5.0).toInt() + 1) * 5.0
+            LEVEL -> 100.0
+            TEMPERATURE -> ((rawMax.coerceAtLeast(30.0) / 5.0).toInt() + 1) * 5.0
+        }
+
+        fun formatAxis(value: Double): String = when (this) {
+            POWER -> "${value.roundToInt()}W"
+            LEVEL -> "${value.roundToInt()}%"
+            TEMPERATURE -> "${value.roundToInt()}°"
+        }
+    }
+
     private const val DEFAULT_LEFT_CONTENT = "{time.HH:mm}"
     private const val DEFAULT_RIGHT_CONTENT = "{battery.level}"
 
     private const val FOCUS_CONTENT_NOTIFICATION = "notification"
     private const val FOCUS_CONTENT_PERFORMANCE = "performance"
     private const val FOCUS_CONTENT_DEVICE = "device"
+    private const val FOCUS_CONTENT_CHARGING = "charging"
     private const val PERFORMANCE_TREND_POINTS = 24
+    private const val CHARGING_MAX_SAMPLES = 120
+    private const val CHARGING_SAMPLE_INTERVAL_MS = 5000L
+    private const val CHARGING_MODE_REQUEST_CODE = 0x434847
+    private const val ACTION_SWITCH_CHARGING_CHART =
+        "io.github.hyperisland.action.SWITCH_CHARGING_CHART"
 }

@@ -1663,6 +1663,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get keepIslandFocusContentDevice => 'Cihaz paneli';
 
   @override
+  String get keepIslandFocusContentCharging => 'Şarj paneli';
+
+  @override
   String get keepIslandNotificationTitle => 'Bildirim başlığı';
 
   @override

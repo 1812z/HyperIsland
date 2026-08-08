@@ -631,6 +631,7 @@
   "keepIslandFocusContentNotification": "Bildirim",
   "keepIslandFocusContentPerformance": "Performans paneli",
   "keepIslandFocusContentDevice": "Cihaz paneli",
+  "keepIslandFocusContentCharging": "Şarj paneli",
   "keepIslandFocusNotificationSubtitle": "Odak bildirim içeriğini göster ve dokunarak genişletmeyi destekle",
   "keepIslandNotificationTitle": "Bildirim başlığı",
   "keepIslandNotificationContent": "Bildirim içeriği",

@@ -569,6 +569,7 @@
   "keepIslandFocusContentNotification": "Уведомление",
   "keepIslandFocusContentPerformance": "Панель производительности",
   "keepIslandFocusContentDevice": "Панель устройства",
+  "keepIslandFocusContentCharging": "Панель зарядки",
   "keepIslandFocusNotificationSubtitle": "Показывать содержимое фокус-уведомления и раскрывать его по нажатию",
   "keepIslandNotificationTitle": "Заголовок уведомления",
   "keepIslandNotificationContent": "Текст уведомления",

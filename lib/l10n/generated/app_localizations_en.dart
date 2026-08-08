@@ -1670,6 +1670,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get keepIslandFocusContentDevice => 'Device panel';
 
   @override
+  String get keepIslandFocusContentCharging => 'Charging panel';
+
+  @override
   String get keepIslandNotificationTitle => 'Notification title';
 
   @override

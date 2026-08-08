@@ -388,6 +388,12 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
                                 value: kKeepIslandFocusContentDevice,
                                 child: Text(l10n.keepIslandFocusContentDevice),
                               ),
+                              DropdownMenuItem(
+                                value: kKeepIslandFocusContentCharging,
+                                child: Text(
+                                  l10n.keepIslandFocusContentCharging,
+                                ),
+                              ),
                             ],
                             onChanged: (value) {
                               if (value != null) {
