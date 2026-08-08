@@ -654,6 +654,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                 Card(
                   elevation: 0,
                   color: cs.surfaceContainerHighest,
+                  clipBehavior: Clip.antiAlias,
                   child: Column(
                     children: [
                       _DimenTile(
@@ -838,6 +839,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                 Card(
                   elevation: 0,
                   color: cs.surfaceContainerHighest,
+                  clipBehavior: Clip.antiAlias,
                   child: Column(
                     children: [
                       _IslandBgTile(
@@ -943,6 +945,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                 Card(
                   elevation: 0,
                   color: cs.surfaceContainerHighest,
+                  clipBehavior: Clip.antiAlias,
                   child: Column(
                     children: [
                       ListTile(
@@ -1032,6 +1035,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                 Card(
                   elevation: 0,
                   color: cs.surfaceContainerHighest,
+                  clipBehavior: Clip.antiAlias,
                   child: Column(
                     children: [
                       ListTile(
@@ -1093,6 +1097,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                 Card(
                   elevation: 0,
                   color: cs.surfaceContainerHighest,
+                  clipBehavior: Clip.antiAlias,
                   child: Column(
                     children: [
                       SwitchListTile(
@@ -1136,6 +1141,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                 Card(
                   elevation: 0,
                   color: cs.surfaceContainerHighest,
+                  clipBehavior: Clip.antiAlias,
                   child: Column(
                     children: [
                       SwitchListTile(
@@ -1177,6 +1183,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                 Card(
                   elevation: 0,
                   color: cs.surfaceContainerHighest,
+                  clipBehavior: Clip.antiAlias,
                   child: Column(
                     children: [
                       _DimenTile(
@@ -1233,39 +1240,42 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     return DropdownButtonHideUnderline(
       child: SizedBox(
         width: dropdownWidth,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          decoration: BoxDecoration(
-            color: cs.surfaceContainerHigh,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: cs.outlineVariant),
-          ),
-          child: DropdownButton<String>(
-            value: value,
-            isExpanded: true,
-            alignment: Alignment.center,
-            borderRadius: BorderRadius.circular(16),
-            onChanged: InteractionHaptics.interceptDropdown((next) {
-              if (next == null) return;
-              onChanged(next);
-            }),
-            selectedItemBuilder: (context) => [
-              for (final item in values)
-                Center(
-                  child: Text(
-                    _textColorModeLabel(l10n, item),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: cs.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: cs.outlineVariant),
+            ),
+            child: DropdownButton<String>(
+              value: value,
+              isExpanded: true,
+              alignment: Alignment.center,
+              borderRadius: BorderRadius.circular(16),
+              onChanged: InteractionHaptics.interceptDropdown((next) {
+                if (next == null) return;
+                onChanged(next);
+              }),
+              selectedItemBuilder: (context) => [
+                for (final item in values)
+                  Center(
+                    child: Text(
+                      _textColorModeLabel(l10n, item),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-            ],
-            items: [
-              for (final item in values)
-                DropdownMenuItem<String>(
-                  value: item,
-                  child: Text(_textColorModeLabel(l10n, item)),
-                ),
-            ],
+              ],
+              items: [
+                for (final item in values)
+                  DropdownMenuItem<String>(
+                    value: item,
+                    child: Text(_textColorModeLabel(l10n, item)),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
