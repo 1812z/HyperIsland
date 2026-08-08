@@ -86,7 +86,7 @@ object BluetoothIslandHook : BaseHook() {
             }
             IslandDispatcher.register(appContext, module)
             registered = true
-            logWarn(module, "bluetooth receiver registered, enabled=${ConfigManager.getBoolean(PREF_ENABLED, false)}")
+            log(module, "bluetooth receiver registered, enabled=${ConfigManager.getBoolean(PREF_ENABLED, false)}")
         }
     }
 
@@ -96,14 +96,6 @@ object BluetoothIslandHook : BaseHook() {
             val enabled = ConfigManager.getBoolean(PREF_ENABLED, false)
             val showDeviceName = ConfigManager.getBoolean(PREF_SHOW_DEVICE_NAME, true)
             val displayDurationSecs = getDisplayDurationSecs()
-            val showDeviceNameStored = ConfigManager.contains(PREF_SHOW_DEVICE_NAME)
-            moduleRef?.let {
-                logWarn(
-                    it,
-                    "received bluetooth broadcast: action=$action enabled=$enabled " +
-                        "showDeviceName=$showDeviceName stored=$showDeviceNameStored",
-                )
-            }
             if (!enabled) return
             if (action == ACTION_BATTERY_LEVEL_CHANGED) {
                 val battery = readBatteryLevel(intent)
@@ -112,24 +104,12 @@ object BluetoothIslandHook : BaseHook() {
                 val key = deviceKey(intent, deviceName)
                 // 白名单检查
                 val btAddr = getBluetoothDevice(intent)?.address
-                if (!isDeviceAllowedByWhitelist(btAddr)) {
-                    moduleRef?.let {
-                        logWarn(it, "skip battery island: device not in whitelist address=$btAddr")
-                    }
-                    return
-                }
+                if (!isDeviceAllowedByWhitelist(btAddr)) return
                 val hasPendingNameRefresh = pendingNameRefreshes.containsKey(key)
-                moduleRef?.let {
-                    logWarn(
-                        it,
-                        "bluetooth battery broadcast: battery=$battery key=$key " +
-                            "deviceName=$deviceName pendingNameRefresh=$hasPendingNameRefresh",
-                    )
-                }
                 if (showDeviceName && hasPendingNameRefresh) {
                     if (battery in 0..100) lastBattery = battery
                     moduleRef?.let {
-                        logWarn(
+                        log(
                             it,
                             "skip bluetooth battery update while device name is showing: key=$key cachedBattery=$lastBattery",
                         )
@@ -138,7 +118,7 @@ object BluetoothIslandHook : BaseHook() {
                 }
                 if (lastConnected && battery in 0..100) {
                     lastBattery = battery
-                    moduleRef?.let { logWarn(it, "bluetooth battery changed: battery=$battery") }
+                    moduleRef?.let { log(it, "bluetooth battery changed: battery=$battery") }
                     postBluetoothIsland(
                         context = context,
                         connected = true,
@@ -150,7 +130,7 @@ object BluetoothIslandHook : BaseHook() {
                     )
                 } else {
                     moduleRef?.let {
-                        logWarn(
+                        log(
                             it,
                             "skip bluetooth battery update: connected=$lastConnected battery=$battery key=$key",
                         )
@@ -167,7 +147,7 @@ object BluetoothIslandHook : BaseHook() {
             val deviceAddress = getBluetoothDevice(intent)?.address
             if (!isDeviceAllowedByWhitelist(deviceAddress)) {
                 moduleRef?.let {
-                    logWarn(
+                    log(
                         it,
                         "skip bluetooth island: device not in whitelist address=$deviceAddress",
                     )
@@ -183,7 +163,7 @@ object BluetoothIslandHook : BaseHook() {
             if (battery in 0..100) lastBattery = battery
             val key = deviceKey(intent, deviceName)
             moduleRef?.let {
-                logWarn(
+                log(
                     it,
                     "bluetooth state changed: connected=$connected battery=$battery " +
                         "deviceName=$deviceName key=$key showDeviceName=$showDeviceName " +
@@ -192,7 +172,7 @@ object BluetoothIslandHook : BaseHook() {
             }
             if (connected && battery !in 0..100 && !showDeviceName) {
                 moduleRef?.let {
-                    logWarn(
+                    log(
                         it,
                         "skip bluetooth connected island: battery unknown deviceName=$deviceName key=$key",
                     )
@@ -200,12 +180,6 @@ object BluetoothIslandHook : BaseHook() {
                 return
             }
             if (showDeviceName && connected) {
-                moduleRef?.let {
-                    logWarn(
-                        it,
-                        "post bluetooth device name first: deviceName=$deviceName key=$key battery=$battery",
-                    )
-                }
                 postBluetoothIsland(
                     context = context,
                     connected = connected,
@@ -226,7 +200,7 @@ object BluetoothIslandHook : BaseHook() {
             } else {
                 pendingNameRefreshes.remove(key)?.let { mainHandler.removeCallbacks(it) }
                 moduleRef?.let {
-                    logWarn(
+                    log(
                         it,
                         "post bluetooth status directly: connected=$connected deviceName=$deviceName key=$key battery=$battery",
                     )
@@ -264,7 +238,7 @@ object BluetoothIslandHook : BaseHook() {
                 entry.trim().removeSurrounding("\"", "\"").equals(deviceAddress, ignoreCase = true)
             }
         } catch (e: Throwable) {
-            moduleRef?.let { logWarn(it, "whitelist parse failed: ${e.message}") }
+            moduleRef?.let { logError(it, "whitelist parse failed: ${e.message}") }
             false
         }
     }
@@ -309,7 +283,7 @@ object BluetoothIslandHook : BaseHook() {
         val fromCache = readCachedDeviceName(intent)
         val resolved = fromDevice ?: fromCache ?: device?.address ?: "Bluetooth"
         moduleRef?.let {
-            logWarn(
+            log(
                 it,
                 "resolve bluetooth device name: resolved=$resolved fromDevice=$fromDevice " +
                     "fromCache=$fromCache address=${device?.address}",
@@ -335,7 +309,7 @@ object BluetoothIslandHook : BaseHook() {
             pendingNameRefreshes.remove(key)
             val refreshBattery = if (connected && lastBattery in 0..100) lastBattery else battery
             moduleRef?.let {
-                logWarn(
+                log(
                     it,
                     "delayed bluetooth status refresh: key=$key connected=$connected " +
                         "battery=$battery refreshBattery=$refreshBattery deviceName=$deviceName",
@@ -352,13 +326,6 @@ object BluetoothIslandHook : BaseHook() {
             )
         }
         pendingNameRefreshes[key] = runnable
-        moduleRef?.let {
-            logWarn(
-                it,
-                "schedule bluetooth status refresh: key=$key delayMs=${displayDurationSecs * 1000L} " +
-                    "pendingCount=${pendingNameRefreshes.size}",
-            )
-        }
         mainHandler.postDelayed(runnable, displayDurationSecs * 1000L)
     }
 
@@ -377,7 +344,7 @@ object BluetoothIslandHook : BaseHook() {
                 ?.takeIf { it in 0..100 }
                 ?: -1
         } catch (e: Throwable) {
-            moduleRef?.let { logWarn(it, "read battery level failed: ${e.message}") }
+            moduleRef?.let { logError(it, "read battery level failed: ${e.message}") }
             -1
         }
     }
@@ -397,14 +364,6 @@ object BluetoothIslandHook : BaseHook() {
         val content = rightTextOverride
             ?: if (battery in 0..100) mc.getString(R.string.bluetooth_battery, "$battery%")
                else mc.getString(R.string.bluetooth_battery_unknown)
-        moduleRef?.let {
-            logWarn(
-                it,
-                    "posting bluetooth island: title=$title right=$content connected=$connected " +
-                    "battery=$battery deviceName=$deviceName override=${rightTextOverride != null} " +
-                    "clearBeforePost=$clearBeforePost timeoutSecs=$timeoutSecs",
-            )
-        }
         val outerGlow = ConfigManager.getBoolean(PREF_OUTER_GLOW, false)
         val outerGlowColor = ConfigManager.getString(PREF_OUTER_GLOW_COLOR, "")
         IslandDispatcher.post(
