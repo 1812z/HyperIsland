@@ -76,14 +76,19 @@ object IslandBackgroundHook : BaseHook() {
     /** island 类型枚举 */
     private enum class IslandType { SMALL, BIG, EXPAND }
 
-    /** 按类型缓存 drawable */
-    private val cachedDrawables = ConcurrentHashMap<IslandType, Drawable>()
+    private data class DrawableCacheKey(
+        val type: IslandType,
+        val stokeWidth: Int,
+    )
 
-    /** 按类型记录上次文件修改时间 */
-    private val lastFileModified = ConcurrentHashMap<IslandType, Long>()
+    /** 真实外层背景和过渡假视图使用不同 bounds，不能共享同一个 drawable。 */
+    private val cachedDrawables = ConcurrentHashMap<DrawableCacheKey, Drawable>()
 
-    /** 按类型记录上次配置的路径字符串 */
-    private val lastConfigPath = ConcurrentHashMap<IslandType, String>()
+    /** 按类型和描边宽度记录上次文件修改时间 */
+    private val lastFileModified = ConcurrentHashMap<DrawableCacheKey, Long>()
+
+    /** 按类型和描边宽度记录上次配置的路径字符串 */
+    private val lastConfigPath = ConcurrentHashMap<DrawableCacheKey, String>()
 
     /** 按实际目标 Class 去重，避免委托 ClassLoader 对同一方法重复安装 Hook。 */
     private val hookedBackgroundClasses = Collections.synchronizedSet(
@@ -838,6 +843,7 @@ object IslandBackgroundHook : BaseHook() {
         module: XposedModule,
         stokeWidth: Int = 0
     ): Drawable? {
+        val cacheKey = DrawableCacheKey(type, stokeWidth.coerceAtLeast(0))
         val configPath = when (type) {
             IslandType.SMALL -> ConfigManager.getString(KEY_SMALL_BG)
             IslandType.BIG -> ConfigManager.getString(KEY_BIG_BG)
@@ -860,30 +866,30 @@ object IslandBackgroundHook : BaseHook() {
         }
 
         val currentModified = file.lastModified()
-        val cachedModified = lastFileModified[type] ?: 0L
-        val cachedPath = lastConfigPath[type] ?: ""
+        val cachedModified = lastFileModified[cacheKey] ?: 0L
+        val cachedPath = lastConfigPath[cacheKey] ?: ""
 
-        val cachedDrawable = cachedDrawables[type]
+        val cachedDrawable = cachedDrawables[cacheKey]
         if (cachedDrawable is RoundedClippingAnimatedDrawable) {
             cachedDrawable.start()
         }
 
         if (cachedDrawable == null || currentModified != cachedModified || cachedPath != configPath) {
             synchronized(this) {
-                if (cachedDrawables[type] == null || currentModified != (lastFileModified[type] ?: 0L) || lastConfigPath[type] != configPath) {
-                    val drawable = decodeFile(file, context, module, stokeWidth)
+                if (cachedDrawables[cacheKey] == null || currentModified != (lastFileModified[cacheKey] ?: 0L) || lastConfigPath[cacheKey] != configPath) {
+                    val drawable = decodeFile(file, context, module, cacheKey.stokeWidth)
                     if (drawable != null) {
-                        val previous = cachedDrawables.put(type, drawable)
+                        val previous = cachedDrawables.put(cacheKey, drawable)
                         if (previous is RoundedClippingAnimatedDrawable && previous !== drawable) {
                             previous.release()
                         }
-                        lastFileModified[type] = currentModified
-                        lastConfigPath[type] = configPath
+                        lastFileModified[cacheKey] = currentModified
+                        lastConfigPath[cacheKey] = configPath
                     }
                 }
             }
         }
-        return cachedDrawables[type]
+        return cachedDrawables[cacheKey]
     }
 
     /**
@@ -1116,15 +1122,16 @@ object IslandBackgroundHook : BaseHook() {
             val bounds = getBounds()
             if (bounds.isEmpty || bitmap.isRecycled) return
 
-            // The stock stroke is drawn inside the same outer bounds. Insetting the fill by
-            // stokeWidth exposes that cleared stock layer as a ring and makes focus cards
-            // visibly smaller than their original geometry.
+            // SystemUI expands DynamicIslandBackgroundView's drawable bounds by stokeWidth,
+            // while the content outline and glow aperture keep using the unexpanded island rect.
+            val inset = stokeWidth.coerceAtLeast(0).toFloat()
             rect.set(
-                bounds.left.toFloat(),
-                bounds.top.toFloat(),
-                bounds.right.toFloat(),
-                bounds.bottom.toFloat(),
+                bounds.left + inset,
+                bounds.top + inset,
+                bounds.right - inset,
+                bounds.bottom - inset,
             )
+            if (rect.isEmpty) return
 
             clipPath.reset()
             clipPath.addRoundRect(rect, cornerRadius, cornerRadius, Path.Direction.CW)
@@ -1195,12 +1202,14 @@ object IslandBackgroundHook : BaseHook() {
             val bounds = getBounds()
             if (bounds.isEmpty) return
 
+            val inset = stokeWidth.coerceAtLeast(0).toFloat()
             rect.set(
-                bounds.left.toFloat(),
-                bounds.top.toFloat(),
-                bounds.right.toFloat(),
-                bounds.bottom.toFloat(),
+                bounds.left + inset,
+                bounds.top + inset,
+                bounds.right - inset,
+                bounds.bottom - inset,
             )
+            if (rect.isEmpty) return
 
             clipPath.reset()
             clipPath.addRoundRect(rect, cornerRadius, cornerRadius, Path.Direction.CW)
