@@ -126,35 +126,6 @@ object FocusNotificationTextColorHook : BaseHook() {
             }
         }
 
-        BUTTON_HOLDER_CLASSES.forEach { className ->
-            runCatching {
-                val buttonHolderClass = classLoader.loadClass(className)
-                if (hookedClasses.add(buttonHolderClass)) {
-                    hookButtonTextColors(module, buttonHolderClass)
-                }
-            }.onFailure { error ->
-                if (error !is ClassNotFoundException) {
-                    logError(module, "failed to hook $className: ${error.message}")
-                }
-            }
-        }
-
-    }
-
-    private fun hookButtonTextColors(module: XposedModule, holderClass: Class<*>) {
-        holderClass.declaredMethods
-            .filter { method -> method.name == "bind" && method.parameterTypes.size == 2 }
-            .forEach { method ->
-                module.hook(method).intercept { chain ->
-                    val result = chain.proceed()
-                    chain.thisObject?.let { holder ->
-                        trackedButtonHolders.add(holder)
-                        captureAndApplyButtonColors(holder)
-                    }
-                    result
-                }
-                log(module, "hooked ${holderClass.simpleName}#bind button text colors")
-            }
     }
 
     private fun hookCollapseDirection(module: XposedModule, coordinatorClass: Class<*>) {
@@ -228,6 +199,22 @@ object FocusNotificationTextColorHook : BaseHook() {
                     result
                 }
                 log(module, "hooked ModuleViewHolder#initTextAndColor")
+            }
+
+        holderClass.declaredMethods
+            .filter { method -> method.name == "bind" && method.parameterTypes.size == 2 }
+            .forEach { method ->
+                module.hook(method).intercept { chain ->
+                    val holder = chain.thisObject
+                    val result = chain.proceed()
+                    if (holder != null) {
+                        getHolderView(holder)?.post {
+                            captureAndApplyButtonColors(holder)
+                        }
+                    }
+                    result
+                }
+                log(module, "hooked ModuleViewHolder#bind button text colors")
             }
     }
 
@@ -380,11 +367,11 @@ object FocusNotificationTextColorHook : BaseHook() {
         collectButtonTextViews(root, buttons)
         if (buttons.isEmpty()) return
 
+        trackedButtonHolders.add(holder)
         originalButtonColors[holder] = buttons.map { button ->
             OriginalButtonColor(WeakReference(button), button.textColors)
         }
         applyButtonColors(holder)
-        root.post { applyButtonColors(holder) }
     }
 
     private fun reapplyButtonColors(holder: Any) {
@@ -573,22 +560,6 @@ object FocusNotificationTextColorHook : BaseHook() {
     private data class OriginalButtonColor(
         val view: WeakReference<TextView>,
         val colors: ColorStateList,
-    )
-
-    private val BUTTON_HOLDER_CLASSES = listOf(
-        "miui.systemui.notification.focus.moduleV3.ModuleButtonViewHolder",
-        "miui.systemui.notification.focus.moduleV3.ModuleTextButtonViewHolder",
-        "miui.systemui.notification.focus.moduleV3.ModuleTextButton4ViewHolder",
-        "miui.systemui.notification.focus.moduleV3.ModuleTextButton5ViewHolder",
-        "miui.systemui.notification.focus.moduleV3.ModuleTinyTextButtonViewHolder",
-        "miui.systemui.notification.focus.moduleV3.ModuleTinyTextButton4ViewHolder",
-        "miui.systemui.notification.focus.moduleV3.ModuleTinyTextButton5ViewHolder",
-        "miui.systemui.notification.focus.moduleV3.ModuleDecoLandTextButtonViewHolder",
-        "miui.systemui.notification.focus.moduleV3.ModuleDecoLandTextButton4ViewHolder",
-        "miui.systemui.notification.focus.moduleV3.ModuleDecoLandTextButton5ViewHolder",
-        "miui.systemui.notification.focus.moduleV3.ModuleDecoPortTextButtonViewHolder",
-        "miui.systemui.notification.focus.moduleV3.ModuleDecoPortTextButton4ViewHolder",
-        "miui.systemui.notification.focus.moduleV3.ModuleDecoPortTextButton5ViewHolder",
     )
 
     private const val BUTTON_TITLE_ID = "focus_button_title"

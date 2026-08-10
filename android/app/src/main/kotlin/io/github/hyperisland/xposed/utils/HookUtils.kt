@@ -7,6 +7,9 @@ import io.github.libxposed.api.XposedModule
  */
 object HookUtils {
 
+    private val dynamicClassLoaderCallbacks = mutableListOf<(ClassLoader) -> Unit>()
+    private var dynamicClassLoaderHooksInstalled = false
+
     /**
      * 从类加载器获取Context
      */
@@ -30,6 +33,12 @@ object HookUtils {
         classLoader: ClassLoader,
         onClassLoaded: (ClassLoader) -> Unit
     ) {
+        synchronized(dynamicClassLoaderCallbacks) {
+            dynamicClassLoaderCallbacks.add(onClassLoaded)
+            if (dynamicClassLoaderHooksInstalled) return
+            dynamicClassLoaderHooksInstalled = true
+        }
+
         val classLoaders = arrayOf(
             "dalvik.system.BaseDexClassLoader",
             "dalvik.system.PathClassLoader",
@@ -38,14 +47,17 @@ object HookUtils {
         )
         for (clName in classLoaders) {
             try {
-                val clazz = Class.forName(clName)
+                val clazz = Class.forName(clName, false, classLoader)
                 for (ctor in clazz.declaredConstructors) {
                     try {
                         module.hook(ctor).intercept { chain ->
                             val result = chain.proceed()
                             val cl = chain.thisObject as? ClassLoader
                             if (cl != null) {
-                                onClassLoaded(cl)
+                                val callbacks = synchronized(dynamicClassLoaderCallbacks) {
+                                    dynamicClassLoaderCallbacks.toList()
+                                }
+                                callbacks.forEach { callback -> runCatching { callback(cl) } }
                             }
                             result
                         }
