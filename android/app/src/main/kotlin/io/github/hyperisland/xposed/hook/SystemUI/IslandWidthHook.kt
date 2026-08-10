@@ -25,6 +25,8 @@ object BigIslandMinWidthHook : BaseHook() {
     private var hookedModernCalculateMaxWidthWithSmall = false
     private var hookedSetMaxWidth = false
     private val hookedMinWidthClasses = mutableSetOf<String>()
+    private val registrationLock = Any()
+    private var dynamicClassLoaderCallbackRegistered = false
 
     private fun dpToPx(dp: Int): Float {
         val density = Resources.getSystem().displayMetrics.density
@@ -36,9 +38,11 @@ object BigIslandMinWidthHook : BaseHook() {
     }
 
     private fun hookContentViewClasses(module: XposedModule, classLoader: ClassLoader) {
-        hookBaseContentView(module, classLoader)
-        hookModernMaxWidthWithSmall(module, classLoader)
-        hookGetBigIslandMinWidth(module, classLoader)
+        synchronized(registrationLock) {
+            hookBaseContentView(module, classLoader)
+            hookModernMaxWidthWithSmall(module, classLoader)
+            hookGetBigIslandMinWidth(module, classLoader)
+        }
     }
 
     private fun hookBaseContentView(module: XposedModule, classLoader: ClassLoader) {
@@ -60,7 +64,6 @@ object BigIslandMinWidthHook : BaseHook() {
 
                         val maxWidthPx = dpToPx(maxWidthDp.coerceIn(1, 1000))
 
-                        log(module, "legacy calculateMaxWidthWithSmall returning $maxWidthPx")
                         return@intercept maxWidthPx
                     }
                     hookedLegacyCalculateMaxWidthWithSmall = true
@@ -71,11 +74,25 @@ object BigIslandMinWidthHook : BaseHook() {
             // Hook setMaxWidth - 控制无小岛时的大岛最大宽度
             if (!hookedSetMaxWidth) {
                 val setMaxWidthMethod = clazz.declaredMethods.firstOrNull {
-                    it.name == "setMaxWidth" &&
-                        it.parameterTypes.size == 3 &&
+                    it.name == "setMaxWidth" && it.parameterTypes.size == 3 &&
                         it.parameterTypes.all { type -> type == Float::class.javaPrimitiveType }
+                } ?: clazz.declaredMethods.firstOrNull {
+                    it.name == "setMaxWidth" &&
+                        it.parameterTypes.size == 1 &&
+                        it.parameterTypes[0] == Float::class.javaPrimitiveType
                 }
                 if (setMaxWidthMethod != null) {
+                    val maxWidthField = clazz.getDeclaredField("maxWidth").apply { isAccessible = true }
+                    val clockWidthField = if (setMaxWidthMethod.parameterTypes.size == 3) {
+                        clazz.getDeclaredField("clockWidth").apply { isAccessible = true }
+                    } else {
+                        null
+                    }
+                    val batteryWidthField = if (setMaxWidthMethod.parameterTypes.size == 3) {
+                        clazz.getDeclaredField("batteryWidth").apply { isAccessible = true }
+                    } else {
+                        null
+                    }
                     module.hook(setMaxWidthMethod).intercept { chain ->
                         val maxWidthDp = ConfigManager.getInt(KEY_MAX_WIDTH, 0)
                         if (maxWidthDp <= 0) {
@@ -85,26 +102,21 @@ object BigIslandMinWidthHook : BaseHook() {
                         val maxWidthDpClamped = maxWidthDp.coerceIn(1, 1000)
                         val target = chain.thisObject ?: return@intercept chain.proceed()
                         val maxWidthPx = dpToPx(maxWidthDpClamped)
-                        val clockWidth = (chain.args.getOrNull(1) as? Number)?.toFloat() ?: -1f
-                        val batteryWidth = (chain.args.getOrNull(2) as? Number)?.toFloat() ?: -1f
-
-                        val maxWidthField = clazz.getDeclaredField("maxWidth")
-                        maxWidthField.isAccessible = true
                         maxWidthField.setFloat(target, maxWidthPx)
 
-                        val clockWidthField = clazz.getDeclaredField("clockWidth")
-                        clockWidthField.isAccessible = true
-                        clockWidthField.setFloat(target, clockWidth)
-
-                        val batteryWidthField = clazz.getDeclaredField("batteryWidth")
-                        batteryWidthField.isAccessible = true
-                        batteryWidthField.setFloat(target, batteryWidth)
-
-                        log(module, "maxWidth=$maxWidthPx px, clockWidth=$clockWidth, batteryWidth=$batteryWidth")
+                        if (clockWidthField != null && batteryWidthField != null) {
+                            val clockWidth = (chain.args.getOrNull(1) as? Number)?.toFloat() ?: -1f
+                            val batteryWidth = (chain.args.getOrNull(2) as? Number)?.toFloat() ?: -1f
+                            clockWidthField.setFloat(target, clockWidth)
+                            batteryWidthField.setFloat(target, batteryWidth)
+                        }
                         return@intercept null
                     }
                     hookedSetMaxWidth = true
-                    log(module, "hooked setMaxWidth on $BASE_CONTENT_VIEW_CLASS")
+                    log(
+                        module,
+                        "hooked setMaxWidth(${setMaxWidthMethod.parameterTypes.size} args) on $BASE_CONTENT_VIEW_CLASS",
+                    )
                 }
             }
         } catch (_: ClassNotFoundException) {
@@ -141,11 +153,6 @@ object BigIslandMinWidthHook : BaseHook() {
                 val combinedMaxWidth =
                     dpToPx(maxWidthDp.coerceIn(1, 1000)) + smallWidth + space
 
-                log(
-                    module,
-                    "modern calculateMaxWidthWithSmall returning $combinedMaxWidth " +
-                        "(smallWidth=$smallWidth, space=$space)",
-                )
                 combinedMaxWidth
             }
             hookedModernCalculateMaxWidthWithSmall = true
@@ -172,8 +179,13 @@ object BigIslandMinWidthHook : BaseHook() {
                     if (minWidthDp <= 0) {
                         return@intercept chain.proceed()
                     }
-                    val minWidthPx = dpToPx(minWidthDp).toInt()
-                    log(module, "getBigIslandMinWidth returning $minWidthPx px ($minWidthDp dp) on $helperClassName")
+                    val maxWidthDp = ConfigManager.getInt(KEY_MAX_WIDTH, 0)
+                    val effectiveMinWidthDp = if (maxWidthDp > 0) {
+                        minWidthDp.coerceAtMost(maxWidthDp)
+                    } else {
+                        minWidthDp
+                    }
+                    val minWidthPx = dpToPx(effectiveMinWidthDp.coerceIn(1, 1000)).toInt()
                     return@intercept minWidthPx
                 }
                 hookedMinWidthClasses += helperClassName
@@ -186,6 +198,10 @@ object BigIslandMinWidthHook : BaseHook() {
     }
 
     private fun hookDynamicClassLoaders(module: XposedModule) {
+        synchronized(registrationLock) {
+            if (dynamicClassLoaderCallbackRegistered) return
+            dynamicClassLoaderCallbackRegistered = true
+        }
         HookUtils.hookDynamicClassLoaders(module, ClassLoader.getSystemClassLoader()) { cl ->
             hookContentViewClasses(module, cl)
         }
