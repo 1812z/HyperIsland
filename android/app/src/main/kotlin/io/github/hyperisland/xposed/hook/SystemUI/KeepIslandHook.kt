@@ -16,6 +16,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.Rect
 import android.graphics.drawable.Icon
 import android.hardware.display.DisplayManager
 import android.os.Bundle
@@ -351,6 +352,7 @@ object KeepIslandHook : BaseHook() {
         val extras = sbn?.notification?.extras ?: extractExtrasFromState(view)
         val isOwnedByUs = extras?.getString("hyperisland_source_channel") == KEEP_ISLAND_CHANNEL
         if (isOwnedByUs) return
+        if (key !in activeRealKeys && !isContentViewVisible(controllerObj, view)) return
 
         markRealIslandVisible(ctx, key)
     }
@@ -366,6 +368,13 @@ object KeepIslandHook : BaseHook() {
         if (activeRealKeys.remove(key) && activeRealKeys.isEmpty()) {
             scheduleRestore()
         }
+    }
+
+    private fun isContentViewVisible(controllerObj: Any, view: View): Boolean {
+        val currentIslandVisible = invokeNoArg(controllerObj, "currentIslandVisible") as? Boolean ?: false
+        if (!currentIslandVisible || !view.isShown) return false
+        val rect = Rect()
+        return view.getGlobalVisibleRect(rect) && rect.width() > 0 && rect.height() > 0
     }
 
     private fun extractSbnFromController(controllerObj: Any): StatusBarNotification? {
