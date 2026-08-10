@@ -908,16 +908,7 @@ object IslandDataManager {
         val currentSource: String? = null,
         val temperatureCentiCelsius: Int? = null,
         val isCharging: Boolean = false,
-    ) {
-        fun toLogString(): String {
-            val powerWatt = if (voltageMilliVolt != null && currentMicroAmp != null) {
-                (abs(currentMicroAmp.toDouble()) * voltageMilliVolt.toDouble() / 1000000000.0).roundToInt()
-            } else {
-                null
-            }
-            return "level=$levelText voltageMv=$voltageMilliVolt voltageSource=$voltageSource currentUa=$currentMicroAmp currentSource=$currentSource temp=${temperatureCentiCelsius?.let { it / 10.0 }} powerW=$powerWatt"
-        }
-    }
+    )
 
     data class CpuSnapshot(
         val usagePercent: Double? = null,

@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.View
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
@@ -47,26 +48,24 @@ object ChargeIslandHook : BaseHook() {
     private val modelAccessorsByClass: ConcurrentMap<Class<*>, ModelAccessors> = ConcurrentHashMap()
     private val mainHandler = Handler(Looper.getMainLooper())
 
-    @Volatile private var lastSnapshotLogAt = 0L
     @Volatile private var chargeLeftHolderRef: WeakReference<Any>? = null
     @Volatile private var chargeRightHolderRef: WeakReference<Any>? = null
     @Volatile private var lastLeftViewText: String? = null
     @Volatile private var lastRightViewText: String? = null
     private val dataChangedListener = {
-        logSnapshotIfNeeded()
-        updateChargeViews()
+        if (isChargeIslandVisible()) {
+            updateChargeViews()
+        }
     }
 
     override fun getTag() = TAG
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
         if (param.packageName != "com.android.systemui") return
-        debug(module, "init package=${param.packageName} defaultCl=${param.defaultClassLoader}")
         IslandDataManager.addListener(dataChangedListener)
         hookApplicationOnCreate(module, param.defaultClassLoader)
         HookUtils.hookDynamicClassLoaders(module, ClassLoader.getSystemClassLoader()) { classLoader ->
             if (isEmptyDexPathClassLoader(classLoader)) return@hookDynamicClassLoaders
-            debug(module, "dynamic classloader created: $classLoader")
             hookChargeModel(module, classLoader)
             hookIslandTextHolder(module, classLoader)
         }
@@ -81,7 +80,6 @@ object ChargeIslandHook : BaseHook() {
                 val result = chain.proceed()
                 (chain.thisObject as? Context)?.let {
                     runCatching { IslandDataManager.register(it) }
-                    debug(module, "island data manager registered")
                 }
                 result
             }
@@ -92,18 +90,9 @@ object ChargeIslandHook : BaseHook() {
 
     private fun hookChargeModel(module: XposedModule, classLoader: ClassLoader) {
         if (!hookedClassLoaders.add(classLoader)) return
-        val clId = System.identityHashCode(classLoader)
-
         val clazz = DEVICE_NOTIFICATION_CLASS_NAMES.firstNotNullOfOrNull { className ->
             runCatching { classLoader.loadClass(className) }.getOrNull()
-        } ?: run {
-            debug(
-                module,
-                "DeviceNotificationListenerImpl not found in cl=$clId loader=$classLoader names=$DEVICE_NOTIFICATION_CLASS_NAMES",
-            )
-            return
-        }
-        debug(module, "DeviceNotificationListenerImpl found: ${clazz.name} cl=$clId")
+        } ?: return
         hookHandleDeviceNotification(module, clazz)
         hookChargeNumberAnimation(module, clazz)
 
@@ -115,8 +104,6 @@ object ChargeIslandHook : BaseHook() {
             logWarn(module, "structModelForCharge not found in ${clazz.name}; candidates=$candidateMethods")
             return
         }
-        debug(module, "found ${chargeMethods.size} structModelForCharge method(s) in ${clazz.name}")
-
         chargeMethods
             .forEach { method ->
                 synchronized(hookedMethods) {
@@ -137,7 +124,6 @@ object ChargeIslandHook : BaseHook() {
                         model
                     }
                 }
-            debug(module, "hooked ${clazz.name}.${method.name} params=${method.parameterTypes.joinToString { it.name }}")
             }
     }
 
@@ -173,10 +159,17 @@ object ChargeIslandHook : BaseHook() {
                                 chargeLeftHolderRef = WeakReference(chain.thisObject)
                             }
                             updateChargeViews(module)
+                        } else if (className.endsWith("IslandImageTextView4Holder")) {
+                            if (chargeRightHolderRef?.get() === chain.thisObject) {
+                                chargeRightHolderRef = null
+                                lastRightViewText = null
+                            }
+                        } else if (chargeLeftHolderRef?.get() === chain.thisObject) {
+                            chargeLeftHolderRef = null
+                            lastLeftViewText = null
                         }
                         result
                     }
-                    debug(module, "hooked $className.${method.name} for charge text view refresh")
                 }
         }
     }
@@ -198,11 +191,9 @@ object ChargeIslandHook : BaseHook() {
                     val duration = resolveChargeAnimationDurationMillis() ?: return@intercept result
                     val animator = readField(chain.thisObject, "valueAnimator") as? ValueAnimator
                     animator?.duration = duration
-                    debug(module, "charge number animation duration overridden: ${duration}ms")
                 }
                 result
             }
-            debug(module, "hooked ${clazz.name}.${method.name} for animation duration")
         }
     }
 
@@ -224,22 +215,17 @@ object ChargeIslandHook : BaseHook() {
             module.hook(method).intercept { chain ->
                 val bundle = chain.args.getOrNull(0) as? Bundle
                 if (ConfigManager.getBoolean(PREF_ENABLED, false) && bundle?.getString("notifyId") == "charge") {
-                    applyChargeDuration(bundle, module, "handleDeviceNotification")
+                    applyChargeDuration(bundle)
                 }
                 chain.proceed()
             }
-            debug(module, "hooked ${clazz.name}.${method.name} for final duration override")
         }
     }
 
-    private fun applyChargeDuration(bundle: Bundle?, module: XposedModule, source: String) {
+    private fun applyChargeDuration(bundle: Bundle?) {
         if (bundle == null) return
-        val oldDuration = bundle.getLong("duration", -1L)
         val duration = resolveChargeDurationMillis() ?: return
         bundle.putLong("duration", duration)
-        if (oldDuration != duration) {
-            debug(module, "charge duration overridden by $source: ${oldDuration}ms -> ${duration}ms")
-        }
     }
 
     private fun resolveChargeDurationMillis(): Long? {
@@ -270,42 +256,34 @@ object ChargeIslandHook : BaseHook() {
         val outerGlow = ConfigManager.getBoolean(PREF_OUTER_GLOW, false)
         if (leftMode == MODE_DEFAULT && rightMode == MODE_DEFAULT && !outerGlow) return model
 
-        debug(
-            module,
-            "replaceChargeModel left=$leftMode right=$rightMode snapshot=${IslandDataManager.snapshot().toLogString()} model=$model",
-        )
-
-        var nextModel = model
+        var nextModel: Any = model
         if (leftMode != MODE_DEFAULT) {
             formatMode(leftMode)?.let { replacement ->
                 val currentModel = nextModel
                 val copied = runCatching {
-                    copySideText(module, currentModel, left = true, pattern = POWER_PATTERN, replacement = replacement)
+                    copySideText(currentModel, left = true, pattern = POWER_PATTERN, replacement = replacement)
                 }.onFailure { error ->
                     logError(module, "left replacement failed: ${error.message}")
                 }.getOrDefault(currentModel)
-                debug(module, "left replacement mode=$leftMode value=$replacement replaced=${copied !== currentModel}")
                 nextModel = copied
-            } ?: debug(module, "left replacement skipped: no value for mode=$leftMode snapshot=${IslandDataManager.snapshot().toLogString()}")
+            }
         }
         if (rightMode != MODE_DEFAULT) {
             formatMode(rightMode)?.let { replacement ->
                 val currentModel = nextModel
                 val copied = runCatching {
-                    copySideText(module, currentModel, left = false, pattern = LEVEL_PATTERN, replacement = replacement)
+                    copySideText(currentModel, left = false, pattern = LEVEL_PATTERN, replacement = replacement)
                 }.onFailure { error ->
                     logError(module, "right replacement failed: ${error.message}")
                 }.getOrDefault(currentModel)
-                debug(module, "right replacement mode=$rightMode value=$replacement replaced=${copied !== currentModel}")
                 nextModel = copied
-            } ?: debug(module, "right replacement skipped: no value for mode=$rightMode snapshot=${IslandDataManager.snapshot().toLogString()}")
+            }
         }
-        nextModel = copyGlowEffect(nextModel, outerGlow, module)
-        debug(module, "replaceChargeModel result=$nextModel")
+        nextModel = copyGlowEffect(nextModel, outerGlow)
         return nextModel
     }
 
-    private fun copyGlowEffect(model: Any, outerGlow: Boolean, module: XposedModule): Any {
+    private fun copyGlowEffect(model: Any, outerGlow: Boolean): Any {
         val accessors = modelAccessorsByClass.getOrPut(model.javaClass) { ModelAccessors.from(model) }
         val glowEffect = accessors.getGlowEffect.invoke(model)
         val newGlowEffect = when {
@@ -316,11 +294,10 @@ object ChargeIslandHook : BaseHook() {
         if (newGlowEffect == glowEffect) return model
         val currentLeft = accessors.getLeft.invoke(model)
         val currentRight = accessors.getRight.invoke(model)
-        debug(module, "charge outer glow overridden: enable=$outerGlow")
         return accessors.copy.invoke(model, currentLeft, currentRight, newGlowEffect)
     }
 
-    private fun copySideText(module: XposedModule, model: Any, left: Boolean, pattern: Regex, replacement: String): Any {
+    private fun copySideText(model: Any, left: Boolean, pattern: Regex, replacement: String): Any {
         // DeviceNotificationModel 是 Kotlin data class，字段为 private final；用 copy 链生成新模型更稳。
         val accessors = modelAccessorsByClass.getOrPut(model.javaClass) { ModelAccessors.from(model) }
         val side = if (left) accessors.getLeft.invoke(model) else accessors.getRight.invoke(model)
@@ -332,8 +309,6 @@ object ChargeIslandHook : BaseHook() {
         if (!pattern.containsMatchIn(originalText)) return model
         val newText = pattern.replaceFirst(originalText, replacement)
         if (newText == originalText) return model
-        debug(module, "copySideText side=${if (left) "left" else "right"} '$originalText' -> '$newText'")
-
         val textColor = textAccessors.getTextColor.invoke(textParams) as? Int
         val turnAnim = textAccessors.getTurnAnim.invoke(textParams) as? Boolean
         val newTextParams = textAccessors.copy.invoke(textParams, newText, textColor, turnAnim)
@@ -358,6 +333,31 @@ object ChargeIslandHook : BaseHook() {
         updateChargeRightView(module)
     }
 
+    private fun isChargeIslandVisible(): Boolean {
+        if (!ConfigManager.getBoolean(PREF_ENABLED, false)) return false
+        return chargeHolderViews(chargeLeftHolderRef?.get()).any(::isVisibleView) ||
+            chargeHolderViews(chargeRightHolderRef?.get()).any(::isVisibleView)
+    }
+
+    private fun chargeHolderViews(holder: Any?): List<View> {
+        if (holder == null) return emptyList()
+        val textHolder = readField(holder, "textViewHolder")
+        val chargeView = readField(holder, "chargeView")
+        val chargeTextView = runCatching {
+            chargeView?.javaClass?.getMethod("getTextView")?.invoke(chargeView)
+        }.getOrNull()
+        return listOfNotNull(
+            holder as? View,
+            readField(textHolder, "title") as? View,
+            readField(textHolder, "content") as? View,
+            chargeTextView as? View,
+            readField(holder, "powerSaveView") as? View,
+        )
+    }
+
+    private fun isVisibleView(view: View): Boolean =
+        view.isAttachedToWindow && view.isShown && view.alpha > 0.01f
+
     private fun updateChargeLeftView(module: XposedModule? = null) {
         val leftMode = ConfigManager.getString(PREF_LEFT_MODE, MODE_DEFAULT)
         if (leftMode == MODE_DEFAULT) return
@@ -368,7 +368,6 @@ object ChargeIslandHook : BaseHook() {
             runCatching {
                 if (setHolderText(holder, text)) {
                     lastLeftViewText = text
-                    module?.let { debug(it, "charge left view refreshed: $text") }
                 }
             }.onFailure { error ->
                 module?.let { logWarn(it, "charge left view refresh failed: ${error.message}") }
@@ -386,7 +385,6 @@ object ChargeIslandHook : BaseHook() {
             runCatching {
                 if (setRightHolderText(holder, text)) {
                     lastRightViewText = text
-                    module?.let { debug(it, "charge right view refreshed: $text") }
                 }
             }.onFailure { error ->
                 module?.let { logWarn(it, "charge right view refresh failed: ${error.message}") }
@@ -435,17 +433,6 @@ object ChargeIslandHook : BaseHook() {
         } else {
             match.groupValues[1] to match.groupValues[2]
         }
-    }
-
-    private fun debug(module: XposedModule, message: String) {
-        log(module, message)
-    }
-
-    private fun logSnapshotIfNeeded() {
-        val now = System.currentTimeMillis()
-        if (now - lastSnapshotLogAt < 3000L) return
-        lastSnapshotLogAt = now
-        ConfigManager.module()?.let { log(it, "battery snapshot ${IslandDataManager.snapshot().toLogString()}") }
     }
 
     private fun formatMode(mode: String): String? {
