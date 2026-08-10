@@ -56,6 +56,7 @@ object FaceUnlockFocusController {
     private const val FACE_SUCCESS_EXPAND_PICTURE = "hyperisland_face_success_expand"
     private const val FACE_SUCCESS_SMALL_PICTURE = "hyperisland_face_success_small"
     private const val STATIC_SUCCESS_EXPANDED_SECONDS = 2
+    private const val PERSISTENT_TIMEOUT_SECONDS = 24 * 60 * 60
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val stateLock = Any()
@@ -525,7 +526,7 @@ object FaceUnlockFocusController {
             .put("enableFloat", false)
             .put("updatable", true)
             .put("sequence", sequence)
-            .put("timeout", -1)
+            .put("timeout", PERSISTENT_TIMEOUT_SECONDS)
             .put("param_island", island)
             .toString()
     }
@@ -689,7 +690,14 @@ object FaceUnlockFocusController {
             .put("enableFloat", true)
             .put("updatable", true)
             .put("sequence", sequence)
-            .put("timeout", if (terminal) -1 else 1)
+            .put(
+                "timeout",
+                when {
+                    keepUntilKeyguardHidden -> PERSISTENT_TIMEOUT_SECONDS
+                    terminal -> -1
+                    else -> 1
+                },
+            )
             .put("param_island", island)
             .toString()
     }
