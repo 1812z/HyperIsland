@@ -42,7 +42,7 @@ object ChargeIslandHook : BaseHook() {
         "com.android.systemui.statusbar.notification.DeviceNotificationListenerImpl",
     )
 
-    private val hookedClassLoaders = ConcurrentHashMap.newKeySet<Int>()
+    private val hookedClassLoaders = ConcurrentHashMap.newKeySet<ClassLoader>()
     private val hookedMethods = Collections.newSetFromMap(WeakHashMap<Method, Boolean>())
     private val modelAccessorsByClass: ConcurrentMap<Class<*>, ModelAccessors> = ConcurrentHashMap()
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -65,6 +65,7 @@ object ChargeIslandHook : BaseHook() {
         IslandDataManager.addListener(dataChangedListener)
         hookApplicationOnCreate(module, param.defaultClassLoader)
         HookUtils.hookDynamicClassLoaders(module, ClassLoader.getSystemClassLoader()) { classLoader ->
+            if (isEmptyDexPathClassLoader(classLoader)) return@hookDynamicClassLoaders
             debug(module, "dynamic classloader created: $classLoader")
             hookChargeModel(module, classLoader)
             hookIslandTextHolder(module, classLoader)
@@ -90,8 +91,8 @@ object ChargeIslandHook : BaseHook() {
     }
 
     private fun hookChargeModel(module: XposedModule, classLoader: ClassLoader) {
+        if (!hookedClassLoaders.add(classLoader)) return
         val clId = System.identityHashCode(classLoader)
-        if (!hookedClassLoaders.add(clId)) return
 
         val clazz = DEVICE_NOTIFICATION_CLASS_NAMES.firstNotNullOfOrNull { className ->
             runCatching { classLoader.loadClass(className) }.getOrNull()
@@ -138,6 +139,12 @@ object ChargeIslandHook : BaseHook() {
                 }
             debug(module, "hooked ${clazz.name}.${method.name} params=${method.parameterTypes.joinToString { it.name }}")
             }
+    }
+
+    private fun isEmptyDexPathClassLoader(classLoader: ClassLoader): Boolean {
+        val description = classLoader.toString()
+        return description.contains("DexPathList[[directory \".\"],nativeLibraryDirectories=") ||
+            description.contains("DexPathList[[],nativeLibraryDirectories=")
     }
 
     private fun hookIslandTextHolder(module: XposedModule, classLoader: ClassLoader) {
