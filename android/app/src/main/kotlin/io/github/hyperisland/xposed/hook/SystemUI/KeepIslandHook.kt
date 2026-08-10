@@ -16,7 +16,6 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
-import android.graphics.Rect
 import android.graphics.drawable.Icon
 import android.hardware.display.DisplayManager
 import android.os.Bundle
@@ -92,7 +91,7 @@ object KeepIslandHook : BaseHook() {
     const val ACTION_REFRESH_KEEP_ISLAND =
         "io.github.hyperisland.action.REFRESH_KEEP_ISLAND"
 
-    private const val RESTORE_DELAY_MS = 300L
+    private const val RESTORE_DELAY_MS = 500L
 
     private const val DATA_UPDATE_INTERVAL_MS = 1000L
 
@@ -308,20 +307,18 @@ object KeepIslandHook : BaseHook() {
 
         if (isOwnedByUs) return
         if ((isBigIsland || isExpanded || isSmallIsland) && !isDeleted && sourcePackage == foregroundPackage(ctx)) return
+        if (contentControllerHooked) {
+            if (isDeleted && key != null) markRealIslandHidden(key)
+            return
+        }
 
         when {
             (isBigIsland || isExpanded || isSmallIsland) && !isDeleted -> {
-                if (contentControllerHooked) return
-                cancelPendingRestore()
-                if (key != null) activeRealKeys.add(key)
-                if (posted) {
-                    updateKeepIslandContent(ctx, force = true)
-                }
+                if (key != null) markRealIslandVisible(ctx, key)
             }
 
             isDeleted || (!isBigIsland && !isExpanded && !isSmallIsland) -> {
-                if (key != null) activeRealKeys.remove(key)
-                scheduleRestore()
+                if (key != null) markRealIslandHidden(key)
             }
         }
     }
@@ -345,35 +342,30 @@ object KeepIslandHook : BaseHook() {
             ?: sbn?.key
             ?: return
 
-        if (isDeleted || (!isBigIsland && !isExpanded && !isSmallIsland)) {
-            removeActiveRealKey(ctx, key)
+        if (isDeleted) {
+            markRealIslandHidden(key)
             return
         }
+        if (!isBigIsland && !isExpanded && !isSmallIsland) return
 
         val extras = sbn?.notification?.extras ?: extractExtrasFromState(view)
         val isOwnedByUs = extras?.getString("hyperisland_source_channel") == KEEP_ISLAND_CHANNEL
-        if (isOwnedByUs || !isContentViewVisible(controllerObj, view)) {
-            removeActiveRealKey(ctx, key)
-            return
-        }
+        if (isOwnedByUs) return
 
+        markRealIslandVisible(ctx, key)
+    }
+
+    private fun markRealIslandVisible(ctx: Context, key: String) {
         cancelPendingRestore()
-        activeRealKeys.add(key)
-        if (posted) {
+        if (activeRealKeys.add(key) && activeRealKeys.size == 1 && posted) {
             updateKeepIslandContent(ctx, force = true)
         }
     }
 
-    private fun removeActiveRealKey(ctx: Context, key: String) {
-        activeRealKeys.remove(key)
-        scheduleRestore()
-    }
-
-    private fun isContentViewVisible(controllerObj: Any, view: View): Boolean {
-        val currentIslandVisible = invokeNoArg(controllerObj, "currentIslandVisible") as? Boolean ?: false
-        if (!currentIslandVisible || !view.isShown) return false
-        val rect = Rect()
-        return view.getGlobalVisibleRect(rect) && rect.width() > 0 && rect.height() > 0
+    private fun markRealIslandHidden(key: String) {
+        if (activeRealKeys.remove(key) && activeRealKeys.isEmpty()) {
+            scheduleRestore()
+        }
     }
 
     private fun extractSbnFromController(controllerObj: Any): StatusBarNotification? {
@@ -415,7 +407,7 @@ object KeepIslandHook : BaseHook() {
     private fun shouldEnableIsland(context: Context): Boolean {
         if (!ConfigManager.getBoolean(PREF_KEY, false)) return false
         val hideForRealNotification = ConfigManager.getBoolean(PREF_KEY_AUTO_HIDE, true) &&
-                activeRealKeys.isNotEmpty()
+                (activeRealKeys.isNotEmpty() || restoreRunnable != null)
         if (hideForRealNotification) return false
         val hideForLandscape = ConfigManager.getBoolean(PREF_KEY_HIDE_LANDSCAPE, false) &&
                 isLandscape(context)
