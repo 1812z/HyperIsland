@@ -1118,6 +1118,43 @@ class AppLocalizationsJa extends AppLocalizations {
       '一部のモデルではシステム命令がサポートされていないため、有効にするとユーザーメッセージにプロンプ​​トを表示させます';
 
   @override
+  String get aiCustomFieldsTitle => 'カスタムフィールド';
+
+  @override
+  String get aiCustomFieldsSubtitle => 'カスタムフィールドを追加または変更';
+
+  @override
+  String get aiCustomFieldsDialogTitle => 'カスタムリクエストフィールド';
+
+  @override
+  String get aiCustomFieldsDescription =>
+      '値は false、1、\"text\"、JSON オブジェクトなどの有効な JSON にする必要があります。';
+
+  @override
+  String get aiCustomFieldsReset => 'リセット';
+
+  @override
+  String get aiCustomFieldName => 'フィールド名';
+
+  @override
+  String get aiCustomFieldValue => 'JSON 値';
+
+  @override
+  String get aiCustomFieldAdd => 'フィールドを追加';
+
+  @override
+  String get aiCustomFieldDelete => 'フィールドを削除';
+
+  @override
+  String get aiCustomFieldsError => 'フィールド名を空にせず、値を有効な JSON にしてください';
+
+  @override
+  String get aiCustomFieldsCancel => 'キャンセル';
+
+  @override
+  String get aiCustomFieldsSave => '保存';
+
+  @override
   String get aiTimeoutTitle => 'AI レスポンスのタイムアウト';
 
   @override

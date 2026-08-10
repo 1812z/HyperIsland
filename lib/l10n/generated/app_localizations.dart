@@ -2174,6 +2174,78 @@ abstract class AppLocalizations {
   /// **'某些模型不支持系统指令，开启后将提示词放在用户消息中'**
   String get aiPromptInUserSubtitle;
 
+  /// No description provided for @aiCustomFieldsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'自定义字段'**
+  String get aiCustomFieldsTitle;
+
+  /// No description provided for @aiCustomFieldsSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'添加或修改自定义字段'**
+  String get aiCustomFieldsSubtitle;
+
+  /// No description provided for @aiCustomFieldsDialogTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'自定义请求字段'**
+  String get aiCustomFieldsDialogTitle;
+
+  /// No description provided for @aiCustomFieldsDescription.
+  ///
+  /// In zh, this message translates to:
+  /// **'字段值必须是有效 JSON，例如 false、1、\"文本\" 或 JSON 对象。'**
+  String get aiCustomFieldsDescription;
+
+  /// No description provided for @aiCustomFieldsReset.
+  ///
+  /// In zh, this message translates to:
+  /// **'一键重置'**
+  String get aiCustomFieldsReset;
+
+  /// No description provided for @aiCustomFieldName.
+  ///
+  /// In zh, this message translates to:
+  /// **'字段名'**
+  String get aiCustomFieldName;
+
+  /// No description provided for @aiCustomFieldValue.
+  ///
+  /// In zh, this message translates to:
+  /// **'JSON 值'**
+  String get aiCustomFieldValue;
+
+  /// No description provided for @aiCustomFieldAdd.
+  ///
+  /// In zh, this message translates to:
+  /// **'添加字段'**
+  String get aiCustomFieldAdd;
+
+  /// No description provided for @aiCustomFieldDelete.
+  ///
+  /// In zh, this message translates to:
+  /// **'删除字段'**
+  String get aiCustomFieldDelete;
+
+  /// No description provided for @aiCustomFieldsError.
+  ///
+  /// In zh, this message translates to:
+  /// **'字段名不能为空，且字段值必须是有效 JSON'**
+  String get aiCustomFieldsError;
+
+  /// No description provided for @aiCustomFieldsCancel.
+  ///
+  /// In zh, this message translates to:
+  /// **'取消'**
+  String get aiCustomFieldsCancel;
+
+  /// No description provided for @aiCustomFieldsSave.
+  ///
+  /// In zh, this message translates to:
+  /// **'保存'**
+  String get aiCustomFieldsSave;
+
   /// No description provided for @aiTimeoutTitle.
   ///
   /// In zh, this message translates to:

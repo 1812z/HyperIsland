@@ -1174,6 +1174,45 @@ class AppLocalizationsRu extends AppLocalizations {
       'Некоторые модели не поддерживают системные инструкции; включите, чтобы поместить промпт в сообщение пользователя';
 
   @override
+  String get aiCustomFieldsTitle => 'Пользовательские поля';
+
+  @override
+  String get aiCustomFieldsSubtitle =>
+      'Добавить или изменить пользовательские поля';
+
+  @override
+  String get aiCustomFieldsDialogTitle => 'Поля запроса';
+
+  @override
+  String get aiCustomFieldsDescription =>
+      'Значения должны быть допустимым JSON, например false, 1, \"text\" или объект JSON.';
+
+  @override
+  String get aiCustomFieldsReset => 'Сбросить';
+
+  @override
+  String get aiCustomFieldName => 'Имя поля';
+
+  @override
+  String get aiCustomFieldValue => 'Значение JSON';
+
+  @override
+  String get aiCustomFieldAdd => 'Добавить поле';
+
+  @override
+  String get aiCustomFieldDelete => 'Удалить поле';
+
+  @override
+  String get aiCustomFieldsError =>
+      'Имя поля не должно быть пустым, а значение должно быть допустимым JSON';
+
+  @override
+  String get aiCustomFieldsCancel => 'Отмена';
+
+  @override
+  String get aiCustomFieldsSave => 'Сохранить';
+
+  @override
   String get aiTimeoutTitle => 'Тайм-аут ответа ИИ';
 
   @override

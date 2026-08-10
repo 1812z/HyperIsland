@@ -1103,6 +1103,43 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiPromptInUserSubtitle => '某些模型不支持系统指令，开启后将提示词放在用户消息中';
 
   @override
+  String get aiCustomFieldsTitle => '自定义字段';
+
+  @override
+  String get aiCustomFieldsSubtitle => '添加或修改自定义字段';
+
+  @override
+  String get aiCustomFieldsDialogTitle => '自定义请求字段';
+
+  @override
+  String get aiCustomFieldsDescription =>
+      '字段值必须是有效 JSON，例如 false、1、\"文本\" 或 JSON 对象。';
+
+  @override
+  String get aiCustomFieldsReset => '一键重置';
+
+  @override
+  String get aiCustomFieldName => '字段名';
+
+  @override
+  String get aiCustomFieldValue => 'JSON 值';
+
+  @override
+  String get aiCustomFieldAdd => '添加字段';
+
+  @override
+  String get aiCustomFieldDelete => '删除字段';
+
+  @override
+  String get aiCustomFieldsError => '字段名不能为空，且字段值必须是有效 JSON';
+
+  @override
+  String get aiCustomFieldsCancel => '取消';
+
+  @override
+  String get aiCustomFieldsSave => '保存';
+
+  @override
   String get aiTimeoutTitle => 'AI 响应超时';
 
   @override

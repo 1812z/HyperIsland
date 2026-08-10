@@ -1161,6 +1161,44 @@ class AppLocalizationsEn extends AppLocalizations {
       'Some models do not support system instructions; enable to put prompt in user message';
 
   @override
+  String get aiCustomFieldsTitle => 'Custom Fields';
+
+  @override
+  String get aiCustomFieldsSubtitle => 'Add or modify custom fields';
+
+  @override
+  String get aiCustomFieldsDialogTitle => 'Custom Request Fields';
+
+  @override
+  String get aiCustomFieldsDescription =>
+      'Values must be valid JSON, such as false, 1, \"text\", or a JSON object.';
+
+  @override
+  String get aiCustomFieldsReset => 'Reset';
+
+  @override
+  String get aiCustomFieldName => 'Field name';
+
+  @override
+  String get aiCustomFieldValue => 'JSON value';
+
+  @override
+  String get aiCustomFieldAdd => 'Add field';
+
+  @override
+  String get aiCustomFieldDelete => 'Delete field';
+
+  @override
+  String get aiCustomFieldsError =>
+      'Field names cannot be empty and values must be valid JSON';
+
+  @override
+  String get aiCustomFieldsCancel => 'Cancel';
+
+  @override
+  String get aiCustomFieldsSave => 'Save';
+
+  @override
   String get aiTimeoutTitle => 'AI Response Timeout';
 
   @override

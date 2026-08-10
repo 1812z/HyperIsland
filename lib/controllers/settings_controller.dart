@@ -79,6 +79,7 @@ const kPrefAiApiKey = 'pref_ai_api_key';
 const kPrefAiModel = 'pref_ai_model';
 const kPrefAiPrompt = 'pref_ai_prompt';
 const kPrefAiPromptInUser = 'pref_ai_prompt_in_user';
+const kPrefAiCustomFields = 'pref_ai_custom_fields';
 const kPrefAiTimeout = 'pref_ai_timeout';
 const kPrefAiTemperature = 'pref_ai_temperature';
 const kPrefAiMaxTokens = 'pref_ai_max_tokens';
@@ -185,6 +186,8 @@ const kKeepIslandFocusContentCharging = 'charging';
 const kKeepIslandDisplayTimingAlways = 'always';
 const kKeepIslandDisplayTimingCharging = 'charging';
 
+const kDefaultAiCustomFields = '{"enable_thinking":false}';
+
 const kFaceUnlockIslandAnimationDefault = 'default';
 const kFaceUnlockIslandAnimationLock = 'lock';
 
@@ -260,6 +263,7 @@ class SettingsController extends ChangeNotifier {
   String aiModel = '';
   String aiPrompt = '';
   bool aiPromptInUser = false;
+  String aiCustomFields = kDefaultAiCustomFields;
   int aiTimeout = 3;
   double aiTemperature = 0.1;
   int aiMaxTokens = 50;
@@ -452,6 +456,8 @@ class SettingsController extends ChangeNotifier {
     aiModel = prefs.getString(kPrefAiModel) ?? '';
     aiPrompt = prefs.getString(kPrefAiPrompt) ?? '';
     aiPromptInUser = prefs.getBool(kPrefAiPromptInUser) ?? false;
+    aiCustomFields =
+        prefs.getString(kPrefAiCustomFields) ?? kDefaultAiCustomFields;
     aiTimeout = prefs.getInt(kPrefAiTimeout) ?? 3;
     aiTemperature = prefs.getDouble(kPrefAiTemperature) ?? 0.1;
     aiMaxTokens = prefs.getInt(kPrefAiMaxTokens) ?? 50;
@@ -1296,6 +1302,14 @@ class SettingsController extends ChangeNotifier {
     final prefs = await _getPrefs();
     await prefs.setBool(kPrefAiPromptInUser, value);
     aiPromptInUser = value;
+    notifyListeners();
+  }
+
+  Future<void> setAiCustomFields(String value) async {
+    if (aiCustomFields == value) return;
+    final prefs = await _getPrefs();
+    await prefs.setString(kPrefAiCustomFields, value);
+    aiCustomFields = value;
     notifyListeners();
   }
 

@@ -351,6 +351,7 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
             "pref_scene_landscape",
             "pref_ai_enabled",
             "pref_ai_prompt_in_user",
+            "pref_ai_custom_fields",
             "pref_ai_timeout",
             "pref_ai_temperature",
             "pref_ai_max_tokens",

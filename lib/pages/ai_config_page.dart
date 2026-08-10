@@ -189,6 +189,24 @@ class _AiConfigPageState extends State<AiConfigPage> {
     await _ctrl.setAiPromptInUser(value);
   }
 
+  Map<String, dynamic> _customRequestFields() {
+    try {
+      final decoded = jsonDecode(_ctrl.aiCustomFields);
+      if (decoded is Map<String, dynamic>) return decoded;
+    } on FormatException {
+      // Invalid persisted data is ignored so it cannot break AI requests.
+    }
+    return const {};
+  }
+
+  Future<void> _editCustomFields() async {
+    final value = await showDialog<String>(
+      context: context,
+      builder: (_) => _AiCustomFieldsDialog(initialJson: _ctrl.aiCustomFields),
+    );
+    if (value != null) await _ctrl.setAiCustomFields(value);
+  }
+
   String _effectiveModel(String model) => model.isEmpty ? 'gpt-4o-mini' : model;
 
   /// Derive the `/models` endpoint from the chat completions URL.
@@ -263,8 +281,7 @@ class _AiConfigPageState extends State<AiConfigPage> {
       ],
       'max_tokens': _ctrl.aiMaxTokens,
       'temperature': _ctrl.aiTemperature,
-      'enable_thinking': false,
-      'thinking': {'type': 'disabled'},
+      ..._customRequestFields(),
     };
   }
 
@@ -378,8 +395,7 @@ class _AiConfigPageState extends State<AiConfigPage> {
       'messages': messages,
       'max_tokens': _ctrl.aiMaxTokens,
       'temperature': _ctrl.aiTemperature,
-      'enable_thinking': false,
-      'thinking': {'type': 'disabled'},
+      ..._customRequestFields(),
     });
     final response = await http
         .post(
@@ -581,6 +597,20 @@ class _AiConfigPageState extends State<AiConfigPage> {
                           maxLines: 10,
                         ),
                         const SizedBox(height: 16),
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: const FaIcon(
+                            FontAwesomeIcons.code,
+                            size: 18,
+                          ),
+                          title: Text(l10n.aiCustomFieldsTitle),
+                          subtitle: Text(l10n.aiCustomFieldsSubtitle),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: InteractionHaptics.interceptButton(
+                            _editCustomFields,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
                         SwitchListTile(
                           contentPadding: EdgeInsets.zero,
                           title: Text(l10n.aiPromptInUserTitle),
@@ -996,6 +1026,217 @@ class _AiConfigPageState extends State<AiConfigPage> {
   }
 }
 
+class _AiCustomFieldControllers {
+  _AiCustomFieldControllers({String key = '', String value = ''})
+    : key = TextEditingController(text: key),
+      value = TextEditingController(text: value);
+
+  final TextEditingController key;
+  final TextEditingController value;
+
+  void dispose() {
+    key.dispose();
+    value.dispose();
+  }
+}
+
+class _AiCustomFieldsDialog extends StatefulWidget {
+  const _AiCustomFieldsDialog({required this.initialJson});
+
+  final String initialJson;
+
+  @override
+  State<_AiCustomFieldsDialog> createState() => _AiCustomFieldsDialogState();
+}
+
+class _AiCustomFieldsDialogState extends State<_AiCustomFieldsDialog> {
+  final List<_AiCustomFieldControllers> _fields = [];
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load(widget.initialJson);
+  }
+
+  void _load(String source) {
+    for (final field in _fields) {
+      field.dispose();
+    }
+    _fields.clear();
+    try {
+      final decoded = jsonDecode(source);
+      if (decoded is Map) {
+        for (final entry in decoded.entries) {
+          _fields.add(
+            _AiCustomFieldControllers(
+              key: entry.key.toString(),
+              value: jsonEncode(entry.value),
+            ),
+          );
+        }
+      }
+    } on FormatException {
+      // Fall back to an empty editor for invalid persisted data.
+    }
+  }
+
+  void _reset() {
+    setState(() {
+      _load(kDefaultAiCustomFields);
+      _error = null;
+    });
+  }
+
+  void _add() {
+    setState(() => _fields.add(_AiCustomFieldControllers(value: 'false')));
+  }
+
+  void _remove(int index) {
+    setState(() => _fields.removeAt(index).dispose());
+  }
+
+  void _save() {
+    final result = <String, dynamic>{};
+    try {
+      for (final field in _fields) {
+        final key = field.key.text.trim();
+        if (key.isEmpty) throw const FormatException();
+        result[key] = jsonDecode(field.value.text.trim());
+      }
+    } on FormatException {
+      setState(
+        () => _error = AppLocalizations.of(context)!.aiCustomFieldsError,
+      );
+      return;
+    }
+    Navigator.of(context).pop(jsonEncode(result));
+  }
+
+  @override
+  void dispose() {
+    for (final field in _fields) {
+      field.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final cs = Theme.of(context).colorScheme;
+    return AlertDialog(
+      title: Row(
+        children: [
+          Expanded(child: Text(l10n.aiCustomFieldsDialogTitle)),
+          IconButton(
+            tooltip: l10n.aiCustomFieldsReset,
+            onPressed: InteractionHaptics.interceptButton(_reset),
+            icon: const Icon(Icons.restart_alt),
+          ),
+        ],
+      ),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              l10n.aiCustomFieldsDescription,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+            ),
+            const SizedBox(height: 12),
+            Flexible(
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: _fields.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final field = _fields[index];
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          children: [
+                            TextField(
+                              controller: field.key,
+                              minLines: 1,
+                              maxLines: 2,
+                              decoration: InputDecoration(
+                                labelText: l10n.aiCustomFieldName,
+                                border: const OutlineInputBorder(),
+                                isDense: true,
+                              ),
+                              autocorrect: false,
+                            ),
+                            const SizedBox(height: 8),
+                            TextField(
+                              controller: field.value,
+                              minLines: 1,
+                              maxLines: 2,
+                              decoration: InputDecoration(
+                                labelText: l10n.aiCustomFieldValue,
+                                border: const OutlineInputBorder(),
+                                isDense: true,
+                              ),
+                              autocorrect: false,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Center(
+                        child: IconButton(
+                          tooltip: l10n.aiCustomFieldDelete,
+                          onPressed: InteractionHaptics.interceptButton(
+                            () => _remove(index),
+                          ),
+                          icon: const Icon(Icons.delete_outline),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _error!,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: cs.error),
+              ),
+            ],
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: InteractionHaptics.interceptButton(_add),
+              icon: const Icon(Icons.add),
+              label: Text(l10n.aiCustomFieldAdd),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: InteractionHaptics.interceptButton(
+            () => Navigator.of(context).pop(),
+          ),
+          child: Text(l10n.aiCustomFieldsCancel),
+        ),
+        FilledButton(
+          onPressed: InteractionHaptics.interceptButton(_save),
+          child: Text(l10n.aiCustomFieldsSave),
+        ),
+      ],
+    );
+  }
+}
+
 class _TestResult {
   final bool success;
   final String message;
@@ -1220,7 +1461,7 @@ class _ModelPickerDialogState extends State<_ModelPickerDialog> {
                 child: ListView.separated(
                   shrinkWrap: true,
                   itemCount: filtered.length,
-                  separatorBuilder: (_, __) => Divider(
+                  separatorBuilder: (_, _) => Divider(
                     height: 1,
                     color: cs.outlineVariant.withValues(alpha: 0.5),
                   ),

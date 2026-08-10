@@ -1166,6 +1166,44 @@ class AppLocalizationsTr extends AppLocalizations {
       'Bazı modeller sistem talimatlarını desteklemez; etkinleştirilirse prompt kullanıcı mesajına eklenir';
 
   @override
+  String get aiCustomFieldsTitle => 'Özel Alanlar';
+
+  @override
+  String get aiCustomFieldsSubtitle => 'Özel alanları ekle veya değiştir';
+
+  @override
+  String get aiCustomFieldsDialogTitle => 'Özel İstek Alanları';
+
+  @override
+  String get aiCustomFieldsDescription =>
+      'Değerler false, 1, \"text\" veya bir JSON nesnesi gibi geçerli JSON olmalıdır.';
+
+  @override
+  String get aiCustomFieldsReset => 'Sıfırla';
+
+  @override
+  String get aiCustomFieldName => 'Alan adı';
+
+  @override
+  String get aiCustomFieldValue => 'JSON değeri';
+
+  @override
+  String get aiCustomFieldAdd => 'Alan ekle';
+
+  @override
+  String get aiCustomFieldDelete => 'Alanı sil';
+
+  @override
+  String get aiCustomFieldsError =>
+      'Alan adı boş olamaz ve değer geçerli JSON olmalıdır';
+
+  @override
+  String get aiCustomFieldsCancel => 'İptal';
+
+  @override
+  String get aiCustomFieldsSave => 'Kaydet';
+
+  @override
   String get aiTimeoutTitle => 'AI Yanıt Zaman Aşımı';
 
   @override

@@ -93,6 +93,7 @@ object AINotificationIslandNotification : IslandTemplate {
         val apiKey: String,
         val model: String,
         val prompt: String,
+        val customFields: String,
         val timeout: Int,
         val promptInUser: Boolean,
         val temperature: Float,
@@ -108,6 +109,7 @@ object AINotificationIslandNotification : IslandTemplate {
         apiKey  = ConfigManager.getString("pref_ai_api_key"),
         model   = ConfigManager.getString("pref_ai_model"),
         prompt  = ConfigManager.getString("pref_ai_prompt"),
+        customFields = ConfigManager.getString("pref_ai_custom_fields", "{\"enable_thinking\":false}"),
         timeout = ConfigManager.getInt("pref_ai_timeout", 3).coerceIn(3, 15),
         promptInUser = ConfigManager.getBoolean("pref_ai_prompt_in_user", false),
         temperature = ConfigManager.getFloat("pref_ai_temperature", 0.1f).coerceIn(0f, 1f),
@@ -204,8 +206,13 @@ $userPrompt
             .put("messages", messages)
             .put("max_tokens", config.maxTokens)
             .put("temperature", config.temperature)
-            .put("enable_thinking", false)
-            .put("thinking", JSONObject().put("type", "disabled"))
+
+        try {
+            val customFields = JSONObject(config.customFields)
+            customFields.keys().forEach { key -> body.put(key, customFields.get(key)) }
+        } catch (e: Exception) {
+            logWarn("$TAG: ignoring invalid custom fields: ${e.message}")
+        }
 
         return body.toString()
     }
