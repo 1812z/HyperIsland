@@ -454,6 +454,8 @@ object KeepIslandHook : BaseHook() {
                 showRightHighlightColor = showRightHighlight,
                 islandOnly = !focusEnabled,
                 islandEnabled = islandEnabled,
+                focusTitle = focusContent.title,
+                focusContent = focusContent.content,
                 focusRemoteViews = focusContent.remoteViews,
                 focusIslandExpandRemoteViews = if (focusEnabled) {
                     focusContent.islandExpandRemoteViews
@@ -534,6 +536,8 @@ object KeepIslandHook : BaseHook() {
                 showRightHighlightColor = showRightHighlight,
                 islandOnly = !focusEnabled,
                 islandEnabled = islandEnabled,
+                focusTitle = focusContent.title,
+                focusContent = focusContent.content,
                 focusRemoteViews = focusContent.remoteViews,
                 focusIslandExpandRemoteViews = if (focusEnabled) {
                     focusContent.islandExpandRemoteViews
