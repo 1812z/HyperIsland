@@ -171,11 +171,10 @@ object KeepIslandHook : BaseHook() {
             }
             evaluateKeepIsland()
             if (posted) {
+                appContext?.let { postKeepIsland(it, restore = true) }
                 if (hasConfiguredKeepIslandContent()) {
-                    appContext?.let { updateKeepIslandContent(it, force = true) }
                     schedulePeriodicDataUpdate()
                 } else {
-                    appContext?.let { updateKeepIslandContent(it, force = true) }
                     cancelPeriodicDataUpdate()
                 }
             }
@@ -528,7 +527,7 @@ object KeepIslandHook : BaseHook() {
                 preserveStatusBarSmallIcon = false,
                 isOngoing = true,
                 showIslandIcon = showIslandIcon,
-                clearBeforePost = force,
+                clearBeforePost = false,
                 sourcePackage = "io.github.hyperisland",
                 sourceChannelId = KEEP_ISLAND_CHANNEL,
                 highlightColor = highlightColor,
