@@ -222,4 +222,10 @@ export const donors: DonorItem[] = [
     date: '2026-07-26',
     message: '继续努力'
   },
+  {
+    name: "a",
+    amount: '2',
+    date: '2026-08-10',
+    message: '加油'
+  }
 ]
