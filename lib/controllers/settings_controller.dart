@@ -1692,15 +1692,19 @@ class SettingsController extends ChangeNotifier {
     await prefs.setBool(kPrefKeepIsland, value);
     keepIsland = value;
     notifyListeners();
+    await _refreshKeepIsland();
   }
 
-  Future<void> setKeepIslandDisplayTiming(String value) => _setStringPref(
-    kPrefKeepIslandDisplayTiming,
-    value == kKeepIslandDisplayTimingCharging
-        ? kKeepIslandDisplayTimingCharging
-        : kKeepIslandDisplayTimingAlways,
-    (v) => keepIslandDisplayTiming = v,
-  );
+  Future<void> setKeepIslandDisplayTiming(String value) async {
+    await _setStringPref(
+      kPrefKeepIslandDisplayTiming,
+      value == kKeepIslandDisplayTimingCharging
+          ? kKeepIslandDisplayTimingCharging
+          : kKeepIslandDisplayTimingAlways,
+      (v) => keepIslandDisplayTiming = v,
+    );
+    await _refreshKeepIsland();
+  }
 
   Future<void> setKeepIslandShowNotification(bool value) async {
     if (keepIslandShowNotification == value) return;
@@ -1712,6 +1716,7 @@ class SettingsController extends ChangeNotifier {
       keepIslandFocusNotification = true;
     }
     notifyListeners();
+    await _refreshKeepIsland();
   }
 
   Future<void> setKeepIslandAutoHide(bool value) async {
@@ -1720,6 +1725,7 @@ class SettingsController extends ChangeNotifier {
     await prefs.setBool(kPrefKeepIslandAutoHide, value);
     keepIslandAutoHide = value;
     notifyListeners();
+    await _refreshKeepIsland();
   }
 
   Future<void> setKeepIslandHideLandscape(bool value) async {
@@ -1728,6 +1734,7 @@ class SettingsController extends ChangeNotifier {
     await prefs.setBool(kPrefKeepIslandHideLandscape, value);
     keepIslandHideLandscape = value;
     notifyListeners();
+    await _refreshKeepIsland();
   }
 
   Future<void> setKeepIslandHighlightColor(String value) async {
@@ -1741,33 +1748,44 @@ class SettingsController extends ChangeNotifier {
     }
     keepIslandHighlightColor = normalized;
     notifyListeners();
+    await _refreshKeepIsland();
   }
 
-  Future<void> setKeepIslandLeftHighlight(bool value) => _setBoolPref(
-    kPrefKeepIslandLeftHighlight,
-    value,
-    (v) => keepIslandLeftHighlight = v,
-  );
+  Future<void> setKeepIslandLeftHighlight(bool value) async {
+    await _setBoolPref(
+      kPrefKeepIslandLeftHighlight,
+      value,
+      (v) => keepIslandLeftHighlight = v,
+    );
+    await _refreshKeepIsland();
+  }
 
-  Future<void> setKeepIslandRightHighlight(bool value) => _setBoolPref(
-    kPrefKeepIslandRightHighlight,
-    value,
-    (v) => keepIslandRightHighlight = v,
-  );
+  Future<void> setKeepIslandRightHighlight(bool value) async {
+    await _setBoolPref(
+      kPrefKeepIslandRightHighlight,
+      value,
+      (v) => keepIslandRightHighlight = v,
+    );
+    await _refreshKeepIsland();
+  }
 
-  Future<void> setKeepIslandLeftContents(List<String> values) =>
-      _setKeepIslandContents(
-        kPrefKeepIslandLeftContent,
-        values,
-        (v) => keepIslandLeftContents = v,
-      );
+  Future<void> setKeepIslandLeftContents(List<String> values) async {
+    await _setKeepIslandContents(
+      kPrefKeepIslandLeftContent,
+      values,
+      (v) => keepIslandLeftContents = v,
+    );
+    await _refreshKeepIsland();
+  }
 
-  Future<void> setKeepIslandRightContents(List<String> values) =>
-      _setKeepIslandContents(
-        kPrefKeepIslandRightContent,
-        values,
-        (v) => keepIslandRightContents = v,
-      );
+  Future<void> setKeepIslandRightContents(List<String> values) async {
+    await _setKeepIslandContents(
+      kPrefKeepIslandRightContent,
+      values,
+      (v) => keepIslandRightContents = v,
+    );
+    await _refreshKeepIsland();
+  }
 
   Future<void> setKeepIslandCarouselInterval(int value) async {
     final normalized = value.clamp(1, 6000);
@@ -1776,6 +1794,7 @@ class SettingsController extends ChangeNotifier {
     await prefs.setInt(kPrefKeepIslandCarouselInterval, normalized);
     keepIslandCarouselInterval = normalized;
     notifyListeners();
+    await _refreshKeepIsland();
   }
 
   Future<void> _setKeepIslandContents(
@@ -1814,42 +1833,61 @@ class SettingsController extends ChangeNotifier {
     await prefs.setBool(kPrefKeepIslandFocusNotification, value);
     keepIslandFocusNotification = value;
     notifyListeners();
+    await _refreshKeepIsland();
   }
 
-  Future<void> setKeepIslandFocusContentType(String value) => _setStringPref(
-    kPrefKeepIslandFocusContentType,
-    switch (value) {
+  Future<void> setKeepIslandFocusContentType(String value) async {
+    await _setStringPref(kPrefKeepIslandFocusContentType, switch (value) {
       kKeepIslandFocusContentPerformance => kKeepIslandFocusContentPerformance,
       kKeepIslandFocusContentDevice => kKeepIslandFocusContentDevice,
       kKeepIslandFocusContentCharging => kKeepIslandFocusContentCharging,
       _ => kKeepIslandFocusContentNotification,
-    },
-    (v) => keepIslandFocusContentType = v,
-  );
+    }, (v) => keepIslandFocusContentType = v);
+    await _refreshKeepIsland();
+  }
 
-  Future<void> setKeepIslandNotificationTitle(String value) => _setStringPref(
-    kPrefKeepIslandNotificationTitle,
-    value.trim(),
-    (v) => keepIslandNotificationTitle = v,
-  );
+  Future<void> setKeepIslandNotificationTitle(String value) async {
+    await _setStringPref(
+      kPrefKeepIslandNotificationTitle,
+      value.trim(),
+      (v) => keepIslandNotificationTitle = v,
+    );
+    await _refreshKeepIsland();
+  }
 
-  Future<void> setKeepIslandNotificationContent(String value) => _setStringPref(
-    kPrefKeepIslandNotificationContent,
-    value.trim(),
-    (v) => keepIslandNotificationContent = v,
-  );
+  Future<void> setKeepIslandNotificationContent(String value) async {
+    await _setStringPref(
+      kPrefKeepIslandNotificationContent,
+      value.trim(),
+      (v) => keepIslandNotificationContent = v,
+    );
+    await _refreshKeepIsland();
+  }
 
-  Future<void> setKeepIslandShowIslandIcon(bool value) => _setBoolPref(
-    kPrefKeepIslandShowIslandIcon,
-    value,
-    (v) => keepIslandShowIslandIcon = v,
-  );
+  Future<void> setKeepIslandShowIslandIcon(bool value) async {
+    await _setBoolPref(
+      kPrefKeepIslandShowIslandIcon,
+      value,
+      (v) => keepIslandShowIslandIcon = v,
+    );
+    await _refreshKeepIsland();
+  }
 
-  Future<void> setKeepIslandCustomIconPath(String value) => _setStringPref(
-    kPrefKeepIslandCustomIconPath,
-    value.trim(),
-    (v) => keepIslandCustomIconPath = v,
-  );
+  Future<void> setKeepIslandCustomIconPath(String value) async {
+    await _setStringPref(
+      kPrefKeepIslandCustomIconPath,
+      value.trim(),
+      (v) => keepIslandCustomIconPath = v,
+    );
+    await _refreshKeepIsland();
+  }
+
+  Future<void> _refreshKeepIsland() async {
+    const channel = MethodChannel('io.github.hyperisland/test');
+    try {
+      await channel.invokeMethod<bool>('refreshKeepIsland');
+    } catch (_) {}
+  }
 
   Future<void> setTempHideBehaviorEnabled(bool value) => _setBoolPref(
     kPrefTempHideBehaviorEnabled,

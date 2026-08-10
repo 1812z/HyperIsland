@@ -15,6 +15,7 @@ import androidx.core.content.ContextCompat
 import io.github.hyperisland.core.data.NotificationChannelRepository
 import io.github.hyperisland.core.service.AppService
 import io.github.hyperisland.xposed.template.core.customization.FocusCustomizationEngine
+import io.github.hyperisland.xposed.hook.KeepIslandHook
 import io.github.hyperisland.utils.InteractionHaptics
 import io.github.hyperisland.utils.RootShell
 import io.github.hyperisland.utils.getAppIcon
@@ -79,6 +80,16 @@ class MainActivity : FlutterActivity() {
                     val clearPrevious = call.argument<Boolean>("clearPrevious") ?: true
                     val enableFloat = call.argument<Boolean>("enableFloat") ?: true
                     handleShowCustomTest(result, title, content, clearPrevious, enableFloat)
+                }
+
+                "refreshKeepIsland" -> {
+                    sendBroadcast(
+                        Intent(KeepIslandHook.ACTION_REFRESH_KEEP_ISLAND).apply {
+                            setPackage(REQUIRED_SYSTEM_UI_PACKAGE)
+                        },
+                        "io.github.hyperisland.SEND_ISLAND",
+                    )
+                    result.success(true)
                 }
 
                 "getAppVersion" -> {

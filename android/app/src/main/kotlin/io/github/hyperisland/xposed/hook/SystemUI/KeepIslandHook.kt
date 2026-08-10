@@ -89,6 +89,9 @@ object KeepIslandHook : BaseHook() {
 
     private const val KEEP_ISLAND_CHANNEL = "keep_island"
 
+    const val ACTION_REFRESH_KEEP_ISLAND =
+        "io.github.hyperisland.action.REFRESH_KEEP_ISLAND"
+
     private const val RESTORE_DELAY_MS = 300L
 
     private const val DATA_UPDATE_INTERVAL_MS = 1000L
@@ -159,7 +162,7 @@ object KeepIslandHook : BaseHook() {
 
     override fun getTag() = TAG
 
-    override fun onConfigChanged() {
+    private fun refreshFromSettings() {
         mainHandler.postDelayed({
             cachedContentConfig = null
             carouselIndex = 0L
@@ -205,6 +208,7 @@ object KeepIslandHook : BaseHook() {
                     registerIslandDataManager(app.applicationContext)
                     registerChargingPanelReceiver(app.applicationContext)
                     registerDisplayTimingReceiver(app.applicationContext)
+                    registerSettingsRefreshReceiver(app.applicationContext)
                     mainHandler.postDelayed({ evaluateKeepIsland() }, 3000)
                 }
                 result
@@ -433,6 +437,7 @@ object KeepIslandHook : BaseHook() {
             val islandEnabled = shouldEnableIsland(context)
             val showIslandIcon = ConfigManager.getBoolean(PREF_KEY_SHOW_ISLAND_ICON, false)
             val customIconPath = ConfigManager.getString(PREF_KEY_CUSTOM_ICON_PATH, "")
+            val contentIntent = createLaunchAppIntent(context)
             val request = IslandRequest(
                 title = texts.first,
                 content = texts.second,
@@ -445,6 +450,7 @@ object KeepIslandHook : BaseHook() {
                 preserveStatusBarSmallIcon = false,
                 isOngoing = true,
                 showIslandIcon = showIslandIcon,
+                contentIntent = contentIntent,
                 clearBeforePost = true,
                 sourcePackage = "io.github.hyperisland",
                 sourceChannelId = KEEP_ISLAND_CHANNEL,
@@ -502,6 +508,7 @@ object KeepIslandHook : BaseHook() {
             val islandEnabled = shouldEnableIsland(context)
             val showIslandIcon = ConfigManager.getBoolean(PREF_KEY_SHOW_ISLAND_ICON, false)
             val customIconPath = ConfigManager.getString(PREF_KEY_CUSTOM_ICON_PATH, "")
+            val contentIntent = createLaunchAppIntent(context)
             val signature = contentSignature(
                 texts,
                 focusEnabled,
@@ -527,6 +534,7 @@ object KeepIslandHook : BaseHook() {
                 preserveStatusBarSmallIcon = false,
                 isOngoing = true,
                 showIslandIcon = showIslandIcon,
+                contentIntent = contentIntent,
                 clearBeforePost = false,
                 sourcePackage = "io.github.hyperisland",
                 sourceChannelId = KEEP_ISLAND_CHANNEL,
@@ -1000,6 +1008,40 @@ object KeepIslandHook : BaseHook() {
             context.registerReceiver(receiver, filter)
         }
         powerConnected = stickyIntent?.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0
+    }
+
+    private fun registerSettingsRefreshReceiver(context: Context) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(receiverContext: Context?, intent: Intent?) {
+                if (intent?.action == ACTION_REFRESH_KEEP_ISLAND) refreshFromSettings()
+            }
+        }
+        val filter = IntentFilter(ACTION_REFRESH_KEEP_ISLAND)
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            context.registerReceiver(
+                receiver,
+                filter,
+                IslandDispatcher.PERM,
+                null,
+                Context.RECEIVER_EXPORTED,
+            )
+        } else {
+            @Suppress("UnspecifiedRegisterReceiverFlag")
+            context.registerReceiver(receiver, filter, IslandDispatcher.PERM, null)
+        }
+    }
+
+    private fun createLaunchAppIntent(context: Context): PendingIntent? {
+        val intent = context.packageManager
+            .getLaunchIntentForPackage("io.github.hyperisland")
+            ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            ?: return null
+        return PendingIntent.getActivity(
+            context,
+            KEEP_ISLAND_NOTIF_ID,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
     }
 
     private fun samplePerformanceTrend(snapshot: IslandDataManager.PerformanceSnapshot) {
