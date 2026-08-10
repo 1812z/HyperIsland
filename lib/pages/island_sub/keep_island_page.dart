@@ -173,7 +173,8 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
   }
 
   Future<void> _editNotificationContent({required bool title}) async {
-    if (!_ctrl.keepIslandFocusNotification) return;
+    if (!(_ctrl.keepIslandFocusNotification && _ctrl.keepIsland) &&
+        !_ctrl.keepIslandShowNotification) return;
     final initial = title
         ? _ctrl.keepIslandNotificationTitle
         : _ctrl.keepIslandNotificationContent;
@@ -426,11 +427,9 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
       listenable: _ctrl,
       builder: (context, _) {
         final l10n = AppLocalizations.of(context)!;
-        final keepActive = _ctrl.keepIsland || _ctrl.keepIslandShowNotification;
         final focusContentEnabled =
-            keepActive &&
-            (_ctrl.keepIslandFocusNotification ||
-                _ctrl.keepIslandShowNotification);
+            (_ctrl.keepIslandFocusNotification && _ctrl.keepIsland) ||
+            _ctrl.keepIslandShowNotification;
         return SafeArea(
           child: SingleChildScrollView(
             padding: EdgeInsets.fromLTRB(
@@ -446,7 +445,7 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
                   title: Text(l10n.keepIslandFocusNotificationTitle),
                   subtitle: Text(l10n.keepIslandFocusNotificationSubtitle),
                   value: _ctrl.keepIslandFocusNotification,
-                  onChanged: keepActive
+                  onChanged: _ctrl.keepIsland
                       ? InteractionHaptics.interceptToggle(
                           _ctrl.setKeepIslandFocusNotification,
                         )
@@ -492,11 +491,9 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
                 SwitchListTile(
                   title: Text(l10n.keepIslandShowNotificationTitle),
                   value: _ctrl.keepIslandShowNotification,
-                  onChanged: _ctrl.keepIslandFocusNotification
-                      ? InteractionHaptics.interceptToggle(
-                          _ctrl.setKeepIslandShowNotification,
-                        )
-                      : null,
+                  onChanged: InteractionHaptics.interceptToggle(
+                    _ctrl.setKeepIslandShowNotification,
+                  ),
                 ),
               ],
             ),
@@ -584,7 +581,8 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
                         ),
                         subtitle: Text(
                           _ctrl.keepIslandShowNotification ||
-                                  _ctrl.keepIslandFocusNotification
+                                  (_ctrl.keepIslandFocusNotification &&
+                                      _ctrl.keepIsland)
                               ? l10n.keepIslandConfigEnabled
                               : l10n.keepIslandConfigDisabled,
                         ),

@@ -398,15 +398,15 @@ object KeepIslandHook : BaseHook() {
     private fun shouldPostKeepNotification(): Boolean =
         matchesDisplayTiming() && (
                 ConfigManager.getBoolean(PREF_KEY, false) ||
-                        shouldShowNotification()
+                        ConfigManager.getBoolean(PREF_KEY_SHOW_NOTIFICATION, false)
                 )
 
     private fun matchesDisplayTiming(): Boolean =
         ConfigManager.getString(PREF_KEY_DISPLAY_TIMING, DISPLAY_TIMING_ALWAYS) !=
                 DISPLAY_TIMING_CHARGING || powerConnected
 
-    private fun shouldShowNotification(): Boolean =
-        ConfigManager.getBoolean(PREF_KEY_FOCUS_NOTIFICATION, false) &&
+    private fun focusContentActive(): Boolean =
+        ConfigManager.getBoolean(PREF_KEY_FOCUS_NOTIFICATION, false) ||
                 ConfigManager.getBoolean(PREF_KEY_SHOW_NOTIFICATION, false)
 
     private fun shouldEnableIsland(context: Context): Boolean {
@@ -429,7 +429,7 @@ object KeepIslandHook : BaseHook() {
                     ConfigManager.getBoolean(PREF_KEY_RIGHT_HIGHLIGHT, false)
             val texts: Pair<String, String> = resolveKeepIslandTexts()
             val focusEnabled = ConfigManager.getBoolean(PREF_KEY_FOCUS_NOTIFICATION, false)
-            val showNotification = shouldShowNotification()
+            val showNotification = ConfigManager.getBoolean(PREF_KEY_SHOW_NOTIFICATION, false)
             val focusContent = resolveFocusContent(context, focusEnabled || showNotification)
             val islandEnabled = shouldEnableIsland(context)
             val showIslandIcon = ConfigManager.getBoolean(PREF_KEY_SHOW_ISLAND_ICON, false)
@@ -496,7 +496,7 @@ object KeepIslandHook : BaseHook() {
             val showRightHighlight = highlightColor != null &&
                     ConfigManager.getBoolean(PREF_KEY_RIGHT_HIGHLIGHT, false)
             val focusEnabled = ConfigManager.getBoolean(PREF_KEY_FOCUS_NOTIFICATION, false)
-            val showNotification = shouldShowNotification()
+            val showNotification = ConfigManager.getBoolean(PREF_KEY_SHOW_NOTIFICATION, false)
             val focusContent = resolveFocusContent(context, focusEnabled || showNotification)
             val islandEnabled = shouldEnableIsland(context)
             val showIslandIcon = ConfigManager.getBoolean(PREF_KEY_SHOW_ISLAND_ICON, false)
@@ -526,7 +526,7 @@ object KeepIslandHook : BaseHook() {
                 preserveStatusBarSmallIcon = false,
                 isOngoing = true,
                 showIslandIcon = showIslandIcon,
-                clearBeforePost = false,
+                clearBeforePost = force,
                 sourcePackage = "io.github.hyperisland",
                 sourceChannelId = KEEP_ISLAND_CHANNEL,
                 highlightColor = highlightColor,
@@ -1225,7 +1225,7 @@ object KeepIslandHook : BaseHook() {
         val config = contentConfig()
         val hasIslandContent = config.left.any { it.isNotBlank() } || config.right.any { it.isNotBlank() }
         if (hasIslandContent) return true
-        if (!ConfigManager.getBoolean(PREF_KEY_FOCUS_NOTIFICATION, false)) return false
+        if (!focusContentActive()) return false
         if (ConfigManager.getString(PREF_KEY_FOCUS_CONTENT_TYPE, FOCUS_CONTENT_NOTIFICATION) in
             setOf(FOCUS_CONTENT_PERFORMANCE, FOCUS_CONTENT_DEVICE, FOCUS_CONTENT_CHARGING)
         ) return true
