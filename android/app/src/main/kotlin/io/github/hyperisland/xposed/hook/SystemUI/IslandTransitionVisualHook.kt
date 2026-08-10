@@ -64,14 +64,19 @@ object IslandTransitionVisualHook : BaseHook() {
             container = findMethod(fakeClass, "getFakeContainer"),
             mask = findMethod(fakeClass, "getFakeMask"),
         )
-        hookRefreshAfter(module, fakeClass.getDeclaredMethod("onFinishInflate")) { owner ->
+        hookDeclaredRefreshAfter(module, fakeClass, "onFinishInflate") { owner ->
             fakeViews.add(owner)
             refreshFakeView(owner, access)
         }
-        hookRefreshAfter(module, fakeClass.getDeclaredMethod("setVisibility", Int::class.javaPrimitiveType)) {
+        hookDeclaredRefreshAfter(
+            module,
+            fakeClass,
+            "setVisibility",
+            Int::class.javaPrimitiveType!!,
+        ) {
             refreshFakeView(it, access)
         }
-        hookRefreshAfter(module, fakeClass.getDeclaredMethod("onDetachedFromWindow")) { owner ->
+        hookDeclaredRefreshAfter(module, fakeClass, "onDetachedFromWindow") { owner ->
             releaseFakeView(owner, access)
         }
 
@@ -83,13 +88,35 @@ object IslandTransitionVisualHook : BaseHook() {
             val method = delegateClass.declaredMethods.firstOrNull {
                 it.name == name && it.parameterCount == 0
             } ?: return@forEach
-            hookRefreshAfter(module, method) { delegate ->
-                val fakeView = runCatching { getFakeView.invoke(delegate) }.getOrNull() ?: return@hookRefreshAfter
-                fakeViews.add(fakeView)
-                refreshFakeView(fakeView, access)
+            runCatching {
+                hookRefreshAfter(module, method) { delegate ->
+                    val fakeView = runCatching { getFakeView.invoke(delegate) }.getOrNull()
+                        ?: return@hookRefreshAfter
+                    fakeViews.add(fakeView)
+                    refreshFakeView(fakeView, access)
+                }
+            }.onFailure { error ->
+                logError(module, "failed to hook ${delegateClass.name}.$name: ${error.message}")
             }
         }
         log(module, "fake island transition visuals hooked")
+    }
+
+    private fun hookDeclaredRefreshAfter(
+        module: XposedModule,
+        clazz: Class<*>,
+        name: String,
+        vararg parameterTypes: Class<*>,
+        refresh: (Any) -> Unit,
+    ) {
+        val method = runCatching {
+            clazz.getDeclaredMethod(name, *parameterTypes)
+        }.getOrNull() ?: return
+        runCatching {
+            hookRefreshAfter(module, method, refresh)
+        }.onFailure { error ->
+            logError(module, "failed to hook ${clazz.name}.$name: ${error.message}")
+        }
     }
 
     private fun hookRefreshAfter(
@@ -100,7 +127,11 @@ object IslandTransitionVisualHook : BaseHook() {
         method.isAccessible = true
         module.hook(method).intercept { chain ->
             val result = chain.proceed()
-            chain.thisObject?.let(refresh)
+            chain.thisObject?.let { owner ->
+                runCatching { refresh(owner) }.onFailure { error ->
+                    logError(module, "${method.declaringClass.name}.${method.name} refresh failed: ${error.message}")
+                }
+            }
             result
         }
     }
