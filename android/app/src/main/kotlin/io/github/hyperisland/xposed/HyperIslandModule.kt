@@ -1,6 +1,7 @@
 package io.github.hyperisland.xposed
 
 import io.github.hyperisland.xposed.hook.SystemUI.BigIslandMinWidthHook
+import io.github.hyperisland.xposed.hook.SystemUI.DynamicIslandVisibilityHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandTopOffsetHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandBlurHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandOutlineHook
@@ -79,6 +80,7 @@ class HyperIslandModule : XposedModule() {
                     SmoothIslandHook.init(this, param)
                 }
                 ToastUiInterceptHook.init(this, param)
+                DynamicIslandVisibilityHook.init(this, param)
                 KeepIslandHook.init(this, param)
                 if (ConfigManager.getBoolean("pref_bluetooth_island", false)) {
                     BluetoothIslandHook.init(this, param)

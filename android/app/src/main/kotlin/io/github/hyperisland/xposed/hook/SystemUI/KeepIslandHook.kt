@@ -17,32 +17,25 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
-import android.graphics.Rect
 import android.graphics.drawable.Icon
 import android.hardware.display.DisplayManager
-import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
-import android.service.notification.StatusBarNotification
 import android.view.Display
 import android.view.Surface
-import android.view.View
 import android.widget.RemoteViews
 import io.github.hyperisland.R
 import io.github.hyperisland.xposed.ConfigManager
+import io.github.hyperisland.xposed.hook.SystemUI.DynamicIslandVisibilityHook
 import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
 import io.github.hyperisland.xposed.islanddispatch.definition.IslandRequest
-import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.hyperisland.xposed.utils.moduleContext
 import io.github.hyperisland.xposed.utils.toRounded
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.io.File
-import java.lang.ref.WeakReference
-import java.util.Collections
 import java.util.Locale
-import java.util.WeakHashMap
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.roundToInt
 import org.json.JSONArray
@@ -89,11 +82,6 @@ object KeepIslandHook : BaseHook() {
 
     private const val KEEP_ISLAND_NOTIF_ID = 0x4B494B49
 
-    private const val ANIMATION_CONTROLLER_CLASS =
-        "miui.systemui.dynamicisland.anim.DynamicIslandAnimationController"
-    private const val CONTENT_VIEW_CONTROLLER_CLASS =
-        "miui.systemui.dynamicisland.window.content.DynamicIslandContentViewController"
-
     private const val KEEP_ISLAND_CHANNEL = "keep_island"
 
     const val ACTION_REFRESH_KEEP_ISLAND =
@@ -103,11 +91,6 @@ object KeepIslandHook : BaseHook() {
 
     private const val DATA_UPDATE_INTERVAL_MS = 1000L
 
-    private const val VISIBILITY_CHECK_INTERVAL_MS = 32L
-    private const val MAX_VISIBILITY_CHECKS = 32
-    private const val ACTIVE_VISIBILITY_CHECK_INTERVAL_MS = 100L
-    private const val INVISIBLE_CONFIRMATION_COUNT = 2
-
     private val mainHandler = Handler(Looper.getMainLooper())
     private var appContext: android.content.Context? = null
     @Volatile
@@ -116,12 +99,6 @@ object KeepIslandHook : BaseHook() {
     private var cachedModule: XposedModule? = null
 
     private val activeRealKeys = ConcurrentHashMap.newKeySet<String>()
-    private val pendingRealKeys = ConcurrentHashMap.newKeySet<String>()
-    private val pendingRemovalRunnables = ConcurrentHashMap<String, Runnable>()
-    private val visibilityCheckRunnables = ConcurrentHashMap<String, Runnable>()
-    private val activeVisibilityRunnables = ConcurrentHashMap<String, Runnable>()
-    private val controllerKeys = Collections.synchronizedMap(WeakHashMap<Any, String>())
-    private val ignoredControllerKeys = Collections.synchronizedMap(WeakHashMap<Any, String>())
 
     @Volatile
     private var autoHideTrackingEnabled = false
@@ -137,8 +114,12 @@ object KeepIslandHook : BaseHook() {
     private var cachedContentConfig: ContentConfig? = null
 
     private val dataChangedListener: () -> Unit = { scheduleContentUpdateFromDataChange() }
+    private val islandVisibilityListener: (DynamicIslandVisibilityHook.Event) -> Unit = { event ->
+        handleIslandVisibilityEvent(event)
+    }
 
     private var dataListenerRegistered = false
+    private var islandVisibilityListenerRegistered = false
 
     private var keepIslandContentCustomized = false
 
@@ -178,13 +159,6 @@ object KeepIslandHook : BaseHook() {
     private var displayListenerRegistered = false
     private var statusBarTintListenerRegistered = false
 
-    private val hookedAnimationClassLoaders = ConcurrentHashMap.newKeySet<Int>()
-    private val hookedContentControllerClassLoaders = ConcurrentHashMap.newKeySet<Int>()
-    private val noArgMethodCache = ConcurrentHashMap<NoArgMethodKey, java.lang.reflect.Method>()
-    private val missingNoArgMethods = ConcurrentHashMap.newKeySet<NoArgMethodKey>()
-    @Volatile
-    private var contentControllerHooked = false
-
     override fun getTag() = TAG
 
     private fun refreshFromSettings() {
@@ -212,10 +186,8 @@ object KeepIslandHook : BaseHook() {
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
         cachedModule = module
         log(module, "onInit pkg=${param.packageName}")
+        registerIslandVisibilityListener()
         hookApplicationOnCreate(module, param)
-        hookAnimationController(module, param.defaultClassLoader)
-        hookContentViewController(module, param.defaultClassLoader)
-        hookDynamicClassLoaders(module)
     }
 
     private fun hookApplicationOnCreate(module: XposedModule, param: PackageLoadedParam) {
@@ -235,6 +207,7 @@ object KeepIslandHook : BaseHook() {
                     registerDisplayTimingReceiver(app.applicationContext)
                     registerSettingsRefreshReceiver(app.applicationContext)
                     registerStatusBarTintListener()
+                    mainHandler.post { evaluateKeepIsland() }
                     mainHandler.postDelayed({ evaluateKeepIsland() }, 3000)
                 }
                 result
@@ -245,289 +218,52 @@ object KeepIslandHook : BaseHook() {
         }
     }
 
-    private fun hookDynamicClassLoaders(module: XposedModule) {
-        HookUtils.hookDynamicClassLoaders(module, ClassLoader.getSystemClassLoader()) { cl ->
-            hookAnimationController(module, cl)
-            hookContentViewController(module, cl)
-        }
-    }
-
-    private fun hookContentViewController(module: XposedModule, classLoader: ClassLoader) {
-        val clId = System.identityHashCode(classLoader)
-        if (!hookedContentControllerClassLoaders.add(clId)) return
-        try {
-            val clazz = try {
-                classLoader.loadClass(CONTENT_VIEW_CONTROLLER_CLASS)
-            } catch (_: ClassNotFoundException) {
-                hookedContentControllerClassLoaders.remove(clId)
-                return
-            }
-            val methods = clazz.declaredMethods.filter {
-                it.name == "onPreDraw" && it.parameterCount == 0
-            }
-            methods.forEach { method ->
-                module.hook(method).intercept { chain ->
-                    val result = chain.proceed()
-                    handleContentPreDraw(chain.thisObject)
-                    result
-                }
-            }
-            if (methods.isNotEmpty()) contentControllerHooked = true
-            log(module, "hooked content onPreDraw (cl=$clId, methods=${methods.size})")
-        } catch (e: Throwable) {
-            hookedContentControllerClassLoaders.remove(clId)
-            logError(module, "content onPreDraw hook failed cl=$clId: ${e.message}")
-        }
-    }
-
-    private fun hookAnimationController(module: XposedModule, classLoader: ClassLoader) {
-        val clId = System.identityHashCode(classLoader)
-        if (!hookedAnimationClassLoaders.add(clId)) return
-        try {
-            val clazz = try {
-                classLoader.loadClass(ANIMATION_CONTROLLER_CLASS)
-            } catch (_: ClassNotFoundException) {
-                hookedAnimationClassLoaders.remove(clId)
-                //log(module, "animation controller not found in cl=$clId, skipped")
-                return
-            }
-            val methods = clazz.declaredMethods.filter {
-                it.name == "onStateChange" && it.parameterCount >= 1
-            }
-            methods.forEach { method ->
-                module.hook(method).intercept { chain ->
-                    val result = chain.proceed()
-                    val stateObj = chain.args.getOrNull(0)
-                    if (stateObj != null) {
-                        handleStateChange(stateObj)
-                    }
-                    result
-                }
-            }
-            log(module, "hooked onStateChange (cl=$clId, methods=${methods.size})")
-        } catch (e: Throwable) {
-            hookedAnimationClassLoaders.remove(clId)
-            logError(module, "animation controller hook failed cl=$clId: ${e.message}")
-        }
-    }
-
-    private fun handleStateChange(stateObj: Any) {
+    private fun handleIslandVisibilityEvent(event: DynamicIslandVisibilityHook.Event) {
         val ctx = appContext ?: return
         if (!autoHideTrackingEnabled) return
-
-        val stateText = readStateText(stateObj) ?: return
-
-        val extras = extractExtrasFromState(stateObj)
-        val sourceChannel = extras?.getString("hyperisland_source_channel")
-        val isOwnedByUs = sourceChannel == KEEP_ISLAND_CHANNEL
-
-        val key = extractKeyFromState(stateObj)
-        val sourcePackage = extractSourcePackageFromState(stateObj, key)
-
-        val isBigIsland = stateText.contains("BigIsland")
-        val isExpanded = stateText.contains("Expand")
-        val isSmallIsland = stateText.contains("SmallIsland")
-        val isDeleted = stateText.contains("Deleted")
-
-        if (isOwnedByUs) return
-        if ((isBigIsland || isExpanded || isSmallIsland) && !isDeleted && sourcePackage == foregroundPackage(ctx)) return
-        if (contentControllerHooked) {
-            when {
-                (isBigIsland || isExpanded || isSmallIsland) && !isDeleted -> {
-                    if (key != null) markRealIslandPending(key)
-                }
-
-                isDeleted -> {
-                    if (key != null) markRealIslandHidden(key)
-                }
-
-                else -> {
-                    if (key != null) schedulePendingRealIslandRemoval(key)
-                }
-            }
+        if (event.global) {
+            diag("ignored global island region visible=${event.visible}")
             return
         }
-
-        when {
-            (isBigIsland || isExpanded || isSmallIsland) && !isDeleted -> {
-                if (key != null) markRealIslandVisible(ctx, null, key)
-            }
-
-            isDeleted || (!isBigIsland && !isExpanded && !isSmallIsland) -> {
-                if (key != null) markRealIslandHidden(key)
-            }
-        }
-    }
-
-    private fun handleContentPreDraw(controllerObj: Any) {
-        val ctx = appContext ?: return
-        if (!autoHideTrackingEnabled) return
-
-        val controllerKey = invokeNoArg(controllerObj, "getIslandKey") as? String
-        if (controllerKey != null && ignoredControllerKeys[controllerObj] == controllerKey) return
-        ignoredControllerKeys.remove(controllerObj)
-        val cachedKey = controllerKeys[controllerObj]
-        if (cachedKey != null && cachedKey == controllerKey) {
-            if (cachedKey in activeRealKeys) {
-                scheduleActiveVisibilityCheck(controllerObj, cachedKey)
-                return
-            }
-            if (cachedKey in pendingRealKeys) {
-                scheduleVisibilityCheck(ctx, controllerObj, cachedKey)
-                return
-            }
-        } else {
-            controllerKeys.remove(controllerObj)
-        }
-
-        val view = invokeNoArg(controllerObj, "getView") as? View ?: return
-        val stateText = invokeNoArg(view, "getState")?.toString().orEmpty()
-        val isBigIsland = stateText.contains("BigIsland")
-        val isExpanded = stateText.contains("Expand")
-        val isSmallIsland = stateText.contains("SmallIsland")
-        val isDeleted = stateText.contains("Deleted")
-        val sbn = extractSbnFromController(controllerObj)
-        val key = controllerKey
-            ?: extractKeyFromState(view)
-            ?: sbn?.key
-            ?: return
-        controllerKeys[controllerObj] = key
-
-        if (isDeleted) {
-            markRealIslandHidden(key)
-            return
-        }
-        if (!isBigIsland && !isExpanded && !isSmallIsland) return
-        if (key in activeRealKeys) return
-
-        val extras = sbn?.notification?.extras ?: extractExtrasFromState(view)
-        val isOwnedByUs = extras?.getString("hyperisland_source_channel") == KEEP_ISLAND_CHANNEL
-        if (isOwnedByUs) {
-            ignoredControllerKeys[controllerObj] = key
-            controllerKeys.remove(controllerObj)
-            return
-        }
-        if (!isContentViewVisible(controllerObj, view)) {
-            if (key in pendingRealKeys) scheduleVisibilityCheck(ctx, controllerObj, key)
-            return
-        }
-
-        markRealIslandVisible(ctx, controllerObj, key)
-    }
-
-    private fun scheduleVisibilityCheck(ctx: Context, controllerObj: Any, key: String) {
-        if (visibilityCheckRunnables.containsKey(key)) return
-        val controllerRef = WeakReference(controllerObj)
-        var checksRemaining = MAX_VISIBILITY_CHECKS
-        lateinit var runnable: Runnable
-        runnable = Runnable {
-            if (!autoHideTrackingEnabled || key !in pendingRealKeys || key in activeRealKeys) {
-                visibilityCheckRunnables.remove(key, runnable)
-                return@Runnable
-            }
-            val controller = controllerRef.get()
-            if (controller == null || checksRemaining-- <= 0) {
-                visibilityCheckRunnables.remove(key, runnable)
-                markRealIslandHidden(key)
-                return@Runnable
-            }
-            val view = invokeNoArg(controller, "getView") as? View
-            if (view != null && isContentViewVisible(controller, view)) {
-                visibilityCheckRunnables.remove(key, runnable)
-                markRealIslandVisible(ctx, controller, key)
-                return@Runnable
-            }
-            mainHandler.postDelayed(runnable, VISIBILITY_CHECK_INTERVAL_MS)
-        }
-        if (visibilityCheckRunnables.putIfAbsent(key, runnable) == null) {
-            mainHandler.post(runnable)
-        }
-    }
-
-    private fun markRealIslandVisible(ctx: Context, controllerObj: Any?, key: String) {
-        cancelVisibilityCheck(key)
-        cancelPendingRealIslandRemoval(key)
-        cancelPendingRestore()
-        pendingRealKeys.remove(key)
-        val added = activeRealKeys.add(key)
-        if (controllerObj != null) scheduleActiveVisibilityCheck(controllerObj, key)
-        if (added && activeRealKeys.size == 1 &&
-            pendingRealKeys.isEmpty() && posted
+        if (event.notificationId == KEEP_ISLAND_NOTIF_ID ||
+            event.sourceChannel == KEEP_ISLAND_CHANNEL
         ) {
+            diag("ignored keep island key=${event.key} visible=${event.visible}")
+            return
+        }
+        if (event.visible && event.sourcePackage != "com.android.systemui" &&
+            event.sourcePackage == foregroundPackage(ctx)
+        ) {
+            diag("ignored foreground island key=${event.key} pkg=${event.sourcePackage}")
+            return
+        }
+        if (event.visible) markRealIslandVisible(ctx, event.key) else markRealIslandHidden(event.key)
+        diag("accepted island key=${event.key} visible=${event.visible} active=${activeRealKeys.size}")
+    }
+
+    private fun registerIslandVisibilityListener() {
+        if (islandVisibilityListenerRegistered) return
+        islandVisibilityListenerRegistered = true
+        DynamicIslandVisibilityHook.addListener(islandVisibilityListener)
+    }
+
+    private fun diag(message: String) {
+        if (!ConfigManager.isDebugLogEnabled()) return
+        cachedModule?.let { log(it, message) }
+    }
+
+    private fun markRealIslandVisible(ctx: Context, key: String) {
+        cancelPendingRestore()
+        val added = activeRealKeys.add(key)
+        if (added && activeRealKeys.size == 1 && posted) {
             updateKeepIslandContent(ctx, force = true)
         }
     }
 
-    private fun scheduleActiveVisibilityCheck(controllerObj: Any, key: String) {
-        if (activeVisibilityRunnables.containsKey(key)) return
-        val controllerRef = WeakReference(controllerObj)
-        var invisibleChecks = 0
-        lateinit var runnable: Runnable
-        runnable = Runnable {
-            if (!autoHideTrackingEnabled || key !in activeRealKeys) {
-                activeVisibilityRunnables.remove(key, runnable)
-                return@Runnable
-            }
-            val controller = controllerRef.get()
-            val currentKey = controller?.let { invokeNoArg(it, "getIslandKey") as? String }
-            val view = controller?.let { invokeNoArg(it, "getView") as? View }
-            val visible = controller != null && currentKey == key && view != null &&
-                    isContentViewVisible(controller, view)
-            if (visible) {
-                invisibleChecks = 0
-            } else if (++invisibleChecks >= INVISIBLE_CONFIRMATION_COUNT) {
-                activeVisibilityRunnables.remove(key, runnable)
-                markRealIslandHidden(key)
-                return@Runnable
-            }
-            mainHandler.postDelayed(runnable, ACTIVE_VISIBILITY_CHECK_INTERVAL_MS)
-        }
-        if (activeVisibilityRunnables.putIfAbsent(key, runnable) == null) {
-            mainHandler.postDelayed(runnable, ACTIVE_VISIBILITY_CHECK_INTERVAL_MS)
-        }
-    }
-
-    private fun markRealIslandPending(key: String) {
-        cancelPendingRealIslandRemoval(key)
-        cancelPendingRestore()
-        pendingRealKeys.add(key)
-    }
-
     private fun markRealIslandHidden(key: String) {
-        cancelVisibilityCheck(key)
-        cancelActiveVisibilityCheck(key)
-        cancelPendingRealIslandRemoval(key)
-        val removed = activeRealKeys.remove(key) or pendingRealKeys.remove(key)
-        if (removed && activeRealKeys.isEmpty() && pendingRealKeys.isEmpty()) {
+        if (activeRealKeys.remove(key) && activeRealKeys.isEmpty()) {
             scheduleRestore()
         }
-    }
-
-    private fun schedulePendingRealIslandRemoval(key: String) {
-        if (key !in pendingRealKeys || key in activeRealKeys) return
-        cancelPendingRealIslandRemoval(key)
-        val runnable = Runnable {
-            pendingRemovalRunnables.remove(key)
-            if (activeRealKeys.contains(key) || !pendingRealKeys.remove(key)) return@Runnable
-            if (activeRealKeys.isEmpty() && pendingRealKeys.isEmpty()) scheduleRestore()
-        }
-        pendingRemovalRunnables[key] = runnable
-        mainHandler.postDelayed(runnable, RESTORE_DELAY_MS)
-    }
-
-    private fun cancelPendingRealIslandRemoval(key: String) {
-        pendingRemovalRunnables.remove(key)?.let { mainHandler.removeCallbacks(it) }
-    }
-
-    private fun isContentViewVisible(controllerObj: Any, view: View): Boolean {
-        val currentIslandVisible = invokeNoArg(controllerObj, "currentIslandVisible") as? Boolean ?: false
-        if (!currentIslandVisible || !view.isShown) return false
-        val rect = Rect()
-        return view.getGlobalVisibleRect(rect) && rect.width() > 0 && rect.height() > 0
-    }
-
-    private fun extractSbnFromController(controllerObj: Any): StatusBarNotification? {
-        return invokeNoArg(controllerObj, "getIslandSbn") as? StatusBarNotification
     }
 
     private fun evaluateKeepIsland() {
@@ -536,9 +272,6 @@ object KeepIslandHook : BaseHook() {
         val autoHide = ConfigManager.getBoolean(PREF_KEY_AUTO_HIDE, true)
         if (!islandEnabled || !autoHide) {
             activeRealKeys.clear()
-            pendingRealKeys.clear()
-            cancelAllPendingRealIslandRemovals()
-            cancelAllVisibilityChecks()
         }
         autoHideTrackingEnabled = islandEnabled && autoHide && shouldPostKeepNotification()
         if (shouldPostKeepNotification()) {
@@ -551,9 +284,6 @@ object KeepIslandHook : BaseHook() {
         } else {
             cancelPendingRestore()
             activeRealKeys.clear()
-            pendingRealKeys.clear()
-            cancelAllPendingRealIslandRemovals()
-            cancelAllVisibilityChecks()
             if (posted) cancelKeepIsland(ctx)
         }
     }
@@ -575,8 +305,7 @@ object KeepIslandHook : BaseHook() {
     private fun shouldEnableIsland(context: Context): Boolean {
         if (!ConfigManager.getBoolean(PREF_KEY, false)) return false
         val hideForRealNotification = ConfigManager.getBoolean(PREF_KEY_AUTO_HIDE, true) &&
-                (activeRealKeys.isNotEmpty() || pendingRealKeys.isNotEmpty() ||
-                        restoreRunnable != null)
+                (activeRealKeys.isNotEmpty() || restoreRunnable != null)
         if (hideForRealNotification) return false
         val hideForLandscape = ConfigManager.getBoolean(PREF_KEY_HIDE_LANDSCAPE, false) &&
                 isLandscape(context)
@@ -658,7 +387,6 @@ object KeepIslandHook : BaseHook() {
         force: Boolean = false,
     ) {
         if (!posted || !shouldPostKeepNotification()) return
-        if (activeRealKeys.isEmpty() && pendingRealKeys.isNotEmpty()) return
         val texts: Pair<String, String> = resolveKeepIslandTexts()
         try {
             val highlightColor = ConfigManager.getString(PREF_KEY_HIGHLIGHT_COLOR, "")
@@ -1564,7 +1292,7 @@ object KeepIslandHook : BaseHook() {
         cancelPendingRestore()
         val runnable = Runnable {
             restoreRunnable = null
-            if (activeRealKeys.isNotEmpty() || pendingRealKeys.isNotEmpty()) return@Runnable
+            if (activeRealKeys.isNotEmpty()) return@Runnable
             evaluateKeepIsland()
         }
         restoreRunnable = runnable
@@ -1574,28 +1302,6 @@ object KeepIslandHook : BaseHook() {
     private fun cancelPendingRestore() {
         restoreRunnable?.let { mainHandler.removeCallbacks(it) }
         restoreRunnable = null
-    }
-
-    private fun cancelAllPendingRealIslandRemovals() {
-        pendingRemovalRunnables.values.forEach(mainHandler::removeCallbacks)
-        pendingRemovalRunnables.clear()
-    }
-
-    private fun cancelVisibilityCheck(key: String) {
-        visibilityCheckRunnables.remove(key)?.let { mainHandler.removeCallbacks(it) }
-    }
-
-    private fun cancelActiveVisibilityCheck(key: String) {
-        activeVisibilityRunnables.remove(key)?.let { mainHandler.removeCallbacks(it) }
-    }
-
-    private fun cancelAllVisibilityChecks() {
-        visibilityCheckRunnables.values.forEach(mainHandler::removeCallbacks)
-        visibilityCheckRunnables.clear()
-        activeVisibilityRunnables.values.forEach(mainHandler::removeCallbacks)
-        activeVisibilityRunnables.clear()
-        controllerKeys.clear()
-        ignoredControllerKeys.clear()
     }
 
     private fun registerIslandDataManager(context: Context) {
@@ -1696,25 +1402,6 @@ object KeepIslandHook : BaseHook() {
         return rotation == Surface.ROTATION_90 || rotation == Surface.ROTATION_270
     }
 
-    private fun extractKeyFromState(stateObj: Any): String? {
-        val dataObj = extractDynamicData(stateObj)
-        if (dataObj != null) {
-            invokeNoArg(dataObj, "getKey")?.let { return it as? String }
-        }
-        val extras = extractExtrasFromState(stateObj)
-        extras?.getString("key")?.let { return it }
-        extras?.getString("miui.notif.key")?.let { return it }
-        return null
-    }
-
-    private fun extractSourcePackageFromState(stateObj: Any, key: String?): String? {
-        val extras = extractExtrasFromState(stateObj)
-        extras?.getString("hyperisland_source_pkg")?.let { return it }
-        extras?.getString("android.packageName")?.let { return it }
-        extras?.getString("packageName")?.let { return it }
-        return key?.split('|')?.getOrNull(1)?.takeIf { it.contains('.') }
-    }
-
     private fun foregroundPackage(context: Context): String {
         return runCatching {
             val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
@@ -1723,80 +1410,10 @@ object KeepIslandHook : BaseHook() {
         }.getOrDefault("")
     }
 
-    private fun readStateText(stateObj: Any?): String? {
-        return invokeNoArg(stateObj ?: return null, "getState")?.toString()
-    }
-
-    private fun extractExtrasFromState(stateObj: Any): Bundle? {
-        val dataObj = extractDynamicData(stateObj)
-        if (dataObj == null) {
-            invokeNoArg(stateObj, "getExtras")?.let { if (it is Bundle) return it }
-            readFieldValue(stateObj, "extras")?.let { if (it is Bundle) return it }
-            readFieldValue(stateObj, "mExtras")?.let { if (it is Bundle) return it }
-            return null
-        }
-        invokeNoArg(dataObj, "getExtras")?.let { if (it is Bundle) return it }
-        readFieldValue(dataObj, "extras")?.let { if (it is Bundle) return it }
-        readFieldValue(dataObj, "mExtras")?.let { if (it is Bundle) return it }
-        return null
-    }
-
-    private fun extractDynamicData(stateObj: Any): Any? {
-        listOf("getCurrentIslandData", "getIslandData", "getData").forEach { name ->
-            invokeNoArg(stateObj, name)?.let { return it }
-        }
-        return null
-    }
-
-    private fun invokeNoArg(target: Any, methodName: String): Any? {
-        return runCatching {
-            val method = findNoArgMethod(target.javaClass, methodName) ?: return null
-            method.isAccessible = true
-            method.invoke(target)
-        }.getOrNull()
-    }
-
-    private fun findNoArgMethod(clazz: Class<*>, name: String): java.lang.reflect.Method? {
-        val key = NoArgMethodKey(clazz, name)
-        noArgMethodCache[key]?.let { return it }
-        if (key in missingNoArgMethods) return null
-        var current: Class<*>? = clazz
-        while (current != null) {
-            current.declaredMethods.firstOrNull { it.name == name && it.parameterCount == 0 }
-                ?.let { method ->
-                    method.isAccessible = true
-                    noArgMethodCache[key] = method
-                    return method
-                }
-            current = current.superclass
-        }
-        missingNoArgMethods.add(key)
-        return null
-    }
-
-    private fun readFieldValue(instance: Any, fieldName: String): Any? {
-        var current: Class<*>? = instance.javaClass
-        while (current != null) {
-            try {
-                val field = current.getDeclaredField(fieldName)
-                field.isAccessible = true
-                return field.get(instance)
-            } catch (_: NoSuchFieldException) {
-                current = current.superclass
-            }
-        }
-        return null
-    }
-
     private data class ContentConfig(
         val left: List<String>,
         val right: List<String>,
         val intervalMillis: Long,
-    )
-
-    private data class NoArgMethodKey(
-        val clazz: Class<*>,
-        val name: String,
     )
 
     private data class FocusContent(
