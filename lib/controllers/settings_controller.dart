@@ -141,6 +141,8 @@ const kPrefKeepIslandCarouselInterval =
     'pref_keep_island_carousel_interval_seconds';
 const kPrefKeepIslandFocusNotification = 'pref_keep_island_focus_notification';
 const kPrefKeepIslandFocusContentType = 'pref_keep_island_focus_content_type';
+const kPrefKeepIslandExpandTextColorMode =
+    'pref_keep_island_expand_text_color_mode';
 const kPrefKeepIslandNotificationTitle = 'pref_keep_island_notification_title';
 const kPrefKeepIslandNotificationContent =
     'pref_keep_island_notification_content';
@@ -182,6 +184,11 @@ const kKeepIslandFocusContentNotification = 'notification';
 const kKeepIslandFocusContentPerformance = 'performance';
 const kKeepIslandFocusContentDevice = 'device';
 const kKeepIslandFocusContentCharging = 'charging';
+
+const kKeepIslandExpandTextColorWhite = 'white';
+const kKeepIslandExpandTextColorFollowStatusBar = 'follow_status_bar';
+const kKeepIslandExpandTextColorInvertStatusBar = 'invert_status_bar';
+const kKeepIslandExpandTextColorBlack = 'black';
 
 const kKeepIslandDisplayTimingAlways = 'always';
 const kKeepIslandDisplayTimingCharging = 'charging';
@@ -321,6 +328,7 @@ class SettingsController extends ChangeNotifier {
   int keepIslandCarouselInterval = 5;
   bool keepIslandFocusNotification = false;
   String keepIslandFocusContentType = kKeepIslandFocusContentNotification;
+  String keepIslandExpandTextColorMode = kKeepIslandExpandTextColorWhite;
   String keepIslandNotificationTitle = '';
   String keepIslandNotificationContent = '';
   bool keepIslandShowIslandIcon = false;
@@ -614,6 +622,16 @@ class SettingsController extends ChangeNotifier {
       kKeepIslandFocusContentDevice => kKeepIslandFocusContentDevice,
       kKeepIslandFocusContentCharging => kKeepIslandFocusContentCharging,
       _ => kKeepIslandFocusContentNotification,
+    };
+    keepIslandExpandTextColorMode = switch (prefs.getString(
+      kPrefKeepIslandExpandTextColorMode,
+    )) {
+      kKeepIslandExpandTextColorFollowStatusBar =>
+        kKeepIslandExpandTextColorFollowStatusBar,
+      kKeepIslandExpandTextColorInvertStatusBar =>
+        kKeepIslandExpandTextColorInvertStatusBar,
+      kKeepIslandExpandTextColorBlack => kKeepIslandExpandTextColorBlack,
+      _ => kKeepIslandExpandTextColorWhite,
     };
     keepIslandNotificationTitle =
         prefs.getString(kPrefKeepIslandNotificationTitle) ?? '';
@@ -1857,6 +1875,18 @@ class SettingsController extends ChangeNotifier {
       kKeepIslandFocusContentCharging => kKeepIslandFocusContentCharging,
       _ => kKeepIslandFocusContentNotification,
     }, (v) => keepIslandFocusContentType = v);
+    await _refreshKeepIsland();
+  }
+
+  Future<void> setKeepIslandExpandTextColorMode(String value) async {
+    await _setStringPref(kPrefKeepIslandExpandTextColorMode, switch (value) {
+      kKeepIslandExpandTextColorFollowStatusBar =>
+        kKeepIslandExpandTextColorFollowStatusBar,
+      kKeepIslandExpandTextColorInvertStatusBar =>
+        kKeepIslandExpandTextColorInvertStatusBar,
+      kKeepIslandExpandTextColorBlack => kKeepIslandExpandTextColorBlack,
+      _ => kKeepIslandExpandTextColorWhite,
+    }, (v) => keepIslandExpandTextColorMode = v);
     await _refreshKeepIsland();
   }
 

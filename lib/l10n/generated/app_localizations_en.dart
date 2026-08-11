@@ -2316,6 +2316,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get islandTextColorDefault => 'Default';
 
   @override
+  String get keepIslandExpandTextColorTitle => 'Focus island text color';
+
+  @override
+  String get keepIslandExpandTextColorWhite => 'White';
+
+  @override
   String get tapToSelectImage => 'Tap to select image or GIF';
 
   @override

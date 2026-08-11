@@ -2185,6 +2185,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get islandTextColorDefault => '默认';
 
   @override
+  String get keepIslandExpandTextColorTitle => '焦点通知岛文本颜色';
+
+  @override
+  String get keepIslandExpandTextColorWhite => '白色';
+
+  @override
   String get tapToSelectImage => '点击选择图片或 GIF';
 
   @override

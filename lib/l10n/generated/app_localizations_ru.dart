@@ -2330,6 +2330,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get islandTextColorDefault => '默认';
 
   @override
+  String get keepIslandExpandTextColorTitle => '焦点通知岛文本颜色';
+
+  @override
+  String get keepIslandExpandTextColorWhite => '白色';
+
+  @override
   String get tapToSelectImage => 'Нажмите, чтобы выбрать изображение или GIF';
 
   @override

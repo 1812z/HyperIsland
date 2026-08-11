@@ -42,7 +42,10 @@ data class IslandRequest(
     val focusTitle: String? = null,
     val focusContent: String? = null,
     val focusRemoteViews: RemoteViews? = null,
+    val focusNightRemoteViews: RemoteViews? = null,
     val focusIslandExpandRemoteViews: RemoteViews? = null,
+    val focusAodRemoteViews: RemoteViews? = null,
+    val focusFullAodRemoteViews: RemoteViews? = null,
     val notificationExtras: Bundle? = null,
     val notificationVisibility: Int = Notification.VISIBILITY_PRIVATE,
     val notificationOnlyAlertOnce: Boolean = false,
@@ -84,7 +87,10 @@ data class IslandRequest(
         putString(KEY_FOCUS_TITLE, focusTitle)
         putString(KEY_FOCUS_CONTENT, focusContent)
         putParcelable(KEY_FOCUS_REMOTE_VIEWS, focusRemoteViews)
+        putParcelable(KEY_FOCUS_NIGHT_REMOTE_VIEWS, focusNightRemoteViews)
         putParcelable(KEY_FOCUS_ISLAND_EXPAND_REMOTE_VIEWS, focusIslandExpandRemoteViews)
+        putParcelable(KEY_FOCUS_AOD_REMOTE_VIEWS, focusAodRemoteViews)
+        putParcelable(KEY_FOCUS_FULL_AOD_REMOTE_VIEWS, focusFullAodRemoteViews)
         putBundle(KEY_NOTIFICATION_EXTRAS, notificationExtras)
         putInt(KEY_NOTIFICATION_VISIBILITY, notificationVisibility)
         putBoolean(KEY_NOTIFICATION_ONLY_ALERT_ONCE, notificationOnlyAlertOnce)
@@ -127,8 +133,11 @@ data class IslandRequest(
         private const val KEY_FOCUS_TITLE = "focusTitle"
         private const val KEY_FOCUS_CONTENT = "focusContent"
         private const val KEY_FOCUS_REMOTE_VIEWS = "focusRemoteViews"
+        private const val KEY_FOCUS_NIGHT_REMOTE_VIEWS = "focusNightRemoteViews"
         private const val KEY_FOCUS_ISLAND_EXPAND_REMOTE_VIEWS =
             "focusIslandExpandRemoteViews"
+        private const val KEY_FOCUS_AOD_REMOTE_VIEWS = "focusAodRemoteViews"
+        private const val KEY_FOCUS_FULL_AOD_REMOTE_VIEWS = "focusFullAodRemoteViews"
         private const val KEY_NOTIFICATION_EXTRAS = "notificationExtras"
         private const val KEY_NOTIFICATION_VISIBILITY = "notificationVisibility"
         private const val KEY_NOTIFICATION_ONLY_ALERT_ONCE = "notificationOnlyAlertOnce"
@@ -170,9 +179,15 @@ data class IslandRequest(
             focusTitle = b.getString(KEY_FOCUS_TITLE),
             focusContent = b.getString(KEY_FOCUS_CONTENT),
             focusRemoteViews = remoteViewsFromBundle(b, KEY_FOCUS_REMOTE_VIEWS),
+            focusNightRemoteViews = remoteViewsFromBundle(b, KEY_FOCUS_NIGHT_REMOTE_VIEWS),
             focusIslandExpandRemoteViews = remoteViewsFromBundle(
                 b,
                 KEY_FOCUS_ISLAND_EXPAND_REMOTE_VIEWS,
+            ),
+            focusAodRemoteViews = remoteViewsFromBundle(b, KEY_FOCUS_AOD_REMOTE_VIEWS),
+            focusFullAodRemoteViews = remoteViewsFromBundle(
+                b,
+                KEY_FOCUS_FULL_AOD_REMOTE_VIEWS,
             ),
             notificationExtras = b.getBundle(KEY_NOTIFICATION_EXTRAS),
             notificationVisibility = b.getInt(

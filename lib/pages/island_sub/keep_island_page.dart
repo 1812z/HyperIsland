@@ -84,6 +84,7 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
     _ctrl.keepIslandCarouselInterval,
     _ctrl.keepIslandFocusNotification,
     _ctrl.keepIslandFocusContentType,
+    _ctrl.keepIslandExpandTextColorMode,
     _ctrl.keepIslandNotificationTitle,
     _ctrl.keepIslandNotificationContent,
     _ctrl.keepIslandShowIslandIcon,
@@ -174,7 +175,8 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
 
   Future<void> _editNotificationContent({required bool title}) async {
     if (!(_ctrl.keepIslandFocusNotification && _ctrl.keepIsland) &&
-        !_ctrl.keepIslandShowNotification) return;
+        !_ctrl.keepIslandShowNotification)
+      return;
     final initial = title
         ? _ctrl.keepIslandNotificationTitle
         : _ctrl.keepIslandNotificationContent;
@@ -486,6 +488,29 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
                     value: _ctrl.keepIslandNotificationContent,
                     enabled: focusContentEnabled,
                     onTap: () => _editNotificationContent(title: false),
+                  ),
+                ] else ...[
+                  _KeepIslandDropdownTile(
+                    title: l10n.keepIslandExpandTextColorTitle,
+                    value: _ctrl.keepIslandExpandTextColorMode,
+                    values: const [
+                      kKeepIslandExpandTextColorWhite,
+                      kKeepIslandExpandTextColorFollowStatusBar,
+                      kKeepIslandExpandTextColorInvertStatusBar,
+                      kKeepIslandExpandTextColorBlack,
+                    ],
+                    labelForValue: (value) => switch (value) {
+                      kKeepIslandExpandTextColorFollowStatusBar =>
+                        l10n.islandTextColorFollowStatusBar,
+                      kKeepIslandExpandTextColorInvertStatusBar =>
+                        l10n.islandTextColorInvertStatusBar,
+                      kKeepIslandExpandTextColorBlack =>
+                        l10n.islandTextColorBlack,
+                      _ => l10n.keepIslandExpandTextColorWhite,
+                    },
+                    onChanged: focusContentEnabled
+                        ? _ctrl.setKeepIslandExpandTextColorMode
+                        : null,
                   ),
                 ],
                 SwitchListTile(

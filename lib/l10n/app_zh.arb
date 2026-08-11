@@ -1014,6 +1014,8 @@
   "islandTextColorFollowStatusBar": "跟随状态栏",
   "islandTextColorInvertStatusBar": "反跟随状态栏",
   "islandTextColorDefault": "默认",
+  "keepIslandExpandTextColorTitle": "焦点通知岛文本颜色",
+  "keepIslandExpandTextColorWhite": "白色",
   "tapToSelectImage": "点击选择图片或 GIF",
   "autoExpandNotification": "自动展开通知",
   "widthDpLabel": "{width} dp",

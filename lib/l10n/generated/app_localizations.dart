@@ -4247,6 +4247,18 @@ abstract class AppLocalizations {
   /// **'默认'**
   String get islandTextColorDefault;
 
+  /// No description provided for @keepIslandExpandTextColorTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'焦点通知岛文本颜色'**
+  String get keepIslandExpandTextColorTitle;
+
+  /// No description provided for @keepIslandExpandTextColorWhite.
+  ///
+  /// In zh, this message translates to:
+  /// **'白色'**
+  String get keepIslandExpandTextColorWhite;
+
   /// No description provided for @tapToSelectImage.
   ///
   /// In zh, this message translates to:

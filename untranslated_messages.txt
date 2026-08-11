@@ -110,6 +110,8 @@
     "islandTextColorFollowStatusBar",
     "islandTextColorInvertStatusBar",
     "islandTextColorDefault",
+    "keepIslandExpandTextColorTitle",
+    "keepIslandExpandTextColorWhite",
     "widthDpLabel"
   ],
 
@@ -171,7 +173,9 @@
     "islandTextColorInvertBackground",
     "islandTextColorFollowStatusBar",
     "islandTextColorInvertStatusBar",
-    "islandTextColorDefault"
+    "islandTextColorDefault",
+    "keepIslandExpandTextColorTitle",
+    "keepIslandExpandTextColorWhite"
   ],
 
   "tr": [
@@ -290,6 +294,8 @@
     "islandTextColorFollowStatusBar",
     "islandTextColorInvertStatusBar",
     "islandTextColorDefault",
+    "keepIslandExpandTextColorTitle",
+    "keepIslandExpandTextColorWhite",
     "widthDpLabel"
   ]
 }

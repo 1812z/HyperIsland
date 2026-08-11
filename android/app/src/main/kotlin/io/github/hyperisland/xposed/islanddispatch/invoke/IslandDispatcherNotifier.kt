@@ -145,6 +145,7 @@ internal object IslandDispatcherNotifier {
             }
 
             val customMode = request.focusRemoteViews != null ||
+                    request.focusNightRemoteViews != null ||
                     request.focusIslandExpandRemoteViews != null
             val notificationExtras = if (customMode) {
                 val mainRemoteViews = request.focusRemoteViews
@@ -160,7 +161,17 @@ internal object IslandDispatcherNotifier {
                         islandBuilder.setCustomIslandExpandRemoteView(it)
                     }
                 }
-                islandBuilder.buildCustomExtras()
+                islandBuilder.buildCustomExtras().apply {
+                    request.focusNightRemoteViews?.let {
+                        putParcelable("miui.focus.rvNight", it)
+                    }
+                    request.focusAodRemoteViews?.let {
+                        putParcelable("miui.focus.rvAod", it)
+                    }
+                    request.focusFullAodRemoteViews?.let {
+                        putParcelable("miui.focus.rv.fullAod", it)
+                    }
+                }
             } else {
                 islandBuilder.buildResourceBundle()
             }

@@ -862,6 +862,8 @@
   "islandTextColorFollowStatusBar": "Follow status bar",
   "islandTextColorInvertStatusBar": "Invert status bar",
   "islandTextColorDefault": "Default",
+  "keepIslandExpandTextColorTitle": "Focus island text color",
+  "keepIslandExpandTextColorWhite": "White",
   "tapToSelectImage": "Tap to select image or GIF",
   "autoExpandNotification": "Auto expand notification",
   "widthDpLabel": "{width} dp",

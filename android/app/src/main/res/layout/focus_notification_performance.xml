@@ -25,6 +25,7 @@
             android:paddingStart="10dp">
 
             <TextView
+                android:id="@+id/performance_cpu_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="CPU"
@@ -52,6 +53,7 @@
             android:paddingStart="10dp">
 
             <TextView
+                android:id="@+id/performance_gpu_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="GPU"
@@ -79,6 +81,7 @@
             android:paddingStart="10dp">
 
             <TextView
+                android:id="@+id/performance_memory_label"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="RAM"

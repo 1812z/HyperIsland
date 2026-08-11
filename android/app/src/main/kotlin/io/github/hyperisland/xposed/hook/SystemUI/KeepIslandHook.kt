@@ -9,6 +9,7 @@ import android.content.ComponentCallbacks
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -71,6 +72,9 @@ object KeepIslandHook : BaseHook() {
     private const val PREF_KEY_FOCUS_NOTIFICATION = "pref_keep_island_focus_notification"
 
     private const val PREF_KEY_FOCUS_CONTENT_TYPE = "pref_keep_island_focus_content_type"
+
+    private const val PREF_KEY_EXPAND_TEXT_COLOR_MODE =
+        "pref_keep_island_expand_text_color_mode"
 
     private const val PREF_KEY_NOTIFICATION_TITLE = "pref_keep_island_notification_title"
 
@@ -154,6 +158,7 @@ object KeepIslandHook : BaseHook() {
     private var configurationCallbacksRegistered = false
 
     private var displayListenerRegistered = false
+    private var statusBarTintListenerRegistered = false
 
     private val hookedAnimationClassLoaders = ConcurrentHashMap.newKeySet<Int>()
     private val hookedContentControllerClassLoaders = ConcurrentHashMap.newKeySet<Int>()
@@ -209,6 +214,7 @@ object KeepIslandHook : BaseHook() {
                     registerChargingPanelReceiver(app.applicationContext)
                     registerDisplayTimingReceiver(app.applicationContext)
                     registerSettingsRefreshReceiver(app.applicationContext)
+                    registerStatusBarTintListener()
                     mainHandler.postDelayed({ evaluateKeepIsland() }, 3000)
                 }
                 result
@@ -463,11 +469,14 @@ object KeepIslandHook : BaseHook() {
                 focusTitle = focusContent.title,
                 focusContent = focusContent.content,
                 focusRemoteViews = focusContent.remoteViews,
+                focusNightRemoteViews = focusContent.nightRemoteViews,
                 focusIslandExpandRemoteViews = if (focusEnabled) {
                     focusContent.islandExpandRemoteViews
                 } else {
                     null
                 },
+                focusAodRemoteViews = focusContent.aodRemoteViews,
+                focusFullAodRemoteViews = focusContent.aodRemoteViews,
             )
             IslandDispatcher.post(context, request)
             posted = true
@@ -547,11 +556,14 @@ object KeepIslandHook : BaseHook() {
                 focusTitle = focusContent.title,
                 focusContent = focusContent.content,
                 focusRemoteViews = focusContent.remoteViews,
+                focusNightRemoteViews = focusContent.nightRemoteViews,
                 focusIslandExpandRemoteViews = if (focusEnabled) {
                     focusContent.islandExpandRemoteViews
                 } else {
                     null
                 },
+                focusAodRemoteViews = focusContent.aodRemoteViews,
+                focusFullAodRemoteViews = focusContent.aodRemoteViews,
                 bypassSceneBehavior = true,
                 notificationSilent = true
             )
@@ -592,7 +604,7 @@ object KeepIslandHook : BaseHook() {
     }
 
     private fun resolveFocusContent(context: Context, enabled: Boolean): FocusContent {
-        if (!enabled) return FocusContent(" ", "", null, null, "disabled")
+        if (!enabled) return FocusContent(" ", "", null, null, null, null, "disabled")
         return when (ConfigManager.getString(PREF_KEY_FOCUS_CONTENT_TYPE, FOCUS_CONTENT_NOTIFICATION)) {
             FOCUS_CONTENT_PERFORMANCE -> resolvePerformanceFocusContent(context)
             FOCUS_CONTENT_DEVICE -> resolveDeviceFocusContent(context)
@@ -603,7 +615,9 @@ object KeepIslandHook : BaseHook() {
                     title = texts.first,
                     content = texts.second,
                     remoteViews = null,
+                    nightRemoteViews = null,
                     islandExpandRemoteViews = null,
+                    aodRemoteViews = null,
                     signature = "notification\u0000${texts.first}\u0000${texts.second}",
                 )
             }
@@ -630,7 +644,7 @@ object KeepIslandHook : BaseHook() {
         val networkText =
             "↓ ${formatRate(snapshot.downloadBytesPerSecond)}  ↑ ${formatRate(snapshot.uploadBytesPerSecond)}"
         val moduleContext = context.moduleContext()
-        val remoteViews = RemoteViews(
+        fun buildRemoteViews(palette: PanelPalette) = RemoteViews(
             moduleContext.packageName,
             R.layout.focus_notification_performance,
         ).apply {
@@ -639,8 +653,24 @@ object KeepIslandHook : BaseHook() {
             setTextViewText(R.id.performance_memory, memoryText)
             setTextViewText(R.id.performance_temperature, temperatureText)
             setTextViewText(R.id.performance_network, networkText)
-            setImageViewBitmap(R.id.performance_chart, drawPerformanceChart(context))
+            setTextColor(R.id.performance_cpu_label, palette.secondary)
+            setTextColor(R.id.performance_gpu_label, palette.secondary)
+            setTextColor(R.id.performance_memory_label, palette.secondary)
+            setTextColor(R.id.performance_cpu, palette.cpu)
+            setTextColor(R.id.performance_gpu, palette.gpu)
+            setTextColor(R.id.performance_memory, palette.memory)
+            setTextColor(R.id.performance_temperature, palette.secondary)
+            setTextColor(R.id.performance_network, palette.secondary)
+            setImageViewBitmap(
+                R.id.performance_chart,
+                drawPerformanceChart(context, palette.dark),
+            )
         }
+        val lightRemoteViews = buildRemoteViews(PanelPalette.LIGHT)
+        val darkRemoteViews = buildRemoteViews(PanelPalette.DARK)
+        val expandPalette = resolveExpandPalette()
+        val expandRemoteViews = buildRemoteViews(expandPalette)
+        val aodRemoteViews = buildRemoteViews(PanelPalette.AOD)
         val signature = buildString {
             append("performance\u0000")
             append(cpuText).append('\u0000')
@@ -655,9 +685,11 @@ object KeepIslandHook : BaseHook() {
         return FocusContent(
             title = "性能概览",
             content = "$cpuText · $memoryText",
-            remoteViews = remoteViews,
-            islandExpandRemoteViews = remoteViews,
-            signature = signature,
+            remoteViews = lightRemoteViews,
+            nightRemoteViews = darkRemoteViews,
+            islandExpandRemoteViews = expandRemoteViews,
+            aodRemoteViews = aodRemoteViews,
+            signature = "$signature\u0000${expandPalette.primary}",
         )
     }
 
@@ -671,7 +703,7 @@ object KeepIslandHook : BaseHook() {
         val logo = loadCustomIcon(ConfigManager.getString(PREF_KEY_CUSTOM_ICON_PATH, ""))
             ?.toRounded(context)
             ?: Icon.createWithResource(moduleContext, R.drawable.ic_launcher)
-        val remoteViews = RemoteViews(
+        fun buildRemoteViews(palette: PanelPalette) = RemoteViews(
             moduleContext.packageName,
             R.layout.focus_notification_device,
         ).apply {
@@ -688,7 +720,39 @@ object KeepIslandHook : BaseHook() {
             setTextViewText(R.id.device_memory_value, memoryText)
             setProgressBar(R.id.device_cpu_progress, 100, cpuPercent, false)
             setProgressBar(R.id.device_memory_progress, 100, memoryPercent, false)
+            setColorStateList(
+                R.id.device_cpu_progress,
+                "setProgressTintList",
+                ColorStateList.valueOf(palette.primary),
+            )
+            setColorStateList(
+                R.id.device_cpu_progress,
+                "setProgressBackgroundTintList",
+                ColorStateList.valueOf(palette.progressTrack),
+            )
+            setColorStateList(
+                R.id.device_memory_progress,
+                "setProgressTintList",
+                ColorStateList.valueOf(palette.primary),
+            )
+            setColorStateList(
+                R.id.device_memory_progress,
+                "setProgressBackgroundTintList",
+                ColorStateList.valueOf(palette.progressTrack),
+            )
+            setTextColor(R.id.device_name, palette.primary)
+            setTextColor(R.id.device_chipset, palette.secondary)
+            setTextColor(R.id.device_uptime, palette.tertiary)
+            setTextColor(R.id.device_cpu_label, palette.secondary)
+            setTextColor(R.id.device_memory_label, palette.secondary)
+            setTextColor(R.id.device_cpu_value, palette.primary)
+            setTextColor(R.id.device_memory_value, palette.primary)
         }
+        val lightRemoteViews = buildRemoteViews(PanelPalette.LIGHT)
+        val darkRemoteViews = buildRemoteViews(PanelPalette.DARK)
+        val expandPalette = resolveExpandPalette()
+        val expandRemoteViews = buildRemoteViews(expandPalette)
+        val aodRemoteViews = buildRemoteViews(PanelPalette.AOD)
         val signature = listOf(
             "device",
             snapshot.manufacturer,
@@ -702,9 +766,11 @@ object KeepIslandHook : BaseHook() {
         return FocusContent(
             title = snapshot.manufacturer,
             content = snapshot.model,
-            remoteViews = remoteViews,
-            islandExpandRemoteViews = remoteViews,
-            signature = signature,
+            remoteViews = lightRemoteViews,
+            nightRemoteViews = darkRemoteViews,
+            islandExpandRemoteViews = expandRemoteViews,
+            aodRemoteViews = aodRemoteViews,
+            signature = "$signature\u0000${expandPalette.primary}",
         )
     }
 
@@ -725,7 +791,7 @@ object KeepIslandHook : BaseHook() {
             Intent(ACTION_SWITCH_CHARGING_CHART).setPackage(context.packageName),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        val remoteViews = RemoteViews(
+        fun buildRemoteViews(palette: PanelPalette) = RemoteViews(
             moduleContext.packageName,
             R.layout.focus_notification_charging,
         ).apply {
@@ -742,10 +808,18 @@ object KeepIslandHook : BaseHook() {
                 R.id.charging_details,
                 "$currentText · $voltageText · $temperatureText",
             )
-            setImageViewBitmap(R.id.charging_chart, drawChargingChart(context))
+            setTextColor(R.id.charging_primary, palette.primary)
+            setTextColor(R.id.charging_details, palette.secondary)
+            setTextColor(R.id.charging_mode, palette.secondary)
+            setImageViewBitmap(R.id.charging_chart, drawChargingChart(context, palette.dark))
             setOnClickPendingIntent(R.id.charging_mode, switchIntent)
             setOnClickPendingIntent(R.id.charging_chart_container, switchIntent)
         }
+        val lightRemoteViews = buildRemoteViews(PanelPalette.LIGHT)
+        val darkRemoteViews = buildRemoteViews(PanelPalette.DARK)
+        val expandPalette = resolveExpandPalette()
+        val expandRemoteViews = buildRemoteViews(expandPalette)
+        val aodRemoteViews = buildRemoteViews(PanelPalette.AOD)
         val signature = buildString {
             append("charging\u0000")
             append(snapshot.isCharging).append('\u0000')
@@ -765,9 +839,11 @@ object KeepIslandHook : BaseHook() {
         return FocusContent(
             title = if (snapshot.isCharging) "充电" else "耗电",
             content = primaryText,
-            remoteViews = remoteViews,
-            islandExpandRemoteViews = remoteViews,
-            signature = signature,
+            remoteViews = lightRemoteViews,
+            nightRemoteViews = darkRemoteViews,
+            islandExpandRemoteViews = expandRemoteViews,
+            aodRemoteViews = aodRemoteViews,
+            signature = "$signature\u0000${expandPalette.primary}",
         )
     }
 
@@ -843,8 +919,7 @@ object KeepIslandHook : BaseHook() {
         else -> second
     }
 
-    private fun drawChargingChart(context: Context): Bitmap {
-        val darkMode = isDarkMode(context)
+    private fun drawChargingChart(context: Context, darkMode: Boolean): Bitmap {
         val density = context.resources.displayMetrics.density.coerceAtMost(2f)
         val width = 660
         val height = 168
@@ -1059,8 +1134,7 @@ object KeepIslandHook : BaseHook() {
         while (trend.size > PERFORMANCE_TREND_POINTS) trend.removeFirst()
     }
 
-    private fun drawPerformanceChart(context: Context): Bitmap {
-        val darkMode = isDarkMode(context)
+    private fun drawPerformanceChart(context: Context, darkMode: Boolean): Bitmap {
         val density = context.resources.displayMetrics.density.coerceAtMost(2f)
         val width = 660
         val height = 128
@@ -1368,6 +1442,48 @@ object KeepIslandHook : BaseHook() {
         })
     }
 
+    private fun registerStatusBarTintListener() {
+        if (statusBarTintListenerRegistered) return
+        statusBarTintListenerRegistered = true
+        IslandTextColorHook.addStatusBarTintListener {
+            val mode = ConfigManager.getString(
+                PREF_KEY_EXPAND_TEXT_COLOR_MODE,
+                EXPAND_TEXT_COLOR_WHITE,
+            )
+            if (mode != EXPAND_TEXT_COLOR_FOLLOW_STATUS_BAR &&
+                mode != EXPAND_TEXT_COLOR_INVERT_STATUS_BAR
+            ) return@addStatusBarTintListener
+            mainHandler.post {
+                val context = appContext ?: return@post
+                if (posted && isPanelFocusContent()) {
+                    updateKeepIslandContent(context, force = true)
+                }
+            }
+        }
+    }
+
+    private fun resolveExpandPalette(): PanelPalette {
+        val statusBarTint = IslandTextColorHook.getStatusBarTint()
+        val primary = when (ConfigManager.getString(
+            PREF_KEY_EXPAND_TEXT_COLOR_MODE,
+            EXPAND_TEXT_COLOR_WHITE,
+        )) {
+            EXPAND_TEXT_COLOR_BLACK -> Color.BLACK
+            EXPAND_TEXT_COLOR_FOLLOW_STATUS_BAR -> statusBarTint
+            EXPAND_TEXT_COLOR_INVERT_STATUS_BAR ->
+                if (isLightColor(statusBarTint)) Color.BLACK else Color.WHITE
+            else -> Color.WHITE
+        }
+        return PanelPalette.fromPrimary(primary)
+    }
+
+    private fun isPanelFocusContent(): Boolean =
+        ConfigManager.getString(PREF_KEY_FOCUS_CONTENT_TYPE, FOCUS_CONTENT_NOTIFICATION) in
+                setOf(FOCUS_CONTENT_PERFORMANCE, FOCUS_CONTENT_DEVICE, FOCUS_CONTENT_CHARGING)
+
+    private fun isLightColor(color: Int): Boolean =
+        Color.red(color) * 299 + Color.green(color) * 587 + Color.blue(color) * 114 >= 128000
+
     private fun registerDisplayListener(context: Context) {
         if (displayListenerRegistered) return
         val displayManager = context.getSystemService(DisplayManager::class.java) ?: return
@@ -1493,9 +1609,79 @@ object KeepIslandHook : BaseHook() {
         val title: String,
         val content: String,
         val remoteViews: RemoteViews?,
+        val nightRemoteViews: RemoteViews?,
         val islandExpandRemoteViews: RemoteViews?,
+        val aodRemoteViews: RemoteViews?,
         val signature: String,
     )
+
+    private data class PanelPalette(
+        val primary: Int,
+        val secondary: Int,
+        val tertiary: Int,
+        val cpu: Int,
+        val gpu: Int,
+        val memory: Int,
+        val dark: Boolean,
+    ) {
+        val progressTrack: Int
+            get() = Color.argb(
+                if (dark) 40 else 31,
+                Color.red(primary),
+                Color.green(primary),
+                Color.blue(primary),
+            )
+
+        companion object {
+            val LIGHT = PanelPalette(
+                primary = Color.argb(230, 0, 0, 0),
+                secondary = Color.argb(166, 0, 0, 0),
+                tertiary = Color.argb(115, 0, 0, 0),
+                cpu = Color.rgb(0, 118, 158),
+                gpu = Color.rgb(168, 82, 0),
+                memory = Color.rgb(40, 122, 48),
+                dark = false,
+            )
+            val DARK = PanelPalette(
+                primary = Color.WHITE,
+                secondary = Color.argb(191, 255, 255, 255),
+                tertiary = Color.argb(143, 255, 255, 255),
+                cpu = Color.rgb(114, 214, 255),
+                gpu = Color.rgb(255, 184, 107),
+                memory = Color.rgb(158, 228, 147),
+                dark = true,
+            )
+            val AOD = DARK
+
+            fun fromPrimary(primary: Int): PanelPalette {
+                val useLightForeground = isLightColor(primary)
+                return if (useLightForeground) {
+                    DARK.copy(
+                        primary = primary,
+                        secondary = withAlpha(primary, 191),
+                        tertiary = withAlpha(primary, 143),
+                    )
+                } else {
+                    LIGHT.copy(
+                        primary = primary,
+                        secondary = withAlpha(primary, 166),
+                        tertiary = withAlpha(primary, 115),
+                    )
+                }
+            }
+
+            private fun withAlpha(color: Int, alpha: Int): Int = Color.argb(
+                alpha,
+                Color.red(color),
+                Color.green(color),
+                Color.blue(color),
+            )
+
+            private fun isLightColor(color: Int): Boolean =
+                Color.red(color) * 299 + Color.green(color) * 587 +
+                        Color.blue(color) * 114 >= 128000
+        }
+    }
 
     private data class ChargingSample(
         val elapsedMillis: Long,
@@ -1544,6 +1730,11 @@ object KeepIslandHook : BaseHook() {
     private const val FOCUS_CONTENT_PERFORMANCE = "performance"
     private const val FOCUS_CONTENT_DEVICE = "device"
     private const val FOCUS_CONTENT_CHARGING = "charging"
+
+    private const val EXPAND_TEXT_COLOR_WHITE = "white"
+    private const val EXPAND_TEXT_COLOR_FOLLOW_STATUS_BAR = "follow_status_bar"
+    private const val EXPAND_TEXT_COLOR_INVERT_STATUS_BAR = "invert_status_bar"
+    private const val EXPAND_TEXT_COLOR_BLACK = "black"
     private const val DISPLAY_TIMING_ALWAYS = "always"
     private const val DISPLAY_TIMING_CHARGING = "charging"
     private const val PERFORMANCE_TREND_POINTS = 24

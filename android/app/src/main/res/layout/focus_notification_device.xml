@@ -84,6 +84,7 @@
                 android:orientation="horizontal">
 
                 <TextView
+                    android:id="@+id/device_cpu_label"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -126,6 +127,7 @@
                 android:orientation="horizontal">
 
                 <TextView
+                    android:id="@+id/device_memory_label"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
