@@ -30,9 +30,8 @@ object FocusNotificationTextColorHook : BaseHook() {
     private val hookedClasses = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>())
     )
-    private val trackedHolders = Collections.synchronizedSet(
-        Collections.newSetFromMap(WeakHashMap<Any, Boolean>())
-    )
+    private val trackedHoldersLock = Any()
+    private val trackedHolders = mutableListOf<WeakReference<Any>>()
     private val injectedFields = Collections.synchronizedMap(
         WeakHashMap<Any, Set<String>>()
     )
@@ -45,9 +44,8 @@ object FocusNotificationTextColorHook : BaseHook() {
     private val originalButtonColors = Collections.synchronizedMap(
         WeakHashMap<Any, List<OriginalButtonColor>>()
     )
-    private val trackedButtonHolders = Collections.synchronizedSet(
-        Collections.newSetFromMap(WeakHashMap<Any, Boolean>())
-    )
+    private val trackedButtonHoldersLock = Any()
+    private val trackedButtonHolders = mutableListOf<WeakReference<Any>>()
     private val colorSetters = Collections.synchronizedMap(
         WeakHashMap<Any, Map<String, Method>>()
     )
@@ -78,11 +76,12 @@ object FocusNotificationTextColorHook : BaseHook() {
     }
 
     override fun onConfigChanged() {
-        val holders = synchronized(trackedHolders) { trackedHolders.toList() }
+        val holders = snapshotTrackedHolders(trackedHolders, trackedHoldersLock)
         holders.forEach(::reapplyHolderColors)
-        val buttonHolders = synchronized(trackedButtonHolders) {
-            trackedButtonHolders.toList()
-        }
+        val buttonHolders = snapshotTrackedHolders(
+            trackedButtonHolders,
+            trackedButtonHoldersLock,
+        )
         buttonHolders.forEach(::reapplyButtonColors)
     }
 
@@ -193,7 +192,7 @@ object FocusNotificationTextColorHook : BaseHook() {
                     if (holder != null) clearInjectedColors(holder)
                     val result = chain.proceed()
                     if (holder != null && isDynamicIslandHolder(holder)) {
-                        trackedHolders.add(holder)
+                        trackHolder(trackedHolders, trackedHoldersLock, holder)
                         applyOverrideColors(holder)
                     }
                     result
@@ -342,7 +341,7 @@ object FocusNotificationTextColorHook : BaseHook() {
     private fun refreshInjectedTextColors() {
         val mode = getConfiguredMode()
         if (mode != MODE_FOLLOW_STATUS_BAR && mode != MODE_INVERT_STATUS_BAR) return
-        val holders = synchronized(trackedHolders) { trackedHolders.toList() }
+        val holders = snapshotTrackedHolders(trackedHolders, trackedHoldersLock)
         holders.forEach { holder ->
             val fields = injectedFields[holder] ?: return@forEach
             val views = originalTextColors[holder].orEmpty().mapNotNull { original ->
@@ -355,9 +354,10 @@ object FocusNotificationTextColorHook : BaseHook() {
                 if (original.field in fields) applyTextColor(textView, color)
             }
         }
-        val buttonHolders = synchronized(trackedButtonHolders) {
-            trackedButtonHolders.toList()
-        }
+        val buttonHolders = snapshotTrackedHolders(
+            trackedButtonHolders,
+            trackedButtonHoldersLock,
+        )
         buttonHolders.forEach(::applyButtonColors)
     }
 
@@ -367,7 +367,7 @@ object FocusNotificationTextColorHook : BaseHook() {
         collectButtonTextViews(root, buttons)
         if (buttons.isEmpty()) return
 
-        trackedButtonHolders.add(holder)
+        trackHolder(trackedButtonHolders, trackedButtonHoldersLock, holder)
         originalButtonColors[holder] = buttons.map { button ->
             OriginalButtonColor(WeakReference(button), button.textColors)
         }
@@ -419,6 +419,42 @@ object FocusNotificationTextColorHook : BaseHook() {
                 method.name == "getView" && method.parameterTypes.isEmpty()
             }?.invoke(holder) as? View
         }.getOrNull()
+    }
+
+    private fun trackHolder(
+        holders: MutableList<WeakReference<Any>>,
+        lock: Any,
+        holder: Any,
+    ) {
+        synchronized(lock) {
+            val iterator = holders.iterator()
+            while (iterator.hasNext()) {
+                val tracked = iterator.next().get()
+                if (tracked == null) {
+                    iterator.remove()
+                } else if (tracked === holder) {
+                    return
+                }
+            }
+            holders.add(WeakReference(holder))
+        }
+    }
+
+    private fun snapshotTrackedHolders(
+        holders: MutableList<WeakReference<Any>>,
+        lock: Any,
+    ): List<Any> = synchronized(lock) {
+        buildList(holders.size) {
+            val iterator = holders.iterator()
+            while (iterator.hasNext()) {
+                val holder = iterator.next().get()
+                if (holder == null) {
+                    iterator.remove()
+                } else {
+                    add(holder)
+                }
+            }
+        }
     }
 
     private fun resourceEntryName(view: View): String? {
