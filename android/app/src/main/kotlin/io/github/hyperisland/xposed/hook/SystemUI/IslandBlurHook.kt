@@ -39,9 +39,6 @@ object IslandBlurHook : BaseHook() {
         "miui.systemui.dynamicisland.anim.DynamicIslandAnimationDelegate"
     private const val FAKE_VIEW_CLASS =
         "miui.systemui.dynamicisland.window.content.DynamicIslandContentFakeView"
-    private const val CONTENT_VIEW_CONTROLLER_CLASS =
-        "miui.systemui.dynamicisland.window.content.DynamicIslandContentViewController"
-
     private const val KEY_SMALL_ENABLED = "pref_island_blur_small_enabled"
     private const val KEY_SMALL_RADIUS = "pref_island_blur_small_radius"
     private const val KEY_SMALL_COLOR = "pref_island_blur_small_color"
@@ -93,9 +90,6 @@ object IslandBlurHook : BaseHook() {
     private val detachListeners = Collections.synchronizedMap(
         WeakHashMap<View, View.OnAttachStateChangeListener>()
     )
-    private val controllerVisibility = Collections.synchronizedMap(
-        WeakHashMap<Any, Boolean>()
-    )
     private val mainHandler = Handler(Looper.getMainLooper())
     private val refreshRunnable = Runnable { refreshTrackedViews() }
     private val islandTypeHolder = ThreadLocal<IslandType>()
@@ -141,7 +135,7 @@ object IslandBlurHook : BaseHook() {
                 }
             }
             stale.forEach { (view, outer) ->
-                deactivateOuterBlur(view, outer.drawableField)
+                deactivateOuterBlur(view, outer.drawableField, "config-disabled")
             }
             synchronized(pendingOuterBlurs) {
                 pendingOuterBlurs.entries.removeAll { (view, pending) ->
@@ -325,12 +319,6 @@ object IslandBlurHook : BaseHook() {
             )
             hookBackgroundDrawing(module, backgroundClass, outerDrawableField)
             hookBackgroundAlphaUpdates(module, backgroundClass)
-            hookContentVisibility(
-                module,
-                classLoader,
-                backgroundViewField,
-                outerDrawableField,
-            )
             hookTempHiddenLifecycle(module, windowViewClass)
             module.hook(updateMethod).intercept { chain ->
                 val result = chain.proceed()
@@ -368,7 +356,7 @@ object IslandBlurHook : BaseHook() {
                         outerDrawableField,
                     )
                 } else {
-                    deactivateOuterBlur(backgroundView, outerDrawableField)
+                    deactivateOuterBlur(backgroundView, outerDrawableField, "state-update")
                     // DynamicIslandBackgroundView owns one shared drawable slot. A
                     // previous state's blur restores its old stock drawable, not the
                     // current state's image, so re-install the current image here.
@@ -451,10 +439,14 @@ object IslandBlurHook : BaseHook() {
                 } else if (isNoContentState(state)) {
                     val contentView = chain.thisObject
                     mainHandler.post {
+                        val currentState = runCatching {
+                            stateField.get(contentView)
+                        }.getOrNull()
+                        if (!isNoContentState(currentState)) return@post
                         val backgroundView = runCatching {
                             backgroundViewField.get(contentView) as? View
                         }.getOrNull() ?: return@post
-                        deactivateOuterBlur(backgroundView, outerDrawableField)
+                        deactivateOuterBlur(backgroundView, outerDrawableField, "no-content")
                         lastIslandType = null
                     }
                 }
@@ -524,7 +516,7 @@ object IslandBlurHook : BaseHook() {
         }
     }
 
-    /** Keeps the live blur through the hide animation and suspends it once hidden. */
+    /** Preserves the live blur across SystemUI's explicit temporary-hide lifecycle. */
     private fun hookTempHiddenLifecycle(
         module: XposedModule,
         windowViewClass: Class<*>,
@@ -543,8 +535,8 @@ object IslandBlurHook : BaseHook() {
             }
             val result = chain.proceed()
             if (hidden == false && wasHidden) {
-                // The false callback precedes currentIslandVisible=true. Keep the
-                // reusable drawable protected until a real visible geometry arrives.
+                // The false callback precedes restoration of visible geometry. Keep
+                // the reusable drawable protected until a real target can be drawn.
                 islandTempHidden = false
                 mainHandler.removeCallbacks(refreshRunnable)
                 mainHandler.post(refreshRunnable)
@@ -714,14 +706,16 @@ object IslandBlurHook : BaseHook() {
         }.getOrNull() ?: return
         val config = configForType(type)
         val shapeView = islandViewForType(contentView, type)
-        if (config.isActive && shapeView != null) {
-            applyOuterBlur(backgroundView, shapeView, type, config, outerDrawableField)
-        } else {
-            // expanded_view can be inflated after the state callback. Never leave
-            // the prior state's blur visible while waiting for that concrete View.
-            deactivateOuterBlur(backgroundView, outerDrawableField)
+        if (!config.isActive) {
+            deactivateOuterBlur(backgroundView, outerDrawableField, "type-disabled")
             IslandBackgroundHook.restoreCustomBackground(backgroundView, type.name)
+            return
         }
+        // Expanded content can be inflated after the state/background callback.
+        // Absence here is not a lifecycle end; keep the current blur until the
+        // concrete target arrives through updateBackgroundBg/refresh.
+        if (shapeView == null) return
+        applyOuterBlur(backgroundView, shapeView, type, config, outerDrawableField)
     }
 
     private fun resolveIslandType(state: Any?): IslandType? {
@@ -743,52 +737,6 @@ object IslandBlurHook : BaseHook() {
                 value.contains("Invisible", ignoreCase = true) ||
                 value.contains("Idle", ignoreCase = true) ||
                 value.contains("None", ignoreCase = true)
-        }
-    }
-
-    private fun hookContentVisibility(
-        module: XposedModule,
-        classLoader: ClassLoader,
-        backgroundViewField: java.lang.reflect.Field,
-        outerDrawableField: java.lang.reflect.Field,
-    ) {
-        val controllerClass = runCatching {
-            Class.forName(CONTENT_VIEW_CONTROLLER_CLASS, false, classLoader)
-        }.getOrNull() ?: return
-        val currentIslandVisible = findMethod(controllerClass, "currentIslandVisible") ?: return
-        val getView = findMethod(controllerClass, "getView") ?: return
-        val preDrawMethods = controllerClass.declaredMethods.filter {
-            it.name == "onPreDraw" && it.parameterCount == 0
-        }
-        preDrawMethods.forEach { method ->
-            module.hook(method).intercept { chain ->
-                val result = chain.proceed()
-                val controller = chain.thisObject
-                val visible = runCatching {
-                    currentIslandVisible.invoke(controller) as? Boolean
-                }.getOrNull()
-                val previouslyVisible = if (visible != null) {
-                    controllerVisibility.put(controller, visible)
-                } else {
-                    null
-                }
-                if (previouslyVisible != false && visible == false) {
-                    val contentView = runCatching { getView.invoke(controller) }.getOrNull()
-                    val backgroundView = runCatching {
-                        backgroundViewField.get(contentView) as? View
-                    }.getOrNull() ?: return@intercept result
-                    // A temp-hidden window keeps its island state. Preserve the
-                    // drawable through the hide animation, then only suspend its
-                    // RenderThread region so showing it again does not recreate it.
-                    if (isTempHiddenLifecycleActive(backgroundView)) {
-                        suspendOuterBlur(backgroundView)
-                    } else {
-                        deactivateOuterBlur(backgroundView, outerDrawableField)
-                        lastIslandType = null
-                    }
-                }
-                result
-            }
         }
     }
 
@@ -830,6 +778,12 @@ object IslandBlurHook : BaseHook() {
             view.invalidate()
             true
         }.getOrDefault(false)
+    }
+
+    internal fun hasTransitionBlur(view: View, typeName: String): Boolean {
+        val type = typeFromName(typeName) ?: return false
+        val transition = transitionBlurs[view] ?: return false
+        return transition.owned.type == type && view.background === transition.owned.drawable
     }
 
     internal fun releaseTransitionBlur(view: View) {
@@ -903,7 +857,7 @@ object IslandBlurHook : BaseHook() {
                 return@runCatching false
             }
             val current = outerBlurs[backgroundView]
-            if (current?.owned?.type != type) {
+            if (current == null) {
                 pendingOuterBlurs[backgroundView] = PendingBlur(
                     shapeView = WeakReference(shapeView),
                     type = type,
@@ -912,7 +866,16 @@ object IslandBlurHook : BaseHook() {
                 return@runCatching true
             }
             pendingOuterBlurs.remove(backgroundView)
-            val outer = current ?: return@runCatching false
+            val outer = current
+            val typeChanged = outer.owned.type != type
+            if (typeChanged) {
+                val currentDrawable = drawableField.get(backgroundView) as? Drawable
+                if (currentDrawable !== outer.renderDrawable) {
+                    outer.stockDrawable = currentDrawable
+                }
+                log("$TAG reuse ${outer.owned.type} -> $type")
+                outer.owned.type = type
+            }
             outer.shapeView = WeakReference(shapeView)
             ensureDetachCleanup(backgroundView)
             updateOwnedBlur(backgroundView, outer.owned, config, shapeView)
@@ -920,7 +883,7 @@ object IslandBlurHook : BaseHook() {
             outer.renderDrawable.setVisible(true, false)
             outer.renderDrawable.alpha = 255
             val outlineEnabled = IslandOutlineHook.isOutlineEnabled(type == IslandType.EXPAND)
-            if (IslandOutlineHook.hasOutline(outer.renderDrawable) != outlineEnabled) {
+            if (typeChanged || IslandOutlineHook.hasOutline(outer.renderDrawable) != outlineEnabled) {
                 IslandOutlineHook.releaseOutline(outer.renderDrawable)
                 outer.renderDrawable.callback = null
                 outer.renderDrawable = IslandOutlineHook.withOutline(
@@ -977,11 +940,34 @@ object IslandBlurHook : BaseHook() {
         var candidate: OwnedBlur? = null
         runCatching {
             val current = outerBlurs[backgroundView]
-            if (current?.owned?.type == pending.type) {
+            if (current != null) {
+                val typeChanged = current.owned.type != pending.type
+                if (typeChanged) {
+                    val currentDrawable = drawableField.get(backgroundView) as? Drawable
+                    if (currentDrawable !== current.renderDrawable) {
+                        current.stockDrawable = currentDrawable
+                    }
+                    current.owned.type = pending.type
+                }
                 updateOwnedBlur(backgroundView, current.owned, config, shapeView)
                 current.owned.liquidDrawable.setVisible(true, false)
                 current.renderDrawable.setVisible(true, false)
                 current.renderDrawable.alpha = 255
+                val outlineEnabled = IslandOutlineHook.isOutlineEnabled(
+                    pending.type == IslandType.EXPAND,
+                )
+                if (typeChanged ||
+                    IslandOutlineHook.hasOutline(current.renderDrawable) != outlineEnabled
+                ) {
+                    IslandOutlineHook.releaseOutline(current.renderDrawable)
+                    current.renderDrawable.callback = null
+                    current.renderDrawable = IslandOutlineHook.withOutline(
+                        current.owned.drawable,
+                        current.stockDrawable,
+                        pending.type == IslandType.EXPAND,
+                        pending.type.name,
+                    )
+                }
                 drawableField.set(backgroundView, current.renderDrawable)
                 if (current.renderDrawable.callback == null) {
                     current.renderDrawable.callback = WeakViewDrawableCallback(backgroundView)
@@ -1060,8 +1046,12 @@ object IslandBlurHook : BaseHook() {
         val view = backgroundView as? View ?: return false
         val stock = stockDrawable ?: return false
         val outer = outerBlurs[view] ?: return false
-        if (typeName == null || outer.owned.type.name != typeName) return false
+        if (typeName == null) return false
         outer.stockDrawable = stock
+        // updateDarkLightMode installs the destination stock drawable before the
+        // destination content View/config is synchronized. Preserve it without
+        // rebuilding the wrapper against the old blur type.
+        if (outer.owned.type.name != typeName) return true
         if (!outer.active) return true
         IslandOutlineHook.releaseOutline(outer.renderDrawable)
         outer.renderDrawable.callback = null
@@ -1080,6 +1070,7 @@ object IslandBlurHook : BaseHook() {
     private fun deactivateOuterBlur(
         backgroundView: View,
         drawableField: java.lang.reflect.Field,
+        reason: String = "state-disabled",
     ) {
         pendingOuterBlurs.remove(backgroundView)
         recoveringOuterBlurs.remove(backgroundView)
@@ -1088,22 +1079,8 @@ object IslandBlurHook : BaseHook() {
             runCatching { drawableField.set(backgroundView, outer.stockDrawable) }
         }
         outerBlurs.remove(backgroundView)
+        log("$TAG release ${outer.owned.type}, reason=$reason")
         outer.release()
-        backgroundView.invalidate()
-    }
-
-    private fun suspendOuterBlur(backgroundView: View) {
-        val outer = outerBlurs[backgroundView] ?: return
-        if (!outer.active) return
-        runCatching { outer.owned.methods.setRadius.invoke(outer.owned.effectDrawable, 0) }
-            .onFailure { error ->
-                logWarn("$TAG failed to suspend ${outer.owned.type}: ${error.message}")
-            }
-        outer.owned.blurRadius = Int.MIN_VALUE
-        outer.owned.active = false
-        outer.active = false
-        outer.owned.liquidDrawable.setVisible(false, false)
-        outer.renderDrawable.setVisible(false, false)
         backgroundView.invalidate()
     }
 
@@ -1244,8 +1221,9 @@ object IslandBlurHook : BaseHook() {
         owned.liquidDrawable.setContentView(shapeView)
         owned.liquidDrawable.setBackgroundBlurRadius(config.radius.toFloat())
         owned.liquidDrawable.setBlendColor(config.blendColor)
-        if (owned.glassConfigRevision != glassConfigRevision) {
+        if (owned.glassConfigRevision != glassConfigRevision || owned.glassConfigType != owned.type) {
             owned.glassConfigRevision = glassConfigRevision
+            owned.glassConfigType = owned.type
             owned.liquidDrawable.updateConfig(glassConfigForType(owned.type))
         }
         if (owned.blendColor != config.blendColor) {
@@ -1421,7 +1399,7 @@ object IslandBlurHook : BaseHook() {
         val effectDrawable: Drawable,
         val clippedDrawable: ClippedBlurDrawable,
         val liquidDrawable: LiquidGlassDrawable,
-        val type: IslandType,
+        var type: IslandType,
         val methods: BlurDrawableMethods,
         var active: Boolean = false,
     ) {
@@ -1429,6 +1407,7 @@ object IslandBlurHook : BaseHook() {
         var blurRadius = Int.MIN_VALUE
         var blendColor = Int.MIN_VALUE
         var glassConfigRevision = Int.MIN_VALUE
+        var glassConfigType: IslandType? = null
 
         fun release() {
             liquidDrawable.release()
