@@ -92,6 +92,9 @@ object IslandTransitionVisualHook : BaseHook() {
                 hookRefreshAfter(module, method) { delegate ->
                     val fakeView = runCatching { getFakeView.invoke(delegate) }.getOrNull()
                         ?: return@hookRefreshAfter
+                    if (fakeView is View && fakeView.visibility != View.VISIBLE) {
+                        return@hookRefreshAfter
+                    }
                     fakeViews.add(fakeView)
                     refreshFakeView(fakeView, access)
                 }
@@ -157,8 +160,10 @@ object IslandTransitionVisualHook : BaseHook() {
                 targets.getOrPut(view) { TransitionTarget(view.background) }
             }
             if (IslandBlurHook.isTransitionBlurEnabled(typeName)) {
-                restoreStockBackground(view, target)
-                IslandBlurHook.applyTransitionBlur(view, typeName)
+                if (!IslandBlurHook.hasTransitionBlur(view, typeName)) {
+                    if (target.customDrawable != null) restoreStockBackground(view, target)
+                    IslandBlurHook.applyTransitionBlur(view, typeName)
+                }
                 return@forEach
             }
 
@@ -192,9 +197,9 @@ object IslandTransitionVisualHook : BaseHook() {
         val blurEnabled = sequenceOf("SMALL", "BIG", "EXPAND")
             .any(IslandBlurHook::isTransitionBlurEnabled)
         if (blurEnabled) {
-            root.background = null
-            if (container !== root) container?.background = null
-            mask?.background = null
+            if (root.background != null) root.background = null
+            if (container !== root && container?.background != null) container.background = null
+            if (mask?.background != null) mask.background = null
         } else {
             if (root.background == null) root.background = target.rootBackground
             if (container !== root && container?.background == null) {
