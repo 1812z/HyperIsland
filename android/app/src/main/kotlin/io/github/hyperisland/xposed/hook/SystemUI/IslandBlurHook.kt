@@ -755,6 +755,8 @@ object IslandBlurHook : BaseHook() {
         val controllerClass = runCatching {
             Class.forName(CONTENT_VIEW_CONTROLLER_CLASS, false, classLoader)
         }.getOrNull() ?: return
+        val currentIslandVisible = findMethod(controllerClass, "currentIslandVisible") ?: return
+        val getView = findMethod(controllerClass, "getView") ?: return
         val preDrawMethods = controllerClass.declaredMethods.filter {
             it.name == "onPreDraw" && it.parameterCount == 0
         }
@@ -763,21 +765,18 @@ object IslandBlurHook : BaseHook() {
                 val result = chain.proceed()
                 val controller = chain.thisObject
                 val visible = runCatching {
-                    findMethod(controller.javaClass, "currentIslandVisible")
-                        ?.invoke(controller) as? Boolean
-                }.getOrNull()
-                val contentView = runCatching {
-                    findMethod(controller.javaClass, "getView")?.invoke(controller)
-                }.getOrNull()
-                val backgroundView = runCatching {
-                    backgroundViewField.get(contentView) as? View
+                    currentIslandVisible.invoke(controller) as? Boolean
                 }.getOrNull()
                 val previouslyVisible = if (visible != null) {
                     controllerVisibility.put(controller, visible)
                 } else {
                     null
                 }
-                if (backgroundView != null && previouslyVisible != false && visible == false) {
+                if (previouslyVisible != false && visible == false) {
+                    val contentView = runCatching { getView.invoke(controller) }.getOrNull()
+                    val backgroundView = runCatching {
+                        backgroundViewField.get(contentView) as? View
+                    }.getOrNull() ?: return@intercept result
                     // A temp-hidden window keeps its island state. Preserve the
                     // drawable through the hide animation, then only suspend its
                     // RenderThread region so showing it again does not recreate it.
