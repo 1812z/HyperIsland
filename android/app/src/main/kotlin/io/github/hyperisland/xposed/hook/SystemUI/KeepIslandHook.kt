@@ -39,7 +39,10 @@ import io.github.hyperisland.xposed.utils.toRounded
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.io.File
+import java.lang.ref.WeakReference
+import java.util.Collections
 import java.util.Locale
+import java.util.WeakHashMap
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.roundToInt
 import org.json.JSONArray
@@ -100,13 +103,28 @@ object KeepIslandHook : BaseHook() {
 
     private const val DATA_UPDATE_INTERVAL_MS = 1000L
 
+    private const val VISIBILITY_CHECK_INTERVAL_MS = 32L
+    private const val MAX_VISIBILITY_CHECKS = 32
+    private const val ACTIVE_VISIBILITY_CHECK_INTERVAL_MS = 100L
+    private const val INVISIBLE_CONFIRMATION_COUNT = 2
+
     private val mainHandler = Handler(Looper.getMainLooper())
     private var appContext: android.content.Context? = null
+    @Volatile
     private var posted = false
 
     private var cachedModule: XposedModule? = null
 
     private val activeRealKeys = ConcurrentHashMap.newKeySet<String>()
+    private val pendingRealKeys = ConcurrentHashMap.newKeySet<String>()
+    private val pendingRemovalRunnables = ConcurrentHashMap<String, Runnable>()
+    private val visibilityCheckRunnables = ConcurrentHashMap<String, Runnable>()
+    private val activeVisibilityRunnables = ConcurrentHashMap<String, Runnable>()
+    private val controllerKeys = Collections.synchronizedMap(WeakHashMap<Any, String>())
+    private val ignoredControllerKeys = Collections.synchronizedMap(WeakHashMap<Any, String>())
+
+    @Volatile
+    private var autoHideTrackingEnabled = false
 
     private var restoreRunnable: Runnable? = null
 
@@ -162,6 +180,8 @@ object KeepIslandHook : BaseHook() {
 
     private val hookedAnimationClassLoaders = ConcurrentHashMap.newKeySet<Int>()
     private val hookedContentControllerClassLoaders = ConcurrentHashMap.newKeySet<Int>()
+    private val noArgMethodCache = ConcurrentHashMap<NoArgMethodKey, java.lang.reflect.Method>()
+    private val missingNoArgMethods = ConcurrentHashMap.newKeySet<NoArgMethodKey>()
     @Volatile
     private var contentControllerHooked = false
 
@@ -293,10 +313,7 @@ object KeepIslandHook : BaseHook() {
 
     private fun handleStateChange(stateObj: Any) {
         val ctx = appContext ?: return
-        if (!ConfigManager.getBoolean(PREF_KEY, false)) return
-
-        val autoHide = ConfigManager.getBoolean(PREF_KEY_AUTO_HIDE, true)
-        if (!autoHide) return
+        if (!autoHideTrackingEnabled) return
 
         val stateText = readStateText(stateObj) ?: return
 
@@ -315,13 +332,25 @@ object KeepIslandHook : BaseHook() {
         if (isOwnedByUs) return
         if ((isBigIsland || isExpanded || isSmallIsland) && !isDeleted && sourcePackage == foregroundPackage(ctx)) return
         if (contentControllerHooked) {
-            if (isDeleted && key != null) markRealIslandHidden(key)
+            when {
+                (isBigIsland || isExpanded || isSmallIsland) && !isDeleted -> {
+                    if (key != null) markRealIslandPending(key)
+                }
+
+                isDeleted -> {
+                    if (key != null) markRealIslandHidden(key)
+                }
+
+                else -> {
+                    if (key != null) schedulePendingRealIslandRemoval(key)
+                }
+            }
             return
         }
 
         when {
             (isBigIsland || isExpanded || isSmallIsland) && !isDeleted -> {
-                if (key != null) markRealIslandVisible(ctx, key)
+                if (key != null) markRealIslandVisible(ctx, null, key)
             }
 
             isDeleted || (!isBigIsland && !isExpanded && !isSmallIsland) -> {
@@ -332,10 +361,24 @@ object KeepIslandHook : BaseHook() {
 
     private fun handleContentPreDraw(controllerObj: Any) {
         val ctx = appContext ?: return
-        if (!ConfigManager.getBoolean(PREF_KEY, false)) return
+        if (!autoHideTrackingEnabled) return
 
-        val autoHide = ConfigManager.getBoolean(PREF_KEY_AUTO_HIDE, true)
-        if (!autoHide) return
+        val controllerKey = invokeNoArg(controllerObj, "getIslandKey") as? String
+        if (controllerKey != null && ignoredControllerKeys[controllerObj] == controllerKey) return
+        ignoredControllerKeys.remove(controllerObj)
+        val cachedKey = controllerKeys[controllerObj]
+        if (cachedKey != null && cachedKey == controllerKey) {
+            if (cachedKey in activeRealKeys) {
+                scheduleActiveVisibilityCheck(controllerObj, cachedKey)
+                return
+            }
+            if (cachedKey in pendingRealKeys) {
+                scheduleVisibilityCheck(ctx, controllerObj, cachedKey)
+                return
+            }
+        } else {
+            controllerKeys.remove(controllerObj)
+        }
 
         val view = invokeNoArg(controllerObj, "getView") as? View ?: return
         val stateText = invokeNoArg(view, "getState")?.toString().orEmpty()
@@ -344,36 +387,136 @@ object KeepIslandHook : BaseHook() {
         val isSmallIsland = stateText.contains("SmallIsland")
         val isDeleted = stateText.contains("Deleted")
         val sbn = extractSbnFromController(controllerObj)
-        val key = (invokeNoArg(controllerObj, "getIslandKey") as? String)
+        val key = controllerKey
             ?: extractKeyFromState(view)
             ?: sbn?.key
             ?: return
+        controllerKeys[controllerObj] = key
 
         if (isDeleted) {
             markRealIslandHidden(key)
             return
         }
         if (!isBigIsland && !isExpanded && !isSmallIsland) return
+        if (key in activeRealKeys) return
 
         val extras = sbn?.notification?.extras ?: extractExtrasFromState(view)
         val isOwnedByUs = extras?.getString("hyperisland_source_channel") == KEEP_ISLAND_CHANNEL
-        if (isOwnedByUs) return
-        if (key !in activeRealKeys && !isContentViewVisible(controllerObj, view)) return
+        if (isOwnedByUs) {
+            ignoredControllerKeys[controllerObj] = key
+            controllerKeys.remove(controllerObj)
+            return
+        }
+        if (!isContentViewVisible(controllerObj, view)) {
+            if (key in pendingRealKeys) scheduleVisibilityCheck(ctx, controllerObj, key)
+            return
+        }
 
-        markRealIslandVisible(ctx, key)
+        markRealIslandVisible(ctx, controllerObj, key)
     }
 
-    private fun markRealIslandVisible(ctx: Context, key: String) {
+    private fun scheduleVisibilityCheck(ctx: Context, controllerObj: Any, key: String) {
+        if (visibilityCheckRunnables.containsKey(key)) return
+        val controllerRef = WeakReference(controllerObj)
+        var checksRemaining = MAX_VISIBILITY_CHECKS
+        lateinit var runnable: Runnable
+        runnable = Runnable {
+            if (!autoHideTrackingEnabled || key !in pendingRealKeys || key in activeRealKeys) {
+                visibilityCheckRunnables.remove(key, runnable)
+                return@Runnable
+            }
+            val controller = controllerRef.get()
+            if (controller == null || checksRemaining-- <= 0) {
+                visibilityCheckRunnables.remove(key, runnable)
+                markRealIslandHidden(key)
+                return@Runnable
+            }
+            val view = invokeNoArg(controller, "getView") as? View
+            if (view != null && isContentViewVisible(controller, view)) {
+                visibilityCheckRunnables.remove(key, runnable)
+                markRealIslandVisible(ctx, controller, key)
+                return@Runnable
+            }
+            mainHandler.postDelayed(runnable, VISIBILITY_CHECK_INTERVAL_MS)
+        }
+        if (visibilityCheckRunnables.putIfAbsent(key, runnable) == null) {
+            mainHandler.post(runnable)
+        }
+    }
+
+    private fun markRealIslandVisible(ctx: Context, controllerObj: Any?, key: String) {
+        cancelVisibilityCheck(key)
+        cancelPendingRealIslandRemoval(key)
         cancelPendingRestore()
-        if (activeRealKeys.add(key) && activeRealKeys.size == 1 && posted) {
+        pendingRealKeys.remove(key)
+        val added = activeRealKeys.add(key)
+        if (controllerObj != null) scheduleActiveVisibilityCheck(controllerObj, key)
+        if (added && activeRealKeys.size == 1 &&
+            pendingRealKeys.isEmpty() && posted
+        ) {
             updateKeepIslandContent(ctx, force = true)
         }
     }
 
+    private fun scheduleActiveVisibilityCheck(controllerObj: Any, key: String) {
+        if (activeVisibilityRunnables.containsKey(key)) return
+        val controllerRef = WeakReference(controllerObj)
+        var invisibleChecks = 0
+        lateinit var runnable: Runnable
+        runnable = Runnable {
+            if (!autoHideTrackingEnabled || key !in activeRealKeys) {
+                activeVisibilityRunnables.remove(key, runnable)
+                return@Runnable
+            }
+            val controller = controllerRef.get()
+            val currentKey = controller?.let { invokeNoArg(it, "getIslandKey") as? String }
+            val view = controller?.let { invokeNoArg(it, "getView") as? View }
+            val visible = controller != null && currentKey == key && view != null &&
+                    isContentViewVisible(controller, view)
+            if (visible) {
+                invisibleChecks = 0
+            } else if (++invisibleChecks >= INVISIBLE_CONFIRMATION_COUNT) {
+                activeVisibilityRunnables.remove(key, runnable)
+                markRealIslandHidden(key)
+                return@Runnable
+            }
+            mainHandler.postDelayed(runnable, ACTIVE_VISIBILITY_CHECK_INTERVAL_MS)
+        }
+        if (activeVisibilityRunnables.putIfAbsent(key, runnable) == null) {
+            mainHandler.postDelayed(runnable, ACTIVE_VISIBILITY_CHECK_INTERVAL_MS)
+        }
+    }
+
+    private fun markRealIslandPending(key: String) {
+        cancelPendingRealIslandRemoval(key)
+        cancelPendingRestore()
+        pendingRealKeys.add(key)
+    }
+
     private fun markRealIslandHidden(key: String) {
-        if (activeRealKeys.remove(key) && activeRealKeys.isEmpty()) {
+        cancelVisibilityCheck(key)
+        cancelActiveVisibilityCheck(key)
+        cancelPendingRealIslandRemoval(key)
+        val removed = activeRealKeys.remove(key) or pendingRealKeys.remove(key)
+        if (removed && activeRealKeys.isEmpty() && pendingRealKeys.isEmpty()) {
             scheduleRestore()
         }
+    }
+
+    private fun schedulePendingRealIslandRemoval(key: String) {
+        if (key !in pendingRealKeys || key in activeRealKeys) return
+        cancelPendingRealIslandRemoval(key)
+        val runnable = Runnable {
+            pendingRemovalRunnables.remove(key)
+            if (activeRealKeys.contains(key) || !pendingRealKeys.remove(key)) return@Runnable
+            if (activeRealKeys.isEmpty() && pendingRealKeys.isEmpty()) scheduleRestore()
+        }
+        pendingRemovalRunnables[key] = runnable
+        mainHandler.postDelayed(runnable, RESTORE_DELAY_MS)
+    }
+
+    private fun cancelPendingRealIslandRemoval(key: String) {
+        pendingRemovalRunnables.remove(key)?.let { mainHandler.removeCallbacks(it) }
     }
 
     private fun isContentViewVisible(controllerObj: Any, view: View): Boolean {
@@ -391,7 +534,13 @@ object KeepIslandHook : BaseHook() {
         val ctx = appContext ?: return
         val islandEnabled = ConfigManager.getBoolean(PREF_KEY, false)
         val autoHide = ConfigManager.getBoolean(PREF_KEY_AUTO_HIDE, true)
-        if (!islandEnabled || !autoHide) activeRealKeys.clear()
+        if (!islandEnabled || !autoHide) {
+            activeRealKeys.clear()
+            pendingRealKeys.clear()
+            cancelAllPendingRealIslandRemovals()
+            cancelAllVisibilityChecks()
+        }
+        autoHideTrackingEnabled = islandEnabled && autoHide && shouldPostKeepNotification()
         if (shouldPostKeepNotification()) {
             cancelPendingRestore()
             if (!posted) {
@@ -401,6 +550,10 @@ object KeepIslandHook : BaseHook() {
             }
         } else {
             cancelPendingRestore()
+            activeRealKeys.clear()
+            pendingRealKeys.clear()
+            cancelAllPendingRealIslandRemovals()
+            cancelAllVisibilityChecks()
             if (posted) cancelKeepIsland(ctx)
         }
     }
@@ -422,7 +575,8 @@ object KeepIslandHook : BaseHook() {
     private fun shouldEnableIsland(context: Context): Boolean {
         if (!ConfigManager.getBoolean(PREF_KEY, false)) return false
         val hideForRealNotification = ConfigManager.getBoolean(PREF_KEY_AUTO_HIDE, true) &&
-                (activeRealKeys.isNotEmpty() || restoreRunnable != null)
+                (activeRealKeys.isNotEmpty() || pendingRealKeys.isNotEmpty() ||
+                        restoreRunnable != null)
         if (hideForRealNotification) return false
         val hideForLandscape = ConfigManager.getBoolean(PREF_KEY_HIDE_LANDSCAPE, false) &&
                 isLandscape(context)
@@ -504,6 +658,7 @@ object KeepIslandHook : BaseHook() {
         force: Boolean = false,
     ) {
         if (!posted || !shouldPostKeepNotification()) return
+        if (activeRealKeys.isEmpty() && pendingRealKeys.isNotEmpty()) return
         val texts: Pair<String, String> = resolveKeepIslandTexts()
         try {
             val highlightColor = ConfigManager.getString(PREF_KEY_HIGHLIGHT_COLOR, "")
@@ -1396,6 +1551,7 @@ object KeepIslandHook : BaseHook() {
         try {
             IslandDispatcher.cancel(context, KEEP_ISLAND_NOTIF_ID)
             posted = false
+            autoHideTrackingEnabled = false
             lastContentUpdateSignature = null
             cancelPeriodicDataUpdate()
             cachedModule?.let { log(it, "keep island cancelled") }
@@ -1406,15 +1562,40 @@ object KeepIslandHook : BaseHook() {
 
     private fun scheduleRestore() {
         cancelPendingRestore()
-        restoreRunnable = Runnable {
+        val runnable = Runnable {
+            restoreRunnable = null
+            if (activeRealKeys.isNotEmpty() || pendingRealKeys.isNotEmpty()) return@Runnable
             evaluateKeepIsland()
         }
-        mainHandler.postDelayed(restoreRunnable!!, RESTORE_DELAY_MS)
+        restoreRunnable = runnable
+        mainHandler.postDelayed(runnable, RESTORE_DELAY_MS)
     }
 
     private fun cancelPendingRestore() {
         restoreRunnable?.let { mainHandler.removeCallbacks(it) }
         restoreRunnable = null
+    }
+
+    private fun cancelAllPendingRealIslandRemovals() {
+        pendingRemovalRunnables.values.forEach(mainHandler::removeCallbacks)
+        pendingRemovalRunnables.clear()
+    }
+
+    private fun cancelVisibilityCheck(key: String) {
+        visibilityCheckRunnables.remove(key)?.let { mainHandler.removeCallbacks(it) }
+    }
+
+    private fun cancelActiveVisibilityCheck(key: String) {
+        activeVisibilityRunnables.remove(key)?.let { mainHandler.removeCallbacks(it) }
+    }
+
+    private fun cancelAllVisibilityChecks() {
+        visibilityCheckRunnables.values.forEach(mainHandler::removeCallbacks)
+        visibilityCheckRunnables.clear()
+        activeVisibilityRunnables.values.forEach(mainHandler::removeCallbacks)
+        activeVisibilityRunnables.clear()
+        controllerKeys.clear()
+        ignoredControllerKeys.clear()
     }
 
     private fun registerIslandDataManager(context: Context) {
@@ -1576,12 +1757,20 @@ object KeepIslandHook : BaseHook() {
     }
 
     private fun findNoArgMethod(clazz: Class<*>, name: String): java.lang.reflect.Method? {
+        val key = NoArgMethodKey(clazz, name)
+        noArgMethodCache[key]?.let { return it }
+        if (key in missingNoArgMethods) return null
         var current: Class<*>? = clazz
         while (current != null) {
             current.declaredMethods.firstOrNull { it.name == name && it.parameterCount == 0 }
-                ?.let { return it }
+                ?.let { method ->
+                    method.isAccessible = true
+                    noArgMethodCache[key] = method
+                    return method
+                }
             current = current.superclass
         }
+        missingNoArgMethods.add(key)
         return null
     }
 
@@ -1603,6 +1792,11 @@ object KeepIslandHook : BaseHook() {
         val left: List<String>,
         val right: List<String>,
         val intervalMillis: Long,
+    )
+
+    private data class NoArgMethodKey(
+        val clazz: Class<*>,
+        val name: String,
     )
 
     private data class FocusContent(
