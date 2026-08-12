@@ -1,11 +1,12 @@
 name: Telegram Release Notify
 
 on:
-  workflow_run:
-    workflows: ["Build & Release"]
-    types: [completed]
-  release:
-    types: [published]
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Release tag to notify'
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       tag:
@@ -15,15 +16,9 @@ on:
 
 jobs:
   telegram:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4.2.2
-        with:
-          ref: ${{ github.event.release.tag_name || github.event.workflow_run.head_sha || github.ref }}
-
       - name: Validate Telegram topic config
         run: |
           if [ -z "${{ secrets.TG_RELEASES_THREAD_ID }}" ]; then
@@ -34,15 +29,7 @@ jobs:
       - name: Resolve release tag
         id: release
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            TAG="${{ github.event.inputs.tag }}"
-          elif [ "${{ github.event_name }}" = "release" ]; then
-            TAG="${{ github.event.release.tag_name }}"
-          else
-            CURRENT_FULL=$(grep '^version:' pubspec.yaml | awk '{print $2}')
-            VERSION_NAME=$(echo "$CURRENT_FULL" | cut -d'+' -f1)
-            TAG="v$VERSION_NAME"
-          fi
+          TAG="${{ inputs.tag }}"
 
           if ! gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             echo "::notice::No published release found for $TAG. Skipping Telegram notification."

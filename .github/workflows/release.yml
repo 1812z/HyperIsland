@@ -18,12 +18,25 @@ on:
         required: false
         type: boolean
         default: false
+      push_to_telegram:
+        description: '推送到 TG'
+        required: false
+        type: boolean
+        default: false
+      sync_to_lsposed:
+        description: '同步到 LSPosed 仓库'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      released: ${{ steps.version.outputs.changed }}
+      release_tag: v${{ steps.version.outputs.version_name }}
 
     steps:
       # 第一步：检出代码
@@ -253,3 +266,23 @@ jobs:
           draft: false
           # 不标记为预发布版本
           prerelease: false
+
+  telegram:
+    needs: build
+    if: >-
+      needs.build.outputs.released == 'true' &&
+      (github.event_name != 'workflow_dispatch' || inputs.push_to_telegram)
+    uses: ./.github/workflows/telegram-release.yml
+    with:
+      tag: ${{ needs.build.outputs.release_tag }}
+    secrets: inherit
+
+  sync-lsposed:
+    needs: build
+    if: >-
+      needs.build.outputs.released == 'true' &&
+      (github.event_name != 'workflow_dispatch' || inputs.sync_to_lsposed)
+    uses: ./.github/workflows/sync-release.yml
+    with:
+      tag: ${{ needs.build.outputs.release_tag }}
+    secrets: inherit
