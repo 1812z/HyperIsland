@@ -603,6 +603,7 @@
   "aiJsonOnlyInstruction": "仅返回如下 JSON，不得包含任何其他文字或代码块：",
   "aiJsonLeftDescription": "左侧文本（谁发的）",
   "aiJsonRightDescription": "右侧文本（总结）",
+  "aiThinkingModeError": "检测到 AI 已开启思考模式，请添加字段关闭思考模式",
   "aiInvalidJsonError": "AI 返回格式错误，需要包含 left 和 right 字段的 JSON",
   "aiEmptyJsonError": "AI 返回为空，需要包含 left 和 right 字段的 JSON",
   "aiNotificationContentLabel": "通知内容",

@@ -1298,6 +1298,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get aiJsonRightDescription => '右侧文本（总结）';
 
   @override
+  String get aiThinkingModeError => '检测到 AI 已开启思考模式，请添加字段关闭思考模式';
+
+  @override
   String get aiInvalidJsonError => 'AI 返回格式错误，需要包含 left 和 right 字段的 JSON';
 
   @override

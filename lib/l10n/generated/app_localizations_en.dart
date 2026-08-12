@@ -1286,6 +1286,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiJsonRightDescription => 'right text (summary)';
 
   @override
+  String get aiThinkingModeError =>
+      'AI thinking mode is enabled. Add a custom field to disable thinking mode';
+
+  @override
   String get aiInvalidJsonError =>
       'Invalid AI response format. JSON with left and right fields is required';
 

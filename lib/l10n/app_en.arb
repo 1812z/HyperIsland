@@ -449,6 +449,7 @@
   "aiJsonOnlyInstruction": "Return only the following JSON. Do not include any other text or code block:",
   "aiJsonLeftDescription": "left text (sender)",
   "aiJsonRightDescription": "right text (summary)",
+  "aiThinkingModeError": "AI thinking mode is enabled. Add a custom field to disable thinking mode",
   "aiInvalidJsonError": "Invalid AI response format. JSON with left and right fields is required",
   "aiEmptyJsonError": "AI response is empty. JSON with left and right fields is required",
   "aiNotificationContentLabel": "Notification Content",

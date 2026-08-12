@@ -285,6 +285,48 @@ class _AiConfigPageState extends State<AiConfigPage> {
     };
   }
 
+  bool _hasThinkingValue(dynamic value) {
+    if (value == null || value == false) return false;
+    if (value is String) return value.trim().isNotEmpty;
+    if (value is num) return value > 0;
+    if (value is Iterable) return value.isNotEmpty;
+    if (value is Map) return value.isNotEmpty;
+    return true;
+  }
+
+  bool _isThinkingResponse(Map<String, dynamic> json) {
+    final choice = (json['choices'] as List?)?.firstOrNull;
+    final message = choice is Map ? choice['message'] : null;
+    final logprobs = choice is Map ? choice['logprobs'] : null;
+    final usage = json['usage'];
+    final completionDetails = usage is Map
+        ? usage['completion_tokens_details']
+        : null;
+    final outputDetails = usage is Map ? usage['output_tokens_details'] : null;
+
+    return _hasThinkingValue(
+          message is Map ? message['reasoning_content'] : null,
+        ) ||
+        _hasThinkingValue(message is Map ? message['reasoning'] : null) ||
+        _hasThinkingValue(
+          message is Map ? message['reasoning_details'] : null,
+        ) ||
+        _hasThinkingValue(message is Map ? message['thinking'] : null) ||
+        _hasThinkingValue(choice is Map ? choice['reasoning_content'] : null) ||
+        _hasThinkingValue(choice is Map ? choice['reasoning'] : null) ||
+        _hasThinkingValue(
+          logprobs is Map ? logprobs['reasoning_content'] : null,
+        ) ||
+        _hasThinkingValue(
+          completionDetails is Map
+              ? completionDetails['reasoning_tokens']
+              : null,
+        ) ||
+        _hasThinkingValue(
+          outputDetails is Map ? outputDetails['reasoning_tokens'] : null,
+        );
+  }
+
   Future<void> _test() async {
     final url = _urlCtrl.text.trim();
     final key = _keyCtrl.text.trim();
@@ -413,10 +455,11 @@ class _AiConfigPageState extends State<AiConfigPage> {
       throw Exception('HTTP ${response.statusCode}\n${response.body}');
     }
     final json = jsonDecode(response.body) as Map<String, dynamic>;
-    return ((json['choices'] as List?)?.firstOrNull?['message']?['content']
-                as String? ??
-            '')
-        .trim();
+    if (_isThinkingResponse(json)) {
+      throw Exception(l10n.aiThinkingModeError);
+    }
+    final message = (json['choices'] as List?)?.firstOrNull?['message'];
+    return (message?['content'] as String? ?? '').trim();
   }
 
   (String, String) _splitAiNotificationText(String aiText) {

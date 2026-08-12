@@ -2390,6 +2390,12 @@ abstract class AppLocalizations {
   /// **'右侧文本（总结）'**
   String get aiJsonRightDescription;
 
+  /// No description provided for @aiThinkingModeError.
+  ///
+  /// In zh, this message translates to:
+  /// **'检测到 AI 已开启思考模式，请添加字段关闭思考模式'**
+  String get aiThinkingModeError;
+
   /// No description provided for @aiInvalidJsonError.
   ///
   /// In zh, this message translates to:
