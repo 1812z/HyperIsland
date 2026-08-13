@@ -161,8 +161,8 @@ private class HdrHighlightCompositor(
         states[slot] = HighlightState(
             left = bounds.left + offsetX,
             top = bounds.top + offsetY,
-            width = ceil(bounds.width()).coerceAtLeast(1f),
-            height = ceil(bounds.height()).coerceAtLeast(1f),
+            width = bounds.width().coerceAtLeast(1f),
+            height = bounds.height().coerceAtLeast(1f),
             radius = state.cornerRadius,
             lightX = state.lightX,
             lightY = state.lightY,
@@ -213,8 +213,12 @@ private class HdrHighlightCompositor(
     }
 
     private fun ensureBufferSize(rootView: ViewGroup) {
-        val contentRight = states.values.maxOfOrNull { ceil(it.left + it.width).toInt() } ?: 1
-        val contentBottom = states.values.maxOfOrNull { ceil(it.top + it.height).toInt() } ?: 1
+        val contentRight = states.values.maxOfOrNull {
+            ceil(it.left + it.width + EDGE_AA_PADDING).toInt()
+        } ?: 1
+        val contentBottom = states.values.maxOfOrNull {
+            ceil(it.top + it.height + EDGE_AA_PADDING).toInt()
+        } ?: 1
         val nextWidth = roundBufferDimension(maxOf(rootView.width, contentRight, 1))
         val nextHeight = roundBufferDimension(maxOf(contentBottom, 1))
         bufferWidth = maxOf(bufferWidth, nextWidth)
@@ -290,10 +294,10 @@ private class HdrHighlightCompositor(
                 runtimeShader.setFloatUniform("uOppositeIntensity", state.oppositeIntensity)
                 runtimeShader.setFloatUniform("uHdrHeadroom", HDR_HEADROOM)
                 canvas.drawRect(
-                    state.left,
-                    state.top,
-                    state.left + state.width,
-                    state.top + state.height,
+                    state.left - EDGE_AA_PADDING,
+                    state.top - EDGE_AA_PADDING,
+                    state.left + state.width + EDGE_AA_PADDING,
+                    state.top + state.height + EDGE_AA_PADDING,
                     paint,
                 )
             }
@@ -455,6 +459,7 @@ private class HdrHighlightCompositor(
         const val CALLBACK_COMMIT = 4
         const val BUFFER_ALLOCATION_STEP = 64
         const val IDLE_RELEASE_DELAY_MS = 500L
+        const val EDGE_AA_PADDING = 1f
         val compositors = WeakHashMap<ViewGroup, HdrHighlightCompositor>()
 
         fun obtain(context: Context, root: ViewGroup): HdrHighlightCompositor {
@@ -484,7 +489,8 @@ private class HdrHighlightCompositor(
                 float3 geometry = edgeGeometry(
                     p, halfSize, uCornerRadius, uEdgeWidth, uLightDir
                 );
-                if (geometry.x > 0.0 ||
+                float coverage = edgeCoverage(geometry.x);
+                if (coverage <= 0.0 ||
                     (uIntensity <= 0.0 && uOppositeIntensity <= 0.0)) {
                     return half4(0.0);
                 }
@@ -496,7 +502,8 @@ private class HdrHighlightCompositor(
                 float oppositeStrength = clamp(uOppositeIntensity, 0.0, 1.0);
                 float primaryCoverage = pow(primaryFacing * edge, 2.0) * primaryStrength;
                 float oppositeCoverage = pow(oppositeFacing * edge, 2.0) * oppositeStrength;
-                float highlightCoverage = primaryCoverage + oppositeCoverage;
+                float highlightCoverage =
+                    (primaryCoverage + oppositeCoverage) * coverage;
                 float peakStrength = max(primaryStrength, oppositeStrength);
                 float peakLuminance = mix(1.0, uHdrHeadroom, peakStrength);
                 return half4(

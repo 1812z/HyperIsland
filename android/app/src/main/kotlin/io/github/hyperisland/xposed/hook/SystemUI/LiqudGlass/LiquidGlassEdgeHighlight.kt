@@ -13,6 +13,12 @@ internal const val LIQUID_GLASS_EDGE_GEOMETRY = """
         return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - radius;
     }
 
+    float edgeCoverage(float distance) {
+        // The SDF is expressed in local pixels. Resolve its boundary over a
+        // 1.5 px transition instead of relying on drawRect edge antialiasing.
+        return 1.0 - smoothstep(-0.75, 0.75, distance);
+    }
+
     float3 edgeGeometry(
         float2 p,
         float2 halfSize,
@@ -85,13 +91,20 @@ internal class LiquidGlassEdgeHighlight(
         shader.setFloatUniform("uEdgeAlpha", state.highlight * SDR_HIGHLIGHT_SCALE)
         shader.setFloatUniform("uEdgeShadow", state.shadow * SDR_SHADOW_SCALE)
         shader.setFloatUniform("uDispersion", state.dispersion * SDR_DISPERSION_SCALE)
-        canvas.drawRect(bounds, sdrPaint)
+        canvas.drawRect(
+            bounds.left - EDGE_AA_PADDING,
+            bounds.top - EDGE_AA_PADDING,
+            bounds.right + EDGE_AA_PADDING,
+            bounds.bottom + EDGE_AA_PADDING,
+            sdrPaint,
+        )
     }
 
     private companion object {
         const val SDR_HIGHLIGHT_SCALE = 0.56f
         const val SDR_SHADOW_SCALE = 0.34f
         const val SDR_DISPERSION_SCALE = 0.16f
+        const val EDGE_AA_PADDING = 1f
 
         val SDR_EDGE_SHADER = """
             uniform float2 uOrigin;
@@ -113,7 +126,8 @@ internal class LiquidGlassEdgeHighlight(
                     p, halfSize, uCornerRadius, uEdgeWidth, uLightDir
                 );
                 float distance = geometry.x;
-                if (distance > 0.0) return half4(0.0);
+                float coverage = edgeCoverage(distance);
+                if (coverage <= 0.0) return half4(0.0);
 
                 float facing = geometry.y;
                 float edge = geometry.z;
@@ -126,7 +140,10 @@ internal class LiquidGlassEdgeHighlight(
                 float3 primary = float3(1.0 + max(dispersion, 0.0), 0.99,
                     0.96 + max(-dispersion, 0.0)) * (bright + lensBand * 0.45);
                 float3 secondary = float3(0.92, 0.96, 1.0) * opposite;
-                return half4(half3(primary + secondary), half(alpha));
+                return half4(
+                    half3((primary + secondary) * coverage),
+                    half(alpha * coverage)
+                );
             }
         """.trimIndent()
     }
