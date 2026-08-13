@@ -410,6 +410,7 @@ object ConfigManager {
         "pref_scene_landscape",
         "pref_expanded_collapse_action",
         "pref_big_island_collapse_action",
+        "pref_island_swipe_ignore_ongoing",
         "pref_ai_enabled",
         "pref_ai_prompt_in_user",
         "pref_ai_custom_fields",

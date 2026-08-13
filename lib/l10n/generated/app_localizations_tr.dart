@@ -1814,15 +1814,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get expandedCollapseActionTitle => 'Genişletilmiş ada daraltılırken';
 
   @override
-  String get expandedCollapseActionSubtitle =>
-      'Genişletilmiş adayı yukarı kaydırıp daralttıktan sonra çalışır';
-
-  @override
   String get bigIslandCollapseActionTitle => 'Büyük ada gizlenirken';
-
-  @override
-  String get bigIslandCollapseActionSubtitle =>
-      'Büyük ada kaydırılarak gizlendikten sonra çalışır';
 
   @override
   String get islandSwipeActionNone => 'Yok';
@@ -1832,6 +1824,9 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get islandSwipeActionHideIsland => 'Büyük adayı gizle';
+
+  @override
+  String get islandSwipeIgnoreOngoingTitle => 'Kalıcı bildirimleri yoksay';
 
   @override
   String get miscSection => 'Çeşitli';

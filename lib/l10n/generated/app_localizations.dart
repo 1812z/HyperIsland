@@ -3359,23 +3359,11 @@ abstract class AppLocalizations {
   /// **'收起展开态时'**
   String get expandedCollapseActionTitle;
 
-  /// No description provided for @expandedCollapseActionSubtitle.
-  ///
-  /// In zh, this message translates to:
-  /// **'上滑将展开态收回大岛后执行'**
-  String get expandedCollapseActionSubtitle;
-
   /// No description provided for @bigIslandCollapseActionTitle.
   ///
   /// In zh, this message translates to:
   /// **'收起大岛时'**
   String get bigIslandCollapseActionTitle;
-
-  /// No description provided for @bigIslandCollapseActionSubtitle.
-  ///
-  /// In zh, this message translates to:
-  /// **'横滑将大岛隐藏后执行'**
-  String get bigIslandCollapseActionSubtitle;
 
   /// No description provided for @islandSwipeActionNone.
   ///
@@ -3394,6 +3382,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'隐藏大岛'**
   String get islandSwipeActionHideIsland;
+
+  /// No description provided for @islandSwipeIgnoreOngoingTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'忽略常驻通知'**
+  String get islandSwipeIgnoreOngoingTitle;
 
   /// No description provided for @miscSection.
   ///

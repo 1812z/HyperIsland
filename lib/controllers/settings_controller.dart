@@ -75,6 +75,7 @@ const kPrefLandscapeBehavior = 'pref_landscape_behavior';
 const kPrefDndBehavior = 'pref_scene_dnd';
 const kPrefExpandedCollapseAction = 'pref_expanded_collapse_action';
 const kPrefBigIslandCollapseAction = 'pref_big_island_collapse_action';
+const kPrefIslandSwipeIgnoreOngoing = 'pref_island_swipe_ignore_ongoing';
 const kPrefHideDesktopIcon = 'pref_hide_desktop_icon';
 const kPrefAiEnabled = 'pref_ai_enabled';
 const kPrefAiUrl = 'pref_ai_url';
@@ -274,6 +275,7 @@ class SettingsController extends ChangeNotifier {
   String dndBehavior = 'default';
   String expandedCollapseAction = kIslandSwipeActionNone;
   String bigIslandCollapseAction = kIslandSwipeActionNone;
+  bool islandSwipeIgnoreOngoing = true;
   bool aiEnabled = false;
   String aiUrl = '';
   String aiApiKey = '';
@@ -477,6 +479,8 @@ class SettingsController extends ChangeNotifier {
       prefs.getString(kPrefBigIslandCollapseAction),
       allowHideIsland: false,
     );
+    islandSwipeIgnoreOngoing =
+        prefs.getBool(kPrefIslandSwipeIgnoreOngoing) ?? true;
     aiEnabled = prefs.getBool(kPrefAiEnabled) ?? false;
     aiUrl = prefs.getString(kPrefAiUrl) ?? '';
     aiApiKey = prefs.getString(kPrefAiApiKey) ?? '';
@@ -1236,6 +1240,14 @@ class SettingsController extends ChangeNotifier {
     final prefs = await _getPrefs();
     await prefs.setString(kPrefBigIslandCollapseAction, normalized);
     bigIslandCollapseAction = normalized;
+    notifyListeners();
+  }
+
+  Future<void> setIslandSwipeIgnoreOngoing(bool value) async {
+    if (islandSwipeIgnoreOngoing == value) return;
+    final prefs = await _getPrefs();
+    await prefs.setBool(kPrefIslandSwipeIgnoreOngoing, value);
+    islandSwipeIgnoreOngoing = value;
     notifyListeners();
   }
 

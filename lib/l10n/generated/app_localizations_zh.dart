@@ -1724,13 +1724,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get expandedCollapseActionTitle => '收起展开态时';
 
   @override
-  String get expandedCollapseActionSubtitle => '上滑将展开态收回大岛后执行';
-
-  @override
   String get bigIslandCollapseActionTitle => '收起大岛时';
-
-  @override
-  String get bigIslandCollapseActionSubtitle => '横滑将大岛隐藏后执行';
 
   @override
   String get islandSwipeActionNone => '无';
@@ -1740,6 +1734,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get islandSwipeActionHideIsland => '隐藏大岛';
+
+  @override
+  String get islandSwipeIgnoreOngoingTitle => '忽略常驻通知';
 
   @override
   String get miscSection => '杂项';

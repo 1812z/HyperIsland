@@ -1833,15 +1833,7 @@ class AppLocalizationsRu extends AppLocalizations {
       'При сворачивании раскрытого острова';
 
   @override
-  String get expandedCollapseActionSubtitle =>
-      'Выполняется после свайпа вверх для сворачивания';
-
-  @override
   String get bigIslandCollapseActionTitle => 'При скрытии большого острова';
-
-  @override
-  String get bigIslandCollapseActionSubtitle =>
-      'Выполняется после скрытия большого острова свайпом';
 
   @override
   String get islandSwipeActionNone => 'Нет';
@@ -1851,6 +1843,10 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get islandSwipeActionHideIsland => 'Скрыть большой остров';
+
+  @override
+  String get islandSwipeIgnoreOngoingTitle =>
+      'Игнорировать постоянные уведомления';
 
   @override
   String get miscSection => 'Разное';

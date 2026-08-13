@@ -23,6 +23,7 @@ class _IslandOtherPageState extends State<IslandOtherPage> {
     _ctrl.dndBehavior,
     _ctrl.expandedCollapseAction,
     _ctrl.bigIslandCollapseAction,
+    _ctrl.islandSwipeIgnoreOngoing,
     _ctrl.marqueeSpeed,
   ]);
 
@@ -87,6 +88,62 @@ class _IslandOtherPageState extends State<IslandOtherPage> {
       kIslandSwipeActionHideIsland => l10n.islandSwipeActionHideIsland,
       _ => l10n.islandSwipeActionNone,
     };
+  }
+
+  Widget _buildSwipeActionDropdown(
+    AppLocalizations l10n,
+    String value,
+    List<String> values,
+    Future<void> Function(String value) onChanged,
+  ) {
+    final cs = Theme.of(context).colorScheme;
+    final dropdownWidth = (MediaQuery.sizeOf(context).width * 0.36).clamp(
+      112.0,
+      172.0,
+    );
+    return DropdownButtonHideUnderline(
+      child: SizedBox(
+        width: dropdownWidth,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            decoration: BoxDecoration(
+              color: cs.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: cs.outlineVariant),
+            ),
+            child: DropdownButton<String>(
+              value: value,
+              isExpanded: true,
+              alignment: Alignment.center,
+              borderRadius: BorderRadius.circular(16),
+              onChanged: InteractionHaptics.interceptDropdown((next) async {
+                if (next == null) return;
+                await onChanged(next);
+              }),
+              selectedItemBuilder: (context) => [
+                for (final item in values)
+                  Center(
+                    child: Text(
+                      _swipeActionLabel(l10n, item),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+              ],
+              items: [
+                for (final item in values)
+                  DropdownMenuItem<String>(
+                    value: item,
+                    child: Text(_swipeActionLabel(l10n, item)),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -187,33 +244,63 @@ class _IslandOtherPageState extends State<IslandOtherPage> {
                 Card(
                   elevation: 0,
                   color: cs.surfaceContainerHighest,
+                  clipBehavior: Clip.antiAlias,
                   child: Column(
                     children: [
-                      _BehaviorRuleTile(
-                        icon: Icons.unfold_less_outlined,
-                        title: l10n.expandedCollapseActionTitle,
-                        subtitle: l10n.expandedCollapseActionSubtitle,
-                        value: _ctrl.expandedCollapseAction,
-                        labelForValue: (v) => _swipeActionLabel(l10n, v),
-                        values: const [
-                          kIslandSwipeActionNone,
-                          kIslandSwipeActionCancelNotification,
-                          kIslandSwipeActionHideIsland,
-                        ],
-                        onChanged: _ctrl.setExpandedCollapseAction,
+                      ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        title: Text(
+                          l10n.expandedCollapseActionTitle,
+                          style: titleStyle,
+                        ),
+                        trailing: _buildSwipeActionDropdown(
+                          l10n,
+                          _ctrl.expandedCollapseAction,
+                          const [
+                            kIslandSwipeActionNone,
+                            kIslandSwipeActionCancelNotification,
+                            kIslandSwipeActionHideIsland,
+                          ],
+                          _ctrl.setExpandedCollapseAction,
+                        ),
                       ),
                       const Divider(height: 1, indent: 16, endIndent: 16),
-                      _BehaviorRuleTile(
-                        icon: Icons.swipe_outlined,
-                        title: l10n.bigIslandCollapseActionTitle,
-                        subtitle: l10n.bigIslandCollapseActionSubtitle,
-                        value: _ctrl.bigIslandCollapseAction,
-                        labelForValue: (v) => _swipeActionLabel(l10n, v),
-                        values: const [
-                          kIslandSwipeActionNone,
-                          kIslandSwipeActionCancelNotification,
-                        ],
-                        onChanged: _ctrl.setBigIslandCollapseAction,
+                      ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        title: Text(
+                          l10n.bigIslandCollapseActionTitle,
+                          style: titleStyle,
+                        ),
+                        trailing: _buildSwipeActionDropdown(
+                          l10n,
+                          _ctrl.bigIslandCollapseAction,
+                          const [
+                            kIslandSwipeActionNone,
+                            kIslandSwipeActionCancelNotification,
+                          ],
+                          _ctrl.setBigIslandCollapseAction,
+                        ),
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      SwitchListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        title: Text(
+                          l10n.islandSwipeIgnoreOngoingTitle,
+                          style: titleStyle,
+                        ),
+                        value: _ctrl.islandSwipeIgnoreOngoing,
+                        onChanged: InteractionHaptics.interceptToggle(
+                          _ctrl.setIslandSwipeIgnoreOngoing,
+                        ),
                       ),
                     ],
                   ),
@@ -372,7 +459,7 @@ class _RulePriorityChip extends StatelessWidget {
 
 class _BehaviorRuleTile extends StatelessWidget {
   const _BehaviorRuleTile({
-    required this.icon,
+    this.icon,
     required this.title,
     required this.subtitle,
     required this.value,
@@ -381,7 +468,7 @@ class _BehaviorRuleTile extends StatelessWidget {
     required this.onChanged,
   });
 
-  final IconData icon;
+  final IconData? icon;
   final String title;
   final String subtitle;
   final String value;
@@ -400,18 +487,22 @@ class _BehaviorRuleTile extends StatelessWidget {
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: configured ? cs.primaryContainer : cs.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(
-          icon,
-          color: configured ? cs.onPrimaryContainer : cs.onSurfaceVariant,
-        ),
-      ),
+      leading: icon == null
+          ? null
+          : Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: configured
+                    ? cs.primaryContainer
+                    : cs.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                color: configured ? cs.onPrimaryContainer : cs.onSurfaceVariant,
+              ),
+            ),
       title: Text(title),
       subtitle: Text(
         subtitle,

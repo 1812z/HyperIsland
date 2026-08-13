@@ -1,5 +1,6 @@
 package io.github.hyperisland.xposed.hook.SystemUI
 
+import android.app.Notification
 import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
@@ -15,6 +16,7 @@ import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.util.Collections
 import java.util.WeakHashMap
 import java.util.concurrent.ConcurrentHashMap
+import org.json.JSONObject
 
 /** Executes notification actions only after a matching user island swipe completes. */
 object IslandSwipeActionHook : BaseHook() {
@@ -28,6 +30,7 @@ object IslandSwipeActionHook : BaseHook() {
     private const val ACTION_HIDE_ISLAND = "hide_island"
     private const val EXPANDED_ACTION_PREF = "pref_expanded_collapse_action"
     private const val BIG_ACTION_PREF = "pref_big_island_collapse_action"
+    private const val IGNORE_ONGOING_PREF = "pref_island_swipe_ignore_ongoing"
     private const val COMPLETION_TIMEOUT_MS = 1500L
 
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -181,11 +184,35 @@ object IslandSwipeActionHook : BaseHook() {
         val data = invokeNoArg(view, "getCurrentIslandData") ?: return null
         val extras = invokeNoArg(data, "getExtras") as? Bundle
         val sbn = extras?.getParcelable("miui.sbn", StatusBarNotification::class.java)
+        if (sbn != null && shouldIgnore(sbn)) return null
         val key = (invokeNoArg(data, "getKey") as? String)
             ?: (invokeNoArg(view, "getIslandKey") as? String)
             ?: sbn?.key
             ?: return null
         return Target(key, sbn, action)
+    }
+
+    private fun shouldIgnore(sbn: StatusBarNotification): Boolean {
+        val notification = sbn.notification
+        if (!ConfigManager.getBoolean(IGNORE_ONGOING_PREF, true)) return false
+        val ongoing = notification.flags and Notification.FLAG_ONGOING_EVENT != 0
+        val updatable = hasUpdatableFocusParam(notification.extras)
+        if (ongoing || updatable) {
+            diag("ignored persistent key=${sbn.key} ongoing=$ongoing updatable=$updatable")
+            return true
+        }
+        return false
+    }
+
+    private fun hasUpdatableFocusParam(extras: Bundle): Boolean {
+        return sequenceOf("miui.focus.param", "miui.focus.param.custom")
+            .mapNotNull(extras::getString)
+            .any { raw ->
+                runCatching {
+                    val root = JSONObject(raw)
+                    (root.optJSONObject("param_v2") ?: root).optBoolean("updatable", false)
+                }.getOrDefault(false)
+            }
     }
 
     private fun execute(target: Target, source: String) {
