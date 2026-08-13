@@ -135,7 +135,7 @@ object GenericDownloadIslandNotification : IslandTemplate {
             "notif_small" -> data.notifIcon ?: fallback
             "notif_large" -> data.largeIcon ?: data.notifIcon ?: fallback
             "app_icon"    -> data.appIconRaw ?: fallback
-            else          -> data.notifIcon ?: data.largeIcon ?: fallback
+            else          -> data.largeIcon ?: data.notifIcon ?: fallback
         }.toRounded(context)
 
         val focusIcon = (data.largeIcon ?: data.appIconRaw ?: data.notifIcon ?: fallback).toRounded(context)
@@ -173,7 +173,7 @@ object GenericDownloadIslandNotification : IslandTemplate {
             islandEnabled = data.islandEnabled,
         )
         val applyResult = FocusCustomizationEngine.apply(context, data, baseVm)
-        val vm = FocusCustomizationEngine.applyIsland(data, applyResult.vm)
+        val vm = FocusCustomizationEngine.applyIsland(context, data, applyResult.vm)
         return RendererContext(vm = vm, payload = applyResult.rendererPayload)
     }
 

@@ -61,7 +61,7 @@ object ImageTextWithProgressRenderer : IslandRenderer {
 
             builder.addPicture(HyperPicture(islandIconKey, vm.islandIcon))
             builder.addPicture(HyperPicture(profileKey, profileIcon))
-            builder.addPicture(HyperPicture(aodIconKey, vm.islandIcon))
+            builder.addPicture(HyperPicture(aodIconKey, vm.aodIcon ?: vm.islandIcon))
             builder.setChatInfo(
                 title = vm.focusTitle,
                 content = vm.focusContent,
@@ -124,6 +124,9 @@ object ImageTextWithProgressRenderer : IslandRenderer {
             )
 
             val resourceBundle = builder.buildResourceBundle()
+            val pictures = resourceBundle.getBundle("miui.focus.pics") ?: Bundle()
+            pictures.putParcelable(aodIconKey, vm.aodIcon ?: vm.islandIcon)
+            resourceBundle.putBundle("miui.focus.pics", pictures)
             extras.putAll(resourceBundle)
             flattenActionsToExtras(resourceBundle, extras)
 

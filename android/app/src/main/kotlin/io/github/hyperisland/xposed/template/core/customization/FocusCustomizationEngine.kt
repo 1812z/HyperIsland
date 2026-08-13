@@ -1,6 +1,7 @@
 package io.github.hyperisland.xposed.template.core.customization
 
 import android.content.Context
+import android.graphics.drawable.Icon
 import io.github.hyperisland.xposed.renderer.EmptyRendererPayload
 import io.github.hyperisland.xposed.renderer.RendererPayload
 import io.github.hyperisland.xposed.renderer.resolveRenderer
@@ -102,7 +103,7 @@ object FocusCustomizationEngine {
         return ApplyResult(vm = out, rendererPayload = rendererPayload)
     }
 
-    fun applyIsland(data: NotifData, vm: IslandViewModel): IslandViewModel {
+    fun applyIsland(context: Context, data: NotifData, vm: IslandViewModel): IslandViewModel {
         val text = resolveIslandText(
             data = data,
             templateId = vm.templateId,
@@ -115,7 +116,29 @@ object FocusCustomizationEngine {
             leftTitle = text.first,
             rightTitle = text.second,
             aodTitle = resolveAodTitle(data, vm.copy(leftTitle = text.first, rightTitle = text.second)),
+            aodIcon = resolveAodIcon(context, data),
         )
+    }
+
+    fun resolveAodIcon(context: Context, data: NotifData): Icon {
+        val configuredMode = try {
+            data.aodCustomizationJson
+                ?.takeIf { it.isNotBlank() }
+                ?.let(::JSONObject)
+                ?.optString(IslandCustomizationFieldKeys.aodPic, "auto")
+                ?.trim()
+                .orEmpty()
+        } catch (_: Exception) {
+            "auto"
+        }
+        val mode = configuredMode.takeUnless { it.isEmpty() || it == "auto" } ?: data.iconMode
+        val fallback = Icon.createWithResource(context, android.R.drawable.ic_dialog_info)
+        return when (mode) {
+            "notif_small" -> data.notifIcon ?: fallback
+            "notif_large" -> data.largeIcon ?: data.notifIcon ?: fallback
+            "app_icon" -> data.appIconRaw ?: fallback
+            else -> data.largeIcon ?: data.notifIcon ?: fallback
+        }.toRounded(context)
     }
 
     private fun resolveAodTitle(data: NotifData, vm: IslandViewModel): String? {

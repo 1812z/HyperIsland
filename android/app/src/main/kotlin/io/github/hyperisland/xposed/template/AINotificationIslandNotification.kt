@@ -261,6 +261,7 @@ $userPrompt
                     title            = islandText.first,
                     content          = islandText.second,
                     icon             = displayIcon,
+                    aodIcon          = FocusCustomizationEngine.resolveAodIcon(context, data),
                     timeoutSecs      = data.islandTimeout,
                     firstFloat       = data.firstFloat == "on",
                     enableFloat      = data.enableFloatMode == "on",
@@ -338,7 +339,7 @@ $userPrompt
             aodCustomizationJson = data.aodCustomizationJson,
         )
         val applyResult = FocusCustomizationEngine.apply(context, data, baseVm)
-        val vm = FocusCustomizationEngine.applyIsland(data, applyResult.vm)
+        val vm = FocusCustomizationEngine.applyIsland(context, data, applyResult.vm)
         return RendererContext(vm = vm, payload = applyResult.rendererPayload)
     }
 

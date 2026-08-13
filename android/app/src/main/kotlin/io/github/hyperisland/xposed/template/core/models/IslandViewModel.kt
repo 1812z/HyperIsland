@@ -28,7 +28,6 @@ data class IslandViewModel(
     val islandIcon: Icon,
     /** 焦点通知图标（iconTextInfo 区域）。 */
     val focusIcon: Icon,
-
     // ── 可选环形进度 ────────────────────────────────────────────────────────
     /** 进度值 0–100；非 null 时大岛右侧显示环形进度，同时小岛显示进度环。 */
     val circularProgress: Int? = null,
@@ -76,4 +75,6 @@ data class IslandViewModel(
     val aodCustomizationJson: String? = null,
     /** 是否启用超级岛（false 时从 focus param 中移除 param_island 字段）。 */
     val islandEnabled: Boolean = true,
+    /** 息屏显示图标；null 时渲染器回退到 [islandIcon]。 */
+    val aodIcon: Icon? = null,
 )

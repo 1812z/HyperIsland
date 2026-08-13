@@ -51,11 +51,13 @@ data class IslandRequest(
     val notificationOnlyAlertOnce: Boolean = false,
     val notificationSilent: Boolean = false,
     val bypassSceneBehavior: Boolean = false,
+    val aodIcon: Icon? = null,
 ) {
     fun toBundle(): Bundle = Bundle().apply {
         putString(KEY_TITLE, title)
         putString(KEY_CONTENT, content)
         putParcelable(KEY_ICON, icon)
+        putParcelable(KEY_AOD_ICON, aodIcon)
         putInt(KEY_NOTIF_ID, notifId)
         putInt(KEY_TIMEOUT, timeoutSecs)
         putBoolean(KEY_FIRST_FLOAT, firstFloat)
@@ -102,6 +104,7 @@ data class IslandRequest(
         private const val KEY_TITLE = "title"
         private const val KEY_CONTENT = "content"
         private const val KEY_ICON = "icon"
+        private const val KEY_AOD_ICON = "aodIcon"
         private const val KEY_NOTIF_ID = "notifId"
         private const val KEY_TIMEOUT = "timeoutSecs"
         private const val KEY_FIRST_FLOAT = "firstFloat"
@@ -148,6 +151,7 @@ data class IslandRequest(
             title = b.getString(KEY_TITLE, ""),
             content = b.getString(KEY_CONTENT, ""),
             icon = iconFromBundle(b),
+            aodIcon = iconFromBundle(b, KEY_AOD_ICON),
             notifId = b.getInt(KEY_NOTIF_ID, IslandDispatchContract.NOTIF_ID),
             timeoutSecs = b.getInt(KEY_TIMEOUT, 5),
             firstFloat = b.getBoolean(KEY_FIRST_FLOAT, true),
@@ -199,9 +203,9 @@ data class IslandRequest(
             bypassSceneBehavior = b.getBoolean(KEY_BYPASS_SCENE_BEHAVIOR, false),
         )
 
-        private fun iconFromBundle(b: Bundle): Icon? =
-            if (Build.VERSION.SDK_INT >= 33) b.getParcelable(KEY_ICON, Icon::class.java)
-            else @Suppress("DEPRECATION") b.getParcelable(KEY_ICON)
+        private fun iconFromBundle(b: Bundle, key: String = KEY_ICON): Icon? =
+            if (Build.VERSION.SDK_INT >= 33) b.getParcelable(key, Icon::class.java)
+            else @Suppress("DEPRECATION") b.getParcelable(key)
 
         private fun actionsFromBundle(b: Bundle): List<Notification.Action> = try {
             if (Build.VERSION.SDK_INT >= 33) {

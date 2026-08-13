@@ -73,6 +73,7 @@ object NotificationIslandNotification : IslandTemplate {
                     title            = islandText.first,
                     content          = islandText.second,
                     icon             = displayIcon,
+                    aodIcon          = FocusCustomizationEngine.resolveAodIcon(context, data),
                     timeoutSecs      = data.islandTimeout,
                     firstFloat       = data.firstFloat == "on",
                     enableFloat      = data.enableFloatMode == "on",
@@ -156,7 +157,7 @@ object NotificationIslandNotification : IslandTemplate {
             islandEnabled = data.islandEnabled,
         )
         val applyResult = FocusCustomizationEngine.apply(context, data, baseVm)
-        val vm = FocusCustomizationEngine.applyIsland(data, applyResult.vm)
+        val vm = FocusCustomizationEngine.applyIsland(context, data, applyResult.vm)
         return RendererContext(vm = vm, payload = applyResult.rendererPayload)
     }
 

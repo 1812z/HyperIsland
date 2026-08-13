@@ -69,7 +69,7 @@ object ImageTextWithButtonsRenderer : IslandRenderer {
 
             builder.addPicture(HyperPicture(iconKey,      vm.islandIcon))
             builder.addPicture(HyperPicture(focusIconKey, vm.focusIcon))
-            builder.addPicture(HyperPicture(aodIconKey, vm.islandIcon))
+            builder.addPicture(HyperPicture(aodIconKey, vm.aodIcon ?: vm.islandIcon))
 
             builder.setIconTextInfo(
                 picKey  = focusIconKey,
@@ -159,6 +159,9 @@ object ImageTextWithButtonsRenderer : IslandRenderer {
             }
 
             val resourceBundle = builder.buildResourceBundle()
+            val pictures = resourceBundle.getBundle("miui.focus.pics") ?: Bundle()
+            pictures.putParcelable(aodIconKey, vm.aodIcon ?: vm.islandIcon)
+            resourceBundle.putBundle("miui.focus.pics", pictures)
             extras.putAll(resourceBundle)
             flattenActionsToExtras(resourceBundle, extras)
 

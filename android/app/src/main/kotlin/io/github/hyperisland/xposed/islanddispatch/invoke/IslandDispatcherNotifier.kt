@@ -175,6 +175,10 @@ internal object IslandDispatcherNotifier {
             } else {
                 islandBuilder.buildResourceBundle()
             }
+            val aodIconKey = "miui.focus.pic_aod"
+            val pictures = notificationExtras.getBundle("miui.focus.pics") ?: Bundle()
+            (request.aodIcon ?: request.icon)?.let { pictures.putParcelable(aodIconKey, it) }
+            notificationExtras.putBundle("miui.focus.pics", pictures)
             val publicVersion = Notification.Builder(context, channelId)
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
                 .setContentTitle(IslandDispatchContract.CHANNEL_NAME)
@@ -203,8 +207,6 @@ internal object IslandDispatcherNotifier {
 
             notif.extras.putAll(notificationExtras)
             if (!customMode) flattenActionsToExtras(notificationExtras, notif.extras)
-            val aodIconKey = "miui.focus.pic_aod"
-            request.icon?.let { notif.extras.putParcelable(aodIconKey, it) }
 
             if (!customMode) {
                 val jsonParam = islandBuilder.buildJsonParam()
