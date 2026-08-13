@@ -13,7 +13,7 @@ import java.util.Collections
 import java.util.WeakHashMap
 
 /** Scales icons while real and fake island module holders bind their content. */
-object IslandIconSizeHook : BaseHook() {
+object IslandIconHook : BaseHook() {
     private const val TAG = "HyperIsland[IslandIconSize]"
     private const val KEY_ICON_SIZE = "pref_island_icon_size"
     private const val KEY_ROUND_ICON_RADIUS = "pref_round_icon_radius"
