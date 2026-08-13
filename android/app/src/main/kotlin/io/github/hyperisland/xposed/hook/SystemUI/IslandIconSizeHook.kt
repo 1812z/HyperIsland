@@ -1,6 +1,5 @@
 package io.github.hyperisland.xposed.hook.SystemUI
 
-import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import io.github.hyperisland.xposed.ConfigManager
@@ -11,83 +10,110 @@ import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.util.Collections
 import java.util.WeakHashMap
 
-/** Scales icons bound into the stable small and big island regions. */
+/** Scales icons while real and fake island module holders bind their content. */
 object IslandIconSizeHook : BaseHook() {
     private const val TAG = "HyperIsland[IslandIconSize]"
     private const val KEY_ICON_SIZE = "pref_island_icon_size"
-    private const val CONTENT_VIEW_CLASS =
-        "miui.systemui.dynamicisland.window.content.DynamicIslandContentView"
+    private const val ICON_HOLDER_CLASS =
+        "miui.systemui.dynamicisland.module.IslandIconViewHolder"
 
     private data class OriginalSize(val width: Int, val height: Int)
 
     private val originalSizes = Collections.synchronizedMap(
         WeakHashMap<ImageView, OriginalSize>(),
     )
-    private val contentViews = Collections.synchronizedSet(
-        Collections.newSetFromMap(WeakHashMap<View, Boolean>()),
+    private val iconHolders = Collections.synchronizedSet(
+        Collections.newSetFromMap(WeakHashMap<Any, Boolean>()),
     )
-    private val hookedClassLoaders = mutableSetOf<Int>()
+    private val originalHolderWidths = Collections.synchronizedMap(
+        WeakHashMap<Any, Int>(),
+    )
+    private val hookedClasses = Collections.synchronizedSet(
+        Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>()),
+    )
 
     override fun getTag() = TAG
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
         HookUtils.hookDynamicClassLoaders(module, ClassLoader.getSystemClassLoader()) { classLoader ->
-            hookContentView(module, classLoader)
+            hookIconHolder(module, classLoader)
         }
     }
 
     override fun onConfigChanged() {
-        val snapshot = synchronized(contentViews) { contentViews.toList() }
-        snapshot.forEach { view -> view.post { applyToContentView(view) } }
+        val snapshot = synchronized(iconHolders) { iconHolders.toList() }
+        snapshot.forEach { holder ->
+            iconContainer(holder)?.post { applyToHolder(holder) }
+        }
     }
 
-    private fun hookContentView(module: XposedModule, classLoader: ClassLoader) {
-        val loaderId = System.identityHashCode(classLoader)
-        synchronized(hookedClassLoaders) {
-            if (loaderId in hookedClassLoaders) return
-        }
+    private fun hookIconHolder(module: XposedModule, classLoader: ClassLoader) {
         try {
-            val clazz = classLoader.loadClass(CONTENT_VIEW_CLASS)
-            val updateMethods = clazz.declaredMethods.filter {
-                it.name == "updateSmallIslandView" || it.name == "updateBigIslandView"
+            val clazz = classLoader.loadClass(ICON_HOLDER_CLASS)
+            if (!hookedClasses.add(clazz)) return
+
+            val bindMethods = clazz.declaredMethods.filter { method ->
+                method.name == "bind" && method.parameterCount == 2
             }
-            if (updateMethods.isEmpty()) return
-            for (method in updateMethods) {
+            for (method in bindMethods) {
                 module.hook(method).intercept { chain ->
                     val result = chain.proceed()
-                    val contentView = chain.thisObject as? View ?: return@intercept result
-                    contentViews += contentView
-                    contentView.post { applyToContentView(contentView) }
+                    chain.thisObject?.let { holder ->
+                        iconHolders += holder
+                        originalHolderWidths.remove(holder)
+                        applyToHolder(holder)
+                    }
                     result
                 }
             }
-            synchronized(hookedClassLoaders) {
-                hookedClassLoaders += loaderId
+
+            val getWidth = clazz.declaredMethods.firstOrNull { method ->
+                method.name == "getWidth" && method.parameterCount == 0
             }
-            log(module, "hooked ${updateMethods.size} island update method(s)")
+            if (getWidth != null) {
+                module.hook(getWidth).intercept { chain ->
+                    val holder = chain.thisObject ?: return@intercept chain.proceed()
+                    val originalWidth = synchronized(originalHolderWidths) {
+                        originalHolderWidths[holder]
+                    } ?: run {
+                        restoreHolder(holder)
+                        val width = chain.proceed() as? Int ?: 0
+                        originalHolderWidths[holder] = width
+                        applyToHolder(holder)
+                        width
+                    }
+                    (originalWidth * iconSizePercent() / 100f).toInt().coerceAtLeast(0)
+                }
+            }
+
+            log(
+                module,
+                "hooked icon holder bind=${bindMethods.size}, width=${getWidth != null}",
+            )
         } catch (_: ClassNotFoundException) {
         } catch (error: Throwable) {
-            logError(module, "failed to hook $CONTENT_VIEW_CLASS: ${error.message}")
+            hookedClasses.remove(runCatching { classLoader.loadClass(ICON_HOLDER_CLASS) }.getOrNull())
+            logError(module, "failed to hook $ICON_HOLDER_CLASS: ${error.message}")
         }
     }
 
-    private fun applyToContentView(contentView: View) {
-        val percent = ConfigManager.getInt(KEY_ICON_SIZE, 100).coerceIn(50, 150)
-        applyToIsland(contentView, "getSmallIslandView", percent)
-        applyToIsland(contentView, "getBigIslandView", percent)
+    private fun applyToHolder(holder: Any) {
+        val iconContainer = iconContainer(holder) ?: return
+        applyToChildren(iconContainer, iconSizePercent())
+        iconContainer.requestLayout()
     }
 
-    private fun applyToIsland(contentView: View, getterName: String, percent: Int) {
-        val island = runCatching {
-            val method = contentView.javaClass.methods.firstOrNull {
-                it.name == getterName && it.parameterTypes.isEmpty()
-            } ?: contentView.javaClass.getDeclaredMethod(getterName).apply {
-                isAccessible = true
-            }
-            method.invoke(contentView) as? ViewGroup
-        }.getOrNull() ?: return
-        applyToChildren(island, percent)
+    private fun restoreHolder(holder: Any) {
+        val iconContainer = iconContainer(holder) ?: return
+        restoreChildren(iconContainer)
+        iconContainer.requestLayout()
     }
+
+    private fun iconContainer(holder: Any): ViewGroup? = runCatching {
+        holder.javaClass.getDeclaredField("iconContainer").apply {
+            isAccessible = true
+        }.get(holder) as? ViewGroup
+    }.getOrNull()
 
     private fun applyToChildren(parent: ViewGroup, percent: Int) {
         for (index in 0 until parent.childCount) {
@@ -98,8 +124,16 @@ object IslandIconSizeHook : BaseHook() {
         }
     }
 
+    private fun restoreChildren(parent: ViewGroup) {
+        for (index in 0 until parent.childCount) {
+            when (val child = parent.getChildAt(index)) {
+                is ImageView -> restoreImageView(child)
+                is ViewGroup -> restoreChildren(child)
+            }
+        }
+    }
+
     private fun scaleImageView(imageView: ImageView, percent: Int) {
-        if (imageView.drawable == null) return
         val params = imageView.layoutParams ?: return
         val width = params.width
         val height = params.height
@@ -117,4 +151,16 @@ object IslandIconSizeHook : BaseHook() {
         params.height = targetHeight
         imageView.layoutParams = params
     }
+
+    private fun restoreImageView(imageView: ImageView) {
+        val original = synchronized(originalSizes) { originalSizes[imageView] } ?: return
+        val params = imageView.layoutParams ?: return
+        if (params.width == original.width && params.height == original.height) return
+        params.width = original.width
+        params.height = original.height
+        imageView.layoutParams = params
+    }
+
+    private fun iconSizePercent(): Int =
+        ConfigManager.getInt(KEY_ICON_SIZE, 100).coerceIn(50, 150)
 }
