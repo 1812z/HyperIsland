@@ -431,6 +431,10 @@ internal class LiquidGlassDrawable(
         return changed
     }
 
+    fun hideEdgeHighlight() {
+        edgeHighlight.hide()
+    }
+
     override fun setColorFilter(colorFilter: ColorFilter?) {
         child.colorFilter = colorFilter
     }

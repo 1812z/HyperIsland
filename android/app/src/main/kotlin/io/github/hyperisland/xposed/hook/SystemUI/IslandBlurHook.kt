@@ -39,6 +39,8 @@ object IslandBlurHook : BaseHook() {
         "miui.systemui.dynamicisland.anim.DynamicIslandAnimationDelegate"
     private const val FAKE_VIEW_CLASS =
         "miui.systemui.dynamicisland.window.content.DynamicIslandContentFakeView"
+    private const val CONTENT_VIEW_CONTROLLER_CLASS =
+        "miui.systemui.dynamicisland.window.content.DynamicIslandContentViewController"
     private const val KEY_SMALL_ENABLED = "pref_island_blur_small_enabled"
     private const val KEY_SMALL_RADIUS = "pref_island_blur_small_radius"
     private const val KEY_SMALL_COLOR = "pref_island_blur_small_color"
@@ -89,6 +91,9 @@ object IslandBlurHook : BaseHook() {
     )
     private val detachListeners = Collections.synchronizedMap(
         WeakHashMap<View, View.OnAttachStateChangeListener>()
+    )
+    private val controllerVisibility = Collections.synchronizedMap(
+        WeakHashMap<Any, Boolean>()
     )
     private val mainHandler = Handler(Looper.getMainLooper())
     private val refreshRunnable = Runnable { refreshTrackedViews() }
@@ -319,6 +324,7 @@ object IslandBlurHook : BaseHook() {
             )
             hookBackgroundDrawing(module, backgroundClass, outerDrawableField)
             hookBackgroundAlphaUpdates(module, backgroundClass)
+            hookContentVisibility(module, classLoader, backgroundViewField)
             hookTempHiddenLifecycle(module, windowViewClass)
             module.hook(updateMethod).intercept { chain ->
                 val result = chain.proceed()
@@ -594,6 +600,45 @@ object IslandBlurHook : BaseHook() {
                 )
             }
         }
+    }
+
+    /** Restores the 2.4.8 visibility edge that was removed while retaining blur reuse. */
+    private fun hookContentVisibility(
+        module: XposedModule,
+        classLoader: ClassLoader,
+        backgroundViewField: java.lang.reflect.Field,
+    ) {
+        val controllerClass = runCatching {
+            Class.forName(CONTENT_VIEW_CONTROLLER_CLASS, false, classLoader)
+        }.getOrNull() ?: return
+        val currentIslandVisible = findMethod(controllerClass, "currentIslandVisible") ?: return
+        val getView = findMethod(controllerClass, "getView") ?: return
+        controllerClass.declaredMethods
+            .filter { it.name == "onPreDraw" && it.parameterCount == 0 }
+            .forEach { method ->
+                module.hook(method).intercept { chain ->
+                    val result = chain.proceed()
+                    val controller = chain.thisObject
+                    val visible = runCatching {
+                        currentIslandVisible.invoke(controller) as? Boolean
+                    }.getOrNull()
+                    val previouslyVisible = if (visible != null) {
+                        controllerVisibility.put(controller, visible)
+                    } else {
+                        null
+                    }
+                    if (previouslyVisible != false && visible == false) {
+                        val contentView = runCatching { getView.invoke(controller) }.getOrNull()
+                        val backgroundView = runCatching {
+                            backgroundViewField.get(contentView) as? View
+                        }.getOrNull()
+                        if (backgroundView != null) {
+                            outerBlurs[backgroundView]?.owned?.liquidDrawable?.hideEdgeHighlight()
+                        }
+                    }
+                    result
+                }
+            }
     }
 
     private fun currentBackgroundBounds(view: View): android.graphics.Rect? {
