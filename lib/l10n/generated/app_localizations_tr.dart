@@ -283,6 +283,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get roundIconRadiusTitle => 'Köşe yuvarlaklığı';
 
   @override
+  String get islandIconSectionTitle => 'Simgeler';
+
+  @override
+  String get iconSizeTitle => 'Simge boyutu';
+
+  @override
   String get marqueeChannelTitle => 'Ada Metnini Kaydır';
 
   @override

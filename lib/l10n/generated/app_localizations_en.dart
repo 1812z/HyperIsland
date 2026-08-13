@@ -281,6 +281,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get roundIconRadiusTitle => 'Corner roundness';
 
   @override
+  String get islandIconSectionTitle => 'Icons';
+
+  @override
+  String get iconSizeTitle => 'Icon size';
+
+  @override
   String get marqueeChannelTitle => 'Text Scrolling Island';
 
   @override

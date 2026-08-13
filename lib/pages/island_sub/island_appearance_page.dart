@@ -26,6 +26,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
   late int _bigIslandMaxWidthDraft;
   late int _bigIslandMinWidthDraft;
   late int _roundIconRadiusDraft;
+  late int _islandIconSizeDraft;
   late int _outerGlowRangeDraft;
   late int _buildHash;
 
@@ -36,6 +37,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _ctrl.bigIslandMinWidth,
     _ctrl.roundIcon,
     _ctrl.roundIconRadius,
+    _ctrl.islandIconSize,
     _ctrl.islandBgSmallPath,
     _ctrl.islandBgBigPath,
     _ctrl.islandBgExpandPath,
@@ -80,6 +82,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _bigIslandMaxWidthDraft = _ctrl.bigIslandMaxWidth;
     _bigIslandMinWidthDraft = _ctrl.bigIslandMinWidth;
     _roundIconRadiusDraft = _ctrl.roundIconRadius;
+    _islandIconSizeDraft = _ctrl.islandIconSize;
     _outerGlowRangeDraft = _ctrl.outerGlowRange;
     _buildHash = _computeHash();
     _ctrl.addListener(_onChanged);
@@ -99,6 +102,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     final nextMaxWidth = _ctrl.bigIslandMaxWidth;
     final nextMinWidth = _ctrl.bigIslandMinWidth;
     final nextRoundIconRadius = _ctrl.roundIconRadius;
+    final nextIslandIconSize = _ctrl.islandIconSize;
     final nextGlowRange = _ctrl.outerGlowRange;
     if (nextHash == _buildHash &&
         nextHeight == _islandHeightDraft &&
@@ -106,6 +110,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
         nextMaxWidth == _bigIslandMaxWidthDraft &&
         nextMinWidth == _bigIslandMinWidthDraft &&
         nextRoundIconRadius == _roundIconRadiusDraft &&
+        nextIslandIconSize == _islandIconSizeDraft &&
         nextGlowRange == _outerGlowRangeDraft) {
       return;
     }
@@ -116,6 +121,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
       _bigIslandMaxWidthDraft = nextMaxWidth;
       _bigIslandMinWidthDraft = nextMinWidth;
       _roundIconRadiusDraft = nextRoundIconRadius;
+      _islandIconSizeDraft = nextIslandIconSize;
       _outerGlowRangeDraft = nextGlowRange;
     });
   }
@@ -1100,8 +1106,8 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                // --- 图标圆角 ---
-                _SectionLabel(l10n.roundIconTitle),
+                // --- 图标 ---
+                _SectionLabel(l10n.islandIconSectionTitle),
                 const SizedBox(height: 8),
                 Card(
                   elevation: 0,
@@ -1109,6 +1115,24 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                   clipBehavior: Clip.antiAlias,
                   child: Column(
                     children: [
+                      _DimenTile(
+                        title: l10n.iconSizeTitle,
+                        value: _islandIconSizeDraft.toDouble(),
+                        min: 50,
+                        max: 150,
+                        unit: '%',
+                        defaultVal: 100,
+                        followSystemLabel: '100 %',
+                        onChanged: (value) {
+                          final next = value.round();
+                          if (_islandIconSizeDraft == next) return;
+                          setState(() => _islandIconSizeDraft = next);
+                        },
+                        onPersist: (value) =>
+                            _ctrl.setIslandIconSize(value.round()),
+                        isFirst: true,
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
                       SwitchListTile(
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,

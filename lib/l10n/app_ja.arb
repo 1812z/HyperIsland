@@ -115,6 +115,8 @@
   "roundIconTitle": "アイコンの角を丸める",
   "roundIconSubtitle": "通知アイコンの角を丸めます",
   "roundIconRadiusTitle": "角の丸み",
+  "islandIconSectionTitle": "アイコン",
+  "iconSizeTitle": "アイコンサイズ",
   "marqueeChannelTitle": "Island のテキストをスクロール",
   "marqueeAutoHideOnceOverride": "1回スクロール（タイムアウトを上書き）",
   "marqueeAutoHideTwiceOverride": "2回スクロール（タイムアウトを上書き）",

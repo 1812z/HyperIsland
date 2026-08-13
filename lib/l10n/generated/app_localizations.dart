@@ -584,6 +584,18 @@ abstract class AppLocalizations {
   /// **'圆角程度'**
   String get roundIconRadiusTitle;
 
+  /// No description provided for @islandIconSectionTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'图标'**
+  String get islandIconSectionTitle;
+
+  /// No description provided for @iconSizeTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'图标大小'**
+  String get iconSizeTitle;
+
   /// No description provided for @marqueeChannelTitle.
   ///
   /// In zh, this message translates to:

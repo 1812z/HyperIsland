@@ -122,6 +122,8 @@
   "roundIconTitle": "Simge Köşelerini Yuvarla",
   "roundIconSubtitle": "Bildirim simgelerine yuvarlatılmış köşe uygular.",
   "roundIconRadiusTitle": "Köşe yuvarlaklığı",
+  "islandIconSectionTitle": "Simgeler",
+  "iconSizeTitle": "Simge boyutu",
   "marqueeChannelTitle": "Ada Metnini Kaydır",
   "marqueeAutoHideOnceOverride": "1 kez kaydır (zaman aşımını geçersiz kıl)",
   "marqueeAutoHideTwiceOverride": "2 kez kaydır (zaman aşımını geçersiz kıl)",

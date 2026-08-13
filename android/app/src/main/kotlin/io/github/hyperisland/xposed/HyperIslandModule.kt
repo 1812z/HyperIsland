@@ -1,6 +1,7 @@
 package io.github.hyperisland.xposed
 
 import io.github.hyperisland.xposed.hook.SystemUI.BigIslandMinWidthHook
+import io.github.hyperisland.xposed.hook.SystemUI.IslandIconSizeHook
 import io.github.hyperisland.xposed.hook.SystemUI.DynamicIslandVisibilityHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandTopOffsetHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandBlurHook
@@ -60,6 +61,7 @@ class HyperIslandModule : XposedModule() {
                 ActiveIslandDismissHook.init(this, param)
                 MarqueeHook.init(this, param)
                 BigIslandMinWidthHook.init(this, param)
+                IslandIconSizeHook.init(this, param)
                 UnlockAllFocusHook.init(this, param)
                 FocusNotifStatusBarIconHook.init(this, param)
                 IslandOuterGlowHook.init(this, param)

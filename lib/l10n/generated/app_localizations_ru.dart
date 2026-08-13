@@ -287,6 +287,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get roundIconRadiusTitle => 'Степень скругления';
 
   @override
+  String get islandIconSectionTitle => 'Значки';
+
+  @override
+  String get iconSizeTitle => 'Размер значка';
+
+  @override
   String get marqueeChannelTitle => 'Бегущая строка на Острове';
 
   @override

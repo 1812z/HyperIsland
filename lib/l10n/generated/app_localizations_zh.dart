@@ -261,6 +261,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get roundIconRadiusTitle => '圆角程度';
 
   @override
+  String get islandIconSectionTitle => '图标';
+
+  @override
+  String get iconSizeTitle => '图标大小';
+
+  @override
   String get marqueeChannelTitle => '消息滚动';
 
   @override

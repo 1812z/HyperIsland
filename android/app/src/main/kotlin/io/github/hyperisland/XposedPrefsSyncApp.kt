@@ -305,6 +305,7 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
             "pref_interaction_haptics",
             "pref_round_icon",
             "pref_round_icon_radius",
+            "pref_island_icon_size",
             "pref_marquee_feature",
             "pref_marquee_speed",
             "pref_big_island_max_width",

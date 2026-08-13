@@ -26,6 +26,7 @@ const kPrefBluetoothIslandWhitelistAddresses =
 const kPrefInteractionHaptics = 'pref_interaction_haptics';
 const kPrefRoundIcon = 'pref_round_icon';
 const kPrefRoundIconRadius = 'pref_round_icon_radius';
+const kPrefIslandIconSize = 'pref_island_icon_size';
 const kPrefMarqueeFeature = 'pref_marquee_feature';
 const kPrefMarqueeSpeed = 'pref_marquee_speed';
 const kPrefBigIslandMaxWidth = 'pref_big_island_max_width';
@@ -223,6 +224,7 @@ class SettingsController extends ChangeNotifier {
   bool interactionHaptics = true;
   bool roundIcon = true;
   int roundIconRadius = 50;
+  int islandIconSize = 100;
   bool marqueeFeature = false;
   int marqueeSpeed = 100;
   int bigIslandMaxWidth = 0;
@@ -383,6 +385,10 @@ class SettingsController extends ChangeNotifier {
     interactionHaptics = prefs.getBool(kPrefInteractionHaptics) ?? true;
     roundIcon = prefs.getBool(kPrefRoundIcon) ?? true;
     roundIconRadius = prefs.getInt(kPrefRoundIconRadius)?.clamp(0, 100) ?? 50;
+    islandIconSize = (prefs.getInt(kPrefIslandIconSize) ?? 100).clamp(
+      50,
+      150,
+    );
     marqueeFeature = prefs.getBool(kPrefMarqueeFeature) ?? false;
     marqueeSpeed = prefs.getInt(kPrefMarqueeSpeed) ?? 100;
     bigIslandMaxWidth = prefs.getInt(kPrefBigIslandMaxWidth) ?? 0;
@@ -793,6 +799,19 @@ class SettingsController extends ChangeNotifier {
     final prefs = await _getPrefs();
     await prefs.setInt(kPrefRoundIconRadius, clamped);
     roundIconRadius = clamped;
+    notifyListeners();
+  }
+
+  Future<void> setIslandIconSize(int value) async {
+    final clamped = value.clamp(50, 150);
+    if (islandIconSize == clamped) return;
+    final prefs = await _getPrefs();
+    if (clamped == 100) {
+      await prefs.remove(kPrefIslandIconSize);
+    } else {
+      await prefs.setInt(kPrefIslandIconSize, clamped);
+    }
+    islandIconSize = clamped;
     notifyListeners();
   }
 
