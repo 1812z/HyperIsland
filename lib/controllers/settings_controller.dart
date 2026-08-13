@@ -24,9 +24,9 @@ const kPrefBluetoothIslandWhitelistAddresses =
     'pref_bluetooth_island_whitelist_addresses';
 
 const kPrefInteractionHaptics = 'pref_interaction_haptics';
-const kPrefRoundIcon = 'pref_round_icon';
 const kPrefRoundIconRadius = 'pref_round_icon_radius';
 const kPrefIslandIconSize = 'pref_island_icon_size';
+const kPrefIslandIconPadding = 'pref_island_icon_padding';
 const kPrefMarqueeFeature = 'pref_marquee_feature';
 const kPrefMarqueeSpeed = 'pref_marquee_speed';
 const kPrefBigIslandMaxWidth = 'pref_big_island_max_width';
@@ -229,9 +229,9 @@ class SettingsController extends ChangeNotifier {
   bool bluetoothIslandWhitelistEnabled = false;
   List<String> bluetoothIslandWhitelistAddresses = [];
   bool interactionHaptics = true;
-  bool roundIcon = true;
-  int roundIconRadius = 50;
+  int roundIconRadius = 30;
   int islandIconSize = 100;
+  double islandIconPadding = 8.0;
   bool marqueeFeature = false;
   int marqueeSpeed = 100;
   int bigIslandMaxWidth = 0;
@@ -393,9 +393,12 @@ class SettingsController extends ChangeNotifier {
       prefs.getString(kPrefBluetoothIslandWhitelistAddresses),
     );
     interactionHaptics = prefs.getBool(kPrefInteractionHaptics) ?? true;
-    roundIcon = prefs.getBool(kPrefRoundIcon) ?? true;
-    roundIconRadius = prefs.getInt(kPrefRoundIconRadius)?.clamp(0, 100) ?? 50;
+    roundIconRadius = prefs.getInt(kPrefRoundIconRadius)?.clamp(0, 100) ?? 30;
     islandIconSize = (prefs.getInt(kPrefIslandIconSize) ?? 100).clamp(50, 150);
+    islandIconPadding = (prefs.getDouble(kPrefIslandIconPadding) ?? 8.0).clamp(
+      0.0,
+      10.0,
+    );
     marqueeFeature = prefs.getBool(kPrefMarqueeFeature) ?? false;
     marqueeSpeed = prefs.getInt(kPrefMarqueeSpeed) ?? 100;
     bigIslandMaxWidth = prefs.getInt(kPrefBigIslandMaxWidth) ?? 0;
@@ -802,19 +805,15 @@ class SettingsController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setRoundIcon(bool value) async {
-    if (roundIcon == value) return;
-    final prefs = await _getPrefs();
-    await prefs.setBool(kPrefRoundIcon, value);
-    roundIcon = value;
-    notifyListeners();
-  }
-
   Future<void> setRoundIconRadius(int value) async {
     final clamped = value.clamp(0, 100);
     if (roundIconRadius == clamped) return;
     final prefs = await _getPrefs();
-    await prefs.setInt(kPrefRoundIconRadius, clamped);
+    if (clamped == 30) {
+      await prefs.remove(kPrefRoundIconRadius);
+    } else {
+      await prefs.setInt(kPrefRoundIconRadius, clamped);
+    }
     roundIconRadius = clamped;
     notifyListeners();
   }
@@ -829,6 +828,19 @@ class SettingsController extends ChangeNotifier {
       await prefs.setInt(kPrefIslandIconSize, clamped);
     }
     islandIconSize = clamped;
+    notifyListeners();
+  }
+
+  Future<void> setIslandIconPadding(double value) async {
+    final clamped = (value.clamp(0.0, 10.0) * 10).round() / 10;
+    if (islandIconPadding == clamped) return;
+    final prefs = await _getPrefs();
+    if (clamped == 8.0) {
+      await prefs.remove(kPrefIslandIconPadding);
+    } else {
+      await prefs.setDouble(kPrefIslandIconPadding, clamped);
+    }
+    islandIconPadding = clamped;
     notifyListeners();
   }
 

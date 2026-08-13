@@ -27,6 +27,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
   late int _bigIslandMinWidthDraft;
   late int _roundIconRadiusDraft;
   late int _islandIconSizeDraft;
+  late double _islandIconPaddingDraft;
   late int _outerGlowRangeDraft;
   late int _buildHash;
 
@@ -35,9 +36,9 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _ctrl.islandTopOffset,
     _ctrl.bigIslandMaxWidth,
     _ctrl.bigIslandMinWidth,
-    _ctrl.roundIcon,
     _ctrl.roundIconRadius,
     _ctrl.islandIconSize,
+    _ctrl.islandIconPadding,
     _ctrl.islandBgSmallPath,
     _ctrl.islandBgBigPath,
     _ctrl.islandBgExpandPath,
@@ -83,6 +84,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _bigIslandMinWidthDraft = _ctrl.bigIslandMinWidth;
     _roundIconRadiusDraft = _ctrl.roundIconRadius;
     _islandIconSizeDraft = _ctrl.islandIconSize;
+    _islandIconPaddingDraft = _ctrl.islandIconPadding;
     _outerGlowRangeDraft = _ctrl.outerGlowRange;
     _buildHash = _computeHash();
     _ctrl.addListener(_onChanged);
@@ -103,6 +105,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     final nextMinWidth = _ctrl.bigIslandMinWidth;
     final nextRoundIconRadius = _ctrl.roundIconRadius;
     final nextIslandIconSize = _ctrl.islandIconSize;
+    final nextIslandIconPadding = _ctrl.islandIconPadding;
     final nextGlowRange = _ctrl.outerGlowRange;
     if (nextHash == _buildHash &&
         nextHeight == _islandHeightDraft &&
@@ -111,6 +114,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
         nextMinWidth == _bigIslandMinWidthDraft &&
         nextRoundIconRadius == _roundIconRadiusDraft &&
         nextIslandIconSize == _islandIconSizeDraft &&
+        nextIslandIconPadding == _islandIconPaddingDraft &&
         nextGlowRange == _outerGlowRangeDraft) {
       return;
     }
@@ -122,6 +126,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
       _bigIslandMinWidthDraft = nextMinWidth;
       _roundIconRadiusDraft = nextRoundIconRadius;
       _islandIconSizeDraft = nextIslandIconSize;
+      _islandIconPaddingDraft = nextIslandIconPadding;
       _outerGlowRangeDraft = nextGlowRange;
     });
   }
@@ -233,10 +238,6 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
         ),
       );
     }
-  }
-
-  Future<void> _onRoundIconChanged(bool value) async {
-    await _ctrl.setRoundIcon(value);
   }
 
   Future<void> _showIslandBlurDialog(_IslandBlurType type) async {
@@ -1133,37 +1134,39 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                         isFirst: true,
                       ),
                       const Divider(height: 1, indent: 16, endIndent: 16),
-                      SwitchListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 4,
-                        ),
-                        title: Text(l10n.roundIconTitle, style: titleStyle),
-                        subtitle: Text(l10n.roundIconSubtitle),
-                        value: _ctrl.roundIcon,
-                        onChanged: InteractionHaptics.interceptToggle(
-                          _onRoundIconChanged,
-                        ),
+                      _DimenTile(
+                        title: l10n.roundIconRadiusTitle,
+                        value: _roundIconRadiusDraft.toDouble(),
+                        min: 0,
+                        max: 100,
+                        unit: '%',
+                        defaultVal: 30,
+                        followSystemLabel: '30 %',
+                        onChanged: (value) {
+                          final next = value.round();
+                          if (_roundIconRadiusDraft == next) return;
+                          setState(() => _roundIconRadiusDraft = next);
+                        },
+                        onPersist: (value) =>
+                            _ctrl.setRoundIconRadius(value.round()),
                       ),
-                      if (_ctrl.roundIcon) ...[
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                        _DimenTile(
-                          title: l10n.roundIconRadiusTitle,
-                          value: _roundIconRadiusDraft.toDouble(),
-                          min: 0,
-                          max: 100,
-                          unit: '%',
-                          defaultVal: 50,
-                          followSystemLabel: '50 %',
-                          onChanged: (value) {
-                            final next = value.round();
-                            if (_roundIconRadiusDraft == next) return;
-                            setState(() => _roundIconRadiusDraft = next);
-                          },
-                          onPersist: (value) =>
-                              _ctrl.setRoundIconRadius(value.round()),
-                        ),
-                      ],
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      _DimenTile(
+                        title: l10n.iconPaddingTitle,
+                        value: _islandIconPaddingDraft.toDouble(),
+                        min: 0,
+                        max: 10,
+                        unit: 'dp',
+                        defaultVal: 8,
+                        followSystemLabel: '8.0 dp',
+                        decimalPlaces: 1,
+                        onChanged: (value) {
+                          final next = (value * 10).round() / 10;
+                          if (_islandIconPaddingDraft == next) return;
+                          setState(() => _islandIconPaddingDraft = next);
+                        },
+                        onPersist: _ctrl.setIslandIconPadding,
+                      ),
                     ],
                   ),
                 ),
@@ -1381,6 +1384,7 @@ class _DimenTile extends StatelessWidget {
     required this.onChanged,
     required this.onPersist,
     this.isFirst = false,
+    this.decimalPlaces = 0,
   });
 
   final String title;
@@ -1393,13 +1397,20 @@ class _DimenTile extends StatelessWidget {
   final ValueChanged<double> onChanged;
   final ValueChanged<double> onPersist;
   final bool isFirst;
+  final int decimalPlaces;
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final titleStyle = Theme.of(context).textTheme.titleMedium;
-    final divisions = (max - min).toInt();
-    final displayValue = value.roundToDouble();
+    final scale = switch (decimalPlaces) {
+      1 => 10,
+      2 => 100,
+      _ => 1,
+    };
+    final divisions = ((max - min) * scale).round();
+    final displayValue = (value * scale).round() / scale;
+    final defaultDisplayValue = (defaultVal * scale).round() / scale;
 
     BorderRadius? borderRadius;
     if (isFirst) {
@@ -1415,14 +1426,14 @@ class _DimenTile extends StatelessWidget {
         children: [
           Expanded(child: Text(title, style: titleStyle)),
           Text(
-            displayValue != defaultVal
-                ? '${displayValue.toInt()} $unit'
+            displayValue != defaultDisplayValue
+                ? '${displayValue.toStringAsFixed(decimalPlaces)} $unit'
                 : followSystemLabel,
             style: Theme.of(
               context,
             ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
           ),
-          if (displayValue != defaultVal)
+          if (displayValue != defaultDisplayValue)
             SizedBox(
               width: 18,
               height: 18,
@@ -1446,9 +1457,9 @@ class _DimenTile extends StatelessWidget {
           max: max,
           divisions: divisions,
           onChanged: InteractionHaptics.interceptSlider(
-            (v) => onChanged(v.roundToDouble()),
+            (v) => onChanged((v * scale).round() / scale),
           ),
-          onChangeEnd: (v) => onPersist(v.roundToDouble()),
+          onChangeEnd: (v) => onPersist((v * scale).round() / scale),
         ),
       ),
     );

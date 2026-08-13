@@ -257,12 +257,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get alreadyLatest => '最新のバージョンを使用しています';
 
   @override
-  String get roundIconTitle => 'アイコンの角を丸める';
-
-  @override
-  String get roundIconSubtitle => '通知アイコンの角を丸めます';
-
-  @override
   String get roundIconRadiusTitle => '角の丸み';
 
   @override
@@ -270,6 +264,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get iconSizeTitle => 'アイコンサイズ';
+
+  @override
+  String get iconPaddingTitle => 'アイコンの余白';
 
   @override
   String get marqueeChannelTitle => 'Island のテキストをスクロール';

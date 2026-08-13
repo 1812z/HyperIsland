@@ -566,18 +566,6 @@ abstract class AppLocalizations {
   /// **'已是最新版本'**
   String get alreadyLatest;
 
-  /// No description provided for @roundIconTitle.
-  ///
-  /// In zh, this message translates to:
-  /// **'图标圆角'**
-  String get roundIconTitle;
-
-  /// No description provided for @roundIconSubtitle.
-  ///
-  /// In zh, this message translates to:
-  /// **'为通知图标添加圆角效果'**
-  String get roundIconSubtitle;
-
   /// No description provided for @roundIconRadiusTitle.
   ///
   /// In zh, this message translates to:
@@ -595,6 +583,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'图标大小'**
   String get iconSizeTitle;
+
+  /// No description provided for @iconPaddingTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'图标边距'**
+  String get iconPaddingTitle;
 
   /// No description provided for @marqueeChannelTitle.
   ///

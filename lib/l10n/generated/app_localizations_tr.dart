@@ -273,13 +273,6 @@ class AppLocalizationsTr extends AppLocalizations {
   String get alreadyLatest => 'Zaten en güncel sürümdesiniz';
 
   @override
-  String get roundIconTitle => 'Simge Köşelerini Yuvarla';
-
-  @override
-  String get roundIconSubtitle =>
-      'Bildirim simgelerine yuvarlatılmış köşe uygular.';
-
-  @override
   String get roundIconRadiusTitle => 'Köşe yuvarlaklığı';
 
   @override
@@ -287,6 +280,9 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get iconSizeTitle => 'Simge boyutu';
+
+  @override
+  String get iconPaddingTitle => 'Simge kenar boşluğu';
 
   @override
   String get marqueeChannelTitle => 'Ada Metnini Kaydır';

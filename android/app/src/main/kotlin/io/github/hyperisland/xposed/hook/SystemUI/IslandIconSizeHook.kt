@@ -1,10 +1,12 @@
 package io.github.hyperisland.xposed.hook.SystemUI
 
+import android.content.res.Resources
 import android.view.ViewGroup
 import android.widget.ImageView
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.hyperisland.xposed.utils.HookUtils
+import io.github.hyperisland.xposed.utils.ResourceDimenHook
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.util.Collections
@@ -14,8 +16,13 @@ import java.util.WeakHashMap
 object IslandIconSizeHook : BaseHook() {
     private const val TAG = "HyperIsland[IslandIconSize]"
     private const val KEY_ICON_SIZE = "pref_island_icon_size"
+    private const val KEY_ROUND_ICON_RADIUS = "pref_round_icon_radius"
+    private const val KEY_ICON_PADDING = "pref_island_icon_padding"
+    private const val ICON_RADIUS_RESOURCE = "island_icon_radius"
+    private const val ICON_SIZE_RESOURCE = "island_fix_icon_size"
     private const val ICON_HOLDER_CLASS =
         "miui.systemui.dynamicisland.module.IslandIconViewHolder"
+    private const val SMALL_ISLAND_ICON_MODULE = "modulePicSmallIsland"
 
     private data class OriginalSize(val width: Int, val height: Int)
 
@@ -28,17 +35,43 @@ object IslandIconSizeHook : BaseHook() {
     private val originalHolderWidths = Collections.synchronizedMap(
         WeakHashMap<Any, Int>(),
     )
+    private val originalContainerTranslations = Collections.synchronizedMap(
+        WeakHashMap<ViewGroup, Float>(),
+    )
     private val hookedClasses = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>()),
     )
-
     override fun getTag() = TAG
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
+        ResourceDimenHook.register(module, ICON_RADIUS_RESOURCE, ::iconRadiusPx)
         HookUtils.hookDynamicClassLoaders(module, ClassLoader.getSystemClassLoader()) { classLoader ->
             hookIconHolder(module, classLoader)
         }
     }
+
+    private fun iconRadiusPx(resources: Resources): Float {
+        val radiusPercent = ConfigManager.getInt(KEY_ROUND_ICON_RADIUS, 30).coerceIn(0, 100)
+        val iconSizePx = findDimension(resources, ICON_SIZE_RESOURCE)
+            ?: (30f * resources.displayMetrics.density)
+        return iconSizePx * iconSizePercent() * radiusPercent / 20_000f
+    }
+
+    private fun findDimension(
+        resources: Resources,
+        name: String,
+    ): Float? = runCatching {
+        val packageNames = sequenceOf(
+            "miui.systemui.dynamicisland",
+            "com.android.systemui",
+            "miui.systemui.plugin",
+        )
+        val resourceId = packageNames
+            .map { packageName -> resources.getIdentifier(name, "dimen", packageName) }
+            .firstOrNull { it != 0 }
+            ?: return@runCatching null
+        resources.getDimension(resourceId)
+    }.getOrNull()
 
     override fun onConfigChanged() {
         val snapshot = synchronized(iconHolders) { iconHolders.toList() }
@@ -100,14 +133,42 @@ object IslandIconSizeHook : BaseHook() {
     private fun applyToHolder(holder: Any) {
         val iconContainer = iconContainer(holder) ?: return
         applyToChildren(iconContainer, iconSizePercent())
+        if (isSmallIslandIconHolder(holder)) {
+            restoreIconOffset(iconContainer)
+        } else {
+            applyIconOffset(iconContainer)
+        }
         iconContainer.requestLayout()
     }
 
     private fun restoreHolder(holder: Any) {
         val iconContainer = iconContainer(holder) ?: return
         restoreChildren(iconContainer)
+        restoreIconOffset(iconContainer)
         iconContainer.requestLayout()
     }
+
+    private fun applyIconOffset(iconContainer: ViewGroup) {
+        val originalTranslation = synchronized(originalContainerTranslations) {
+            originalContainerTranslations[iconContainer] ?: iconContainer.translationX.also {
+                originalContainerTranslations[iconContainer] = it
+            }
+        }
+        val offsetDp = ConfigManager.getDouble(KEY_ICON_PADDING, 8.0).coerceIn(0.0, 10.0) - 8.0
+        iconContainer.translationX = originalTranslation +
+            (offsetDp * iconContainer.resources.displayMetrics.density).toFloat()
+    }
+
+    private fun restoreIconOffset(iconContainer: ViewGroup) {
+        val originalTranslation = synchronized(originalContainerTranslations) {
+            originalContainerTranslations[iconContainer]
+        } ?: return
+        iconContainer.translationX = originalTranslation
+    }
+
+    private fun isSmallIslandIconHolder(holder: Any): Boolean = runCatching {
+        holder.javaClass.getMethod("getModule").invoke(holder) == SMALL_ISLAND_ICON_MODULE
+    }.getOrDefault(false)
 
     private fun iconContainer(holder: Any): ViewGroup? = runCatching {
         holder.javaClass.getDeclaredField("iconContainer").apply {

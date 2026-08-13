@@ -252,12 +252,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get alreadyLatest => '已是最新版本';
 
   @override
-  String get roundIconTitle => '图标圆角';
-
-  @override
-  String get roundIconSubtitle => '为通知图标添加圆角效果';
-
-  @override
   String get roundIconRadiusTitle => '圆角程度';
 
   @override
@@ -265,6 +259,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get iconSizeTitle => '图标大小';
+
+  @override
+  String get iconPaddingTitle => '图标边距';
 
   @override
   String get marqueeChannelTitle => '消息滚动';

@@ -1,14 +1,7 @@
 package io.github.hyperisland.xposed.utils
 
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.PorterDuff
-import android.graphics.PorterDuffXfermode
-import android.graphics.RectF
 import android.graphics.drawable.Icon
-import io.github.hyperisland.xposed.ConfigManager
 
 /**
  * 在 Xposed 进程（如 SystemUI）中，[Context] 属于宿主进程，不包含本模块的资源。
@@ -22,34 +15,5 @@ internal fun Context.moduleContext(): Context = try {
     this
 }
 
-/**
- * 将 Icon 转为圆角版本。失败时原样返回。
- * 圆角程度由配置控制：0 为直角，100 为圆形。
- */
-fun Icon.toRounded(context: Context): Icon {
-    if (!isRoundIconEnabled()) return this
-    return try {
-        val drawable = loadDrawable(context) ?: return this
-        val size = 192
-        val src = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        drawable.setBounds(0, 0, size, size)
-        drawable.draw(Canvas(src))
-
-        val dst = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(dst)
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        val radiusPercent = ConfigManager.getInt("pref_round_icon_radius", 50).coerceIn(0, 100)
-        val r = size * radiusPercent / 200f
-        canvas.drawRoundRect(RectF(0f, 0f, size.toFloat(), size.toFloat()), r, r, paint)
-        paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
-        canvas.drawBitmap(src, 0f, 0f, paint)
-        src.recycle()
-
-        Icon.createWithBitmap(dst)
-    } catch (_: Exception) {
-        this
-    }
-}
-
-private fun isRoundIconEnabled(): Boolean =
-    ConfigManager.getBoolean("pref_round_icon", true)
+/** 圆角由 SystemUI 的 island_icon_radius 和 ViewOutlineProvider 统一处理。 */
+fun Icon.toRounded(@Suppress("UNUSED_PARAMETER") context: Context): Icon = this
