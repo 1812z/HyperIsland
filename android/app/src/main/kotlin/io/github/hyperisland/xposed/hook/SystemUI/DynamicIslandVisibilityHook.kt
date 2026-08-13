@@ -261,7 +261,7 @@ object DynamicIslandVisibilityHook : BaseHook() {
             sourcePackage = key.split('|').getOrNull(1)?.takeIf { it.contains('.') },
             sourceChannel = null,
         )
-        diag("source=statusBarIslandCount key=$key visible=$added prop=$prop id=${event.notificationId}")
+        //diag("source=statusBarIslandCount key=$key visible=$added prop=$prop id=${event.notificationId}")
         // Removal only unregisters status-bar island info; the rendered small island may remain.
         if (!added) return
         val previous = visibilityByKey.put(key, true)
@@ -273,7 +273,7 @@ object DynamicIslandVisibilityHook : BaseHook() {
         val previous = globalVisibility
         if (previous == visible) return
         globalVisibility = visible
-        diag("source=statusBarIslandRegion visible=$visible")
+        //diag("source=statusBarIslandRegion visible=$visible")
         val event = Event(
             key = GLOBAL_REGION_KEY,
             visible = visible,
@@ -311,7 +311,7 @@ object DynamicIslandVisibilityHook : BaseHook() {
         )
         val previous = visibilityByKey.put(key, visible)
         if (previous == visible) return
-        diag("source=$source key=$key visible=$visible pkg=${event.sourcePackage} channel=${event.sourceChannel}")
+        //diag("source=$source key=$key visible=$visible pkg=${event.sourcePackage} channel=${event.sourceChannel}")
         listeners.forEach { listener -> runCatching { listener(event) } }
     }
 
