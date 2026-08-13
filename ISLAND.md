@@ -197,15 +197,19 @@ fakeExpandedView.addView(dynamicIslandData.fakeView)
 
 因此 `fake_expanded_view` 是过渡期展开/焦点内容和背景的实际宿主，不是普通的稳定状态 `expanded_view`。
 
-这里的“背景宿主”指 SystemUI 自己通过 `updateBackgroundBg(fakeExpandedView, ...)` 设置的内层 stock background、MiBlur 和 BlendColor。当前 HyperIsland 实现没有把自定义焦点图片或 `BackgroundBlurDrawable` 设置到 `fake_expanded_view`：
+这里的“背景宿主”需要区分稳定态和过渡态。SystemUI 会通过 `updateBackgroundBg(fakeExpandedView, ...)` 设置内层 stock background、MiBlur 和 BlendColor；HyperIsland 的过渡 Hook 还会在对应 fake 子 View 上安装独立的过渡 BlurDrawable 或自定义背景：
 
 ```text
 稳定态自定义焦点背景 -> DynamicIslandBackgroundView.drawable
 稳定态焦点实时模糊   -> DynamicIslandBackgroundView.drawable
-过渡态 fake 内容/系统遮罩 -> fake_expanded_view
+过渡态焦点实时模糊   -> fake_expanded_view.background
+过渡态焦点自定义背景 -> fake_expanded_view.background
+过渡态系统共享遮罩   -> fake root / fakeContainer / fakeMask
 ```
 
-`onTrackingFakeViewStart()` 会隐藏真实 `DynamicIslandBackgroundView` 和真实内容 View，动画结束后 `updateExpandedFakeViewToReal()` 才重新显示它们。因此当前代码在 fake 动画期间只是清理可能盖住外层效果的系统 fake 遮罩，并没有把自定义图片或 BlurDrawable 迁移到 fake View。若动画期间观察到焦点自定义背景/模糊消失，这属于宿主切换造成的现有限制，不能把稳定态宿主误记为 `fake_expanded_view`。
+`onTrackingFakeViewStart()` 会隐藏真实 `DynamicIslandBackgroundView` 和真实内容 View，动画结束后再交回真实层。因此过渡视觉必须显式安装到 `fake_small_island_view`、`fake_big_island_view`、`fake_expanded_view`，不能假设隐藏的稳定态 `DynamicIslandBackgroundView.drawable` 仍在屏幕上绘制。
+
+每个 fake 子 View 保存自己的系统原始 background。对应类型启用模糊时，`IslandBlurHook.applyTransitionBlur()` 在该子 View 上创建独立的 `BackgroundBlurDrawable`；关闭模糊或 View detach 时恢复原 background 并释放模糊资源。自定义图片由 `IslandBackgroundHook.createTransitionBackground()` 创建独立 Drawable 实例，避免多个 View 共享 bounds。
 
 ## 5. fake 层几何和圆角
 
@@ -249,7 +253,7 @@ outline.setRoundRect(left, top, right, bottom, radius);
 
 `DynamicIslandContentFakeView.updateExpandViewBlur(int, boolean, boolean)` 会给 `fake_expanded_view` 设置专用 OutlineProvider，并根据动画阶段修改 RenderNode 位置及圆角矩形。
 
-fake 层仍负责内容动画和 Outline，但当前模糊实现不在 fake 子 View 上创建额外 BlurDrawable。模糊几何统一复用 `DynamicIslandBackgroundView` 的 `actual*` 参数。
+fake 层负责内容动画和 Outline。稳定态模糊继续复用 `DynamicIslandBackgroundView` 的 `actual*` 参数；过渡态模糊则安装在当前 fake 子 View 上，并跟随该 View 的系统缩放、裁剪和 Outline。两条管线不能混为同一个 Drawable 宿主。
 
 ## 6. 系统背景渲染
 
@@ -332,7 +336,7 @@ view.background = null
 
 ### 7.1 当前实现
 
-三种状态共用每个岛实例自己的动态背景宿主，但按当前状态独立更新配置：
+稳定状态下，三种状态共用每个岛实例自己的动态背景宿主，但按当前状态独立更新配置：
 
 | 状态 | 形状参考 | BlurDrawable 宿主 |
 | --- | --- | --- |
@@ -356,15 +360,31 @@ DynamicIslandBackgroundView.onDraw() 动态设置 bounds 并绘制
 
 ### 7.2 过渡状态
 
-过渡期间仍使用同一个 `DynamicIslandBackgroundView.drawable`。SystemUI 自己更新动态背景的 `actual*` 几何，BlurDrawable 随系统背景边界连续变化。
-
-当前策略：
+过渡期间真实内容 View 和真实 `DynamicIslandBackgroundView` 可能被隐藏，屏幕上的主要动画载体是 `DynamicIslandContentFakeView`。当前实现因此使用两套宿主：
 
 ```text
-稳定和动画状态：DynamicIslandBackgroundView.drawable + BackgroundBlurDrawable
-几何和动画：SystemUI actualLeft/Top/Width/Height
-内容动画：真实 View 和 DynamicIslandContentFakeView
+稳定状态：DynamicIslandBackgroundView.drawable + BackgroundBlurDrawable
+过渡状态：当前 fake 子 View.background + 独立 BackgroundBlurDrawable
+稳定几何：DynamicIslandBackgroundView actualLeft/Top/Width/Height
+过渡几何：fake 子 View 的 layout/scale/translation/Outline
 ```
+
+`IslandBlurHook` 在以下入口刷新 fake 子 View：
+
+```text
+DynamicIslandAnimationDelegate.updateFakeViewAnimState()
+DynamicIslandAnimationDelegate.containerScheduleUpdate()
+DynamicIslandContentFakeView.onFinishInflate()
+DynamicIslandContentFakeView.setVisibility(VISIBLE)
+```
+
+三种过渡模糊互相独立：
+
+| fake 子 View | 配置 |
+| --- | --- |
+| `fake_small_island_view` | `pref_island_blur_small_enabled` |
+| `fake_big_island_view` | `pref_island_blur_big_enabled` |
+| `fake_expanded_view` | `pref_island_blur_expand_enabled` |
 
 不推荐：
 
@@ -372,15 +392,67 @@ DynamicIslandBackgroundView.onDraw() 动态设置 bounds 并绘制
 - 永久隐藏 `fake_expanded_view`。
 - 把 fake View 当作普通 `EXPAND` 稳定目标。
 - 仅在真实 View 上逐帧修改 Drawable bounds 来模拟窗口动画。
-- 在普通子 View 中插入 BlurDrawable。该方式会退化为 ViewRoot 范围，可能导致整个状态栏或屏幕模糊。
+- 在稳定态普通内容子 View 中插入 BlurDrawable。稳定态应使用外层 `DynamicIslandBackgroundView.drawable`；fake 子 View 是过渡动画载体，由过渡 Hook 专门管理，不属于该禁用范围。
 - 在内容 View 外部创建 overlay 并手工追踪坐标。双岛和 Folme 动画下容易错位。
 - 使用 `MiBackgroundBlurMode` 直接替代 BlurDrawable。当前设备上只得到灰色混色层，没有有效背景采样。
 
-### 7.3 fake 层黑色遮罩
+### 7.3 fake 层共享黑色遮罩
 
-当前 Hook 保留 fake View 的生命周期和内容动画，但清理 fake 根层、fake 三种内容容器、`fakeContainer` 和 `fake_island_mask` 的 stock background、MiBlur mode 与 BlendColor，避免它们叠在外层实时模糊上形成黑块。不会删除整个 `DynamicIslandContentFakeView`。
+`fake_small_island_view`、`fake_big_island_view`、`fake_expanded_view` 是按状态独立的内容层，但 fake root、`fakeContainer` 和 `fake_island_mask` 是三态共享层。共享层不能按“任意一种模糊已开启”统一清除，也不能永久保留：
 
-该清理只能在至少一种实时模糊启用时执行。`updateFakeViewAnimState()`、`onFinishInflate()` 和 `setVisibility(VISIBLE)` 即使未启用模块背景功能也会由 SystemUI 正常调用，因此这些 Hook 入口不能无条件清空 fake background 或隐藏 `fake_island_mask`。三种模糊全部关闭时，`IslandBlurHook` 必须保留系统纯黑过渡遮罩并对 fake 层零修改；自定义图片的遮罩处理继续由 `IslandBackgroundHook` 按类型负责。
+- 永久清除：未开启模糊的小岛或大岛会在飞行动画中透明。
+- 永久保留：已开启模糊的大岛或焦点通知下面会一直跟随黑色遮罩。
+- 只看 `SMALL` 配置：仅开启大岛/焦点模糊时，过渡模糊会被共享黑罩盖住。
+- 只看逻辑 `state`：交叉动画期间逻辑状态和当前实际绘制子 View 可能不同步。
+
+正确策略是识别当前实际渲染的 fake 子 View，再读取该类型自己的模糊配置：
+
+```text
+候选条件：visibility == VISIBLE && alpha > 0
+单一候选：直接使用该类型
+多个候选：优先 alpha 最大者
+alpha 相同：使用 fake view 逻辑 state 消歧
+无候选：回退逻辑 state
+```
+
+随后仅对当前渲染类型决定共享遮罩：
+
+```text
+当前渲染类型模糊开启 -> 清除 fake root / fakeContainer / fakeMask background
+当前渲染类型模糊关闭 -> 恢复三者保存的系统原始 background
+```
+
+这使三态组合都能独立工作：
+
+| SMALL | BIG | EXPAND | 当前渲染态行为 |
+| --- | --- | --- | --- |
+| 关 | 关 | 关 | 三态均保留系统黑罩 |
+| 开 | 关 | 关 | 仅 fake small 清共享黑罩 |
+| 关 | 开 | 关 | 仅 fake big 清共享黑罩 |
+| 关 | 关 | 开 | 仅 fake expanded 清共享黑罩 |
+| 任意组合 | 任意组合 | 任意组合 | 每帧只服从当前实际渲染类型 |
+
+三种模糊全部关闭时仍不得修改 fake 子 View 或共享遮罩；自定义图片的过渡背景继续按类型独立处理。
+
+### 7.4 fake 到真实岛的背景 alpha 交接
+
+实机末帧日志确认，出现“飞行动画正常，到达后透明一下，再渐显黑罩”时，fake 层本身并未透明。隐藏前的观测为：
+
+```text
+root visibility=VISIBLE alpha=1
+fakeBigIsland visibility=VISIBLE alpha=1 background=GradientDrawable
+setVisibility(INVISIBLE) 后 fake root 才消失
+```
+
+因此透明空档发生在 fake root 隐藏后、真实背景完成接管前。根因是真实 `DynamicIslandBackgroundView.backgroundAlpha` 仍由 `alphaAnimation(float)` 从低值执行 Folme 渐显，而不是 fake mask 在末帧消失。
+
+`IslandTransitionVisualHook` 在 fake 动画期间跟踪对应真实 `DynamicIslandBackgroundView`：
+
+- 真实当前类型未开启模糊：交接期间拦截该背景实例的 `alphaAnimation()`，固定 `backgroundAlpha=1` 并调用 `scheduleUpdate()`。
+- 真实当前类型已开启模糊：立即解除该实例的黑罩 alpha 拦截，避免焦点/大岛模糊被不透明背景挡住。
+- fake view 切换为 `INVISIBLE` 前再次把未模糊真实背景设为不透明，随后在下一主线程任务移除临时标记。
+
+这项处理只修复真实背景的接管空档，不替代 fake 三态共享遮罩判断。
 
 `DynamicIslandBackgroundView.onDraw()` 也不能在当前实例没有 active `OuterBlur` 时被跳过。外层系统纯黑 Drawable 正是由该方法绘制；跳过后只剩内层 MiBlur/BlendColor，视觉上会成为灰色岛。inactive 实例必须始终执行原始 `onDraw()`，只有 active 实例需要先把 `drawable` 字段纠正为对应 BlurDrawable。
 
@@ -479,6 +551,7 @@ android/app/src/main/kotlin/io/github/hyperisland/xposed/hook/SystemUI/IslandBlu
 - 复用 SystemUI `onDraw()` 的动态 bounds 绘制模糊。
 - 在 View detach 时释放 callback 和模糊资源。
 - 排除 `fake_expanded_view`，避免把过渡层当作稳定焦点 View。
+- 为三个 fake 子 View 创建和释放独立的过渡 BlurDrawable。
 
 ### `IslandBackgroundHook.kt`
 
@@ -496,6 +569,26 @@ android/app/src/main/kotlin/io/github/hyperisland/xposed/hook/SystemUI/IslandBac
 - 协调实时模糊，避免具体内容和 fake 层叠加 stock 黑色背景。
 - 对 `fake_expanded_view` 禁用第二层原生模糊和默认 BlendColor。
 - 限制图片/GIF 解码尺寸并使用弱 Drawable callback，避免 SystemUI OOM 和 View 泄漏。
+
+### `IslandTransitionVisualHook.kt`
+
+路径：
+
+```text
+android/app/src/main/kotlin/io/github/hyperisland/xposed/hook/SystemUI/IslandTransitionVisualHook.kt
+```
+
+职责：
+
+- 跟踪 `DynamicIslandContentFakeView` 实例和三个 fake 子 View。
+- 在 fake 子 View 上应用对应类型的过渡模糊或独立自定义背景 Drawable。
+- 保存并恢复每个 fake 子 View 的系统原始 background。
+- 保存并管理 fake root、`fakeContainer`、`fakeMask` 的共享系统遮罩。
+- 根据当前实际可见且 alpha 有效的 fake 子 View识别当前渲染类型。
+- 只按当前渲染类型的 `SMALL/BIG/EXPAND` 配置清除或恢复共享黑罩。
+- 在 fake 到真实岛交接期间管理真实 `DynamicIslandBackgroundView.backgroundAlpha`，防止未模糊状态透明后再渐显。
+- 当前真实状态启用模糊时解除不透明交接标记，避免黑罩压住大岛或焦点通知模糊。
+- 在配置变化和 View detach 时刷新或释放过渡资源。
 
 ### 其他相关 Hook
 
@@ -550,12 +643,27 @@ pref_island_bg_expand_path
 - 原始 `dynamic_island_background` Drawable。
 - 旧 View 恢复了错误或空的 stock background。
 - 新旧模糊层交接之间出现一帧空档。
+- 共享遮罩错误地按其他状态的配置保留，例如当前渲染 `BIG` 已启用模糊，但判断只读取 `SMALL`。
 
-### 13.2 模糊缩小时不连续
+如果黑罩始终跟随一个透明/模糊 fake 岛向上移动，应优先检查当前实际渲染的 fake 子 View 类型，而不是检查任意全局模糊开关。
+
+### 13.2 到达后透明再渐显
+
+若 fake 层隐藏前仍满足以下条件：
+
+```text
+fake root alpha = 1
+当前 fake 子 View alpha = 1
+当前 fake 子 View background != null
+```
+
+但到达后仍透明并随后渐显，问题位于真实 `DynamicIslandBackgroundView.backgroundAlpha` 交接，不应继续修改 `fakeMask`、fake 子 View alpha 或提前调用真实内容 View 的状态方法。
+
+### 13.3 模糊缩小时不连续
 
 应确认 BlurDrawable 是否仍由 `DynamicIslandBackgroundView.onDraw()` 使用 `actual*` 参数设置 bounds。不要切回具体内容 View、普通内部子 View或外部 overlay。
 
-### 13.3 模糊停留在旧位置
+### 13.4 模糊停留在旧位置
 
 可能来源：
 
@@ -564,11 +672,11 @@ pref_island_bg_expand_path
 - 多个背景 View 实例共用了错误的 `OuterBlur`。
 - 旧 BlurDrawable callback 未断开。
 
-### 13.4 焦点变大岛后残留
+### 13.5 焦点变大岛后残留
 
 `expanded_view` 在 `state != EXPAND` 下的更新必须视为陈旧更新并忽略，不能用它关闭当前大岛的外层 BlurDrawable。`fake_expanded_view` 仍不能作为稳定焦点类型目标。
 
-### 13.5 类型判断顺序
+### 13.6 类型判断顺序
 
 识别 View 时应先检查资源名：
 
@@ -578,7 +686,7 @@ fake_expanded_view -> 过渡层，不是稳定 EXPAND
 
 再检查类名。否则类名包含 `ExpandedView` 的 fake/包装 View 可能被误判。
 
-### 13.6 功能全关时缺少纯黑遮罩
+### 13.7 功能全关时缺少纯黑遮罩
 
 检查两条路径：
 
@@ -637,19 +745,24 @@ Mini Window 手势
 
 ## 15. 已确认结论
 
-1. 当前实时模糊应放在每个岛实例的 `DynamicIslandBackgroundView.drawable` 中。
+1. 稳定态实时模糊应放在每个岛实例的 `DynamicIslandBackgroundView.drawable` 中；过渡态使用当前 fake 子 View 的独立 `background`。
 2. `DynamicIslandBackgroundView.onDraw()` 的 `actual*` bounds 是跟随双岛、缩放、位移和消失动画的关键。
-3. 小岛、大岛和 `expanded_view` 用于状态识别与圆角参考，不再各自持有 BlurDrawable。
+3. 稳定态 `small_island_view`、`big_island_view` 和 `expanded_view` 用于状态识别与圆角参考，不各自持有 BlurDrawable；对应 fake 子 View 可以持有过渡 BlurDrawable。
 4. `expanded_view` 是真实焦点 View，`fake_expanded_view` 是动画内容宿主，两者不可混用。
 5. fake View 是 SystemUI 动画状态机的一部分，不能简单删除，但其 stock 黑底、BlendColor 和第二层模糊需要清理。
 6. `updateBackgroundBg()` 同时控制背景 Drawable、MiBlur mode 和 BlendColor。
 7. 黑色效果不一定来自单一 Drawable，必须分别检查外层背景、具体 View、MiBlur BlendColor 和 fake mask。
 8. 多岛按具体 `DynamicIslandBackgroundView` 实例隔离 `OuterBlur`。
 9. SystemUI 不一定主动刷新小岛和大岛背景，必要时要调用具体 getter 和 `updateBackgroundBg()`。
-10. 普通内部子 View BlurDrawable 可能扩大到整个 ViewRoot，不能用于本实现。
+10. 稳定态普通内部子 View BlurDrawable 可能扩大到整个 ViewRoot，不能替代外层宿主；由 `IslandTransitionVisualHook` 管理的 fake 动画子 View是明确例外。
 11. 三种模糊全部关闭时不得清理 fake 层，系统纯黑过渡遮罩必须完整保留。
 12. inactive 背景实例必须执行 SystemUI 原始 `onDraw()`；不得通过跳过外层绘制来清理内层遮罩。
 13. 主动 `updateBackgroundBg()` 只允许用于 active 模糊类型；模糊全关时不得追加任何背景刷新。
+14. 稳定态 BlurDrawable 宿主是 `DynamicIslandBackgroundView.drawable`，过渡态 BlurDrawable 宿主是当前 fake 子 View 的 `background`，不能合并描述为同一宿主。
+15. fake root、`fakeContainer` 和 `fakeMask` 是三态共享遮罩，必须按当前实际渲染的 fake 子 View 类型决定清除或恢复。
+16. 不能用“任一模糊开启”清除共享遮罩，也不能固定只读取 `SMALL`；两者都会破坏三态组合。
+17. fake 隐藏前仍完全不透明但到达后透明再渐显时，应检查真实 `DynamicIslandBackgroundView.backgroundAlpha` 和 `alphaAnimation()`。
+18. 交接期固定真实背景 alpha 只适用于当前真实类型未开启模糊的实例；已开启模糊时必须解除该限制。
 
 ## 16. 信息来源和可信度
 
@@ -680,6 +793,8 @@ Mini Window 手势
 - `expanded_view` 会在 `state=BIG` 时继续收到过渡布局更新。
 - 双岛时小岛和大岛可同时存在并分别绘制。
 - 外层动态 Drawable 方案已解决内容缩放而模糊固定、双岛错位和突然消失问题。
+- fake 隐藏前可保持 `root alpha=1`、当前 fake 子 View `alpha=1` 且 background 非空；到达后透明再渐显并不等价于 fake mask 问题。
+- 仅开启大岛/焦点模糊时，固定按 `SMALL` 决定共享遮罩会产生随动画移动的遗留黑罩。
 
 ### 仍需实机确认
 

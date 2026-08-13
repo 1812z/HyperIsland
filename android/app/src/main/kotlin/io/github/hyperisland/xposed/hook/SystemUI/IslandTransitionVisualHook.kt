@@ -10,6 +10,7 @@ import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.lang.ref.WeakReference
+import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.util.Collections
 import java.util.WeakHashMap
@@ -34,6 +35,9 @@ object IslandTransitionVisualHook : BaseHook() {
     )
     private val fakeLayerTargets = Collections.synchronizedMap(
         WeakHashMap<Any, FakeLayerTarget>()
+    )
+    private val opaqueHandoffBackgrounds = Collections.synchronizedSet(
+        Collections.newSetFromMap(WeakHashMap<Any, Boolean>())
     )
     override fun getTag() = TAG
 
@@ -63,19 +67,17 @@ object IslandTransitionVisualHook : BaseHook() {
             expand = findMethod(fakeClass, "getFakeExpandedView"),
             container = findMethod(fakeClass, "getFakeContainer"),
             mask = findMethod(fakeClass, "getFakeMask"),
+            realView = findMethod(fakeClass, "getRealView"),
+            state = findMethod(fakeClass, "getState"),
         )
         hookDeclaredRefreshAfter(module, fakeClass, "onFinishInflate") { owner ->
             fakeViews.add(owner)
             refreshFakeView(owner, access)
+            if ((owner as? View)?.visibility == View.VISIBLE) {
+                armRealBackgroundHandoff(owner, access)
+            }
         }
-        hookDeclaredRefreshAfter(
-            module,
-            fakeClass,
-            "setVisibility",
-            Int::class.javaPrimitiveType!!,
-        ) {
-            refreshFakeView(it, access)
-        }
+        hookFakeVisibility(module, fakeClass, access)
         hookDeclaredRefreshAfter(module, fakeClass, "onDetachedFromWindow") { owner ->
             releaseFakeView(owner, access)
         }
@@ -83,6 +85,14 @@ object IslandTransitionVisualHook : BaseHook() {
         val delegateClass = runCatching {
             Class.forName(ANIMATION_DELEGATE_CLASS, false, classLoader)
         }.getOrNull() ?: return
+        val backgroundClass = runCatching {
+            Class.forName(
+                "miui.systemui.dynamicisland.DynamicIslandBackgroundView",
+                false,
+                classLoader,
+            )
+        }.getOrNull()
+        if (backgroundClass != null) hookHandoffBackgroundAlpha(module, backgroundClass)
         val getFakeView = findMethod(delegateClass, "getFakeView") ?: return
         sequenceOf("updateFakeViewAnimState", "containerScheduleUpdate").forEach { name ->
             val method = delegateClass.declaredMethods.firstOrNull {
@@ -96,6 +106,7 @@ object IslandTransitionVisualHook : BaseHook() {
                         return@hookRefreshAfter
                     }
                     fakeViews.add(fakeView)
+                    armRealBackgroundHandoff(fakeView, access)
                     refreshFakeView(fakeView, access)
                 }
             }.onFailure { error ->
@@ -149,11 +160,110 @@ object IslandTransitionVisualHook : BaseHook() {
                 expand = findMethod(clazz, "getFakeExpandedView"),
                 container = findMethod(clazz, "getFakeContainer"),
                 mask = findMethod(clazz, "getFakeMask"),
+                realView = findMethod(clazz, "getRealView"),
+                state = findMethod(clazz, "getState"),
             ),
         )
     }
 
+    private fun hookFakeVisibility(
+        module: XposedModule,
+        fakeClass: Class<*>,
+        access: FakeViewAccess,
+    ) {
+        val method = runCatching {
+            fakeClass.getDeclaredMethod("setVisibility", Int::class.javaPrimitiveType!!)
+        }.getOrNull() ?: return
+        runCatching {
+            method.isAccessible = true
+            module.hook(method).intercept { chain ->
+                val owner = chain.thisObject
+                val nextVisibility = chain.args.getOrNull(0) as? Int
+                if (owner != null && nextVisibility == View.INVISIBLE) {
+                    prepareRealBackground(owner, access)
+                }
+                val result = chain.proceed()
+                if (owner != null) {
+                    if (nextVisibility == View.VISIBLE) {
+                        armRealBackgroundHandoff(owner, access)
+                    }
+                    refreshFakeView(owner, access)
+                }
+                result
+            }
+        }.onFailure { error ->
+            logError(module, "failed to hook ${fakeClass.name}.setVisibility: ${error.message}")
+        }
+    }
+
+    private fun armRealBackgroundHandoff(fakeView: Any, access: FakeViewAccess) {
+        val target = realBackgroundTarget(fakeView, access) ?: return
+        if (IslandBlurHook.isTransitionBlurEnabled(target.typeName)) {
+            opaqueHandoffBackgrounds.remove(target.view)
+        } else {
+            opaqueHandoffBackgrounds.add(target.view)
+        }
+    }
+
+    private fun prepareRealBackground(fakeView: Any, access: FakeViewAccess) {
+        val target = realBackgroundTarget(fakeView, access) ?: return
+        val backgroundView = target.view
+        if (IslandBlurHook.isTransitionBlurEnabled(target.typeName)) {
+            opaqueHandoffBackgrounds.remove(backgroundView)
+            return
+        }
+        val alphaField = findField(backgroundView.javaClass, "backgroundAlpha") ?: return
+        opaqueHandoffBackgrounds.add(backgroundView)
+        runCatching {
+            alphaField.setFloat(backgroundView, 1f)
+            findMethod(backgroundView.javaClass, "scheduleUpdate")?.invoke(backgroundView)
+            backgroundView.invalidate()
+        }
+        backgroundView.post { opaqueHandoffBackgrounds.remove(backgroundView) }
+    }
+
+    private fun realBackgroundTarget(
+        fakeView: Any,
+        access: FakeViewAccess,
+    ): RealBackgroundTarget? {
+        val realView = access.realView(fakeView) ?: return null
+        val typeName = access.stateType(realView) ?: return null
+        val backgroundView = findMethod(realView.javaClass, "getBackgroundView")
+            ?.let { runCatching { it.invoke(realView) as? View }.getOrNull() }
+            ?: return null
+        return RealBackgroundTarget(backgroundView, typeName)
+    }
+
+    private fun hookHandoffBackgroundAlpha(module: XposedModule, backgroundClass: Class<*>) {
+        val method = runCatching {
+            backgroundClass.getDeclaredMethod(
+                "alphaAnimation",
+                Float::class.javaPrimitiveType!!,
+            )
+        }.getOrNull() ?: return
+        val alphaField = findField(backgroundClass, "backgroundAlpha") ?: return
+        val scheduleUpdate = findMethod(backgroundClass, "scheduleUpdate")
+        runCatching {
+            method.isAccessible = true
+            module.hook(method).intercept { chain ->
+                val backgroundView = chain.thisObject
+                if (!opaqueHandoffBackgrounds.contains(backgroundView)) {
+                    return@intercept chain.proceed()
+                }
+                alphaField.setFloat(backgroundView, 1f)
+                scheduleUpdate?.invoke(backgroundView)
+                (backgroundView as? View)?.invalidate()
+                null
+            }
+        }.onFailure { error ->
+            logError(module, "failed to hook ${backgroundClass.name}.alphaAnimation: ${error.message}")
+        }
+    }
+
     private fun refreshFakeView(fakeView: Any, access: FakeViewAccess) {
+        if ((fakeView as? View)?.visibility == View.VISIBLE) {
+            armRealBackgroundHandoff(fakeView, access)
+        }
         updateFakeLayerMask(fakeView, access)
         access.forEach(fakeView) { typeName, view ->
             val target = synchronized(targets) {
@@ -194,9 +304,12 @@ object IslandTransitionVisualHook : BaseHook() {
                 )
             }
         }
-        val blurEnabled = sequenceOf("SMALL", "BIG", "EXPAND")
-            .any(IslandBlurHook::isTransitionBlurEnabled)
-        if (blurEnabled) {
+        // root/container/mask are shared by all fake states. Follow the state that is
+        // actually being rendered, otherwise one state's blur leaks into the other two.
+        val renderedType = access.renderedType(fakeView)
+        val clearSharedMask = root.visibility == View.VISIBLE && renderedType != null &&
+            IslandBlurHook.isTransitionBlurEnabled(renderedType)
+        if (clearSharedMask) {
             if (root.background != null) root.background = null
             if (container !== root && container?.background != null) container.background = null
             if (mask?.background != null) mask.background = null
@@ -212,6 +325,9 @@ object IslandTransitionVisualHook : BaseHook() {
     private fun releaseFakeView(fakeView: Any, access: FakeViewAccess) {
         fakeViews.remove(fakeView)
         fakeLayerTargets.remove(fakeView)
+        realBackgroundTarget(fakeView, access)?.let { target ->
+            opaqueHandoffBackgrounds.remove(target.view)
+        }
         access.forEach(fakeView) { _, view ->
             IslandBlurHook.releaseTransitionBlur(view)
             targets.remove(view)?.customDrawable?.callback = null
@@ -236,16 +352,62 @@ object IslandTransitionVisualHook : BaseHook() {
         return null
     }
 
+    private fun findField(clazz: Class<*>, name: String): Field? {
+        var current: Class<*>? = clazz
+        while (current != null) {
+            runCatching {
+                return current.getDeclaredField(name).apply { isAccessible = true }
+            }
+            current = current.superclass
+        }
+        return null
+    }
+
     private class FakeViewAccess(
         private val small: Method?,
         private val big: Method?,
         private val expand: Method?,
         private val container: Method?,
         private val mask: Method?,
+        private val realView: Method?,
+        private val state: Method?,
     ) {
         fun container(owner: Any): View? = invokeView(owner, container)
 
         fun mask(owner: Any): View? = invokeView(owner, mask)
+
+        fun realView(owner: Any): Any? = runCatching { realView?.invoke(owner) }.getOrNull()
+
+        fun stateType(owner: Any): String? {
+            val currentState = runCatching { state?.invoke(owner) }.getOrNull()
+            val name = currentState?.javaClass?.simpleName.orEmpty()
+            return when {
+                name.contains("SmallIsland") -> "SMALL"
+                name.contains("BigIsland") -> "BIG"
+                name.contains("Expanded") -> "EXPAND"
+                else -> null
+            }
+        }
+
+        fun renderedType(owner: Any): String? {
+            val visible = listOf(
+                RenderedState("SMALL", invokeView(owner, small)),
+                RenderedState("BIG", invokeView(owner, big)),
+                RenderedState("EXPAND", invokeView(owner, expand)),
+            ).filter { state ->
+                state.view?.visibility == View.VISIBLE && state.view.alpha > 0f
+            }
+            if (visible.isEmpty()) return stateType(owner)
+            if (visible.size == 1) return visible.first().type
+
+            val maxAlpha = visible.maxOf { it.view?.alpha ?: 0f }
+            val strongest = visible.filter { (it.view?.alpha ?: 0f) == maxAlpha }
+            if (strongest.size == 1) return strongest.first().type
+
+            val logicalType = stateType(owner)
+            return strongest.firstOrNull { it.type == logicalType }?.type
+                ?: strongest.first().type
+        }
 
         fun forEach(owner: Any, action: (String, View) -> Unit) {
             apply(owner, "SMALL", small, action)
@@ -266,6 +428,11 @@ object IslandTransitionVisualHook : BaseHook() {
         private fun invokeView(owner: Any, getter: Method?): View? {
             return runCatching { getter?.invoke(owner) as? View }.getOrNull()
         }
+
+        private data class RenderedState(
+            val type: String,
+            val view: View?,
+        )
     }
 
     private class FakeLayerTarget(
@@ -278,4 +445,10 @@ object IslandTransitionVisualHook : BaseHook() {
         val stockDrawable = WeakReference(stockDrawable)
         var customDrawable: Drawable? = null
     }
+
+    private data class RealBackgroundTarget(
+        val view: View,
+        val typeName: String,
+    )
+
 }
