@@ -408,6 +408,8 @@ object ConfigManager {
         "pref_scene_dnd",
         "pref_scene_fullscreen",
         "pref_scene_landscape",
+        "pref_expanded_collapse_action",
+        "pref_big_island_collapse_action",
         "pref_ai_enabled",
         "pref_ai_prompt_in_user",
         "pref_ai_custom_fields",

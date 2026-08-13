@@ -21,6 +21,8 @@ class _IslandOtherPageState extends State<IslandOtherPage> {
     _ctrl.fullscreenBehavior,
     _ctrl.landscapeBehavior,
     _ctrl.dndBehavior,
+    _ctrl.expandedCollapseAction,
+    _ctrl.bigIslandCollapseAction,
     _ctrl.marqueeSpeed,
   ]);
 
@@ -75,6 +77,15 @@ class _IslandOtherPageState extends State<IslandOtherPage> {
       'small_only' => l10n.behaviorPreviewSmallOnly,
       'expand' => l10n.behaviorPreviewExpand,
       _ => l10n.behaviorPreviewDefault,
+    };
+  }
+
+  String _swipeActionLabel(AppLocalizations l10n, String value) {
+    return switch (value) {
+      kIslandSwipeActionCancelNotification =>
+        l10n.islandSwipeActionCancelNotification,
+      kIslandSwipeActionHideIsland => l10n.islandSwipeActionHideIsland,
+      _ => l10n.islandSwipeActionNone,
     };
   }
 
@@ -166,6 +177,43 @@ class _IslandOtherPageState extends State<IslandOtherPage> {
                         labelForValue: (v) => _fullscreenBehaviorLabel(l10n, v),
                         values: const ['off', 'fallback', 'expand'],
                         onChanged: _ctrl.setLandscapeBehavior,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _SectionLabel(l10n.islandSwipeActionsTitle),
+                const SizedBox(height: 8),
+                Card(
+                  elevation: 0,
+                  color: cs.surfaceContainerHighest,
+                  child: Column(
+                    children: [
+                      _BehaviorRuleTile(
+                        icon: Icons.unfold_less_outlined,
+                        title: l10n.expandedCollapseActionTitle,
+                        subtitle: l10n.expandedCollapseActionSubtitle,
+                        value: _ctrl.expandedCollapseAction,
+                        labelForValue: (v) => _swipeActionLabel(l10n, v),
+                        values: const [
+                          kIslandSwipeActionNone,
+                          kIslandSwipeActionCancelNotification,
+                          kIslandSwipeActionHideIsland,
+                        ],
+                        onChanged: _ctrl.setExpandedCollapseAction,
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      _BehaviorRuleTile(
+                        icon: Icons.swipe_outlined,
+                        title: l10n.bigIslandCollapseActionTitle,
+                        subtitle: l10n.bigIslandCollapseActionSubtitle,
+                        value: _ctrl.bigIslandCollapseAction,
+                        labelForValue: (v) => _swipeActionLabel(l10n, v),
+                        values: const [
+                          kIslandSwipeActionNone,
+                          kIslandSwipeActionCancelNotification,
+                        ],
+                        onChanged: _ctrl.setBigIslandCollapseAction,
                       ),
                     ],
                   ),
@@ -344,7 +392,7 @@ class _BehaviorRuleTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final configured = value != 'default' && value != 'off';
+    final configured = value != 'default' && value != 'off' && value != 'none';
     final dropdownWidth = (MediaQuery.sizeOf(context).width * 0.36).clamp(
       112.0,
       172.0,

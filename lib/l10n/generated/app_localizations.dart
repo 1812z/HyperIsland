@@ -3347,6 +3347,54 @@ abstract class AppLocalizations {
   /// **'其他'**
   String get islandOtherSection;
 
+  /// No description provided for @islandSwipeActionsTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'滑动动作'**
+  String get islandSwipeActionsTitle;
+
+  /// No description provided for @expandedCollapseActionTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'收起展开态时'**
+  String get expandedCollapseActionTitle;
+
+  /// No description provided for @expandedCollapseActionSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'上滑将展开态收回大岛后执行'**
+  String get expandedCollapseActionSubtitle;
+
+  /// No description provided for @bigIslandCollapseActionTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'收起大岛时'**
+  String get bigIslandCollapseActionTitle;
+
+  /// No description provided for @bigIslandCollapseActionSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'横滑将大岛隐藏后执行'**
+  String get bigIslandCollapseActionSubtitle;
+
+  /// No description provided for @islandSwipeActionNone.
+  ///
+  /// In zh, this message translates to:
+  /// **'无'**
+  String get islandSwipeActionNone;
+
+  /// No description provided for @islandSwipeActionCancelNotification.
+  ///
+  /// In zh, this message translates to:
+  /// **'清除通知'**
+  String get islandSwipeActionCancelNotification;
+
+  /// No description provided for @islandSwipeActionHideIsland.
+  ///
+  /// In zh, this message translates to:
+  /// **'隐藏大岛'**
+  String get islandSwipeActionHideIsland;
+
   /// No description provided for @miscSection.
   ///
   /// In zh, this message translates to:

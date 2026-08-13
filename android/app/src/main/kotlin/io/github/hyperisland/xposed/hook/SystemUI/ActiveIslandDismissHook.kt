@@ -40,12 +40,21 @@ object ActiveIslandDismissHook : BaseHook() {
                 return@post
             }
             try {
-                val method = controller.javaClass.getMethod(
-                    "access\$removeByKey",
-                    controller.javaClass,
-                    String::class.java,
-                )
-                method.invoke(null, controller, notificationKey)
+                val direct = controller.javaClass.declaredMethods.firstOrNull {
+                    it.name == "removeByKey" && it.parameterCount == 1 &&
+                        it.parameterTypes[0] == String::class.java
+                }
+                if (direct != null) {
+                    direct.isAccessible = true
+                    direct.invoke(controller, notificationKey)
+                } else {
+                    val synthetic = controller.javaClass.declaredMethods.firstOrNull {
+                        it.name == "access\$removeByKey" && it.parameterCount == 2 &&
+                            it.parameterTypes[1] == String::class.java
+                    } ?: error("removeByKey method unavailable")
+                    synthetic.isAccessible = true
+                    synthetic.invoke(null, controller, notificationKey)
+                }
                 diag("focus removeByKey invoked key=$notificationKey")
             } catch (e: Throwable) {
                 diag(
@@ -65,6 +74,13 @@ object ActiveIslandDismissHook : BaseHook() {
             } catch (_: ClassNotFoundException) {
                 hookedClassLoaders.remove(classLoaderId)
                 return
+            }
+            clazz.declaredConstructors.forEach { constructor ->
+                module.hook(constructor).intercept { chain ->
+                    val result = chain.proceed()
+                    focusControllerRef = WeakReference(chain.thisObject)
+                    result
+                }
             }
             clazz.declaredMethods
                 .filter { it.name == "onNotificationPosted" && it.parameterCount >= 1 }

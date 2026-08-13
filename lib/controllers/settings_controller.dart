@@ -73,6 +73,8 @@ const kPrefDefaultPreserveSmallIcon = 'pref_default_preserve_small_icon';
 const kPrefFullscreenBehavior = 'pref_fullscreen_behavior';
 const kPrefLandscapeBehavior = 'pref_landscape_behavior';
 const kPrefDndBehavior = 'pref_scene_dnd';
+const kPrefExpandedCollapseAction = 'pref_expanded_collapse_action';
+const kPrefBigIslandCollapseAction = 'pref_big_island_collapse_action';
 const kPrefHideDesktopIcon = 'pref_hide_desktop_icon';
 const kPrefAiEnabled = 'pref_ai_enabled';
 const kPrefAiUrl = 'pref_ai_url';
@@ -199,6 +201,10 @@ const kDefaultAiCustomFields = '{"enable_thinking":false}';
 const kFaceUnlockIslandAnimationDefault = 'default';
 const kFaceUnlockIslandAnimationLock = 'lock';
 
+const kIslandSwipeActionNone = 'none';
+const kIslandSwipeActionCancelNotification = 'cancel_notification';
+const kIslandSwipeActionHideIsland = 'hide_island';
+
 const kSettingsHomeEntryIconStyleDefault = 'default';
 const kSettingsHomeEntryIconStyleOutline = 'outline';
 
@@ -266,6 +272,8 @@ class SettingsController extends ChangeNotifier {
   String fullscreenBehavior = 'off';
   String landscapeBehavior = 'off';
   String dndBehavior = 'default';
+  String expandedCollapseAction = kIslandSwipeActionNone;
+  String bigIslandCollapseAction = kIslandSwipeActionNone;
   bool aiEnabled = false;
   String aiUrl = '';
   String aiApiKey = '';
@@ -385,10 +393,7 @@ class SettingsController extends ChangeNotifier {
     interactionHaptics = prefs.getBool(kPrefInteractionHaptics) ?? true;
     roundIcon = prefs.getBool(kPrefRoundIcon) ?? true;
     roundIconRadius = prefs.getInt(kPrefRoundIconRadius)?.clamp(0, 100) ?? 50;
-    islandIconSize = (prefs.getInt(kPrefIslandIconSize) ?? 100).clamp(
-      50,
-      150,
-    );
+    islandIconSize = (prefs.getInt(kPrefIslandIconSize) ?? 100).clamp(50, 150);
     marqueeFeature = prefs.getBool(kPrefMarqueeFeature) ?? false;
     marqueeSpeed = prefs.getInt(kPrefMarqueeSpeed) ?? 100;
     bigIslandMaxWidth = prefs.getInt(kPrefBigIslandMaxWidth) ?? 0;
@@ -464,6 +469,14 @@ class SettingsController extends ChangeNotifier {
       prefs.getString(kPrefLandscapeBehavior),
     );
     dndBehavior = _normalizeDndBehavior(prefs.getString(kPrefDndBehavior));
+    expandedCollapseAction = _normalizeIslandSwipeAction(
+      prefs.getString(kPrefExpandedCollapseAction),
+      allowHideIsland: true,
+    );
+    bigIslandCollapseAction = _normalizeIslandSwipeAction(
+      prefs.getString(kPrefBigIslandCollapseAction),
+      allowHideIsland: false,
+    );
     aiEnabled = prefs.getBool(kPrefAiEnabled) ?? false;
     aiUrl = prefs.getString(kPrefAiUrl) ?? '';
     aiApiKey = prefs.getString(kPrefAiApiKey) ?? '';
@@ -1200,6 +1213,43 @@ class SettingsController extends ChangeNotifier {
     }
     dndBehavior = normalized;
     notifyListeners();
+  }
+
+  Future<void> setExpandedCollapseAction(String value) async {
+    final normalized = _normalizeIslandSwipeAction(
+      value,
+      allowHideIsland: true,
+    );
+    if (expandedCollapseAction == normalized) return;
+    final prefs = await _getPrefs();
+    await prefs.setString(kPrefExpandedCollapseAction, normalized);
+    expandedCollapseAction = normalized;
+    notifyListeners();
+  }
+
+  Future<void> setBigIslandCollapseAction(String value) async {
+    final normalized = _normalizeIslandSwipeAction(
+      value,
+      allowHideIsland: false,
+    );
+    if (bigIslandCollapseAction == normalized) return;
+    final prefs = await _getPrefs();
+    await prefs.setString(kPrefBigIslandCollapseAction, normalized);
+    bigIslandCollapseAction = normalized;
+    notifyListeners();
+  }
+
+  String _normalizeIslandSwipeAction(
+    String? value, {
+    required bool allowHideIsland,
+  }) {
+    return switch (value) {
+      kIslandSwipeActionCancelNotification =>
+        kIslandSwipeActionCancelNotification,
+      kIslandSwipeActionHideIsland when allowHideIsland =>
+        kIslandSwipeActionHideIsland,
+      _ => kIslandSwipeActionNone,
+    };
   }
 
   String _normalizeDndBehavior(String? value) {

@@ -1815,6 +1815,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get islandOtherSection => 'Other';
 
   @override
+  String get islandSwipeActionsTitle => 'Swipe actions';
+
+  @override
+  String get expandedCollapseActionTitle => 'When collapsing expanded island';
+
+  @override
+  String get expandedCollapseActionSubtitle =>
+      'Runs after swiping up to collapse the expanded island';
+
+  @override
+  String get bigIslandCollapseActionTitle => 'When hiding big island';
+
+  @override
+  String get bigIslandCollapseActionSubtitle =>
+      'Runs after swiping the big island out of view';
+
+  @override
+  String get islandSwipeActionNone => 'None';
+
+  @override
+  String get islandSwipeActionCancelNotification => 'Clear notification';
+
+  @override
+  String get islandSwipeActionHideIsland => 'Hide big island';
+
+  @override
   String get miscSection => 'Misc';
 
   @override

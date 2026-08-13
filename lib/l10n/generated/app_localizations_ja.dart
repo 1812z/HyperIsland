@@ -1744,6 +1744,30 @@ class AppLocalizationsJa extends AppLocalizations {
   String get islandOtherSection => 'その他';
 
   @override
+  String get islandSwipeActionsTitle => 'スワイプ操作';
+
+  @override
+  String get expandedCollapseActionTitle => '展開表示を閉じる時';
+
+  @override
+  String get expandedCollapseActionSubtitle => '上にスワイプして展開表示を閉じた後に実行します';
+
+  @override
+  String get bigIslandCollapseActionTitle => '大きなアイランドを隠す時';
+
+  @override
+  String get bigIslandCollapseActionSubtitle => '大きなアイランドを横にスワイプして隠した後に実行します';
+
+  @override
+  String get islandSwipeActionNone => 'なし';
+
+  @override
+  String get islandSwipeActionCancelNotification => '通知を消去';
+
+  @override
+  String get islandSwipeActionHideIsland => '大きなアイランドを隠す';
+
+  @override
   String get miscSection => 'その他の設定';
 
   @override
