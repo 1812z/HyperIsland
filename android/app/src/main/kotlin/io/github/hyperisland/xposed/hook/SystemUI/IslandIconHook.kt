@@ -51,7 +51,7 @@ object IslandIconHook : BaseHook() {
     }
 
     private fun iconRadiusPx(resources: Resources): Float {
-        val radiusPercent = ConfigManager.getInt(KEY_ROUND_ICON_RADIUS, 30).coerceIn(0, 100)
+        val radiusPercent = ConfigManager.getInt(KEY_ROUND_ICON_RADIUS, 40).coerceIn(0, 100)
         val iconSizePx = findDimension(resources, ICON_SIZE_RESOURCE)
             ?: (30f * resources.displayMetrics.density)
         return iconSizePx * iconSizePercent() * radiusPercent / 20_000f

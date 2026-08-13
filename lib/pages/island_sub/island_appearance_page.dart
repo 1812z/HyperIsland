@@ -1140,8 +1140,8 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                         min: 0,
                         max: 100,
                         unit: '%',
-                        defaultVal: 30,
-                        followSystemLabel: '30 %',
+                        defaultVal: 40,
+                        followSystemLabel: '40 %',
                         onChanged: (value) {
                           final next = value.round();
                           if (_roundIconRadiusDraft == next) return;

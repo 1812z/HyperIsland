@@ -229,7 +229,7 @@ class SettingsController extends ChangeNotifier {
   bool bluetoothIslandWhitelistEnabled = false;
   List<String> bluetoothIslandWhitelistAddresses = [];
   bool interactionHaptics = true;
-  int roundIconRadius = 30;
+  int roundIconRadius = 40;
   int islandIconSize = 100;
   double islandIconPadding = 8.0;
   bool marqueeFeature = false;
@@ -393,7 +393,7 @@ class SettingsController extends ChangeNotifier {
       prefs.getString(kPrefBluetoothIslandWhitelistAddresses),
     );
     interactionHaptics = prefs.getBool(kPrefInteractionHaptics) ?? true;
-    roundIconRadius = prefs.getInt(kPrefRoundIconRadius)?.clamp(0, 100) ?? 30;
+    roundIconRadius = prefs.getInt(kPrefRoundIconRadius)?.clamp(0, 100) ?? 40;
     islandIconSize = (prefs.getInt(kPrefIslandIconSize) ?? 100).clamp(50, 150);
     islandIconPadding = (prefs.getDouble(kPrefIslandIconPadding) ?? 8.0).clamp(
       0.0,
@@ -809,7 +809,7 @@ class SettingsController extends ChangeNotifier {
     final clamped = value.clamp(0, 100);
     if (roundIconRadius == clamped) return;
     final prefs = await _getPrefs();
-    if (clamped == 30) {
+    if (clamped == 40) {
       await prefs.remove(kPrefRoundIconRadius);
     } else {
       await prefs.setInt(kPrefRoundIconRadius, clamped);
