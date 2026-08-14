@@ -209,6 +209,34 @@ class _AiConfigPageState extends State<AiConfigPage> {
 
   String _effectiveModel(String model) => model.isEmpty ? 'gpt-4o-mini' : model;
 
+  String _tokenParamName(String model) {
+    const prefixes = ['o1', 'o3', 'o4', 'gpt-5'];
+    return prefixes.any(model.startsWith) ? 'max_completion_tokens' : 'max_tokens';
+  }
+
+  bool _isTokenParamError(String body) {
+    final b = body.toLowerCase();
+    return b.contains('max_tokens') || b.contains('max_completion_tokens');
+  }
+
+  /// 封装了 API POST；400 且错误信息中包含 max_tokens 或 max_completion_tokens 时切换参数名重试
+  Future<http.Response> _postWithTokenFallback(
+    String url,
+    String key,
+    String model,
+    Future<http.Response> Function(String tokenParam) send,
+  ) async {
+    final firstParam = _tokenParamName(_effectiveModel(model));
+    var response = await send(firstParam);
+    if (response.statusCode == 400 && _isTokenParamError(response.body)) {
+      final alt = firstParam == 'max_tokens'
+          ? 'max_completion_tokens'
+          : 'max_tokens';
+      response = await send(alt);
+    }
+    return response;
+  }
+
   /// Derive the `/models` endpoint from the chat completions URL.
   ///
   /// Handles common shapes:
@@ -268,8 +296,10 @@ class _AiConfigPageState extends State<AiConfigPage> {
     required String model,
     required String promptText,
     required String userContent,
+    String? tokenParamName,
   }) {
     final effectiveModel = _effectiveModel(model);
+    final key = tokenParamName ?? _tokenParamName(effectiveModel);
     return <String, dynamic>{
       'model': effectiveModel,
       'messages': [
@@ -279,7 +309,7 @@ class _AiConfigPageState extends State<AiConfigPage> {
           {'role': 'user', 'content': promptText},
         {'role': 'user', 'content': userContent},
       ],
-      'max_tokens': _ctrl.aiMaxTokens,
+      key: _ctrl.aiMaxTokens,
       'temperature': _ctrl.aiTemperature,
       ..._customRequestFields(),
     };
@@ -350,24 +380,28 @@ class _AiConfigPageState extends State<AiConfigPage> {
       final sampleUserContent = AppLocalizations.of(
         context,
       )!.aiTestSampleUserContent;
-      final requestBody = jsonEncode(
-        _buildRequestPayload(
-          model: model,
-          promptText: '',
-          userContent: sampleUserContent,
-        ),
-      );
-      final response = await http
-          .post(
-            Uri.parse(url),
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              if (key.isNotEmpty) 'Authorization': 'Bearer $key',
-            },
-            body: requestBody,
-          )
-          .timeout(Duration(seconds: _ctrl.aiTimeout));
+      final response = await _postWithTokenFallback(url, key, model,
+          (tokenParam) {
+        final requestBody = jsonEncode(
+          _buildRequestPayload(
+            model: model,
+            promptText: '',
+            userContent: sampleUserContent,
+            tokenParamName: tokenParam,
+          ),
+        );
+        return http
+            .post(
+              Uri.parse(url),
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                if (key.isNotEmpty) 'Authorization': 'Bearer $key',
+              },
+              body: requestBody,
+            )
+            .timeout(Duration(seconds: _ctrl.aiTimeout));
+      });
 
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>;
@@ -432,24 +466,29 @@ class _AiConfigPageState extends State<AiConfigPage> {
             },
             {'role': 'user', 'content': userContent},
           ];
-    final requestBody = jsonEncode(<String, dynamic>{
-      'model': _effectiveModel(model),
-      'messages': messages,
-      'max_tokens': _ctrl.aiMaxTokens,
-      'temperature': _ctrl.aiTemperature,
-      ..._customRequestFields(),
+    final effectiveModel = _effectiveModel(model);
+
+    final response = await _postWithTokenFallback(url, key, model,
+        (tokenParam) {
+      final requestBody = jsonEncode(<String, dynamic>{
+        'model': effectiveModel,
+        'messages': messages,
+        tokenParam: _ctrl.aiMaxTokens,
+        'temperature': _ctrl.aiTemperature,
+        ..._customRequestFields(),
+      });
+      return http
+          .post(
+            Uri.parse(url),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              if (key.isNotEmpty) 'Authorization': 'Bearer $key',
+            },
+            body: requestBody,
+          )
+          .timeout(Duration(seconds: _ctrl.aiTimeout));
     });
-    final response = await http
-        .post(
-          Uri.parse(url),
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            if (key.isNotEmpty) 'Authorization': 'Bearer $key',
-          },
-          body: requestBody,
-        )
-        .timeout(Duration(seconds: _ctrl.aiTimeout));
 
     if (response.statusCode != 200) {
       throw Exception('HTTP ${response.statusCode}\n${response.body}');

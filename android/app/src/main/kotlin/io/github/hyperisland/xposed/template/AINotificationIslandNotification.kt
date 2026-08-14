@@ -32,6 +32,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * AI 增强版通知超级岛。
@@ -117,6 +118,10 @@ object AINotificationIslandNotification : IslandTemplate {
         triggerCharCount = ConfigManager.getInt("pref_ai_trigger_char_count", 10).coerceIn(0, 100),
     )
 
+    private val maxCompletionPrefixes = listOf("o1", "o3", "o4", "gpt-5")
+    @Volatile
+    private var maxTokenParamName: String = "max_tokens"
+
     // ── AI 调用（带超时） ──────────────────────────────────────────────────────
 
     private fun fetchAiText(config: AiConfig, data: NotifData): AiIslandText? {
@@ -136,7 +141,15 @@ object AINotificationIslandNotification : IslandTemplate {
     }
 
     private fun callAiApi(config: AiConfig, data: NotifData): AiIslandText? {
-        val response = postAiRequest(config, buildRequestBody(config, data))
+        val firstParam = tokenParamFor(config.model.ifEmpty { "gpt-4o-mini" })
+        var response = postAiRequest(config, buildRequestBody(config, data, firstParam))
+        // 400 且错误信息中包含 max_tokens 或 max_completion_tokens 时，切换参数名重试
+        if (response.first == HttpURLConnection.HTTP_BAD_REQUEST && isTokenParamError(response.second)) {
+            val alt = if (firstParam == "max_tokens") "max_completion_tokens" else "max_tokens"
+            maxTokenParamName = alt
+            // 重试时直接用 alt，绕过名单
+            response = postAiRequest(config, buildRequestBody(config, data, alt))
+        }
         val code = response.first
         val responseBody = response.second
         if (code != HttpURLConnection.HTTP_OK) {
@@ -168,7 +181,14 @@ object AINotificationIslandNotification : IslandTemplate {
         }
     }
 
-    private fun buildRequestBody(config: AiConfig, data: NotifData): String {
+    private fun tokenParamFor(model: String): String = if (maxCompletionPrefixes.any { model.startsWith(it) }) "max_completion_tokens" else maxTokenParamName
+
+    private fun isTokenParamError(body: String): Boolean {
+        val b = body.lowercase()
+        return b.contains("max_completion_tokens") || b.contains("max_tokens")
+    }
+
+    private fun buildRequestBody(config: AiConfig, data: NotifData, tokenParam: String): String {
         val defaultPrompt = "根据通知信息，提取关键信息，左右分别不超过6汉字12字符"
         val userPrompt = if (config.prompt.isNotEmpty()) config.prompt else defaultPrompt
 
@@ -204,7 +224,7 @@ $userPrompt
         val body = JSONObject()
             .put("model", model)
             .put("messages", messages)
-            .put("max_tokens", config.maxTokens)
+            .put(tokenParam, config.maxTokens)
             .put("temperature", config.temperature)
 
         try {
