@@ -331,7 +331,7 @@ object KeepIslandHook : BaseHook() {
             val request = IslandRequest(
                 title = texts.first,
                 content = texts.second,
-                icon = loadCustomIcon(customIconPath)?.toRounded(context),
+                icon = loadCustomIcon(customIconPath),
                 notifId = KEEP_ISLAND_NOTIF_ID,
                 timeoutSecs = Int.MAX_VALUE,
                 firstFloat = false,
@@ -418,7 +418,7 @@ object KeepIslandHook : BaseHook() {
             val request = IslandRequest(
                 title = texts.first,
                 content = texts.second,
-                icon = loadCustomIcon(customIconPath)?.toRounded(context),
+                icon = loadCustomIcon(customIconPath),
                 notifId = KEEP_ISLAND_NOTIF_ID,
                 timeoutSecs = Int.MAX_VALUE,
                 firstFloat = false,
@@ -583,9 +583,10 @@ object KeepIslandHook : BaseHook() {
         val cpuText = snapshot.cpuUsagePercent?.let { "$cpuPercent%" } ?: "--%"
         val memoryText = snapshot.memoryUsagePercent?.let { "$memoryPercent%" } ?: "--%"
         val moduleContext = context.moduleContext()
-        val logo = loadCustomIcon(ConfigManager.getString(PREF_KEY_CUSTOM_ICON_PATH, ""))
-            ?.toRounded(context)
-            ?: Icon.createWithResource(moduleContext, R.drawable.ic_launcher)
+        val logo = (
+            loadCustomIcon(ConfigManager.getString(PREF_KEY_CUSTOM_ICON_PATH, ""))
+                ?: Icon.createWithResource(moduleContext, R.drawable.ic_launcher)
+            ).toRounded(context)
         fun buildRemoteViews(palette: PanelPalette) = RemoteViews(
             moduleContext.packageName,
             R.layout.focus_notification_device,

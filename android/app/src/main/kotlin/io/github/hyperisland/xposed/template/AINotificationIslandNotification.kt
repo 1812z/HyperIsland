@@ -244,7 +244,7 @@ $userPrompt
     ) {
         try {
             val fallbackIcon = Icon.createWithResource(context, android.R.drawable.ic_dialog_info)
-            val displayIcon  = resolveIcon(data, data.iconMode, fallbackIcon).toRounded(context)
+            val displayIcon  = resolveIcon(data, data.iconMode, fallbackIcon)
             val islandText = FocusCustomizationEngine.resolveIslandText(
                 data = data,
                 templateId = TEMPLATE_ID,
@@ -261,7 +261,7 @@ $userPrompt
                     title            = islandText.first,
                     content          = islandText.second,
                     icon             = displayIcon,
-                    aodIcon          = FocusCustomizationEngine.resolveAodIcon(context, data),
+                    aodIcon          = FocusCustomizationEngine.resolveAodIcon(context, data, round = false),
                     timeoutSecs      = data.islandTimeout,
                     firstFloat       = data.firstFloat == "on",
                     enableFloat      = data.enableFloatMode == "on",

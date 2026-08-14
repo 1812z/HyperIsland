@@ -9,7 +9,6 @@ import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
 import io.github.hyperisland.xposed.islanddispatch.IslandRequest
 import io.github.hyperisland.xposed.utils.SceneBehavior
 import io.github.hyperisland.xposed.utils.HookUtils
-import io.github.hyperisland.xposed.utils.toRounded
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.util.concurrent.ConcurrentHashMap
@@ -377,7 +376,7 @@ object ToastUiInterceptHook : BaseHook() {
             }.getOrElse { pkg }
 
             val icon = runCatching {
-                pm.getAppIcon(pkg)?.toRounded(context)
+                pm.getAppIcon(pkg)
             }.getOrNull()
 
             val resolvedHighlightColor = resolveHighlightColor(

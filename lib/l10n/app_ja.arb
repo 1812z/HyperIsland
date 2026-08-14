@@ -113,6 +113,8 @@
   "checkUpdate": "更新を確認",
   "alreadyLatest": "最新のバージョンを使用しています",
   "roundIconRadiusTitle": "角の丸み",
+  "roundIconTitle": "通知アイコンの角丸",
+  "roundIconSubtitle": "通知アイコンに角丸効果を追加します",
   "islandIconSectionTitle": "アイコン",
   "iconSizeTitle": "アイコンサイズ",
   "iconPaddingTitle": "アイコンの余白",

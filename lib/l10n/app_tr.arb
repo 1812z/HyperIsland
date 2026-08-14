@@ -120,6 +120,8 @@
   "checkUpdate": "Güncellemeleri Denetle",
   "alreadyLatest": "Zaten en güncel sürümdesiniz",
   "roundIconRadiusTitle": "Köşe yuvarlaklığı",
+  "roundIconTitle": "Bildirim simgesi köşeleri",
+  "roundIconSubtitle": "Bildirim simgelerine yuvarlatılmış köşeler ekle",
   "islandIconSectionTitle": "Simgeler",
   "iconSizeTitle": "Simge boyutu",
   "iconPaddingTitle": "Simge kenar boşluğu",

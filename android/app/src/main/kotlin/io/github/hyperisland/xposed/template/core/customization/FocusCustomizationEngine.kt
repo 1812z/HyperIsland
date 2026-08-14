@@ -120,7 +120,7 @@ object FocusCustomizationEngine {
         )
     }
 
-    fun resolveAodIcon(context: Context, data: NotifData): Icon {
+    fun resolveAodIcon(context: Context, data: NotifData, round: Boolean = true): Icon {
         val configuredMode = try {
             data.aodCustomizationJson
                 ?.takeIf { it.isNotBlank() }
@@ -133,12 +133,13 @@ object FocusCustomizationEngine {
         }
         val mode = configuredMode.takeUnless { it.isEmpty() || it == "auto" } ?: data.iconMode
         val fallback = Icon.createWithResource(context, android.R.drawable.ic_dialog_info)
-        return when (mode) {
+        val icon = when (mode) {
             "notif_small" -> data.notifIcon ?: fallback
             "notif_large" -> data.largeIcon ?: data.notifIcon ?: fallback
             "app_icon" -> data.appIconRaw ?: fallback
             else -> data.largeIcon ?: data.notifIcon ?: fallback
-        }.toRounded(context)
+        }
+        return if (round) icon.toRounded(context) else icon
     }
 
     private fun resolveAodTitle(data: NotifData, vm: IslandViewModel): String? {

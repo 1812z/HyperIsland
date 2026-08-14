@@ -113,6 +113,8 @@
   "checkUpdate": "Check for updates",
   "alreadyLatest": "Already on the latest version",
   "roundIconRadiusTitle": "Corner roundness",
+  "roundIconTitle": "Notification icon corners",
+  "roundIconSubtitle": "Add rounded corners to notification icons",
   "islandIconSectionTitle": "Icons",
   "iconSizeTitle": "Icon size",
   "iconPaddingTitle": "Icon padding",

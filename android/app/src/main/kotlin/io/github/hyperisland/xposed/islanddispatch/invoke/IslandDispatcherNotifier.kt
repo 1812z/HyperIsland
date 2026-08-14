@@ -177,7 +177,11 @@ internal object IslandDispatcherNotifier {
             }
             val aodIconKey = "miui.focus.pic_aod"
             val pictures = notificationExtras.getBundle("miui.focus.pics") ?: Bundle()
-            (request.aodIcon ?: request.icon)?.let { pictures.putParcelable(aodIconKey, it) }
+            val aodIcon = when {
+                request.aodIcon == null || request.aodIcon === request.icon -> appIcon
+                else -> request.aodIcon.toRounded(context)
+            }
+            pictures.putParcelable(aodIconKey, aodIcon)
             notificationExtras.putBundle("miui.focus.pics", pictures)
             val publicVersion = Notification.Builder(context, channelId)
                 .setSmallIcon(android.R.drawable.ic_dialog_info)
@@ -363,7 +367,7 @@ internal object IslandDispatcherNotifier {
     }
 
     private fun resolveIcon(icon: Icon?, context: Context): Icon {
-        if (icon != null) return icon
+        if (icon != null) return icon.toRounded(context)
         return try {
             context.packageManager.getAppIcon("io.github.hyperisland")
                 ?.toRounded(context)
@@ -374,7 +378,7 @@ internal object IslandDispatcherNotifier {
     }
 
     private fun fallbackIcon(context: Context): Icon =
-        Icon.createWithResource(context, android.R.drawable.sym_def_app_icon)
+        Icon.createWithResource(context, android.R.drawable.sym_def_app_icon).toRounded(context)
 
     private fun injectIslandAppearance(
         jsonParam: String,

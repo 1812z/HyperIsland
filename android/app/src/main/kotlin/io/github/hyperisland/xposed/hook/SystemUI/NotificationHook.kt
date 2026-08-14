@@ -20,7 +20,6 @@ import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
 import io.github.hyperisland.xposed.template.core.TemplateRegistry
 import io.github.hyperisland.xposed.template.core.models.NotifData
 import io.github.hyperisland.xposed.utils.SceneBehavior
-import io.github.hyperisland.xposed.utils.toRounded
 import io.github.hyperisland.xposed.templates.NotificationIslandNotification
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
@@ -624,7 +623,7 @@ object GenericProgressHook : BaseHook() {
             "notif_large" -> largeIcon ?: notifIcon ?: fallback
             "app_icon" -> appIconRaw ?: fallback
             else -> largeIcon ?: notifIcon ?: fallback
-        }.toRounded(context)
+        }
 
         return iconForColor.resolveDynamicHighlightColor(context, mode) ?: manualHighlightColor
     }

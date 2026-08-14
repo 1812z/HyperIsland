@@ -120,6 +120,8 @@
   "checkUpdate": "检查更新",
   "alreadyLatest": "已是最新版本",
   "roundIconRadiusTitle": "圆角程度",
+  "roundIconTitle": "通知圆角",
+  "roundIconSubtitle": "为通知图标添加圆角效果",
   "islandIconSectionTitle": "图标",
   "iconSizeTitle": "图标大小",
   "iconPaddingTitle": "图标边距",

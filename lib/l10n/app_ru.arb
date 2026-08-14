@@ -113,6 +113,8 @@
   "checkUpdate": "Проверить обновления",
   "alreadyLatest": "Уже установлена последняя версия",
   "roundIconRadiusTitle": "Степень скругления",
+  "roundIconTitle": "Скругление значков уведомлений",
+  "roundIconSubtitle": "Добавлять скруглённые углы значкам уведомлений",
   "islandIconSectionTitle": "Значки",
   "iconSizeTitle": "Размер значка",
   "iconPaddingTitle": "Отступ значка",

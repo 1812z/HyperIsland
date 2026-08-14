@@ -572,6 +572,18 @@ abstract class AppLocalizations {
   /// **'圆角程度'**
   String get roundIconRadiusTitle;
 
+  /// No description provided for @roundIconTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'通知圆角'**
+  String get roundIconTitle;
+
+  /// No description provided for @roundIconSubtitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'为通知图标添加圆角效果'**
+  String get roundIconSubtitle;
+
   /// No description provided for @islandIconSectionTitle.
   ///
   /// In zh, this message translates to:

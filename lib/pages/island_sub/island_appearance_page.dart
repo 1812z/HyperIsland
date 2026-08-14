@@ -36,6 +36,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _ctrl.islandTopOffset,
     _ctrl.bigIslandMaxWidth,
     _ctrl.bigIslandMinWidth,
+    _ctrl.roundIcon,
     _ctrl.roundIconRadius,
     _ctrl.islandIconSize,
     _ctrl.islandIconPadding,
@@ -1149,6 +1150,19 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                         },
                         onPersist: (value) =>
                             _ctrl.setRoundIconRadius(value.round()),
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      SwitchListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        title: Text(l10n.roundIconTitle, style: titleStyle),
+                        subtitle: Text(l10n.roundIconSubtitle),
+                        value: _ctrl.roundIcon,
+                        onChanged: InteractionHaptics.interceptToggle(
+                          _ctrl.setRoundIcon,
+                        ),
                       ),
                       const Divider(height: 1, indent: 16, endIndent: 16),
                       _DimenTile(

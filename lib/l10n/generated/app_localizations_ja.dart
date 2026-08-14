@@ -260,6 +260,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get roundIconRadiusTitle => '角の丸み';
 
   @override
+  String get roundIconTitle => '通知アイコンの角丸';
+
+  @override
+  String get roundIconSubtitle => '通知アイコンに角丸効果を追加します';
+
+  @override
   String get islandIconSectionTitle => 'アイコン';
 
   @override

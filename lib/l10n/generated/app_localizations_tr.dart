@@ -276,6 +276,13 @@ class AppLocalizationsTr extends AppLocalizations {
   String get roundIconRadiusTitle => 'Köşe yuvarlaklığı';
 
   @override
+  String get roundIconTitle => 'Bildirim simgesi köşeleri';
+
+  @override
+  String get roundIconSubtitle =>
+      'Bildirim simgelerine yuvarlatılmış köşeler ekle';
+
+  @override
   String get islandIconSectionTitle => 'Simgeler';
 
   @override

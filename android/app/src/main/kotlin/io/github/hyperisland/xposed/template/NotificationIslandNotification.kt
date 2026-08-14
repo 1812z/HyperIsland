@@ -59,7 +59,7 @@ object NotificationIslandNotification : IslandTemplate {
                 "notif_large" -> data.largeIcon ?: data.notifIcon ?: fallbackIcon
                 "app_icon"    -> data.appIconRaw ?: fallbackIcon
                 else          -> data.largeIcon ?: data.notifIcon ?: fallbackIcon
-            }.toRounded(context)
+            }
             val islandText = FocusCustomizationEngine.resolveIslandText(
                 data = data,
                 templateId = TEMPLATE_ID,
@@ -73,7 +73,7 @@ object NotificationIslandNotification : IslandTemplate {
                     title            = islandText.first,
                     content          = islandText.second,
                     icon             = displayIcon,
-                    aodIcon          = FocusCustomizationEngine.resolveAodIcon(context, data),
+                    aodIcon          = FocusCustomizationEngine.resolveAodIcon(context, data, round = false),
                     timeoutSecs      = data.islandTimeout,
                     firstFloat       = data.firstFloat == "on",
                     enableFloat      = data.enableFloatMode == "on",

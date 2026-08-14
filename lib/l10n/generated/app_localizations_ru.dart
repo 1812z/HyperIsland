@@ -280,6 +280,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get roundIconRadiusTitle => 'Степень скругления';
 
   @override
+  String get roundIconTitle => 'Скругление значков уведомлений';
+
+  @override
+  String get roundIconSubtitle =>
+      'Добавлять скруглённые углы значкам уведомлений';
+
+  @override
   String get islandIconSectionTitle => 'Значки';
 
   @override
