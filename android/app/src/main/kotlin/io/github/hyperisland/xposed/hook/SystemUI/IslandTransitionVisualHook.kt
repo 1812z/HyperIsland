@@ -105,7 +105,7 @@ object IslandTransitionVisualHook : BaseHook() {
         }.getOrNull()
         if (backgroundClass != null) hookHandoffBackgroundAlpha(module, backgroundClass)
         val getFakeView = findMethod(delegateClass, "getFakeView") ?: return
-        sequenceOf("updateFakeViewAnimState", "containerScheduleUpdate").forEach { name ->
+        sequenceOf("updateFakeViewAnimState", "containerScheduleUpdate", "scheduleUpdate").forEach { name ->
             val method = delegateClass.declaredMethods.firstOrNull {
                 it.name == name && it.parameterCount == 0
             } ?: return@forEach

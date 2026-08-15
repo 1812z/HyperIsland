@@ -15,6 +15,8 @@ import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
+import io.github.hyperisland.xposed.log
 import java.io.File
 import java.lang.ref.WeakReference
 import java.lang.reflect.Field
@@ -153,6 +155,10 @@ object IslandBackgroundHook : BaseHook() {
     @Volatile
     private var hookModule: XposedModule? = null
 
+    private val maskDiagnosticTimes = Collections.synchronizedMap(
+        WeakHashMap<View, Long>()
+    )
+
     override fun getTag() = TAG
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
@@ -198,9 +204,9 @@ object IslandBackgroundHook : BaseHook() {
                     val animDelegateClass = classLoader.loadClass(
                         "miui.systemui.dynamicisland.anim.DynamicIslandAnimationDelegate"
                     )
-                    hookContainerScheduleUpdate(module, animDelegateClass, contentViewClass)
+                    hookContainerUpdates(module, animDelegateClass, contentViewClass)
                 } catch (e: Throwable) {
-                    logError(module, "Failed to hook containerScheduleUpdate: ${e.message}")
+                    logError(module, "Failed to hook container updates: ${e.message}")
                 }
             } catch (e: Throwable) {
                 logError(module, "Failed to hook updateDarkLightMode/updateBackgroundBg: ${e.message}")
@@ -733,47 +739,112 @@ object IslandBackgroundHook : BaseHook() {
         }
     }
 
-    /**
-     * Hook DynamicIslandAnimationDelegate.containerScheduleUpdate()。
-     *
-     * ★ 仅当当前岛类型有自定义背景时，清除 container 的遮罩。
-     * 无自定义背景时完全跟随系统。
-     */
-    private fun hookContainerScheduleUpdate(
+    /** Clears OS3/OS4 shared masks after the animation property writer runs. */
+    private fun hookContainerUpdates(
         module: XposedModule,
         animDelegateClass: Class<*>,
         contentViewClass: Class<*>,
     ) {
         try {
-            val method = animDelegateClass.getDeclaredMethod("containerScheduleUpdate")
             val viewField = animDelegateClass.getDeclaredField("view").apply { isAccessible = true }
             val stateField = contentViewClass.getDeclaredField("state").apply { isAccessible = true }
             val getContainer = contentViewClass.getMethod("getContainer").apply { isAccessible = true }
+            val getMask = runCatching {
+                contentViewClass.getMethod("getMask").apply { isAccessible = true }
+            }.getOrNull()
 
-            module.hook(method).intercept { chain ->
-                chain.proceed()
+            sequenceOf("containerScheduleUpdate", "scheduleUpdate").forEach { methodName ->
+                val method = animDelegateClass.declaredMethods.firstOrNull {
+                    it.name == methodName && it.parameterCount == 0
+                } ?: return@forEach
+                method.isAccessible = true
+                module.hook(method).intercept { chain ->
+                    val result = chain.proceed()
 
-                try {
-                    val contentView = viewField.get(chain.thisObject) ?: return@intercept null
-                    val state = stateField.get(contentView)
-                    val type = resolveIslandType(
-                        state?.javaClass?.simpleName.orEmpty(),
-                        state?.javaClass?.name.orEmpty(),
-                    )
-                    if (type != null && anyManagedOuterVisual()) {
-                        val container = getContainer.invoke(contentView) as? View
-                        if (container != null) clearSharedContainer(container, type)
+                    try {
+                        val contentView = viewField.get(chain.thisObject) ?: return@intercept result
+                        val state = stateField.get(contentView)
+                        val type = resolveIslandType(
+                            state?.javaClass?.simpleName.orEmpty(),
+                            state?.javaClass?.name.orEmpty(),
+                        )
+                        if (type != null && anyManagedOuterVisual()) {
+                            val container = getContainer.invoke(contentView) as? View
+                            if (container != null) {
+                                val restoredBackground = container.background
+                                clearSharedContainer(container, type)
+                                val mask = getMask?.invoke(contentView) as? View
+                                val restoredMaskBackground = mask?.background
+                                if (shouldClearSharedMask(type) && mask != null) {
+                                    clearMaskForView(mask)
+                                }
+                                logMaskDiagnostic(
+                                    methodName,
+                                    contentView,
+                                    container,
+                                    restoredBackground,
+                                    mask,
+                                    restoredMaskBackground,
+                                    type,
+                                )
+                            }
+                        }
+                    } catch (e: Exception) {
+                        logError(module, "$methodName clear bg failed: ${e.message}")
                     }
-                } catch (e: Exception) {
-                    logError(module, "containerScheduleUpdate clear bg failed: ${e.message}")
-                }
 
-                null
+                    result
+                }
             }
 
         } catch (e: Throwable) {
-            logError(module, "Failed to hook containerScheduleUpdate: ${e.message}")
+            logError(module, "Failed to hook container updates: ${e.message}")
         }
+    }
+
+    private fun logMaskDiagnostic(
+        source: String,
+        contentView: Any,
+        container: View,
+        restoredBackground: Drawable?,
+        mask: View?,
+        restoredMaskBackground: Drawable?,
+        type: IslandType,
+    ) {
+        val now = SystemClock.uptimeMillis()
+        val shouldLog = synchronized(maskDiagnosticTimes) {
+            val previous = maskDiagnosticTimes[container] ?: 0L
+            if (now - previous < MASK_DIAGNOSTIC_INTERVAL_MS) {
+                false
+            } else {
+                maskDiagnosticTimes[container] = now
+                true
+            }
+        }
+        if (!shouldLog) return
+
+        val backgroundView = runCatching {
+            contentView.javaClass.methods.firstOrNull {
+                it.name == "getBackgroundView" && it.parameterCount == 0
+            }?.invoke(contentView) as? View
+        }.getOrNull()
+        val outerDrawable = backgroundView?.let { view ->
+            getCachedField(drawableFieldCache, view.javaClass, "drawable")?.let { field ->
+                runCatching { field.get(view) as? Drawable }.getOrNull()
+            }
+        }
+        hookModule?.log(
+            "$TAG mask source=$source type=$type blur=${isBlurEnabledForType(type)} " +
+                "custom=${hasBgFileForType(type)} restored=${describeDrawable(restoredBackground)} " +
+                "containerBg=${describeDrawable(container.background)} " +
+                "mask=${describeView(mask)} maskVis=${mask?.visibility} " +
+                "maskRestored=${describeDrawable(restoredMaskBackground)} " +
+                "maskBg=${describeDrawable(mask?.background)} outer=${describeDrawable(outerDrawable)}",
+        )
+    }
+
+    private fun describeDrawable(drawable: Drawable?): String {
+        return drawable?.javaClass?.name ?: "null"
     }
 
     /**
@@ -821,13 +892,17 @@ object IslandBackgroundHook : BaseHook() {
     }
 
     private fun clearSharedContainer(container: View, type: IslandType) {
-        if (!isBlurEnabledForType(type) && !anyCustomBgConfigured()) return
+        if (!shouldClearSharedMask(type)) return
         synchronized(clearedSharedContainers) {
             clearedSharedContainers[container] = type
         }
         // OS4's IslandPropertyUpdater can restore a drawable, blend state, or bionics
         // material independently on every frame, so background == null is not enough.
         clearMaskForView(container)
+    }
+
+    private fun shouldClearSharedMask(type: IslandType): Boolean {
+        return isBlurEnabledForType(type) || anyCustomBgConfigured()
     }
 
     private fun isBlurEnabledForType(type: IslandType): Boolean {
@@ -1161,7 +1236,10 @@ object IslandBackgroundHook : BaseHook() {
         clearBionicsMaterialMethod = null
         clearBlurBlendEffectMethod = null
         commonUtilsInstance = null
+        maskDiagnosticTimes.clear()
     }
+
+    private const val MASK_DIAGNOSTIC_INTERVAL_MS = 2_000L
 
     /**
      * 圆角裁剪 Drawable 包装器。
