@@ -596,6 +596,8 @@
   "islandOutlineSection": "Ana hat denetimi",
   "outerGlowAppearanceSection": "Dış parlama",
   "outerGlowRangeTitle": "Parlama aralığı",
+  "outerGlowSingleColorTitle": "Tek renkli parlama",
+  "outerGlowBaseColorTitle": "Temel renk",
   "alwaysShowIslandOutlineTitle": "Ada ana hattını her zaman göster",
   "alwaysShowFocusOutlineTitle": "Odak bildirimi ana hattını her zaman göster",
   "islandBlurEnabled": "Canlı arka plan bulanıklığını etkinleştir",

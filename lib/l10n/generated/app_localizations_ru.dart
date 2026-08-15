@@ -2331,6 +2331,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get outerGlowRangeTitle => 'Область свечения';
 
   @override
+  String get outerGlowSingleColorTitle => 'Одноцветное свечение';
+
+  @override
+  String get outerGlowBaseColorTitle => 'Базовый цвет';
+
+  @override
   String get alwaysShowIslandOutlineTitle => 'Всегда показывать контур острова';
 
   @override

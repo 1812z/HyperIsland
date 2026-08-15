@@ -2316,6 +2316,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get outerGlowRangeTitle => 'Glow range';
 
   @override
+  String get outerGlowSingleColorTitle => 'Single-color glow';
+
+  @override
+  String get outerGlowBaseColorTitle => 'Base color';
+
+  @override
   String get alwaysShowIslandOutlineTitle => 'Always show island outline';
 
   @override

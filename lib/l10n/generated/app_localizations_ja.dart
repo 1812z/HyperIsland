@@ -2228,6 +2228,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get outerGlowRangeTitle => 'グローの範囲';
 
   @override
+  String get outerGlowSingleColorTitle => '単色グロー';
+
+  @override
+  String get outerGlowBaseColorTitle => 'ベースカラー';
+
+  @override
   String get alwaysShowIslandOutlineTitle => 'アイランドのアウトラインを常に表示';
 
   @override

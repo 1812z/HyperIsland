@@ -48,9 +48,16 @@ class ColorValueField extends StatelessWidget {
               hintText: hintText,
               suffixIcon:
                   canEdit && controller.text.isNotEmpty && onClear != null
-                  ? IconButton(
-                      icon: const Icon(Icons.clear, size: 18),
-                      onPressed: onClear,
+                  ? Align(
+                      alignment: Alignment.centerRight,
+                      widthFactor: 1,
+                      heightFactor: 1,
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        visualDensity: VisualDensity.compact,
+                        icon: const Icon(Icons.clear, size: 18),
+                        onPressed: onClear,
+                      ),
                     )
                   : null,
             ),

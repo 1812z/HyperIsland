@@ -29,6 +29,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
   late int _islandIconSizeDraft;
   late double _islandIconPaddingDraft;
   late int _outerGlowRangeDraft;
+  late final TextEditingController _outerGlowBaseColorController;
   late int _buildHash;
 
   int _computeHash() => Object.hashAll([
@@ -74,6 +75,8 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _ctrl.alwaysShowIslandOutline,
     _ctrl.alwaysShowFocusOutline,
     _ctrl.outerGlowRange,
+    _ctrl.outerGlowSingleColor,
+    _ctrl.outerGlowBaseColor,
   ]);
 
   @override
@@ -87,6 +90,9 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _islandIconSizeDraft = _ctrl.islandIconSize;
     _islandIconPaddingDraft = _ctrl.islandIconPadding;
     _outerGlowRangeDraft = _ctrl.outerGlowRange;
+    _outerGlowBaseColorController = TextEditingController(
+      text: _ctrl.outerGlowBaseColor,
+    );
     _buildHash = _computeHash();
     _ctrl.addListener(_onChanged);
   }
@@ -94,6 +100,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
   @override
   void dispose() {
     _ctrl.removeListener(_onChanged);
+    _outerGlowBaseColorController.dispose();
     super.dispose();
   }
 
@@ -108,6 +115,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     final nextIslandIconSize = _ctrl.islandIconSize;
     final nextIslandIconPadding = _ctrl.islandIconPadding;
     final nextGlowRange = _ctrl.outerGlowRange;
+    final nextGlowBaseColor = _ctrl.outerGlowBaseColor;
     if (nextHash == _buildHash &&
         nextHeight == _islandHeightDraft &&
         nextTopOffset == _islandTopOffsetDraft &&
@@ -129,6 +137,9 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
       _islandIconSizeDraft = nextIslandIconSize;
       _islandIconPaddingDraft = nextIslandIconPadding;
       _outerGlowRangeDraft = nextGlowRange;
+      if (_outerGlowBaseColorController.text != nextGlowBaseColor) {
+        _outerGlowBaseColorController.text = nextGlowBaseColor;
+      }
     });
   }
 
@@ -984,7 +995,6 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                         enabled: _hasAnyGlass,
                         onTap: _hasAnyGlass ? _showGlassEffectSettings : null,
                       ),
-                      const Divider(height: 1, indent: 16, endIndent: 16),
                       SwitchListTile(
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -1256,6 +1266,71 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                         onPersist: (value) =>
                             _ctrl.setOuterGlowRange(value.round()),
                         isFirst: true,
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      SwitchListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        title: Text(
+                          l10n.outerGlowSingleColorTitle,
+                          style: titleStyle,
+                        ),
+                        value: _ctrl.outerGlowSingleColor,
+                        onChanged: InteractionHaptics.interceptToggle(
+                          _ctrl.setOuterGlowSingleColor,
+                        ),
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l10n.outerGlowBaseColorTitle,
+                              style: titleStyle?.copyWith(
+                                color: _ctrl.outerGlowSingleColor
+                                    ? cs.onSurface.withValues(alpha: 0.38)
+                                    : null,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Opacity(
+                              opacity: _ctrl.outerGlowSingleColor ? 0.38 : 1,
+                              child: ColorValueField(
+                                controller: _outerGlowBaseColorController,
+                                enabled: !_ctrl.outerGlowSingleColor,
+                                decoration: const InputDecoration(
+                                  border: OutlineInputBorder(),
+                                  isDense: true,
+                                ),
+                                previewColor: parseHexColor(
+                                  _ctrl.outerGlowBaseColor,
+                                ),
+                                previewFallbackColor: const Color(0xFF0096FF),
+                                onChanged: _ctrl.setOuterGlowBaseColor,
+                                onClear: () {
+                                  _outerGlowBaseColorController.clear();
+                                  _ctrl.setOuterGlowBaseColor('');
+                                },
+                                onPickColor: () async {
+                                  final selected = await showColorPickerDialog(
+                                    context,
+                                    initialHex: _ctrl.outerGlowBaseColor,
+                                    title: l10n.outerGlowBaseColorTitle,
+                                    enableAlpha: false,
+                                  );
+                                  if (selected == null) return;
+                                  final hex = colorToArgbHex(selected);
+                                  _outerGlowBaseColorController.text = hex;
+                                  await _ctrl.setOuterGlowBaseColor(hex);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),

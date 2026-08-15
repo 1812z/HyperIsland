@@ -2305,6 +2305,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get outerGlowRangeTitle => 'Parlama aralığı';
 
   @override
+  String get outerGlowSingleColorTitle => 'Tek renkli parlama';
+
+  @override
+  String get outerGlowBaseColorTitle => 'Temel renk';
+
+  @override
   String get alwaysShowIslandOutlineTitle => 'Ada ana hattını her zaman göster';
 
   @override

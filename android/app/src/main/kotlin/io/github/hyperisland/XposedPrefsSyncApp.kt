@@ -316,6 +316,8 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
             "pref_always_show_island_outline",
             "pref_always_show_focus_outline",
             "pref_outer_glow_range",
+            "pref_outer_glow_single_color",
+            "pref_outer_glow_base_color",
             "pref_unlock_all_focus",
             "pref_unlock_focus_auth",
             "pref_charge_island",

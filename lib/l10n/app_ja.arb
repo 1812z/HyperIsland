@@ -449,6 +449,8 @@
   "islandOutlineSection": "アウトライン制御",
   "outerGlowAppearanceSection": "外周グロー",
   "outerGlowRangeTitle": "グローの範囲",
+  "outerGlowSingleColorTitle": "単色グロー",
+  "outerGlowBaseColorTitle": "ベースカラー",
   "alwaysShowIslandOutlineTitle": "アイランドのアウトラインを常に表示",
   "alwaysShowFocusOutlineTitle": "フォーカス通知のアウトラインを常に表示",
   "islandBlurEnabled": "リアルタイム背景ぼかしを有効化",

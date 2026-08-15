@@ -4247,6 +4247,18 @@ abstract class AppLocalizations {
   /// **'光晕范围'**
   String get outerGlowRangeTitle;
 
+  /// No description provided for @outerGlowSingleColorTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'单色光效'**
+  String get outerGlowSingleColorTitle;
+
+  /// No description provided for @outerGlowBaseColorTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'底色'**
+  String get outerGlowBaseColorTitle;
+
   /// No description provided for @alwaysShowIslandOutlineTitle.
   ///
   /// In zh, this message translates to:

@@ -862,6 +862,8 @@
   "islandOutlineSection": "Outline controls",
   "outerGlowAppearanceSection": "Outer glow",
   "outerGlowRangeTitle": "Glow range",
+  "outerGlowSingleColorTitle": "Single-color glow",
+  "outerGlowBaseColorTitle": "Base color",
   "alwaysShowIslandOutlineTitle": "Always show island outline",
   "alwaysShowFocusOutlineTitle": "Always show Focus Notification outline",
   "islandTextColorTitle": "Island Text Color",

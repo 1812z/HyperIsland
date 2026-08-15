@@ -132,6 +132,8 @@ const kPrefMediaNotificationTextColorMode =
 const kPrefAlwaysShowIslandOutline = 'pref_always_show_island_outline';
 const kPrefAlwaysShowFocusOutline = 'pref_always_show_focus_outline';
 const kPrefOuterGlowRange = 'pref_outer_glow_range';
+const kPrefOuterGlowSingleColor = 'pref_outer_glow_single_color';
+const kPrefOuterGlowBaseColor = 'pref_outer_glow_base_color';
 const kPrefKeepIsland = 'pref_keep_island';
 const kPrefKeepIslandDisplayTiming = 'pref_keep_island_display_timing';
 const kPrefKeepIslandShowNotification = 'pref_keep_island_show_notification';
@@ -329,6 +331,8 @@ class SettingsController extends ChangeNotifier {
   bool alwaysShowIslandOutline = false;
   bool alwaysShowFocusOutline = false;
   int outerGlowRange = 0;
+  bool outerGlowSingleColor = false;
+  String outerGlowBaseColor = '';
   bool keepIsland = false;
   String keepIslandDisplayTiming = kKeepIslandDisplayTimingAlways;
   bool keepIslandShowNotification = false;
@@ -614,6 +618,8 @@ class SettingsController extends ChangeNotifier {
     alwaysShowFocusOutline =
         prefs.getBool(kPrefAlwaysShowFocusOutline) ?? false;
     outerGlowRange = (prefs.getInt(kPrefOuterGlowRange) ?? 0).clamp(0, 100);
+    outerGlowSingleColor = prefs.getBool(kPrefOuterGlowSingleColor) ?? false;
+    outerGlowBaseColor = prefs.getString(kPrefOuterGlowBaseColor) ?? '';
     keepIsland = prefs.getBool(kPrefKeepIsland) ?? false;
     keepIslandDisplayTiming = switch (prefs.getString(
       kPrefKeepIslandDisplayTiming,
@@ -1784,6 +1790,27 @@ class SettingsController extends ChangeNotifier {
       await prefs.setInt(kPrefOuterGlowRange, clamped);
     }
     outerGlowRange = clamped;
+    notifyListeners();
+  }
+
+  Future<void> setOuterGlowSingleColor(bool value) async {
+    if (outerGlowSingleColor == value) return;
+    final prefs = await _getPrefs();
+    await prefs.setBool(kPrefOuterGlowSingleColor, value);
+    outerGlowSingleColor = value;
+    notifyListeners();
+  }
+
+  Future<void> setOuterGlowBaseColor(String value) async {
+    final normalized = value.trim();
+    if (outerGlowBaseColor == normalized) return;
+    final prefs = await _getPrefs();
+    if (normalized.isEmpty) {
+      await prefs.remove(kPrefOuterGlowBaseColor);
+    } else {
+      await prefs.setString(kPrefOuterGlowBaseColor, normalized);
+    }
+    outerGlowBaseColor = normalized;
     notifyListeners();
   }
 

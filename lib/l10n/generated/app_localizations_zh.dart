@@ -2185,6 +2185,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get outerGlowRangeTitle => '光晕范围';
 
   @override
+  String get outerGlowSingleColorTitle => '单色光效';
+
+  @override
+  String get outerGlowBaseColorTitle => '底色';
+
+  @override
   String get alwaysShowIslandOutlineTitle => '常驻显示岛轮廓';
 
   @override
