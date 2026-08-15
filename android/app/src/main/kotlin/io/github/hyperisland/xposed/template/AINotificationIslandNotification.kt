@@ -118,8 +118,19 @@ object AINotificationIslandNotification : IslandTemplate {
     )
 
     private val maxCompletionPrefixes = listOf("o1", "o3", "o4", "gpt-5")
+    private val reservedRequestFields = setOf(
+        "max_tokens",
+        "max_completion_tokens",
+    )
+
+    private data class LearnedTokenParam(
+        val url: String,
+        val model: String,
+        val name: String,
+    )
+
     @Volatile
-    private var maxTokenParamName: String = "max_tokens"
+    private var learnedTokenParam: LearnedTokenParam? = null
 
     // ── AI 调用（带超时） ──────────────────────────────────────────────────────
 
@@ -140,14 +151,16 @@ object AINotificationIslandNotification : IslandTemplate {
     }
 
     private fun callAiApi(config: AiConfig, data: NotifData): AiIslandText? {
-        val firstParam = tokenParamFor(config.model.ifEmpty { "gpt-4o-mini" })
+        val model = config.model.ifEmpty { "gpt-4o-mini" }
+        val firstParam = tokenParamFor(config.url, model)
         var response = postAiRequest(config, buildRequestBody(config, data, firstParam))
-        // 400 且错误信息中包含 max_tokens 或 max_completion_tokens 时，切换参数名重试
-        if (response.first == HttpURLConnection.HTTP_BAD_REQUEST && isTokenParamError(response.second)) {
+
+        if (isUnsupportedTokenParamError(response.first, response.second, firstParam)) {
             val alt = if (firstParam == "max_tokens") "max_completion_tokens" else "max_tokens"
-            maxTokenParamName = alt
-            // 重试时直接用 alt，绕过名单
             response = postAiRequest(config, buildRequestBody(config, data, alt))
+            if (response.first == HttpURLConnection.HTTP_OK) {
+                learnedTokenParam = LearnedTokenParam(config.url.trim(), normalizeModel(model), alt)
+            }
         }
         val code = response.first
         val responseBody = response.second
@@ -180,12 +193,45 @@ object AINotificationIslandNotification : IslandTemplate {
         }
     }
 
-    private fun tokenParamFor(model: String): String = if (maxCompletionPrefixes.any { model.startsWith(it) }) "max_completion_tokens" else maxTokenParamName
-
-    private fun isTokenParamError(body: String): Boolean {
-        val b = body.lowercase()
-        return b.contains("max_completion_tokens") || b.contains("max_tokens")
+    private fun tokenParamFor(url: String, model: String): String {
+        val normalizedModel = normalizeModel(model)
+        val learned = learnedTokenParam
+        if (learned?.url == url.trim() && learned.model == normalizedModel) return learned.name
+        return if (maxCompletionPrefixes.any { normalizedModel.startsWith(it) }) {
+            "max_completion_tokens"
+        } else {
+            "max_tokens"
+        }
     }
+
+    private fun normalizeModel(model: String): String = model.trim().lowercase().substringAfterLast('/')
+
+    private fun isUnsupportedTokenParamError(code: Int, body: String, sentParam: String): Boolean {
+        if (code != HttpURLConnection.HTTP_BAD_REQUEST) return false
+
+        val error = try { JSONObject(body).optJSONObject("error") } catch (_: Exception) { null }
+        val errorParam = error?.optString("param")?.lowercase().orEmpty()
+        val errorCode = error?.optString("code")?.lowercase().orEmpty()
+        val message = error?.optString("message", body)?.lowercase() ?: body.lowercase()
+        if (errorParam == sentParam && (
+                errorCode.contains("unsupported") ||
+                    errorCode.contains("unknown") ||
+                    hasUnsupportedWording(message)
+                )
+        ) {
+            return true
+        }
+
+        return message.contains(sentParam) && hasUnsupportedWording(message)
+    }
+
+    private fun hasUnsupportedWording(message: String): Boolean =
+        message.contains("unsupported") ||
+            message.contains("not supported") ||
+            message.contains("unknown parameter") ||
+            message.contains("unrecognized") ||
+            message.contains("not allowed") ||
+            message.contains("use max_")
 
     private fun buildRequestBody(config: AiConfig, data: NotifData, tokenParam: String): String {
         val defaultPrompt = "根据通知信息，提取关键信息，左右分别不超过6汉字12字符"
@@ -228,7 +274,11 @@ $userPrompt
 
         try {
             val customFields = JSONObject(config.customFields)
-            customFields.keys().forEach { key -> body.put(key, customFields.get(key)) }
+            customFields.keys().forEach { key ->
+                if (key !in reservedRequestFields) {
+                    body.put(key, customFields.get(key))
+                }
+            }
         } catch (e: Exception) {
             logWarn("$TAG: ignoring invalid custom fields: ${e.message}")
         }
