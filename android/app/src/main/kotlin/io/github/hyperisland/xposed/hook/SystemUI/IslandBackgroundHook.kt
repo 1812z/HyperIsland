@@ -128,6 +128,14 @@ object IslandBackgroundHook : BaseHook() {
     private var setBlurModeMethod: Method? = null
     @Volatile
     private var clearBlendMethod: Method? = null
+    @Volatile
+    private var setBackgroundBlurModeMethod: Method? = null
+    @Volatile
+    private var clearBionicsMaterialMethod: Method? = null
+    @Volatile
+    private var clearBlurBlendEffectMethod: Method? = null
+    @Volatile
+    private var commonUtilsInstance: Any? = null
 
     /** 缓存 bgViewClass 的 Field/Method，避免热路径反复反射查找 */
     private val stokeWidthFieldCache = ConcurrentHashMap<Class<*>, Field?>()
@@ -438,6 +446,10 @@ object IslandBackgroundHook : BaseHook() {
         disableBlurAndClearBlend(view)
     }
 
+    internal fun clearManagedVisualMask(view: View) {
+        clearMaskForView(view)
+    }
+
     /**
      * 禁用 blur 并清除 blend colors。
      * blur mode 设为 0 + 清除 blend colors，确保无暗色叠加残留。
@@ -462,7 +474,52 @@ object IslandBackgroundHook : BaseHook() {
                 clearBlendMethod = blurClass.getDeclaredMethod(
                     "clearMiBackgroundBlendColorCompat", View::class.java
                 )
+                setBackgroundBlurModeMethod = runCatching {
+                    blurClass.getDeclaredMethod(
+                        "setMiBackgroundBlurModeCompat",
+                        View::class.java,
+                        Int::class.javaPrimitiveType,
+                    ).apply { isAccessible = true }
+                }.getOrNull()
+
+                val backgroundStyleClass = runCatching {
+                    cl.loadClass("miui.systemui.util.MiBackgroundStyle")
+                }.getOrNull()
+                clearBionicsMaterialMethod = backgroundStyleClass?.let { clazz ->
+                    runCatching {
+                        clazz.getDeclaredMethod("clearBionicsMaterial", View::class.java).apply {
+                            isAccessible = true
+                        }
+                    }.getOrNull()
+                }
+
+                val commonUtilsClass = runCatching {
+                    cl.loadClass("miui.systemui.util.CommonUtils")
+                }.getOrNull()
+                commonUtilsInstance = commonUtilsClass?.let { clazz ->
+                    runCatching { clazz.getField("INSTANCE").get(null) }.getOrNull()
+                }
+                clearBlurBlendEffectMethod = commonUtilsClass?.let { clazz ->
+                    runCatching {
+                        clazz.getDeclaredMethod("clearMiBlurBlendEffect", View::class.java).apply {
+                            isAccessible = true
+                        }
+                    }.getOrNull()
+                }
             }
+
+            // OS4's bionics material is independent from View.background and blend colors.
+            try {
+                clearBionicsMaterialMethod?.invoke(null, view)
+            } catch (_: Exception) {}
+
+            try {
+                clearBlurBlendEffectMethod?.invoke(commonUtilsInstance, view)
+            } catch (_: Exception) {}
+
+            try {
+                setBackgroundBlurModeMethod?.invoke(null, view, 0)
+            } catch (_: Exception) {}
 
             // 1. 设 blur mode = 0（禁用模糊）
             try {
@@ -561,9 +618,8 @@ object IslandBackgroundHook : BaseHook() {
             "EXPAND" -> IslandType.EXPAND
             else -> return null
         }
-        if (!hasBgFileForType(type)) return null
         val module = hookModule ?: return null
-        return loadCustomDrawable(type, view.context, module)
+        return loadCustomDrawable(type, view.context, module, allowBlurFallback = true)
             ?.let(::newDrawableInstance)
             ?.also { setWeakCallback(it, view) }
     }
@@ -757,7 +813,7 @@ object IslandBackgroundHook : BaseHook() {
 
     private fun shouldOwnOuterDrawable(type: IslandType): Boolean {
         return hasBgFileForType(type) ||
-            (!isBlurEnabledForType(type) && anyManagedOuterVisual())
+            (!isBlurEnabledForType(type) && anyCustomBgConfigured())
     }
 
     private fun anyManagedOuterVisual(): Boolean {
@@ -765,12 +821,13 @@ object IslandBackgroundHook : BaseHook() {
     }
 
     private fun clearSharedContainer(container: View, type: IslandType) {
-        val firstClear = synchronized(clearedSharedContainers) {
-            clearedSharedContainers.put(container, type) != type
+        if (!isBlurEnabledForType(type) && !anyCustomBgConfigured()) return
+        synchronized(clearedSharedContainers) {
+            clearedSharedContainers[container] = type
         }
-        // A state change can restore MIUI blend state without assigning a Drawable.
-        // Promoted notifications can also restore the Drawable on every frame.
-        if (firstClear || container.background != null) clearMaskForView(container)
+        // OS4's IslandPropertyUpdater can restore a drawable, blend state, or bionics
+        // material independently on every frame, so background == null is not enough.
+        clearMaskForView(container)
     }
 
     private fun isBlurEnabledForType(type: IslandType): Boolean {
@@ -841,7 +898,8 @@ object IslandBackgroundHook : BaseHook() {
         type: IslandType,
         context: android.content.Context?,
         module: XposedModule,
-        stokeWidth: Int = 0
+        stokeWidth: Int = 0,
+        allowBlurFallback: Boolean = false,
     ): Drawable? {
         val cacheKey = DrawableCacheKey(type, stokeWidth.coerceAtLeast(0))
         val configPath = when (type) {
@@ -851,7 +909,7 @@ object IslandBackgroundHook : BaseHook() {
         }
 
         if (configPath.isNullOrBlank()) {
-            if (anyManagedOuterVisual()) {
+            if (anyCustomBgConfigured() || allowBlurFallback && anyBlurEnabled()) {
                 return loadBlackDrawable(context, module, stokeWidth)
             }
             return null
@@ -859,7 +917,7 @@ object IslandBackgroundHook : BaseHook() {
 
         val file = IslandBackgroundFile.resolve(configPath)
         if (file == null) {
-            if (anyManagedOuterVisual()) {
+            if (anyCustomBgConfigured() || allowBlurFallback && anyBlurEnabled()) {
                 return loadBlackDrawable(context, module, stokeWidth)
             }
             return null
@@ -1096,6 +1154,13 @@ object IslandBackgroundHook : BaseHook() {
         drawableFieldCache.clear()
         backgroundAlphaFieldCache.clear()
         scheduleUpdateMethodCache.clear()
+        miBlurCompatClass = null
+        setBlurModeMethod = null
+        clearBlendMethod = null
+        setBackgroundBlurModeMethod = null
+        clearBionicsMaterialMethod = null
+        clearBlurBlendEffectMethod = null
+        commonUtilsInstance = null
     }
 
     /**

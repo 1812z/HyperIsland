@@ -77,6 +77,17 @@ object IslandTransitionVisualHook : BaseHook() {
                 armRealBackgroundHandoff(owner, access)
             }
         }
+        hookDeclaredRefreshAfter(module, fakeClass, "restoreFakeViewBackground") { owner ->
+            refreshFakeView(owner, access)
+        }
+        hookDeclaredRefreshAfter(
+            module,
+            fakeClass,
+            "updateLiveUpdateExpandedView",
+            Boolean::class.javaPrimitiveType!!,
+        ) { owner ->
+            refreshFakeView(owner, access)
+        }
         hookFakeVisibility(module, fakeClass, access)
         hookDeclaredRefreshAfter(module, fakeClass, "onDetachedFromWindow") { owner ->
             releaseFakeView(owner, access)
@@ -264,7 +275,6 @@ object IslandTransitionVisualHook : BaseHook() {
         if ((fakeView as? View)?.visibility == View.VISIBLE) {
             armRealBackgroundHandoff(fakeView, access)
         }
-        updateFakeLayerMask(fakeView, access)
         access.forEach(fakeView) { typeName, view ->
             val target = synchronized(targets) {
                 targets.getOrPut(view) { TransitionTarget(view.background) }
@@ -272,7 +282,9 @@ object IslandTransitionVisualHook : BaseHook() {
             if (IslandBlurHook.isTransitionBlurEnabled(typeName)) {
                 if (!IslandBlurHook.hasTransitionBlur(view, typeName)) {
                     if (target.customDrawable != null) restoreStockBackground(view, target)
-                    IslandBlurHook.applyTransitionBlur(view, typeName)
+                    target.managedVisual = IslandBlurHook.applyTransitionBlur(view, typeName)
+                } else {
+                    target.managedVisual = true
                 }
                 return@forEach
             }
@@ -285,10 +297,13 @@ object IslandTransitionVisualHook : BaseHook() {
                     target.customDrawable = drawable
                     view.background = drawable
                 }
+                target.managedVisual = true
             } else {
                 restoreStockBackground(view, target)
+                target.managedVisual = false
             }
         }
+        updateFakeLayerMask(fakeView, access)
     }
 
     private fun updateFakeLayerMask(fakeView: Any, access: FakeViewAccess) {
@@ -304,15 +319,20 @@ object IslandTransitionVisualHook : BaseHook() {
                 )
             }
         }
-        // root/container/mask are shared by all fake states. Follow the state that is
-        // actually being rendered, otherwise one state's blur leaks into the other two.
-        val renderedType = access.renderedType(fakeView)
-        val clearSharedMask = root.visibility == View.VISIBLE && renderedType != null &&
-            IslandBlurHook.isTransitionBlurEnabled(renderedType)
+        // OS4 restores root/container to dynamic_island_background during transitions.
+        // Clear those shared layers only after every visible state owns an independent
+        // blur, custom image, or black fallback, so crossfades never expose transparency.
+        val visibleTargets = access.visibleViews(fakeView)
+        val clearSharedMask = root.visibility == View.VISIBLE && visibleTargets.isNotEmpty() &&
+            visibleTargets.all { (_, view) ->
+                targets[view]?.managedVisual == true && view.background != null
+            }
         if (clearSharedMask) {
-            if (root.background != null) root.background = null
-            if (container !== root && container?.background != null) container.background = null
-            if (mask?.background != null) mask.background = null
+            IslandBackgroundHook.clearManagedVisualMask(root)
+            if (container !== root && container != null) {
+                IslandBackgroundHook.clearManagedVisualMask(container)
+            }
+            if (mask != null) IslandBackgroundHook.clearManagedVisualMask(mask)
         } else {
             if (root.background == null) root.background = target.rootBackground
             if (container !== root && container?.background == null) {
@@ -339,6 +359,7 @@ object IslandTransitionVisualHook : BaseHook() {
         target.customDrawable = null
         val stock = target.stockDrawable.get()
         if (view.background !== stock) view.background = stock
+        target.managedVisual = false
     }
 
     private fun findMethod(clazz: Class<*>, name: String): Method? {
@@ -389,24 +410,16 @@ object IslandTransitionVisualHook : BaseHook() {
             }
         }
 
-        fun renderedType(owner: Any): String? {
-            val visible = listOf(
+        fun visibleViews(owner: Any): List<Pair<String, View>> {
+            return listOf(
                 RenderedState("SMALL", invokeView(owner, small)),
                 RenderedState("BIG", invokeView(owner, big)),
                 RenderedState("EXPAND", invokeView(owner, expand)),
             ).filter { state ->
                 state.view?.visibility == View.VISIBLE && state.view.alpha > 0f
+            }.mapNotNull { state ->
+                state.view?.let { state.type to it }
             }
-            if (visible.isEmpty()) return stateType(owner)
-            if (visible.size == 1) return visible.first().type
-
-            val maxAlpha = visible.maxOf { it.view?.alpha ?: 0f }
-            val strongest = visible.filter { (it.view?.alpha ?: 0f) == maxAlpha }
-            if (strongest.size == 1) return strongest.first().type
-
-            val logicalType = stateType(owner)
-            return strongest.firstOrNull { it.type == logicalType }?.type
-                ?: strongest.first().type
         }
 
         fun forEach(owner: Any, action: (String, View) -> Unit) {
@@ -444,6 +457,7 @@ object IslandTransitionVisualHook : BaseHook() {
     private class TransitionTarget(stockDrawable: Drawable?) {
         val stockDrawable = WeakReference(stockDrawable)
         var customDrawable: Drawable? = null
+        var managedVisual = false
     }
 
     private data class RealBackgroundTarget(
