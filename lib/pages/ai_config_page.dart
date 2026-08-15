@@ -39,6 +39,7 @@ class _AiConfigPageState extends State<AiConfigPage> {
   late bool _aiEnabledValue;
   late bool _aiPromptInUserValue;
   bool _localizedDefaultsInitialized = false;
+  _LearnedTokenParam? _learnedTokenParam;
 
   void _onCtrlChanged() {
     if (!mounted) return;
@@ -192,7 +193,11 @@ class _AiConfigPageState extends State<AiConfigPage> {
   Map<String, dynamic> _customRequestFields() {
     try {
       final decoded = jsonDecode(_ctrl.aiCustomFields);
-      if (decoded is Map<String, dynamic>) return decoded;
+      if (decoded is Map<String, dynamic>) {
+        return Map<String, dynamic>.from(decoded)
+          ..remove('max_tokens')
+          ..remove('max_completion_tokens');
+      }
     } on FormatException {
       // Invalid persisted data is ignored so it cannot break AI requests.
     }
@@ -208,6 +213,85 @@ class _AiConfigPageState extends State<AiConfigPage> {
   }
 
   String _effectiveModel(String model) => model.isEmpty ? 'gpt-4o-mini' : model;
+
+  String _normalizedModel(String model) =>
+      _effectiveModel(model).trim().toLowerCase().split('/').last;
+
+  String _tokenParamName(String url, String model) {
+    final normalizedModel = _normalizedModel(model);
+    final learned = _learnedTokenParam;
+    if (learned != null &&
+        learned.url == url.trim() &&
+        learned.model == normalizedModel) {
+      return learned.name;
+    }
+    const prefixes = ['o1', 'o3', 'o4', 'gpt-5'];
+    return prefixes.any(normalizedModel.startsWith)
+        ? 'max_completion_tokens'
+        : 'max_tokens';
+  }
+
+  bool _hasUnsupportedWording(String message) {
+    return message.contains('unsupported') ||
+        message.contains('not supported') ||
+        message.contains('unknown parameter') ||
+        message.contains('unrecognized') ||
+        message.contains('not allowed') ||
+        message.contains('use max_');
+  }
+
+  bool _isUnsupportedTokenParamError(http.Response response, String sentParam) {
+    if (response.statusCode != 400) return false;
+
+    Map<String, dynamic>? error;
+    try {
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map<String, dynamic> &&
+          decoded['error'] is Map<String, dynamic>) {
+        error = decoded['error'] as Map<String, dynamic>;
+      }
+    } on FormatException {
+      // Non-standard providers may return a plain-text error body.
+    }
+
+    final errorParam = error?['param']?.toString().toLowerCase() ?? '';
+    final errorCode = error?['code']?.toString().toLowerCase() ?? '';
+    final message = (error?['message']?.toString() ?? response.body)
+        .toLowerCase();
+    if (errorParam == sentParam &&
+        (errorCode.contains('unsupported') ||
+            errorCode.contains('unknown') ||
+            _hasUnsupportedWording(message))) {
+      return true;
+    }
+    return message.contains(sentParam) && _hasUnsupportedWording(message);
+  }
+
+  /// Retry once with the alternate token-limit parameter when unsupported.
+  Future<http.Response> _postWithTokenFallback(
+    String url,
+    String key,
+    String model,
+    Future<http.Response> Function(String tokenParam) send,
+  ) async {
+    final effectiveModel = _effectiveModel(model);
+    final firstParam = _tokenParamName(url, effectiveModel);
+    var response = await send(firstParam);
+    if (_isUnsupportedTokenParamError(response, firstParam)) {
+      final alt = firstParam == 'max_tokens'
+          ? 'max_completion_tokens'
+          : 'max_tokens';
+      response = await send(alt);
+      if (response.statusCode == 200) {
+        _learnedTokenParam = _LearnedTokenParam(
+          url.trim(),
+          _normalizedModel(effectiveModel),
+          alt,
+        );
+      }
+    }
+    return response;
+  }
 
   /// Derive the `/models` endpoint from the chat completions URL.
   ///
@@ -268,8 +352,11 @@ class _AiConfigPageState extends State<AiConfigPage> {
     required String model,
     required String promptText,
     required String userContent,
+    String? tokenParamName,
   }) {
     final effectiveModel = _effectiveModel(model);
+    final key =
+        tokenParamName ?? _tokenParamName(_urlCtrl.text.trim(), effectiveModel);
     return <String, dynamic>{
       'model': effectiveModel,
       'messages': [
@@ -279,7 +366,7 @@ class _AiConfigPageState extends State<AiConfigPage> {
           {'role': 'user', 'content': promptText},
         {'role': 'user', 'content': userContent},
       ],
-      'max_tokens': _ctrl.aiMaxTokens,
+      key: _ctrl.aiMaxTokens,
       'temperature': _ctrl.aiTemperature,
       ..._customRequestFields(),
     };
@@ -350,24 +437,29 @@ class _AiConfigPageState extends State<AiConfigPage> {
       final sampleUserContent = AppLocalizations.of(
         context,
       )!.aiTestSampleUserContent;
-      final requestBody = jsonEncode(
-        _buildRequestPayload(
-          model: model,
-          promptText: '',
-          userContent: sampleUserContent,
-        ),
-      );
-      final response = await http
-          .post(
-            Uri.parse(url),
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              if (key.isNotEmpty) 'Authorization': 'Bearer $key',
-            },
-            body: requestBody,
-          )
-          .timeout(Duration(seconds: _ctrl.aiTimeout));
+      final response = await _postWithTokenFallback(url, key, model, (
+        tokenParam,
+      ) {
+        final requestBody = jsonEncode(
+          _buildRequestPayload(
+            model: model,
+            promptText: '',
+            userContent: sampleUserContent,
+            tokenParamName: tokenParam,
+          ),
+        );
+        return http
+            .post(
+              Uri.parse(url),
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                if (key.isNotEmpty) 'Authorization': 'Bearer $key',
+              },
+              body: requestBody,
+            )
+            .timeout(Duration(seconds: _ctrl.aiTimeout));
+      });
 
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>;
@@ -432,24 +524,30 @@ class _AiConfigPageState extends State<AiConfigPage> {
             },
             {'role': 'user', 'content': userContent},
           ];
-    final requestBody = jsonEncode(<String, dynamic>{
-      'model': _effectiveModel(model),
-      'messages': messages,
-      'max_tokens': _ctrl.aiMaxTokens,
-      'temperature': _ctrl.aiTemperature,
-      ..._customRequestFields(),
+    final effectiveModel = _effectiveModel(model);
+
+    final response = await _postWithTokenFallback(url, key, model, (
+      tokenParam,
+    ) {
+      final requestBody = jsonEncode(<String, dynamic>{
+        'model': effectiveModel,
+        'messages': messages,
+        tokenParam: _ctrl.aiMaxTokens,
+        'temperature': _ctrl.aiTemperature,
+        ..._customRequestFields(),
+      });
+      return http
+          .post(
+            Uri.parse(url),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              if (key.isNotEmpty) 'Authorization': 'Bearer $key',
+            },
+            body: requestBody,
+          )
+          .timeout(Duration(seconds: _ctrl.aiTimeout));
     });
-    final response = await http
-        .post(
-          Uri.parse(url),
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            if (key.isNotEmpty) 'Authorization': 'Bearer $key',
-          },
-          body: requestBody,
-        )
-        .timeout(Duration(seconds: _ctrl.aiTimeout));
 
     if (response.statusCode != 200) {
       throw Exception('HTTP ${response.statusCode}\n${response.body}');
@@ -1285,6 +1383,14 @@ class _TestResult {
   final String message;
   const _TestResult.ok(this.message) : success = true;
   const _TestResult.fail(this.message) : success = false;
+}
+
+class _LearnedTokenParam {
+  const _LearnedTokenParam(this.url, this.model, this.name);
+
+  final String url;
+  final String model;
+  final String name;
 }
 
 class _TestResultCard extends StatelessWidget {

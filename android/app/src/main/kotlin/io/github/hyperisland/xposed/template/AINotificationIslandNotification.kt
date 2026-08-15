@@ -117,6 +117,21 @@ object AINotificationIslandNotification : IslandTemplate {
         triggerCharCount = ConfigManager.getInt("pref_ai_trigger_char_count", 10).coerceIn(0, 100),
     )
 
+    private val maxCompletionPrefixes = listOf("o1", "o3", "o4", "gpt-5")
+    private val reservedRequestFields = setOf(
+        "max_tokens",
+        "max_completion_tokens",
+    )
+
+    private data class LearnedTokenParam(
+        val url: String,
+        val model: String,
+        val name: String,
+    )
+
+    @Volatile
+    private var learnedTokenParam: LearnedTokenParam? = null
+
     // ── AI 调用（带超时） ──────────────────────────────────────────────────────
 
     private fun fetchAiText(config: AiConfig, data: NotifData): AiIslandText? {
@@ -136,7 +151,17 @@ object AINotificationIslandNotification : IslandTemplate {
     }
 
     private fun callAiApi(config: AiConfig, data: NotifData): AiIslandText? {
-        val response = postAiRequest(config, buildRequestBody(config, data))
+        val model = config.model.ifEmpty { "gpt-4o-mini" }
+        val firstParam = tokenParamFor(config.url, model)
+        var response = postAiRequest(config, buildRequestBody(config, data, firstParam))
+
+        if (isUnsupportedTokenParamError(response.first, response.second, firstParam)) {
+            val alt = if (firstParam == "max_tokens") "max_completion_tokens" else "max_tokens"
+            response = postAiRequest(config, buildRequestBody(config, data, alt))
+            if (response.first == HttpURLConnection.HTTP_OK) {
+                learnedTokenParam = LearnedTokenParam(config.url.trim(), normalizeModel(model), alt)
+            }
+        }
         val code = response.first
         val responseBody = response.second
         if (code != HttpURLConnection.HTTP_OK) {
@@ -168,7 +193,47 @@ object AINotificationIslandNotification : IslandTemplate {
         }
     }
 
-    private fun buildRequestBody(config: AiConfig, data: NotifData): String {
+    private fun tokenParamFor(url: String, model: String): String {
+        val normalizedModel = normalizeModel(model)
+        val learned = learnedTokenParam
+        if (learned?.url == url.trim() && learned.model == normalizedModel) return learned.name
+        return if (maxCompletionPrefixes.any { normalizedModel.startsWith(it) }) {
+            "max_completion_tokens"
+        } else {
+            "max_tokens"
+        }
+    }
+
+    private fun normalizeModel(model: String): String = model.trim().lowercase().substringAfterLast('/')
+
+    private fun isUnsupportedTokenParamError(code: Int, body: String, sentParam: String): Boolean {
+        if (code != HttpURLConnection.HTTP_BAD_REQUEST) return false
+
+        val error = try { JSONObject(body).optJSONObject("error") } catch (_: Exception) { null }
+        val errorParam = error?.optString("param")?.lowercase().orEmpty()
+        val errorCode = error?.optString("code")?.lowercase().orEmpty()
+        val message = error?.optString("message", body)?.lowercase() ?: body.lowercase()
+        if (errorParam == sentParam && (
+                errorCode.contains("unsupported") ||
+                    errorCode.contains("unknown") ||
+                    hasUnsupportedWording(message)
+                )
+        ) {
+            return true
+        }
+
+        return message.contains(sentParam) && hasUnsupportedWording(message)
+    }
+
+    private fun hasUnsupportedWording(message: String): Boolean =
+        message.contains("unsupported") ||
+            message.contains("not supported") ||
+            message.contains("unknown parameter") ||
+            message.contains("unrecognized") ||
+            message.contains("not allowed") ||
+            message.contains("use max_")
+
+    private fun buildRequestBody(config: AiConfig, data: NotifData, tokenParam: String): String {
         val defaultPrompt = "根据通知信息，提取关键信息，左右分别不超过6汉字12字符"
         val userPrompt = if (config.prompt.isNotEmpty()) config.prompt else defaultPrompt
 
@@ -204,12 +269,16 @@ $userPrompt
         val body = JSONObject()
             .put("model", model)
             .put("messages", messages)
-            .put("max_tokens", config.maxTokens)
+            .put(tokenParam, config.maxTokens)
             .put("temperature", config.temperature)
 
         try {
             val customFields = JSONObject(config.customFields)
-            customFields.keys().forEach { key -> body.put(key, customFields.get(key)) }
+            customFields.keys().forEach { key ->
+                if (key !in reservedRequestFields) {
+                    body.put(key, customFields.get(key))
+                }
+            }
         } catch (e: Exception) {
             logWarn("$TAG: ignoring invalid custom fields: ${e.message}")
         }
