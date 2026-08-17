@@ -1648,7 +1648,7 @@ object KeepIslandHook : BaseHook() {
     private const val PERFORMANCE_TREND_POINTS = 24
     private const val CHARGING_MAX_SAMPLES = 120
     private const val CHARGING_SAMPLE_INTERVAL_MS = 5000L
-    private const val AOD_DATA_UPDATE_INTERVAL_MS = 30000L
+    private const val AOD_DATA_UPDATE_INTERVAL_MS = 59000L
     private val SECOND_TIME_PLACEHOLDERS = listOf(
         "{time.ss}",
         "{time.HH:mm:ss}",
