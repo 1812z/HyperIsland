@@ -56,15 +56,16 @@
     <FrameLayout
         android:id="@+id/charging_chart_container"
         android:layout_width="match_parent"
-        android:layout_height="84dp"
+        android:layout_height="wrap_content"
         android:layout_marginTop="6dp">
 
         <ImageView
             android:id="@+id/charging_chart"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
+            android:adjustViewBounds="true"
             android:contentDescription="充电趋势"
-            android:scaleType="fitXY" />
+            android:scaleType="fitCenter" />
     </FrameLayout>
 
 </LinearLayout>
