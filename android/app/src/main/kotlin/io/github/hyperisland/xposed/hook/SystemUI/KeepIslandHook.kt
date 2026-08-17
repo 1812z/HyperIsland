@@ -467,6 +467,7 @@ object KeepIslandHook : BaseHook() {
     }
 
     private fun resolveKeepIslandTexts(): Pair<String, String> {
+        if (!ConfigManager.getBoolean(PREF_KEY, false)) return " " to ""
         val config = contentConfig()
         advanceCarouselIfNeeded(config)
         val leftExpression = config.left.getOrNull((carouselIndex % config.left.size).toInt()).orEmpty()
@@ -1287,6 +1288,7 @@ object KeepIslandHook : BaseHook() {
     }
 
     private fun hasSecondTimePlaceholder(): Boolean {
+        if (!ConfigManager.getBoolean(PREF_KEY, false)) return false
         val config = contentConfig()
         return (config.left + config.right).any { expression ->
             SECOND_TIME_PLACEHOLDERS.any(expression::contains)
@@ -1313,7 +1315,8 @@ object KeepIslandHook : BaseHook() {
 
     private fun hasConfiguredKeepIslandContent(): Boolean {
         val config = contentConfig()
-        val hasIslandContent = config.left.any { it.isNotBlank() } || config.right.any { it.isNotBlank() }
+        val hasIslandContent = ConfigManager.getBoolean(PREF_KEY, false) &&
+                (config.left.any { it.isNotBlank() } || config.right.any { it.isNotBlank() })
         if (hasIslandContent) return true
         if (!focusContentActive()) return false
         if (ConfigManager.getString(PREF_KEY_FOCUS_CONTENT_TYPE, FOCUS_CONTENT_NOTIFICATION) in
@@ -1648,7 +1651,7 @@ object KeepIslandHook : BaseHook() {
     private const val PERFORMANCE_TREND_POINTS = 24
     private const val CHARGING_MAX_SAMPLES = 120
     private const val CHARGING_SAMPLE_INTERVAL_MS = 5000L
-    private const val AOD_DATA_UPDATE_INTERVAL_MS = 30000L
+    private const val AOD_DATA_UPDATE_INTERVAL_MS = 59000L
     private val SECOND_TIME_PLACEHOLDERS = listOf(
         "{time.ss}",
         "{time.HH:mm:ss}",
