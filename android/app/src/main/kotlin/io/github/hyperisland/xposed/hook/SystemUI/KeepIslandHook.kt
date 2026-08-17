@@ -21,9 +21,11 @@ import android.graphics.drawable.Icon
 import android.hardware.display.DisplayManager
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
 import android.os.SystemClock
 import android.view.Display
 import android.view.Surface
+import android.view.View
 import android.widget.RemoteViews
 import io.github.hyperisland.R
 import io.github.hyperisland.xposed.ConfigManager
@@ -127,6 +129,8 @@ object KeepIslandHook : BaseHook() {
 
     private var lastContentUpdateSignature: String? = null
 
+    private var cachedPanelFocusContent: FocusContent? = null
+
     private val cpuTrend = ArrayDeque<Float>()
 
     private val gpuTrend = ArrayDeque<Float>()
@@ -164,6 +168,7 @@ object KeepIslandHook : BaseHook() {
     private fun refreshFromSettings() {
         mainHandler.postDelayed({
             cachedContentConfig = null
+            cachedPanelFocusContent = null
             carouselIndex = 0L
             lastCarouselAdvanceAt = System.currentTimeMillis()
             if (ConfigManager.getString(PREF_KEY_FOCUS_CONTENT_TYPE, FOCUS_CONTENT_NOTIFICATION) !=
@@ -387,6 +392,7 @@ object KeepIslandHook : BaseHook() {
         force: Boolean = false,
     ) {
         if (!posted || !shouldPostKeepNotification()) return
+        if (defaultDisplayState(context) == Display.STATE_OFF) return
         val texts: Pair<String, String> = resolveKeepIslandTexts()
         try {
             val highlightColor = ConfigManager.getString(PREF_KEY_HIGHLIGHT_COLOR, "")
@@ -526,8 +532,24 @@ object KeepIslandHook : BaseHook() {
             "CPU $cpuTemperature°C · BATTERY $batteryTemperature°C · $batteryPower"
         val networkText =
             "↓ ${formatRate(snapshot.downloadBytesPerSecond)}  ↑ ${formatRate(snapshot.uploadBytesPerSecond)}"
+        val expandPalette = resolveExpandPalette()
+        val signature = buildString {
+            append("performance\u0000")
+            append(cpuText).append('\u0000')
+            append(gpuText).append('\u0000')
+            append(memoryText).append('\u0000')
+            append(temperatureText).append('\u0000')
+            append(networkText).append('\u0000')
+            append(cpuTrend.joinToString(",") { it.roundToInt().toString() }).append('\u0000')
+            append(gpuTrend.joinToString(",") { it.roundToInt().toString() }).append('\u0000')
+            append(memoryTrend.joinToString(",") { it.roundToInt().toString() }).append('\u0000')
+            append(expandPalette.primary)
+        }
+        cachedPanelFocusContent?.takeIf { it.signature == signature }?.let { return it }
         val moduleContext = context.moduleContext()
-        fun buildRemoteViews(palette: PanelPalette) = RemoteViews(
+        val lightChart = drawPerformanceChart(context, darkMode = false)
+        val darkChart = drawPerformanceChart(context, darkMode = true)
+        fun buildRemoteViews(palette: PanelPalette, chart: Bitmap) = RemoteViews(
             moduleContext.packageName,
             R.layout.focus_notification_performance,
         ).apply {
@@ -546,25 +568,16 @@ object KeepIslandHook : BaseHook() {
             setTextColor(R.id.performance_network, palette.secondary)
             setImageViewBitmap(
                 R.id.performance_chart,
-                drawPerformanceChart(context, palette.dark),
+                chart,
             )
         }
-        val lightRemoteViews = buildRemoteViews(PanelPalette.LIGHT)
-        val darkRemoteViews = buildRemoteViews(PanelPalette.DARK)
-        val expandPalette = resolveExpandPalette()
-        val expandRemoteViews = buildRemoteViews(expandPalette)
-        val aodRemoteViews = buildRemoteViews(PanelPalette.AOD)
-        val signature = buildString {
-            append("performance\u0000")
-            append(cpuText).append('\u0000')
-            append(gpuText).append('\u0000')
-            append(memoryText).append('\u0000')
-            append(temperatureText).append('\u0000')
-            append(networkText).append('\u0000')
-            append(cpuTrend.joinToString(",") { it.roundToInt().toString() }).append('\u0000')
-            append(gpuTrend.joinToString(",") { it.roundToInt().toString() }).append('\u0000')
-            append(memoryTrend.joinToString(",") { it.roundToInt().toString() })
-        }
+        val lightRemoteViews = buildRemoteViews(PanelPalette.LIGHT, lightChart)
+        val darkRemoteViews = buildRemoteViews(PanelPalette.DARK, darkChart)
+        val expandRemoteViews = buildRemoteViews(
+            expandPalette,
+            if (expandPalette.dark) darkChart else lightChart,
+        )
+        val aodRemoteViews = buildRemoteViews(PanelPalette.AOD, darkChart)
         return FocusContent(
             title = "性能概览",
             content = "$cpuText · $memoryText",
@@ -572,8 +585,8 @@ object KeepIslandHook : BaseHook() {
             nightRemoteViews = darkRemoteViews,
             islandExpandRemoteViews = expandRemoteViews,
             aodRemoteViews = aodRemoteViews,
-            signature = "$signature\u0000${expandPalette.primary}",
-        )
+            signature = signature,
+        ).also { cachedPanelFocusContent = it }
     }
 
     private fun resolveDeviceFocusContent(context: Context): FocusContent {
@@ -582,9 +595,23 @@ object KeepIslandHook : BaseHook() {
         val memoryPercent = snapshot.memoryUsagePercent?.roundToInt()?.coerceIn(0, 100) ?: 0
         val cpuText = snapshot.cpuUsagePercent?.let { "$cpuPercent%" } ?: "--%"
         val memoryText = snapshot.memoryUsagePercent?.let { "$memoryPercent%" } ?: "--%"
+        val customIconPath = ConfigManager.getString(PREF_KEY_CUSTOM_ICON_PATH, "")
+        val expandPalette = resolveExpandPalette()
+        val signature = listOf(
+            "device",
+            snapshot.manufacturer,
+            snapshot.model,
+            snapshot.chipset,
+            snapshot.uptime,
+            cpuText,
+            memoryText,
+            customIconPath,
+            expandPalette.primary,
+        ).joinToString("\u0000")
+        cachedPanelFocusContent?.takeIf { it.signature == signature }?.let { return it }
         val moduleContext = context.moduleContext()
         val logo = (
-            loadCustomIcon(ConfigManager.getString(PREF_KEY_CUSTOM_ICON_PATH, ""))
+            loadCustomIcon(customIconPath)
                 ?: Icon.createWithResource(moduleContext, R.drawable.ic_launcher)
             ).toRounded(context)
         fun buildRemoteViews(palette: PanelPalette) = RemoteViews(
@@ -634,19 +661,8 @@ object KeepIslandHook : BaseHook() {
         }
         val lightRemoteViews = buildRemoteViews(PanelPalette.LIGHT)
         val darkRemoteViews = buildRemoteViews(PanelPalette.DARK)
-        val expandPalette = resolveExpandPalette()
         val expandRemoteViews = buildRemoteViews(expandPalette)
         val aodRemoteViews = buildRemoteViews(PanelPalette.AOD)
-        val signature = listOf(
-            "device",
-            snapshot.manufacturer,
-            snapshot.model,
-            snapshot.chipset,
-            snapshot.uptime,
-            cpuText,
-            memoryText,
-            ConfigManager.getString(PREF_KEY_CUSTOM_ICON_PATH, ""),
-        ).joinToString("\u0000")
         return FocusContent(
             title = snapshot.manufacturer,
             content = snapshot.model,
@@ -654,8 +670,8 @@ object KeepIslandHook : BaseHook() {
             nightRemoteViews = darkRemoteViews,
             islandExpandRemoteViews = expandRemoteViews,
             aodRemoteViews = aodRemoteViews,
-            signature = "$signature\u0000${expandPalette.primary}",
-        )
+            signature = signature,
+        ).also { cachedPanelFocusContent = it }
     }
 
     private fun resolveChargingFocusContent(context: Context): FocusContent {
@@ -668,6 +684,25 @@ object KeepIslandHook : BaseHook() {
         val temperatureText = snapshot.temperatureCelsius?.let {
             String.format(Locale.US, "%.1f°C", it)
         } ?: "--°C"
+        val expandPalette = resolveExpandPalette()
+        val signature = buildString {
+            append("charging\u0000")
+            append(snapshot.isCharging).append('\u0000')
+            append(primaryText).append('\u0000')
+            append(currentText).append('\u0000')
+            append(voltageText).append('\u0000')
+            append(temperatureText).append('\u0000')
+            append(chargingChartMode.name).append('\u0000')
+            append(chargingTrend.size).append('\u0000')
+            chargingTrend.lastOrNull()?.let {
+                append(it.elapsedMillis).append(':')
+                append(it.powerWatt).append(':')
+                append(it.levelPercent).append(':')
+                append(it.temperatureCelsius)
+            }
+            append('\u0000').append(expandPalette.primary)
+        }
+        cachedPanelFocusContent?.takeIf { it.signature == signature }?.let { return it }
         val moduleContext = context.moduleContext()
         val switchIntent = PendingIntent.getBroadcast(
             context,
@@ -675,7 +710,13 @@ object KeepIslandHook : BaseHook() {
             Intent(ACTION_SWITCH_CHARGING_CHART).setPackage(context.packageName),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        fun buildRemoteViews(palette: PanelPalette) = RemoteViews(
+        val lightChart = drawChargingChart(context, darkMode = false)
+        val darkChart = drawChargingChart(context, darkMode = true)
+        fun buildRemoteViews(
+            palette: PanelPalette,
+            chart: Bitmap,
+            interactive: Boolean = true,
+        ) = RemoteViews(
             moduleContext.packageName,
             R.layout.focus_notification_charging,
         ).apply {
@@ -695,31 +736,25 @@ object KeepIslandHook : BaseHook() {
             setTextColor(R.id.charging_primary, palette.primary)
             setTextColor(R.id.charging_details, palette.secondary)
             setTextColor(R.id.charging_mode, palette.secondary)
-            setImageViewBitmap(R.id.charging_chart, drawChargingChart(context, palette.dark))
-            setOnClickPendingIntent(R.id.charging_mode, switchIntent)
-            setOnClickPendingIntent(R.id.charging_chart_container, switchIntent)
-        }
-        val lightRemoteViews = buildRemoteViews(PanelPalette.LIGHT)
-        val darkRemoteViews = buildRemoteViews(PanelPalette.DARK)
-        val expandPalette = resolveExpandPalette()
-        val expandRemoteViews = buildRemoteViews(expandPalette)
-        val aodRemoteViews = buildRemoteViews(PanelPalette.AOD)
-        val signature = buildString {
-            append("charging\u0000")
-            append(snapshot.isCharging).append('\u0000')
-            append(primaryText).append('\u0000')
-            append(currentText).append('\u0000')
-            append(voltageText).append('\u0000')
-            append(temperatureText).append('\u0000')
-            append(chargingChartMode.name).append('\u0000')
-            append(chargingTrend.size).append('\u0000')
-            chargingTrend.lastOrNull()?.let {
-                append(it.elapsedMillis).append(':')
-                append(it.powerWatt).append(':')
-                append(it.levelPercent).append(':')
-                append(it.temperatureCelsius)
+            setImageViewBitmap(R.id.charging_chart, chart)
+            if (interactive) {
+                setOnClickPendingIntent(R.id.charging_mode, switchIntent)
+                setOnClickPendingIntent(R.id.charging_chart_container, switchIntent)
+            } else {
+                setViewVisibility(R.id.charging_mode, View.GONE)
             }
         }
+        val lightRemoteViews = buildRemoteViews(PanelPalette.LIGHT, lightChart)
+        val darkRemoteViews = buildRemoteViews(PanelPalette.DARK, darkChart)
+        val expandRemoteViews = buildRemoteViews(
+            expandPalette,
+            if (expandPalette.dark) darkChart else lightChart,
+        )
+        val aodRemoteViews = buildRemoteViews(
+            PanelPalette.AOD,
+            darkChart,
+            interactive = false,
+        )
         return FocusContent(
             title = if (snapshot.isCharging) "充电" else "耗电",
             content = primaryText,
@@ -727,8 +762,8 @@ object KeepIslandHook : BaseHook() {
             nightRemoteViews = darkRemoteViews,
             islandExpandRemoteViews = expandRemoteViews,
             aodRemoteViews = aodRemoteViews,
-            signature = "$signature\u0000${expandPalette.primary}",
-        )
+            signature = signature,
+        ).also { cachedPanelFocusContent = it }
     }
 
     private fun updateChargingSession(snapshot: IslandDataManager.ChargingPanelSnapshot) {
@@ -948,11 +983,18 @@ object KeepIslandHook : BaseHook() {
                         intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0
                     else -> return
                 }
-                if (powerConnected == nextPowerConnected) return
+                val powerStateChanged = powerConnected != nextPowerConnected
                 powerConnected = nextPowerConnected
                 mainHandler.post {
-                    if (!matchesDisplayTiming()) resetChargingSession()
-                    evaluateKeepIsland()
+                    if (powerStateChanged) {
+                        if (!matchesDisplayTiming()) resetChargingSession()
+                        evaluateKeepIsland()
+                    }
+                    if (intent.action == Intent.ACTION_BATTERY_CHANGED &&
+                        isDozeDisplayState(context, defaultDisplayState(context))
+                    ) {
+                        scheduleContentUpdateFromDataChange()
+                    }
                 }
             }
         }
@@ -1202,22 +1244,66 @@ object KeepIslandHook : BaseHook() {
     private fun scheduleContentUpdateFromDataChange() {
         val ctx = appContext ?: return
         if (!posted || !shouldPostKeepNotification() || !hasConfiguredKeepIslandContent()) return
+        val displayState = defaultDisplayState(ctx)
+        if (displayState == Display.STATE_OFF) return
+        val minimumInterval = if (isDozeDisplayState(ctx, displayState)) {
+            AOD_DATA_UPDATE_INTERVAL_MS
+        } else {
+            DATA_UPDATE_INTERVAL_MS
+        }
+        if (System.currentTimeMillis() - lastContentUpdateAt < minimumInterval) return
         mainHandler.post { updateKeepIslandContent(ctx) }
     }
 
     private fun schedulePeriodicDataUpdate() {
         if (periodicDataUpdateRunnable != null) return
         cancelPeriodicDataUpdate()
+        val initialContext = appContext ?: return
+        if (defaultDisplayState(initialContext) != Display.STATE_ON) return
         periodicDataUpdateRunnable = Runnable {
             val ctx = appContext
-            if (ctx != null && posted && shouldPostKeepNotification() && hasConfiguredKeepIslandContent()) {
-                updateKeepIslandContent(ctx)
-                mainHandler.postDelayed(periodicDataUpdateRunnable!!, DATA_UPDATE_INTERVAL_MS)
+            if (ctx != null && defaultDisplayState(ctx) == Display.STATE_ON && posted &&
+                shouldPostKeepNotification() && hasConfiguredKeepIslandContent()
+            ) {
+                val alignToSecond = hasSecondTimePlaceholder()
+                updateKeepIslandContent(ctx, force = alignToSecond)
+                mainHandler.postDelayed(
+                    periodicDataUpdateRunnable!!,
+                    nextDataUpdateDelay(alignToSecond),
+                )
             } else {
                 periodicDataUpdateRunnable = null
             }
         }
-        mainHandler.postDelayed(periodicDataUpdateRunnable!!, DATA_UPDATE_INTERVAL_MS)
+        mainHandler.postDelayed(
+            periodicDataUpdateRunnable!!,
+            nextDataUpdateDelay(hasSecondTimePlaceholder()),
+        )
+    }
+
+    private fun nextDataUpdateDelay(alignToSecond: Boolean): Long {
+        if (!alignToSecond) return DATA_UPDATE_INTERVAL_MS
+        return 1000L - System.currentTimeMillis() % 1000L
+    }
+
+    private fun hasSecondTimePlaceholder(): Boolean {
+        val config = contentConfig()
+        return (config.left + config.right).any { expression ->
+            SECOND_TIME_PLACEHOLDERS.any(expression::contains)
+        }
+    }
+
+    private fun defaultDisplayState(context: Context): Int? = runCatching {
+        context.getSystemService(DisplayManager::class.java)
+            ?.getDisplay(Display.DEFAULT_DISPLAY)
+            ?.state
+    }.getOrNull()
+
+    private fun isDozeDisplayState(context: Context, state: Int?): Boolean {
+        if (state == Display.STATE_DOZE || state == Display.STATE_DOZE_SUSPEND) return true
+        if (state != null && state != Display.STATE_UNKNOWN) return false
+        val powerManager = context.getSystemService(PowerManager::class.java)
+        return powerManager?.isInteractive == false
     }
 
     private fun cancelPeriodicDataUpdate() {
@@ -1282,6 +1368,7 @@ object KeepIslandHook : BaseHook() {
             posted = false
             autoHideTrackingEnabled = false
             lastContentUpdateSignature = null
+            cachedPanelFocusContent = null
             cancelPeriodicDataUpdate()
             cachedModule?.let { log(it, "keep island cancelled") }
         } catch (e: Exception) {
@@ -1384,7 +1471,16 @@ object KeepIslandHook : BaseHook() {
 
 
                 override fun onDisplayChanged(displayId: Int) {
-                    mainHandler.post { evaluateKeepIsland() }
+                    if (displayId != Display.DEFAULT_DISPLAY) return
+                    mainHandler.post {
+                        val state = defaultDisplayState(context)
+                        cancelPeriodicDataUpdate()
+                        if (state == Display.STATE_OFF) return@post
+                        evaluateKeepIsland()
+                        if (state == Display.STATE_ON && posted && hasConfiguredKeepIslandContent()) {
+                            schedulePeriodicDataUpdate()
+                        }
+                    }
                 }
             },
             mainHandler,
@@ -1552,6 +1648,13 @@ object KeepIslandHook : BaseHook() {
     private const val PERFORMANCE_TREND_POINTS = 24
     private const val CHARGING_MAX_SAMPLES = 120
     private const val CHARGING_SAMPLE_INTERVAL_MS = 5000L
+    private const val AOD_DATA_UPDATE_INTERVAL_MS = 30000L
+    private val SECOND_TIME_PLACEHOLDERS = listOf(
+        "{time.ss}",
+        "{time.HH:mm:ss}",
+        "{time.h:mm:ss}",
+        "{time.hh:mm:ss}",
+    )
     private const val CHARGING_MODE_REQUEST_CODE = 0x434847
     private const val ACTION_SWITCH_CHARGING_CHART =
         "io.github.hyperisland.action.SWITCH_CHARGING_CHART"
