@@ -489,7 +489,8 @@ class _KeepIslandPageState extends State<KeepIslandPage> {
                     enabled: focusContentEnabled,
                     onTap: () => _editNotificationContent(title: false),
                   ),
-                ] else ...[
+                ] else if (_ctrl.keepIsland &&
+                    _ctrl.keepIslandFocusNotification) ...[
                   _KeepIslandDropdownTile(
                     title: l10n.keepIslandExpandTextColorTitle,
                     value: _ctrl.keepIslandExpandTextColorMode,
