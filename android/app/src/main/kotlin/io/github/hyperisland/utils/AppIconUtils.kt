@@ -45,12 +45,19 @@ fun Icon.resolveDynamicHighlightColor(context: Context, mode: String): String? {
     }
     return try {
         val bmp = toBitmap(context, 96) ?: return null
-        val color = bmp.pickDominantColor(context.resolveDynamicColorFallback())
-        bmp.recycle()
+        val color = try {
+            bmp.pickDominantColor(context.resolveDynamicColorFallback())
+        } finally {
+            bmp.recycle()
+        }
 
         val hsv = FloatArray(3)
         Color.colorToHSV(color, hsv)
-        hsv[1] = hsv[1].coerceIn(0.48f, 0.88f)
+        hsv[1] = if (hsv[1] >= 0.08f) {
+            hsv[1].coerceIn(0.48f, 0.88f)
+        } else {
+            hsv[1].coerceAtMost(0.08f)
+        }
         hsv[2] = (hsv[2].coerceIn(0.58f, 0.92f) * factor).coerceIn(0f, 1f)
         val vividColor = Color.HSVToColor(hsv)
         val r = Color.red(vividColor)
@@ -103,25 +110,23 @@ private fun Bitmap.pickDominantColor(fallbackColor: Int): Int {
                 Color.colorToHSV(c, hsv)
                 val sat = hsv[1]
                 val value = hsv[2]
-                if (value >= 0.06f) {
-                    val chroma = sat * value
-                    val colorful = sat >= 0.1f && chroma >= 0.055f
-                    val brightnessWeight = 0.35f + (1f - kotlin.math.abs(value - 0.62f)) * 0.65f
-                    val colorWeight = if (colorful) 0.25f + sat.pow(2) * 4.75f else 0.2f
-                    val w = ((a / 255f) * brightnessWeight * colorWeight * 1000f)
-                        .toLong()
-                        .coerceAtLeast(1L)
-                    val r = Color.red(c)
-                    val g = Color.green(c)
-                    val b = Color.blue(c)
-                    val bucket = ((r shr 4) shl 8) or ((g shr 4) shl 4) or (b shr 4)
-                    val bins = if (colorful) colorfulBins else neutralBins
-                    val acc = bins.getOrPut(bucket) { LongArray(4) }
-                    acc[0] += w
-                    acc[1] += r * w
-                    acc[2] += g * w
-                    acc[3] += b * w
-                }
+                val chroma = sat * value
+                val colorful = value >= 0.06f && sat >= 0.1f && chroma >= 0.055f
+                val brightnessWeight = 0.35f + (1f - kotlin.math.abs(value - 0.62f)) * 0.65f
+                val colorWeight = if (colorful) 0.25f + sat.pow(2) * 4.75f else 0.2f
+                val w = ((a / 255f) * brightnessWeight * colorWeight * 1000f)
+                    .toLong()
+                    .coerceAtLeast(1L)
+                val r = Color.red(c)
+                val g = Color.green(c)
+                val b = Color.blue(c)
+                val bucket = ((r shr 4) shl 8) or ((g shr 4) shl 4) or (b shr 4)
+                val bins = if (colorful) colorfulBins else neutralBins
+                val acc = bins.getOrPut(bucket) { LongArray(4) }
+                acc[0] += w
+                acc[1] += r * w
+                acc[2] += g * w
+                acc[3] += b * w
             }
             x += 2
         }
@@ -138,8 +143,6 @@ private fun Bitmap.pickDominantColor(fallbackColor: Int): Int {
     val r = (best[1] / total).roundToInt().coerceIn(0, 255)
     val g = (best[2] / total).roundToInt().coerceIn(0, 255)
     val b = (best[3] / total).roundToInt().coerceIn(0, 255)
-    val selected = Color.rgb(r, g, b)
-    Color.colorToHSV(selected, hsv)
-    return if (hsv[1] < 0.08f) fallbackColor else selected
+    return Color.rgb(r, g, b)
 }
 

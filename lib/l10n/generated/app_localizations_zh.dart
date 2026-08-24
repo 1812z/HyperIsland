@@ -49,6 +49,11 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String lsposedApiVersion(int version) {
+    return 'LSPosed API: $version';
+  }
+
+  @override
   String get later => '稍后再说';
 
   @override
@@ -142,11 +147,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get enableSystemUiScopeInLSPosed => '请在 LSPosed 作用域勾选系统界面';
-
-  @override
-  String lsposedApiVersion(int version) {
-    return 'LSPosed API: $version';
-  }
 
   @override
   String get updateLSPosedRequired => '请更新 LSPosed 版本';
@@ -353,12 +353,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get exportToClipboardSubtitle => '将配置复制为 JSON 文本';
 
   @override
-  String get exportConfig => '导出配置';
-
-  @override
-  String get exportConfigSubtitle => '选择导出到文件或剪贴板';
-
-  @override
   String get importFromFile => '从文件导入';
 
   @override
@@ -369,6 +363,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get importFromClipboardSubtitle => '从剪贴板中的 JSON 文本恢复配置';
+
+  @override
+  String get exportConfig => '导出配置';
+
+  @override
+  String get exportConfigSubtitle => '选择导出到文件或剪贴板';
 
   @override
   String get importConfig => '导入配置';
@@ -645,12 +645,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get islandIcon => '超级岛图标';
 
   @override
-  String get islandIconLabel => '大岛图标';
-
-  @override
-  String get islandIconLabelSubtitle => '开启后显示超级岛的大图标（小岛不受影响）';
-
-  @override
   String get focusIconLabel => '焦点图标';
 
   @override
@@ -783,10 +777,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get preserveStatusBarSmallIconLabel => '状态栏图标';
 
   @override
-  String get restoreLockscreenTitle => '锁屏通知复原';
+  String get preserveStatusBarSmallIconLabelSubtitle => '焦点通知打开时，是否强制保留状态栏小图标';
 
   @override
-  String get restoreLockscreenSubtitle => '锁屏时跳过焦点通知处理，保持原始通知隐私行为';
+  String get islandIconLabel => '大岛图标';
+
+  @override
+  String get islandIconLabelSubtitle => '开启后显示超级岛的大图标（小岛不受影响）';
 
   @override
   String get firstFloatLabel => '初次展开';
@@ -992,9 +989,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get focusNotificationLabelSubtitle => '替换通知为焦点通知（关闭后显示原始通知）';
 
   @override
-  String get preserveStatusBarSmallIconLabelSubtitle => '焦点通知打开时，是否强制保留状态栏小图标';
-
-  @override
   String get fullscreenBehaviorTitle => '全屏时行为';
 
   @override
@@ -1100,10 +1094,32 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiModelPickerFetchError => '加载模型列表失败';
 
   @override
+  String get aiTestButton => '测试连接';
+
+  @override
+  String get aiTestUrlEmpty => '请先填写 API 地址';
+
+  @override
+  String get aiConfigSaveButton => '保存';
+
+  @override
+  String get aiConfigSaved => 'AI 配置已保存';
+
+  @override
+  String get aiConfigTips =>
+      'AI 将收到通知的应用包名、标题和正文，返回左侧（来源）和右侧（内容）短文本。支持兼容 OpenAI 格式的接口（如 DeepSeek、Claude 等）。超过 3 秒未响应时自动回退到默认逻辑。';
+
+  @override
+  String get templateAiNotificationIslandName => 'AI 通知超级岛';
+
+  @override
   String get aiPromptLabel => '系统提示词';
 
   @override
   String get aiPromptHint => '留空则使用默认提示词';
+
+  @override
+  String get aiPromptDefault => '根据通知信息，提取关键信息，左右分别不超过 6 汉字 12 字符';
 
   @override
   String get aiPromptInUserTitle => '提示词放在用户消息';
@@ -1157,6 +1173,11 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String defaultTimeoutHint(int seconds) {
+    return '默认（$seconds秒）';
+  }
+
+  @override
   String get aiTemperatureTitle => '采样温度 (Temperature)';
 
   @override
@@ -1178,35 +1199,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiTriggerCharCountAlways => '无论通知字数多少都触发 AI';
 
   @override
-  String defaultTimeoutHint(int seconds) {
-    return '默认（$seconds秒）';
-  }
-
-  @override
   String get aiDefaultPromptFull =>
       '留空使用默认提示词：根据通知信息，提取关键信息，左右分别不超过 6 汉字 12 字符';
-
-  @override
-  String get aiTestButton => '测试连接';
-
-  @override
-  String get aiTestUrlEmpty => '请先填写 API 地址';
-
-  @override
-  String get aiConfigSaveButton => '保存';
-
-  @override
-  String get aiConfigSaved => 'AI 配置已保存';
-
-  @override
-  String get aiConfigTips =>
-      'AI 将收到通知的应用包名、标题和正文，返回左侧（来源）和右侧（内容）短文本。支持兼容 OpenAI 格式的接口（如 DeepSeek、Claude 等）。超过 3 秒未响应时自动回退到默认逻辑。';
-
-  @override
-  String get templateAiNotificationIslandName => 'AI 通知超级岛';
-
-  @override
-  String get aiPromptDefault => '根据通知信息，提取关键信息，左右分别不超过 6 汉字 12 字符';
 
   @override
   String get aiDefaultNotificationText => '[外卖]，您的外卖到了，送至门口外卖柜';
@@ -1260,6 +1254,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get hideDesktopIconSubtitle => '隐藏启动器中的应用图标，隐藏后可通过 LSPosed 管理器打开';
+
+  @override
+  String get restoreLockscreenTitle => '锁屏通知复原';
+
+  @override
+  String get restoreLockscreenSubtitle => '锁屏时跳过焦点通知处理，保持原始通知隐私行为';
 
   @override
   String get filterRulesSection => '过滤规则';
@@ -1392,6 +1392,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get islandTopOffset => '距屏幕顶部';
+
+  @override
+  String get smallIslandWidth => '小岛宽度';
 
   @override
   String get followSystem => '跟随系统';
@@ -2174,6 +2177,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get islandTextSection => '超级岛文字';
+
+  @override
+  String get islandTextSizeTitle => '岛文字大小';
 
   @override
   String get islandOutlineSection => '轮廓控制';
