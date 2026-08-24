@@ -25,6 +25,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
   late double _islandTopOffsetDraft;
   late int _bigIslandMaxWidthDraft;
   late int _bigIslandMinWidthDraft;
+  late int _smallIslandWidthDraft;
   late int _roundIconRadiusDraft;
   late int _islandIconSizeDraft;
   late double _islandIconPaddingDraft;
@@ -37,6 +38,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _ctrl.islandTopOffset,
     _ctrl.bigIslandMaxWidth,
     _ctrl.bigIslandMinWidth,
+    _ctrl.smallIslandWidth,
     _ctrl.roundIcon,
     _ctrl.roundIconRadius,
     _ctrl.islandIconSize,
@@ -86,6 +88,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _islandTopOffsetDraft = _ctrl.islandTopOffset;
     _bigIslandMaxWidthDraft = _ctrl.bigIslandMaxWidth;
     _bigIslandMinWidthDraft = _ctrl.bigIslandMinWidth;
+    _smallIslandWidthDraft = _ctrl.smallIslandWidth;
     _roundIconRadiusDraft = _ctrl.roundIconRadius;
     _islandIconSizeDraft = _ctrl.islandIconSize;
     _islandIconPaddingDraft = _ctrl.islandIconPadding;
@@ -111,6 +114,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     final nextTopOffset = _ctrl.islandTopOffset;
     final nextMaxWidth = _ctrl.bigIslandMaxWidth;
     final nextMinWidth = _ctrl.bigIslandMinWidth;
+    final nextSmallWidth = _ctrl.smallIslandWidth;
     final nextRoundIconRadius = _ctrl.roundIconRadius;
     final nextIslandIconSize = _ctrl.islandIconSize;
     final nextIslandIconPadding = _ctrl.islandIconPadding;
@@ -121,6 +125,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
         nextTopOffset == _islandTopOffsetDraft &&
         nextMaxWidth == _bigIslandMaxWidthDraft &&
         nextMinWidth == _bigIslandMinWidthDraft &&
+        nextSmallWidth == _smallIslandWidthDraft &&
         nextRoundIconRadius == _roundIconRadiusDraft &&
         nextIslandIconSize == _islandIconSizeDraft &&
         nextIslandIconPadding == _islandIconPaddingDraft &&
@@ -133,6 +138,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
       _islandTopOffsetDraft = nextTopOffset;
       _bigIslandMaxWidthDraft = nextMaxWidth;
       _bigIslandMinWidthDraft = nextMinWidth;
+      _smallIslandWidthDraft = nextSmallWidth;
       _roundIconRadiusDraft = nextRoundIconRadius;
       _islandIconSizeDraft = nextIslandIconSize;
       _islandIconPaddingDraft = nextIslandIconPadding;
@@ -852,10 +858,24 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                           ),
                         ),
                         shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.vertical(
-                            bottom: Radius.circular(16),
-                          ),
+                          borderRadius: BorderRadius.zero,
                         ),
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      _DimenTile(
+                        title: l10n.smallIslandWidth,
+                        value: _smallIslandWidthDraft.toDouble(),
+                        min: 1,
+                        max: 100,
+                        unit: 'dp',
+                        defaultVal: 34,
+                        followSystemLabel: l10n.optDefault,
+                        onChanged: (value) => setState(
+                          () => _smallIslandWidthDraft = value.round(),
+                        ),
+                        onPersist: (value) =>
+                            _ctrl.setSmallIslandWidth(value.round()),
+                        isLast: true,
                       ),
                     ],
                   ),
@@ -1473,6 +1493,7 @@ class _DimenTile extends StatelessWidget {
     required this.onChanged,
     required this.onPersist,
     this.isFirst = false,
+    this.isLast = false,
     this.decimalPlaces = 0,
   });
 
@@ -1486,6 +1507,7 @@ class _DimenTile extends StatelessWidget {
   final ValueChanged<double> onChanged;
   final ValueChanged<double> onPersist;
   final bool isFirst;
+  final bool isLast;
   final int decimalPlaces;
 
   @override
@@ -1504,6 +1526,8 @@ class _DimenTile extends StatelessWidget {
     BorderRadius? borderRadius;
     if (isFirst) {
       borderRadius = const BorderRadius.vertical(top: Radius.circular(16));
+    } else if (isLast) {
+      borderRadius = const BorderRadius.vertical(bottom: Radius.circular(16));
     }
 
     return ListTile(

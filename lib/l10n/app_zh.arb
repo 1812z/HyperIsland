@@ -683,6 +683,7 @@
   "islandDimenSection": "岛尺寸设置",
   "islandDimenHeight": "岛高度",
   "islandTopOffset": "距屏幕顶部",
+  "smallIslandWidth": "小岛宽度",
   "followSystem": "跟随系统",
   "islandDimenMiniY": "垂直位置",
   "islandDimenMiniYHint": "0=跟随系统",

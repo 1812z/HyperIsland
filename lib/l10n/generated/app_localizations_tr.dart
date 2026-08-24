@@ -1484,6 +1484,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get islandTopOffset => 'Ekranın Üstünden Uzaklık';
 
   @override
+  String get smallIslandWidth => 'Small Island Width';
+
+  @override
   String get followSystem => 'Sistem varsayılanı';
 
   @override

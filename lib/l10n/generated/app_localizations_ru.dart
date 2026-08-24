@@ -1494,6 +1494,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get islandTopOffset => 'Расстояние от верха экрана';
 
   @override
+  String get smallIslandWidth => 'Small Island Width';
+
+  @override
   String get followSystem => 'Как в системе';
 
   @override

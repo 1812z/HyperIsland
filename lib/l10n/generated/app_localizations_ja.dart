@@ -1426,6 +1426,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get islandTopOffset => '画面上端からの距離';
 
   @override
+  String get smallIslandWidth => 'Small Island Width';
+
+  @override
   String get followSystem => 'システムに従う';
 
   @override

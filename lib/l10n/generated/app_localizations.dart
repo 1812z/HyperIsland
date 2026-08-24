@@ -2726,6 +2726,12 @@ abstract class AppLocalizations {
   /// **'Distance from Top of Screen'**
   String get islandTopOffset;
 
+  /// No description provided for @smallIslandWidth.
+  ///
+  /// In en, this message translates to:
+  /// **'Small Island Width'**
+  String get smallIslandWidth;
+
   /// No description provided for @followSystem.
   ///
   /// In en, this message translates to:
