@@ -4235,6 +4235,12 @@ abstract class AppLocalizations {
   /// **'Island Text'**
   String get islandTextSection;
 
+  /// No description provided for @islandTextSizeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Island Text Size'**
+  String get islandTextSizeTitle;
+
   /// No description provided for @islandOutlineSection.
   ///
   /// In en, this message translates to:

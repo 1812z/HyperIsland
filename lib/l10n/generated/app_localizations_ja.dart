@@ -2247,6 +2247,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get islandTextSection => 'Island Text';
 
   @override
+  String get islandTextSizeTitle => 'Island Text Size';
+
+  @override
   String get islandOutlineSection => 'アウトライン制御';
 
   @override

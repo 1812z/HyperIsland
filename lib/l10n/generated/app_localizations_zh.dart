@@ -2179,6 +2179,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get islandTextSection => '超级岛文字';
 
   @override
+  String get islandTextSizeTitle => '岛文字大小';
+
+  @override
   String get islandOutlineSection => '轮廓控制';
 
   @override

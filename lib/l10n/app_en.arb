@@ -1012,6 +1012,7 @@
   "hideBehaviorForegroundAppSubtitle": "Hide the app's own island while it is in the foreground",
   "off": "Off",
   "islandTextSection": "Island Text",
+  "islandTextSizeTitle": "Island Text Size",
   "islandOutlineSection": "Outline controls",
   "outerGlowAppearanceSection": "Outer glow",
   "outerGlowRangeTitle": "Glow range",

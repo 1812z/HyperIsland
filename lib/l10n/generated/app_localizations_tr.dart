@@ -2324,6 +2324,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get islandTextSection => 'Island Text';
 
   @override
+  String get islandTextSizeTitle => 'Island Text Size';
+
+  @override
   String get islandOutlineSection => 'Ana hat denetimi';
 
   @override
