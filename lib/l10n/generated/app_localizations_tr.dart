@@ -49,6 +49,11 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
+  String lsposedApiVersion(int version) {
+    return 'LSPosed API Sürümü: $version';
+  }
+
+  @override
   String get later => 'Daha Sonra';
 
   @override
@@ -148,11 +153,6 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get enableSystemUiScopeInLSPosed =>
       'Lütfen LSPosed kapsamında Sistem Arayüzü\'nü seçin';
-
-  @override
-  String lsposedApiVersion(int version) {
-    return 'LSPosed API Sürümü: $version';
-  }
 
   @override
   String get updateLSPosedRequired => 'Lütfen LSPosed sürümünü güncelleyin';
@@ -295,16 +295,17 @@ class AppLocalizationsTr extends AppLocalizations {
   String get marqueeChannelTitle => 'Ada Metnini Kaydır';
 
   @override
-  String get marqueeAutoHideTitle => '滚动后隐藏岛';
+  String get marqueeAutoHideTitle => 'Hide Island after scrolling';
 
   @override
-  String get marqueeAutoHideSubtitle => '消息滚动达到指定次数后隐藏当前岛';
+  String get marqueeAutoHideSubtitle =>
+      'Hide the current Island after the message scrolls the selected number of times';
 
   @override
-  String get marqueeAutoHideOnce => '滚动1次';
+  String get marqueeAutoHideOnce => 'Scroll once';
 
   @override
-  String get marqueeAutoHideTwice => '滚动2次';
+  String get marqueeAutoHideTwice => 'Scroll twice';
 
   @override
   String get marqueeAutoHideOnceOverride =>
@@ -323,13 +324,13 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get bigIslandMaxWidthTitle => '最大宽度';
+  String get bigIslandMaxWidthTitle => 'Max Width';
 
   @override
-  String get bigIslandMinWidthTitle => '最小宽度';
+  String get bigIslandMinWidthTitle => 'Min Width';
 
   @override
-  String get testNotifTooltip => '发送测试通知';
+  String get testNotifTooltip => 'Send test notification';
 
   @override
   String get themeModeTitle => 'Tema';
@@ -379,13 +380,6 @@ class AppLocalizationsTr extends AppLocalizations {
       'Yapılandırmayı JSON metni olarak panoya kopyalar.';
 
   @override
-  String get exportConfig => 'Yapılandırmayı Dışa Aktar';
-
-  @override
-  String get exportConfigSubtitle =>
-      'Dosyaya veya panoya dışa aktarma yöntemini seçin';
-
-  @override
   String get importFromFile => 'Dosyadan İçe Aktar';
 
   @override
@@ -398,6 +392,13 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get importFromClipboardSubtitle =>
       'Panodaki JSON metninden yapılandırmayı geri yükler.';
+
+  @override
+  String get exportConfig => 'Yapılandırmayı Dışa Aktar';
+
+  @override
+  String get exportConfigSubtitle =>
+      'Dosyaya veya panoya dışa aktarma yöntemini seçin';
 
   @override
   String get importConfig => 'Yapılandırmayı İçe Aktar';
@@ -443,22 +444,22 @@ class AppLocalizationsTr extends AppLocalizations {
   String get appAdaptation => 'Uygulama Listesi';
 
   @override
-  String get toastAdaptation => 'Toast 适配';
+  String get toastAdaptation => 'Toast Adaptation';
 
   @override
-  String get adaptationModeNotification => '通知';
+  String get adaptationModeNotification => 'Notification';
 
   @override
   String get adaptationModeToast => 'Toast';
 
   @override
   String toastEnabledAppsCount(Object count) {
-    return '已启用 $count 个应用的 Toast 拦截';
+    return 'Toast intercept enabled for $count apps';
   }
 
   @override
   String toastEnabledAppsCountWithSystem(Object count) {
-    return '已启用 $count 个应用的 Toast 拦截（含系统应用）';
+    return 'Toast intercept enabled for $count apps (including system apps)';
   }
 
   @override
@@ -680,137 +681,134 @@ class AppLocalizationsTr extends AppLocalizations {
       'Görsel + Metin + Sağ Metin Düğmesi';
 
   @override
-  String get rendererImageTextWithProgressName => 'IM图文组件 + 进度条组件';
+  String get rendererImageTextWithProgressName => 'IM Image+Text+Progress';
 
   @override
   String get islandIcon => 'Ada Simgesi';
 
   @override
-  String get islandIconLabel => 'Büyük Ada Simgesini Göster';
-
-  @override
-  String get islandIconLabelSubtitle =>
-      'Bu ayar açık olduğunda büyük Ada simgesi gösterilir (küçük Ada etkilenmez).';
-
-  @override
   String get focusIconLabel => 'Odak Simgesi';
 
   @override
-  String get focusExpressionCustomizationSection => '焦点高级自定义';
+  String get focusExpressionCustomizationSection =>
+      'Focus advanced customization';
 
   @override
-  String get islandExpressionCustomizationSection => '超级岛高级自定义';
+  String get islandExpressionCustomizationSection =>
+      'Island advanced customization';
 
   @override
-  String get aodSection => '息屏显示';
+  String get aodSection => 'Always-on display';
 
   @override
-  String get expandCustomization => '展开';
+  String get expandCustomization => 'Expand';
 
   @override
-  String get collapseCustomization => '收起';
+  String get collapseCustomization => 'Collapse';
 
   @override
-  String get availablePlaceholdersLabel => '可用占位符(点击复制)';
+  String get availablePlaceholdersLabel =>
+      'Available placeholders(Click to copy)';
 
   @override
-  String get expressionFunctionsLabel => '表达式函数';
+  String get expressionFunctionsLabel => 'Expression functions';
 
   @override
-  String get focusTitleExprLabel => '焦点标题表达式';
+  String get focusTitleExprLabel => 'Focus title expression';
 
   @override
-  String get focusContentExprLabel => '焦点正文表达式';
+  String get focusContentExprLabel => 'Focus content expression';
 
   @override
-  String get focusIconSourceLabel => '焦点图标来源';
+  String get focusIconSourceLabel => 'Focus icon source';
 
   @override
-  String get focusPicProfileSourceLabel => '头像图标来源';
+  String get focusPicProfileSourceLabel => 'Profile icon source';
 
   @override
-  String get focusAppIconPkgLabel => '应用图标包名';
+  String get focusAppIconPkgLabel => 'App icon package';
 
   @override
-  String get focusSecondaryIconSourceLabel => '副图标来源';
+  String get focusSecondaryIconSourceLabel => 'Secondary icon source';
 
   @override
-  String get chatTitleColorLabel => '聊天标题颜色';
+  String get chatTitleColorLabel => 'Chat title color';
 
   @override
-  String get chatTitleColorDarkLabel => '聊天标题暗色';
+  String get chatTitleColorDarkLabel => 'Chat title color (dark)';
 
   @override
-  String get chatContentColorLabel => '聊天正文颜色';
+  String get chatContentColorLabel => 'Chat content color';
 
   @override
-  String get chatContentColorDarkLabel => '聊天正文暗色';
+  String get chatContentColorDarkLabel => 'Chat content color (dark)';
 
   @override
-  String get progressColorLabel => '进度条颜色';
+  String get progressColorLabel => 'Progress color';
 
   @override
-  String get progressBarColorLabel => '进度条颜色';
+  String get progressBarColorLabel => 'Progress bar color';
 
   @override
-  String get progressBarColorEndLabel => '进度条结束颜色';
+  String get progressBarColorEndLabel => 'Progress bar end color';
 
   @override
-  String get placeholderTitle => '通知标题';
+  String get placeholderTitle => 'Notification title';
 
   @override
-  String get placeholderSubtitle => '通知正文';
+  String get placeholderSubtitle => 'Notification content';
 
   @override
-  String get placeholderSubtitleOrTitle => '正文（空则标题）';
+  String get placeholderSubtitleOrTitle => 'Content (fallback title)';
 
   @override
-  String get placeholderPkg => '包名';
+  String get placeholderPkg => 'Package name';
 
   @override
-  String get placeholderChannelId => '渠道 ID';
+  String get placeholderChannelId => 'Channel ID';
 
   @override
-  String get placeholderProgress => '通知进度';
+  String get placeholderProgress => 'Notification progress';
 
   @override
-  String get placeholderStateLabel => '状态文本';
+  String get placeholderStateLabel => 'State label';
 
   @override
-  String get placeholderProgressText => '进度文本';
+  String get placeholderProgressText => 'Progress text';
 
   @override
-  String get placeholderAiLeft => 'AI 左侧文本';
+  String get placeholderAiLeft => 'AI left text';
 
   @override
-  String get placeholderAiRight => 'AI 右侧文本';
+  String get placeholderAiRight => 'AI right text';
 
   @override
-  String get placeholderRawTitle => '原始标题';
+  String get placeholderRawTitle => 'Raw title';
 
   @override
-  String get placeholderRawSubtitle => '原始正文';
+  String get placeholderRawSubtitle => 'Raw subtitle';
 
   @override
-  String get placeholderRawSubtitleOrTitle => '原始正文（空则标题）';
+  String get placeholderRawSubtitleOrTitle => 'Raw subtitle (fallback title)';
 
   @override
-  String get islandLeftExprLabel => '超级岛左侧表达式';
+  String get islandLeftExprLabel => 'Island left expression';
 
   @override
-  String get islandRightExprLabel => '超级岛右侧表达式';
+  String get islandRightExprLabel => 'Island right expression';
 
   @override
-  String get aodTextSwitchLabel => 'AOD文本开关';
+  String get aodTextSwitchLabel => 'AOD text switch';
 
   @override
-  String get aodTextSwitchSubtitle => '开启后息屏显示显示通知文本';
+  String get aodTextSwitchSubtitle =>
+      'Show notification text on the AOD when enabled';
 
   @override
-  String get aodTextExprLabel => 'AOD文本表达式';
+  String get aodTextExprLabel => 'AOD text expression';
 
   @override
-  String get aodIconSourceLabel => 'AOD图标来源';
+  String get aodIconSourceLabel => 'AOD icon source';
 
   @override
   String get focusNotificationLabel => 'Odak Bildirimini Kullan';
@@ -827,11 +825,15 @@ class AppLocalizationsTr extends AppLocalizations {
       'Durum Çubuğu Küçük Simgesini Koru';
 
   @override
-  String get restoreLockscreenTitle => 'Kilit Ekranı Bildirimini Geri Yükle';
+  String get preserveStatusBarSmallIconLabelSubtitle =>
+      'Bu ayar açık olduğunda odak bildirimi sırasında durum çubuğu küçük simgesi görünür kalır.';
 
   @override
-  String get restoreLockscreenSubtitle =>
-      'Kilit ekranında odak bildirimi işlemini atlayın, özgün gizlilik davranışını koruyun';
+  String get islandIconLabel => 'Büyük Ada Simgesini Göster';
+
+  @override
+  String get islandIconLabelSubtitle =>
+      'Bu ayar açık olduğunda büyük Ada simgesi gösterilir (küçük Ada etkilenmez).';
 
   @override
   String get firstFloatLabel => 'İlk Bildirimde Genişlet';
@@ -1047,10 +1049,6 @@ class AppLocalizationsTr extends AppLocalizations {
       'Bu ayar açık olduğunda normal bildirim yerine odak bildirimi gösterilir. Kapalıysa normal bildirim gösterilir.';
 
   @override
-  String get preserveStatusBarSmallIconLabelSubtitle =>
-      'Bu ayar açık olduğunda odak bildirimi sırasında durum çubuğu küçük simgesi görünür kalır.';
-
-  @override
   String get fullscreenBehaviorTitle => 'Tam ekran davranışı';
 
   @override
@@ -1161,11 +1159,34 @@ class AppLocalizationsTr extends AppLocalizations {
   String get aiModelPickerFetchError => 'Model listesi yüklenemedi';
 
   @override
+  String get aiTestButton => 'Bağlantıyı Dene';
+
+  @override
+  String get aiTestUrlEmpty => 'Lütfen önce API adresini girin';
+
+  @override
+  String get aiConfigSaveButton => 'Kaydet';
+
+  @override
+  String get aiConfigSaved => 'AI yapılandırması kaydedildi';
+
+  @override
+  String get aiConfigTips =>
+      'AI, bildirimdeki uygulama paket adını, başlığı ve metni alır; solda (kaynak) ve sağda (içerik) kısa metin üretir. OpenAI formatı ile uyumlu API\'leri destekler (DeepSeek, Claude vb.). Yanıt gelmezse varsayılan mantığa geri döner.';
+
+  @override
+  String get templateAiNotificationIslandName => 'AI Bildirim Süper Ada';
+
+  @override
   String get aiPromptLabel => 'Özel Prompt';
 
   @override
   String get aiPromptHint =>
       'Boş bırakırsanız varsayılan prompt kullanılır: Bildirimden ana bilgiyi çıkarın; sol ve sağ metin ayrı ayrı en fazla 6 kelime veya 12 karakter olsun';
+
+  @override
+  String get aiPromptDefault =>
+      'Bildirimden ana bilgiyi çıkarın; sol ve sağ metin ayrı ayrı en fazla 6 kelime veya 12 karakter olsun';
 
   @override
   String get aiPromptInUserTitle => 'Prompt\'u kullanıcı mesajına yerleştir';
@@ -1221,6 +1242,11 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
+  String defaultTimeoutHint(int seconds) {
+    return 'Varsayılan (${seconds}sn)';
+  }
+
+  @override
   String get aiTemperatureTitle => 'Örnekleme Sıcaklığı';
 
   @override
@@ -1246,83 +1272,60 @@ class AppLocalizationsTr extends AppLocalizations {
       'Bildirim uzunluğundan bağımsız olarak AI\'ı her zaman tetikle';
 
   @override
-  String defaultTimeoutHint(int seconds) {
-    return 'Varsayılan (${seconds}sn)';
-  }
-
-  @override
   String get aiDefaultPromptFull =>
       'Boş bırakırsanız varsayılan prompt kullanılır: Bildirimden ana bilgiyi çıkarın; sol ve sağ taraf için en fazla 6 kelime veya 12 karakter';
 
   @override
-  String get aiTestButton => 'Bağlantıyı Dene';
+  String get aiDefaultNotificationText =>
+      '[Delivery] Your delivery has arrived and was placed in the parcel locker at the door';
 
   @override
-  String get aiTestUrlEmpty => 'Lütfen önce API adresini girin';
-
-  @override
-  String get aiConfigSaveButton => 'Kaydet';
-
-  @override
-  String get aiConfigSaved => 'AI yapılandırması kaydedildi';
-
-  @override
-  String get aiConfigTips =>
-      'AI, bildirimdeki uygulama paket adını, başlığı ve metni alır; solda (kaynak) ve sağda (içerik) kısa metin üretir. OpenAI formatı ile uyumlu API\'leri destekler (DeepSeek, Claude vb.). Yanıt gelmezse varsayılan mantığa geri döner.';
-
-  @override
-  String get templateAiNotificationIslandName => 'AI Bildirim Süper Ada';
-
-  @override
-  String get aiPromptDefault =>
-      'Bildirimden ana bilgiyi çıkarın; sol ve sağ metin ayrı ayrı en fazla 6 kelime veya 12 karakter olsun';
-
-  @override
-  String get aiDefaultNotificationText => '[外卖]，您的外卖到了，送至门口外卖柜';
-
-  @override
-  String get aiTestSampleUserContent => '请直接回复：测试成功';
+  String get aiTestSampleUserContent => 'Reply exactly: test successful';
 
   @override
   String aiNotificationUserContent(String content) {
-    return '应用包名：com.example.app\n标题：测试通知\n正文：$content';
+    return 'App package: com.example.app\nTitle: Test notification\nBody: $content';
   }
 
   @override
-  String get aiJsonOnlyInstruction => '仅返回如下 JSON，不得包含任何其他文字或代码块：';
+  String get aiJsonOnlyInstruction =>
+      'Return only the following JSON. Do not include any other text or code block:';
 
   @override
-  String get aiJsonLeftDescription => '左侧文本（谁发的）';
+  String get aiJsonLeftDescription => 'left text (sender)';
 
   @override
-  String get aiJsonRightDescription => '右侧文本（总结）';
+  String get aiJsonRightDescription => 'right text (summary)';
 
   @override
-  String get aiThinkingModeError => '检测到 AI 已开启思考模式，请添加字段关闭思考模式';
+  String get aiThinkingModeError =>
+      'AI thinking mode is enabled. Add a custom field to disable thinking mode';
 
   @override
-  String get aiInvalidJsonError => 'AI 返回格式错误，需要包含 left 和 right 字段的 JSON';
+  String get aiInvalidJsonError =>
+      'Invalid AI response format. JSON with left and right fields is required';
 
   @override
-  String get aiEmptyJsonError => 'AI 返回为空，需要包含 left 和 right 字段的 JSON';
+  String get aiEmptyJsonError =>
+      'AI response is empty. JSON with left and right fields is required';
 
   @override
-  String get aiNotificationContentLabel => '通知内容';
+  String get aiNotificationContentLabel => 'Notification Content';
 
   @override
-  String get aiTestNotificationTitle => '测试通知';
+  String get aiTestNotificationTitle => 'Test Notification';
 
   @override
-  String get aiNotificationSent => '通知已发送';
+  String get aiNotificationSent => 'Notification sent';
 
   @override
-  String get aiAiNotificationSent => 'AI 通知已发送';
+  String get aiAiNotificationSent => 'AI notification sent';
 
   @override
-  String get aiSendNotificationButton => '发送通知';
+  String get aiSendNotificationButton => 'Send Notification';
 
   @override
-  String get aiSendAiNotificationButton => '发送 AI 通知';
+  String get aiSendAiNotificationButton => 'Send AI Notification';
 
   @override
   String get hideDesktopIconTitle => 'Ana Ekran Simgesini Gizle';
@@ -1330,6 +1333,13 @@ class AppLocalizationsTr extends AppLocalizations {
   @override
   String get hideDesktopIconSubtitle =>
       'Uygulama simgesini başlatıcıdan gizler. Gizledikten sonra LSPosed Manager üzerinden açın';
+
+  @override
+  String get restoreLockscreenTitle => 'Kilit Ekranı Bildirimini Geri Yükle';
+
+  @override
+  String get restoreLockscreenSubtitle =>
+      'Kilit ekranında odak bildirimi işlemini atlayın, özgün gizlilik davranışını koruyun';
 
   @override
   String get filterRulesSection => 'Filtre Kuralları';
@@ -1372,50 +1382,53 @@ class AppLocalizationsTr extends AppLocalizations {
   String get sceneActionSuppress => 'Geri dön';
 
   @override
-  String get filterModeLabel => '过滤模式';
+  String get filterModeLabel => 'Filter Mode';
 
   @override
-  String get filterModeBlacklist => '黑名单';
+  String get filterModeBlacklist => 'Blacklist';
 
   @override
-  String get filterModeWhitelist => '白名单';
+  String get filterModeWhitelist => 'Whitelist';
 
   @override
-  String get filterModeBlacklistDesc => '匹配关键词的通知将被过滤';
+  String get filterModeBlacklistDesc =>
+      'Notifications matching keywords will be filtered';
 
   @override
-  String get filterModeWhitelistDesc => '仅匹配关键词的通知会显示';
+  String get filterModeWhitelistDesc =>
+      'Only notifications matching keywords will be shown';
 
   @override
-  String get whitelistKeywordsLabel => '白名单关键词';
+  String get whitelistKeywordsLabel => 'Whitelist Keywords';
 
   @override
-  String get blacklistKeywordsLabel => '黑名单关键词';
+  String get blacklistKeywordsLabel => 'Blacklist Keywords';
 
   @override
-  String get addKeyword => '添加关键词';
+  String get addKeyword => 'Add keyword';
 
   @override
-  String get keywordHint => '输入关键词';
+  String get keywordHint => 'Enter keyword';
 
   @override
-  String get removeKeyword => '移除';
+  String get removeKeyword => 'Remove';
 
   @override
-  String get keywordFilterPriority => '白名单优先：仅白名单匹配的通知显示，但黑名单仍可否决';
+  String get keywordFilterPriority =>
+      'Whitelist takes priority: only whitelist-matched notifications are shown, but blacklist can still veto';
 
   @override
-  String get exportChannelsToClipboard => '导出渠道设置';
+  String get exportChannelsToClipboard => 'Export Channel Settings';
 
   @override
-  String get importChannelsFromClipboard => '导入渠道设置';
+  String get importChannelsFromClipboard => 'Import Channel Settings';
 
   @override
-  String get exportChannelsSuccess => '渠道设置已复制到剪贴板';
+  String get exportChannelsSuccess => 'Channel settings copied to clipboard';
 
   @override
   String importChannelsSuccess(int count) {
-    return '导入成功，共 $count 个渠道设置已恢复';
+    return 'Imported $count channel settings';
   }
 
   @override
@@ -1424,19 +1437,22 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get importErrorEmptyClipboard => '剪贴板为空，请先复制渠道设置数据';
+  String get importErrorEmptyClipboard =>
+      'Clipboard is empty. Please copy channel settings first';
 
   @override
-  String get importErrorNotJson => '剪贴板内容不是有效的 JSON 数据';
+  String get importErrorNotJson => 'Clipboard content is not valid JSON';
 
   @override
-  String get importErrorMissingChannels => '数据格式不正确，缺少渠道列表';
+  String get importErrorMissingChannels =>
+      'Invalid data format: missing channel list';
 
   @override
-  String get importErrorNoMatch => '没有与当前应用匹配的渠道，请确认数据来源正确';
+  String get importErrorNoMatch =>
+      'No channels matched the current app. Please verify the data source';
 
   @override
-  String get importErrorUnknown => '导入失败，请检查剪贴板数据是否正确';
+  String get importErrorUnknown => 'Import failed. Please check clipboard data';
 
   @override
   String get mediaNotificationTitle => 'Medya bildirimi';
@@ -1607,10 +1623,11 @@ class AppLocalizationsTr extends AppLocalizations {
   String get islandGlassEnableFirst => 'Enable the glass effect first';
 
   @override
-  String get islandGlassHdrHighlight => 'HDR高光';
+  String get islandGlassHdrHighlight => 'HDR highlights';
 
   @override
-  String get islandGlassHdrHighlightSubtitle => '以HDR显示高光边缘';
+  String get islandGlassHdrHighlightSubtitle =>
+      'Display highlighted edges in HDR';
 
   @override
   String get islandGlassTrueRefraction => 'Sıvı cam';
@@ -1707,17 +1724,18 @@ class AppLocalizationsTr extends AppLocalizations {
   String get keepIslandRightContentTitle => 'Sağ ada içeriği';
 
   @override
-  String get keepIslandCarouselIntervalTitle => '轮播间隔';
+  String get keepIslandCarouselIntervalTitle => 'Carousel interval';
 
   @override
-  String get keepIslandCarouselIntervalSubtitle => '每隔 1-6000 秒切换多条左右内容';
+  String get keepIslandCarouselIntervalSubtitle =>
+      'Switch between multiple left and right contents every 1-6000 seconds';
 
   @override
-  String get keepIslandAddCarouselItem => '添加内容';
+  String get keepIslandAddCarouselItem => 'Add content';
 
   @override
   String keepIslandCarouselItem(int index) {
-    return '内容 $index';
+    return 'Content $index';
   }
 
   @override
@@ -1778,7 +1796,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get keepIslandDeviceCategory => 'Cihaz';
 
   @override
-  String get keepIslandNetworkCategory => '网络';
+  String get keepIslandNetworkCategory => 'Network';
 
   @override
   String keepIslandPlaceholdersDescription(
@@ -2102,7 +2120,8 @@ class AppLocalizationsTr extends AppLocalizations {
   String get chargeIslandDurationSecondsTitle => 'Özel Süre';
 
   @override
-  String get chargeIslandOuterGlowSubtitle => '控制充电超级岛的外圈光效';
+  String get chargeIslandOuterGlowSubtitle =>
+      'Control the outer glow effect of Charging Island';
 
   @override
   String get faceUnlockIslandTitle => 'Kilit Açma Adası';
@@ -2197,33 +2216,38 @@ class AppLocalizationsTr extends AppLocalizations {
       'Üst ve alt çubuklara bulanıklık şeffaflık efekti ekle';
 
   @override
-  String get bluetoothIslandWhitelistTitle => '设备白名单';
+  String get bluetoothIslandWhitelistTitle => 'Device Whitelist';
 
   @override
-  String get bluetoothIslandWhitelistSubtitle => '仅对白名单中的蓝牙设备显示超级岛';
+  String get bluetoothIslandWhitelistSubtitle =>
+      'Only show the island for whitelisted Bluetooth devices';
 
   @override
-  String get bluetoothIslandWhitelistButton => '管理白名单设备';
+  String get bluetoothIslandWhitelistButton => 'Manage Whitelist';
 
   @override
   String bluetoothIslandWhitelistButtonSubtitle(int count) {
-    return '已选择 $count 个设备';
+    return '$count device(s) selected';
   }
 
   @override
-  String get bluetoothIslandWhitelistDialogTitle => '选择蓝牙设备';
+  String get bluetoothIslandWhitelistDialogTitle => 'Select Bluetooth Devices';
 
   @override
-  String get bluetoothIslandWhitelistEmpty => '暂无已配对设备，请先在系统蓝牙中配对';
+  String get bluetoothIslandWhitelistEmpty =>
+      'No paired devices. Please pair a device in system Bluetooth settings first';
 
   @override
-  String get bluetoothIslandWhitelistAllHint => '未开启白名单时，对所有蓝牙设备生效';
+  String get bluetoothIslandWhitelistAllHint =>
+      'When disabled, the island shows for all Bluetooth devices';
 
   @override
-  String get bluetoothIslandLoadDevicesFailed => '获取蓝牙设备失败';
+  String get bluetoothIslandLoadDevicesFailed =>
+      'Failed to load Bluetooth devices';
 
   @override
-  String get bluetoothIslandNeedBtPermission => '需要蓝牙权限才能获取设备列表';
+  String get bluetoothIslandNeedBtPermission =>
+      'Bluetooth permission is required to load devices';
 
   @override
   String get hideBehaviorTitle => 'Hide Behavior';
@@ -2262,11 +2286,12 @@ class AppLocalizationsTr extends AppLocalizations {
       'Hide the island when the status bar disappears or immersive fullscreen is active';
 
   @override
-  String get hideBehaviorFullscreenLandscapeDisable => '横屏禁用全屏模式隐藏';
+  String get hideBehaviorFullscreenLandscapeDisable =>
+      'Disable fullscreen hide in landscape';
 
   @override
   String get hideBehaviorFullscreenLandscapeDisableSubtitle =>
-      '横屏时候恢复系统行为不再拦截隐藏';
+      'Restore system behavior and stop intercepting hide when in landscape mode';
 
   @override
   String get hideBehaviorScreenLocked => 'Lock screen';
@@ -2293,7 +2318,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get off => 'Kapalı';
 
   @override
-  String get islandTextSection => '超级岛文字';
+  String get islandTextSection => 'Island Text';
 
   @override
   String get islandOutlineSection => 'Ana hat denetimi';
@@ -2318,37 +2343,37 @@ class AppLocalizationsTr extends AppLocalizations {
       'Odak bildirimi ana hattını her zaman göster';
 
   @override
-  String get islandTextColorTitle => '超级岛文本颜色';
+  String get islandTextColorTitle => 'Island Text Color';
 
   @override
-  String get focusNotificationTextColorTitle => '焦点通知文本颜色';
+  String get focusNotificationTextColorTitle => 'Focus Notification Text Color';
 
   @override
-  String get mediaNotificationTextColorTitle => '媒体通知文本颜色';
+  String get mediaNotificationTextColorTitle => 'Media Notification Text Color';
 
   @override
-  String get islandTextColorBlack => '黑色';
+  String get islandTextColorBlack => 'Black';
 
   @override
-  String get islandTextColorFollowBackground => '跟随岛背景';
+  String get islandTextColorFollowBackground => 'Follow island background';
 
   @override
-  String get islandTextColorInvertBackground => '反跟随岛背景';
+  String get islandTextColorInvertBackground => 'Invert island background';
 
   @override
-  String get islandTextColorFollowStatusBar => '跟随状态栏';
+  String get islandTextColorFollowStatusBar => 'Follow status bar';
 
   @override
-  String get islandTextColorInvertStatusBar => '反跟随状态栏';
+  String get islandTextColorInvertStatusBar => 'Invert status bar';
 
   @override
-  String get islandTextColorDefault => '默认';
+  String get islandTextColorDefault => 'Default';
 
   @override
-  String get keepIslandExpandTextColorTitle => '焦点通知岛文本颜色';
+  String get keepIslandExpandTextColorTitle => 'Focus island text color';
 
   @override
-  String get keepIslandExpandTextColorWhite => '白色';
+  String get keepIslandExpandTextColorWhite => 'White';
 
   @override
   String get tapToSelectImage => 'Resim veya GIF seçmek için dokunun';

@@ -49,6 +49,11 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String lsposedApiVersion(int version) {
+    return 'Версия LSPosed API: $version';
+  }
+
+  @override
   String get later => 'Позже';
 
   @override
@@ -150,11 +155,6 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get enableSystemUiScopeInLSPosed =>
       'Пожалуйста, выберите Системный UI в области LSPosed';
-
-  @override
-  String lsposedApiVersion(int version) {
-    return 'Версия LSPosed API: $version';
-  }
 
   @override
   String get updateLSPosedRequired => 'Пожалуйста, обновите версию LSPosed';
@@ -299,16 +299,17 @@ class AppLocalizationsRu extends AppLocalizations {
   String get marqueeChannelTitle => 'Бегущая строка на Острове';
 
   @override
-  String get marqueeAutoHideTitle => '滚动后隐藏岛';
+  String get marqueeAutoHideTitle => 'Hide Island after scrolling';
 
   @override
-  String get marqueeAutoHideSubtitle => '消息滚动达到指定次数后隐藏当前岛';
+  String get marqueeAutoHideSubtitle =>
+      'Hide the current Island after the message scrolls the selected number of times';
 
   @override
-  String get marqueeAutoHideOnce => '滚动1次';
+  String get marqueeAutoHideOnce => 'Scroll once';
 
   @override
-  String get marqueeAutoHideTwice => '滚动2次';
+  String get marqueeAutoHideTwice => 'Scroll twice';
 
   @override
   String get marqueeAutoHideOnceOverride => '1 прокрутка (вместо тайм-аута)';
@@ -380,12 +381,6 @@ class AppLocalizationsRu extends AppLocalizations {
       'Скопировать конфигурацию в виде JSON-текста';
 
   @override
-  String get exportConfig => 'Экспорт конфигурации';
-
-  @override
-  String get exportConfigSubtitle => 'Выберите экспорт в файл или буфер обмена';
-
-  @override
   String get importFromFile => 'Импорт из файла';
 
   @override
@@ -398,6 +393,12 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get importFromClipboardSubtitle =>
       'Восстановить конфигурацию из JSON-текста в буфере обмена';
+
+  @override
+  String get exportConfig => 'Экспорт конфигурации';
+
+  @override
+  String get exportConfigSubtitle => 'Выберите экспорт в файл или буфер обмена';
 
   @override
   String get importConfig => 'Импорт конфигурации';
@@ -554,7 +555,8 @@ class AppLocalizationsRu extends AppLocalizations {
   String get noChannelsFound => 'Каналы уведомлений не найдены';
 
   @override
-  String get noChannelsFoundSubtitle => '该应用尚未创建通知渠道，或无法读取';
+  String get noChannelsFoundSubtitle =>
+      'This app has no notification channels, or they cannot be read';
 
   @override
   String allChannelsActive(int count) {
@@ -686,13 +688,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get islandIcon => 'Иконка острова';
 
   @override
-  String get islandIconLabel => 'Большая иконка острова';
-
-  @override
-  String get islandIconLabelSubtitle =>
-      'Показывать большую иконку острова при включении (на малый остров не влияет)';
-
-  @override
   String get focusIconLabel => 'Иконка фокуса';
 
   @override
@@ -808,7 +803,8 @@ class AppLocalizationsRu extends AppLocalizations {
   String get aodTextSwitchLabel => 'Переключатель текста AOD';
 
   @override
-  String get aodTextSwitchSubtitle => '开启后息屏显示显示通知文本';
+  String get aodTextSwitchSubtitle =>
+      'Show notification text on the AOD when enabled';
 
   @override
   String get aodTextExprLabel => 'Выражение текста AOD';
@@ -830,12 +826,15 @@ class AppLocalizationsRu extends AppLocalizations {
   String get preserveStatusBarSmallIconLabel => 'Иконка в строке состояния';
 
   @override
-  String get restoreLockscreenTitle =>
-      'Восстановить уведомление на экране блокировки';
+  String get preserveStatusBarSmallIconLabelSubtitle =>
+      'Принудительно сохранять иконку в строке состояния при отображении уведомления в фокусе';
 
   @override
-  String get restoreLockscreenSubtitle =>
-      'Пропускать обработку уведомления в фокусе на экране блокировки, сохранить оригинальное поведение конфиденциальности';
+  String get islandIconLabel => 'Большая иконка острова';
+
+  @override
+  String get islandIconLabelSubtitle =>
+      'Показывать большую иконку острова при включении (на малый остров не влияет)';
 
   @override
   String get firstFloatLabel => 'Первое всплытие';
@@ -1053,10 +1052,6 @@ class AppLocalizationsRu extends AppLocalizations {
       'Заменять уведомление уведомлением в фокусе (при отключении показывается оригинальное уведомление)';
 
   @override
-  String get preserveStatusBarSmallIconLabelSubtitle =>
-      'Принудительно сохранять иконку в строке состояния при отображении уведомления в фокусе';
-
-  @override
   String get fullscreenBehaviorTitle => 'Поведение в полноэкранном режиме';
 
   @override
@@ -1169,11 +1164,34 @@ class AppLocalizationsRu extends AppLocalizations {
   String get aiModelPickerFetchError => 'Не удалось загрузить список моделей';
 
   @override
+  String get aiTestButton => 'Тест соединения';
+
+  @override
+  String get aiTestUrlEmpty => 'Сначала введите URL API';
+
+  @override
+  String get aiConfigSaveButton => 'Сохранить';
+
+  @override
+  String get aiConfigSaved => 'Конфигурация ИИ сохранена';
+
+  @override
+  String get aiConfigTips =>
+      'ИИ получает пакет приложения, заголовок и содержимое каждого уведомления и возвращает короткий левый (источник) и правый (содержимое) текст. Совместимо с API формата OpenAI (например, DeepSeek, Claude). При отсутствии ответа откатывается к логике по умолчанию.';
+
+  @override
+  String get templateAiNotificationIslandName => 'Остров уведомлений ИИ';
+
+  @override
   String get aiPromptLabel => 'Пользовательский промпт';
 
   @override
   String get aiPromptHint =>
       'Оставьте пустым для использования по умолчанию: Извлечь ключевую информацию, слева и справа не более 6 слов или 12 символов';
+
+  @override
+  String get aiPromptDefault =>
+      'Извлечь ключевую информацию из уведомления, слева и справа не более 6 слов или 12 символов';
 
   @override
   String get aiPromptInUserTitle => 'Поместить промпт в сообщение пользователя';
@@ -1230,6 +1248,11 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String defaultTimeoutHint(int seconds) {
+    return 'По умолчанию ($secondsс)';
+  }
+
+  @override
   String get aiTemperatureTitle => 'Температура выборки';
 
   @override
@@ -1255,83 +1278,60 @@ class AppLocalizationsRu extends AppLocalizations {
       'Всегда запускать ИИ независимо от длины уведомления';
 
   @override
-  String defaultTimeoutHint(int seconds) {
-    return 'По умолчанию ($secondsс)';
-  }
-
-  @override
   String get aiDefaultPromptFull =>
       'Оставьте пустым для использования промпта по умолчанию: Извлечь ключевую информацию из уведомления, не более 6 слов или 12 символов для левой и правой сторон';
 
   @override
-  String get aiTestButton => 'Тест соединения';
+  String get aiDefaultNotificationText =>
+      '[Delivery] Your delivery has arrived and was placed in the parcel locker at the door';
 
   @override
-  String get aiTestUrlEmpty => 'Сначала введите URL API';
-
-  @override
-  String get aiConfigSaveButton => 'Сохранить';
-
-  @override
-  String get aiConfigSaved => 'Конфигурация ИИ сохранена';
-
-  @override
-  String get aiConfigTips =>
-      'ИИ получает пакет приложения, заголовок и содержимое каждого уведомления и возвращает короткий левый (источник) и правый (содержимое) текст. Совместимо с API формата OpenAI (например, DeepSeek, Claude). При отсутствии ответа откатывается к логике по умолчанию.';
-
-  @override
-  String get templateAiNotificationIslandName => 'Остров уведомлений ИИ';
-
-  @override
-  String get aiPromptDefault =>
-      'Извлечь ключевую информацию из уведомления, слева и справа не более 6 слов или 12 символов';
-
-  @override
-  String get aiDefaultNotificationText => '[外卖]，您的外卖到了，送至门口外卖柜';
-
-  @override
-  String get aiTestSampleUserContent => '请直接回复：测试成功';
+  String get aiTestSampleUserContent => 'Reply exactly: test successful';
 
   @override
   String aiNotificationUserContent(String content) {
-    return '应用包名：com.example.app\n标题：测试通知\n正文：$content';
+    return 'App package: com.example.app\nTitle: Test notification\nBody: $content';
   }
 
   @override
-  String get aiJsonOnlyInstruction => '仅返回如下 JSON，不得包含任何其他文字或代码块：';
+  String get aiJsonOnlyInstruction =>
+      'Return only the following JSON. Do not include any other text or code block:';
 
   @override
-  String get aiJsonLeftDescription => '左侧文本（谁发的）';
+  String get aiJsonLeftDescription => 'left text (sender)';
 
   @override
-  String get aiJsonRightDescription => '右侧文本（总结）';
+  String get aiJsonRightDescription => 'right text (summary)';
 
   @override
-  String get aiThinkingModeError => '检测到 AI 已开启思考模式，请添加字段关闭思考模式';
+  String get aiThinkingModeError =>
+      'AI thinking mode is enabled. Add a custom field to disable thinking mode';
 
   @override
-  String get aiInvalidJsonError => 'AI 返回格式错误，需要包含 left 和 right 字段的 JSON';
+  String get aiInvalidJsonError =>
+      'Invalid AI response format. JSON with left and right fields is required';
 
   @override
-  String get aiEmptyJsonError => 'AI 返回为空，需要包含 left 和 right 字段的 JSON';
+  String get aiEmptyJsonError =>
+      'AI response is empty. JSON with left and right fields is required';
 
   @override
-  String get aiNotificationContentLabel => '通知内容';
+  String get aiNotificationContentLabel => 'Notification Content';
 
   @override
-  String get aiTestNotificationTitle => '测试通知';
+  String get aiTestNotificationTitle => 'Test Notification';
 
   @override
-  String get aiNotificationSent => '通知已发送';
+  String get aiNotificationSent => 'Notification sent';
 
   @override
-  String get aiAiNotificationSent => 'AI 通知已发送';
+  String get aiAiNotificationSent => 'AI notification sent';
 
   @override
-  String get aiSendNotificationButton => '发送通知';
+  String get aiSendNotificationButton => 'Send Notification';
 
   @override
-  String get aiSendAiNotificationButton => '发送 AI 通知';
+  String get aiSendAiNotificationButton => 'Send AI Notification';
 
   @override
   String get hideDesktopIconTitle => 'Скрыть иконку на рабочем столе';
@@ -1339,6 +1339,14 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get hideDesktopIconSubtitle =>
       'Скрыть иконку приложения из лаунчера. Открывайте через LSPosed Manager после скрытия';
+
+  @override
+  String get restoreLockscreenTitle =>
+      'Восстановить уведомление на экране блокировки';
+
+  @override
+  String get restoreLockscreenSubtitle =>
+      'Пропускать обработку уведомления в фокусе на экране блокировки, сохранить оригинальное поведение конфиденциальности';
 
   @override
   String get filterRulesSection => 'Правила фильтрации';
@@ -1625,10 +1633,11 @@ class AppLocalizationsRu extends AppLocalizations {
   String get islandGlassEnableFirst => 'Enable the glass effect first';
 
   @override
-  String get islandGlassHdrHighlight => 'HDR高光';
+  String get islandGlassHdrHighlight => 'HDR highlights';
 
   @override
-  String get islandGlassHdrHighlightSubtitle => '以HDR显示高光边缘';
+  String get islandGlassHdrHighlightSubtitle =>
+      'Display highlighted edges in HDR';
 
   @override
   String get islandGlassTrueRefraction => 'Жидкое стекло';
@@ -1726,17 +1735,18 @@ class AppLocalizationsRu extends AppLocalizations {
   String get keepIslandRightContentTitle => 'Правое содержимое Острова';
 
   @override
-  String get keepIslandCarouselIntervalTitle => '轮播间隔';
+  String get keepIslandCarouselIntervalTitle => 'Carousel interval';
 
   @override
-  String get keepIslandCarouselIntervalSubtitle => '每隔 1-6000 秒切换多条左右内容';
+  String get keepIslandCarouselIntervalSubtitle =>
+      'Switch between multiple left and right contents every 1-6000 seconds';
 
   @override
-  String get keepIslandAddCarouselItem => '添加内容';
+  String get keepIslandAddCarouselItem => 'Add content';
 
   @override
   String keepIslandCarouselItem(int index) {
-    return '内容 $index';
+    return 'Content $index';
   }
 
   @override
@@ -1796,7 +1806,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get keepIslandDeviceCategory => 'Устройство';
 
   @override
-  String get keepIslandNetworkCategory => '网络';
+  String get keepIslandNetworkCategory => 'Network';
 
   @override
   String keepIslandPlaceholdersDescription(
@@ -2066,63 +2076,65 @@ class AppLocalizationsRu extends AppLocalizations {
   String get bluetoothIslandDisplayDurationTitle => 'Длительность показа';
 
   @override
-  String get chargeIslandTitle => '充电超级岛';
+  String get chargeIslandTitle => 'Charging Island';
 
   @override
   String chargeIslandSubtitle(String status) {
-    return '$status · 替换充电超级岛中的功率或电量片段';
+    return '$status · Replace the power or battery segment in Charging Island';
   }
 
   @override
-  String get chargeIslandSettingsTitle => '充电超级岛设置';
+  String get chargeIslandSettingsTitle => 'Charging Island Settings';
 
   @override
-  String get chargeIslandEnableTitle => '启用充电超级岛 Hook';
+  String get chargeIslandEnableTitle => 'Enable Charging Island Hook';
 
   @override
-  String get chargeIslandEnableSubtitle => '关闭后重启 SystemUI 生效，Hook 将完全旁路';
+  String get chargeIslandEnableSubtitle =>
+      'After disabling, restart System UI to take effect. The hook will be bypassed completely';
 
   @override
-  String get chargeIslandLeftModeTitle => '左侧行为';
+  String get chargeIslandLeftModeTitle => 'Left Behavior';
 
   @override
-  String get chargeIslandRightModeTitle => '右侧行为';
+  String get chargeIslandRightModeTitle => 'Right Behavior';
 
   @override
-  String get chargeIslandModeDefault => '默认';
+  String get chargeIslandModeDefault => 'Default';
 
   @override
-  String get chargeIslandModePower => '功率';
+  String get chargeIslandModePower => 'Power';
 
   @override
-  String get chargeIslandModeVoltage => '电压';
+  String get chargeIslandModeVoltage => 'Voltage';
 
   @override
-  String get chargeIslandModeCurrent => '电流';
+  String get chargeIslandModeCurrent => 'Current';
 
   @override
-  String get chargeIslandModeLevel => '电量';
+  String get chargeIslandModeLevel => 'Battery';
 
   @override
-  String get chargeIslandModeTemperature => '电池温度';
+  String get chargeIslandModeTemperature => 'Battery Temperature';
 
   @override
-  String get chargeIslandDurationModeTitle => '持续时间';
+  String get chargeIslandDurationModeTitle => 'Duration';
 
   @override
-  String get chargeIslandDurationDefault => '默认';
+  String get chargeIslandDurationDefault => 'Default';
 
   @override
-  String get chargeIslandDurationCustom => '自定义';
+  String get chargeIslandDurationCustom => 'Custom';
 
   @override
-  String get chargeIslandDurationPersistent => '常驻';
+  String get chargeIslandDurationPersistent => 'Persistent';
 
   @override
-  String get chargeIslandDurationSecondsTitle => '自定义时长';
+  String get chargeIslandDurationSecondsTitle => 'Custom Duration';
 
   @override
-  String get chargeIslandOuterGlowSubtitle => '控制充电超级岛的外圈光效';
+  String get chargeIslandOuterGlowSubtitle =>
+      'Control the outer glow effect of Charging Island';
 
   @override
   String get faceUnlockIslandTitle => 'Остров разблокировки';
@@ -2288,11 +2300,12 @@ class AppLocalizationsRu extends AppLocalizations {
       'Скрывать Остров, когда строка состояния исчезает или активен иммерсивный полноэкранный режим';
 
   @override
-  String get hideBehaviorFullscreenLandscapeDisable => '横屏禁用全屏模式隐藏';
+  String get hideBehaviorFullscreenLandscapeDisable =>
+      'Disable fullscreen hide in landscape';
 
   @override
   String get hideBehaviorFullscreenLandscapeDisableSubtitle =>
-      '横屏时候恢复系统行为不再拦截隐藏';
+      'Restore system behavior and stop intercepting hide when in landscape mode';
 
   @override
   String get hideBehaviorScreenLocked => 'Экран блокировки';
@@ -2319,7 +2332,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get off => 'Выкл';
 
   @override
-  String get islandTextSection => '超级岛文字';
+  String get islandTextSection => 'Island Text';
 
   @override
   String get islandOutlineSection => 'Управление контуром';
@@ -2344,37 +2357,37 @@ class AppLocalizationsRu extends AppLocalizations {
       'Всегда показывать контур фокус-уведомления';
 
   @override
-  String get islandTextColorTitle => '超级岛文本颜色';
+  String get islandTextColorTitle => 'Island Text Color';
 
   @override
-  String get focusNotificationTextColorTitle => '焦点通知文本颜色';
+  String get focusNotificationTextColorTitle => 'Focus Notification Text Color';
 
   @override
-  String get mediaNotificationTextColorTitle => '媒体通知文本颜色';
+  String get mediaNotificationTextColorTitle => 'Media Notification Text Color';
 
   @override
-  String get islandTextColorBlack => '黑色';
+  String get islandTextColorBlack => 'Black';
 
   @override
-  String get islandTextColorFollowBackground => '跟随岛背景';
+  String get islandTextColorFollowBackground => 'Follow island background';
 
   @override
-  String get islandTextColorInvertBackground => '反跟随岛背景';
+  String get islandTextColorInvertBackground => 'Invert island background';
 
   @override
-  String get islandTextColorFollowStatusBar => '跟随状态栏';
+  String get islandTextColorFollowStatusBar => 'Follow status bar';
 
   @override
-  String get islandTextColorInvertStatusBar => '反跟随状态栏';
+  String get islandTextColorInvertStatusBar => 'Invert status bar';
 
   @override
-  String get islandTextColorDefault => '默认';
+  String get islandTextColorDefault => 'Default';
 
   @override
-  String get keepIslandExpandTextColorTitle => '焦点通知岛文本颜色';
+  String get keepIslandExpandTextColorTitle => 'Focus island text color';
 
   @override
-  String get keepIslandExpandTextColorWhite => '白色';
+  String get keepIslandExpandTextColorWhite => 'White';
 
   @override
   String get tapToSelectImage => 'Нажмите, чтобы выбрать изображение или GIF';
