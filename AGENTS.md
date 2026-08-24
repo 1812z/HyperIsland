@@ -8,7 +8,6 @@
 flutter pub get
 flutter analyze                                      # 静态检查（flutter_lints，无自定义规则）
 flutter build apk --target-platform=android-arm64    # 官方构建方式，仅 arm64
-flutter gen-l10n                                     # 生成多语言（模板是 app_en.arb）
 ```
 
 文档站（VitePress，位于 `docs/`，用 yarn 1）：
@@ -60,7 +59,7 @@ Xposed 用的是 libxposed 新 API（`io.github.libxposed.api`），不是旧 Xp
 5. 批量应用：`whitelist_controller.batchApplyChannelSettings` 的 keyMap 加映射
 6. 导入导出：`config_io_controller.dart` 加对应前缀
 7. Xposed 行为：在对应 hook 里读配置实现；新 hook 需在 `HyperIslandModule.onPackageLoaded` 注册（受开关控制的 hook 用 `ConfigManager.getBoolean` 包住 init）
-8. 文案：功能开发阶段可优先用中文固定实现和测试；功能稳定后抽取 i18n，先补英文模板 `app_en.arb` 和中文 `app_zh.arb`，再补 `app_ja/ru/tr.arb`，跑 `flutter gen-l10n`
+8. 文案：功能开发阶段可优先用中文固定实现和测试；功能稳定后抽取 i18n，先补英文模板 `app_en.arb` 和中文 `app_zh.arb`，再补 `app_ja/ru/tr.arb`，不需要跑 `flutter gen-l10n`
 
 ## SystemUI Hook 要点
 
