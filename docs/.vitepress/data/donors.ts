@@ -245,6 +245,11 @@ export const donors: DonorItem[] = [
     amount: '0.66',
     date: '2026-08-11',
     message: '加油'
+  }，
+  {
+    name: "『明日清风』",
+    amount: '0.66',
+    date: '2026-08-24',
+    message: '大牛可以这是我见过最实用的一 个东西了希望您能多多创作'
   }
-
 ]

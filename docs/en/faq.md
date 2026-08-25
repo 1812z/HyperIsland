@@ -38,6 +38,10 @@ Please confirm:
 - Please try disabling floating notifications in the system's native notification settings.
 :::
 
+::: details Notification style appears misaligned or similar issues?
+- Please try updating the System UI Plugin version, or provide further feedback to the developer
+:::
+
 ::: danger Found a BUG?
 Please upload LSPosed logs along with reproduction steps or a complete video. Though realistically, there's a good chance it won't get fixed ):
 :::
