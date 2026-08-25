@@ -892,8 +892,8 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                       _DimenTile(
                         title: l10n.smallIslandHorizontalOffset,
                         value: _smallIslandHorizontalOffsetDraft.toDouble(),
-                        min: -100,
-                        max: 100,
+                        min: -10,
+                        max: 50,
                         unit: 'dp',
                         defaultVal: 0,
                         followSystemLabel: l10n.optDefault,
