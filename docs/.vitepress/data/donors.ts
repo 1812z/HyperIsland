@@ -257,5 +257,11 @@ export const donors: DonorItem[] = [
     amount: '5',
     date: '2026-08-25',
     message: '这个软件好!'
+  },
+  {
+    name: "7",
+    amount: '6.66',
+    date: '2026-08-25',
+    message: '支持大小岛双向距离项目创作'
   }
 ]
