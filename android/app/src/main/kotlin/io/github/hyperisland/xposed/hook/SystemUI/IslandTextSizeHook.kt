@@ -1,6 +1,5 @@
 package io.github.hyperisland.xposed.hook.SystemUI
 
-import android.util.TypedValue
 import android.widget.TextView
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.BaseHook
@@ -13,8 +12,10 @@ import java.util.WeakHashMap
 /** Applies the configured size after SystemUI binds its island text views. */
 object IslandTextSizeHook : BaseHook() {
     private const val TAG = "HyperIsland[IslandTextSize]"
-    private const val KEY_TEXT_SIZE = "pref_island_text_size"
-    private const val DEFAULT_TEXT_SIZE_SP = 14
+    private const val KEY_TEXT_SCALE = "pref_island_text_scale"
+    private const val DEFAULT_TEXT_SCALE = 100
+    private const val TITLE_TEXT_SIZE_DP = 14f
+    private const val CONTENT_TEXT_SIZE_DP = 11f
 
     private val holderClassNames = arrayOf(
         "miui.systemui.dynamicisland.module.IslandTextViewHolder",
@@ -67,22 +68,18 @@ object IslandTextSizeHook : BaseHook() {
     }
 
     private fun applyTextSize(holder: Any) {
-        val textSizeSp = ConfigManager.getInt(KEY_TEXT_SIZE, DEFAULT_TEXT_SIZE_SP)
-            .coerceIn(8, 20)
-            .toFloat()
+        val textScale = ConfigManager.getInt(KEY_TEXT_SCALE, DEFAULT_TEXT_SCALE)
+            .coerceIn(10, 200) / 100f
         textFieldNames.forEach { fieldName ->
             val textView = runCatching {
                 holder.javaClass.getDeclaredField(fieldName).apply { isAccessible = true }
                     .get(holder) as? TextView
             }.getOrNull() ?: return@forEach
             textView.post {
-                val targetPx = TypedValue.applyDimension(
-                    TypedValue.COMPLEX_UNIT_SP,
-                    textSizeSp,
-                    textView.resources.displayMetrics,
-                )
+                val baseSizeDp = if (fieldName == "title") TITLE_TEXT_SIZE_DP else CONTENT_TEXT_SIZE_DP
+                val targetPx = baseSizeDp * textScale * textView.resources.displayMetrics.density
                 if (kotlin.math.abs(textView.textSize - targetPx) < 0.5f) return@post
-                textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, textSizeSp)
+                textView.setTextSize(android.util.TypedValue.COMPLEX_UNIT_PX, targetPx)
                 textView.requestLayout()
             }
         }

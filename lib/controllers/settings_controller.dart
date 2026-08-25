@@ -125,7 +125,7 @@ const kPrefIslandGlassCaptureFps = 'pref_island_glass_capture_fps';
 const kPrefIslandGlassCaptureQuality = 'pref_island_glass_capture_quality';
 const kPrefIslandHeight = 'pref_island_height';
 const kPrefIslandTopOffset = 'pref_island_top_offset';
-const kPrefIslandTextSize = 'pref_island_text_size';
+const kPrefIslandTextScale = 'pref_island_text_scale';
 const kPrefIslandTextColorMode = 'pref_island_text_color_mode';
 const kPrefFocusNotificationTextColorMode =
     'pref_focus_notification_text_color_mode';
@@ -328,7 +328,7 @@ class SettingsController extends ChangeNotifier {
   int islandGlassCaptureQuality = 30;
   double islandHeight = 0;
   double islandTopOffset = 0;
-  int islandTextSize = 14;
+  int islandTextScale = 100;
   String islandTextColorMode = kIslandTextColorDefault;
   String focusNotificationTextColorMode = kIslandTextColorDefault;
   String mediaNotificationTextColorMode = kIslandTextColorDefault;
@@ -607,7 +607,7 @@ class SettingsController extends ChangeNotifier {
         (prefs.getInt(kPrefIslandGlassCaptureQuality) ?? 30).clamp(10, 100);
     islandHeight = prefs.getDouble(kPrefIslandHeight) ?? 0;
     islandTopOffset = prefs.getDouble(kPrefIslandTopOffset) ?? 0;
-    islandTextSize = _readInt(prefs, kPrefIslandTextSize, 14).clamp(8, 20);
+    islandTextScale = _readInt(prefs, kPrefIslandTextScale, 100).clamp(10, 200);
     islandTextColorMode = _normalizeIslandTextColorMode(
       prefs.getString(kPrefIslandTextColorMode),
     );
@@ -1835,13 +1835,13 @@ class SettingsController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setIslandTextSize(int value) => _setIslandDimenInt(
-    kPrefIslandTextSize,
+  Future<void> setIslandTextScale(int value) => _setIslandDimenInt(
+    kPrefIslandTextScale,
     value,
-    8,
-    20,
-    14,
-    (next) => islandTextSize = next,
+    10,
+    200,
+    100,
+    (next) => islandTextScale = next,
   );
 
   Future<void> setOuterGlowRange(int value) async {
