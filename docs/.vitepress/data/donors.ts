@@ -233,19 +233,19 @@ export const donors: DonorItem[] = [
     amount: '8.88',
     date: '2026-08-10',
     message: '助力修bug'
-  }，
+  },
   {
     name: " ",
     amount: '18.88',
     date: '2026-08-11',
     message: '真的很不错'
-  }，
+  },
   {
     name: "韩秽琳",
     amount: '0.66',
     date: '2026-08-11',
     message: '加油'
-  }，
+  },
   {
     name: "『明日清风』",
     amount: '0.66',
