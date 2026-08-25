@@ -605,11 +605,14 @@ android/app/src/main/kotlin/io/github/hyperisland/xposed/hook/SystemUI/IslandTra
 ### 小岛
 
 ```text
+pref_small_island_horizontal_offset
 pref_island_blur_small_enabled
 pref_island_blur_small_radius
 pref_island_blur_small_color
 pref_island_bg_small_path
 ```
+
+`pref_small_island_horizontal_offset` 是双岛状态下相对系统间距的偏移量，单位 dp，范围 `-10` 到 `50`。`0` 跟随系统，正值增大大小岛距离，负值减小距离，最终间距不会小于 `0`。
 
 ### 大岛
 
