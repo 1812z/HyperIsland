@@ -33,6 +33,7 @@ const kPrefMarqueeSpeed = 'pref_marquee_speed';
 const kPrefBigIslandMaxWidth = 'pref_big_island_max_width';
 const kPrefBigIslandMinWidth = 'pref_big_island_min_width';
 const kPrefSmallIslandWidth = 'pref_small_island_width';
+const kPrefSmallIslandHorizontalOffset = 'pref_small_island_horizontal_offset';
 const kPrefSmoothIsland = 'pref_smooth_island';
 const kPrefSmoothIslandSmoothing = 'pref_smooth_island_smoothing';
 const kPrefUnlockAllFocus = 'pref_unlock_all_focus';
@@ -243,6 +244,7 @@ class SettingsController extends ChangeNotifier {
   int bigIslandMaxWidth = 0;
   int bigIslandMinWidth = 0;
   int smallIslandWidth = 34;
+  int smallIslandHorizontalOffset = 0;
   bool smoothIsland = false;
   double smoothIslandSmoothing = 0.8;
   bool unlockAllFocus = false;
@@ -427,6 +429,8 @@ class SettingsController extends ChangeNotifier {
     bigIslandMaxWidth = prefs.getInt(kPrefBigIslandMaxWidth) ?? 0;
     bigIslandMinWidth = prefs.getInt(kPrefBigIslandMinWidth) ?? 0;
     smallIslandWidth = _readInt(prefs, kPrefSmallIslandWidth, 34).clamp(1, 100);
+    smallIslandHorizontalOffset =
+        (prefs.getInt(kPrefSmallIslandHorizontalOffset) ?? 0).clamp(-10, 50);
     smoothIsland = prefs.getBool(kPrefSmoothIsland) ?? false;
     smoothIslandSmoothing = prefs.getDouble(kPrefSmoothIslandSmoothing) ?? 0.8;
     unlockAllFocus = prefs.getBool(kPrefUnlockAllFocus) ?? false;
@@ -938,6 +942,15 @@ class SettingsController extends ChangeNotifier {
     100,
     34,
     (next) => smallIslandWidth = next,
+  );
+
+  Future<void> setSmallIslandHorizontalOffset(int value) => _setIslandDimenInt(
+    kPrefSmallIslandHorizontalOffset,
+    value,
+    -10,
+    50,
+    0,
+    (next) => smallIslandHorizontalOffset = next,
   );
 
   Future<void> _setIslandDimenInt(

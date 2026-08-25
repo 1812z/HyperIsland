@@ -26,6 +26,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
   late int _bigIslandMaxWidthDraft;
   late int _bigIslandMinWidthDraft;
   late int _smallIslandWidthDraft;
+  late int _smallIslandHorizontalOffsetDraft;
   late int _islandTextScaleDraft;
   late int _roundIconRadiusDraft;
   late int _islandIconSizeDraft;
@@ -40,6 +41,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _ctrl.bigIslandMaxWidth,
     _ctrl.bigIslandMinWidth,
     _ctrl.smallIslandWidth,
+    _ctrl.smallIslandHorizontalOffset,
     _ctrl.islandTextScale,
     _ctrl.roundIcon,
     _ctrl.roundIconRadius,
@@ -91,6 +93,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _bigIslandMaxWidthDraft = _ctrl.bigIslandMaxWidth;
     _bigIslandMinWidthDraft = _ctrl.bigIslandMinWidth;
     _smallIslandWidthDraft = _ctrl.smallIslandWidth;
+    _smallIslandHorizontalOffsetDraft = _ctrl.smallIslandHorizontalOffset;
     _islandTextScaleDraft = _ctrl.islandTextScale;
     _roundIconRadiusDraft = _ctrl.roundIconRadius;
     _islandIconSizeDraft = _ctrl.islandIconSize;
@@ -118,6 +121,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     final nextMaxWidth = _ctrl.bigIslandMaxWidth;
     final nextMinWidth = _ctrl.bigIslandMinWidth;
     final nextSmallWidth = _ctrl.smallIslandWidth;
+    final nextSmallOffset = _ctrl.smallIslandHorizontalOffset;
     final nextTextScale = _ctrl.islandTextScale;
     final nextRoundIconRadius = _ctrl.roundIconRadius;
     final nextIslandIconSize = _ctrl.islandIconSize;
@@ -130,6 +134,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
         nextMaxWidth == _bigIslandMaxWidthDraft &&
         nextMinWidth == _bigIslandMinWidthDraft &&
         nextSmallWidth == _smallIslandWidthDraft &&
+        nextSmallOffset == _smallIslandHorizontalOffsetDraft &&
         nextTextScale == _islandTextScaleDraft &&
         nextRoundIconRadius == _roundIconRadiusDraft &&
         nextIslandIconSize == _islandIconSizeDraft &&
@@ -144,6 +149,7 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
       _bigIslandMaxWidthDraft = nextMaxWidth;
       _bigIslandMinWidthDraft = nextMinWidth;
       _smallIslandWidthDraft = nextSmallWidth;
+      _smallIslandHorizontalOffsetDraft = nextSmallOffset;
       _islandTextScaleDraft = nextTextScale;
       _roundIconRadiusDraft = nextRoundIconRadius;
       _islandIconSizeDraft = nextIslandIconSize;
@@ -719,8 +725,8 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                       _DimenTile(
                         title: l10n.islandTopOffset,
                         value: _islandTopOffsetDraft,
-                        min: -100,
-                        max: 100,
+                        min: -10,
+                        max: 50,
                         unit: 'dp',
                         defaultVal: 0,
                         followSystemLabel: l10n.followSystem,
@@ -881,6 +887,22 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                         ),
                         onPersist: (value) =>
                             _ctrl.setSmallIslandWidth(value.round()),
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      _DimenTile(
+                        title: l10n.smallIslandHorizontalOffset,
+                        value: _smallIslandHorizontalOffsetDraft.toDouble(),
+                        min: -100,
+                        max: 100,
+                        unit: 'dp',
+                        defaultVal: 0,
+                        followSystemLabel: l10n.optDefault,
+                        onChanged: (value) => setState(
+                          () =>
+                              _smallIslandHorizontalOffsetDraft = value.round(),
+                        ),
+                        onPersist: (value) =>
+                            _ctrl.setSmallIslandHorizontalOffset(value.round()),
                         isLast: true,
                       ),
                     ],

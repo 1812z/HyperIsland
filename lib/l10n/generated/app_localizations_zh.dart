@@ -1397,6 +1397,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get smallIslandWidth => '小岛宽度';
 
   @override
+  String get smallIslandHorizontalOffset => '大小岛间距';
+
+  @override
   String get followSystem => '跟随系统';
 
   @override

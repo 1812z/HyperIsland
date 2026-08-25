@@ -684,6 +684,7 @@
   "islandDimenHeight": "Island Height",
   "islandTopOffset": "Distance from Top of Screen",
   "smallIslandWidth": "Small Island Width",
+  "smallIslandHorizontalOffset": "Large-Small Island Gap",
   "followSystem": "Follow system",
   "islandDimenMiniY": "Vertical Position",
   "islandDimenMiniYHint": "0=follow system",

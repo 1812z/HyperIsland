@@ -1477,6 +1477,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get smallIslandWidth => 'Small Island Width';
 
   @override
+  String get smallIslandHorizontalOffset => 'Large-Small Island Gap';
+
+  @override
   String get followSystem => 'Follow system';
 
   @override
