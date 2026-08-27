@@ -378,9 +378,11 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
                         title: Text(l10n.smoothIslandTitle, style: titleStyle),
                         subtitle: Text(l10n.smoothIslandSubtitle),
                         value: _ctrl.smoothIsland,
-                        onChanged: InteractionHaptics.interceptToggle(
-                          _onSmoothIslandChanged,
-                        ),
+                        onChanged: _ctrl.smoothIslandSupported
+                            ? InteractionHaptics.interceptToggle(
+                                _onSmoothIslandChanged,
+                              )
+                            : null,
                       ),
                       if (_ctrl.smoothIsland) ...[
                         const Divider(height: 1, indent: 16, endIndent: 16),

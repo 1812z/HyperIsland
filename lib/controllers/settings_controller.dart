@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/os_version_service.dart';
+
 import 'whitelist_controller.dart';
 
 const kPrefShowWelcome = 'pref_show_welcome';
@@ -247,6 +249,8 @@ class SettingsController extends ChangeNotifier {
   int smallIslandHorizontalOffset = 0;
   bool smoothIsland = false;
   double smoothIslandSmoothing = 0.8;
+  int hyperOsMajorVersion = 0;
+  bool get smoothIslandSupported => hyperOsMajorVersion != 4;
   bool unlockAllFocus = false;
   bool unlockFocusAuth = false;
   bool chargeIsland = false;
@@ -433,6 +437,11 @@ class SettingsController extends ChangeNotifier {
         (prefs.getInt(kPrefSmallIslandHorizontalOffset) ?? 0).clamp(-10, 50);
     smoothIsland = prefs.getBool(kPrefSmoothIsland) ?? false;
     smoothIslandSmoothing = prefs.getDouble(kPrefSmoothIslandSmoothing) ?? 0.8;
+    hyperOsMajorVersion = await OsVersionService.getHyperOsMajorVersion();
+    if (!smoothIslandSupported && smoothIsland) {
+      smoothIsland = false;
+      await prefs.setBool(kPrefSmoothIsland, false);
+    }
     unlockAllFocus = prefs.getBool(kPrefUnlockAllFocus) ?? false;
     unlockFocusAuth = prefs.getBool(kPrefUnlockFocusAuth) ?? false;
     chargeIsland = prefs.getBool(kPrefChargeIsland) ?? false;

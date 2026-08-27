@@ -17,6 +17,7 @@ import io.github.hyperisland.core.service.AppService
 import io.github.hyperisland.xposed.template.core.customization.FocusCustomizationEngine
 import io.github.hyperisland.xposed.hook.KeepIslandHook
 import io.github.hyperisland.utils.InteractionHaptics
+import io.github.hyperisland.utils.HyperOsVersionUtil
 import io.github.hyperisland.utils.RootShell
 import io.github.hyperisland.utils.getAppIcon
 import io.flutter.embedding.android.FlutterActivity
@@ -289,6 +290,10 @@ class MainActivity : FlutterActivity() {
 
                 "getAndroidSdkVersion" -> {
                     result.success(Build.VERSION.SDK_INT)
+                }
+
+                "getHyperOsMajorVersion" -> {
+                    result.success(HyperOsVersionUtil.getMajorVersion())
                 }
 
                 "setDesktopIconVisible" -> {
