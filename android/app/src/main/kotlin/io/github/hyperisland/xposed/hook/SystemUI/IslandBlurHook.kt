@@ -9,6 +9,7 @@ import android.graphics.RectF
 import android.graphics.drawable.Drawable
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.util.TypedValue
 import android.view.View
 import io.github.hyperisland.xposed.ConfigManager
@@ -71,6 +72,8 @@ object IslandBlurHook : BaseHook() {
 
     private const val DEFAULT_RADIUS = 80
     private const val DEFAULT_BLEND_COLOR = 0x20FFFFFF
+    private const val NO_CONTENT_CLEANUP_POLL_MS = 16L
+    private const val NO_CONTENT_CLEANUP_TIMEOUT_MS = 1_500L
     private val hookedContentClasses = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>())
     )
@@ -94,6 +97,9 @@ object IslandBlurHook : BaseHook() {
     )
     private val controllerVisibility = Collections.synchronizedMap(
         WeakHashMap<Any, Boolean>()
+    )
+    private val noContentCleanupRunnables = Collections.synchronizedMap(
+        WeakHashMap<Any, Runnable>()
     )
     private val mainHandler = Handler(Looper.getMainLooper())
     private val refreshRunnable = Runnable { refreshTrackedViews() }
@@ -422,6 +428,7 @@ object IslandBlurHook : BaseHook() {
             if (type != null) {
                 islandTypeHolder.set(type)
                 lastIslandType = type
+                cancelNoContentCleanup(chain.thisObject)
             }
             try {
                 val result = chain.proceed()
@@ -444,23 +451,73 @@ object IslandBlurHook : BaseHook() {
                     }
                 } else if (isNoContentState(state)) {
                     val contentView = chain.thisObject
-                    mainHandler.post {
-                        val currentState = runCatching {
-                            stateField.get(contentView)
-                        }.getOrNull()
-                        if (!isNoContentState(currentState)) return@post
-                        val backgroundView = runCatching {
-                            backgroundViewField.get(contentView) as? View
-                        }.getOrNull() ?: return@post
-                        deactivateOuterBlur(backgroundView, outerDrawableField, "no-content")
-                        lastIslandType = null
-                    }
+                    scheduleNoContentCleanup(
+                        contentView,
+                        stateField,
+                        backgroundViewField,
+                        outerDrawableField,
+                    )
                 }
                 result
             } finally {
                 islandTypeHolder.remove()
             }
         }
+    }
+
+    /**
+     * Hidden/Deleted is emitted at the start of the OS4 disappearance animation. Releasing the
+     * BlurDrawable there exposes SystemUI's stock black drawable for the remaining shrink frames.
+     * Keep the blur until the animated background has actually faded or lost its geometry.
+     */
+    private fun scheduleNoContentCleanup(
+        contentView: Any,
+        stateField: java.lang.reflect.Field,
+        backgroundViewField: java.lang.reflect.Field,
+        outerDrawableField: java.lang.reflect.Field,
+    ) {
+        cancelNoContentCleanup(contentView)
+        val deadline = SystemClock.uptimeMillis() + NO_CONTENT_CLEANUP_TIMEOUT_MS
+        lateinit var cleanup: Runnable
+        cleanup = Runnable {
+            val currentState = runCatching { stateField.get(contentView) }.getOrNull()
+            if (!isNoContentState(currentState)) {
+                noContentCleanupRunnables.remove(contentView)
+                return@Runnable
+            }
+            val backgroundView = runCatching {
+                backgroundViewField.get(contentView) as? View
+            }.getOrNull()
+            if (backgroundView == null) {
+                noContentCleanupRunnables.remove(contentView)
+                return@Runnable
+            }
+
+            val internalAlpha = runCatching {
+                findField(backgroundView.javaClass, "backgroundAlpha")?.getFloat(backgroundView)
+            }.getOrNull() ?: backgroundView.alpha
+            val stillDrawing = backgroundView.isAttachedToWindow &&
+                backgroundView.visibility == View.VISIBLE &&
+                currentBackgroundBounds(backgroundView) != null &&
+                internalAlpha > 0.01f
+            if (stillDrawing && SystemClock.uptimeMillis() < deadline) {
+                mainHandler.postDelayed(cleanup, NO_CONTENT_CLEANUP_POLL_MS)
+                return@Runnable
+            }
+
+            noContentCleanupRunnables.remove(contentView)
+            deactivateOuterBlur(backgroundView, outerDrawableField, "no-content-animation-finished")
+            if (synchronized(outerBlurs) { outerBlurs.isEmpty() }) {
+                lastIslandType = null
+            }
+        }
+        noContentCleanupRunnables[contentView] = cleanup
+        mainHandler.post(cleanup)
+    }
+
+    private fun cancelNoContentCleanup(contentView: Any?) {
+        if (contentView == null) return
+        noContentCleanupRunnables.remove(contentView)?.let(mainHandler::removeCallbacks)
     }
 
     /**
@@ -776,8 +833,12 @@ object IslandBlurHook : BaseHook() {
     private fun isNoContentState(state: Any?): Boolean {
         val name = state?.javaClass?.simpleName.orEmpty()
         val text = state?.toString().orEmpty()
+        if (name.contains("TempHidden", ignoreCase = true) ||
+            text.contains("TempHidden", ignoreCase = true)
+        ) return false
         return sequenceOf(name, text).any { value ->
             value.contains("Deleted", ignoreCase = true) ||
+                value.contains("Hidden", ignoreCase = true) ||
                 value.contains("Empty", ignoreCase = true) ||
                 value.contains("Invisible", ignoreCase = true) ||
                 value.contains("Idle", ignoreCase = true) ||
@@ -1308,6 +1369,17 @@ object IslandBlurHook : BaseHook() {
         while (current != null) {
             runCatching {
                 return current.getDeclaredMethod(name, *types).apply { isAccessible = true }
+            }
+            current = current.superclass
+        }
+        return null
+    }
+
+    private fun findField(clazz: Class<*>, name: String): java.lang.reflect.Field? {
+        var current: Class<*>? = clazz
+        while (current != null) {
+            runCatching {
+                return current.getDeclaredField(name).apply { isAccessible = true }
             }
             current = current.superclass
         }

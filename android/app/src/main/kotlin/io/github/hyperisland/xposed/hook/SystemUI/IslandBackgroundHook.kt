@@ -15,8 +15,6 @@ import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import android.os.Handler
 import android.os.Looper
-import android.os.SystemClock
-import io.github.hyperisland.xposed.log
 import java.io.File
 import java.lang.ref.WeakReference
 import java.lang.reflect.Field
@@ -57,7 +55,8 @@ import java.util.concurrent.ConcurrentHashMap
  *   2. hookSetDrawable → 替换 drawable（自定义背景 or 纯黑图片）
  *   3. hookAlphaAnimation → 设 alpha=1.0
  *   4. hookUpdateBackgroundBg → 拦截所有类型的遮罩设置（清除遮罩）
- *   5. hookContainerScheduleUpdate → 清除 container 遮罩
+ *   5. OS3: hook containerScheduleUpdate → 清除 container 遮罩
+ *   6. OS4: hook IslandPropertyUpdater → 清除新版 container/island_mask 层
  *
  * ★ 关键：当任意类型有自定义背景时，所有遮罩都由本 Hook 控制。
  *   非自定义类型用真正的纯黑图片替代系统遮罩，避免 container 清空后变透明。
@@ -83,6 +82,14 @@ object IslandBackgroundHook : BaseHook() {
         val stokeWidth: Int,
     )
 
+    /** Pre-resolved accessors used by animation hot paths. */
+    private data class ManagedLayerAccess(
+        val stateMethod: Method?,
+        val stateField: Field?,
+        val containerMethod: Method,
+        val maskMethod: Method?,
+    )
+
     /** 真实外层背景和过渡假视图使用不同 bounds，不能共享同一个 drawable。 */
     private val cachedDrawables = ConcurrentHashMap<DrawableCacheKey, Drawable>()
 
@@ -97,6 +104,13 @@ object IslandBackgroundHook : BaseHook() {
         Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>())
     )
 
+    /** OS3 and OS4 use different animation property writers; deduplicate them independently. */
+    private val hookedOs3AnimationClasses = Collections.synchronizedSet(
+        Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>())
+    )
+    private val hookedOs4PropertyUpdaterClasses = Collections.synchronizedSet(
+        Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>())
+    )
     /** 在 updateDarkLightMode → setDrawable 调用链中传递岛类型 */
     private val islandTypeHolder = ThreadLocal<IslandType>()
 
@@ -117,6 +131,10 @@ object IslandBackgroundHook : BaseHook() {
     private val cachedBlurEnabled = ConcurrentHashMap<IslandType, Boolean>()
     private val clearedSharedContainers = Collections.synchronizedMap(
         WeakHashMap<View, IslandType>()
+    )
+    /** Retains the last drawable-owning state while OS4 animates through Hidden/Deleted. */
+    private val managedContentTypes = Collections.synchronizedMap(
+        WeakHashMap<Any, IslandType>()
     )
 
     /** 缓存圆角半径，运行时不会变 */
@@ -154,10 +172,6 @@ object IslandBackgroundHook : BaseHook() {
 
     @Volatile
     private var hookModule: XposedModule? = null
-
-    private val maskDiagnosticTimes = Collections.synchronizedMap(
-        WeakHashMap<View, Long>()
-    )
 
     override fun getTag() = TAG
 
@@ -200,13 +214,17 @@ object IslandBackgroundHook : BaseHook() {
                 hookUpdateDarkLightMode(module, contentViewClass, stateClass)
                 hookUpdateBackgroundBg(module, contentViewClass)
 
-                try {
-                    val animDelegateClass = classLoader.loadClass(
-                        "miui.systemui.dynamicisland.anim.DynamicIslandAnimationDelegate"
-                    )
-                    hookContainerUpdates(module, animDelegateClass, contentViewClass)
-                } catch (e: Throwable) {
-                    logError(module, "Failed to hook container updates: ${e.message}")
+                // HyperOS 3: containerScheduleUpdate() itself writes the shared black mask.
+                runCatching {
+                    classLoader.loadClass("miui.systemui.dynamicisland.anim.DynamicIslandAnimationDelegate")
+                }.getOrNull()?.let { animationClass ->
+                    hookOs3ContainerUpdate(module, animationClass, contentViewClass)
+                }
+
+                // HyperOS 4: the new property updater restores container/mask layers.
+                // Detect the ABI instead of reading ro.* properties, which change between betas.
+                findOs4PropertyUpdater(classLoader)?.let { updaterClass ->
+                    hookOs4PropertyUpdater(module, updaterClass, contentViewClass)
                 }
             } catch (e: Throwable) {
                 logError(module, "Failed to hook updateDarkLightMode/updateBackgroundBg: ${e.message}")
@@ -739,112 +757,135 @@ object IslandBackgroundHook : BaseHook() {
         }
     }
 
-    /** Clears OS3/OS4 shared masks after the animation property writer runs. */
-    private fun hookContainerUpdates(
+    /**
+     * HyperOS 3 path.
+     *
+     * OS3 restores the shared container background from
+     * DynamicIslandAnimationDelegate.containerScheduleUpdate(). Keep this path intact for OS3;
+     * OS4 is handled at IslandPropertyUpdater below.
+     */
+    private fun hookOs3ContainerUpdate(
         module: XposedModule,
         animDelegateClass: Class<*>,
         contentViewClass: Class<*>,
     ) {
+        if (!hookedOs3AnimationClasses.add(animDelegateClass)) return
         try {
             val viewField = animDelegateClass.getDeclaredField("view").apply { isAccessible = true }
-            val stateField = contentViewClass.getDeclaredField("state").apply { isAccessible = true }
-            val getContainer = contentViewClass.getMethod("getContainer").apply { isAccessible = true }
-            val getMask = runCatching {
-                contentViewClass.getMethod("getMask").apply { isAccessible = true }
-            }.getOrNull()
+            val access = createManagedLayerAccess(contentViewClass, includeOs4Mask = false)
+            val method = animDelegateClass.declaredMethods.firstOrNull {
+                it.name == "containerScheduleUpdate" && it.parameterCount == 0
+            } ?: return
+            method.isAccessible = true
+            module.hook(method).intercept { chain ->
+                val result = chain.proceed()
+                runCatching { viewField.get(chain.thisObject) }
+                    .getOrNull()
+                    ?.let { clearManagedLayers(it, access) }
+                result
+            }
+        } catch (e: Throwable) {
+            hookedOs3AnimationClasses.remove(animDelegateClass)
+            logError(module, "Failed to hook OS3 containerScheduleUpdate: ${e.message}")
+        }
+    }
 
-            sequenceOf("containerScheduleUpdate", "scheduleUpdate").forEach { methodName ->
-                val method = animDelegateClass.declaredMethods.firstOrNull {
-                    it.name == methodName && it.parameterCount == 0
-                } ?: return@forEach
+    /** The class moved packages in some OS4 beta builds, so probe both binary names. */
+    private fun findOs4PropertyUpdater(classLoader: ClassLoader): Class<*>? {
+        return sequenceOf(
+            "miui.systemui.dynamicisland.anim.ui.animator.IslandPropertyUpdater",
+            "miui.systemui.dynamicisland.anim.p110ui.animator.IslandPropertyUpdater",
+        ).mapNotNull { name -> runCatching { classLoader.loadClass(name) }.getOrNull() }
+            .firstOrNull()
+    }
+
+    /**
+     * HyperOS 4 path.
+     *
+     * New OS4 builds moved all per-frame writes into IslandPropertyUpdater. Hooking the delegate
+     * is too early/indirect now: updateContainer() can restore the stock Drawable, MiBlur blend,
+     * bionics material and island_mask after it. Clear them directly after the final writer.
+     */
+    private fun hookOs4PropertyUpdater(
+        module: XposedModule,
+        updaterClass: Class<*>,
+        contentViewClass: Class<*>,
+    ) {
+        if (!hookedOs4PropertyUpdaterClasses.add(updaterClass)) return
+        try {
+            val viewField = updaterClass.getDeclaredField("view").apply { isAccessible = true }
+            val access = createManagedLayerAccess(contentViewClass, includeOs4Mask = true)
+            val methods = updaterClass.declaredMethods.filter {
+                it.name == "updateContainer" && it.parameterCount == 1
+            }
+            if (methods.isEmpty()) error("updateContainer(IslandAnimProperties) not found")
+            methods.forEach { method ->
                 method.isAccessible = true
                 module.hook(method).intercept { chain ->
                     val result = chain.proceed()
-
-                    try {
-                        val contentView = viewField.get(chain.thisObject) ?: return@intercept result
-                        val state = stateField.get(contentView)
-                        val type = resolveIslandType(
-                            state?.javaClass?.simpleName.orEmpty(),
-                            state?.javaClass?.name.orEmpty(),
-                        )
-                        if (type != null && anyManagedOuterVisual()) {
-                            val container = getContainer.invoke(contentView) as? View
-                            if (container != null) {
-                                val restoredBackground = container.background
-                                clearSharedContainer(container, type)
-                                val mask = getMask?.invoke(contentView) as? View
-                                val restoredMaskBackground = mask?.background
-                                if (shouldClearSharedMask(type) && mask != null) {
-                                    clearMaskForView(mask)
-                                }
-                                logMaskDiagnostic(
-                                    methodName,
-                                    contentView,
-                                    container,
-                                    restoredBackground,
-                                    mask,
-                                    restoredMaskBackground,
-                                    type,
-                                )
-                            }
-                        }
-                    } catch (e: Exception) {
-                        logError(module, "$methodName clear bg failed: ${e.message}")
-                    }
-
+                    runCatching { viewField.get(chain.thisObject) }
+                        .getOrNull()
+                        ?.let { clearManagedLayers(it, access) }
                     result
                 }
             }
-
         } catch (e: Throwable) {
-            logError(module, "Failed to hook container updates: ${e.message}")
+            hookedOs4PropertyUpdaterClasses.remove(updaterClass)
+            logError(module, "Failed to hook OS4 IslandPropertyUpdater: ${e.message}")
         }
     }
 
-    private fun logMaskDiagnostic(
-        source: String,
-        contentView: Any,
-        container: View,
-        restoredBackground: Drawable?,
-        mask: View?,
-        restoredMaskBackground: Drawable?,
-        type: IslandType,
-    ) {
-        val now = SystemClock.uptimeMillis()
-        val shouldLog = synchronized(maskDiagnosticTimes) {
-            val previous = maskDiagnosticTimes[container] ?: 0L
-            if (now - previous < MASK_DIAGNOSTIC_INTERVAL_MS) {
-                false
-            } else {
-                maskDiagnosticTimes[container] = now
-                true
-            }
-        }
-        if (!shouldLog) return
-
-        val backgroundView = runCatching {
-            contentView.javaClass.methods.firstOrNull {
-                it.name == "getBackgroundView" && it.parameterCount == 0
-            }?.invoke(contentView) as? View
-        }.getOrNull()
-        val outerDrawable = backgroundView?.let { view ->
-            getCachedField(drawableFieldCache, view.javaClass, "drawable")?.let { field ->
-                runCatching { field.get(view) as? Drawable }.getOrNull()
-            }
-        }
-        hookModule?.log(
-            "$TAG mask source=$source type=$type blur=${isBlurEnabledForType(type)} " +
-                "custom=${hasBgFileForType(type)} restored=${describeDrawable(restoredBackground)} " +
-                "containerBg=${describeDrawable(container.background)} " +
-                "mask=${describeView(mask)} maskVis=${mask?.visibility} " +
-                "maskRestored=${describeDrawable(restoredMaskBackground)} " +
-                "maskBg=${describeDrawable(mask?.background)} outer=${describeDrawable(outerDrawable)}",
+    /** Clears only layers owned by the currently rendered state. */
+    private fun clearManagedLayers(contentView: Any, access: ManagedLayerAccess) {
+        val state = runCatching { access.stateMethod?.invoke(contentView) }.getOrNull()
+            ?: runCatching { access.stateField?.get(contentView) }.getOrNull()
+        val resolvedType = resolveIslandType(
+            state?.javaClass?.simpleName.orEmpty(),
+            state?.javaClass?.name.orEmpty(),
         )
+        if (resolvedType != null) {
+            managedContentTypes[contentView] = resolvedType
+        }
+        // Hidden/Deleted are animation states, not proof that drawing has stopped. OS4 keeps
+        // shrinking the previous island after entering them, so continue clearing the masks for
+        // that previous SMALL/BIG/EXPAND type until the View instance is discarded.
+        val type = resolvedType ?: managedContentTypes[contentView] ?: return
+        if (!anyManagedOuterVisual() || !shouldClearSharedMask(type)) return
+
+        runCatching { access.containerMethod.invoke(contentView) as? View }
+            .getOrNull()
+            ?.let { clearSharedContainer(it, type) }
+
+        // OS3 did not use island_mask as the final per-frame visual writer. OS4 does, and its
+        // gradient/bionics state is independent from View.background, so clear all three states.
+        runCatching { access.maskMethod?.invoke(contentView) as? View }
+            .getOrNull()
+            ?.let(::clearMaskForView)
     }
 
-    private fun describeDrawable(drawable: Drawable?): String {
-        return drawable?.javaClass?.name ?: "null"
+    private fun createManagedLayerAccess(
+        contentViewClass: Class<*>,
+        includeOs4Mask: Boolean,
+    ): ManagedLayerAccess {
+        val stateMethod = runCatching {
+            contentViewClass.getMethod("getState").apply { isAccessible = true }
+        }.getOrNull()
+        val stateField = if (stateMethod == null) {
+            contentViewClass.getDeclaredField("state").apply { isAccessible = true }
+        } else {
+            null
+        }
+        val containerMethod = contentViewClass.getMethod("getContainer").apply {
+            isAccessible = true
+        }
+        val maskMethod = if (includeOs4Mask) {
+            runCatching {
+                contentViewClass.getMethod("getMask").apply { isAccessible = true }
+            }.getOrNull()
+        } else {
+            null
+        }
+        return ManagedLayerAccess(stateMethod, stateField, containerMethod, maskMethod)
     }
 
     /**
@@ -896,12 +937,14 @@ object IslandBackgroundHook : BaseHook() {
         synchronized(clearedSharedContainers) {
             clearedSharedContainers[container] = type
         }
-        // OS4's IslandPropertyUpdater can restore a drawable, blend state, or bionics
-        // material independently on every frame, so background == null is not enough.
+        // Both generations may restore blend/bionics state without assigning a Drawable, so
+        // background == null alone is not a reliable indication that the mask is gone.
         clearMaskForView(container)
     }
 
     private fun shouldClearSharedMask(type: IslandType): Boolean {
+        // LiquidGlassDrawable is installed only on an active blur state, so the same blur key
+        // deliberately covers both the plain glass/blur pipeline and custom image backgrounds.
         return isBlurEnabledForType(type) || anyCustomBgConfigured()
     }
 
@@ -1224,6 +1267,7 @@ object IslandBackgroundHook : BaseHook() {
         cachedBgAvailability.clear()
         cachedBlurEnabled.clear()
         clearedSharedContainers.clear()
+        managedContentTypes.clear()
         cachedCornerRadius = null
         stokeWidthFieldCache.clear()
         drawableFieldCache.clear()
@@ -1236,10 +1280,7 @@ object IslandBackgroundHook : BaseHook() {
         clearBionicsMaterialMethod = null
         clearBlurBlendEffectMethod = null
         commonUtilsInstance = null
-        maskDiagnosticTimes.clear()
     }
-
-    private const val MASK_DIAGNOSTIC_INTERVAL_MS = 2_000L
 
     /**
      * 圆角裁剪 Drawable 包装器。

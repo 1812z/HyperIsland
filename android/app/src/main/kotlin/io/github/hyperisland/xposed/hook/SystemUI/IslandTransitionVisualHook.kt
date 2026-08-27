@@ -319,9 +319,9 @@ object IslandTransitionVisualHook : BaseHook() {
                 )
             }
         }
-        // OS4 restores root/container to dynamic_island_background during transitions.
-        // Clear those shared layers only after every visible state owns an independent
-        // blur, custom image, or black fallback, so crossfades never expose transparency.
+        // OS3 and OS4 both animate through this fake subtree. Newer OS4 builds restore these
+        // shared layers more aggressively, but the ownership rule is version-independent:
+        // clear only after every visible state has an independent managed visual.
         val visibleTargets = access.visibleViews(fakeView)
         val clearSharedMask = root.visibility == View.VISIBLE && visibleTargets.isNotEmpty() &&
             visibleTargets.all { (_, view) ->

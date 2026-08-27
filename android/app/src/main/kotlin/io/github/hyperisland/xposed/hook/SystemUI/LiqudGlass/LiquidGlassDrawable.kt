@@ -60,7 +60,13 @@ internal data class LiquidGlassConfig(
     }
 }
 
-/** Draws directional rim lighting over the native backdrop blur. */
+/**
+ * Draws directional rim lighting over the native backdrop blur.
+ *
+ * This Drawable is shared by the OS3 and OS4 rendering paths and intentionally contains no
+ * version checks. OS-specific host layers are handled by IslandBackgroundHook: OS3 clears the
+ * content container, while OS4 additionally clears island_mask after IslandPropertyUpdater runs.
+ */
 internal class LiquidGlassDrawable(
     context: Context,
     host: View,
