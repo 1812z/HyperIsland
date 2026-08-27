@@ -34,6 +34,8 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
     _ctrl.bluetoothIslandWhitelistAddresses.length,
     _ctrl.smoothIsland,
     _ctrl.smoothIslandSmoothing,
+    _ctrl.smallIslandIconAdjustment,
+    _ctrl.smallIslandIconOpacity,
     _ctrl.unlockAllFocus,
     _ctrl.unlockFocusAuth,
     _ctrl.chargeIsland,
@@ -159,6 +161,30 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
               }
               return true;
             },
+      ),
+    );
+  }
+
+  Future<void> _showSmallIslandIconSettings() async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => _SmallIslandIconSettingsDialog(
+        enabled: _ctrl.smallIslandIconAdjustment,
+        opacity: _ctrl.smallIslandIconOpacity,
+        onApply: (enabled, opacity) async {
+          final enabledChanged = enabled != _ctrl.smallIslandIconAdjustment;
+          if (!await _requestScopesIfEnabled(enabled, const [
+            'com.android.systemui',
+          ])) {
+            return false;
+          }
+          await _ctrl.setSmallIslandIconAdjustment(enabled);
+          await _ctrl.setSmallIslandIconOpacity(opacity);
+          if (mounted && enabledChanged) {
+            showRestartScopeSnackBar(context);
+          }
+          return true;
+        },
       ),
     );
   }
@@ -517,6 +543,36 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
                   ),
                 ),
                 const SizedBox(height: 8),
+                Card(
+                  elevation: 0,
+                  color: cs.surfaceContainerHighest,
+                  clipBehavior: Clip.antiAlias,
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    title: Text(
+                      l10n.smallIslandIconAdjustmentTitle,
+                      style: titleStyle,
+                    ),
+                    subtitle: Text(
+                      _ctrl.smallIslandIconAdjustment
+                          ? l10n.smallIslandIconAdjustmentEnabledSummary(
+                              (_ctrl.smallIslandIconOpacity * 100).round(),
+                            )
+                          : l10n.smallIslandIconAdjustmentDisabledSummary,
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: InteractionHaptics.interceptButton(
+                      _showSmallIslandIconSettings,
+                    ),
+                    onLongPress: InteractionHaptics.interceptButton(
+                      _showSmallIslandIconSettings,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
                 _SectionLabel(l10n.hookScopeXMSF),
                 const SizedBox(height: 8),
                 Card(
@@ -753,6 +809,106 @@ class _SmoothingSliderTile extends StatelessWidget {
           onChanged: InteractionHaptics.interceptSlider(onChanged),
         ),
       ),
+    );
+  }
+}
+
+class _SmallIslandIconSettingsDialog extends StatefulWidget {
+  const _SmallIslandIconSettingsDialog({
+    required this.enabled,
+    required this.opacity,
+    required this.onApply,
+  });
+
+  final bool enabled;
+  final double opacity;
+  final Future<bool> Function(bool enabled, double opacity) onApply;
+
+  @override
+  State<_SmallIslandIconSettingsDialog> createState() =>
+      _SmallIslandIconSettingsDialogState();
+}
+
+class _SmallIslandIconSettingsDialogState
+    extends State<_SmallIslandIconSettingsDialog> {
+  late bool _enabled;
+  late double _opacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _enabled = widget.enabled;
+    _opacity = widget.opacity;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final cs = Theme.of(context).colorScheme;
+    return AlertDialog(
+      title: Text(l10n.smallIslandIconAdjustmentTitle),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(l10n.smallIslandIconAdjustmentToggleTitle),
+            subtitle: Text(l10n.smallIslandIconAdjustmentToggleSubtitle),
+            value: _enabled,
+            onChanged: (value) => setState(() => _enabled = value),
+          ),
+          const Divider(height: 24),
+          ListTile(
+            enabled: _enabled,
+            contentPadding: EdgeInsets.zero,
+            title: Row(
+              children: [
+                Expanded(
+                  child: Text(l10n.smallIslandIconAdjustmentOpacityTitle),
+                ),
+                Text(
+                  '${(_opacity * 100).round()}%',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: _enabled
+                        ? cs.onSurfaceVariant
+                        : cs.onSurface.withValues(alpha: 0.38),
+                  ),
+                ),
+              ],
+            ),
+            subtitle: SliderTheme(
+              data: ModernSliderTheme.theme(context),
+              child: Slider(
+                value: _opacity.clamp(0.0, 1.0),
+                min: 0,
+                max: 1,
+                divisions: 20,
+                label: '${(_opacity * 100).round()}%',
+                onChanged: _enabled
+                    ? InteractionHaptics.interceptSlider(
+                        (value) => setState(() => _opacity = value),
+                      )
+                    : null,
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: InteractionHaptics.interceptButton(
+            () => Navigator.pop(context),
+          ),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(
+          onPressed: InteractionHaptics.interceptButton(() async {
+            final applied = await widget.onApply(_enabled, _opacity);
+            if (applied && context.mounted) Navigator.pop(context);
+          }),
+          child: Text(l10n.apply),
+        ),
+      ],
     );
   }
 }

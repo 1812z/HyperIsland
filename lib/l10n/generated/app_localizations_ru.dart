@@ -2048,6 +2048,30 @@ class AppLocalizationsRu extends AppLocalizations {
   String get smoothIslandSmoothingTitle => 'Сила сглаживания';
 
   @override
+  String get smallIslandIconAdjustmentTitle =>
+      'Настройка значка малого Острова';
+
+  @override
+  String smallIslandIconAdjustmentEnabledSummary(int opacity) {
+    return 'Включено · Непрозрачность $opacity%';
+  }
+
+  @override
+  String get smallIslandIconAdjustmentDisabledSummary =>
+      'Отключено · После перезапуска области перехват не регистрируется';
+
+  @override
+  String get smallIslandIconAdjustmentToggleTitle =>
+      'Переключатель значка малого Острова';
+
+  @override
+  String get smallIslandIconAdjustmentToggleSubtitle =>
+      'При включении регистрируется перехват. Отключите его и перезапустите область, чтобы полностью выгрузить';
+
+  @override
+  String get smallIslandIconAdjustmentOpacityTitle => 'Непрозрачность';
+
+  @override
   String get bluetoothIslandStatusEnabled => 'Включено';
 
   @override

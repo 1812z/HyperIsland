@@ -776,6 +776,19 @@
   "smoothIslandTitle": "Pürüzsüz Ada",
   "smoothIslandSubtitle": "Ada kenarları için sürekli eğriliğe sahip kapsül kullanır. Devre dışı bıraktıktan sonra Hook'u tamamen kaldırmak için kapsamı yeniden başlatın",
   "smoothIslandSmoothingTitle": "Pürüzsüzlük Gücü",
+  "smallIslandIconAdjustmentTitle": "Küçük ada simgesi ayarı",
+  "smallIslandIconAdjustmentEnabledSummary": "Etkin · Opaklık {opacity}%",
+  "@smallIslandIconAdjustmentEnabledSummary": {
+    "placeholders": {
+      "opacity": {
+        "type": "int"
+      }
+    }
+  },
+  "smallIslandIconAdjustmentDisabledSummary": "Devre dışı · Kapsam yeniden başlatıldıktan sonra Hook kaydedilmez",
+  "smallIslandIconAdjustmentToggleTitle": "Küçük ada simgesini aç/kapat",
+  "smallIslandIconAdjustmentToggleSubtitle": "Etkinleştirildiğinde Hook kaydedilir. Tamamen kaldırmak için devre dışı bırakıp kapsamı yeniden başlatın",
+  "smallIslandIconAdjustmentOpacityTitle": "Opaklık",
   "bluetoothIslandStatusEnabled": "Etkin",
   "bluetoothIslandStatusDisabled": "Devre dışı",
   "bluetoothIslandTitle": "Bluetooth Adası",

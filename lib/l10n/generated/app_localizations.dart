@@ -3731,6 +3731,42 @@ abstract class AppLocalizations {
   /// **'Smoothing Strength'**
   String get smoothIslandSmoothingTitle;
 
+  /// No description provided for @smallIslandIconAdjustmentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Small island icon adjustment'**
+  String get smallIslandIconAdjustmentTitle;
+
+  /// No description provided for @smallIslandIconAdjustmentEnabledSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Enabled · Opacity {opacity}%'**
+  String smallIslandIconAdjustmentEnabledSummary(int opacity);
+
+  /// No description provided for @smallIslandIconAdjustmentDisabledSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Disabled · No hook is registered after restarting the scope'**
+  String get smallIslandIconAdjustmentDisabledSummary;
+
+  /// No description provided for @smallIslandIconAdjustmentToggleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Small island icon'**
+  String get smallIslandIconAdjustmentToggleTitle;
+
+  /// No description provided for @smallIslandIconAdjustmentToggleSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Registers the hook when enabled. Disable it and restart the scope to unload the hook completely'**
+  String get smallIslandIconAdjustmentToggleSubtitle;
+
+  /// No description provided for @smallIslandIconAdjustmentOpacityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Opacity'**
+  String get smallIslandIconAdjustmentOpacityTitle;
+
   /// No description provided for @bluetoothIslandStatusEnabled.
   ///
   /// In en, this message translates to:

@@ -1964,6 +1964,28 @@ class AppLocalizationsJa extends AppLocalizations {
   String get smoothIslandSmoothingTitle => 'スムーズ強度';
 
   @override
+  String get smallIslandIconAdjustmentTitle => 'スモール Island アイコン調整';
+
+  @override
+  String smallIslandIconAdjustmentEnabledSummary(int opacity) {
+    return '有効 · 不透明度 $opacity%';
+  }
+
+  @override
+  String get smallIslandIconAdjustmentDisabledSummary =>
+      '無効 · スコープの再起動後は Hook を登録しません';
+
+  @override
+  String get smallIslandIconAdjustmentToggleTitle => 'スモール Island アイコンの切り替え';
+
+  @override
+  String get smallIslandIconAdjustmentToggleSubtitle =>
+      '有効にすると Hook を登録します。無効にしてスコープを再起動すると Hook は完全に解除されます';
+
+  @override
+  String get smallIslandIconAdjustmentOpacityTitle => '不透明度';
+
+  @override
   String get bluetoothIslandStatusEnabled => '有効';
 
   @override

@@ -9,6 +9,7 @@ import io.github.hyperisland.xposed.hook.SystemUI.IslandOutlineHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandTextSizeHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandTransitionVisualHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandSwipeActionHook
+import io.github.hyperisland.xposed.hook.SystemUI.SmallIslandIconHook
 import io.github.hyperisland.xposed.hook.SystemUI.SmoothIslandHook
 import io.github.hyperisland.xposed.hook.ActiveIslandDismissHook
 import io.github.hyperisland.xposed.hook.BluetoothIslandHook
@@ -83,6 +84,9 @@ class HyperIslandModule : XposedModule() {
                 }
                 if (ConfigManager.getBoolean("pref_smooth_island", false)) {
                     SmoothIslandHook.init(this, param)
+                }
+                if (ConfigManager.getBoolean("pref_small_island_icon_adjustment", false)) {
+                    SmallIslandIconHook.init(this, param)
                 }
                 ToastUiInterceptHook.init(this, param)
                 DynamicIslandVisibilityHook.init(this, param)

@@ -1915,6 +1915,28 @@ class AppLocalizationsZh extends AppLocalizations {
   String get smoothIslandSmoothingTitle => '平滑强度';
 
   @override
+  String get smallIslandIconAdjustmentTitle => '小岛图标调节';
+
+  @override
+  String smallIslandIconAdjustmentEnabledSummary(int opacity) {
+    return '已开启 · 不透明度 $opacity%';
+  }
+
+  @override
+  String get smallIslandIconAdjustmentDisabledSummary =>
+      '已关闭 · 重启作用域后完全不注册 Hook';
+
+  @override
+  String get smallIslandIconAdjustmentToggleTitle => '开关小岛图标';
+
+  @override
+  String get smallIslandIconAdjustmentToggleSubtitle =>
+      '开启后注册 Hook；关闭并重启作用域后完全不 Hook';
+
+  @override
+  String get smallIslandIconAdjustmentOpacityTitle => '不透明度';
+
+  @override
   String get bluetoothIslandStatusEnabled => '已开启';
 
   @override

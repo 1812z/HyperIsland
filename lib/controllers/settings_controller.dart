@@ -38,6 +38,8 @@ const kPrefSmallIslandWidth = 'pref_small_island_width';
 const kPrefSmallIslandHorizontalOffset = 'pref_small_island_horizontal_offset';
 const kPrefSmoothIsland = 'pref_smooth_island';
 const kPrefSmoothIslandSmoothing = 'pref_smooth_island_smoothing';
+const kPrefSmallIslandIconAdjustment = 'pref_small_island_icon_adjustment';
+const kPrefSmallIslandIconOpacity = 'pref_small_island_icon_opacity';
 const kPrefUnlockAllFocus = 'pref_unlock_all_focus';
 const kPrefUnlockFocusAuth = 'pref_unlock_focus_auth';
 const kPrefChargeIsland = 'pref_charge_island';
@@ -249,6 +251,8 @@ class SettingsController extends ChangeNotifier {
   int smallIslandHorizontalOffset = 0;
   bool smoothIsland = false;
   double smoothIslandSmoothing = 0.8;
+  bool smallIslandIconAdjustment = false;
+  double smallIslandIconOpacity = 0.5;
   int hyperOsMajorVersion = 0;
   bool get smoothIslandSupported => hyperOsMajorVersion != 4;
   bool unlockAllFocus = false;
@@ -437,6 +441,12 @@ class SettingsController extends ChangeNotifier {
         (prefs.getInt(kPrefSmallIslandHorizontalOffset) ?? 0).clamp(-10, 50);
     smoothIsland = prefs.getBool(kPrefSmoothIsland) ?? false;
     smoothIslandSmoothing = prefs.getDouble(kPrefSmoothIslandSmoothing) ?? 0.8;
+    smallIslandIconAdjustment =
+        prefs.getBool(kPrefSmallIslandIconAdjustment) ?? false;
+    smallIslandIconOpacity =
+        (prefs.getDouble(kPrefSmallIslandIconOpacity) ?? 0.5)
+            .clamp(0.0, 1.0)
+            .toDouble();
     hyperOsMajorVersion = await OsVersionService.getHyperOsMajorVersion();
     if (!smoothIslandSupported && smoothIsland) {
       smoothIsland = false;
@@ -995,6 +1005,21 @@ class SettingsController extends ChangeNotifier {
     final prefs = await _getPrefs();
     await prefs.setDouble(kPrefSmoothIslandSmoothing, clamped);
     smoothIslandSmoothing = clamped;
+    notifyListeners();
+  }
+
+  Future<void> setSmallIslandIconAdjustment(bool value) => _setBoolPref(
+    kPrefSmallIslandIconAdjustment,
+    value,
+    (v) => smallIslandIconAdjustment = v,
+  );
+
+  Future<void> setSmallIslandIconOpacity(double value) async {
+    final clamped = value.clamp(0.0, 1.0).toDouble();
+    if (smallIslandIconOpacity == clamped) return;
+    final prefs = await _getPrefs();
+    await prefs.setDouble(kPrefSmallIslandIconOpacity, clamped);
+    smallIslandIconOpacity = clamped;
     notifyListeners();
   }
 

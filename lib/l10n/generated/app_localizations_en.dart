@@ -2023,6 +2023,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get smoothIslandSmoothingTitle => 'Smoothing Strength';
 
   @override
+  String get smallIslandIconAdjustmentTitle => 'Small island icon adjustment';
+
+  @override
+  String smallIslandIconAdjustmentEnabledSummary(int opacity) {
+    return 'Enabled · Opacity $opacity%';
+  }
+
+  @override
+  String get smallIslandIconAdjustmentDisabledSummary =>
+      'Disabled · No hook is registered after restarting the scope';
+
+  @override
+  String get smallIslandIconAdjustmentToggleTitle => 'Small island icon';
+
+  @override
+  String get smallIslandIconAdjustmentToggleSubtitle =>
+      'Registers the hook when enabled. Disable it and restart the scope to unload the hook completely';
+
+  @override
+  String get smallIslandIconAdjustmentOpacityTitle => 'Opacity';
+
+  @override
   String get bluetoothIslandStatusEnabled => 'Enabled';
 
   @override

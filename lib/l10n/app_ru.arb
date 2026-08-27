@@ -714,6 +714,19 @@
   "smoothIslandTitle": "Плавный Остров",
   "smoothIslandSubtitle": "Использовать капсулу с непрерывной кривизной для контуров Острова. Перезапустите область после отключения для полной выгрузки перехвата",
   "smoothIslandSmoothingTitle": "Сила сглаживания",
+  "smallIslandIconAdjustmentTitle": "Настройка значка малого Острова",
+  "smallIslandIconAdjustmentEnabledSummary": "Включено · Непрозрачность {opacity}%",
+  "@smallIslandIconAdjustmentEnabledSummary": {
+    "placeholders": {
+      "opacity": {
+        "type": "int"
+      }
+    }
+  },
+  "smallIslandIconAdjustmentDisabledSummary": "Отключено · После перезапуска области перехват не регистрируется",
+  "smallIslandIconAdjustmentToggleTitle": "Переключатель значка малого Острова",
+  "smallIslandIconAdjustmentToggleSubtitle": "При включении регистрируется перехват. Отключите его и перезапустите область, чтобы полностью выгрузить",
+  "smallIslandIconAdjustmentOpacityTitle": "Непрозрачность",
   "bluetoothIslandStatusEnabled": "Включено",
   "bluetoothIslandStatusDisabled": "Отключено",
   "bluetoothIslandTitle": "Bluetooth Остров",

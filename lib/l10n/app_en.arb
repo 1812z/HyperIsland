@@ -900,6 +900,19 @@
   "smoothIslandTitle": "Smooth Island",
   "smoothIslandSubtitle": "Use a continuous-curvature capsule for island outlines. Restart the scope after disabling to fully unload the hook",
   "smoothIslandSmoothingTitle": "Smoothing Strength",
+  "smallIslandIconAdjustmentTitle": "Small island icon adjustment",
+  "smallIslandIconAdjustmentEnabledSummary": "Enabled · Opacity {opacity}%",
+  "@smallIslandIconAdjustmentEnabledSummary": {
+    "placeholders": {
+      "opacity": {
+        "type": "int"
+      }
+    }
+  },
+  "smallIslandIconAdjustmentDisabledSummary": "Disabled · No hook is registered after restarting the scope",
+  "smallIslandIconAdjustmentToggleTitle": "Small island icon",
+  "smallIslandIconAdjustmentToggleSubtitle": "Registers the hook when enabled. Disable it and restart the scope to unload the hook completely",
+  "smallIslandIconAdjustmentOpacityTitle": "Opacity",
   "bluetoothIslandStatusEnabled": "Enabled",
   "bluetoothIslandStatusDisabled": "Disabled",
   "bluetoothIslandTitle": "Bluetooth Island",

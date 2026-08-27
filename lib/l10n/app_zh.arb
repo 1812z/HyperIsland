@@ -900,6 +900,19 @@
   "smoothIslandTitle": "平滑超级岛",
   "smoothIslandSubtitle": "使用连续曲率胶囊优化超级岛轮廓，关闭后需重启作用域以完全卸载 Hook",
   "smoothIslandSmoothingTitle": "平滑强度",
+  "smallIslandIconAdjustmentTitle": "小岛图标调节",
+  "smallIslandIconAdjustmentEnabledSummary": "已开启 · 不透明度 {opacity}%",
+  "@smallIslandIconAdjustmentEnabledSummary": {
+    "placeholders": {
+      "opacity": {
+        "type": "int"
+      }
+    }
+  },
+  "smallIslandIconAdjustmentDisabledSummary": "已关闭 · 重启作用域后完全不注册 Hook",
+  "smallIslandIconAdjustmentToggleTitle": "开关小岛图标",
+  "smallIslandIconAdjustmentToggleSubtitle": "开启后注册 Hook；关闭并重启作用域后完全不 Hook",
+  "smallIslandIconAdjustmentOpacityTitle": "不透明度",
   "bluetoothIslandStatusEnabled": "已开启",
   "bluetoothIslandStatusDisabled": "已关闭",
   "bluetoothIslandTitle": "蓝牙超级岛",

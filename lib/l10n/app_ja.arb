@@ -629,6 +629,19 @@
   "smoothIslandTitle": "スムーズ Island",
   "smoothIslandSubtitle": "連続曲率のカプセルで Island の輪郭を滑らかにします。オフ後に Hook を完全解除するにはスコープを再起動してください",
   "smoothIslandSmoothingTitle": "スムーズ強度",
+  "smallIslandIconAdjustmentTitle": "スモール Island アイコン調整",
+  "smallIslandIconAdjustmentEnabledSummary": "有効 · 不透明度 {opacity}%",
+  "@smallIslandIconAdjustmentEnabledSummary": {
+    "placeholders": {
+      "opacity": {
+        "type": "int"
+      }
+    }
+  },
+  "smallIslandIconAdjustmentDisabledSummary": "無効 · スコープの再起動後は Hook を登録しません",
+  "smallIslandIconAdjustmentToggleTitle": "スモール Island アイコンの切り替え",
+  "smallIslandIconAdjustmentToggleSubtitle": "有効にすると Hook を登録します。無効にしてスコープを再起動すると Hook は完全に解除されます",
+  "smallIslandIconAdjustmentOpacityTitle": "不透明度",
   "bluetoothIslandStatusEnabled": "有効",
   "bluetoothIslandStatusDisabled": "無効",
   "bluetoothIslandTitle": "Bluetooth Island",

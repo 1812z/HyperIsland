@@ -2035,6 +2035,29 @@ class AppLocalizationsTr extends AppLocalizations {
   String get smoothIslandSmoothingTitle => 'Pürüzsüzlük Gücü';
 
   @override
+  String get smallIslandIconAdjustmentTitle => 'Küçük ada simgesi ayarı';
+
+  @override
+  String smallIslandIconAdjustmentEnabledSummary(int opacity) {
+    return 'Etkin · Opaklık $opacity%';
+  }
+
+  @override
+  String get smallIslandIconAdjustmentDisabledSummary =>
+      'Devre dışı · Kapsam yeniden başlatıldıktan sonra Hook kaydedilmez';
+
+  @override
+  String get smallIslandIconAdjustmentToggleTitle =>
+      'Küçük ada simgesini aç/kapat';
+
+  @override
+  String get smallIslandIconAdjustmentToggleSubtitle =>
+      'Etkinleştirildiğinde Hook kaydedilir. Tamamen kaldırmak için devre dışı bırakıp kapsamı yeniden başlatın';
+
+  @override
+  String get smallIslandIconAdjustmentOpacityTitle => 'Opaklık';
+
+  @override
   String get bluetoothIslandStatusEnabled => 'Etkin';
 
   @override
