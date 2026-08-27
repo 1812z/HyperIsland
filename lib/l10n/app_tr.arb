@@ -565,6 +565,7 @@
   "islandDimenSection": "Ada Boyutları",
   "islandDimenHeight": "Ada Yüksekliği",
   "islandTopOffset": "Ekranın Üstünden Uzaklık",
+  "smallIslandHorizontalOffset": "Büyük-Küçük Ada Aralığı",
   "followSystem": "Sistem varsayılanı",
   "islandDimenMiniY": "Dikey Konum",
   "islandDimenMiniYHint": "0=sistem varsayılanı",

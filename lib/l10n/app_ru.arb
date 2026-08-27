@@ -503,6 +503,7 @@
   "islandDimenSection": "Размеры Острова",
   "islandDimenHeight": "Высота Острова",
   "islandTopOffset": "Расстояние от верха экрана",
+  "smallIslandHorizontalOffset": "Интервал между Островами",
   "followSystem": "Как в системе",
   "islandDimenMiniY": "Вертикальное положение",
   "islandDimenMiniYHint": "0=как в системе",

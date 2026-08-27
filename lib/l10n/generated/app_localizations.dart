@@ -2732,6 +2732,12 @@ abstract class AppLocalizations {
   /// **'Small Island Width'**
   String get smallIslandWidth;
 
+  /// No description provided for @smallIslandHorizontalOffset.
+  ///
+  /// In en, this message translates to:
+  /// **'Large-Small Island Gap'**
+  String get smallIslandHorizontalOffset;
+
   /// No description provided for @followSystem.
   ///
   /// In en, this message translates to:

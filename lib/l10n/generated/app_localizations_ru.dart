@@ -1497,6 +1497,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get smallIslandWidth => 'Small Island Width';
 
   @override
+  String get smallIslandHorizontalOffset => 'Интервал между Островами';
+
+  @override
   String get followSystem => 'Как в системе';
 
   @override

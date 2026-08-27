@@ -1487,6 +1487,9 @@ class AppLocalizationsTr extends AppLocalizations {
   String get smallIslandWidth => 'Small Island Width';
 
   @override
+  String get smallIslandHorizontalOffset => 'Büyük-Küçük Ada Aralığı';
+
+  @override
   String get followSystem => 'Sistem varsayılanı';
 
   @override

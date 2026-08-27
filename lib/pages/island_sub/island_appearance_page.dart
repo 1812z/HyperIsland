@@ -26,7 +26,8 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
   late int _bigIslandMaxWidthDraft;
   late int _bigIslandMinWidthDraft;
   late int _smallIslandWidthDraft;
-  late int _islandTextSizeDraft;
+  late int _smallIslandHorizontalOffsetDraft;
+  late int _islandTextScaleDraft;
   late int _roundIconRadiusDraft;
   late int _islandIconSizeDraft;
   late double _islandIconPaddingDraft;
@@ -40,7 +41,8 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _ctrl.bigIslandMaxWidth,
     _ctrl.bigIslandMinWidth,
     _ctrl.smallIslandWidth,
-    _ctrl.islandTextSize,
+    _ctrl.smallIslandHorizontalOffset,
+    _ctrl.islandTextScale,
     _ctrl.roundIcon,
     _ctrl.roundIconRadius,
     _ctrl.islandIconSize,
@@ -91,7 +93,8 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _bigIslandMaxWidthDraft = _ctrl.bigIslandMaxWidth;
     _bigIslandMinWidthDraft = _ctrl.bigIslandMinWidth;
     _smallIslandWidthDraft = _ctrl.smallIslandWidth;
-    _islandTextSizeDraft = _ctrl.islandTextSize;
+    _smallIslandHorizontalOffsetDraft = _ctrl.smallIslandHorizontalOffset;
+    _islandTextScaleDraft = _ctrl.islandTextScale;
     _roundIconRadiusDraft = _ctrl.roundIconRadius;
     _islandIconSizeDraft = _ctrl.islandIconSize;
     _islandIconPaddingDraft = _ctrl.islandIconPadding;
@@ -118,7 +121,8 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     final nextMaxWidth = _ctrl.bigIslandMaxWidth;
     final nextMinWidth = _ctrl.bigIslandMinWidth;
     final nextSmallWidth = _ctrl.smallIslandWidth;
-    final nextTextSize = _ctrl.islandTextSize;
+    final nextSmallOffset = _ctrl.smallIslandHorizontalOffset;
+    final nextTextScale = _ctrl.islandTextScale;
     final nextRoundIconRadius = _ctrl.roundIconRadius;
     final nextIslandIconSize = _ctrl.islandIconSize;
     final nextIslandIconPadding = _ctrl.islandIconPadding;
@@ -130,7 +134,8 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
         nextMaxWidth == _bigIslandMaxWidthDraft &&
         nextMinWidth == _bigIslandMinWidthDraft &&
         nextSmallWidth == _smallIslandWidthDraft &&
-        nextTextSize == _islandTextSizeDraft &&
+        nextSmallOffset == _smallIslandHorizontalOffsetDraft &&
+        nextTextScale == _islandTextScaleDraft &&
         nextRoundIconRadius == _roundIconRadiusDraft &&
         nextIslandIconSize == _islandIconSizeDraft &&
         nextIslandIconPadding == _islandIconPaddingDraft &&
@@ -144,7 +149,8 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
       _bigIslandMaxWidthDraft = nextMaxWidth;
       _bigIslandMinWidthDraft = nextMinWidth;
       _smallIslandWidthDraft = nextSmallWidth;
-      _islandTextSizeDraft = nextTextSize;
+      _smallIslandHorizontalOffsetDraft = nextSmallOffset;
+      _islandTextScaleDraft = nextTextScale;
       _roundIconRadiusDraft = nextRoundIconRadius;
       _islandIconSizeDraft = nextIslandIconSize;
       _islandIconPaddingDraft = nextIslandIconPadding;
@@ -719,8 +725,8 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                       _DimenTile(
                         title: l10n.islandTopOffset,
                         value: _islandTopOffsetDraft,
-                        min: -100,
-                        max: 100,
+                        min: -10,
+                        max: 50,
                         unit: 'dp',
                         defaultVal: 0,
                         followSystemLabel: l10n.followSystem,
@@ -881,6 +887,22 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                         ),
                         onPersist: (value) =>
                             _ctrl.setSmallIslandWidth(value.round()),
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      _DimenTile(
+                        title: l10n.smallIslandHorizontalOffset,
+                        value: _smallIslandHorizontalOffsetDraft.toDouble(),
+                        min: -10,
+                        max: 50,
+                        unit: 'dp',
+                        defaultVal: 0,
+                        followSystemLabel: l10n.optDefault,
+                        onChanged: (value) => setState(
+                          () =>
+                              _smallIslandHorizontalOffsetDraft = value.round(),
+                        ),
+                        onPersist: (value) =>
+                            _ctrl.setSmallIslandHorizontalOffset(value.round()),
                         isLast: true,
                       ),
                     ],
@@ -1093,17 +1115,17 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                     children: [
                       _DimenTile(
                         title: l10n.islandTextSizeTitle,
-                        value: _islandTextSizeDraft.toDouble(),
-                        min: 8,
-                        max: 20,
-                        unit: 'sp',
-                        defaultVal: 14,
-                        followSystemLabel: '14 sp',
+                        value: _islandTextScaleDraft.toDouble(),
+                        min: 10,
+                        max: 200,
+                        unit: '%',
+                        defaultVal: 100,
+                        followSystemLabel: '100%',
                         onChanged: (value) => setState(
-                          () => _islandTextSizeDraft = value.round(),
+                          () => _islandTextScaleDraft = value.round(),
                         ),
                         onPersist: (value) =>
-                            _ctrl.setIslandTextSize(value.round()),
+                            _ctrl.setIslandTextScale(value.round()),
                         isFirst: true,
                         alwaysShowReset: true,
                       ),

@@ -233,18 +233,35 @@ export const donors: DonorItem[] = [
     amount: '8.88',
     date: '2026-08-10',
     message: '助力修bug'
-  }，
+  },
   {
     name: " ",
     amount: '18.88',
     date: '2026-08-11',
     message: '真的很不错'
-  }，
+  },
   {
     name: "韩秽琳",
     amount: '0.66',
     date: '2026-08-11',
     message: '加油'
+  },
+  {
+    name: "『明日清风』",
+    amount: '0.66',
+    date: '2026-08-24',
+    message: '大牛可以这是我见过最实用的一 个东西了希望您能多多创作'
+  },
+  {
+    name: "威",
+    amount: '5',
+    date: '2026-08-25',
+    message: '这个软件好!'
+  },
+  {
+    name: "7",
+    amount: '6.66',
+    date: '2026-08-25',
+    message: '支持大小岛双向距离项目创作'
   }
-
 ]
