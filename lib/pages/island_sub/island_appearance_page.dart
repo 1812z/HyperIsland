@@ -906,8 +906,13 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                           () =>
                               _smallIslandHorizontalOffsetDraft = value.round(),
                         ),
-                        onPersist: (value) =>
-                            _ctrl.setSmallIslandHorizontalOffset(value.round()),
+                        onPersist: (value) async {
+                          await _ctrl.setSmallIslandHorizontalOffset(
+                            value.round(),
+                          );
+                          if (!context.mounted) return;
+                          showRestartScopeSnackBar(context);
+                        },
                         isLast: true,
                       ),
                     ],

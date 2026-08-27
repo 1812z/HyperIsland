@@ -614,6 +614,8 @@ pref_island_bg_small_path
 
 `pref_small_island_horizontal_offset` 是双岛状态下相对系统间距的偏移量，单位 dp，范围 `-10` 到 `50`。`0` 跟随系统，正值增大大小岛距离，负值减小距离，最终间距不会小于 `0`。
 
+OS3 与 OS4 都通过 `dimen/island_space` 提供双岛间距，因此在系统资源原值上叠加偏移。该值会在 `DynamicIslandBaseContentView` 构造时缓存，修改配置后需重启 SystemUI。
+
 ### 大岛
 
 ```text

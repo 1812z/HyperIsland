@@ -10,6 +10,7 @@ import kotlin.math.roundToInt
 /** Replaces dimension resources by entry name in the current hooked process. */
 object ResourceDimenHook {
     private val replacements = ConcurrentHashMap<String, (Resources) -> Float>()
+    private val offsets = ConcurrentHashMap<String, (Resources) -> Float>()
     @Volatile private var installed = false
 
     fun register(
@@ -33,6 +34,23 @@ object ResourceDimenHook {
             ConfigManager.getInt(preferenceKey, defaultDp).coerceIn(range).toFloat(),
             resources.displayMetrics,
         )
+    }
+
+    fun registerDpOffset(
+        module: XposedModule,
+        resourceName: String,
+        preferenceKey: String,
+        defaultDp: Int,
+        range: IntRange,
+    ) {
+        offsets[resourceName] = { resources ->
+            TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_DIP,
+                ConfigManager.getInt(preferenceKey, defaultDp).coerceIn(range).toFloat(),
+                resources.displayMetrics,
+            )
+        }
+        install(module)
     }
 
     private fun install(module: XposedModule) {
@@ -62,8 +80,14 @@ object ResourceDimenHook {
                 if (resources.getResourceTypeName(resourceId) != "dimen") return@runCatching null
                 resources.getResourceEntryName(resourceId)
             }.getOrNull() ?: return@intercept chain.proceed()
-            val replacement = replacements[resourceName] ?: return@intercept chain.proceed()
-            convert(replacement(resources))
+            val replacement = replacements[resourceName]
+            if (replacement != null) {
+                return@intercept convert(replacement(resources))
+            }
+            val offset = offsets[resourceName] ?: return@intercept chain.proceed()
+            val original = chain.proceed()
+            val originalPx = (original as? Number)?.toFloat() ?: return@intercept original
+            convert((originalPx + offset(resources)).coerceAtLeast(0f))
         }
     }
 }
