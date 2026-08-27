@@ -4,6 +4,7 @@ import '../../controllers/settings_controller.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../services/interaction_haptics.dart';
 import '../../widgets/blur_app_bar.dart';
+import '../../widgets/restart_scope_snack_bar.dart';
 
 class HideBehaviorPage extends StatefulWidget {
   const HideBehaviorPage({super.key});
@@ -35,12 +36,7 @@ class _HideBehaviorPageState extends State<HideBehaviorPage> {
   Future<void> _onTempHideBehaviorEnabledChanged(bool value) async {
     await _ctrl.setTempHideBehaviorEnabled(value);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(AppLocalizations.of(context)!.restartScopeApp),
-        duration: const Duration(seconds: 4),
-      ),
-    );
+    showRestartScopeSnackBar(context);
   }
 
   @override

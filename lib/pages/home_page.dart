@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../controllers/home_controller.dart';
 import '../controllers/settings_controller.dart';
@@ -7,9 +6,8 @@ import '../controllers/update_controller.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../services/app_info_service.dart';
 import '../widgets/blur_app_bar.dart';
+import '../widgets/restart_scope_dialog.dart';
 import '../widgets/section_label.dart';
-
-const _channel = MethodChannel('io.github.hyperisland/test');
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -136,109 +134,12 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Future<void> _showRestartDialog() async {
-    final l10n = AppLocalizations.of(context)!;
-    bool restartSystemUI = false;
-    bool restartDownloadManager = false;
-    bool restartXmsf = false;
-    bool restartSettings = false;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: Text(l10n.restartScope),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CheckboxListTile(
-                title: Text(l10n.systemUI),
-                subtitle: const Text('com.android.systemui'),
-                value: restartSystemUI,
-                onChanged: (v) =>
-                    setDialogState(() => restartSystemUI = v ?? false),
-                controlAffinity: ListTileControlAffinity.leading,
-                contentPadding: EdgeInsets.zero,
-              ),
-              CheckboxListTile(
-                title: Text(l10n.downloadManager),
-                subtitle: const Text('com.android.providers.downloads'),
-                value: restartDownloadManager,
-                onChanged: (v) =>
-                    setDialogState(() => restartDownloadManager = v ?? false),
-                controlAffinity: ListTileControlAffinity.leading,
-                contentPadding: EdgeInsets.zero,
-              ),
-              CheckboxListTile(
-                title: Text(l10n.xmsf),
-                subtitle: const Text('com.xiaomi.xmsf'),
-                value: restartXmsf,
-                onChanged: (v) =>
-                    setDialogState(() => restartXmsf = v ?? false),
-                controlAffinity: ListTileControlAffinity.leading,
-                contentPadding: EdgeInsets.zero,
-              ),
-              CheckboxListTile(
-                title: Text(l10n.hookScopeSettings),
-                subtitle: const Text('com.android.settings'),
-                value: restartSettings,
-                onChanged: (v) =>
-                    setDialogState(() => restartSettings = v ?? false),
-                controlAffinity: ListTileControlAffinity.leading,
-                contentPadding: EdgeInsets.zero,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(l10n.cancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(l10n.confirm),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (confirmed != true) return;
-    if (!restartSystemUI &&
-        !restartDownloadManager &&
-        !restartXmsf &&
-        !restartSettings) {
-      return;
-    }
-
-    setState(() => _restarting = true);
-    try {
-      final commands = <String>[];
-      if (restartSystemUI) commands.add('killall com.android.systemui');
-      if (restartDownloadManager) {
-        commands.add('am force-stop com.android.providers.downloads');
-      }
-      if (restartXmsf) {
-        commands.add('am force-stop com.xiaomi.xmsf');
-      }
-      if (restartSettings) {
-        commands.add('am force-stop com.android.settings');
-      }
-      await _channel.invokeMethod('restartProcesses', {'commands': commands});
-    } on PlatformException catch (e) {
-      if (mounted) {
-        final l10n = AppLocalizations.of(context)!;
-        final msg = (e.code == 'ROOT_ERROR' || e.code == 'ROOT_REQUIRED')
-            ? l10n.restartRootRequired
-            : l10n.restartFailed(e.message ?? '');
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(msg)));
-      }
-    } finally {
-      if (mounted) setState(() => _restarting = false);
-    }
-  }
+  Future<void> _showRestartDialog() => showRestartScopeDialog(
+    context,
+    onRestartingChanged: (restarting) {
+      if (mounted) setState(() => _restarting = restarting);
+    },
+  );
 
   void _showCustomTestDialog() {
     final l10n = AppLocalizations.of(context)!;

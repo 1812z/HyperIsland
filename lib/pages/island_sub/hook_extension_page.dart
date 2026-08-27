@@ -6,6 +6,7 @@ import '../../widgets/blur_app_bar.dart';
 import '../../widgets/color_picker_dialog.dart';
 import '../../widgets/color_value_field.dart';
 import '../../widgets/modern_slider.dart';
+import '../../widgets/restart_scope_snack_bar.dart';
 import '../../services/interaction_haptics.dart';
 
 class HookExtensionPage extends StatefulWidget {
@@ -77,12 +78,7 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
     }
     await _ctrl.setResumeNotification(value);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.restartScopeApp),
-          duration: const Duration(seconds: 4),
-        ),
-      );
+      showRestartScopeSnackBar(context);
     }
   }
 
@@ -92,24 +88,14 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
     }
     await _ctrl.setSettingsHomeEntry(value);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.restartScopeApp),
-          duration: const Duration(seconds: 4),
-        ),
-      );
+      showRestartScopeSnackBar(context);
     }
   }
 
   Future<void> _onSettingsHomeEntryIconStyleChanged(String value) async {
     await _ctrl.setSettingsHomeEntryIconStyle(value);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.restartScopeApp),
-          duration: const Duration(seconds: 4),
-        ),
-      );
+      showRestartScopeSnackBar(context);
     }
   }
 
@@ -126,12 +112,7 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
     }
     await _ctrl.setSmoothIsland(value);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.restartScopeApp),
-          duration: const Duration(seconds: 4),
-        ),
-      );
+      showRestartScopeSnackBar(context);
     }
   }
 
@@ -174,14 +155,7 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
                 whitelistAddresses,
               );
               if (mounted && enabledChanged) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      AppLocalizations.of(context)!.restartScopeApp,
-                    ),
-                    duration: const Duration(seconds: 4),
-                  ),
-                );
+                showRestartScopeSnackBar(context);
               }
               return true;
             },
@@ -221,14 +195,7 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
               await _ctrl.setChargeIslandDurationSeconds(durationSeconds);
               await _ctrl.setChargeIslandOuterGlow(outerGlow);
               if (mounted && enabledChanged) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      AppLocalizations.of(context)!.restartScopeApp,
-                    ),
-                    duration: const Duration(seconds: 4),
-                  ),
-                );
+                showRestartScopeSnackBar(context);
               }
               return true;
             },
@@ -264,14 +231,7 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
                 keepUntilKeyguardHidden,
               );
               if (mounted && enabledChanged) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      AppLocalizations.of(context)!.restartScopeApp,
-                    ),
-                    duration: const Duration(seconds: 4),
-                  ),
-                );
+                showRestartScopeSnackBar(context);
               }
               return true;
             },
@@ -285,12 +245,7 @@ class _HookExtensionPageState extends State<HookExtensionPage> {
     }
     await _ctrl.setHideLockscreenFaceUnlockIcon(value);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.restartScopeApp),
-          duration: const Duration(seconds: 4),
-        ),
-      );
+      showRestartScopeSnackBar(context);
     }
   }
 

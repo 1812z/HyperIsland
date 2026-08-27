@@ -11,6 +11,7 @@ import '../../widgets/color_picker_dialog.dart';
 import '../../widgets/color_value_field.dart';
 import '../../widgets/island_bg_edit_dialog.dart';
 import '../../widgets/modern_slider.dart';
+import '../../widgets/restart_scope_snack_bar.dart';
 
 class IslandAppearancePage extends StatefulWidget {
   const IslandAppearancePage({super.key});
@@ -836,11 +837,13 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                                   padding: EdgeInsets.zero,
                                   visualDensity: VisualDensity.compact,
                                   onPressed: InteractionHaptics.interceptButton(
-                                    () {
+                                    () async {
                                       setState(
                                         () => _bigIslandMinWidthDraft = 0,
                                       );
-                                      _ctrl.setBigIslandMinWidth(0);
+                                      await _ctrl.setBigIslandMinWidth(0);
+                                      if (!context.mounted) return;
+                                      showRestartScopeSnackBar(context);
                                     },
                                   ),
                                 ),
@@ -866,6 +869,8 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                               final next = v.round();
                               if (_ctrl.bigIslandMinWidth == next) return;
                               await _ctrl.setBigIslandMinWidth(next);
+                              if (!context.mounted) return;
+                              showRestartScopeSnackBar(context);
                             },
                           ),
                         ),
