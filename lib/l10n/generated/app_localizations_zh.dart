@@ -1560,6 +1560,114 @@ class AppLocalizationsZh extends AppLocalizations {
   String get islandGlassCaptureQuality => '清晰度';
 
   @override
+  String get islandMaterialCustomize => '材质自定义';
+
+  @override
+  String get islandMaterialCustomizeSubtitle => '分别设置大岛、小岛和展开态的玻璃材质';
+
+  @override
+  String get islandMaterialBigTab => '大岛';
+
+  @override
+  String get islandMaterialSmallTab => '小岛';
+
+  @override
+  String get islandMaterialExpandTab => '展开态';
+
+  @override
+  String get islandMaterialFollowBig => '跟随大岛全局设置';
+
+  @override
+  String get islandMaterialFollowBigSubtitle => '关闭后可为当前状态单独选择材质和参数';
+
+  @override
+  String get islandMaterialType => '玻璃类型';
+
+  @override
+  String get islandMaterialDefault => '默认';
+
+  @override
+  String get islandMaterialGaussian => '高斯模糊';
+
+  @override
+  String get islandMaterialHighlightGlass => '高光玻璃';
+
+  @override
+  String get islandMaterialLiquidGlass => '液态玻璃';
+
+  @override
+  String get islandMaterialSoftGlass => '柔光玻璃';
+
+  @override
+  String get islandMaterialBackgroundConflict => '已清除当前状态的自定义背景，玻璃材质与背景不能同时使用';
+
+  @override
+  String get islandMaterialBlurSection => '模糊';
+
+  @override
+  String get islandMaterialLightingSection => '光影';
+
+  @override
+  String get islandMaterialRefractionSection => '折射';
+
+  @override
+  String get islandMaterialBackgroundSection => '背景';
+
+  @override
+  String get islandMaterialBlendSection => '混色';
+
+  @override
+  String get islandMaterialBlur => '模糊强度';
+
+  @override
+  String get islandMaterialSoftLight => '柔光强度';
+
+  @override
+  String get islandMaterialSaturation => '饱和度';
+
+  @override
+  String get islandMaterialBrightness => '亮度';
+
+  @override
+  String get islandMaterialDarker => '压暗';
+
+  @override
+  String get islandMaterialTransparency => '透明度';
+
+  @override
+  String get islandMaterialBurn => '烧灼';
+
+  @override
+  String get islandMaterialRefraction => '折射';
+
+  @override
+  String get islandMaterialEdgeThickness => '边缘厚度';
+
+  @override
+  String get islandMaterialReflectionStrength => '反射强度';
+
+  @override
+  String get islandMaterialDirectionalLightIntensity => '方向光强度';
+
+  @override
+  String get islandMaterialBackgroundSaturation => '背景饱和度';
+
+  @override
+  String get islandMaterialBackgroundBrightness => '背景亮度';
+
+  @override
+  String get islandMaterialBlendColor => '颜色';
+
+  @override
+  String get islandMaterialBlendOpacity => '不透明度';
+
+  @override
+  String get islandMaterialHighlightSwitch => '高光';
+
+  @override
+  String get islandMaterialSoftGlassOs4Only => '柔光玻璃仅在澎湃 OS4 上可用，旧系统将回退为高光玻璃';
+
+  @override
   String get keepIslandTitle => '常驻超级岛';
 
   @override

@@ -217,6 +217,7 @@ object IslandTransitionVisualHook : BaseHook() {
     }
 
     private fun prepareRealBackground(fakeView: Any, access: FakeViewAccess) {
+        prepareRealSoftGlass(fakeView, access)
         val target = realBackgroundTarget(fakeView, access) ?: return
         val backgroundView = target.view
         if (IslandBlurHook.isTransitionBlurEnabled(target.typeName)) {
@@ -233,12 +234,28 @@ object IslandTransitionVisualHook : BaseHook() {
         backgroundView.post { opaqueHandoffBackgrounds.remove(backgroundView) }
     }
 
+    private fun prepareRealSoftGlass(fakeView: Any, access: FakeViewAccess) {
+        val realView = access.realView(fakeView) ?: return
+        val typeName = access.stateType(fakeView) ?: return
+        if (!IslandBlurHook.isTransitionSoftGlass(typeName)) return
+        val getterName = when (typeName) {
+            "SMALL" -> "getSmallIslandView"
+            "BIG" -> "getBigIslandView"
+            "EXPAND" -> "getExpandedView"
+            else -> return
+        }
+        val target = findMethod(realView.javaClass, getterName)
+            ?.let { runCatching { it.invoke(realView) as? View }.getOrNull() }
+            ?: return
+        IslandBlurHook.applyTransitionBlur(target, typeName)
+    }
+
     private fun realBackgroundTarget(
         fakeView: Any,
         access: FakeViewAccess,
     ): RealBackgroundTarget? {
         val realView = access.realView(fakeView) ?: return null
-        val typeName = access.stateType(realView) ?: return null
+        val typeName = access.stateType(fakeView) ?: return null
         val backgroundView = findMethod(realView.javaClass, "getBackgroundView")
             ?.let { runCatching { it.invoke(realView) as? View }.getOrNull() }
             ?: return null
@@ -325,7 +342,8 @@ object IslandTransitionVisualHook : BaseHook() {
         val visibleTargets = access.visibleViews(fakeView)
         val clearSharedMask = root.visibility == View.VISIBLE && visibleTargets.isNotEmpty() &&
             visibleTargets.all { (_, view) ->
-                targets[view]?.managedVisual == true && view.background != null
+                targets[view]?.managedVisual == true &&
+                    (view.background != null || IslandBlurHook.hasManagedSoftGlass(view))
             }
         if (clearSharedMask) {
             IslandBackgroundHook.clearManagedVisualMask(root)

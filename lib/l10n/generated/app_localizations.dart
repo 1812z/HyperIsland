@@ -3050,6 +3050,222 @@ abstract class AppLocalizations {
   /// **'Resolution'**
   String get islandGlassCaptureQuality;
 
+  /// No description provided for @islandMaterialCustomize.
+  ///
+  /// In en, this message translates to:
+  /// **'Material customization'**
+  String get islandMaterialCustomize;
+
+  /// No description provided for @islandMaterialCustomizeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure glass materials for Large, Small, and Expanded states'**
+  String get islandMaterialCustomizeSubtitle;
+
+  /// No description provided for @islandMaterialBigTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Large'**
+  String get islandMaterialBigTab;
+
+  /// No description provided for @islandMaterialSmallTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Small'**
+  String get islandMaterialSmallTab;
+
+  /// No description provided for @islandMaterialExpandTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Expanded'**
+  String get islandMaterialExpandTab;
+
+  /// No description provided for @islandMaterialFollowBig.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow Large Island settings'**
+  String get islandMaterialFollowBig;
+
+  /// No description provided for @islandMaterialFollowBigSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off to select a separate material and parameters for this state'**
+  String get islandMaterialFollowBigSubtitle;
+
+  /// No description provided for @islandMaterialType.
+  ///
+  /// In en, this message translates to:
+  /// **'Glass type'**
+  String get islandMaterialType;
+
+  /// No description provided for @islandMaterialDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get islandMaterialDefault;
+
+  /// No description provided for @islandMaterialGaussian.
+  ///
+  /// In en, this message translates to:
+  /// **'Gaussian blur'**
+  String get islandMaterialGaussian;
+
+  /// No description provided for @islandMaterialHighlightGlass.
+  ///
+  /// In en, this message translates to:
+  /// **'Highlight glass'**
+  String get islandMaterialHighlightGlass;
+
+  /// No description provided for @islandMaterialLiquidGlass.
+  ///
+  /// In en, this message translates to:
+  /// **'Liquid glass'**
+  String get islandMaterialLiquidGlass;
+
+  /// No description provided for @islandMaterialSoftGlass.
+  ///
+  /// In en, this message translates to:
+  /// **'Soft glass'**
+  String get islandMaterialSoftGlass;
+
+  /// No description provided for @islandMaterialBackgroundConflict.
+  ///
+  /// In en, this message translates to:
+  /// **'The custom background for this state was cleared because materials and backgrounds are mutually exclusive'**
+  String get islandMaterialBackgroundConflict;
+
+  /// No description provided for @islandMaterialBlurSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Blur'**
+  String get islandMaterialBlurSection;
+
+  /// No description provided for @islandMaterialLightingSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Lighting'**
+  String get islandMaterialLightingSection;
+
+  /// No description provided for @islandMaterialRefractionSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Refraction'**
+  String get islandMaterialRefractionSection;
+
+  /// No description provided for @islandMaterialBackgroundSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Background'**
+  String get islandMaterialBackgroundSection;
+
+  /// No description provided for @islandMaterialBlendSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Blending'**
+  String get islandMaterialBlendSection;
+
+  /// No description provided for @islandMaterialBlur.
+  ///
+  /// In en, this message translates to:
+  /// **'Blur strength'**
+  String get islandMaterialBlur;
+
+  /// No description provided for @islandMaterialSoftLight.
+  ///
+  /// In en, this message translates to:
+  /// **'Soft light strength'**
+  String get islandMaterialSoftLight;
+
+  /// No description provided for @islandMaterialSaturation.
+  ///
+  /// In en, this message translates to:
+  /// **'Saturation'**
+  String get islandMaterialSaturation;
+
+  /// No description provided for @islandMaterialBrightness.
+  ///
+  /// In en, this message translates to:
+  /// **'Brightness'**
+  String get islandMaterialBrightness;
+
+  /// No description provided for @islandMaterialDarker.
+  ///
+  /// In en, this message translates to:
+  /// **'Darkening'**
+  String get islandMaterialDarker;
+
+  /// No description provided for @islandMaterialTransparency.
+  ///
+  /// In en, this message translates to:
+  /// **'Transparency'**
+  String get islandMaterialTransparency;
+
+  /// No description provided for @islandMaterialBurn.
+  ///
+  /// In en, this message translates to:
+  /// **'Burn'**
+  String get islandMaterialBurn;
+
+  /// No description provided for @islandMaterialRefraction.
+  ///
+  /// In en, this message translates to:
+  /// **'Refraction'**
+  String get islandMaterialRefraction;
+
+  /// No description provided for @islandMaterialEdgeThickness.
+  ///
+  /// In en, this message translates to:
+  /// **'Edge thickness'**
+  String get islandMaterialEdgeThickness;
+
+  /// No description provided for @islandMaterialReflectionStrength.
+  ///
+  /// In en, this message translates to:
+  /// **'Reflection strength'**
+  String get islandMaterialReflectionStrength;
+
+  /// No description provided for @islandMaterialDirectionalLightIntensity.
+  ///
+  /// In en, this message translates to:
+  /// **'Directional light strength'**
+  String get islandMaterialDirectionalLightIntensity;
+
+  /// No description provided for @islandMaterialBackgroundSaturation.
+  ///
+  /// In en, this message translates to:
+  /// **'Background saturation'**
+  String get islandMaterialBackgroundSaturation;
+
+  /// No description provided for @islandMaterialBackgroundBrightness.
+  ///
+  /// In en, this message translates to:
+  /// **'Background brightness'**
+  String get islandMaterialBackgroundBrightness;
+
+  /// No description provided for @islandMaterialBlendColor.
+  ///
+  /// In en, this message translates to:
+  /// **'Color'**
+  String get islandMaterialBlendColor;
+
+  /// No description provided for @islandMaterialBlendOpacity.
+  ///
+  /// In en, this message translates to:
+  /// **'Opacity'**
+  String get islandMaterialBlendOpacity;
+
+  /// No description provided for @islandMaterialHighlightSwitch.
+  ///
+  /// In en, this message translates to:
+  /// **'Highlights'**
+  String get islandMaterialHighlightSwitch;
+
+  /// No description provided for @islandMaterialSoftGlassOs4Only.
+  ///
+  /// In en, this message translates to:
+  /// **'Soft glass requires HyperOS 4; older systems fall back to highlight glass'**
+  String get islandMaterialSoftGlassOs4Only;
+
   /// No description provided for @keepIslandTitle.
   ///
   /// In en, this message translates to:

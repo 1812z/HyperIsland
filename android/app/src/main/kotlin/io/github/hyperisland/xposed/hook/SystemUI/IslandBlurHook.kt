@@ -3,6 +3,7 @@ package io.github.hyperisland.xposed.hook.SystemUI
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.ColorFilter
+import android.graphics.Outline
 import android.graphics.Path
 import android.graphics.PixelFormat
 import android.graphics.RectF
@@ -12,6 +13,7 @@ import android.os.Looper
 import android.os.SystemClock
 import android.util.TypedValue
 import android.view.View
+import android.view.ViewOutlineProvider
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.hyperisland.xposed.hook.IslandBackgroundHook
@@ -27,6 +29,7 @@ import java.lang.reflect.Method
 import java.lang.ref.WeakReference
 import java.util.Collections
 import java.util.WeakHashMap
+import org.json.JSONObject
 
 /** Applies HyperOS native live background blur independently to each island state. */
 object IslandBlurHook : BaseHook() {
@@ -69,6 +72,11 @@ object IslandBlurHook : BaseHook() {
     private const val KEY_REFRACTION_EXPAND_ENABLED = "pref_island_refraction_expand_enabled"
     private const val KEY_GLASS_CAPTURE_FPS = "pref_island_glass_capture_fps"
     private const val KEY_GLASS_CAPTURE_QUALITY = "pref_island_glass_capture_quality"
+    private const val KEY_MATERIAL_BIG = "pref_island_material_big_config"
+    private const val KEY_MATERIAL_SMALL = "pref_island_material_small_config"
+    private const val KEY_MATERIAL_EXPAND = "pref_island_material_expand_config"
+    private const val KEY_MATERIAL_SMALL_FOLLOW_BIG = "pref_island_material_small_follow_big"
+    private const val KEY_MATERIAL_EXPAND_FOLLOW_BIG = "pref_island_material_expand_follow_big"
 
     private const val DEFAULT_RADIUS = 80
     private const val DEFAULT_BLEND_COLOR = 0x20FFFFFF
@@ -92,6 +100,12 @@ object IslandBlurHook : BaseHook() {
     private val transitionBlurs = Collections.synchronizedMap(
         WeakHashMap<View, TransitionBlur>()
     )
+    private val customSoftGlassViews = Collections.synchronizedSet(
+        Collections.newSetFromMap(WeakHashMap<View, Boolean>())
+    )
+    private val softGlassStockBackgrounds = Collections.synchronizedMap(
+        WeakHashMap<View, Drawable?>()
+    )
     private val detachListeners = Collections.synchronizedMap(
         WeakHashMap<View, View.OnAttachStateChangeListener>()
     )
@@ -112,6 +126,9 @@ object IslandBlurHook : BaseHook() {
     private var configs = BlurConfigs.disabled()
 
     @Volatile
+    private var materialConfigs = MaterialConfigs.defaults()
+
+    @Volatile
     private var glassConfig = LiquidGlassConfig.disabled()
 
     @Volatile
@@ -122,6 +139,15 @@ object IslandBlurHook : BaseHook() {
 
     @Volatile
     private var anyBlurEnabled = false
+
+    @Volatile
+    private var anyMaterialEnabled = false
+
+    @Volatile
+    private var activeBlurMethods: BlurMethods? = null
+
+    @Volatile
+    private var systemSoftGlassParams: FloatArray? = null
 
     @Volatile
     private var islandTempHidden = false
@@ -157,7 +183,7 @@ object IslandBlurHook : BaseHook() {
             }
         }
         mainHandler.removeCallbacks(refreshRunnable)
-        if (anyBlurEnabled) {
+        if (anyMaterialEnabled) {
             mainHandler.postDelayed(refreshRunnable, 80L)
         }
     }
@@ -220,7 +246,79 @@ object IslandBlurHook : BaseHook() {
             captureScale = ConfigManager.getInt(KEY_GLASS_CAPTURE_QUALITY, 30)
                 .coerceIn(10, 100) / 100f,
         )
+        if (ConfigManager.contains(KEY_MATERIAL_BIG)) {
+            val big = readMaterialConfig(KEY_MATERIAL_BIG)
+            val small = if (ConfigManager.getBoolean(KEY_MATERIAL_SMALL_FOLLOW_BIG, true)) {
+                big
+            } else {
+                readMaterialConfig(KEY_MATERIAL_SMALL)
+            }
+            val expand = if (ConfigManager.getBoolean(KEY_MATERIAL_EXPAND_FOLLOW_BIG, true)) {
+                big
+            } else {
+                readMaterialConfig(KEY_MATERIAL_EXPAND)
+            }
+            materialConfigs = MaterialConfigs(small, big, expand)
+            configs = BlurConfigs(
+                small.toBlurConfig(),
+                big.toBlurConfig(),
+                expand.toBlurConfig(),
+            )
+            anyBlurEnabled = configs.small.isActive || configs.big.isActive || configs.expand.isActive
+            anyMaterialEnabled = materialConfigs.anyCustom
+        } else {
+            materialConfigs = MaterialConfigs.fromLegacy(configs, glassStates)
+            anyMaterialEnabled = anyBlurEnabled
+        }
         glassConfigRevision++
+    }
+
+    private fun readMaterialConfig(key: String): MaterialConfig {
+        val json = runCatching { JSONObject(ConfigManager.getString(key)) }.getOrNull()
+            ?: return MaterialConfig.default()
+        fun int(name: String, fallback: Int, min: Int, max: Int) =
+            json.optInt(name, fallback).coerceIn(min, max)
+        fun decimal(name: String, fallback: Double) =
+            json.optDouble(name, fallback).coerceIn(-50.0, 50.0)
+        val softV2 = json.optInt("softSchema", 0) == 2
+        fun soft(name: String, fallback: Double) =
+            if (softV2) decimal(name, fallback) else fallback
+        val color = parseColor(json.optString("blendColor", "#0F0F0F"))
+        val type = MaterialType.fromValue(json.optString("type", "default"))
+        val opacity = if (!softV2 && type == MaterialType.SOFT) {
+            0
+        } else {
+            int("blendOpacity", 0, 0, 100)
+        }
+        return MaterialConfig(
+            type = type,
+            blur = int("blur", 35, 0, 100),
+            softLight = soft("softLight", -1.0),
+            saturation = soft("saturation", 2.0),
+            brightness = soft("brightness", 40.0),
+            softDarker = soft("softDarker", -10.0),
+            transparency = soft("transparency", -0.57),
+            burn = soft("burn", 0.0),
+            softRefraction = soft("softRefraction", 0.0),
+            softEdgeThickness = soft("softEdgeThickness", 0.8),
+            softReflection = soft("softReflection", 0.0),
+            directionalLightIntensity = soft("directionalLightIntensity", 1.0),
+            backgroundSaturation = soft("backgroundSaturation", 0.0),
+            backgroundBrightness = soft("backgroundBrightness", 0.04),
+            darker = int("darker", 14, 0, 100),
+            refraction = int("refraction", 16, 0, 40),
+            edgeThickness = int("edgeThickness", 16, 4, 40),
+            reflectionStrength = int("reflectionStrength", 42, 0, 100),
+            lightDirection = int("lightDirection", 243, 0, 359),
+            dispersion = int("dispersion", 18, 0, 100),
+            blendColor = Color.argb(
+                (opacity * 255 / 100).toInt(),
+                Color.red(color),
+                Color.green(color),
+                Color.blue(color),
+            ),
+            highlight = json.optBoolean("highlight", true),
+        )
     }
 
     private fun readGlassState(
@@ -243,6 +341,24 @@ object IslandBlurHook : BaseHook() {
     }
 
     private fun glassConfigForType(type: IslandType): LiquidGlassConfig {
+        if (ConfigManager.contains(KEY_MATERIAL_BIG)) {
+            val material = materialForType(type)
+            val glassEnabled = material.type == MaterialType.HIGHLIGHT ||
+                material.type == MaterialType.LIQUID ||
+                material.type == MaterialType.SOFT
+            return glassConfig.copy(
+                enabled = glassEnabled &&
+                    (configForType(type).isActive || material.type == MaterialType.SOFT),
+                edgeWidth = material.edgeThickness.coerceIn(4, 40) / 100f,
+                refraction = material.refraction / 100f,
+                highlight = if (material.highlight) material.reflectionStrength
+                    .coerceIn(0, 200) / 100f else 0f,
+                shadow = material.darker / 100f,
+                lightDirection = material.lightDirection,
+                dispersion = material.dispersion / 100f,
+                trueRefraction = material.type == MaterialType.LIQUID,
+            )
+        }
         val state = glassStates.forType(type)
         return glassConfig.copy(
             enabled = state.enabled && configForType(type).isActive,
@@ -270,6 +386,17 @@ object IslandBlurHook : BaseHook() {
     private fun hookPlugin(module: XposedModule, classLoader: ClassLoader) {
         try {
             val contentClass = Class.forName(CONTENT_VIEW_CLASS, false, classLoader)
+            if (systemSoftGlassParams == null) {
+                systemSoftGlassParams = runCatching {
+                    val tokenField = contentClass.getDeclaredField("EXPANDED_GLASS_TOKEN").apply {
+                        isAccessible = true
+                    }
+                    val token = tokenField.get(null)
+                    val toParams = findMethod(token.javaClass, "getToBionicsParams")
+                        ?: return@runCatching null
+                    ((toParams.invoke(token) as? FloatArray)?.clone())
+                }.getOrNull()
+            }
             val backgroundClass = Class.forName(BACKGROUND_VIEW_CLASS, false, classLoader)
             val stateClass = Class.forName(
                 "miui.systemui.dynamicisland.event.DynamicIslandState",
@@ -303,7 +430,32 @@ object IslandBlurHook : BaseHook() {
                     "clearMiBackgroundBlendColorCompat",
                     View::class.java,
                 ).apply { isAccessible = true },
+                setBackgroundMode = findMethod(
+                    compatClass,
+                    "setMiBackgroundBlurModeCompat",
+                    View::class.java,
+                    Int::class.javaPrimitiveType!!,
+                ),
+                setBackgroundRadius = findMethod(
+                    compatClass,
+                    "setMiBackgroundBlurRadiusCompat",
+                    View::class.java,
+                    Int::class.javaPrimitiveType!!,
+                ),
+                setPassWindowBlur = findMethod(
+                    compatClass,
+                    "setPassWindowBlurEnabledCompat",
+                    View::class.java,
+                    Boolean::class.javaPrimitiveType!!,
+                ),
+                setPassFps = findMethod(
+                    compatClass,
+                    "setMiPassBlurFps",
+                    View::class.java,
+                    Int::class.javaPrimitiveType!!,
+                ),
             )
+            activeBlurMethods = methods
             val updateMethod = contentClass.getDeclaredMethod(
                 "updateBackgroundBg",
                 View::class.java,
@@ -358,8 +510,25 @@ object IslandBlurHook : BaseHook() {
 
                 val staleUpdate = stateType != null && type != stateType
                 val active = if (staleUpdate) {
+                    customSoftGlassViews.remove(view)
                     false
+                } else if (materialForType(type).type == MaterialType.SOFT) {
+                    deactivateOuterBlur(backgroundView, outerDrawableField, "soft-glass")
+                    val softActive = applySoftGlass(view, materialForType(type))
+                    if (softActive) {
+                        IslandBackgroundHook.clearManagedVisualMask(view)
+                        true
+                    } else {
+                        applyOuterBlur(
+                            backgroundView,
+                            view,
+                            type,
+                            materialForType(type).softFallback(),
+                            outerDrawableField,
+                        )
+                    }
                 } else if (config.isActive) {
+                    customSoftGlassViews.remove(view)
                     applyOuterBlur(
                         backgroundView,
                         view,
@@ -368,6 +537,7 @@ object IslandBlurHook : BaseHook() {
                         outerDrawableField,
                     )
                 } else {
+                    customSoftGlassViews.remove(view)
                     deactivateOuterBlur(backgroundView, outerDrawableField, "state-update")
                     // DynamicIslandBackgroundView owns one shared drawable slot. A
                     // previous state's blur restores its old stock drawable, not the
@@ -432,7 +602,7 @@ object IslandBlurHook : BaseHook() {
             }
             try {
                 val result = chain.proceed()
-                if (type != null && configForType(type).isActive) {
+                if (type != null && materialForType(type).isCustom) {
                     mainHandler.removeCallbacks(refreshRunnable)
                     mainHandler.post(refreshRunnable)
                 }
@@ -445,7 +615,7 @@ object IslandBlurHook : BaseHook() {
                             backgroundViewField,
                             outerDrawableField,
                         )
-                        if (configForType(type).isActive) {
+                        if (materialForType(type).isCustom) {
                             refreshConcreteIslandViews(chain.thisObject, updateMethod, type)
                         }
                     }
@@ -463,6 +633,12 @@ object IslandBlurHook : BaseHook() {
                 islandTypeHolder.remove()
             }
         }
+    }
+
+    private fun materialForType(type: IslandType): MaterialConfig = when (type) {
+        IslandType.SMALL -> materialConfigs.small
+        IslandType.BIG -> materialConfigs.big
+        IslandType.EXPAND -> materialConfigs.expand
     }
 
     /**
@@ -781,10 +957,13 @@ object IslandBlurHook : BaseHook() {
     }
 
     private fun applyTransitionBlur(fakeView: Any?, methods: BlurMethods, access: TransitionAccess) {
-        if (!anyBlurEnabled) return
+        if (!anyMaterialEnabled) return
         if (fakeView !is View) return
         access.forEachFakeView(fakeView) { type, child ->
-            if (!configForType(type).isActive) return@forEachFakeView
+            if (!materialForType(type).isCustom) return@forEachFakeView
+            if (materialForType(type).type == MaterialType.SOFT &&
+                applySoftGlass(child, materialForType(type))
+            ) return@forEachFakeView
             runCatching { methods.setViewMode.invoke(null, child, 0) }
             runCatching { methods.clearBlend.invoke(null, child) }
             child.background = null
@@ -808,6 +987,21 @@ object IslandBlurHook : BaseHook() {
         }.getOrNull() ?: return
         val config = configForType(type)
         val shapeView = islandViewForType(contentView, type)
+        if (materialForType(type).type == MaterialType.SOFT) {
+            deactivateOuterBlur(backgroundView, outerDrawableField, "soft-glass-sync")
+            if (shapeView != null) {
+                if (!applySoftGlass(shapeView, materialForType(type))) {
+                    applyOuterBlur(
+                        backgroundView,
+                        shapeView,
+                        type,
+                        materialForType(type).softFallback(),
+                        outerDrawableField,
+                    )
+                }
+            }
+            return
+        }
         if (!config.isActive) {
             deactivateOuterBlur(backgroundView, outerDrawableField, "type-disabled")
             IslandBackgroundHook.restoreCustomBackground(backgroundView, type.name)
@@ -854,16 +1048,34 @@ object IslandBlurHook : BaseHook() {
 
     internal fun isTransitionBlurEnabled(typeName: String): Boolean {
         val type = typeFromName(typeName) ?: return false
-        return configForType(type).isActive
+        return materialForType(type).isCustom
+    }
+
+    internal fun isTransitionSoftGlass(typeName: String): Boolean {
+        val type = typeFromName(typeName) ?: return false
+        return materialForType(type).type == MaterialType.SOFT
     }
 
     /** Installs the same native blur/liquid-glass pipeline on an animated fake island. */
     internal fun applyTransitionBlur(view: View, typeName: String): Boolean {
         val type = typeFromName(typeName) ?: return false
         val config = configForType(type)
-        if (!config.isActive || !view.isAttachedToWindow) {
+        val material = materialForType(type)
+        if (!material.isCustom || !view.isAttachedToWindow) {
             releaseTransitionBlur(view)
             return false
+        }
+
+        if (material.type == MaterialType.SOFT && applySoftGlass(view, material)) {
+            releaseOuterTransitionBlur(view)
+            ensureTransitionDetachCleanup(view)
+            return true
+        }
+
+        val effectiveConfig = if (material.type == MaterialType.SOFT) {
+            material.softFallback()
+        } else {
+            config
         }
 
         return runCatching {
@@ -875,7 +1087,7 @@ object IslandBlurHook : BaseHook() {
                 transitionBlurs[view] = transition
             }
             val active = transition ?: return@runCatching false
-            updateOwnedBlur(view, active.owned, config, view)
+            updateOwnedBlur(view, active.owned, effectiveConfig, view)
             if (view.background !== active.owned.drawable) {
                 view.background = active.owned.drawable
             }
@@ -888,11 +1100,29 @@ object IslandBlurHook : BaseHook() {
 
     internal fun hasTransitionBlur(view: View, typeName: String): Boolean {
         val type = typeFromName(typeName) ?: return false
+        if (materialForType(type).type == MaterialType.SOFT &&
+            customSoftGlassViews.contains(view)
+        ) return true
         val transition = transitionBlurs[view] ?: return false
         return transition.owned.type == type && view.background === transition.owned.drawable
     }
 
+    internal fun hasManagedSoftGlass(view: View): Boolean =
+        customSoftGlassViews.contains(view)
+
     internal fun releaseTransitionBlur(view: View) {
+        if (customSoftGlassViews.remove(view)) {
+            clearSoftGlass(view)
+            if (view.background == null) {
+                view.background = softGlassStockBackgrounds.remove(view)
+            } else {
+                softGlassStockBackgrounds.remove(view)
+            }
+        }
+        releaseOuterTransitionBlur(view)
+    }
+
+    private fun releaseOuterTransitionBlur(view: View) {
         val transition = transitionBlurs.remove(view) ?: return
         if (view.background === transition.owned.drawable) {
             view.background = transition.stockDrawable
@@ -1361,6 +1591,131 @@ object IslandBlurHook : BaseHook() {
         }.getOrDefault(0).coerceAtLeast(0)
     }
 
+    /** HyperOS 4 native Bionics soft-glass pipeline (View#setMiGlass(float[42])). */
+    private fun applySoftGlass(view: View, config: MaterialConfig): Boolean = runCatching {
+        val setMaterial = findMethod(
+            view.javaClass,
+            "setMiViewMaterialType",
+            Int::class.javaPrimitiveType!!,
+        ) ?: return@runCatching false
+        val setGlass = findMethod(view.javaClass, "setMiGlass", FloatArray::class.java)
+            ?: return@runCatching false
+        if (!customSoftGlassViews.contains(view)) {
+            softGlassStockBackgrounds[view] = view.background
+        }
+        val params = (systemSoftGlassParams?.clone() ?: defaultSoftGlassParams())
+        fun apply(index: Int, configured: Double) {
+            val original = params[index]
+            params[index] = if (original == 0f) {
+                configured.toFloat()
+            } else {
+                original * (1f + configured.toFloat() / 10f)
+            }
+        }
+        apply(4, config.softLight)
+        apply(5, config.saturation)
+        apply(6, config.brightness)
+        apply(7, config.softDarker)
+        apply(14, config.transparency)
+        apply(21, config.softEdgeThickness)
+        apply(24, config.softReflection)
+        apply(28, config.directionalLightIntensity)
+        apply(32, config.softRefraction)
+        apply(33, config.backgroundSaturation)
+        apply(34, config.backgroundBrightness)
+        apply(35, config.burn)
+        if (!config.highlight) params[24] = 0f
+
+        if (Color.alpha(config.blendColor) > 0) {
+            params[11] = Color.red(config.blendColor) / 255f
+            params[12] = Color.green(config.blendColor) / 255f
+            params[13] = Color.blue(config.blendColor) / 255f
+            params[14] = Color.alpha(config.blendColor) / 255f
+        }
+        activeBlurMethods?.let { methods ->
+            methods.setViewMode.invoke(null, view, 1)
+            methods.clearBlend.invoke(null, view)
+        }
+        // Match DynamicIslandBaseContentView.updateBackgroundBg's native Bionics
+        // setup. setMiGlass derives its edge/SDF from the View outline; merely
+        // enabling clipToOutline leaves background-less island views without a
+        // usable contour, especially in SMALL/BIG states.
+        val maxRadius = TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP,
+            32f,
+            view.resources.displayMetrics,
+        )
+        view.outlineProvider = object : ViewOutlineProvider() {
+            override fun getOutline(target: View, outline: Outline) {
+                outline.setRoundRect(
+                    0,
+                    0,
+                    target.width,
+                    target.height,
+                    minOf(target.height / 2f, maxRadius),
+                )
+            }
+        }
+        view.clipToOutline = true
+        setMaterial.invoke(view, 1)
+        setGlass.invoke(view, params)
+        enableSoftGlassWindowBlur(view, config)
+        view.background = null
+        customSoftGlassViews.add(view)
+        view.invalidate()
+        true
+    }.getOrElse {
+        logWarn("$TAG native soft glass unavailable: ${it.message}")
+        false
+    }
+
+    private fun defaultSoftGlassParams() = floatArrayOf(
+        0f, 2f, .5f, .8f, .15f, 2.4f, .3f, .2f, 0f, 0f, 0f,
+        .06f, .06f, .06f, .6f, .15f, .4f, 1.36f, 1f, 72f, 3.8f,
+        80f, 1000f, 1.2f, .6f, -.4f, .6f, -.8f, 1.8f, 1.2f, 1f,
+        1.1764706f, 3f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f, 0f,
+    )
+
+    private fun enableSoftGlassWindowBlur(view: View, config: MaterialConfig) {
+        var root = view
+        while (root.parent is View) {
+            root = root.parent as View
+            if (root.javaClass.name == "miui.systemui.dynamicisland.window.DynamicIslandWindowView") {
+                break
+            }
+        }
+        if (root.javaClass.name != "miui.systemui.dynamicisland.window.DynamicIslandWindowView") return
+        activeBlurMethods?.let { methods ->
+            runCatching { methods.setPassWindowBlur?.invoke(null, root, true) }
+            runCatching { methods.setPassFps?.invoke(null, root, 60) }
+            runCatching { methods.setBackgroundMode?.invoke(null, root, 1) }
+            runCatching { methods.setBackgroundRadius?.invoke(null, root, 0) }
+        }
+        runCatching {
+            findMethod(
+                root.javaClass,
+                "setMiGlassBlurRadius",
+                Int::class.javaPrimitiveType!!,
+                Int::class.javaPrimitiveType!!,
+            )?.invoke(
+                root,
+                config.blur,
+                config.blur,
+            )
+        }
+    }
+
+    private fun clearSoftGlass(view: View) {
+        runCatching {
+            findMethod(
+                view.javaClass,
+                "setMiViewMaterialType",
+                Int::class.javaPrimitiveType!!,
+            )?.invoke(view, -1)
+        }
+        view.invalidate()
+    }
+
     private fun findMethod(clazz: Class<*>, name: String, vararg types: Class<*>): Method? {
         runCatching {
             return clazz.getMethod(name, *types).apply { isAccessible = true }
@@ -1393,6 +1748,106 @@ object IslandBlurHook : BaseHook() {
     ) {
         val blendColor = blendColor
         val isActive = enabled
+    }
+
+    private enum class MaterialType {
+        DEFAULT,
+        GAUSSIAN,
+        HIGHLIGHT,
+        LIQUID,
+        SOFT;
+
+        companion object {
+            fun fromValue(value: String): MaterialType = when (value) {
+                "gaussian" -> GAUSSIAN
+                "highlight_glass" -> HIGHLIGHT
+                "liquid_glass" -> LIQUID
+                "soft_glass" -> SOFT
+                else -> DEFAULT
+            }
+        }
+    }
+
+    private data class MaterialConfig(
+        val type: MaterialType,
+        val blur: Int,
+        val softLight: Double,
+        val saturation: Double,
+        val brightness: Double,
+        val softDarker: Double,
+        val transparency: Double,
+        val burn: Double,
+        val softRefraction: Double,
+        val softEdgeThickness: Double,
+        val softReflection: Double,
+        val directionalLightIntensity: Double,
+        val backgroundSaturation: Double,
+        val backgroundBrightness: Double,
+        val darker: Int,
+        val refraction: Int,
+        val edgeThickness: Int,
+        val reflectionStrength: Int,
+        val lightDirection: Int,
+        val dispersion: Int,
+        val blendColor: Int,
+        val highlight: Boolean,
+    ) {
+        val isCustom get() = type != MaterialType.DEFAULT
+
+        fun toBlurConfig() = BlurConfig(
+            type == MaterialType.GAUSSIAN ||
+                type == MaterialType.HIGHLIGHT ||
+                type == MaterialType.LIQUID,
+            blur,
+            blendColor,
+        )
+
+        fun softFallback() = BlurConfig(true, blur, blendColor)
+
+        companion object {
+            fun default() = MaterialConfig(
+                MaterialType.DEFAULT, 35,
+                -1.0, 2.0, 40.0, -10.0, -0.57, 0.0, 0.0, 0.8, -10.0,
+                1.0, -10.0, 0.04,
+                14, 16, 16, 42, 243, 18, Color.TRANSPARENT, true,
+            )
+        }
+    }
+
+    private data class MaterialConfigs(
+        val small: MaterialConfig,
+        val big: MaterialConfig,
+        val expand: MaterialConfig,
+    ) {
+        val anyCustom get() = small.isCustom || big.isCustom || expand.isCustom
+
+        companion object {
+            fun defaults(): MaterialConfigs {
+                val value = MaterialConfig.default()
+                return MaterialConfigs(value, value, value)
+            }
+
+            fun fromLegacy(configs: BlurConfigs, states: GlassStates): MaterialConfigs {
+                fun convert(blur: BlurConfig, glass: GlassState): MaterialConfig {
+                    if (!blur.isActive) return MaterialConfig.default()
+                    val type = when {
+                        glass.refractionEnabled -> MaterialType.LIQUID
+                        glass.enabled -> MaterialType.HIGHLIGHT
+                        else -> MaterialType.GAUSSIAN
+                    }
+                    return MaterialConfig.default().copy(
+                        type = type,
+                        blur = blur.radius,
+                        blendColor = blur.blendColor,
+                    )
+                }
+                return MaterialConfigs(
+                    convert(configs.small, states.small),
+                    convert(configs.big, states.big),
+                    convert(configs.expand, states.expand),
+                )
+            }
+        }
     }
 
     private data class BlurConfigs(
@@ -1443,6 +1898,10 @@ object IslandBlurHook : BaseHook() {
     private data class BlurMethods(
         val setViewMode: Method,
         val clearBlend: Method,
+        val setBackgroundMode: Method?,
+        val setBackgroundRadius: Method?,
+        val setPassWindowBlur: Method?,
+        val setPassFps: Method?,
     )
 
     private data class BlurDrawableMethods(

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/os_version_service.dart';
+import '../models/island_material_config.dart';
 
 import 'whitelist_controller.dart';
 
@@ -128,6 +129,13 @@ const kPrefIslandRefractionExpandEnabled =
     'pref_island_refraction_expand_enabled';
 const kPrefIslandGlassCaptureFps = 'pref_island_glass_capture_fps';
 const kPrefIslandGlassCaptureQuality = 'pref_island_glass_capture_quality';
+const kPrefIslandMaterialBigConfig = 'pref_island_material_big_config';
+const kPrefIslandMaterialSmallConfig = 'pref_island_material_small_config';
+const kPrefIslandMaterialExpandConfig = 'pref_island_material_expand_config';
+const kPrefIslandMaterialSmallFollowBig =
+    'pref_island_material_small_follow_big';
+const kPrefIslandMaterialExpandFollowBig =
+    'pref_island_material_expand_follow_big';
 const kPrefIslandHeight = 'pref_island_height';
 const kPrefIslandTopOffset = 'pref_island_top_offset';
 const kPrefIslandTextScale = 'pref_island_text_scale';
@@ -336,6 +344,16 @@ class SettingsController extends ChangeNotifier {
   bool islandRefractionExpandEnabled = false;
   int islandGlassCaptureFps = 20;
   int islandGlassCaptureQuality = 30;
+  IslandMaterialConfig islandMaterialBig = const IslandMaterialConfig();
+  IslandMaterialConfig islandMaterialSmall = const IslandMaterialConfig();
+  IslandMaterialConfig islandMaterialExpand = const IslandMaterialConfig();
+  bool islandMaterialSmallFollowBig = true;
+  bool islandMaterialExpandFollowBig = true;
+
+  IslandMaterialConfig get resolvedIslandMaterialSmall =>
+      islandMaterialSmallFollowBig ? islandMaterialBig : islandMaterialSmall;
+  IslandMaterialConfig get resolvedIslandMaterialExpand =>
+      islandMaterialExpandFollowBig ? islandMaterialBig : islandMaterialExpand;
   double islandHeight = 0;
   double islandTopOffset = 0;
   int islandTextScale = 100;
@@ -628,6 +646,7 @@ class SettingsController extends ChangeNotifier {
         .clamp(1, 90);
     islandGlassCaptureQuality =
         (prefs.getInt(kPrefIslandGlassCaptureQuality) ?? 30).clamp(10, 100);
+    await _loadIslandMaterialConfigs(prefs);
     islandHeight = prefs.getDouble(kPrefIslandHeight) ?? 0;
     islandTopOffset = prefs.getDouble(kPrefIslandTopOffset) ?? 0;
     islandTextScale = _readInt(prefs, kPrefIslandTextScale, 100).clamp(10, 200);
@@ -1830,6 +1849,275 @@ class SettingsController extends ChangeNotifier {
     islandGlassCaptureFps = normalizedFps;
     islandGlassCaptureQuality = normalizedQuality;
     notifyListeners();
+  }
+
+  Future<void> _loadIslandMaterialConfigs(SharedPreferences prefs) async {
+    IslandMaterialConfig decode(String key, IslandMaterialConfig fallback) {
+      final raw = prefs.getString(key);
+      if (raw == null || raw.isEmpty) return fallback;
+      return runCatchingMaterialConfig(raw) ?? fallback;
+    }
+
+    IslandMaterialConfig legacy({
+      required bool blur,
+      required bool glass,
+      required bool liquid,
+      required int radius,
+      required String color,
+    }) {
+      final type = !blur
+          ? IslandMaterialType.systemDefault
+          : liquid
+          ? IslandMaterialType.liquidGlass
+          : glass
+          ? IslandMaterialType.highlightGlass
+          : IslandMaterialType.gaussian;
+      return IslandMaterialConfig(
+        type: type,
+        blur: radius,
+        edgeThickness: islandGlassEdgeWidth,
+        refraction: islandGlassRefraction,
+        reflectionStrength: islandGlassHighlight,
+        lightDirection: islandGlassLightDirection,
+        dispersion: islandGlassDispersion,
+        darker: islandGlassShadow,
+        blendColor: color,
+        blendOpacity: _alphaPercent(color, 13),
+      );
+    }
+
+    final legacyBig = legacy(
+      blur: islandBlurBigEnabled,
+      glass: islandGlassBigEnabled,
+      liquid: islandRefractionBigEnabled,
+      radius: islandBlurBigRadius,
+      color: islandBlurBigColor,
+    );
+    final legacySmall = legacy(
+      blur: islandBlurSmallEnabled,
+      glass: islandGlassSmallEnabled,
+      liquid: islandRefractionSmallEnabled,
+      radius: islandBlurSmallRadius,
+      color: islandBlurSmallColor,
+    );
+    final legacyExpand = legacy(
+      blur: islandBlurExpandEnabled,
+      glass: islandGlassExpandEnabled,
+      liquid: islandRefractionExpandEnabled,
+      radius: islandBlurExpandRadius,
+      color: islandBlurExpandColor,
+    );
+    final hasNewConfig = prefs.containsKey(kPrefIslandMaterialBigConfig);
+    islandMaterialBig = decode(kPrefIslandMaterialBigConfig, legacyBig);
+    islandMaterialSmall = decode(kPrefIslandMaterialSmallConfig, legacySmall);
+    islandMaterialExpand = decode(
+      kPrefIslandMaterialExpandConfig,
+      legacyExpand,
+    );
+    islandMaterialSmallFollowBig =
+        prefs.getBool(kPrefIslandMaterialSmallFollowBig) ??
+        (!hasNewConfig &&
+            jsonEncode(legacySmall.toJson()) == jsonEncode(legacyBig.toJson()));
+    islandMaterialExpandFollowBig =
+        prefs.getBool(kPrefIslandMaterialExpandFollowBig) ??
+        (!hasNewConfig &&
+            jsonEncode(legacyExpand.toJson()) ==
+                jsonEncode(legacyBig.toJson()));
+    if (!hasNewConfig) {
+      await Future.wait([
+        prefs.setString(
+          kPrefIslandMaterialBigConfig,
+          jsonEncode(islandMaterialBig.toJson()),
+        ),
+        prefs.setString(
+          kPrefIslandMaterialSmallConfig,
+          jsonEncode(islandMaterialSmall.toJson()),
+        ),
+        prefs.setString(
+          kPrefIslandMaterialExpandConfig,
+          jsonEncode(islandMaterialExpand.toJson()),
+        ),
+        prefs.setBool(
+          kPrefIslandMaterialSmallFollowBig,
+          islandMaterialSmallFollowBig,
+        ),
+        prefs.setBool(
+          kPrefIslandMaterialExpandFollowBig,
+          islandMaterialExpandFollowBig,
+        ),
+      ]);
+    }
+  }
+
+  IslandMaterialConfig? runCatchingMaterialConfig(String raw) {
+    try {
+      final decoded = jsonDecode(raw);
+      return decoded is Map<String, dynamic>
+          ? IslandMaterialConfig.fromJson(decoded)
+          : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  int _alphaPercent(String color, int fallback) {
+    final value = color.replaceFirst('#', '');
+    if (value.length != 8) return fallback;
+    return ((int.tryParse(value.substring(0, 2), radix: 16) ?? 0x20) /
+            255 *
+            100)
+        .round();
+  }
+
+  Future<void> setIslandMaterialFollowBig(
+    IslandMaterialState state,
+    bool value,
+  ) async {
+    if (state == IslandMaterialState.big) return;
+    final prefs = await _getPrefs();
+    final key = state == IslandMaterialState.small
+        ? kPrefIslandMaterialSmallFollowBig
+        : kPrefIslandMaterialExpandFollowBig;
+    await prefs.setBool(key, value);
+    if (state == IslandMaterialState.small) {
+      islandMaterialSmallFollowBig = value;
+    } else {
+      islandMaterialExpandFollowBig = value;
+    }
+    await _syncLegacyMaterialState(
+      prefs,
+      state,
+      value ? islandMaterialBig : materialConfigForState(state),
+    );
+    notifyListeners();
+  }
+
+  IslandMaterialConfig materialConfigForState(IslandMaterialState state) =>
+      switch (state) {
+        IslandMaterialState.big => islandMaterialBig,
+        IslandMaterialState.small => islandMaterialSmall,
+        IslandMaterialState.expand => islandMaterialExpand,
+      };
+
+  IslandMaterialConfig resolvedMaterialConfigForState(
+    IslandMaterialState state,
+  ) => switch (state) {
+    IslandMaterialState.big => islandMaterialBig,
+    IslandMaterialState.small => resolvedIslandMaterialSmall,
+    IslandMaterialState.expand => resolvedIslandMaterialExpand,
+  };
+
+  Future<void> setIslandMaterialConfig(
+    IslandMaterialState state,
+    IslandMaterialConfig config,
+  ) async {
+    final prefs = await _getPrefs();
+    final key = switch (state) {
+      IslandMaterialState.big => kPrefIslandMaterialBigConfig,
+      IslandMaterialState.small => kPrefIslandMaterialSmallConfig,
+      IslandMaterialState.expand => kPrefIslandMaterialExpandConfig,
+    };
+    await prefs.setString(key, jsonEncode(config.toJson()));
+    switch (state) {
+      case IslandMaterialState.big:
+        islandMaterialBig = config;
+      case IslandMaterialState.small:
+        islandMaterialSmall = config;
+      case IslandMaterialState.expand:
+        islandMaterialExpand = config;
+    }
+    await _syncLegacyMaterialState(prefs, state, config);
+    if (state == IslandMaterialState.big) {
+      if (islandMaterialSmallFollowBig) {
+        await _syncLegacyMaterialState(
+          prefs,
+          IslandMaterialState.small,
+          config,
+        );
+      }
+      if (islandMaterialExpandFollowBig) {
+        await _syncLegacyMaterialState(
+          prefs,
+          IslandMaterialState.expand,
+          config,
+        );
+      }
+    }
+    notifyListeners();
+  }
+
+  Future<void> _syncLegacyMaterialState(
+    SharedPreferences prefs,
+    IslandMaterialState state,
+    IslandMaterialConfig config,
+  ) async {
+    final enabledKey = switch (state) {
+      IslandMaterialState.big => kPrefIslandBlurBigEnabled,
+      IslandMaterialState.small => kPrefIslandBlurSmallEnabled,
+      IslandMaterialState.expand => kPrefIslandBlurExpandEnabled,
+    };
+    final radiusKey = switch (state) {
+      IslandMaterialState.big => kPrefIslandBlurBigRadius,
+      IslandMaterialState.small => kPrefIslandBlurSmallRadius,
+      IslandMaterialState.expand => kPrefIslandBlurExpandRadius,
+    };
+    final colorKey = switch (state) {
+      IslandMaterialState.big => kPrefIslandBlurBigColor,
+      IslandMaterialState.small => kPrefIslandBlurSmallColor,
+      IslandMaterialState.expand => kPrefIslandBlurExpandColor,
+    };
+    final glassKey = switch (state) {
+      IslandMaterialState.big => kPrefIslandGlassBigEnabled,
+      IslandMaterialState.small => kPrefIslandGlassSmallEnabled,
+      IslandMaterialState.expand => kPrefIslandGlassExpandEnabled,
+    };
+    final liquidKey = switch (state) {
+      IslandMaterialState.big => kPrefIslandRefractionBigEnabled,
+      IslandMaterialState.small => kPrefIslandRefractionSmallEnabled,
+      IslandMaterialState.expand => kPrefIslandRefractionExpandEnabled,
+    };
+    final custom = config.isCustom;
+    await prefs.setBool(enabledKey, custom);
+    await prefs.setInt(radiusKey, config.blur);
+    await prefs.setString(colorKey, config.blendColor);
+    await prefs.setBool(
+      glassKey,
+      config.type == IslandMaterialType.highlightGlass ||
+          config.type == IslandMaterialType.liquidGlass,
+    );
+    await prefs.setBool(
+      liquidKey,
+      config.type == IslandMaterialType.liquidGlass,
+    );
+    switch (state) {
+      case IslandMaterialState.big:
+        islandBlurBigEnabled = custom;
+        islandBlurBigRadius = config.blur;
+        islandBlurBigColor = config.blendColor;
+        islandGlassBigEnabled =
+            config.type == IslandMaterialType.highlightGlass ||
+            config.type == IslandMaterialType.liquidGlass;
+        islandRefractionBigEnabled =
+            config.type == IslandMaterialType.liquidGlass;
+      case IslandMaterialState.small:
+        islandBlurSmallEnabled = custom;
+        islandBlurSmallRadius = config.blur;
+        islandBlurSmallColor = config.blendColor;
+        islandGlassSmallEnabled =
+            config.type == IslandMaterialType.highlightGlass ||
+            config.type == IslandMaterialType.liquidGlass;
+        islandRefractionSmallEnabled =
+            config.type == IslandMaterialType.liquidGlass;
+      case IslandMaterialState.expand:
+        islandBlurExpandEnabled = custom;
+        islandBlurExpandRadius = config.blur;
+        islandBlurExpandColor = config.blendColor;
+        islandGlassExpandEnabled =
+            config.type == IslandMaterialType.highlightGlass ||
+            config.type == IslandMaterialType.liquidGlass;
+        islandRefractionExpandEnabled =
+            config.type == IslandMaterialType.liquidGlass;
+    }
   }
 
   Future<void> _setIslandGlassBool(

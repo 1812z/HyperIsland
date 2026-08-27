@@ -7,48 +7,65 @@ enum IslandMaterialType {
 
   const IslandMaterialType(this.value);
   final String value;
-
   static IslandMaterialType fromValue(String? value) => values.firstWhere(
     (item) => item.value == value,
     orElse: () => systemDefault,
   );
 }
 
+enum IslandMaterialState { big, small, expand }
+
 class IslandMaterialConfig {
   const IslandMaterialConfig({
     this.type = IslandMaterialType.systemDefault,
-    this.blur = 80,
-    this.softLight = 15,
-    this.saturation = 240,
-    this.brightness = 30,
-    this.darker = 20,
-    this.transparency = 100,
+    this.blur = 35,
+    this.softLight = -1,
+    this.saturation = 2,
+    this.brightness = 40,
+    this.softDarker = -10,
+    this.transparency = -0.57,
     this.burn = 0,
+    this.softRefraction = 0,
+    this.softEdgeThickness = 0.8,
+    this.softReflection = 0,
+    this.directionalLightIntensity = 1,
+    this.backgroundSaturation = 0,
+    this.backgroundBrightness = 0.04,
     this.refraction = 16,
     this.edgeThickness = 16,
-    this.reflectionStrength = 60,
-    this.directionalLightIntensity = 180,
-    this.backgroundSaturation = 0,
-    this.backgroundBrightness = 0,
-    this.blendColor = '#0F0F0F',
-    this.blendOpacity = 60,
+    this.reflectionStrength = 42,
+    this.darker = 14,
+    this.lightDirection = 243,
+    this.dispersion = 18,
+    this.blendColor = '#FFFFFF',
+    this.blendOpacity = 0,
     this.highlight = true,
   });
 
   final IslandMaterialType type;
   final int blur;
-  final int softLight;
-  final int saturation;
-  final int brightness;
-  final int darker;
-  final int transparency;
-  final int burn;
+
+  // HyperLight-compatible adjustments applied to the system's original token.
+  final double softLight;
+  final double saturation;
+  final double brightness;
+  final double softDarker;
+  final double transparency;
+  final double burn;
+  final double softRefraction;
+  final double softEdgeThickness;
+  final double softReflection;
+  final double directionalLightIntensity;
+  final double backgroundSaturation;
+  final double backgroundBrightness;
+
+  // Existing highlight/liquid-glass renderer parameters.
   final int refraction;
   final int edgeThickness;
   final int reflectionStrength;
-  final int directionalLightIntensity;
-  final int backgroundSaturation;
-  final int backgroundBrightness;
+  final int darker;
+  final int lightDirection;
+  final int dispersion;
   final String blendColor;
   final int blendOpacity;
   final bool highlight;
@@ -65,18 +82,24 @@ class IslandMaterialConfig {
   IslandMaterialConfig copyWith({
     IslandMaterialType? type,
     int? blur,
-    int? softLight,
-    int? saturation,
-    int? brightness,
-    int? darker,
-    int? transparency,
-    int? burn,
+    double? softLight,
+    double? saturation,
+    double? brightness,
+    double? softDarker,
+    double? transparency,
+    double? burn,
+    double? softRefraction,
+    double? softEdgeThickness,
+    double? softReflection,
+    double? directionalLightIntensity,
+    double? backgroundSaturation,
+    double? backgroundBrightness,
     int? refraction,
     int? edgeThickness,
     int? reflectionStrength,
-    int? directionalLightIntensity,
-    int? backgroundSaturation,
-    int? backgroundBrightness,
+    int? darker,
+    int? lightDirection,
+    int? dispersion,
     String? blendColor,
     int? blendOpacity,
     bool? highlight,
@@ -86,16 +109,22 @@ class IslandMaterialConfig {
     softLight: softLight ?? this.softLight,
     saturation: saturation ?? this.saturation,
     brightness: brightness ?? this.brightness,
-    darker: darker ?? this.darker,
+    softDarker: softDarker ?? this.softDarker,
     transparency: transparency ?? this.transparency,
     burn: burn ?? this.burn,
-    refraction: refraction ?? this.refraction,
-    edgeThickness: edgeThickness ?? this.edgeThickness,
-    reflectionStrength: reflectionStrength ?? this.reflectionStrength,
+    softRefraction: softRefraction ?? this.softRefraction,
+    softEdgeThickness: softEdgeThickness ?? this.softEdgeThickness,
+    softReflection: softReflection ?? this.softReflection,
     directionalLightIntensity:
         directionalLightIntensity ?? this.directionalLightIntensity,
     backgroundSaturation: backgroundSaturation ?? this.backgroundSaturation,
     backgroundBrightness: backgroundBrightness ?? this.backgroundBrightness,
+    refraction: refraction ?? this.refraction,
+    edgeThickness: edgeThickness ?? this.edgeThickness,
+    reflectionStrength: reflectionStrength ?? this.reflectionStrength,
+    darker: darker ?? this.darker,
+    lightDirection: lightDirection ?? this.lightDirection,
+    dispersion: dispersion ?? this.dispersion,
     blendColor: blendColor ?? this.blendColor,
     blendOpacity: blendOpacity ?? this.blendOpacity,
     highlight: highlight ?? this.highlight,
@@ -107,28 +136,42 @@ class IslandMaterialConfig {
       return (value is num ? value.round() : fallback).clamp(min, max);
     }
 
+    double decimal(String key, double fallback) {
+      final value = json[key];
+      return (value is num ? value.toDouble() : fallback).clamp(-50.0, 50.0);
+    }
+
+    // The previous implementation used unrelated absolute integer ranges.
+    final softV2 = json['softSchema'] == 2;
+    double soft(String key, double fallback) =>
+        softV2 ? decimal(key, fallback) : fallback;
+
+    final type = IslandMaterialType.fromValue(json['type'] as String?);
     return IslandMaterialConfig(
-      type: IslandMaterialType.fromValue(json['type'] as String?),
-      blur: integer('blur', 80, 0, 100),
-      softLight: integer('softLight', 15, 0, 100),
-      saturation: integer('saturation', 240, 0, 300),
-      brightness: integer('brightness', 30, -100, 100),
-      darker: integer('darker', 20, 0, 100),
-      transparency: integer('transparency', 100, 0, 100),
-      burn: integer('burn', 0, 0, 100),
+      type: type,
+      blur: integer('blur', 35, 0, 100),
+      softLight: soft('softLight', -1),
+      saturation: soft('saturation', 2),
+      brightness: soft('brightness', 40),
+      softDarker: soft('softDarker', -10),
+      transparency: soft('transparency', -0.57),
+      burn: soft('burn', 0),
+      softRefraction: soft('softRefraction', 0),
+      softEdgeThickness: soft('softEdgeThickness', 0.8),
+      softReflection: soft('softReflection', 0),
+      directionalLightIntensity: soft('directionalLightIntensity', 1),
+      backgroundSaturation: soft('backgroundSaturation', 0),
+      backgroundBrightness: soft('backgroundBrightness', 0.04),
       refraction: integer('refraction', 16, 0, 40),
-      edgeThickness: integer('edgeThickness', 16, 0, 40),
-      reflectionStrength: integer('reflectionStrength', 60, 0, 200),
-      directionalLightIntensity: integer(
-        'directionalLightIntensity',
-        180,
-        0,
-        300,
-      ),
-      backgroundSaturation: integer('backgroundSaturation', 0, -100, 200),
-      backgroundBrightness: integer('backgroundBrightness', 0, -100, 100),
-      blendColor: (json['blendColor'] as String? ?? '#0F0F0F').trim(),
-      blendOpacity: integer('blendOpacity', 60, 0, 100),
+      edgeThickness: integer('edgeThickness', 16, 4, 40),
+      reflectionStrength: integer('reflectionStrength', 42, 0, 100),
+      darker: integer('darker', 14, 0, 100),
+      lightDirection: integer('lightDirection', 243, 0, 359),
+      dispersion: integer('dispersion', 18, 0, 100),
+      blendColor: (json['blendColor'] as String? ?? '#FFFFFF').trim(),
+      blendOpacity: !softV2 && type == IslandMaterialType.softGlass
+          ? 0
+          : integer('blendOpacity', 0, 0, 100),
       highlight: json['highlight'] as bool? ?? true,
     );
   }
@@ -136,18 +179,25 @@ class IslandMaterialConfig {
   Map<String, dynamic> toJson() => {
     'type': type.value,
     'blur': blur,
+    'softSchema': 2,
     'softLight': softLight,
     'saturation': saturation,
     'brightness': brightness,
-    'darker': darker,
+    'softDarker': softDarker,
     'transparency': transparency,
     'burn': burn,
-    'refraction': refraction,
-    'edgeThickness': edgeThickness,
-    'reflectionStrength': reflectionStrength,
+    'softRefraction': softRefraction,
+    'softEdgeThickness': softEdgeThickness,
+    'softReflection': softReflection,
     'directionalLightIntensity': directionalLightIntensity,
     'backgroundSaturation': backgroundSaturation,
     'backgroundBrightness': backgroundBrightness,
+    'refraction': refraction,
+    'edgeThickness': edgeThickness,
+    'reflectionStrength': reflectionStrength,
+    'darker': darker,
+    'lightDirection': lightDirection,
+    'dispersion': dispersion,
     'blendColor': blendColor,
     'blendOpacity': blendOpacity,
     'highlight': highlight,

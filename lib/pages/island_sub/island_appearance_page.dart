@@ -12,6 +12,7 @@ import '../../widgets/color_value_field.dart';
 import '../../widgets/island_bg_edit_dialog.dart';
 import '../../widgets/modern_slider.dart';
 import '../../widgets/restart_scope_snack_bar.dart';
+import 'island_material_page.dart';
 
 class IslandAppearancePage extends StatefulWidget {
   const IslandAppearancePage({super.key});
@@ -76,6 +77,11 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _ctrl.islandRefractionExpandEnabled,
     _ctrl.islandGlassCaptureFps,
     _ctrl.islandGlassCaptureQuality,
+    _ctrl.islandMaterialBig,
+    _ctrl.islandMaterialSmall,
+    _ctrl.islandMaterialExpand,
+    _ctrl.islandMaterialSmallFollowBig,
+    _ctrl.islandMaterialExpandFollowBig,
     _ctrl.islandTextColorMode,
     _ctrl.focusNotificationTextColorMode,
     _ctrl.mediaNotificationTextColorMode,
@@ -163,20 +169,14 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
   }
 
   bool get _hasAnyGlass =>
-      (_ctrl.islandBlurSmallEnabled && _ctrl.islandGlassSmallEnabled) ||
-      (_ctrl.islandBlurBigEnabled && _ctrl.islandGlassBigEnabled) ||
-      (_ctrl.islandBlurExpandEnabled && _ctrl.islandGlassExpandEnabled);
+      _ctrl.islandMaterialBig.usesGlass ||
+      _ctrl.resolvedIslandMaterialSmall.usesGlass ||
+      _ctrl.resolvedIslandMaterialExpand.usesGlass;
 
   bool get _hasAnyRefraction =>
-      (_ctrl.islandBlurSmallEnabled &&
-          _ctrl.islandGlassSmallEnabled &&
-          _ctrl.islandRefractionSmallEnabled) ||
-      (_ctrl.islandBlurBigEnabled &&
-          _ctrl.islandGlassBigEnabled &&
-          _ctrl.islandRefractionBigEnabled) ||
-      (_ctrl.islandBlurExpandEnabled &&
-          _ctrl.islandGlassExpandEnabled &&
-          _ctrl.islandRefractionExpandEnabled);
+      _ctrl.islandMaterialBig.usesLiquidCapture ||
+      _ctrl.resolvedIslandMaterialSmall.usesLiquidCapture ||
+      _ctrl.resolvedIslandMaterialExpand.usesLiquidCapture;
 
   bool _hasBackground(IslandBgType type) => switch (type) {
     IslandBgType.small => _ctrl.islandBgSmallPath.isNotEmpty,
@@ -185,9 +185,9 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
   };
 
   bool _isBlurEnabled(IslandBgType type) => switch (type) {
-    IslandBgType.small => _ctrl.islandBlurSmallEnabled,
-    IslandBgType.big => _ctrl.islandBlurBigEnabled,
-    IslandBgType.expand => _ctrl.islandBlurExpandEnabled,
+    IslandBgType.small => _ctrl.resolvedIslandMaterialSmall.isCustom,
+    IslandBgType.big => _ctrl.islandMaterialBig.isCustom,
+    IslandBgType.expand => _ctrl.resolvedIslandMaterialExpand.isCustom,
   };
 
   /// 任意背景图或模糊启用时，轮廓控制需要禁用
@@ -198,12 +198,6 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
       _isBlurEnabled(IslandBgType.small) ||
       _isBlurEnabled(IslandBgType.big) ||
       _isBlurEnabled(IslandBgType.expand);
-
-  IslandBgType _backgroundTypeForBlur(_IslandBlurType type) => switch (type) {
-    _IslandBlurType.small => IslandBgType.small,
-    _IslandBlurType.big => IslandBgType.big,
-    _IslandBlurType.expand => IslandBgType.expand,
-  };
 
   Future<void> _pickIslandBackground(IslandBgType type) async {
     final l10n = AppLocalizations.of(context)!;
@@ -271,330 +265,11 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     }
   }
 
-  Future<void> _showIslandBlurDialog(_IslandBlurType type) async {
-    final l10n = AppLocalizations.of(context)!;
-    final title = switch (type) {
-      _IslandBlurType.small => l10n.islandBlurSmallTitle,
-      _IslandBlurType.big => l10n.islandBlurBigTitle,
-      _IslandBlurType.expand => l10n.islandBlurExpandTitle,
-    };
-    var enabled = switch (type) {
-      _IslandBlurType.small => _ctrl.islandBlurSmallEnabled,
-      _IslandBlurType.big => _ctrl.islandBlurBigEnabled,
-      _IslandBlurType.expand => _ctrl.islandBlurExpandEnabled,
-    };
-    var glassEnabled = switch (type) {
-      _IslandBlurType.small => _ctrl.islandGlassSmallEnabled,
-      _IslandBlurType.big => _ctrl.islandGlassBigEnabled,
-      _IslandBlurType.expand => _ctrl.islandGlassExpandEnabled,
-    };
-    var refractionEnabled = switch (type) {
-      _IslandBlurType.small => _ctrl.islandRefractionSmallEnabled,
-      _IslandBlurType.big => _ctrl.islandRefractionBigEnabled,
-      _IslandBlurType.expand => _ctrl.islandRefractionExpandEnabled,
-    };
-    var radius = switch (type) {
-      _IslandBlurType.small => _ctrl.islandBlurSmallRadius,
-      _IslandBlurType.big => _ctrl.islandBlurBigRadius,
-      _IslandBlurType.expand => _ctrl.islandBlurExpandRadius,
-    }.clamp(0, refractionEnabled ? 20 : 100).toInt();
-    var color = switch (type) {
-      _IslandBlurType.small => _ctrl.islandBlurSmallColor,
-      _IslandBlurType.big => _ctrl.islandBlurBigColor,
-      _IslandBlurType.expand => _ctrl.islandBlurExpandColor,
-    };
-    final colorController = TextEditingController(text: color);
-
-    final result = await showDialog<_IslandBlurSettings>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(title),
-          content: SizedBox(
-            width: 360,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(l10n.islandBlurEnabled),
-                  value: enabled,
-                  onChanged: (value) => setDialogState(() => enabled = value),
-                ),
-                SwitchListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(l10n.islandGlassEnabled),
-                  value: glassEnabled,
-                  onChanged: enabled
-                      ? (value) => setDialogState(() {
-                          glassEnabled = value;
-                          if (!value) refractionEnabled = false;
-                        })
-                      : null,
-                ),
-                SwitchListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(l10n.islandGlassTrueRefraction),
-                  value: refractionEnabled,
-                  onChanged: enabled && glassEnabled
-                      ? (value) => setDialogState(() {
-                          refractionEnabled = value;
-                          if (value) radius = radius.clamp(0, 20).toInt();
-                        })
-                      : null,
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(child: Text(l10n.islandBlurRadius)),
-                    Text('$radius'),
-                  ],
-                ),
-                SliderTheme(
-                  data: ModernSliderTheme.theme(context),
-                  child: Slider(
-                    value: radius.toDouble(),
-                    min: 0,
-                    max: refractionEnabled ? 20 : 100,
-                    divisions: refractionEnabled ? 20 : 100,
-                    onChanged: enabled
-                        ? (value) =>
-                              setDialogState(() => radius = value.round())
-                        : null,
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.islandBlurBlendColor,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 6),
-                    ColorValueField(
-                      controller: colorController,
-                      enabled: enabled,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                      previewColor: parseHexColor(color),
-                      previewFallbackColor: Theme.of(
-                        context,
-                      ).colorScheme.primary,
-                      onChanged: (value) =>
-                          setDialogState(() => color = value.trim()),
-                      onPickColor: () async {
-                        final selected = await showColorPickerDialog(
-                          context,
-                          initialHex: color,
-                          title: l10n.islandBlurBlendColor,
-                        );
-                        if (selected != null) {
-                          final hex = colorToArgbHex(selected);
-                          colorController.text = hex;
-                          setDialogState(() => color = hex);
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text(l10n.cancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(
-                dialogContext,
-                _IslandBlurSettings(
-                  enabled,
-                  radius,
-                  color,
-                  glassEnabled,
-                  refractionEnabled,
-                ),
-              ),
-              child: Text(l10n.save),
-            ),
-          ],
-        ),
-      ),
-    );
-    colorController.dispose();
-    if (result == null) return;
-
-    switch (type) {
-      case _IslandBlurType.small:
-        await _ctrl.setIslandBlurSmall(
-          enabled: result.enabled,
-          radius: result.radius,
-          color: result.color,
-        );
-        await _ctrl.setIslandGlassSmallEnabled(result.glassEnabled);
-        await _ctrl.setIslandRefractionSmallEnabled(result.refractionEnabled);
-      case _IslandBlurType.big:
-        await _ctrl.setIslandBlurBig(
-          enabled: result.enabled,
-          radius: result.radius,
-          color: result.color,
-        );
-        await _ctrl.setIslandGlassBigEnabled(result.glassEnabled);
-        await _ctrl.setIslandRefractionBigEnabled(result.refractionEnabled);
-      case _IslandBlurType.expand:
-        await _ctrl.setIslandBlurExpand(
-          enabled: result.enabled,
-          radius: result.radius,
-          color: result.color,
-        );
-        await _ctrl.setIslandGlassExpandEnabled(result.glassEnabled);
-        await _ctrl.setIslandRefractionExpandEnabled(result.refractionEnabled);
-    }
-    if (type == _IslandBlurType.big && result.enabled && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.islandBlurBigTextColorSuggestion)),
-      );
-    }
-  }
-
   Future<void> _sendTestNotification() async {
     const channel = MethodChannel('io.github.hyperisland/test');
     try {
       await channel.invokeMethod('showTest');
     } catch (_) {}
-  }
-
-  Future<void> _showGlassEffectSettings() async {
-    final l10n = AppLocalizations.of(context)!;
-    var edgeWidth = _ctrl.islandGlassEdgeWidth;
-    var refraction = _ctrl.islandGlassRefraction;
-    var highlight = _ctrl.islandGlassHighlight;
-    var shadow = _ctrl.islandGlassShadow;
-    var lightDirection = _ctrl.islandGlassLightDirection;
-    var dispersion = _ctrl.islandGlassDispersion;
-    final result =
-        await showDialog<
-          ({
-            int edgeWidth,
-            int refraction,
-            int highlight,
-            int shadow,
-            int lightDirection,
-            int dispersion,
-          })
-        >(
-          context: context,
-          builder: (dialogContext) => StatefulBuilder(
-            builder: (context, setDialogState) => AlertDialog(
-              title: Text(l10n.islandGlassCustomize),
-              content: SizedBox(
-                width: 360,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _GlassSliderTile(
-                        title: l10n.islandGlassEdgeWidth,
-                        value: edgeWidth,
-                        min: 4,
-                        max: 40,
-                        unit: '%',
-                        enabled: true,
-                        onChanged: (value) =>
-                            setDialogState(() => edgeWidth = value),
-                        onPersist: (_) {},
-                      ),
-                      _GlassSliderTile(
-                        title: l10n.islandGlassRefraction,
-                        value: refraction,
-                        min: 0,
-                        max: 40,
-                        unit: '%',
-                        enabled: true,
-                        onChanged: (value) =>
-                            setDialogState(() => refraction = value),
-                        onPersist: (_) {},
-                      ),
-                      _GlassSliderTile(
-                        title: l10n.islandGlassHighlight,
-                        value: highlight,
-                        min: 0,
-                        max: 100,
-                        unit: '%',
-                        enabled: true,
-                        onChanged: (value) =>
-                            setDialogState(() => highlight = value),
-                        onPersist: (_) {},
-                      ),
-                      _GlassSliderTile(
-                        title: l10n.islandGlassShadow,
-                        value: shadow,
-                        min: 0,
-                        max: 100,
-                        unit: '%',
-                        enabled: true,
-                        onChanged: (value) =>
-                            setDialogState(() => shadow = value),
-                        onPersist: (_) {},
-                      ),
-                      _GlassSliderTile(
-                        title: l10n.islandGlassLightDirection,
-                        value: lightDirection,
-                        min: 0,
-                        max: 359,
-                        unit: '°',
-                        enabled: true,
-                        onChanged: (value) =>
-                            setDialogState(() => lightDirection = value),
-                        onPersist: (_) {},
-                      ),
-                      _GlassSliderTile(
-                        title: l10n.islandGlassDispersion,
-                        value: dispersion,
-                        min: 0,
-                        max: 100,
-                        unit: '%',
-                        enabled: true,
-                        onChanged: (value) =>
-                            setDialogState(() => dispersion = value),
-                        onPersist: (_) {},
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext),
-                  child: Text(l10n.cancel),
-                ),
-                FilledButton(
-                  onPressed: () => Navigator.pop(dialogContext, (
-                    edgeWidth: edgeWidth,
-                    refraction: refraction,
-                    highlight: highlight,
-                    shadow: shadow,
-                    lightDirection: lightDirection,
-                    dispersion: dispersion,
-                  )),
-                  child: Text(l10n.save),
-                ),
-              ],
-            ),
-          ),
-        );
-    if (result == null) return;
-    await _ctrl.setIslandGlassEdgeWidth(result.edgeWidth);
-    await _ctrl.setIslandGlassRefraction(result.refraction);
-    await _ctrl.setIslandGlassHighlight(result.highlight);
-    await _ctrl.setIslandGlassShadow(result.shadow);
-    await _ctrl.setIslandGlassLightDirection(result.lightDirection);
-    await _ctrl.setIslandGlassDispersion(result.dispersion);
   }
 
   Future<void> _showGlassCaptureSettings() async {
@@ -970,57 +645,6 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                             ? () => _deleteIslandBackground(IslandBgType.expand)
                             : null,
                       ),
-                      const Divider(height: 1, indent: 16, endIndent: 16),
-                      _IslandBlurTile(
-                        title: l10n.islandBlurSmallTitle,
-                        enabled: _ctrl.islandBlurSmallEnabled,
-                        radius: _ctrl.islandBlurSmallRadius,
-                        color: _ctrl.islandBlurSmallColor,
-                        blocked: _hasBackground(
-                          _backgroundTypeForBlur(_IslandBlurType.small),
-                        ),
-                        onTap:
-                            _hasBackground(
-                              _backgroundTypeForBlur(_IslandBlurType.small),
-                            )
-                            ? null
-                            : () =>
-                                  _showIslandBlurDialog(_IslandBlurType.small),
-                      ),
-                      const Divider(height: 1, indent: 16, endIndent: 16),
-                      _IslandBlurTile(
-                        title: l10n.islandBlurBigTitle,
-                        enabled: _ctrl.islandBlurBigEnabled,
-                        radius: _ctrl.islandBlurBigRadius,
-                        color: _ctrl.islandBlurBigColor,
-                        blocked: _hasBackground(
-                          _backgroundTypeForBlur(_IslandBlurType.big),
-                        ),
-                        onTap:
-                            _hasBackground(
-                              _backgroundTypeForBlur(_IslandBlurType.big),
-                            )
-                            ? null
-                            : () => _showIslandBlurDialog(_IslandBlurType.big),
-                      ),
-                      const Divider(height: 1, indent: 16, endIndent: 16),
-                      _IslandBlurTile(
-                        title: l10n.islandBlurExpandTitle,
-                        enabled: _ctrl.islandBlurExpandEnabled,
-                        radius: _ctrl.islandBlurExpandRadius,
-                        color: _ctrl.islandBlurExpandColor,
-                        blocked: _hasBackground(
-                          _backgroundTypeForBlur(_IslandBlurType.expand),
-                        ),
-                        onTap:
-                            _hasBackground(
-                              _backgroundTypeForBlur(_IslandBlurType.expand),
-                            )
-                            ? null
-                            : () =>
-                                  _showIslandBlurDialog(_IslandBlurType.expand),
-                        isLast: true,
-                      ),
                     ],
                   ),
                 ),
@@ -1041,17 +665,16 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                         ),
                         leading: const Icon(Icons.tune),
                         title: Text(
-                          l10n.islandGlassCustomize,
+                          l10n.islandMaterialCustomize,
                           style: titleStyle,
                         ),
-                        subtitle: Text(
-                          _hasAnyGlass
-                              ? l10n.islandGlassCustomizeSubtitle
-                              : l10n.islandGlassEnableFirst,
-                        ),
+                        subtitle: Text(l10n.islandMaterialCustomizeSubtitle),
                         trailing: const Icon(Icons.chevron_right),
-                        enabled: _hasAnyGlass,
-                        onTap: _hasAnyGlass ? _showGlassEffectSettings : null,
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const IslandMaterialPage(),
+                          ),
+                        ),
                       ),
                       SwitchListTile(
                         contentPadding: const EdgeInsets.symmetric(
@@ -1498,24 +1121,6 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
   }
 }
 
-enum _IslandBlurType { small, big, expand }
-
-class _IslandBlurSettings {
-  const _IslandBlurSettings(
-    this.enabled,
-    this.radius,
-    this.color,
-    this.glassEnabled,
-    this.refractionEnabled,
-  );
-
-  final bool enabled;
-  final int radius;
-  final String color;
-  final bool glassEnabled;
-  final bool refractionEnabled;
-}
-
 class _SectionLabel extends StatelessWidget {
   final String text;
   const _SectionLabel(this.text);
@@ -1727,122 +1332,6 @@ class _IslandBgTile extends StatelessWidget {
           const Icon(Icons.chevron_right),
         ],
       ),
-      onTap: onTap,
-    );
-  }
-}
-
-class _GlassSliderTile extends StatelessWidget {
-  const _GlassSliderTile({
-    required this.title,
-    required this.value,
-    required this.min,
-    required this.max,
-    required this.unit,
-    required this.enabled,
-    required this.onChanged,
-    required this.onPersist,
-  });
-
-  final String title;
-  final int value;
-  final int min;
-  final int max;
-  final String unit;
-  final bool enabled;
-  final ValueChanged<int> onChanged;
-  final ValueChanged<int> onPersist;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      enabled: enabled,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-      title: Row(
-        children: [
-          Expanded(child: Text(title)),
-          Text(
-            '$value$unit',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
-      subtitle: SliderTheme(
-        data: ModernSliderTheme.theme(context),
-        child: Slider(
-          value: value.toDouble().clamp(min.toDouble(), max.toDouble()),
-          min: min.toDouble(),
-          max: max.toDouble(),
-          divisions: max - min,
-          onChanged: enabled
-              ? InteractionHaptics.interceptSlider(
-                  (next) => onChanged(next.round()),
-                )
-              : null,
-          onChangeEnd: enabled ? (next) => onPersist(next.round()) : null,
-        ),
-      ),
-    );
-  }
-}
-
-class _IslandBlurTile extends StatelessWidget {
-  const _IslandBlurTile({
-    required this.title,
-    required this.enabled,
-    required this.radius,
-    required this.color,
-    required this.onTap,
-    required this.blocked,
-    this.isLast = false,
-  });
-
-  final String title;
-  final bool enabled;
-  final int radius;
-  final String color;
-  final VoidCallback? onTap;
-  final bool blocked;
-  final bool isLast;
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final l10n = AppLocalizations.of(context)!;
-    return ListTile(
-      enabled: !blocked,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      shape: isLast
-          ? const RoundedRectangleBorder(
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
-            )
-          : null,
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: enabled && !blocked
-              ? parseHexColor(color)
-              : cs.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: cs.outlineVariant),
-        ),
-        child: Icon(
-          Icons.blur_on,
-          color: enabled && !blocked ? cs.onSurface : cs.onSurfaceVariant,
-        ),
-      ),
-      title: Text(title),
-      subtitle: Text(
-        blocked
-            ? l10n.islandBlurUnavailableWithBackground
-            : enabled
-            ? l10n.islandBlurRadiusValue(radius)
-            : l10n.islandBlurDisabled,
-      ),
-      trailing: const Icon(Icons.chevron_right),
       onTap: onTap,
     );
   }

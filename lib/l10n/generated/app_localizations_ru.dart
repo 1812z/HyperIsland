@@ -1670,6 +1670,119 @@ class AppLocalizationsRu extends AppLocalizations {
   String get islandGlassCaptureQuality => 'Resolution';
 
   @override
+  String get islandMaterialCustomize => 'Material customization';
+
+  @override
+  String get islandMaterialCustomizeSubtitle =>
+      'Configure glass materials for Large, Small, and Expanded states';
+
+  @override
+  String get islandMaterialBigTab => 'Large';
+
+  @override
+  String get islandMaterialSmallTab => 'Small';
+
+  @override
+  String get islandMaterialExpandTab => 'Expanded';
+
+  @override
+  String get islandMaterialFollowBig => 'Follow Large Island settings';
+
+  @override
+  String get islandMaterialFollowBigSubtitle =>
+      'Turn off to select a separate material and parameters for this state';
+
+  @override
+  String get islandMaterialType => 'Glass type';
+
+  @override
+  String get islandMaterialDefault => 'Default';
+
+  @override
+  String get islandMaterialGaussian => 'Gaussian blur';
+
+  @override
+  String get islandMaterialHighlightGlass => 'Highlight glass';
+
+  @override
+  String get islandMaterialLiquidGlass => 'Liquid glass';
+
+  @override
+  String get islandMaterialSoftGlass => 'Soft glass';
+
+  @override
+  String get islandMaterialBackgroundConflict =>
+      'The custom background for this state was cleared because materials and backgrounds are mutually exclusive';
+
+  @override
+  String get islandMaterialBlurSection => 'Blur';
+
+  @override
+  String get islandMaterialLightingSection => 'Lighting';
+
+  @override
+  String get islandMaterialRefractionSection => 'Refraction';
+
+  @override
+  String get islandMaterialBackgroundSection => 'Background';
+
+  @override
+  String get islandMaterialBlendSection => 'Blending';
+
+  @override
+  String get islandMaterialBlur => 'Blur strength';
+
+  @override
+  String get islandMaterialSoftLight => 'Soft light strength';
+
+  @override
+  String get islandMaterialSaturation => 'Saturation';
+
+  @override
+  String get islandMaterialBrightness => 'Brightness';
+
+  @override
+  String get islandMaterialDarker => 'Darkening';
+
+  @override
+  String get islandMaterialTransparency => 'Transparency';
+
+  @override
+  String get islandMaterialBurn => 'Burn';
+
+  @override
+  String get islandMaterialRefraction => 'Refraction';
+
+  @override
+  String get islandMaterialEdgeThickness => 'Edge thickness';
+
+  @override
+  String get islandMaterialReflectionStrength => 'Reflection strength';
+
+  @override
+  String get islandMaterialDirectionalLightIntensity =>
+      'Directional light strength';
+
+  @override
+  String get islandMaterialBackgroundSaturation => 'Background saturation';
+
+  @override
+  String get islandMaterialBackgroundBrightness => 'Background brightness';
+
+  @override
+  String get islandMaterialBlendColor => 'Color';
+
+  @override
+  String get islandMaterialBlendOpacity => 'Opacity';
+
+  @override
+  String get islandMaterialHighlightSwitch => 'Highlights';
+
+  @override
+  String get islandMaterialSoftGlassOs4Only =>
+      'Soft glass requires HyperOS 4; older systems fall back to highlight glass';
+
+  @override
   String get keepIslandTitle => 'Держать Остров видимым';
 
   @override
