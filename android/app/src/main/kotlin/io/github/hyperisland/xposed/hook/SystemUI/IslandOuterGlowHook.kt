@@ -2,6 +2,7 @@ package io.github.hyperisland.xposed.hook
 
 import android.graphics.Color
 import android.os.Bundle
+import android.view.View
 import io.github.hyperisland.utils.getAppIcon
 import io.github.hyperisland.utils.resolveDynamicHighlightColor
 import io.github.hyperisland.xposed.ConfigManager
@@ -74,6 +75,7 @@ object IslandOuterGlowHook : BaseHook() {
     private val hookedShaderSourceClassLoaders = ConcurrentHashMap.newKeySet<Int>()
     private val defaultShaderColors = WeakHashMap<Class<*>, FloatArray>()
     private val glowTargets = WeakHashMap<Any, OwnedGlowTarget>()
+    private val runningGlowViews = WeakHashMap<Any, Boolean>()
     private val defaultGlowRanges = WeakHashMap<Any, Float>()
     private val mediaGlowRequests = ConcurrentHashMap<String, MediaGlowRequest>()
 
@@ -275,10 +277,10 @@ object IslandOuterGlowHook : BaseHook() {
                         null
                     }
                     val usesDefaultGlow = mode != GLOW_MODE_AUTO &&
-                        ownedTarget == null &&
-                        mediaFocusTarget == null &&
-                        forcedTarget == null &&
-                        mediaRequest == null
+                            ownedTarget == null &&
+                            mediaFocusTarget == null &&
+                            forcedTarget == null &&
+                            mediaRequest == null
                     if (usesDefaultGlow) {
                         recentOwnedTarget = null
                         stateObj?.let { resolveGlowView(it, mode) }?.let { glowView ->
@@ -356,28 +358,65 @@ object IslandOuterGlowHook : BaseHook() {
         if (!hookedGlowClassLoaders.add(clId)) return
         try {
             val clazz = classLoader.loadClass(GLOW_VIEW_CLASS)
+            // OS3 的 stopGlowEffect 为无参；OS4 改为 boolean 参数，并让多个光效 View
+            // 共用 window 级容器。按方法能力分流，避免依赖易变的系统版本号/getprop。
+            val usesOs4SharedGlowContainers = clazz.declaredMethods.any {
+                (it.name == "stopGlowEffect" ||
+                        it.name == "stopGlowEffect\$miui_dynamicisland_release") &&
+                        it.parameterCount == 1 &&
+                        it.parameterTypes[0] == Boolean::class.javaPrimitiveType
+            }
             val methods = clazz.declaredMethods.filter {
-                it.parameterCount == 0 && (
-                    it.name == "startGlowEffect" ||
-                        it.name == "startGlowEffect\$miui_dynamicisland_release" ||
-                        it.name == "stopGlowEffect" ||
+                val isStart = it.name == "startGlowEffect" ||
+                        it.name == "startGlowEffect\$miui_dynamicisland_release"
+                val isStop = it.name == "stopGlowEffect" ||
                         it.name == "stopGlowEffect\$miui_dynamicisland_release"
-                    )
+                val isDetach = it.name == "onDetachedFromWindow"
+                (isStart && it.parameterCount == 0) ||
+                        (isStop && (it.parameterCount == 0 ||
+                                (it.parameterCount == 1 && it.parameterTypes[0] == Boolean::class.javaPrimitiveType))) ||
+                        (usesOs4SharedGlowContainers && isDetach && it.parameterCount == 0)
             }
             methods.forEach { method ->
                 module.hook(method).intercept { chain ->
                     val mode = resolveGlowModeFromGlowView(chain.thisObject)
-                    if (method.name.startsWith("startGlowEffect")) {
+                    val isStart = method.name.startsWith("startGlowEffect")
+                    val isStop = method.name.startsWith("stopGlowEffect")
+                    val isDetach = method.name == "onDetachedFromWindow"
+                    if (isStart) {
                         applyGlowAppearance(chain.thisObject, module)
                         //logGlowViewProbe(module, chain.thisObject, mode)
                         applyOwnedGlowColor(chain.thisObject, mode, module)
-                        if (mode == GLOW_MODE_STATUS && isOwnedGlowActiveForMode(mode)) {
-                            statusGlowShowing = true
-                        }
-                    } else if (mode == GLOW_MODE_STATUS) {
-                        statusGlowShowing = false
                     }
-                    chain.proceed()
+
+                    if (!usesOs4SharedGlowContainers) {
+                        // OS3: 保留原有的一对一光效生命周期，不参与 OS4 的共享容器仲裁。
+                        if (isStart && mode == GLOW_MODE_STATUS && isOwnedGlowActiveForMode(mode)) {
+                            statusGlowShowing = true
+                        } else if (isStop && mode == GLOW_MODE_STATUS) {
+                            statusGlowShowing = false
+                        }
+                        return@intercept chain.proceed()
+                    }
+
+                    val result = chain.proceed()
+                    if (isStart) {
+                        if (readFieldValue(chain.thisObject, "enabledGlowEffect") == true) {
+                            synchronized(runningGlowViews) {
+                                runningGlowViews[chain.thisObject] = true
+                            }
+                        }
+                    } else if (isStop || isDetach) {
+                        synchronized(runningGlowViews) {
+                            runningGlowViews.remove(chain.thisObject)
+                        }
+                        // OS4: Big、Expanded 以及不同通知的光效共用 window 级上下容器。
+                        // 任一旧 View 停止/销毁都会把整个容器设为 GONE。这里只恢复容器
+                        // 可见性，不调用 startGlowEffect，保留其他 View 正在播放的动画进度。
+                        restoreSharedGlowContainersIfAnotherEffectIsRunning(chain.thisObject, module)
+                    }
+                    statusGlowShowing = hasRunningOwnedStatusGlow()
+                    result
                 }
             }
             if (methods.isNotEmpty()) log(module, "hooked glow view on ${clazz.name}")
@@ -392,8 +431,8 @@ object IslandOuterGlowHook : BaseHook() {
             val clazz = classLoader.loadClass(FOCUS_CONTROLLER_CLASS)
             val methods = clazz.declaredMethods.filter {
                 it.name == "setUpDynamicIslandDataBundle" &&
-                    it.parameterCount == 1 &&
-                    it.parameterTypes.firstOrNull()?.name == "android.service.notification.StatusBarNotification"
+                        it.parameterCount == 1 &&
+                        it.parameterTypes.firstOrNull()?.name == "android.service.notification.StatusBarNotification"
             }
             methods.forEach { method ->
                 module.hook(method).intercept { chain ->
@@ -583,7 +622,7 @@ object IslandOuterGlowHook : BaseHook() {
             "on", "follow_dynamic" -> true
             "off" -> false
             else -> defaultMode.trim().lowercase() != "off" &&
-                ConfigManager.getBoolean(globalKey, false)
+                    ConfigManager.getBoolean(globalKey, false)
         }
     }
 
@@ -606,7 +645,7 @@ object IslandOuterGlowHook : BaseHook() {
         val recentTarget = recentOwnedTarget?.takeIf { it.mode == mode }
         val target = when {
             recentTarget != null &&
-                (boundTarget == null || recentTarget.createdAt >= boundTarget.createdAt) -> recentTarget
+                    (boundTarget == null || recentTarget.createdAt >= boundTarget.createdAt) -> recentTarget
             boundTarget?.mode == mode -> boundTarget
             else -> return
         }
@@ -635,7 +674,7 @@ object IslandOuterGlowHook : BaseHook() {
             configuredBaseColor ?: Color.rgb(0, 150, 255)
         }
         val useBaseColor = singleColorEnabled && cfg.effectEnabled && cfg.colorArgb != null ||
-            configuredBaseColor != null
+                configuredBaseColor != null
         setRuntimeShaderColor(
             runtimeShader,
             "uBaseColor",
@@ -709,11 +748,11 @@ object IslandOuterGlowHook : BaseHook() {
             it.focusEnabled
         }
         val isMedia = request != null || extras?.containsKey("miui.focus.param.media") == true ||
-            sbn?.notification?.let {
-                it.extras.containsKey(android.app.Notification.EXTRA_MEDIA_SESSION) ||
-                    it.extras.getString(android.app.Notification.EXTRA_TEMPLATE)
-                        ?.contains("MediaStyle", ignoreCase = true) == true
-            } == true
+                sbn?.notification?.let {
+                    it.extras.containsKey(android.app.Notification.EXTRA_MEDIA_SESSION) ||
+                            it.extras.getString(android.app.Notification.EXTRA_TEMPLATE)
+                                ?.contains("MediaStyle", ignoreCase = true) == true
+                } == true
         if (!isMedia) return null
         val focusMode = resolveConfiguredGlowMode(
             ConfigManager.getString("pref_media_outer_glow_$pkg", "default"),
@@ -839,6 +878,77 @@ object IslandOuterGlowHook : BaseHook() {
         if (System.currentTimeMillis() - target.createdAt > RECENT_TTL_MS) return false
         if (target.mode != mode) return false
         return resolveGlowColorConfig(mode, target).effectEnabled
+    }
+
+    private fun isBoundOwnedGlowActive(glowView: Any, mode: Int): Boolean {
+        val target = synchronized(glowTargets) { glowTargets[glowView] } ?: return false
+        return target.mode == mode && resolveGlowColorConfig(mode, target).effectEnabled
+    }
+
+    private fun hasRunningOwnedStatusGlow(): Boolean {
+        synchronized(runningGlowViews) {
+            return runningGlowViews.keys.any { glowView ->
+                readFieldValue(glowView, "enabledGlowEffect") == true &&
+                        isBoundOwnedGlowActive(glowView, GLOW_MODE_STATUS)
+            }
+        }
+    }
+
+    private fun restoreSharedGlowContainersIfAnotherEffectIsRunning(
+        stoppedView: Any,
+        module: XposedModule,
+    ) {
+        var restored = false
+        synchronized(runningGlowViews) {
+            val iterator = runningGlowViews.keys.iterator()
+            while (iterator.hasNext()) {
+                val glowView = iterator.next()
+                if (glowView === stoppedView) {
+                    iterator.remove()
+                    continue
+                }
+                val running = readFieldValue(glowView, "enabledGlowEffect") == true
+                if (!running) {
+                    iterator.remove()
+                    continue
+                }
+                val upper = invokeNoArg(glowView, "getMGlowEffectUpperContainer") as? View
+                val bottom = invokeNoArg(glowView, "getMGlowEffectBottomContainer") as? View
+                val upperEffect = invokeNoArg(glowView, "getMGlowEffectUpperView") as? View
+                val bottomEffect = invokeNoArg(glowView, "getMGlowEffectBottomView") as? View
+                upper?.visibility = View.VISIBLE
+                bottom?.visibility = View.VISIBLE
+                upperEffect?.visibility = View.VISIBLE
+                bottomEffect?.visibility = View.VISIBLE
+
+                // OS4 的 updater 会独立写外置效果 View 的 alpha。Expanded 停止后 Big
+                // 仍标记为 running，startGlowEffect 因而直接返回，无法把残留的 0 alpha
+                // 修正回来。Big 的稳定 alpha 与宿主 View 相同；Expanded 继续保留动画值。
+                val mode = resolveGlowModeFromGlowView(glowView)
+                val effectAlpha = if (mode == GLOW_MODE_STATUS) {
+                    (glowView as? View)?.alpha
+                } else {
+                    (invokeNoArg(glowView, "getAlphaOfGlowEffect\$miui_dynamicisland_release") as? Number)
+                        ?.toFloat()
+                }
+                if (effectAlpha != null) {
+                    invokeFloatSetter(
+                        glowView,
+                        "setAlphaOfGlowEffect\$miui_dynamicisland_release",
+                        effectAlpha,
+                    ) || invokeFloatSetter(glowView, "setAlphaOfGlowEffect", effectAlpha)
+                    upperEffect?.alpha = effectAlpha
+                    bottomEffect?.alpha = effectAlpha
+                }
+                (invokeNoArg(glowView, "getMContainer") as? View)?.invalidate()
+                upperEffect?.invalidate()
+                bottomEffect?.invalidate()
+                restored = restored || upper != null || bottom != null
+            }
+        }
+        if (restored) {
+            log(module, "kept OS4 shared glow containers visible for another running effect")
+        }
     }
 
     private fun resolveGlowEnabled(value: String?, defaultValue: String): Boolean {
@@ -1066,9 +1176,9 @@ object IslandOuterGlowHook : BaseHook() {
     private fun setRuntimeShaderLightColors(runtimeShader: Any, colors: FloatArray): Boolean {
         val method = (runtimeShader.javaClass.methods + runtimeShader.javaClass.declaredMethods).firstOrNull {
             it.name == "setFloatUniform" &&
-                it.parameterCount == 2 &&
-                it.parameterTypes.getOrNull(0) == String::class.java &&
-                it.parameterTypes.getOrNull(1)?.isArray == true
+                    it.parameterCount == 2 &&
+                    it.parameterTypes.getOrNull(0) == String::class.java &&
+                    it.parameterTypes.getOrNull(1)?.isArray == true
         } ?: return false
         return runCatching {
             method.isAccessible = true
@@ -1080,9 +1190,9 @@ object IslandOuterGlowHook : BaseHook() {
     private fun setRuntimeShaderColor(runtimeShader: Any, uniform: String, color: Int): Boolean {
         val method = (runtimeShader.javaClass.methods + runtimeShader.javaClass.declaredMethods).firstOrNull {
             it.name == "setFloatUniform" &&
-                it.parameterCount == 2 &&
-                it.parameterTypes.getOrNull(0) == String::class.java &&
-                it.parameterTypes.getOrNull(1)?.isArray == true
+                    it.parameterCount == 2 &&
+                    it.parameterTypes.getOrNull(0) == String::class.java &&
+                    it.parameterTypes.getOrNull(1)?.isArray == true
         } ?: return false
         return runCatching {
             method.isAccessible = true
@@ -1102,9 +1212,9 @@ object IslandOuterGlowHook : BaseHook() {
     private fun setRuntimeShaderFloat(runtimeShader: Any, uniform: String, value: Float): Boolean {
         val method = (runtimeShader.javaClass.methods + runtimeShader.javaClass.declaredMethods).firstOrNull {
             it.name == "setFloatUniform" &&
-                it.parameterCount == 2 &&
-                it.parameterTypes.getOrNull(0) == String::class.java &&
-                it.parameterTypes.getOrNull(1)?.isArray == true
+                    it.parameterCount == 2 &&
+                    it.parameterTypes.getOrNull(0) == String::class.java &&
+                    it.parameterTypes.getOrNull(1)?.isArray == true
         } ?: return false
         return runCatching {
             method.isAccessible = true
@@ -1126,13 +1236,13 @@ object IslandOuterGlowHook : BaseHook() {
             val hue = wrapHue(seedHsv[0] + shortestHueDelta(anchorHsv[0], tplHsv[0]) * 0.45f)
             val sat = clamp01(
                 seedHsv[1] *
-                    (0.72f + 0.38f * normalize01(tplHsv[1], ranges[0], ranges[1])) *
-                    (tplHsv[1] / maxOf(anchorHsv[1], 0.01f)),
+                        (0.72f + 0.38f * normalize01(tplHsv[1], ranges[0], ranges[1])) *
+                        (tplHsv[1] / maxOf(anchorHsv[1], 0.01f)),
             )
             val value = clamp01(
                 seedHsv[2] *
-                    (0.62f + 0.48f * normalize01(tplHsv[2], ranges[2], ranges[3])) *
-                    (tplHsv[2] / maxOf(anchorHsv[2], 0.01f)),
+                        (0.62f + 0.48f * normalize01(tplHsv[2], ranges[2], ranges[3])) *
+                        (tplHsv[2] / maxOf(anchorHsv[2], 0.01f)),
             )
             val color = Color.HSVToColor(Color.alpha(argb), floatArrayOf(hue, sat, value))
             val baseIndex = i * 3
@@ -1238,8 +1348,8 @@ object IslandOuterGlowHook : BaseHook() {
         while (current != null) {
             val method = current.declaredMethods.firstOrNull {
                 it.name == methodName &&
-                    it.parameterCount == 1 &&
-                    it.parameterTypes[0] == Float::class.javaPrimitiveType
+                        it.parameterCount == 1 &&
+                        it.parameterTypes[0] == Float::class.javaPrimitiveType
             }
             if (method != null) {
                 return runCatching {
