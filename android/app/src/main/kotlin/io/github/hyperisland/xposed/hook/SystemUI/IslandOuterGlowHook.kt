@@ -907,8 +907,12 @@ object IslandOuterGlowHook : BaseHook() {
                     iterator.remove()
                     continue
                 }
+                val hostView = glowView as? View
                 val running = readFieldValue(glowView, "enabledGlowEffect") == true
-                if (!running) {
+                // OS4 会留下 enabled=true 但所属岛已经 Hidden/Deleted 的 View。它不再是
+                // 可见光效消费者，不能因为别的 View 停止而复活 window 级共享容器。
+                val actuallyShown = hostView?.isShown == true && hostView.alpha > 0f
+                if (!running || !actuallyShown) {
                     iterator.remove()
                     continue
                 }
@@ -926,7 +930,7 @@ object IslandOuterGlowHook : BaseHook() {
                 // 修正回来。Big 的稳定 alpha 与宿主 View 相同；Expanded 继续保留动画值。
                 val mode = resolveGlowModeFromGlowView(glowView)
                 val effectAlpha = if (mode == GLOW_MODE_STATUS) {
-                    (glowView as? View)?.alpha
+                    hostView.alpha
                 } else {
                     (invokeNoArg(glowView, "getAlphaOfGlowEffect\$miui_dynamicisland_release") as? Number)
                         ?.toFloat()

@@ -40,6 +40,22 @@ object ActiveIslandDismissHook : BaseHook() {
                 return@post
             }
             try {
+                // OS4 的 removeByKey 会同时删除通知中心使用的 FocusNotificationContent
+                // 和岛数据，通知本体仍存在时会留下空白通知。OS3/OS4 均优先探测并调用
+                // “只移除岛”的内部入口；没有该入口的旧版再回退到原有 removeByKey。
+                val islandOnly = controller.javaClass.declaredMethods.firstOrNull {
+                    it.name == "removeIslandDataByKey" && it.parameterCount == 2 &&
+                        it.parameterTypes[0] == String::class.java &&
+                        it.parameterTypes[1] == Boolean::class.javaPrimitiveType
+                }
+                if (islandOnly != null) {
+                    val updateNoFloat = resolveIslandUpdateNoFloat(controller, notificationKey)
+                    islandOnly.isAccessible = true
+                    islandOnly.invoke(controller, notificationKey, updateNoFloat)
+                    diag("focus island-only remove invoked key=$notificationKey")
+                    return@post
+                }
+
                 val direct = controller.javaClass.declaredMethods.firstOrNull {
                     it.name == "removeByKey" && it.parameterCount == 1 &&
                         it.parameterTypes[0] == String::class.java
@@ -63,6 +79,24 @@ object ActiveIslandDismissHook : BaseHook() {
                 )
             }
         }
+    }
+
+    private fun resolveIslandUpdateNoFloat(controller: Any, notificationKey: String): Boolean {
+        var current: Class<*>? = controller.javaClass
+        while (current != null) {
+            val clazz = current
+            val field = runCatching { clazz.getDeclaredField("sbnMap") }.getOrNull()
+            if (field != null) {
+                val sbn = runCatching {
+                    field.isAccessible = true
+                    (field.get(controller) as? Map<*, *>)?.get(notificationKey) as? StatusBarNotification
+                }.getOrNull()
+                return sbn?.notification?.extras
+                    ?.getBoolean("miui.island.updateNoFloat", false) == true
+            }
+            current = clazz.superclass
+        }
+        return false
     }
 
     private fun hookFocusNotificationController(module: XposedModule, classLoader: ClassLoader) {
