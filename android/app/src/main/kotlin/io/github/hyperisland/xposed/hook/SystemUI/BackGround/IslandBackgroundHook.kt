@@ -927,7 +927,7 @@ object IslandBackgroundHook : BaseHook() {
 
         val container = runCatching { access.containerMethod.invoke(contentView) as? View }
             .getOrNull()
-        if (container == null || !shouldClearSharedMask(type, container)) return
+        if (container == null || !shouldClearSharedMask(type)) return
         clearSharedContainer(container, type)
 
         // OS3 did not use island_mask as the final per-frame visual writer. OS4 does, and its
@@ -1009,7 +1009,7 @@ object IslandBackgroundHook : BaseHook() {
     }
 
     private fun clearSharedContainer(container: View, type: IslandType) {
-        if (!shouldClearSharedMask(type, container)) return
+        if (!shouldClearSharedMask(type)) return
         synchronized(clearedSharedContainers) {
             clearedSharedContainers[container] = type
         }
@@ -1018,13 +1018,12 @@ object IslandBackgroundHook : BaseHook() {
         clearMaskForView(container)
     }
 
-    private fun shouldClearSharedMask(type: IslandType, host: View): Boolean {
-        // System Bionics lives on the concrete SMALL/BIG/EXPAND View. OS4's shared
-        // container/island_mask is drawn above it and must be cleared, while
-        // hookUpdateBackgroundBg still lets the concrete View follow SystemUI.
+    private fun shouldClearSharedMask(type: IslandType): Boolean {
+        // SOFT owns the concrete state View, while container/island_mask are independent
+        // shared black layers written by IslandPropertyUpdater. Clear those hosts exactly
+        // like the Gaussian path; this never touches the Bionics material on the child View.
         if (isSystemSoftGlass(type)) {
-            return type != IslandType.EXPAND &&
-                SoftGlassController.isSystemBionicsActive(host)
+            return true
         }
         // LiquidGlassDrawable is installed only on an active blur state, so the same blur key
         // deliberately covers both the plain glass/blur pipeline and custom image backgrounds.

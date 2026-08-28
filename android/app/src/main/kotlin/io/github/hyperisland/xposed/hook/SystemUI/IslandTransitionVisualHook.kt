@@ -6,10 +6,7 @@ import android.os.Looper
 import android.view.View
 import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.hyperisland.xposed.hook.IslandBackgroundHook
-import io.github.hyperisland.xposed.hook.SystemUI.BackGround.IslandBlurHook
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.IslandBlurRuntime
-import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.model.IslandType
-import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.model.MaterialType
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
@@ -24,8 +21,6 @@ object IslandTransitionVisualHook : BaseHook() {
     private const val TAG = "HyperIsland[TransitionVisual]"
     private const val FAKE_VIEW_CLASS =
         "miui.systemui.dynamicisland.window.content.DynamicIslandContentFakeView"
-    private const val CONTENT_VIEW_CLASS =
-        "miui.systemui.dynamicisland.window.content.DynamicIslandContentView"
     private const val ANIMATION_DELEGATE_CLASS =
         "miui.systemui.dynamicisland.anim.DynamicIslandAnimationDelegate"
     private const val FAKE_VIEW_ANIMATOR_CLASS =
@@ -37,9 +32,6 @@ object IslandTransitionVisualHook : BaseHook() {
     private val hookedFakeClasses = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>())
     )
-    private val hookedContentClasses = Collections.synchronizedSet(
-        Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>())
-    )
     private val hookedDelegateClasses = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>())
     )
@@ -47,9 +39,6 @@ object IslandTransitionVisualHook : BaseHook() {
         Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>())
     )
     private val hookedPropertyUpdaterClasses = Collections.synchronizedSet(
-        Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>())
-    )
-    private val hookedBackgroundSetterClasses = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>())
     )
     private val fakeViews = Collections.synchronizedSet(
@@ -60,12 +49,6 @@ object IslandTransitionVisualHook : BaseHook() {
     )
     private val fakeLayerTargets = Collections.synchronizedMap(
         WeakHashMap<Any, FakeLayerTarget>()
-    )
-    private val softLayerOwners = Collections.synchronizedSet(
-        Collections.newSetFromMap(WeakHashMap<Any, Boolean>())
-    )
-    private val realSoftOwners = Collections.synchronizedMap(
-        WeakHashMap<Any, IslandType>()
     )
     private val opaqueHandoffBackgrounds = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<Any, Boolean>())
@@ -83,7 +66,6 @@ object IslandTransitionVisualHook : BaseHook() {
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
         if (param.packageName != "com.android.systemui") return
-        hookSharedContainerBackgroundWriters(module)
         hookPlugin(module, param.defaultClassLoader)
         HookUtils.hookDynamicClassLoaders(module, ClassLoader.getSystemClassLoader()) { classLoader ->
             hookPlugin(module, classLoader)
@@ -94,7 +76,9 @@ object IslandTransitionVisualHook : BaseHook() {
         // This callback can arrive before IslandBlurHook reloads the shared snapshot.
         IslandBlurRuntime.configStore.reload()
         mainHandler.post {
-            synchronized(fakeViews) { fakeViews.toList() }.forEach(::refreshFakeView)
+            synchronized(fakeViews) { fakeViews.toList() }.forEach { fakeView ->
+                refreshFakeView(fakeView, forceMaterialUpdate = true)
+            }
         }
     }
 
@@ -133,20 +117,6 @@ object IslandTransitionVisualHook : BaseHook() {
         ) { owner ->
             refreshFakeView(owner, access)
         }
-        // EXPAND differs from SMALL/BIG: SystemUI configures fakeExpandedView first,
-        // then updateExpandedView replaces its entire child tree. Native Bionics
-        // state installed before that replacement is no longer reliable. Reapply
-        // only after the authoritative content transaction has completed.
-        fakeClass.declaredMethods
-            .filter { it.name == "updateExpandedView" && it.parameterCount == 3 }
-            .forEach { method ->
-                hookRefreshAfter(module, method) { owner ->
-                    access.expanded(owner)?.let {
-                        IslandBlurRuntime.transitionBlurController.invalidateSoftGlass(it)
-                    }
-                    refreshFakeView(owner, access)
-                }
-            }
         hookFakeVisibility(module, fakeClass, access)
         hookDeclaredRefreshAfter(module, fakeClass, "onDetachedFromWindow") { owner ->
             releaseFakeView(owner, access)
@@ -156,100 +126,14 @@ object IslandTransitionVisualHook : BaseHook() {
         log(module, "fake island transition visuals hooked")
     }
 
-    /**
-     * Rejects the stock solid-black drawable at its write boundary. This also covers
-     * XML inflation, before the first frame, instead of clearing the drawable later.
-     */
-    private fun hookSharedContainerBackgroundWriters(module: XposedModule) {
-        val viewClass = View::class.java
-        if (!hookedBackgroundSetterClasses.add(viewClass)) return
-        sequenceOf(
-            runCatching {
-                viewClass.getDeclaredMethod("setBackground", Drawable::class.java)
-            }.getOrNull(),
-            runCatching {
-                viewClass.getDeclaredMethod("setBackgroundDrawable", Drawable::class.java)
-            }.getOrNull(),
-            runCatching {
-                viewClass.getDeclaredMethod(
-                    "setBackgroundResource",
-                    Int::class.javaPrimitiveType!!,
-                )
-            }.getOrNull(),
-        ).filterNotNull().forEach { method ->
-            runCatching {
-                method.isAccessible = true
-                module.hook(method).intercept { chain ->
-                    val view = chain.thisObject as? View ?: return@intercept chain.proceed()
-                    val removesBackground = when (val value = chain.args.getOrNull(0)) {
-                        null -> true
-                        is Int -> value == 0
-                        else -> false
-                    }
-                    if (!removesBackground && shouldRejectSharedContainerBackground(view)) {
-                        return@intercept null
-                    }
-                    chain.proceed()
-                }
-            }.onFailure { error ->
-                logError(module, "failed to hook View.${method.name}: ${error.message}")
-            }
-        }
-    }
-
     private fun hookAnimationClasses(
         module: XposedModule,
         classLoader: ClassLoader,
         access: FakeViewAccess,
     ) {
-        hookRealContentLifecycle(module, classLoader)
         hookAnimationDelegate(module, classLoader, access)
         hookFakeViewAnimator(module, classLoader, access)
         hookIslandPropertyUpdater(module, classLoader)
-    }
-
-    private fun hookRealContentLifecycle(
-        module: XposedModule,
-        classLoader: ClassLoader,
-    ) {
-        val contentClass = runCatching {
-            Class.forName(CONTENT_VIEW_CLASS, false, classLoader)
-        }.getOrNull() ?: return
-        if (!hookedContentClasses.add(contentClass)) return
-
-        sequenceOf("onFinishInflate", "onAttachedToWindow", "updateViewStateWhenCloseEnd")
-            .forEach { name ->
-                contentClass.declaredMethods
-                    .filter { it.name == name && it.parameterCount == 0 }
-                    .forEach { method ->
-                        runCatching {
-                            hookRefreshAfter(module, method, ::refreshRealContentView)
-                        }.onFailure { error ->
-                            logError(module, "failed to hook ${contentClass.name}.$name: ${error.message}")
-                        }
-                    }
-            }
-        contentClass.declaredMethods
-            .filter { it.name == "onVisibilityAggregated" && it.parameterCount == 1 }
-            .forEach { method ->
-                runCatching {
-                    hookRefreshAfter(module, method) { owner ->
-                        refreshRealContentView(owner)
-                        (owner as? View)?.post { refreshRealContentView(owner) }
-                    }
-                }.onFailure { error ->
-                    logError(module, "failed to hook ${contentClass.name}.${method.name}: ${error.message}")
-                }
-            }
-        contentClass.methods.firstOrNull {
-            it.name == "updateDarkLightMode" && it.parameterCount == 4
-        }?.let { method ->
-            runCatching {
-                hookRefreshAfter(module, method, ::refreshRealContentView)
-            }.onFailure { error ->
-                logError(module, "failed to hook ${method.declaringClass.name}.${method.name}: ${error.message}")
-            }
-        }
     }
 
     private fun hookAnimationDelegate(
@@ -274,7 +158,7 @@ object IslandTransitionVisualHook : BaseHook() {
             Class.forName(FAKE_VIEW_ANIMATOR_CLASS, false, classLoader)
         }.isSuccess
         val refreshMethods = if (hasDedicatedFakeAnimator) {
-            sequenceOf("containerScheduleUpdate")
+            emptySequence<String>()
         } else {
             sequenceOf("updateFakeViewAnimState", "containerScheduleUpdate", "scheduleUpdate")
         }
@@ -392,8 +276,7 @@ object IslandTransitionVisualHook : BaseHook() {
             Class.forName(ISLAND_PROPERTY_UPDATER_CLASS, false, classLoader)
         }.getOrNull() ?: return
         if (!hookedPropertyUpdaterClasses.add(updaterClass)) return
-        val viewField = findField(updaterClass, "view") ?: return
-
+        val ownerField = findField(updaterClass, "view")
         updaterClass.declaredMethods
             .firstOrNull {
                 it.name == "updateContentBlur" &&
@@ -405,9 +288,10 @@ object IslandTransitionVisualHook : BaseHook() {
                     method.isAccessible = true
                     module.hook(method).intercept { chain ->
                         val view = chain.args.getOrNull(0) as? View
-                        if (view != null &&
-                            IslandBlurRuntime.transitionBlurController.hasManagedSoftGlass(view)
-                        ) {
+                        val owner = runCatching {
+                            ownerField?.get(chain.thisObject)
+                        }.getOrNull()
+                        if (view != null && isSoftContentOwner(owner)) {
                             clearFakeSelfBlur(view)
                             return@intercept null
                         }
@@ -418,24 +302,20 @@ object IslandTransitionVisualHook : BaseHook() {
                 }
             }
 
-        updaterClass.declaredMethods
-            .firstOrNull { it.name == "updateContainer" && it.parameterCount == 1 }
-            ?.let { method ->
-                runCatching {
-                    method.isAccessible = true
-                    module.hook(method).intercept { chain ->
-                        chain.thisObject?.let { updater ->
-                            runCatching { viewField.get(updater) }.getOrNull()
-                                ?.let(::rememberRealSoftOwner)
-                        }
-                        // The View background writer hook below rejects the stock black
-                        // assignment synchronously while this method proceeds.
-                        chain.proceed()
-                    }
-                }.onFailure { error ->
-                    logError(module, "failed to hook ${updaterClass.name}.${method.name}: ${error.message}")
-                }
-            }
+    }
+
+    private fun isSoftContentOwner(owner: Any?): Boolean {
+        owner ?: return false
+        val state = findMethod(owner.javaClass, "getState")
+            ?.let { runCatching { it.invoke(owner) }.getOrNull() }
+            ?: return false
+        val typeName = when {
+            state.javaClass.simpleName.contains("SmallIsland") -> "SMALL"
+            state.javaClass.simpleName.contains("BigIsland") -> "BIG"
+            state.javaClass.simpleName.contains("Expanded") -> "EXPAND"
+            else -> return false
+        }
+        return IslandBlurRuntime.transitionBlurController.isSoftGlass(typeName)
     }
 
     private fun hookDeclaredRefreshAfter(
@@ -472,7 +352,7 @@ object IslandTransitionVisualHook : BaseHook() {
         }
     }
 
-    private fun refreshFakeView(fakeView: Any) {
+    private fun refreshFakeView(fakeView: Any, forceMaterialUpdate: Boolean = false) {
         val clazz = fakeView.javaClass
         refreshFakeView(
             fakeView,
@@ -485,6 +365,7 @@ object IslandTransitionVisualHook : BaseHook() {
                 realView = findMethod(clazz, "getRealView"),
                 state = findMethod(clazz, "getState"),
             ),
+            forceMaterialUpdate,
         )
     }
 
@@ -508,20 +389,8 @@ object IslandTransitionVisualHook : BaseHook() {
                 if (owner != null) {
                     if (nextVisibility == View.VISIBLE) {
                         armRealBackgroundHandoff(owner, access)
-                        // The fake subtree is reused across animations. Xiaomi's
-                        // native material is RenderNode state and may be discarded
-                        // while the subtree is invisible even though the View and
-                        // our weak ownership entry both survive.
-                        access.forEach(owner) { _, view ->
-                            if (view.visibility == View.VISIBLE) {
-                                IslandBlurRuntime.transitionBlurController.invalidateSoftGlass(view)
-                            }
-                        }
                         refreshFakeView(owner, access)
                     } else {
-                        // Handoff completion hides the reusable fake root. Re-applying all
-                        // three hidden Bionics slots here changes the window RenderNode/radius
-                        // after the real island is already visible and produces one flash.
                         updateFakeLayerMask(owner, access)
                     }
                 }
@@ -571,12 +440,9 @@ object IslandTransitionVisualHook : BaseHook() {
         val target = findMethod(realView.javaClass, getterName)
             ?.let { runCatching { it.invoke(realView) as? View }.getOrNull() }
             ?: return
-        if (IslandBlurRuntime.configStore.materialFor(IslandType.valueOf(typeName)).type ==
-            MaterialType.SOFT
-        ) {
-            if (!IslandBlurRuntime.transitionBlurController.hasManagedSoftGlass(target)) {
-                IslandBlurRuntime.transitionBlurController.apply(target, typeName)
-            }
+        val controller = IslandBlurRuntime.transitionBlurController
+        if (controller.isSoftGlass(typeName) && !controller.isApplied(target, typeName)) {
+            controller.apply(target, typeName)
         }
     }
 
@@ -618,7 +484,11 @@ object IslandTransitionVisualHook : BaseHook() {
         }
     }
 
-    private fun refreshFakeView(fakeView: Any, access: FakeViewAccess) {
+    private fun refreshFakeView(
+        fakeView: Any,
+        access: FakeViewAccess,
+        forceMaterialUpdate: Boolean = false,
+    ) {
         if ((fakeView as? View)?.visibility == View.VISIBLE) {
             armRealBackgroundHandoff(fakeView, access)
         }
@@ -632,10 +502,14 @@ object IslandTransitionVisualHook : BaseHook() {
             }
             if (IslandBlurRuntime.transitionBlurController.isEnabled(typeName)) {
                 if (target.customDrawable != null) restoreStockBackground(view, target)
-                // apply() updates already-owned Bionics/blur resources as well, which
-                // is necessary when only a material parameter changed.
-                target.managedVisual =
-                    IslandBlurRuntime.transitionBlurController.apply(view, typeName)
+                val controller = IslandBlurRuntime.transitionBlurController
+                target.managedVisual = if (
+                    forceMaterialUpdate || !controller.isApplied(view, typeName)
+                ) {
+                    controller.apply(view, typeName)
+                } else {
+                    true
+                }
                 if (target.managedVisual &&
                     IslandBlurRuntime.transitionBlurController.hasManagedSoftGlass(view)
                 ) {
@@ -674,26 +548,15 @@ object IslandTransitionVisualHook : BaseHook() {
                 )
             }
         }
-        // OS3 and OS4 both animate through this fake subtree. Newer OS4 builds restore these
-        // shared layers more aggressively, but the ownership rule is version-independent:
-        // a SOFT session must never restore fake_container's solid-black stock background,
-        // including the frames where every state child is temporarily invisible while shrinking.
-        access.stateType(fakeView)?.let { typeName ->
-            val type = IslandType.valueOf(typeName)
-            if (IslandBlurRuntime.configStore.materialFor(type).type == MaterialType.SOFT) {
-                softLayerOwners.add(fakeView)
-            } else {
-                softLayerOwners.remove(fakeView)
-            }
-        }
+        // Use the same ownership rule as Gaussian blur and custom backgrounds: the shared
+        // fake mask is removed only when every currently rendered child owns its visual.
         val visibleTargets = access.visibleViews(fakeView)
-        val clearSharedMask = softLayerOwners.contains(fakeView) ||
-            (root.visibility == View.VISIBLE && visibleTargets.isNotEmpty() &&
-                visibleTargets.all { (_, view) ->
-                    targets[view]?.managedVisual == true &&
-                        (view.background != null ||
-                            IslandBlurRuntime.transitionBlurController.hasManagedSoftGlass(view))
-                })
+        val clearSharedMask = root.visibility == View.VISIBLE && visibleTargets.isNotEmpty() &&
+            visibleTargets.all { (_, view) ->
+                targets[view]?.managedVisual == true &&
+                    (view.background != null ||
+                        IslandBlurRuntime.transitionBlurController.hasManagedSoftGlass(view))
+            }
         if (clearSharedMask) {
             IslandBackgroundHook.clearManagedVisualMask(root)
             if (container !== root && container != null) {
@@ -718,102 +581,9 @@ object IslandTransitionVisualHook : BaseHook() {
         updateFakeLayerMask(fakeView, access)
     }
 
-    private fun refreshRealContentView(contentView: Any) {
-        clearRealSoftContainerMask(contentView)
-    }
-
-    private fun shouldRejectSharedContainerBackground(view: View): Boolean {
-        val entryName = runCatching {
-            view.resources.getResourceEntryName(view.id)
-        }.getOrNull() ?: return false
-        if (entryName != "container" && entryName != "fake_container" &&
-            entryName != "fake_content"
-        ) return false
-
-        var current: View? = view
-        while (current != null) {
-            val className = current.javaClass.name
-            if (className == FAKE_VIEW_CLASS) {
-                val state = findMethod(current.javaClass, "getState")
-                    ?.let { runCatching { it.invoke(current) }.getOrNull() }
-                    ?.let(::typeFromState)
-                if (state != null) {
-                    return IslandBlurRuntime.configStore.materialFor(state).type == MaterialType.SOFT
-                }
-                return softLayerOwners.contains(current) || anySoftMaterialEnabled()
-            }
-            if (className == CONTENT_VIEW_CLASS) {
-                val state = currentContentType(current)
-                if (state != null) {
-                    return IslandBlurRuntime.configStore.materialFor(state).type == MaterialType.SOFT
-                }
-                return realSoftOwners.containsKey(current) || anySoftMaterialEnabled()
-            }
-            current = current.parent as? View
-        }
-
-        // During XML construction the shared container has no parent yet. Its resource
-        // id is nevertheless authoritative; a later non-SOFT state writer is allowed
-        // once the owning content View and state are available.
-        return anySoftMaterialEnabled()
-    }
-
-    private fun anySoftMaterialEnabled(): Boolean = IslandType.entries.any { type ->
-        IslandBlurRuntime.configStore.materialFor(type).type == MaterialType.SOFT
-    }
-
-    private fun currentContentType(contentView: Any): IslandType? {
-        val stateType = findMethod(contentView.javaClass, "getState")
-            ?.let { runCatching { it.invoke(contentView) }.getOrNull() }
-            ?.let(::typeFromState)
-        if (stateType != null) return stateType
-        return sequenceOf(
-            IslandType.EXPAND to "getExpandedView",
-            IslandType.BIG to "getBigIslandView",
-            IslandType.SMALL to "getSmallIslandView",
-        ).firstOrNull { (_, getterName) ->
-            val child = findMethod(contentView.javaClass, getterName)
-                ?.let { runCatching { it.invoke(contentView) as? View }.getOrNull() }
-            child?.visibility == View.VISIBLE && child.alpha > 0f
-        }?.first
-    }
-
-    private fun clearRealSoftContainerMask(contentView: Any) {
-        rememberRealSoftOwner(contentView)
-        realSoftOwners[contentView] ?: return
-        val container = findMethod(contentView.javaClass, "getContainer")
-            ?.let { runCatching { it.invoke(contentView) as? View }.getOrNull() }
-            ?: return
-        if (container.background != null) {
-            IslandBackgroundHook.clearManagedVisualMask(container)
-        }
-        container.invalidate()
-        IslandBlurHook.clearSoftGlassOuter(contentView, "soft-glass-content-guard")
-    }
-
-    private fun rememberRealSoftOwner(contentView: Any) {
-        val currentType = currentContentType(contentView) ?: return
-        if (IslandBlurRuntime.configStore.materialFor(currentType).type == MaterialType.SOFT) {
-            realSoftOwners[contentView] = currentType
-        } else {
-            realSoftOwners.remove(contentView)
-        }
-    }
-
-    private fun typeFromState(state: Any): IslandType? {
-        val name = state.javaClass.simpleName
-        return when {
-            name.contains("SmallIsland") -> IslandType.SMALL
-            name.contains("BigIsland") -> IslandType.BIG
-            name.contains("Expanded") -> IslandType.EXPAND
-            else -> null
-        }
-    }
-
     private fun releaseFakeView(fakeView: Any, access: FakeViewAccess) {
         fakeViews.remove(fakeView)
         fakeLayerTargets.remove(fakeView)
-        softLayerOwners.remove(fakeView)
         realBackgroundTarget(fakeView, access)?.let { target ->
             opaqueHandoffBackgrounds.remove(target.view)
         }
@@ -831,11 +601,15 @@ object IslandTransitionVisualHook : BaseHook() {
         target.managedVisual = false
     }
 
-    private fun findMethod(clazz: Class<*>, name: String): Method? {
+    private fun findMethod(
+        clazz: Class<*>,
+        name: String,
+        vararg parameterTypes: Class<*>,
+    ): Method? {
         var current: Class<*>? = clazz
         while (current != null) {
             runCatching {
-                return current.getDeclaredMethod(name).apply { isAccessible = true }
+                return current.getDeclaredMethod(name, *parameterTypes).apply { isAccessible = true }
             }
             current = current.superclass
         }
@@ -869,8 +643,6 @@ object IslandTransitionVisualHook : BaseHook() {
         fun container(owner: Any): View? = invokeView(owner, container)
 
         fun mask(owner: Any): View? = invokeView(owner, mask)
-
-        fun expanded(owner: Any): View? = invokeView(owner, expand)
 
         fun realView(owner: Any): Any? = runCatching { realView?.invoke(owner) }.getOrNull()
 

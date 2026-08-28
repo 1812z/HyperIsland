@@ -2,6 +2,7 @@ package io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.transition
 
 import android.view.View
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.config.IslandMaterialConfigStore
+import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.model.BlurConfig
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.model.IslandType
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.model.MaterialType
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.nativeblur.NativeBlurRenderer
@@ -24,26 +25,31 @@ internal class TransitionBlurController(
         return configStore.materialFor(type).isCustom
     }
 
+    fun isSoftGlass(typeName: String): Boolean {
+        val type = typeFromName(typeName) ?: return false
+        return configStore.materialFor(type).type == MaterialType.SOFT
+    }
+
     fun apply(view: View, typeName: String): Boolean {
         val type = typeFromName(typeName) ?: return false
-        val config = configStore.blurFor(type)
         val material = configStore.materialFor(type)
         if (!material.isCustom || !view.isAttachedToWindow) {
             release(view)
             return false
         }
         if (material.type == MaterialType.SOFT) {
-            val applied = SoftGlassController.apply(
-                view,
-                material.softGlass,
-                preserveSystemOutline = type == IslandType.EXPAND,
-            )
             releaseNative(view)
+            val applied = SoftGlassController.apply(view, material.softGlass)
             if (applied) ensureDetachCleanup(view)
-            // Soft glass must stay entirely on HyperOS' Bionics channel. Never
-            // substitute the module's LiquidGlassDrawable when native setup fails.
-            return applied
+            if (applied) return true
+            // Keep the same host/lifecycle as Gaussian blur when native Bionics is unavailable.
+            return applyNative(view, type, material.softFallback())
         }
+        SoftGlassController.release(view, restoreBackground = false)
+        return applyNative(view, type, configStore.blurFor(type))
+    }
+
+    private fun applyNative(view: View, type: IslandType, config: BlurConfig): Boolean {
         return runCatching {
             var transition = transitionBlurs[view]
             if (transition?.owned?.type != type) {
@@ -74,11 +80,6 @@ internal class TransitionBlurController(
     }
 
     fun hasManagedSoftGlass(view: View): Boolean = SoftGlassController.isManaged(view)
-
-    /** Native Bionics state does not reliably survive fake-View reuse or child replacement. */
-    fun invalidateSoftGlass(view: View) {
-        SoftGlassController.onSystemMaterialReplaced(view)
-    }
 
     fun release(view: View) {
         SoftGlassController.release(view)

@@ -32,8 +32,11 @@ internal object SoftGlassController {
     private val stockBackgrounds = Collections.synchronizedMap(
         WeakHashMap<View, Drawable?>()
     )
-    private val hookedTokenClasses = Collections.synchronizedSet(
-        Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>())
+    private val appliedConfigs = Collections.synchronizedMap(
+        WeakHashMap<View, SoftGlassConfig>()
+    )
+    private val windowBlurRadii = Collections.synchronizedMap(
+        WeakHashMap<View, Int>()
     )
     private val hookedWindowClasses = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>())
@@ -56,8 +59,6 @@ internal object SoftGlassController {
 
     @Volatile
     private var sessionWindow: WeakReference<View>? = null
-
-    private val tokenConfigOverride = ThreadLocal<SoftGlassConfig>()
 
     /** Resolves the Xiaomi APIs for one SystemUI plugin class loader. */
     fun bindRuntime(contentClass: Class<*>, compatClass: Class<*>) {
@@ -86,6 +87,11 @@ internal object SoftGlassController {
                 "setMiViewBlurModeCompat",
                 View::class.java,
                 Int::class.javaPrimitiveType!!,
+            ),
+            clearBlend = findMethod(
+                compatClass,
+                "clearMiBackgroundBlendColorCompat",
+                View::class.java,
             ),
             setPassWindowBlur = findMethod(
                 compatClass,
@@ -129,6 +135,31 @@ internal object SoftGlassController {
                 result
             }
         }
+        findMethod(
+            windowViewClass,
+            "updateWindowBlur",
+            Boolean::class.javaPrimitiveType!!,
+        )?.let { method ->
+            module.hook(method).intercept { chain ->
+                val result = chain.proceed()
+                val root = chain.thisObject as? View ?: return@intercept result
+                // SystemUI has just restored 50/500. Invalidate our cache and reassert the
+                // currently visible state's single window-owned radius, if one exists.
+                windowBlurRadii.remove(root)
+                val current = synchronized(managedViews) { managedViews.toList() }
+                    .asSequence()
+                    .filter { view ->
+                        view.isAttachedToWindow && view.isShown && view.alpha > 0.01f &&
+                            findWindowView(view) === root
+                    }
+                    .maxByOrNull { it.alpha }
+                val config = current?.let(appliedConfigs::get)
+                if (current != null && config != null) {
+                    updateWindowBlurRadius(current, config.blurRadius)
+                }
+                result
+            }
+        }
     }
 
     fun setPassWindowRetention(enabled: Boolean, source: View? = null) {
@@ -139,47 +170,13 @@ internal object SoftGlassController {
     }
 
     /**
-     * Customizes only SystemUI's own EXPANDED_GLASS_TOKEN result. The system remains
-     * responsible for applying/reapplying the material during every notification update.
+     * Installs the transparent Bionics material directly on the state View.
+     *
+     * IslandBlurHook replaces SystemUI's updateBackgroundBg() at its source for SOFT, so this
+     * method must be complete and idempotent: notification updates with unchanged parameters do
+     * not resubmit setMiGlass and therefore cannot restart the edge-highlight RenderNode effect.
      */
-    fun hookExpandedTokenParams(module: XposedModule, contentClass: Class<*>) {
-        val token = runCatching {
-            contentClass.getDeclaredField("EXPANDED_GLASS_TOKEN").apply {
-                isAccessible = true
-            }.get(null)
-        }.getOrNull() ?: return
-        val tokenClass = token.javaClass
-        if (!hookedTokenClasses.add(tokenClass)) return
-        val getter = findMethod(tokenClass, "getToBionicsParams") ?: return
-        module.hook(getter).intercept { chain ->
-            val result = chain.proceed()
-            val params = result as? FloatArray ?: return@intercept result
-            val config = tokenConfigOverride.get()
-            if (chain.thisObject === token && config != null) {
-                val customized = customizeParams(params, config)
-                log("$TAG expanded token ${summarize(customized)}")
-                customized
-            } else {
-                result
-            }
-        }
-    }
-
-    fun <T> withSystemTokenConfig(config: SoftGlassConfig, block: () -> T): T {
-        tokenConfigOverride.set(config)
-        return try {
-            block()
-        } finally {
-            tokenConfigOverride.remove()
-        }
-    }
-
-    /** Applies native soft glass to a stable or fake island View. */
-    fun apply(
-        view: View,
-        config: SoftGlassConfig,
-        preserveSystemOutline: Boolean = false,
-    ): Boolean = runCatching {
+    fun apply(view: View, config: SoftGlassConfig): Boolean = runCatching {
         val bionicsActive = isSystemBionicsActive(view)
         if (!bionicsActive) {
             log("$TAG skip apply bionics=false view=${view.javaClass.name}")
@@ -194,33 +191,28 @@ internal object SoftGlassController {
         val setGlass = findMethod(view.javaClass, "setMiGlass", FloatArray::class.java)
             ?: return@runCatching false
 
-        if (!managedViews.contains(view)) {
+        val newlyManaged = !managedViews.contains(view)
+        if (!newlyManaged && appliedConfigs[view] == config) {
+            if (view.background != null) view.background = null
+            return@runCatching true
+        }
+        if (newlyManaged) {
             stockBackgrounds[view] = view.background
+            installFallbackOutline(view)
         }
         blurMethods?.setViewMode?.invoke(null, view, 1)
-        if (!preserveSystemOutline) installFallbackOutline(view)
+        blurMethods?.clearBlend?.invoke(null, view)
+        view.background = null
         val params = customizeParams(systemParams ?: defaultParams(), config)
         setMaterial.invoke(view, 1)
         setGlass.invoke(view, params)
-        val window = findWindowView(view)
-        val radiusApplied = window != null && runCatching {
-            findMethod(
-                window.javaClass,
-                "setMiGlassBlurRadius",
-                Int::class.javaPrimitiveType!!,
-                Int::class.javaPrimitiveType!!,
-            )?.let { method ->
-                method.invoke(window, config.blurRadius, config.blurRadius)
-                true
-            } ?: false
-        }.getOrDefault(false)
-        view.background = null
         managedViews.add(view)
+        appliedConfigs[view] = config
         view.invalidate()
         log(
-            "$TAG apply success view=${view.javaClass.name} outline=$preserveSystemOutline " +
+            "$TAG apply success view=${view.javaClass.name} " +
                 "material=${setMaterial.declaringClass.name} glass=${setGlass.declaringClass.name} " +
-                "radius=${config.blurRadius}/$radiusApplied " + summarize(params),
+                "radius=window-owned " + summarize(params),
         )
         true
     }.getOrElse {
@@ -234,20 +226,34 @@ internal object SoftGlassController {
         isBionicsActiveMethod?.invoke(null, view.context) as? Boolean
     }.getOrNull() == true
 
+    /** The radius belongs to DynamicIslandWindowView, so only the settled real-state path calls it. */
+    fun updateWindowBlurRadius(source: View, radius: Int) {
+        val root = findWindowView(source) ?: return
+        val value = radius.coerceAtLeast(0)
+        if (windowBlurRadii[root] == value) return
+        val method = findMethod(
+            root.javaClass,
+            "setMiGlassBlurRadius",
+            Int::class.javaPrimitiveType!!,
+            Int::class.javaPrimitiveType!!,
+        ) ?: return
+        runCatching {
+            method.invoke(root, value, value)
+            windowBlurRadii[root] = value
+        }.onFailure {
+            logWarn("$TAG window radius unavailable: ${it.message}")
+        }
+    }
+
     /** Releases a View owned by this renderer and restores its captured background when needed. */
-    fun release(view: View) {
+    fun release(view: View, restoreBackground: Boolean = true) {
         if (!managedViews.remove(view)) return
         val window = findWindowView(view)
         clearMaterial(view)
         val stock = stockBackgrounds.remove(view)
-        if (view.background == null) view.background = stock
+        appliedConfigs.remove(view)
+        if (restoreBackground && view.background == null) view.background = stock
         if (window != null) enforcePassWindowBlur(window)
-    }
-
-    /** Drops ownership after SystemUI has already installed the next material/background. */
-    fun onSystemMaterialReplaced(view: View) {
-        managedViews.remove(view)
-        stockBackgrounds.remove(view)
     }
 
     private fun enforcePassWindowBlur(root: View) {
@@ -357,8 +363,10 @@ internal object SoftGlassController {
                 view.javaClass,
                 "setMiViewMaterialType",
                 Int::class.javaPrimitiveType!!,
-            )?.invoke(view, -1)
+            )?.invoke(view, 0)
         }
+        runCatching { blurMethods?.clearBlend?.invoke(null, view) }
+        runCatching { blurMethods?.setViewMode?.invoke(null, view, 0) }
         view.invalidate()
     }
 
@@ -385,6 +393,7 @@ internal object SoftGlassController {
 
     private data class BlurMethods(
         val setViewMode: Method?,
+        val clearBlend: Method?,
         val setPassWindowBlur: Method?,
         val setPassFps: Method?,
     )
