@@ -1665,7 +1665,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get islandMaterialHighlightSwitch => '高光';
 
   @override
-  String get islandMaterialSoftGlassOs4Only => '柔光玻璃仅在澎湃 OS4 上可用，旧系统将回退为高光玻璃';
+  String get islandMaterialSoftGlassOs4Only => '澎湃 OS3 不支持柔光玻璃配置';
 
   @override
   String get keepIslandTitle => '常驻超级岛';

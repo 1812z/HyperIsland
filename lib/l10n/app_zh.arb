@@ -780,7 +780,7 @@
   "islandMaterialBlendColor": "颜色",
   "islandMaterialBlendOpacity": "不透明度",
   "islandMaterialHighlightSwitch": "高光",
-  "islandMaterialSoftGlassOs4Only": "柔光玻璃仅在澎湃 OS4 上可用，旧系统将回退为高光玻璃",
+  "islandMaterialSoftGlassOs4Only": "澎湃 OS3 不支持柔光玻璃配置",
   "keepIslandTitle": "常驻超级岛",
   "keepIslandSubtitle": "显示一条空白通知使岛始终可见",
   "keepIslandIslandConfigTitle": "岛配置",

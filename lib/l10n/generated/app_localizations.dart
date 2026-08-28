@@ -3263,7 +3263,7 @@ abstract class AppLocalizations {
   /// No description provided for @islandMaterialSoftGlassOs4Only.
   ///
   /// In en, this message translates to:
-  /// **'Soft glass requires HyperOS 4; older systems fall back to highlight glass'**
+  /// **'HyperOS 3 does not support soft-glass configurations'**
   String get islandMaterialSoftGlassOs4Only;
 
   /// No description provided for @keepIslandTitle.

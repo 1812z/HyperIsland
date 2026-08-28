@@ -1660,117 +1660,116 @@ class AppLocalizationsTr extends AppLocalizations {
   String get islandGlassCaptureQuality => 'Resolution';
 
   @override
-  String get islandMaterialCustomize => 'Material customization';
+  String get islandMaterialCustomize => 'Malzeme özelleştirme';
 
   @override
   String get islandMaterialCustomizeSubtitle =>
-      'Configure glass materials for Large, Small, and Expanded states';
+      'Büyük, küçük ve genişletilmiş durumlar için cam malzemelerini yapılandır';
 
   @override
-  String get islandMaterialBigTab => 'Large';
+  String get islandMaterialBigTab => 'Büyük';
 
   @override
-  String get islandMaterialSmallTab => 'Small';
+  String get islandMaterialSmallTab => 'Küçük';
 
   @override
-  String get islandMaterialExpandTab => 'Expanded';
+  String get islandMaterialExpandTab => 'Genişletilmiş';
 
   @override
-  String get islandMaterialFollowBig => 'Follow Large Island settings';
+  String get islandMaterialFollowBig => 'Büyük Ada ayarlarını kullan';
 
   @override
   String get islandMaterialFollowBigSubtitle =>
-      'Turn off to select a separate material and parameters for this state';
+      'Bu durum için ayrı bir malzeme ve parametreler seçmek üzere kapat';
 
   @override
-  String get islandMaterialType => 'Glass type';
+  String get islandMaterialType => 'Cam türü';
 
   @override
-  String get islandMaterialDefault => 'Default';
+  String get islandMaterialDefault => 'Varsayılan';
 
   @override
-  String get islandMaterialGaussian => 'Gaussian blur';
+  String get islandMaterialGaussian => 'Gauss bulanıklığı';
 
   @override
-  String get islandMaterialHighlightGlass => 'Highlight glass';
+  String get islandMaterialHighlightGlass => 'Parlak cam';
 
   @override
-  String get islandMaterialLiquidGlass => 'Liquid glass';
+  String get islandMaterialLiquidGlass => 'Sıvı cam';
 
   @override
-  String get islandMaterialSoftGlass => 'Soft glass';
+  String get islandMaterialSoftGlass => 'Yumuşak cam';
 
   @override
   String get islandMaterialBackgroundConflict =>
-      'The custom background for this state was cleared because materials and backgrounds are mutually exclusive';
+      'Malzeme ve arka plan aynı anda kullanılamadığı için bu duruma ait özel arka plan temizlendi';
 
   @override
-  String get islandMaterialBlurSection => 'Blur';
+  String get islandMaterialBlurSection => 'Bulanıklık';
 
   @override
-  String get islandMaterialLightingSection => 'Lighting';
+  String get islandMaterialLightingSection => 'Aydınlatma';
 
   @override
-  String get islandMaterialRefractionSection => 'Refraction';
+  String get islandMaterialRefractionSection => 'Kırılma';
 
   @override
-  String get islandMaterialBackgroundSection => 'Background';
+  String get islandMaterialBackgroundSection => 'Arka plan';
 
   @override
-  String get islandMaterialBlendSection => 'Blending';
+  String get islandMaterialBlendSection => 'Harmanlama';
 
   @override
-  String get islandMaterialBlur => 'Blur strength';
+  String get islandMaterialBlur => 'Bulanıklık gücü';
 
   @override
-  String get islandMaterialSoftLight => 'Soft light strength';
+  String get islandMaterialSoftLight => 'Yumuşak ışık gücü';
 
   @override
-  String get islandMaterialSaturation => 'Saturation';
+  String get islandMaterialSaturation => 'Doygunluk';
 
   @override
-  String get islandMaterialBrightness => 'Brightness';
+  String get islandMaterialBrightness => 'Parlaklık';
 
   @override
-  String get islandMaterialDarker => 'Darkening';
+  String get islandMaterialDarker => 'Karartma';
 
   @override
-  String get islandMaterialTransparency => 'Transparency';
+  String get islandMaterialTransparency => 'Şeffaflık';
 
   @override
-  String get islandMaterialBurn => 'Burn';
+  String get islandMaterialBurn => 'Yakma';
 
   @override
-  String get islandMaterialRefraction => 'Refraction';
+  String get islandMaterialRefraction => 'Kırılma';
 
   @override
-  String get islandMaterialEdgeThickness => 'Edge thickness';
+  String get islandMaterialEdgeThickness => 'Kenar kalınlığı';
 
   @override
-  String get islandMaterialReflectionStrength => 'Reflection strength';
+  String get islandMaterialReflectionStrength => 'Yansıma gücü';
 
   @override
-  String get islandMaterialDirectionalLightIntensity =>
-      'Directional light strength';
+  String get islandMaterialDirectionalLightIntensity => 'Yönlü ışık gücü';
 
   @override
-  String get islandMaterialBackgroundSaturation => 'Background saturation';
+  String get islandMaterialBackgroundSaturation => 'Arka plan doygunluğu';
 
   @override
-  String get islandMaterialBackgroundBrightness => 'Background brightness';
+  String get islandMaterialBackgroundBrightness => 'Arka plan parlaklığı';
 
   @override
-  String get islandMaterialBlendColor => 'Color';
+  String get islandMaterialBlendColor => 'Renk';
 
   @override
-  String get islandMaterialBlendOpacity => 'Opacity';
+  String get islandMaterialBlendOpacity => 'Opaklık';
 
   @override
-  String get islandMaterialHighlightSwitch => 'Highlights';
+  String get islandMaterialHighlightSwitch => 'Vurgular';
 
   @override
   String get islandMaterialSoftGlassOs4Only =>
-      'Soft glass requires HyperOS 4; older systems fall back to highlight glass';
+      'HyperOS 3 yumuşak cam yapılandırmalarını desteklemez';
 
   @override
   String get keepIslandTitle => 'Adayı Sürekli Göster';

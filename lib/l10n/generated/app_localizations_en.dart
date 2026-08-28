@@ -1760,7 +1760,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get islandMaterialSoftGlassOs4Only =>
-      'Soft glass requires HyperOS 4; older systems fall back to highlight glass';
+      'HyperOS 3 does not support soft-glass configurations';
 
   @override
   String get keepIslandTitle => 'Keep Island Visible';

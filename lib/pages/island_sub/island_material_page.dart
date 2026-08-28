@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../controllers/settings_controller.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -8,8 +11,141 @@ import '../../widgets/color_picker_dialog.dart';
 import '../../widgets/color_value_field.dart';
 import '../../widgets/modern_slider.dart';
 
-class IslandMaterialPage extends StatelessWidget {
+class IslandMaterialPage extends StatefulWidget {
   const IslandMaterialPage({super.key});
+
+  @override
+  State<IslandMaterialPage> createState() => _IslandMaterialPageState();
+}
+
+class _IslandMaterialPageState extends State<IslandMaterialPage> {
+  final _controller = SettingsController.instance;
+
+  static const _clipboardConfigType = 'hyperisland_material_config';
+  static const _clipboardConfigVersion = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _clearUnsupportedSoftGlassConfigs();
+    });
+  }
+
+  Future<void> _clearUnsupportedSoftGlassConfigs() async {
+    if (_controller.hyperOsMajorVersion != 3) return;
+    for (final state in IslandMaterialState.values) {
+      if (_controller.materialConfigForState(state).type ==
+          IslandMaterialType.softGlass) {
+        await _controller.setIslandMaterialConfig(
+          state,
+          const IslandMaterialConfig(),
+        );
+      }
+    }
+  }
+
+  Future<void> _sendTestNotification() async {
+    const channel = MethodChannel('io.github.hyperisland/test');
+    try {
+      await channel.invokeMethod('showCustomTest', {
+        'title': '',
+        'content': '',
+        'clearPrevious': true,
+        'enableFloat': true,
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _exportToClipboard() async {
+    final data = <String, dynamic>{
+      'type': _clipboardConfigType,
+      'version': _clipboardConfigVersion,
+      'big': _controller.islandMaterialBig.toJson(),
+      'small': _controller.islandMaterialSmall.toJson(),
+      'expand': _controller.islandMaterialExpand.toJson(),
+      'smallFollowBig': _controller.islandMaterialSmallFollowBig,
+      'expandFollowBig': _controller.islandMaterialExpandFollowBig,
+    };
+    await Clipboard.setData(
+      ClipboardData(text: const JsonEncoder.withIndent('  ').convert(data)),
+    );
+    if (!mounted) return;
+    _showMessage(AppLocalizations.of(context)!.configCopied);
+  }
+
+  Future<void> _importFromClipboard() async {
+    final l10n = AppLocalizations.of(context)!;
+    final clipboard = await Clipboard.getData(Clipboard.kTextPlain);
+    final text = clipboard?.text?.trim() ?? '';
+    if (text.isEmpty) {
+      _showMessage(l10n.errorEmptyClipboard);
+      return;
+    }
+
+    try {
+      final decoded = jsonDecode(text);
+      if (decoded is! Map<String, dynamic> ||
+          decoded['type'] != _clipboardConfigType ||
+          decoded['version'] != _clipboardConfigVersion ||
+          decoded['big'] is! Map ||
+          decoded['small'] is! Map ||
+          decoded['expand'] is! Map ||
+          decoded['smallFollowBig'] is! bool ||
+          decoded['expandFollowBig'] is! bool) {
+        throw const FormatException('invalid_material_config');
+      }
+
+      final big = IslandMaterialConfig.fromJson(
+        Map<String, dynamic>.from(decoded['big'] as Map),
+      );
+      final small = IslandMaterialConfig.fromJson(
+        Map<String, dynamic>.from(decoded['small'] as Map),
+      );
+      final expand = IslandMaterialConfig.fromJson(
+        Map<String, dynamic>.from(decoded['expand'] as Map),
+      );
+      final containsSoftGlass = [
+        big,
+        small,
+        expand,
+      ].any((config) => config.type == IslandMaterialType.softGlass);
+      if (_controller.hyperOsMajorVersion == 3 && containsSoftGlass) {
+        _showMessage(l10n.islandMaterialSoftGlassOs4Only);
+        return;
+      }
+
+      await _controller.setIslandMaterialConfig(IslandMaterialState.big, big);
+      await _controller.setIslandMaterialConfig(
+        IslandMaterialState.small,
+        small,
+      );
+      await _controller.setIslandMaterialConfig(
+        IslandMaterialState.expand,
+        expand,
+      );
+      await _controller.setIslandMaterialFollowBig(
+        IslandMaterialState.small,
+        decoded['smallFollowBig'] as bool,
+      );
+      await _controller.setIslandMaterialFollowBig(
+        IslandMaterialState.expand,
+        decoded['expandFollowBig'] as bool,
+      );
+      if (!mounted) return;
+      _showMessage(l10n.importSuccess(5));
+    } catch (_) {
+      if (!mounted) return;
+      _showMessage(l10n.importErrorUnknown);
+    }
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,6 +155,27 @@ class IslandMaterialPage extends StatelessWidget {
       child: Scaffold(
         appBar: AppBar(
           title: Text(l10n.islandMaterialCustomize),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.copy_outlined),
+              tooltip: l10n.exportToClipboard,
+              onPressed: InteractionHaptics.interceptButton(_exportToClipboard),
+            ),
+            IconButton(
+              icon: const Icon(Icons.content_paste_go_outlined),
+              tooltip: l10n.importFromClipboard,
+              onPressed: InteractionHaptics.interceptButton(
+                _importFromClipboard,
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.notifications_outlined),
+              tooltip: l10n.testNotifTooltip,
+              onPressed: InteractionHaptics.interceptButton(
+                _sendTestNotification,
+              ),
+            ),
+          ],
           bottom: TabBar(
             tabs: [
               Tab(text: l10n.islandMaterialBigTab),
@@ -166,6 +323,16 @@ class _MaterialStateViewState extends State<_MaterialStateView> {
         }
         final follow = _followsBig;
         final effective = follow ? _controller.islandMaterialBig : config;
+        final isHyperOs3 = _controller.hyperOsMajorVersion == 3;
+        final selectableTypes = IslandMaterialType.values
+            .where(
+              (type) => !isHyperOs3 || type != IslandMaterialType.softGlass,
+            )
+            .toList();
+        final selectedType =
+            isHyperOs3 && effective.type == IslandMaterialType.softGlass
+            ? IslandMaterialType.systemDefault
+            : effective.type;
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
           children: [
@@ -196,15 +363,17 @@ class _MaterialStateViewState extends State<_MaterialStateView> {
                 padding: const EdgeInsets.fromLTRB(16, 8, 12, 8),
                 child: DropdownButtonFormField<IslandMaterialType>(
                   key: ValueKey(
-                    '${widget.state.name}-${effective.type.value}-$follow',
+                    '${widget.state.name}-${selectedType.value}-$follow',
                   ),
-                  initialValue: effective.type,
+                  initialValue: selectedType,
+                  isExpanded: true,
                   decoration: InputDecoration(
                     labelText: l10n.islandMaterialType,
                     border: InputBorder.none,
+                    filled: false,
                     prefixIcon: const Icon(Icons.blur_circular),
                   ),
-                  items: IslandMaterialType.values
+                  items: selectableTypes
                       .map(
                         (type) => DropdownMenuItem(
                           value: type,
@@ -224,20 +393,20 @@ class _MaterialStateViewState extends State<_MaterialStateView> {
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text(
-                  '${l10n.islandMaterialType}：${_typeLabel(l10n, effective.type)}',
+                  '${l10n.islandMaterialType}：${_typeLabel(l10n, selectedType)}',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               )
-            else if (config.isCustom) ...[
-              if (config.type == IslandMaterialType.softGlass &&
-                  _controller.hyperOsMajorVersion < 4)
-                _InfoCard(text: l10n.islandMaterialSoftGlassOs4Only),
+            else if (config.isCustom &&
+                !(isHyperOs3 &&
+                    config.type == IslandMaterialType.softGlass)) ...[
               _SectionCard(
                 title: l10n.islandMaterialBlurSection,
                 icon: Icons.blur_on,
+                collapsible: config.type == IslandMaterialType.softGlass,
                 children: [
                   _ParameterSlider(
                     label: l10n.islandMaterialBlur,
@@ -305,6 +474,7 @@ class _MaterialStateViewState extends State<_MaterialStateView> {
                 _SectionCard(
                   title: l10n.islandMaterialLightingSection,
                   icon: Icons.light_mode_outlined,
+                  collapsible: true,
                   children: [
                     _DecimalParameterSlider(
                       label: l10n.islandMaterialSoftLight,
@@ -341,6 +511,7 @@ class _MaterialStateViewState extends State<_MaterialStateView> {
                 _SectionCard(
                   title: l10n.islandMaterialRefractionSection,
                   icon: Icons.auto_awesome,
+                  collapsible: true,
                   children: [
                     _DecimalParameterSlider(
                       label: l10n.islandMaterialRefraction,
@@ -371,6 +542,7 @@ class _MaterialStateViewState extends State<_MaterialStateView> {
                 _SectionCard(
                   title: l10n.islandMaterialBackgroundSection,
                   icon: Icons.wallpaper_outlined,
+                  collapsible: true,
                   children: [
                     _DecimalParameterSlider(
                       label: l10n.islandMaterialBackgroundSaturation,
@@ -390,6 +562,7 @@ class _MaterialStateViewState extends State<_MaterialStateView> {
               _SectionCard(
                 title: l10n.islandMaterialBlendSection,
                 icon: Icons.palette_outlined,
+                collapsible: config.type == IslandMaterialType.softGlass,
                 children: [
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
@@ -445,27 +618,17 @@ class _MaterialStateViewState extends State<_MaterialStateView> {
   }
 }
 
-class _InfoCard extends StatelessWidget {
-  const _InfoCard({required this.text});
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Card(
-    elevation: 0,
-    color: Theme.of(context).colorScheme.secondaryContainer,
-    child: ListTile(leading: const Icon(Icons.info_outline), title: Text(text)),
-  );
-}
-
 class _SectionCard extends StatelessWidget {
   const _SectionCard({
     required this.title,
     required this.icon,
     required this.children,
+    this.collapsible = false,
   });
   final String title;
   final IconData icon;
   final List<Widget> children;
+  final bool collapsible;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -473,16 +636,34 @@ class _SectionCard extends StatelessWidget {
     child: Card(
       elevation: 0,
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          ListTile(
-            leading: Icon(icon),
-            title: Text(title, style: Theme.of(context).textTheme.titleMedium),
-          ),
-          const Divider(height: 1, indent: 16, endIndent: 16),
-          ...children,
-        ],
-      ),
+      child: collapsible
+          ? ExpansionTile(
+              leading: Icon(icon),
+              title: Text(
+                title,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              initiallyExpanded: true,
+              shape: const Border(),
+              collapsedShape: const Border(),
+              children: [
+                const Divider(height: 1, indent: 16, endIndent: 16),
+                ...children,
+              ],
+            )
+          : Column(
+              children: [
+                ListTile(
+                  leading: Icon(icon),
+                  title: Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                const Divider(height: 1, indent: 16, endIndent: 16),
+                ...children,
+              ],
+            ),
     ),
   );
 }

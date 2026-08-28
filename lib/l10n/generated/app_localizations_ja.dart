@@ -1601,117 +1601,114 @@ class AppLocalizationsJa extends AppLocalizations {
   String get islandGlassCaptureQuality => 'Resolution';
 
   @override
-  String get islandMaterialCustomize => 'Material customization';
+  String get islandMaterialCustomize => '材質のカスタマイズ';
 
   @override
-  String get islandMaterialCustomizeSubtitle =>
-      'Configure glass materials for Large, Small, and Expanded states';
+  String get islandMaterialCustomizeSubtitle => '大・小・展開状態ごとにガラス材質を設定します';
 
   @override
-  String get islandMaterialBigTab => 'Large';
+  String get islandMaterialBigTab => '大';
 
   @override
-  String get islandMaterialSmallTab => 'Small';
+  String get islandMaterialSmallTab => '小';
 
   @override
-  String get islandMaterialExpandTab => 'Expanded';
+  String get islandMaterialExpandTab => '展開';
 
   @override
-  String get islandMaterialFollowBig => 'Follow Large Island settings';
+  String get islandMaterialFollowBig => '大アイランドの設定に従う';
 
   @override
   String get islandMaterialFollowBigSubtitle =>
-      'Turn off to select a separate material and parameters for this state';
+      'オフにすると、この状態の材質とパラメーターを個別に選択できます';
 
   @override
-  String get islandMaterialType => 'Glass type';
+  String get islandMaterialType => 'ガラスの種類';
 
   @override
-  String get islandMaterialDefault => 'Default';
+  String get islandMaterialDefault => 'デフォルト';
 
   @override
-  String get islandMaterialGaussian => 'Gaussian blur';
+  String get islandMaterialGaussian => 'ガウスぼかし';
 
   @override
-  String get islandMaterialHighlightGlass => 'Highlight glass';
+  String get islandMaterialHighlightGlass => 'ハイライトガラス';
 
   @override
-  String get islandMaterialLiquidGlass => 'Liquid glass';
+  String get islandMaterialLiquidGlass => 'リキッドガラス';
 
   @override
-  String get islandMaterialSoftGlass => 'Soft glass';
+  String get islandMaterialSoftGlass => 'ソフトガラス';
 
   @override
   String get islandMaterialBackgroundConflict =>
-      'The custom background for this state was cleared because materials and backgrounds are mutually exclusive';
+      'ガラス材質と背景は同時に使用できないため、この状態のカスタム背景を削除しました';
 
   @override
-  String get islandMaterialBlurSection => 'Blur';
+  String get islandMaterialBlurSection => 'ぼかし';
 
   @override
-  String get islandMaterialLightingSection => 'Lighting';
+  String get islandMaterialLightingSection => 'ライティング';
 
   @override
-  String get islandMaterialRefractionSection => 'Refraction';
+  String get islandMaterialRefractionSection => '屈折';
 
   @override
-  String get islandMaterialBackgroundSection => 'Background';
+  String get islandMaterialBackgroundSection => '背景';
 
   @override
-  String get islandMaterialBlendSection => 'Blending';
+  String get islandMaterialBlendSection => 'ブレンド';
 
   @override
-  String get islandMaterialBlur => 'Blur strength';
+  String get islandMaterialBlur => 'ぼかしの強さ';
 
   @override
-  String get islandMaterialSoftLight => 'Soft light strength';
+  String get islandMaterialSoftLight => 'ソフトライトの強さ';
 
   @override
-  String get islandMaterialSaturation => 'Saturation';
+  String get islandMaterialSaturation => '彩度';
 
   @override
-  String get islandMaterialBrightness => 'Brightness';
+  String get islandMaterialBrightness => '明るさ';
 
   @override
-  String get islandMaterialDarker => 'Darkening';
+  String get islandMaterialDarker => '暗さ';
 
   @override
-  String get islandMaterialTransparency => 'Transparency';
+  String get islandMaterialTransparency => '透明度';
 
   @override
-  String get islandMaterialBurn => 'Burn';
+  String get islandMaterialBurn => '焼き込み';
 
   @override
-  String get islandMaterialRefraction => 'Refraction';
+  String get islandMaterialRefraction => '屈折';
 
   @override
-  String get islandMaterialEdgeThickness => 'Edge thickness';
+  String get islandMaterialEdgeThickness => 'エッジの太さ';
 
   @override
-  String get islandMaterialReflectionStrength => 'Reflection strength';
+  String get islandMaterialReflectionStrength => '反射の強さ';
 
   @override
-  String get islandMaterialDirectionalLightIntensity =>
-      'Directional light strength';
+  String get islandMaterialDirectionalLightIntensity => '指向性ライトの強さ';
 
   @override
-  String get islandMaterialBackgroundSaturation => 'Background saturation';
+  String get islandMaterialBackgroundSaturation => '背景の彩度';
 
   @override
-  String get islandMaterialBackgroundBrightness => 'Background brightness';
+  String get islandMaterialBackgroundBrightness => '背景の明るさ';
 
   @override
-  String get islandMaterialBlendColor => 'Color';
+  String get islandMaterialBlendColor => '色';
 
   @override
-  String get islandMaterialBlendOpacity => 'Opacity';
+  String get islandMaterialBlendOpacity => '不透明度';
 
   @override
-  String get islandMaterialHighlightSwitch => 'Highlights';
+  String get islandMaterialHighlightSwitch => 'ハイライト';
 
   @override
-  String get islandMaterialSoftGlassOs4Only =>
-      'Soft glass requires HyperOS 4; older systems fall back to highlight glass';
+  String get islandMaterialSoftGlassOs4Only => 'HyperOS 3はソフトガラス設定に対応していません';
 
   @override
   String get keepIslandTitle => '常時ダイナミックアイランド';

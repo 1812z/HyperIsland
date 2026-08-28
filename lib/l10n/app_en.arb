@@ -780,7 +780,7 @@
   "islandMaterialBlendColor": "Color",
   "islandMaterialBlendOpacity": "Opacity",
   "islandMaterialHighlightSwitch": "Highlights",
-  "islandMaterialSoftGlassOs4Only": "Soft glass requires HyperOS 4; older systems fall back to highlight glass",
+  "islandMaterialSoftGlassOs4Only": "HyperOS 3 does not support soft-glass configurations",
   "keepIslandTitle": "Keep Island Visible",
   "keepIslandSubtitle": "Post a blank notification to keep the island always visible",
   "keepIslandIslandConfigTitle": "Island configuration",
