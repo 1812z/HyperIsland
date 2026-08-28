@@ -4,7 +4,7 @@ import io.github.hyperisland.xposed.hook.SystemUI.BigIslandMinWidthHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandIconHook
 import io.github.hyperisland.xposed.hook.SystemUI.DynamicIslandVisibilityHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandTopOffsetHook
-import io.github.hyperisland.xposed.hook.SystemUI.IslandBlurHook
+import io.github.hyperisland.xposed.hook.SystemUI.BackGround.IslandBlurHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandOutlineHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandTextSizeHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandTransitionVisualHook

@@ -8,7 +8,6 @@ import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
 import io.github.hyperisland.xposed.ConfigManager
-import io.github.hyperisland.xposed.hook.IslandBackgroundFile
 import io.github.hyperisland.xposed.hook.SystemUI.IslandOutlineHook
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule

@@ -6,6 +6,7 @@ import android.os.Looper
 import android.view.View
 import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.hyperisland.xposed.hook.IslandBackgroundHook
+import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.IslandBlurRuntime
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
@@ -209,7 +210,7 @@ object IslandTransitionVisualHook : BaseHook() {
 
     private fun armRealBackgroundHandoff(fakeView: Any, access: FakeViewAccess) {
         val target = realBackgroundTarget(fakeView, access) ?: return
-        if (IslandBlurHook.isTransitionBlurEnabled(target.typeName)) {
+        if (IslandBlurRuntime.transitionBlurController.isEnabled(target.typeName)) {
             opaqueHandoffBackgrounds.remove(target.view)
         } else {
             opaqueHandoffBackgrounds.add(target.view)
@@ -220,7 +221,7 @@ object IslandTransitionVisualHook : BaseHook() {
         prepareRealSoftGlass(fakeView, access)
         val target = realBackgroundTarget(fakeView, access) ?: return
         val backgroundView = target.view
-        if (IslandBlurHook.isTransitionBlurEnabled(target.typeName)) {
+        if (IslandBlurRuntime.transitionBlurController.isEnabled(target.typeName)) {
             opaqueHandoffBackgrounds.remove(backgroundView)
             return
         }
@@ -237,7 +238,7 @@ object IslandTransitionVisualHook : BaseHook() {
     private fun prepareRealSoftGlass(fakeView: Any, access: FakeViewAccess) {
         val realView = access.realView(fakeView) ?: return
         val typeName = access.stateType(fakeView) ?: return
-        if (!IslandBlurHook.isTransitionSoftGlass(typeName)) return
+        if (!IslandBlurRuntime.transitionBlurController.isSoftGlass(typeName)) return
         val getterName = when (typeName) {
             "SMALL" -> "getSmallIslandView"
             "BIG" -> "getBigIslandView"
@@ -247,7 +248,7 @@ object IslandTransitionVisualHook : BaseHook() {
         val target = findMethod(realView.javaClass, getterName)
             ?.let { runCatching { it.invoke(realView) as? View }.getOrNull() }
             ?: return
-        IslandBlurHook.applyTransitionBlur(target, typeName)
+        IslandBlurRuntime.transitionBlurController.apply(target, typeName)
     }
 
     private fun realBackgroundTarget(
@@ -296,17 +297,18 @@ object IslandTransitionVisualHook : BaseHook() {
             val target = synchronized(targets) {
                 targets.getOrPut(view) { TransitionTarget(view.background) }
             }
-            if (IslandBlurHook.isTransitionBlurEnabled(typeName)) {
-                if (!IslandBlurHook.hasTransitionBlur(view, typeName)) {
+            if (IslandBlurRuntime.transitionBlurController.isEnabled(typeName)) {
+                if (!IslandBlurRuntime.transitionBlurController.isApplied(view, typeName)) {
                     if (target.customDrawable != null) restoreStockBackground(view, target)
-                    target.managedVisual = IslandBlurHook.applyTransitionBlur(view, typeName)
+                    target.managedVisual =
+                        IslandBlurRuntime.transitionBlurController.apply(view, typeName)
                 } else {
                     target.managedVisual = true
                 }
                 return@forEach
             }
 
-            IslandBlurHook.releaseTransitionBlur(view)
+            IslandBlurRuntime.transitionBlurController.release(view)
             val drawable = IslandBackgroundHook.createTransitionBackground(view, typeName)
             if (drawable != null) {
                 if (view.background !== target.customDrawable) {
@@ -343,7 +345,8 @@ object IslandTransitionVisualHook : BaseHook() {
         val clearSharedMask = root.visibility == View.VISIBLE && visibleTargets.isNotEmpty() &&
             visibleTargets.all { (_, view) ->
                 targets[view]?.managedVisual == true &&
-                    (view.background != null || IslandBlurHook.hasManagedSoftGlass(view))
+                    (view.background != null ||
+                        IslandBlurRuntime.transitionBlurController.hasManagedSoftGlass(view))
             }
         if (clearSharedMask) {
             IslandBackgroundHook.clearManagedVisualMask(root)
@@ -367,7 +370,7 @@ object IslandTransitionVisualHook : BaseHook() {
             opaqueHandoffBackgrounds.remove(target.view)
         }
         access.forEach(fakeView) { _, view ->
-            IslandBlurHook.releaseTransitionBlur(view)
+            IslandBlurRuntime.transitionBlurController.release(view)
             targets.remove(view)?.customDrawable?.callback = null
         }
     }

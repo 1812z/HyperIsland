@@ -9,6 +9,7 @@ import android.graphics.drawable.GradientDrawable
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.hyperisland.xposed.hook.IslandBackgroundHook
+import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.IslandBlurRuntime
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
@@ -207,7 +208,7 @@ object IslandOutlineHook : BaseHook() {
         try {
             invokeWithArgs(method, contentView, args)
             val backgroundView = runCatching { backgroundViewField.get(contentView) }.getOrNull()
-            val handledByBlur = IslandBlurHook.updateStockOutline(
+            val handledByBlur = IslandBlurRuntime.outerBlurRegistry.updateStockOutline(
                 backgroundView,
                 capturedStockDrawable.get(),
                 type?.name,
