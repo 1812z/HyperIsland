@@ -207,6 +207,9 @@ object IslandBlurHook : BaseHook() {
 
                 val material = materialForType(type)
                 val staleUpdate = stateType != null && type != stateType
+                val stateMaterial = stateType?.let(::materialForType)
+                val sharedOuterOwnedBySoft = !staleUpdate ||
+                    stateMaterial?.type == MaterialType.SOFT
                 // Native soft glass belongs to each concrete island View. SystemUI
                 // updates the hidden BIG view while EXPAND is active; treating that
                 // callback as stale lets the stock gray background overwrite BIG,
@@ -215,24 +218,38 @@ object IslandBlurHook : BaseHook() {
                 val active = if (material.type == MaterialType.SOFT) {
                     module.log(
                         "soft update view=${view.javaClass.name} type=$type state=$stateType " +
-                            "stale=$staleUpdate direct=$directSoftApplied " +
+                            "stale=$staleUpdate sharedSoft=$sharedOuterOwnedBySoft " +
+                            "owner=${System.identityHashCode(contentView).toString(16)} " +
+                            "bg=${System.identityHashCode(backgroundView).toString(16)} " +
+                            "direct=$directSoftApplied " +
                             "config=${material.softGlass}",
                     )
                     if (directSoftApplied) {
-                        if (!staleUpdate) {
+                        if (sharedOuterOwnedBySoft) {
                             clearOuterForSoftGlass(
                                 backgroundView,
                                 outerDrawableField,
                                 "soft-glass",
                             )
                             if (contentView.javaClass.name != FAKE_CONTENT_VIEW_CLASS) {
+                                val radius = if (staleUpdate) {
+                                    stateMaterial?.softGlass?.blurRadius
+                                        ?: material.softGlass.blurRadius
+                                } else {
+                                    material.softGlass.blurRadius
+                                }
                                 SoftGlassController.updateWindowBlurRadius(
                                     view,
-                                    material.softGlass.blurRadius,
+                                    radius,
                                 )
                             }
                         }
                         true
+                    } else if (staleUpdate) {
+                        // OS3 has no Bionics renderer and reaches the Gaussian fallback below.
+                        // That fallback owns the shared outer drawable, so a hidden stale state
+                        // must not replace the currently visible SMALL/BIG/EXPAND drawable.
+                        false
                     } else {
                         // Unsupported Bionics devices use the exact Gaussian host pipeline.
                         IslandBackgroundHook.clearManagedVisualMask(view)
@@ -656,10 +673,11 @@ object IslandBlurHook : BaseHook() {
             val type = target.type ?: return@forEach
             val material = materialForType(type)
             if (material.type == MaterialType.SOFT) {
-                runCatching { target.updateMethod.invoke(contentView, view, target.promoted) }
                 val currentType = runCatching {
                     IslandStateResolver.fromState(target.stateField.get(contentView))
                 }.getOrNull()
+                if (currentType != type) return@forEach
+                runCatching { target.updateMethod.invoke(contentView, view, target.promoted) }
                 if (currentType == type && type != IslandType.EXPAND) {
                     SoftGlassController.setPassWindowRetention(
                         SoftGlassController.isSystemBionicsActive(view),

@@ -36,7 +36,10 @@ internal object IslandStateResolver {
         val resourceName = runCatching {
             if (view.id == View.NO_ID) "" else view.resources.getResourceEntryName(view.id)
         }.getOrDefault("")
-        if (resourceName.contains("fake_expanded")) return null
+        // DynamicIslandWindowView.updateExpandedViewMaterial() refreshes this slot even while
+        // its owner is BIG/Hidden. The target identity is authoritative: falling back to the
+        // owner's transient state lets the stock EXPANDED_GLASS_TOKEN overwrite module glass.
+        if (resourceName.contains("fake_expanded")) return IslandType.EXPAND
         val className = view.javaClass.name
         if (className.contains("ExpandedView")) return IslandType.EXPAND
         if (className.contains("BigIslandView")) return IslandType.BIG

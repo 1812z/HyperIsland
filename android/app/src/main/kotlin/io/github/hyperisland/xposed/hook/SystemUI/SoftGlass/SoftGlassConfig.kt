@@ -27,8 +27,9 @@ internal data class SoftGlassConfig(
             tintColor: Int,
             highlight: Boolean,
         ): SoftGlassConfig {
-            val schemaV2 = json.optInt("softSchema", 0) == 2
-            fun value(name: String, fallback: Double): Double = if (schemaV2) {
+            val softSchema = json.optInt("softSchema", 0)
+            val hasRelativeSoftParams = softSchema >= 2
+            fun value(name: String, fallback: Double): Double = if (hasRelativeSoftParams) {
                 json.optDouble(name, fallback).coerceIn(-50.0, 50.0)
             } else {
                 fallback
@@ -36,9 +37,11 @@ internal data class SoftGlassConfig(
             return SoftGlassConfig(
                 blurRadius = blurRadius,
                 softLight = value("softLight", -1.0),
-                saturation = value("saturation", 2.0),
-                brightness = value("brightness", 40.0),
-                darker = value("softDarker", -10.0),
+                // Schema 2 was relative to Xiaomi's 2.4 island token. Reset it to the new
+                // neutral-centered scale instead of carrying the old over-saturation forward.
+                saturation = if (softSchema >= 3) value("saturation", 0.0) else 0.0,
+                brightness = if (softSchema >= 3) value("brightness", 0.0) else 0.0,
+                darker = if (softSchema >= 3) value("softDarker", 0.0) else 0.0,
                 transparency = value("transparency", -0.57),
                 burn = value("burn", 0.0),
                 refraction = value("softRefraction", 0.0),

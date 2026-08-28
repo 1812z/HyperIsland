@@ -774,6 +774,13 @@ Mini Window 手势
 22. `DynamicIslandWindowView.updateWindowBlur()` 在 Bionics 模式使用 `setMiGlassBlurRadius(50, 500)`；该半径不属于 42 项 shader 参数。模块的用户半径需通过同一独立 API 写入，不能塞进 token 数组。
 23. `-50..50` 柔光配置是百分比微调：非零 token 通道按 `/100` 缩放，原值为零的通道才直接写入配置值。
 24. `MaterialConfig.toBlurConfig()` 对 SOFT 返回 disabled；真实 SMALL/BIG 刷新不得用 `BlurConfig.isActive` 作门禁，否则只会写入 fake 动画层，稳定态会完全透明。
+25. 当前 OS4 dex 中动画类的二进制包名包含 `anim.p110ui.animator`；jadx 声明可能显示为 `anim.ui.animator`。Hook 必须同时探测两种名称，否则 `FakeViewAnimator.updateContentBlur()` 的 `setMiSelfBlur(0..100)` 不会被拦截，表现为偶发白色模糊。
+26. `dynamic_island_child_view.xml` 在 `container` 上预置了 `dynamic_island_background`。恢复已有岛时可能没有首个 `IslandPropertyUpdater` 帧，因此 OS4 必须在内容膨胀/首个 `updateDarkLightMode()` 状态事务中清理该初始共享黑底。
+27. `DynamicIslandWindowView.updateExpandedViewMaterial()` 会在 owner 仍为 BIG/Hidden 时刷新 `fake_expanded_view`；该目标必须按自身槽位识别为 EXPAND，不能回退 owner 状态，否则晚到的刷新可能重新安装系统 `EXPANDED_GLASS_TOKEN`。
+28. `finalizeAnimFinished()` 只按 `ExpandedStateHandler.current` 决定 pass-window blur。EXPAND View 已可见但 owner 仍为 BIG 的竞态会得到 `false`，使已成功写入的 Bionics 材质退化成白色模糊；模块必须在 managed View 变为可见的同一事务中校准窗口采样器。
+29. `EXPAND state=BIG` 不代表共享外层一定应保留：若该 ContentView 的当前 BIG 和目标 EXPAND 都由 SOFT 接管，外层 drawable 必须在 EXPAND 写入的同一回调中清空；等待后续 BIG 回调会在同应用岛替换/复用时留下永久白色模糊层。
+30. 保留 SMALL/BIG 的 pass-window 采样时不能同时保留 `DynamicIslandWindowView.lastPassWindowBlurEnabled=true`。系统稳定后再次展开会因该字段跳过下一次 `updatePassWindowBlur(true)`，必须只保留原生采样器，并把系统逻辑状态同步为 `false`。
+31. fake SMALL/BIG/EXPAND 是长期复用的附着 View，SystemUI 的 Folme 只切换其几何、alpha、visibility 和 self-blur，不会因隐藏而销毁 Bionics 材质。OS4 应在 fake 宿主激活时一次同步全部三槽，之后禁止在动画目标/结束回调中强制重交 `setMiGlass`；可见态二次提交会产生白色模糊帧。OS3 的 Gaussian/custom drawable 仍只写当前可见槽。
 
 ## 16. 信息来源和可信度
 
@@ -790,6 +797,7 @@ Mini Window 手势
 - `DynamicIslandContentView.updateExpandedView()` 先更新 EXPAND 材质，再替换通知内容子 View。
 - `DynamicIslandWindowView.updateWindowBlur()` 的 Classic/Bionics 半径分支及 `50/500` 两级半径。
 - `DynamicIslandEventCoordinator` 仅在展开/动画需要时切换 pass-window blur。
+- `FakeViewAnimHelper` 三态目标槽的 Folme `onBegin` 显示时机，以及 fake 槽材质在隐藏期间保持不变。
 - `DynamicIslandBackgroundView.onDraw()` 每帧按 `actual*` 设置 Drawable bounds。
 - `containerScheduleUpdate()` 更新动态背景几何。
 

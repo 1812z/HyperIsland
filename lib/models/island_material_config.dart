@@ -20,9 +20,9 @@ class IslandMaterialConfig {
     this.type = IslandMaterialType.systemDefault,
     this.blur = 35,
     this.softLight = -1,
-    this.saturation = 2,
-    this.brightness = 40,
-    this.softDarker = -10,
+    this.saturation = 0,
+    this.brightness = 0,
+    this.softDarker = 0,
     this.transparency = -0.57,
     this.burn = 0,
     this.softRefraction = 0,
@@ -142,7 +142,10 @@ class IslandMaterialConfig {
     }
 
     // The previous implementation used unrelated absolute integer ranges.
-    final softV2 = json['softSchema'] == 2;
+    final softSchema = json['softSchema'] is num
+        ? (json['softSchema'] as num).toInt()
+        : 0;
+    final softV2 = softSchema >= 2;
     double soft(String key, double fallback) =>
         softV2 ? decimal(key, fallback) : fallback;
 
@@ -151,9 +154,11 @@ class IslandMaterialConfig {
       type: type,
       blur: integer('blur', 35, 0, 100),
       softLight: soft('softLight', -1),
-      saturation: soft('saturation', 2),
-      brightness: soft('brightness', 40),
-      softDarker: soft('softDarker', -10),
+      // Schema 2 used Xiaomi's 2.4 token as its base. Start schema 3 at the
+      // neutral multiplier instead of preserving the old over-saturated result.
+      saturation: softSchema >= 3 ? soft('saturation', 0) : 0,
+      brightness: softSchema >= 3 ? soft('brightness', 0) : 0,
+      softDarker: softSchema >= 3 ? soft('softDarker', 0) : 0,
       transparency: soft('transparency', -0.57),
       burn: soft('burn', 0),
       softRefraction: soft('softRefraction', 0),
@@ -179,7 +184,7 @@ class IslandMaterialConfig {
   Map<String, dynamic> toJson() => {
     'type': type.value,
     'blur': blur,
-    'softSchema': 2,
+    'softSchema': 3,
     'softLight': softLight,
     'saturation': saturation,
     'brightness': brightness,

@@ -11,6 +11,7 @@ import io.github.hyperisland.xposed.logWarn
 import io.github.hyperisland.xposed.log
 import io.github.libxposed.api.XposedModule
 import java.lang.ref.WeakReference
+import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.util.Collections
 import java.util.WeakHashMap
@@ -44,6 +45,15 @@ internal object SoftGlassController {
     private val hookedWindowClasses = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>())
     )
+    private val setMiSelfBlurMethod: Method? by lazy {
+        runCatching {
+            View::class.java.getMethod(
+                "setMiSelfBlur",
+                Int::class.javaPrimitiveType!!,
+                ArrayList::class.java,
+            ).apply { isAccessible = true }
+        }.getOrNull()
+    }
 
     @Volatile
     private var systemParams: FloatArray? = null
@@ -127,6 +137,10 @@ internal object SoftGlassController {
      */
     fun hookWindowLifecycle(module: XposedModule, windowViewClass: Class<*>) {
         if (!hookedWindowClasses.add(windowViewClass)) return
+        val lastPassWindowBlurField = findField(
+            windowViewClass,
+            "lastPassWindowBlurEnabled",
+        )
         findMethod(
             windowViewClass,
             "updatePassWindowBlur",
@@ -141,12 +155,24 @@ internal object SoftGlassController {
                     isSystemBionicsActive(root) &&
                     (retainPassWindowBlur || hasVisibleManagedView(root))
                 ) {
-                    // Keep DynamicIslandWindowView.lastPassWindowBlurEnabled and the native
-                    // sampler true together. A post-call re-enable is already one toggle too late.
+                    // Keep the native sampler alive for module-owned SMALL/BIG, but retain the
+                    // logical false transition. If the field stays true, the next stock true
+                    // request is skipped and EXPAND renders as an opaque self-blur layer.
+                    val logicalStateReset = runCatching {
+                        lastPassWindowBlurField?.set(root, false)
+                        lastPassWindowBlurField != null
+                    }.getOrDefault(false)
+                    if (!logicalStateReset) {
+                        // Compatibility fallback for a renamed OS build: let SystemUI update its
+                        // field, then restore the sampler in the same UI transaction.
+                        chain.proceed()
+                    }
+                    windowPassStates.remove(root)
                     enforcePassWindowBlur(root)
                     log(
                         "$TAG preserve pass-window false request " +
-                            "retention=$retainPassWindowBlur visible=${hasVisibleManagedView(root)}",
+                            "retention=$retainPassWindowBlur visible=${hasVisibleManagedView(root)} " +
+                            "logicalReset=$logicalStateReset",
                     )
                     return@intercept null
                 }
@@ -199,7 +225,6 @@ internal object SoftGlassController {
     fun apply(
         view: View,
         config: SoftGlassConfig,
-        forceMaterialUpdate: Boolean = false,
     ): Boolean = runCatching {
         val bionicsActive = isSystemBionicsActive(view)
         if (!bionicsActive) {
@@ -216,8 +241,9 @@ internal object SoftGlassController {
             ?: return@runCatching false
 
         val newlyManaged = !managedViews.contains(view)
-        if (!forceMaterialUpdate && !newlyManaged && appliedConfigs[view] == config) {
+        if (!newlyManaged && appliedConfigs[view] == config) {
             if (view.background != null) view.background = null
+            ensurePassWindowBlur(view)
             return@runCatching true
         }
         if (newlyManaged) {
@@ -230,8 +256,12 @@ internal object SoftGlassController {
         val params = customizeParams(systemParams ?: defaultParams(), config)
         setMaterial.invoke(view, 1)
         setGlass.invoke(view, params)
+        // Clear a self-blur left by the stock transition once when material ownership changes.
+        // OS4 frame writers are intercepted at their source, so this must not run every frame.
+        runCatching { setMiSelfBlurMethod?.invoke(view, 0, null) }
         managedViews.add(view)
         appliedConfigs[view] = config
+        ensurePassWindowBlur(view)
         view.invalidate()
         log(
             "$TAG apply success view=${view.javaClass.name} " +
@@ -269,6 +299,14 @@ internal object SoftGlassController {
         }
     }
 
+    /** Enables the sampler as soon as a managed View is actually visible, independent of state. */
+    fun ensurePassWindowBlur(source: View) {
+        if (!isSystemBionicsActive(source)) return
+        val root = findWindowView(source) ?: return
+        sessionWindow = WeakReference(root)
+        enforcePassWindowBlur(root)
+    }
+
     /** Releases a View owned by this renderer and restores its captured background when needed. */
     fun release(view: View, restoreBackground: Boolean = true) {
         if (!managedViews.remove(view)) return
@@ -289,6 +327,7 @@ internal object SoftGlassController {
             runCatching { methods.setPassFps?.invoke(null, root, if (enabled) 60 else -1) }
         }
         windowPassStates[root] = enabled
+        log("$TAG direct pass-window enabled=$enabled visible=${hasVisibleManagedView(root)}")
     }
 
     /** One island leaving must not disable the window sampler used by a surviving island. */
@@ -339,7 +378,10 @@ internal object SoftGlassController {
             }
         }
         apply(4, config.softLight)
-        apply(5, config.saturation)
+        // Unlike the other controls, saturation is exposed around the shader's neutral
+        // multiplier instead of Xiaomi's heavily saturated island token (2.4):
+        // UI 0 = 1.0, -50 = 0.5, +50 = 1.5.
+        params[5] = (1f + config.saturation.toFloat() / 100f).coerceIn(.5f, 1.5f)
         apply(6, config.brightness)
         apply(7, config.darker)
         apply(21, config.edgeThickness)
@@ -404,6 +446,17 @@ internal object SoftGlassController {
         while (current != null) {
             runCatching {
                 return current.getDeclaredMethod(name, *types).apply { isAccessible = true }
+            }
+            current = current.superclass
+        }
+        return null
+    }
+
+    private fun findField(clazz: Class<*>, name: String): Field? {
+        var current: Class<*>? = clazz
+        while (current != null) {
+            runCatching {
+                return current.getDeclaredField(name).apply { isAccessible = true }
             }
             current = current.superclass
         }

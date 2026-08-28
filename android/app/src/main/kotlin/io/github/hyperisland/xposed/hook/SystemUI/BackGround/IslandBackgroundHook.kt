@@ -11,13 +11,10 @@ import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.IslandBlurRuntime
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.model.IslandType as BlurIslandType
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.model.MaterialType
-import io.github.hyperisland.xposed.hook.SystemUI.SoftGlass.SoftGlassController
 import io.github.hyperisland.xposed.hook.SystemUI.IslandOutlineHook
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
-import android.os.Handler
-import android.os.Looper
 import java.io.File
 import java.lang.ref.WeakReference
 import java.lang.reflect.Field
@@ -114,6 +111,9 @@ object IslandBackgroundHook : BaseHook() {
     private val hookedOs4PropertyUpdaterClasses = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>())
     )
+    private val hookedOs4ContentClasses = Collections.synchronizedSet(
+        Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>())
+    )
     /** 在 updateDarkLightMode → setDrawable 调用链中传递岛类型 */
     private val islandTypeHolder = ThreadLocal<IslandType>()
 
@@ -132,9 +132,6 @@ object IslandBackgroundHook : BaseHook() {
     /** 按类型缓存背景文件可用状态，避免动画热路径访问文件系统。 */
     private val cachedBgAvailability = ConcurrentHashMap<IslandType, Boolean>()
     private val cachedBlurEnabled = ConcurrentHashMap<IslandType, Boolean>()
-    private val clearedSharedContainers = Collections.synchronizedMap(
-        WeakHashMap<View, IslandType>()
-    )
     /** Retains the last drawable-owning state while OS4 animates through Hidden/Deleted. */
     private val managedContentTypes = Collections.synchronizedMap(
         WeakHashMap<Any, IslandType>()
@@ -165,13 +162,6 @@ object IslandBackgroundHook : BaseHook() {
     private val drawableFieldCache = ConcurrentHashMap<Class<*>, Field?>()
     private val backgroundAlphaFieldCache = ConcurrentHashMap<Class<*>, Field?>()
     private val scheduleUpdateMethodCache = ConcurrentHashMap<Class<*>, Method?>()
-
-    /** 延迟重试 Handler（用于 ConfigManager 时序问题的延迟重试） */
-    private val bgRetryHandler = Handler(Looper.getMainLooper())
-
-    /** 当前挂起的延迟重试 Runnable，避免堆积 */
-    @Volatile
-    private var pendingRetryRunnable: Runnable? = null
 
     @Volatile
     private var hookModule: XposedModule? = null
@@ -214,20 +204,35 @@ object IslandBackgroundHook : BaseHook() {
             hookAlphaAnimation(module, bgViewClass)
 
             try {
-                hookUpdateDarkLightMode(module, contentViewClass, stateClass)
-                hookUpdateBackgroundBg(module, contentViewClass)
-
-                // HyperOS 3: containerScheduleUpdate() itself writes the shared black mask.
-                runCatching {
-                    classLoader.loadClass("miui.systemui.dynamicisland.anim.DynamicIslandAnimationDelegate")
-                }.getOrNull()?.let { animationClass ->
-                    hookOs3ContainerUpdate(module, animationClass, contentViewClass)
-                }
-
                 // HyperOS 4: the new property updater restores container/mask layers.
                 // Detect the ABI instead of reading ro.* properties, which change between betas.
-                findOs4PropertyUpdater(classLoader)?.let { updaterClass ->
-                    hookOs4PropertyUpdater(module, updaterClass, contentViewClass)
+                val os4Updater = findOs4PropertyUpdater(classLoader)
+                hookUpdateDarkLightMode(
+                    module,
+                    contentViewClass,
+                    stateClass,
+                    clearOs4InitialLayers = os4Updater != null,
+                )
+                hookUpdateBackgroundBg(module, contentViewClass)
+
+                if (os4Updater != null) {
+                    runCatching {
+                        classLoader.loadClass(
+                            "miui.systemui.dynamicisland.window.content.DynamicIslandContentView",
+                        )
+                    }.getOrNull()?.let { realContentClass ->
+                        hookOs4InitialContentLayers(module, realContentClass)
+                    }
+                    hookOs4PropertyUpdater(module, os4Updater, contentViewClass)
+                } else {
+                    // HyperOS 3: containerScheduleUpdate() itself is the final mask writer.
+                    runCatching {
+                        classLoader.loadClass(
+                            "miui.systemui.dynamicisland.anim.DynamicIslandAnimationDelegate",
+                        )
+                    }.getOrNull()?.let { animationClass ->
+                        hookOs3ContainerUpdate(module, animationClass, contentViewClass)
+                    }
                 }
             } catch (e: Throwable) {
                 logError(module, "Failed to hook updateDarkLightMode/updateBackgroundBg: ${e.message}")
@@ -272,20 +277,6 @@ object IslandBackgroundHook : BaseHook() {
                 }
 
                 val result = chain.proceed()
-
-                // updateDarkLightMode writes the stock dark drawable synchronously when
-                // EXPAND collapses to BIG/SMALL. With native Bionics on the concrete target,
-                // allowing that drawable to survive until a posted refresh produces one gray
-                // handoff frame. Clear the exact final writer in the same call stack.
-                if (type != null && type != IslandType.EXPAND &&
-                    isSystemSoftGlass(type) && bgView != null &&
-                    SoftGlassController.isSystemBionicsActive(bgView)
-                ) {
-                    getCachedField(drawableFieldCache, bgViewClass, "drawable")
-                        ?.set(chain.thisObject, null)
-                    bgView.invalidate()
-                    return@intercept null
-                }
 
                 if (type != null && shouldOwnOuterDrawable(type)) {
                     val context = try { bgView?.context } catch (_: Exception) { null }
@@ -413,7 +404,8 @@ object IslandBackgroundHook : BaseHook() {
     private fun hookUpdateDarkLightMode(
         module: XposedModule,
         contentViewClass: Class<*>,
-        stateClass: Class<*>
+        stateClass: Class<*>,
+        clearOs4InitialLayers: Boolean,
     ) {
         try {
             val method = contentViewClass.getDeclaredMethod(
@@ -423,6 +415,18 @@ object IslandBackgroundHook : BaseHook() {
                 Boolean::class.javaPrimitiveType,
                 Boolean::class.javaPrimitiveType
             )
+            val containerMethod = if (clearOs4InitialLayers) {
+                contentViewClass.getMethod("getContainer").apply { isAccessible = true }
+            } else {
+                null
+            }
+            val maskMethod = if (clearOs4InitialLayers) {
+                runCatching {
+                    contentViewClass.getMethod("getMask").apply { isAccessible = true }
+                }.getOrNull()
+            } else {
+                null
+            }
 
             module.hook(method).intercept { chain ->
                 val state = chain.args[0]
@@ -437,7 +441,20 @@ object IslandBackgroundHook : BaseHook() {
                 }
 
                 try {
-                    chain.proceed()
+                    val result = chain.proceed()
+                    // OS4's real container starts with dynamic_island_background from XML.
+                    // Restored islands can become visible without an IslandPropertyUpdater
+                    // frame, so remove that initial host in the first state transaction.
+                    if (type != null && clearOs4InitialLayers && shouldClearSharedMask(type)) {
+                        val contentView = chain.thisObject
+                        runCatching { containerMethod?.invoke(contentView) as? View }
+                            .getOrNull()
+                            ?.let { clearSharedContainer(it, type) }
+                        runCatching { maskMethod?.invoke(contentView) as? View }
+                            .getOrNull()
+                            ?.let(::clearMaskForView)
+                    }
+                    result
                 } finally {
                     islandTypeHolder.remove()
                 }
@@ -748,44 +765,6 @@ object IslandBackgroundHook : BaseHook() {
     }
 
     /**
-     * 延迟重试应用自定义背景（解决 ConfigManager 时序问题）。
-     *
-     * 当 hasBgFileForType() 在首次调用时因 remote prefs 未加载完成而返回 false，
-     * 延迟 2 秒后重试。如果此时 prefs 已加载且有配置，则应用自定义背景。
-     */
-    private fun scheduleBgRetry(
-        bgView: View,
-        bgViewClass: Class<*>,
-        type: IslandType,
-        module: XposedModule
-    ) {
-        // ★ 取消之前挂起的重试，避免堆积
-        pendingRetryRunnable?.let { bgRetryHandler.removeCallbacks(it) }
-
-        val runnable = Runnable {
-            try {
-                if (!anyCustomBgConfigured()) return@Runnable
-
-                val context = try { bgView.context } catch (_: Exception) { null }
-                val stokeWidth = getStokeWidth(bgView, bgViewClass)
-
-                val customDrawable = loadCustomDrawable(type, context, module, stokeWidth)
-                if (customDrawable != null) {
-                    if (bgView.isAttachedToWindow) {
-                        applyDrawableToBgView(bgView, bgViewClass, type, module, customDrawable)
-                    }
-                }
-            } catch (e: Exception) {
-                logError(module, "scheduleBgRetry failed: ${e.message}")
-            } finally {
-                pendingRetryRunnable = null
-            }
-        }
-        pendingRetryRunnable = runnable
-        bgRetryHandler.postDelayed(runnable, 2000L)
-    }
-
-    /**
      * Hook DynamicIslandBaseContentView.updateBackgroundBg(View, boolean)。
      *
      * ★ 根据 View 自身类型判断是否需要跳过原方法：
@@ -870,6 +849,32 @@ object IslandBackgroundHook : BaseHook() {
             "miui.systemui.dynamicisland.anim.p110ui.animator.IslandPropertyUpdater",
         ).mapNotNull { name -> runCatching { classLoader.loadClass(name) }.getOrNull() }
             .firstOrNull()
+    }
+
+    /** Removes OS4's XML-provided black container before a restored island can be shown. */
+    private fun hookOs4InitialContentLayers(module: XposedModule, contentClass: Class<*>) {
+        if (!hookedOs4ContentClasses.add(contentClass)) return
+        val method = runCatching { contentClass.getDeclaredMethod("onFinishInflate") }
+            .getOrNull() ?: return
+        val containerMethod = runCatching { contentClass.getMethod("getContainer") }
+            .getOrNull() ?: return
+        val maskMethod = runCatching { contentClass.getMethod("getMask") }.getOrNull()
+        method.isAccessible = true
+        module.hook(method).intercept { chain ->
+            val result = chain.proceed()
+            // With mixed stock/custom states, wait for updateDarkLightMode where the state is
+            // known. Clearing at inflation is safe only when every state owns the shared host.
+            if (IslandType.entries.all(::shouldClearSharedMask)) {
+                val contentView = chain.thisObject
+                runCatching { containerMethod.invoke(contentView) as? View }
+                    .getOrNull()
+                    ?.let(::clearMaskForView)
+                runCatching { maskMethod?.invoke(contentView) as? View }
+                    .getOrNull()
+                    ?.let(::clearMaskForView)
+            }
+            result
+        }
     }
 
     /**
@@ -963,18 +968,6 @@ object IslandBackgroundHook : BaseHook() {
     }
 
     /**
-     * 生成 View 描述字符串（用于错误日志）。
-     */
-    private fun describeView(view: View?): String {
-        if (view == null) return "null"
-        val className = view.javaClass.simpleName
-        val resName = try {
-            view.resources?.getResourceEntryName(view.id) ?: "?"
-        } catch (_: Exception) { "no-id" }
-        return "$className($resName)"
-    }
-
-    /**
      * 检查指定类型是否有配置路径且文件存在。
      */
     private fun hasBgFileForType(type: IslandType): Boolean {
@@ -1010,9 +1003,6 @@ object IslandBackgroundHook : BaseHook() {
 
     private fun clearSharedContainer(container: View, type: IslandType) {
         if (!shouldClearSharedMask(type)) return
-        synchronized(clearedSharedContainers) {
-            clearedSharedContainers[container] = type
-        }
         // Both generations may restore blend/bionics state without assigning a Drawable, so
         // background == null alone is not a reliable indication that the mask is gone.
         clearMaskForView(container)
@@ -1370,7 +1360,6 @@ object IslandBackgroundHook : BaseHook() {
         cachedAnyCustomBg = null
         cachedBgAvailability.clear()
         cachedBlurEnabled.clear()
-        clearedSharedContainers.clear()
         managedContentTypes.clear()
         cachedCornerRadius = null
         stokeWidthFieldCache.clear()

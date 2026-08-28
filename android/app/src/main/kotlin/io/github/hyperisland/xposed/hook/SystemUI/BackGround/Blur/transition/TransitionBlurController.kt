@@ -33,7 +33,6 @@ internal class TransitionBlurController(
     fun apply(
         view: View,
         typeName: String,
-        forceMaterialUpdate: Boolean = false,
     ): Boolean {
         val type = typeFromName(typeName) ?: return false
         val material = configStore.materialFor(type)
@@ -46,7 +45,6 @@ internal class TransitionBlurController(
             val applied = SoftGlassController.apply(
                 view,
                 material.softGlass,
-                forceMaterialUpdate,
             )
             if (applied) ensureDetachCleanup(view)
             if (applied) return true
