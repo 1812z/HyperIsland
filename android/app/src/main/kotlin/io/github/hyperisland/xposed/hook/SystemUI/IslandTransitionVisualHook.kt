@@ -345,7 +345,6 @@ object IslandTransitionVisualHook : BaseHook() {
             "fakeViewToExpanded",
             "fakeViewToBigIsland",
             "fakeViewToSmallIsland",
-            "resetFakeViewAnimState",
         ).forEach { name ->
             animatorClass.declaredMethods
                 .filter { it.name == name }
@@ -514,10 +513,17 @@ object IslandTransitionVisualHook : BaseHook() {
                         // while the subtree is invisible even though the View and
                         // our weak ownership entry both survive.
                         access.forEach(owner) { _, view ->
-                            IslandBlurRuntime.transitionBlurController.invalidateSoftGlass(view)
+                            if (view.visibility == View.VISIBLE) {
+                                IslandBlurRuntime.transitionBlurController.invalidateSoftGlass(view)
+                            }
                         }
+                        refreshFakeView(owner, access)
+                    } else {
+                        // Handoff completion hides the reusable fake root. Re-applying all
+                        // three hidden Bionics slots here changes the window RenderNode/radius
+                        // after the real island is already visible and produces one flash.
+                        updateFakeLayerMask(owner, access)
                     }
-                    refreshFakeView(owner, access)
                 }
                 result
             }
@@ -568,7 +574,9 @@ object IslandTransitionVisualHook : BaseHook() {
         if (IslandBlurRuntime.configStore.materialFor(IslandType.valueOf(typeName)).type ==
             MaterialType.SOFT
         ) {
-            IslandBlurRuntime.transitionBlurController.apply(target, typeName)
+            if (!IslandBlurRuntime.transitionBlurController.hasManagedSoftGlass(target)) {
+                IslandBlurRuntime.transitionBlurController.apply(target, typeName)
+            }
         }
     }
 
@@ -615,6 +623,10 @@ object IslandTransitionVisualHook : BaseHook() {
             armRealBackgroundHandoff(fakeView, access)
         }
         access.forEach(fakeView) { typeName, view ->
+            // The fake subtree keeps all three state slots attached and reuses them.
+            // Only VISIBLE slots participate in the current transition. Submitting glass
+            // to hidden siblings mutates the shared window radius/material at handoff.
+            if (view.visibility != View.VISIBLE) return@forEach
             val target = synchronized(targets) {
                 targets.getOrPut(view) { TransitionTarget(view.background) }
             }
