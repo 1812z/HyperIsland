@@ -456,6 +456,14 @@ setVisibility(INVISIBLE) 后 fake root 才消失
 
 `DynamicIslandBackgroundView.onDraw()` 也不能在当前实例没有 active `OuterBlur` 时被跳过。外层系统纯黑 Drawable 正是由该方法绘制；跳过后只剩内层 MiBlur/BlendColor，视觉上会成为灰色岛。inactive 实例必须始终执行原始 `onDraw()`，只有 active 实例需要先把 `drawable` 字段纠正为对应 BlurDrawable。
 
+### 7.5 SoftGlass 生命周期
+
+SoftGlass 使用与 Gaussian 相同的 View 资源生命周期，但 renderer 仍是系统 Bionics 接口：当前真实/fake 槽位进入绘制时调用 `setMiViewMaterialType(1)` 和 `setMiGlass(params)`，槽位隐藏或 detach 时完整释放，不预热或保留隐藏三态。
+
+稳定 SMALL/BIG 的原生 Bionics 同时需要 root background blur 和 pass SurfaceTexture。存在模块 SOFT View 时，系统的 `updateWindowBlur(false)` 保持为 `true`，`updatePassWindowBlur(false)` 不向下执行，避免 `clearTextureView/detachFromView`；稳定态 pass FPS 降回默认，动画开始恢复 60。最后一个 SOFT View 释放后再按系统方法关闭两者。不得改写 `lastPassWindowBlurEnabled` 或直接 false→true 重建纹理；隐藏状态必须 release，保证连续纹理只跟踪当前材质 crop。模糊强度通过系统 `setMiGlassBlurRadius(small, big)` 调节并保持 1:10 双级比例，释放后恢复系统 `50/500`。
+
+SOFT 的参数仅替换目标 View 的 Bionics shader 参数；外层黑色 Drawable 和 fake 共享遮罩仍按 Gaussian 的“当前渲染槽位是否已拥有视觉”规则清理，不能依靠事后 post 修复。
+
 ## 8. 圆角
 
 ### 8.1 小岛和大岛
@@ -771,16 +779,16 @@ Mini Window 手势
 19. OS4 柔光玻璃的 SMALL/BIG/EXPAND 均写入系统 Bionics View 材质，不能回退到模块的 `LiquidGlassDrawable`。
 20. EXPAND 的权威写入顺序是 `updateBackgroundBg(expanded_view)` 后再替换通知内容子 View；参数定制应拦截该调用中的 `EXPANDED_GLASS_TOKEN`，不要在 `setContentView*()` 后再次覆盖父 View 材质。
 21. 原生 EXPAND token 含 `.06/.06/.06/.6` 灰色混色；模块默认必须把 11..14 通道清零，仅在用户配置混色时写入颜色与 alpha。`dynamic_island_background_island` 本身无填充色，但 fake 根容器的 `dynamic_island_background` 是纯黑色，三态 Bionics View 就绪后必须清掉该共享黑底。
-22. `DynamicIslandWindowView.updateWindowBlur()` 在 Bionics 模式使用 `setMiGlassBlurRadius(50, 500)`；该半径不属于 42 项 shader 参数。模块的用户半径需通过同一独立 API 写入，不能塞进 token 数组。
+22. `DynamicIslandWindowView.updateWindowBlur()` 在 Bionics 模式使用 `setMiGlassBlurRadius(50, 500)`；该半径不属于 42 项 shader 参数。自定义值必须保持 1:10 双级比例，并在最后一个 SOFT View 释放后恢复 `50/500`。
 23. `-50..50` 柔光配置是百分比微调：非零 token 通道按 `/100` 缩放，原值为零的通道才直接写入配置值。
 24. `MaterialConfig.toBlurConfig()` 对 SOFT 返回 disabled；真实 SMALL/BIG 刷新不得用 `BlurConfig.isActive` 作门禁，否则只会写入 fake 动画层，稳定态会完全透明。
-25. 当前 OS4 dex 中动画类的二进制包名包含 `anim.p110ui.animator`；jadx 声明可能显示为 `anim.ui.animator`。Hook 必须同时探测两种名称，否则 `FakeViewAnimator.updateContentBlur()` 的 `setMiSelfBlur(0..100)` 不会被拦截，表现为偶发白色模糊。
+25. 当前 OS4 dex 中动画类的二进制包名包含 `anim.p110ui.animator`；jadx 声明可能显示为 `anim.ui.animator`，兼容 Hook 必须同时探测两种名称。
 26. `dynamic_island_child_view.xml` 在 `container` 上预置了 `dynamic_island_background`。恢复已有岛时可能没有首个 `IslandPropertyUpdater` 帧，因此 OS4 必须在内容膨胀/首个 `updateDarkLightMode()` 状态事务中清理该初始共享黑底。
 27. `DynamicIslandWindowView.updateExpandedViewMaterial()` 会在 owner 仍为 BIG/Hidden 时刷新 `fake_expanded_view`；该目标必须按自身槽位识别为 EXPAND，不能回退 owner 状态，否则晚到的刷新可能重新安装系统 `EXPANDED_GLASS_TOKEN`。
-28. `finalizeAnimFinished()` 只按 `ExpandedStateHandler.current` 决定 pass-window blur。EXPAND View 已可见但 owner 仍为 BIG 的竞态会得到 `false`，使已成功写入的 Bionics 材质退化成白色模糊；模块必须在 managed View 变为可见的同一事务中校准窗口采样器。
+28. `finalizeAnimFinished()` 按系统状态决定 pass-window blur；模块不得校准或保活该采样器，否则会破坏下一次系统 crop 更新。
 29. `EXPAND state=BIG` 不代表共享外层一定应保留：若该 ContentView 的当前 BIG 和目标 EXPAND 都由 SOFT 接管，外层 drawable 必须在 EXPAND 写入的同一回调中清空；等待后续 BIG 回调会在同应用岛替换/复用时留下永久白色模糊层。
-30. 保留 SMALL/BIG 的 pass-window 采样时不能同时保留 `DynamicIslandWindowView.lastPassWindowBlurEnabled=true`。系统稳定后再次展开会因该字段跳过下一次 `updatePassWindowBlur(true)`，必须只保留原生采样器，并把系统逻辑状态同步为 `false`。
-31. fake SMALL/BIG/EXPAND 是长期复用的附着 View，SystemUI 的 Folme 只切换其几何、alpha、visibility 和 self-blur，不会因隐藏而销毁 Bionics 材质。OS4 应在 fake 宿主激活时一次同步全部三槽，之后禁止在动画目标/结束回调中强制重交 `setMiGlass`；可见态二次提交会产生白色模糊帧。OS3 的 Gaussian/custom drawable 仍只写当前可见槽。
+30. SOFT 在稳定 SMALL/BIG 保留同一个 pass SurfaceTexture，但不读写 `lastPassWindowBlurEnabled`；隐藏材质必须释放，避免旧 crop。
+31. fake SMALL/BIG/EXPAND 是长期复用的附着 View，但模块只允许当前实际绘制槽位持有 Bionics 材质；隐藏槽位与 Gaussian 一样 release。
 
 ## 16. 信息来源和可信度
 

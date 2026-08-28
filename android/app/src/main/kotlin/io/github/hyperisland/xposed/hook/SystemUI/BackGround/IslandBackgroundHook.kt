@@ -564,6 +564,7 @@ object IslandBackgroundHook : BaseHook() {
         clearMaskForView(view)
     }
 
+
     /**
      * 禁用 blur 并清除 blend colors。
      * blur mode 设为 0 + 清除 blend colors，确保无暗色叠加残留。
@@ -942,6 +943,7 @@ object IslandBackgroundHook : BaseHook() {
             ?.let(::clearMaskForView)
     }
 
+
     private fun createManagedLayerAccess(
         contentViewClass: Class<*>,
         includeOs4Mask: Boolean,
@@ -1209,6 +1211,7 @@ object IslandBackgroundHook : BaseHook() {
             }
         }
     }
+
 
     /**
      * 解码背景文件为圆角裁剪 Drawable。
