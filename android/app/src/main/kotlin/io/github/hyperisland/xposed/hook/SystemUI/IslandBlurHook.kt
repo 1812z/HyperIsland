@@ -152,6 +152,15 @@ object IslandBlurHook : BaseHook() {
     @Volatile
     private var islandTempHidden = false
 
+    @Volatile
+    private var softGlassWindowSessionActive = false
+
+    @Volatile
+    private var softGlassWindowSessionType: IslandType? = null
+
+    @Volatile
+    private var softGlassWindowView: WeakReference<View>? = null
+
     override fun getTag() = TAG
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
@@ -166,6 +175,11 @@ object IslandBlurHook : BaseHook() {
     override fun onConfigChanged() {
         loadConfig()
         mainHandler.post {
+            if (firstSoftGlassType() == null) {
+                softGlassWindowSessionActive = false
+                softGlassWindowSessionType = null
+                disableSoftGlassWindowBlur()
+            }
             val stale = synchronized(outerBlurs) {
                 outerBlurs.entries.mapNotNull { (view, outer) ->
                     if (configForType(outer.owned.type).isActive) null else view to outer
@@ -471,6 +485,7 @@ object IslandBlurHook : BaseHook() {
                 isAccessible = true
             }
             if (!hookedContentClasses.add(contentClass)) return
+            hookSoftGlassWindowBlurLifecycle(module, windowViewClass)
             hookIslandState(
                 module,
                 contentClass,
@@ -508,25 +523,38 @@ object IslandBlurHook : BaseHook() {
                 // already laid out for a focus notification. The target view is authoritative.
                 if (backgroundView == null) return@intercept result
 
+                val material = materialForType(type)
                 val staleUpdate = stateType != null && type != stateType
-                val active = if (staleUpdate) {
-                    customSoftGlassViews.remove(view)
-                    false
-                } else if (materialForType(type).type == MaterialType.SOFT) {
-                    deactivateOuterBlur(backgroundView, outerDrawableField, "soft-glass")
-                    val softActive = applySoftGlass(view, materialForType(type))
+                // Native soft glass belongs to each concrete island View. SystemUI
+                // updates the hidden BIG view while EXPAND is active; treating that
+                // callback as stale lets the stock gray background overwrite BIG,
+                // which is then exposed unchanged when the island collapses.
+                // The stale-state guard is only needed by the shared outer drawable.
+                val active = if (material.type == MaterialType.SOFT) {
+                    if (!staleUpdate) {
+                        deactivateOuterBlur(backgroundView, outerDrawableField, "soft-glass")
+                    }
+                    val softActive = applySoftGlass(view, material)
                     if (softActive) {
-                        IslandBackgroundHook.clearManagedVisualMask(view)
+                        if (!staleUpdate) {
+                            softGlassWindowSessionType = type
+                            softGlassWindowSessionActive = true
+                        }
                         true
-                    } else {
+                    } else if (!staleUpdate) {
                         applyOuterBlur(
                             backgroundView,
                             view,
                             type,
-                            materialForType(type).softFallback(),
+                            material.softFallback(),
                             outerDrawableField,
                         )
+                    } else {
+                        false
                     }
+                } else if (staleUpdate) {
+                    customSoftGlassViews.remove(view)
+                    false
                 } else if (config.isActive) {
                     customSoftGlassViews.remove(view)
                     applyOuterBlur(
@@ -635,6 +663,68 @@ object IslandBlurHook : BaseHook() {
         }
     }
 
+    /**
+     * OS4 only keeps pass-window blur enabled while an expanded focus notification
+     * exists. finalizeAnimFinished() therefore calls updatePassWindowBlur(false)
+     * after EXPAND collapses to BIG/SMALL. Native glass edge rendering survives,
+     * but its backdrop sampling is disabled and the material becomes opaque gray.
+     * Custom soft glass deliberately supports stable BIG/SMALL states, so retain
+     * the window pipeline until the island itself leaves its visible state.
+     */
+    private fun hookSoftGlassWindowBlurLifecycle(
+        module: XposedModule,
+        windowViewClass: Class<*>,
+    ) {
+        val passMethod = runCatching {
+            windowViewClass.getDeclaredMethod(
+                "updatePassWindowBlur",
+                Boolean::class.javaPrimitiveType!!,
+            ).apply { isAccessible = true }
+        }.getOrNull()
+        if (passMethod != null) {
+            module.hook(passMethod).intercept { chain ->
+                if (retainSoftGlassWindow(chain.thisObject as? View, "updatePassWindowBlur")) {
+                    // Do not call the original method. Even with argument=true it
+                    // applies getBackgroundMaterialOpened(), can resolve false,
+                    // detach the texture, and cause a one-frame gray flash.
+                    null
+                } else {
+                    chain.proceed()
+                }
+            }
+        }
+
+        val windowMethod = runCatching {
+            windowViewClass.getDeclaredMethod(
+                "updateWindowBlur",
+                Boolean::class.javaPrimitiveType!!,
+            ).apply { isAccessible = true }
+        }.getOrNull()
+        if (windowMethod != null) {
+            module.hook(windowMethod).intercept { chain ->
+                val result = chain.proceed()
+                retainSoftGlassWindow(chain.thisObject as? View, "updateWindowBlur")
+                result
+            }
+        }
+    }
+
+    private fun retainSoftGlassWindow(root: View?, source: String): Boolean {
+        val type = softGlassWindowSessionType
+        if (!softGlassWindowSessionActive || root == null || type == null ||
+            materialForType(type).type != MaterialType.SOFT
+        ) return false
+        return runCatching {
+            softGlassWindowView = WeakReference(root)
+            enableSoftGlassWindowBlur(root, materialForType(type))
+            log("$TAG retained pass-window blur before $source")
+            true
+        }.getOrElse { error ->
+            logWarn("$TAG $source retain failed safely: ${error.message}")
+            false
+        }
+    }
+
     private fun materialForType(type: IslandType): MaterialConfig = when (type) {
         IslandType.SMALL -> materialConfigs.small
         IslandType.BIG -> materialConfigs.big
@@ -683,6 +773,9 @@ object IslandBlurHook : BaseHook() {
 
             noContentCleanupRunnables.remove(contentView)
             deactivateOuterBlur(backgroundView, outerDrawableField, "no-content-animation-finished")
+            softGlassWindowSessionActive = false
+            softGlassWindowSessionType = null
+            disableSoftGlassWindowBlur()
             if (synchronized(outerBlurs) { outerBlurs.isEmpty() }) {
                 lastIslandType = null
             }
@@ -990,7 +1083,10 @@ object IslandBlurHook : BaseHook() {
         if (materialForType(type).type == MaterialType.SOFT) {
             deactivateOuterBlur(backgroundView, outerDrawableField, "soft-glass-sync")
             if (shapeView != null) {
-                if (!applySoftGlass(shapeView, materialForType(type))) {
+                if (applySoftGlass(shapeView, materialForType(type))) {
+                    softGlassWindowSessionType = type
+                    softGlassWindowSessionActive = true
+                } else {
                     applyOuterBlur(
                         backgroundView,
                         shapeView,
@@ -1420,6 +1516,21 @@ object IslandBlurHook : BaseHook() {
         backgroundView.invalidate()
     }
 
+    private fun firstSoftGlassType(): IslandType? = IslandType.entries.firstOrNull { type ->
+        materialForType(type).type == MaterialType.SOFT
+    }
+
+    private fun disableSoftGlassWindowBlur() {
+        val root = softGlassWindowView?.get() ?: return
+        activeBlurMethods?.let { methods ->
+            runCatching { methods.setPassWindowBlur?.invoke(null, root, false) }
+            runCatching { methods.setPassFps?.invoke(null, root, -1) }
+            runCatching { methods.setBackgroundMode?.invoke(null, root, 0) }
+            runCatching { methods.setBackgroundRadius?.invoke(null, root, 0) }
+        }
+        softGlassWindowView = null
+    }
+
     private fun rebuildTempHiddenRecoveryQueue(): List<View> {
         val reusable = synchronized(outerBlurs) {
             outerBlurs.entries.mapNotNull { (view, outer) ->
@@ -1603,43 +1714,16 @@ object IslandBlurHook : BaseHook() {
         if (!customSoftGlassViews.contains(view)) {
             softGlassStockBackgrounds[view] = view.background
         }
-        val params = (systemSoftGlassParams?.clone() ?: defaultSoftGlassParams())
-        fun apply(index: Int, configured: Double) {
-            val original = params[index]
-            params[index] = if (original == 0f) {
-                configured.toFloat()
-            } else {
-                original * (1f + configured.toFloat() / 10f)
-            }
-        }
-        apply(4, config.softLight)
-        apply(5, config.saturation)
-        apply(6, config.brightness)
-        apply(7, config.softDarker)
-        apply(14, config.transparency)
-        apply(21, config.softEdgeThickness)
-        apply(24, config.softReflection)
-        apply(28, config.directionalLightIntensity)
-        apply(32, config.softRefraction)
-        apply(33, config.backgroundSaturation)
-        apply(34, config.backgroundBrightness)
-        apply(35, config.burn)
-        if (!config.highlight) params[24] = 0f
-
-        if (Color.alpha(config.blendColor) > 0) {
-            params[11] = Color.red(config.blendColor) / 255f
-            params[12] = Color.green(config.blendColor) / 255f
-            params[13] = Color.blue(config.blendColor) / 255f
-            params[14] = Color.alpha(config.blendColor) / 255f
-        }
+        val params = customizeSoftGlassParams(
+            systemSoftGlassParams ?: defaultSoftGlassParams(),
+            config,
+        )
         activeBlurMethods?.let { methods ->
             methods.setViewMode.invoke(null, view, 1)
             methods.clearBlend.invoke(null, view)
         }
-        // Match DynamicIslandBaseContentView.updateBackgroundBg's native Bionics
-        // setup. setMiGlass derives its edge/SDF from the View outline; merely
-        // enabling clipToOutline leaves background-less island views without a
-        // usable contour, especially in SMALL/BIG states.
+        // Direct calls are only a compatibility path (OS3 variants and fake
+        // transition views). Stable OS4 views keep Xiaomi's own outline/provider.
         val maxRadius = TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_DIP,
             32f,
@@ -1667,6 +1751,48 @@ object IslandBlurHook : BaseHook() {
     }.getOrElse {
         logWarn("$TAG native soft glass unavailable: ${it.message}")
         false
+    }
+
+    private fun customizeSoftGlassParams(
+        source: FloatArray,
+        config: MaterialConfig,
+    ): FloatArray {
+        val params = source.clone()
+        fun apply(index: Int, configured: Double) {
+            val original = params[index]
+            params[index] = if (original == 0f) {
+                configured.toFloat()
+            } else {
+                original * (1f + configured.toFloat() / 10f)
+            }
+        }
+        apply(4, config.softLight)
+        apply(5, config.saturation)
+        apply(6, config.brightness)
+        apply(7, config.softDarker)
+        apply(14, config.transparency)
+        apply(21, config.softEdgeThickness)
+        apply(24, config.softReflection)
+        apply(28, config.directionalLightIntensity)
+        apply(32, config.softRefraction)
+        apply(33, config.backgroundSaturation)
+        apply(34, config.backgroundBrightness)
+        apply(35, config.burn)
+        if (!config.highlight) params[24] = 0f
+
+        if (Color.alpha(config.blendColor) > 0) {
+            val tintWeight = Color.alpha(config.blendColor) / 255f
+            fun mixInnerColor(index: Int, target: Float) {
+                params[index] = params[index] * (1f - tintWeight) + target * tintWeight
+            }
+            mixInnerColor(11, Color.red(config.blendColor) / 255f)
+            mixInnerColor(12, Color.green(config.blendColor) / 255f)
+            mixInnerColor(13, Color.blue(config.blendColor) / 255f)
+            // params[14] is the material's inner alpha, not tint opacity.
+            // It was already adjusted by config.transparency above and must stay
+            // independent from the color-mix slider.
+        }
+        return params
     }
 
     private fun defaultSoftGlassParams() = floatArrayOf(
