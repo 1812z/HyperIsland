@@ -84,9 +84,29 @@ object FocusNotifStatusBarIconHook : BaseHook() {
     }
 
     private fun hookUpdateStatusBarVisibilities(module: XposedModule, classLoader: ClassLoader) {
+        val fragmentClass = runCatching {
+            classLoader.loadClass(TARGET_FRAGMENT_CLASS)
+        }.getOrNull()
+        if (fragmentClass == null) {
+            log(module, "updateStatusBarVisibilities hook skipped — $TARGET_FRAGMENT_CLASS not found")
+            return
+        }
+
+        val method = runCatching {
+            fragmentClass.getDeclaredMethod(
+                "updateStatusBarVisibilities",
+                Boolean::class.javaPrimitiveType!!
+            )
+        }.getOrNull()
+        if (method == null) {
+            log(
+                module,
+                "updateStatusBarVisibilities hook skipped — method not found in ${fragmentClass.name}"
+            )
+            return
+        }
+
         try {
-            val fragmentClass = classLoader.loadClass(TARGET_FRAGMENT_CLASS)
-            val method = fragmentClass.getDeclaredMethod("updateStatusBarVisibilities", Boolean::class.javaPrimitiveType!!)
             module.hook(method).intercept { chain ->
                 val result = chain.proceed()
                 val fragment = chain.thisObject
@@ -103,9 +123,9 @@ object FocusNotifStatusBarIconHook : BaseHook() {
                 }
                 result
             }
-            log(module, "hooked MiuiCollapsedStatusBarFragment.updateStatusBarVisibilities(boolean)")
+            log(module, "hooked ${method.declaringClass.name}.updateStatusBarVisibilities(boolean)")
         } catch (e: Throwable) {
-            logError(module, "updateStatusBarVisibilities hook failed — ${e.message}")
+            log(module, "updateStatusBarVisibilities hook skipped — ${e.message}")
         }
     }
 
