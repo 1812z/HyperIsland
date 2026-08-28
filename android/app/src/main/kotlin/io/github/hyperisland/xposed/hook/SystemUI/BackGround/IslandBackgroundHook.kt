@@ -136,6 +136,9 @@ object IslandBackgroundHook : BaseHook() {
     private val managedContentTypes = Collections.synchronizedMap(
         WeakHashMap<Any, IslandType>()
     )
+    private val suppressedSystemDrawables = Collections.synchronizedMap(
+        WeakHashMap<View, Drawable>()
+    )
 
     /** 缓存圆角半径，运行时不会变 */
     @Volatile
@@ -263,8 +266,11 @@ object IslandBackgroundHook : BaseHook() {
 
             module.hook(setDrawableMethod).intercept { chain ->
                 val bgView = chain.thisObject as? View
-                val type = bgView?.let(::resolveTypeForBackgroundView)
-                    ?: getCurrentIslandType()
+                // updateDarkLightMode(state) receives the destination before the shared
+                // ContentView.state field is updated. Its ThreadLocal is authoritative here;
+                // preferring the old field misclassifies DEFAULT EXPAND as the previous BIG/SOFT.
+                val type = getCurrentIslandType()
+                    ?: bgView?.let(::resolveTypeForBackgroundView)
 
                 // updateDarkLightMode() creates dynamic_island_background_big_island_dark
                 // when another island disappears and BIG is re-asserted. Reject that
@@ -273,10 +279,14 @@ object IslandBackgroundHook : BaseHook() {
                 if (chain.args.getOrNull(0) is Drawable && type != null &&
                     isSystemSoftGlass(type)
                 ) {
+                    if (bgView != null) {
+                        suppressedSystemDrawables[bgView] = chain.args[0] as Drawable
+                    }
                     return@intercept null
                 }
 
                 val result = chain.proceed()
+                if (bgView != null) suppressedSystemDrawables.remove(bgView)
 
                 if (type != null && shouldOwnOuterDrawable(type)) {
                     val context = try { bgView?.context } catch (_: Exception) { null }
@@ -562,6 +572,21 @@ object IslandBackgroundHook : BaseHook() {
 
     internal fun clearManagedVisualMask(view: View) {
         clearMaskForView(view)
+    }
+
+    /** Restores the exact stock drawable rejected while this shared instance belonged to SOFT. */
+    internal fun restoreSuppressedSystemDrawable(backgroundView: View) {
+        val drawable = suppressedSystemDrawables.remove(backgroundView) ?: return
+        val field = runCatching {
+            backgroundView.javaClass.getDeclaredField("drawable").apply { isAccessible = true }
+        }.getOrNull() ?: return
+        runCatching { field.set(backgroundView, drawable) }
+        runCatching {
+            backgroundView.javaClass.getDeclaredMethod("scheduleUpdate").apply {
+                isAccessible = true
+            }.invoke(backgroundView)
+        }
+        backgroundView.invalidate()
     }
 
 

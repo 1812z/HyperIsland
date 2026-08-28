@@ -46,7 +46,11 @@ internal class TransitionBlurController(
             if (applied) ensureDetachCleanup(view)
             return applied
         }
-        SoftGlassController.release(view, restoreBackground = false)
+        SoftGlassController.release(
+            view,
+            restoreBackground = false,
+            releaseSampling = false,
+        )
         return applyNative(view, type, configStore.blurFor(type))
     }
 

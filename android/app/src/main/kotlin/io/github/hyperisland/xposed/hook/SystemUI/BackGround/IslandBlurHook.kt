@@ -174,7 +174,11 @@ object IslandBlurHook : BaseHook() {
                 ) {
                     // Remove our old Bionics transaction before SystemUI or the Gaussian path
                     // installs the next material. Doing this afterwards would clear the new one.
-                    SoftGlassController.release(view, restoreBackground = false)
+                    SoftGlassController.release(
+                        view,
+                        restoreBackground = false,
+                        releaseSampling = false,
+                    )
                 }
                 var directSoftApplied = false
                 val result = if (view != null && materialBeforeUpdate?.type == MaterialType.SOFT) {
@@ -361,7 +365,10 @@ object IslandBlurHook : BaseHook() {
                     } else {
                         // A default/Gaussian EXPAND must not retain the hidden BIG Bionics
                         // RenderNode; otherwise the continuous pass texture keeps the compact crop.
-                        releaseAllConcreteSoftGlass(chain.thisObject)
+                        releaseAllConcreteSoftGlass(
+                            chain.thisObject,
+                            preserveSystemSampling = true,
+                        )
                         mainHandler.post {
                             synchronizeOuterVisual(
                                 chain.thisObject,
@@ -541,12 +548,21 @@ object IslandBlurHook : BaseHook() {
             .forEach(SoftGlassController::suspend)
     }
 
-    private fun releaseAllConcreteSoftGlass(contentView: Any?) {
+    private fun releaseAllConcreteSoftGlass(
+        contentView: Any?,
+        preserveSystemSampling: Boolean = false,
+    ) {
         contentView ?: return
         IslandType.entries.asSequence()
             .mapNotNull { IslandStateResolver.concreteView(contentView, it) }
             .filter(SoftGlassController::isManaged)
-            .forEach { view -> SoftGlassController.release(view, restoreBackground = false) }
+            .forEach { view ->
+                SoftGlassController.release(
+                    view,
+                    restoreBackground = false,
+                    releaseSampling = !preserveSystemSampling,
+                )
+            }
     }
 
     private fun hookBackgroundDrawing(
@@ -734,12 +750,38 @@ object IslandBlurHook : BaseHook() {
             if (!view.isAttachedToWindow) return@forEach
             val type = target.type ?: return@forEach
             val material = materialForType(type)
+            val currentType = runCatching {
+                IslandStateResolver.fromState(target.stateField.get(contentView))
+            }.getOrNull()
+            if (currentType != type) {
+                if (SoftGlassController.isManaged(view)) {
+                    SoftGlassController.release(
+                        view,
+                        restoreBackground = false,
+                        releaseSampling = false,
+                    )
+                }
+                return@forEach
+            }
             if (material.type == MaterialType.SOFT) {
-                val currentType = runCatching {
-                    IslandStateResolver.fromState(target.stateField.get(contentView))
-                }.getOrNull()
-                if (currentType != type) return@forEach
                 runCatching { target.updateMethod.invoke(contentView, view, target.promoted) }
+            } else {
+                if (SoftGlassController.isManaged(view)) {
+                    SoftGlassController.release(
+                        view,
+                        restoreBackground = false,
+                        releaseSampling = false,
+                    )
+                }
+                runCatching { target.updateMethod.invoke(contentView, view, target.promoted) }
+                val backgroundView = findMethod(contentView.javaClass, "getBackgroundView")
+                    ?.let { method ->
+                        runCatching { method.invoke(contentView) as? View }.getOrNull()
+                    }
+                if (backgroundView != null) {
+                    softOuterBackgrounds.remove(backgroundView)
+                    IslandBackgroundHook.restoreSuppressedSystemDrawable(backgroundView)
+                }
             }
         }
     }

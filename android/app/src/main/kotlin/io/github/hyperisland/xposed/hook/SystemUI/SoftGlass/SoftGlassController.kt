@@ -230,7 +230,11 @@ internal object SoftGlassController {
     /** Gaussian-equivalent hidden-state lifecycle: no retained or preheated renderer. */
     fun suspend(view: View) = release(view, restoreBackground = false)
 
-    fun release(view: View, restoreBackground: Boolean = true) {
+    fun release(
+        view: View,
+        restoreBackground: Boolean = true,
+        releaseSampling: Boolean = true,
+    ) {
         if (!managedViews.remove(view)) return
         val root = findWindowView(view)
         val stock = stockBackgrounds.remove(view)
@@ -239,8 +243,15 @@ internal object SoftGlassController {
         if (restoreBackground && view.background == null) view.background = stock
         if (root != null && !hasManagedView(root)) {
             restoreWindowRadius(root)
-            closeRetainedPassBlur(root)
-            closeRetainedWindowBlur(root)
+            if (releaseSampling) {
+                closeRetainedPassBlur(root)
+                closeRetainedWindowBlur(root)
+            } else {
+                // A DEFAULT/Gaussian/Liquid destination now owns the same SystemUI window.
+                // Relinquish bookkeeping without sending false over its freshly opened sampler.
+                retainedPassBlurRoots.remove(root)
+                retainedWindowBlurRoots.remove(root)
+            }
         }
     }
 
