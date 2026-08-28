@@ -1,13 +1,14 @@
 package io.github.hyperisland.xposed.hook.SystemUI.SoftGlass
 
+import android.content.Context
 import android.graphics.Color
 import android.graphics.Outline
 import android.graphics.drawable.Drawable
 import android.util.TypedValue
 import android.view.View
 import android.view.ViewOutlineProvider
-import io.github.hyperisland.xposed.log
 import io.github.hyperisland.xposed.logWarn
+import io.github.hyperisland.xposed.log
 import io.github.libxposed.api.XposedModule
 import java.lang.ref.WeakReference
 import java.lang.reflect.Method
@@ -25,12 +26,14 @@ internal object SoftGlassController {
     private const val TAG = "HyperIsland[SoftGlass]"
     private const val WINDOW_VIEW_CLASS =
         "miui.systemui.dynamicisland.window.DynamicIslandWindowView"
-
     private val managedViews = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<View, Boolean>())
     )
     private val stockBackgrounds = Collections.synchronizedMap(
         WeakHashMap<View, Drawable?>()
+    )
+    private val hookedTokenClasses = Collections.synchronizedSet(
+        Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>())
     )
     private val hookedWindowClasses = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>())
@@ -43,10 +46,18 @@ internal object SoftGlassController {
     private var blurMethods: BlurMethods? = null
 
     @Volatile
-    private var sessionConfig: SoftGlassConfig? = null
+    private var isBionicsActiveMethod: Method? = null
+
+    @Volatile
+    private var retainPassWindowBlur = false
+
+    @Volatile
+    private var lastSystemPassWindowBlur = false
 
     @Volatile
     private var sessionWindow: WeakReference<View>? = null
+
+    private val tokenConfigOverride = ThreadLocal<SoftGlassConfig>()
 
     /** Resolves the Xiaomi APIs for one SystemUI plugin class loader. */
     fun bindRuntime(contentClass: Class<*>, compatClass: Class<*>) {
@@ -61,27 +72,18 @@ internal object SoftGlassController {
                 (toParams.invoke(token) as? FloatArray)?.clone()
             }.getOrNull()
         }
+        isBionicsActiveMethod = runCatching {
+            val styleClass = Class.forName(
+                "miui.systemui.util.MiBackgroundStyle",
+                false,
+                contentClass.classLoader,
+            )
+            findMethod(styleClass, "isBionicsActive", Context::class.java)
+        }.getOrNull()
         blurMethods = BlurMethods(
             setViewMode = findMethod(
                 compatClass,
                 "setMiViewBlurModeCompat",
-                View::class.java,
-                Int::class.javaPrimitiveType!!,
-            ),
-            clearBlend = findMethod(
-                compatClass,
-                "clearMiBackgroundBlendColorCompat",
-                View::class.java,
-            ),
-            setBackgroundMode = findMethod(
-                compatClass,
-                "setMiBackgroundBlurModeCompat",
-                View::class.java,
-                Int::class.javaPrimitiveType!!,
-            ),
-            setBackgroundRadius = findMethod(
-                compatClass,
-                "setMiBackgroundBlurRadiusCompat",
                 View::class.java,
                 Int::class.javaPrimitiveType!!,
             ),
@@ -98,41 +100,92 @@ internal object SoftGlassController {
                 Int::class.javaPrimitiveType!!,
             ),
         )
+        log(
+            "$TAG runtime bound params=${systemParams?.size ?: -1} " +
+                "bionicsCheck=${isBionicsActiveMethod != null} " +
+                "viewMode=${blurMethods?.setViewMode != null} " +
+                "passWindow=${blurMethods?.setPassWindowBlur != null}",
+        )
     }
 
-    /** Keeps Xiaomi from disabling backdrop sampling after EXPAND collapses. */
+    /**
+     * Lets SystemUI keep its own pass-window state while extending sampling only for
+     * module-provided SMALL/BIG Bionics materials. The system's bookkeeping still runs first.
+     */
     fun hookWindowLifecycle(module: XposedModule, windowViewClass: Class<*>) {
         if (!hookedWindowClasses.add(windowViewClass)) return
-
         findMethod(
             windowViewClass,
             "updatePassWindowBlur",
             Boolean::class.javaPrimitiveType!!,
         )?.let { method ->
             module.hook(method).intercept { chain ->
-                if (retainWindow(chain.thisObject as? View, "updatePassWindowBlur")) {
-                    null
-                } else {
-                    chain.proceed()
-                }
-            }
-        }
-
-        findMethod(
-            windowViewClass,
-            "updateWindowBlur",
-            Boolean::class.javaPrimitiveType!!,
-        )?.let { method ->
-            module.hook(method).intercept { chain ->
+                val requested = chain.args.getOrNull(0) as? Boolean ?: false
                 val result = chain.proceed()
-                retainWindow(chain.thisObject as? View, "updateWindowBlur")
+                val root = chain.thisObject as? View ?: return@intercept result
+                sessionWindow = WeakReference(root)
+                lastSystemPassWindowBlur = requested
+                enforcePassWindowBlur(root)
                 result
             }
         }
     }
 
+    fun setPassWindowRetention(enabled: Boolean, source: View? = null) {
+        retainPassWindowBlur = enabled
+        val root = source?.let(::findWindowView) ?: sessionWindow?.get() ?: return
+        sessionWindow = WeakReference(root)
+        enforcePassWindowBlur(root)
+    }
+
+    /**
+     * Customizes only SystemUI's own EXPANDED_GLASS_TOKEN result. The system remains
+     * responsible for applying/reapplying the material during every notification update.
+     */
+    fun hookExpandedTokenParams(module: XposedModule, contentClass: Class<*>) {
+        val token = runCatching {
+            contentClass.getDeclaredField("EXPANDED_GLASS_TOKEN").apply {
+                isAccessible = true
+            }.get(null)
+        }.getOrNull() ?: return
+        val tokenClass = token.javaClass
+        if (!hookedTokenClasses.add(tokenClass)) return
+        val getter = findMethod(tokenClass, "getToBionicsParams") ?: return
+        module.hook(getter).intercept { chain ->
+            val result = chain.proceed()
+            val params = result as? FloatArray ?: return@intercept result
+            val config = tokenConfigOverride.get()
+            if (chain.thisObject === token && config != null) {
+                val customized = customizeParams(params, config)
+                log("$TAG expanded token ${summarize(customized)}")
+                customized
+            } else {
+                result
+            }
+        }
+    }
+
+    fun <T> withSystemTokenConfig(config: SoftGlassConfig, block: () -> T): T {
+        tokenConfigOverride.set(config)
+        return try {
+            block()
+        } finally {
+            tokenConfigOverride.remove()
+        }
+    }
+
     /** Applies native soft glass to a stable or fake island View. */
-    fun apply(view: View, config: SoftGlassConfig): Boolean = runCatching {
+    fun apply(
+        view: View,
+        config: SoftGlassConfig,
+        preserveSystemOutline: Boolean = false,
+    ): Boolean = runCatching {
+        val bionicsActive = isSystemBionicsActive(view)
+        if (!bionicsActive) {
+            log("$TAG skip apply bionics=false view=${view.javaClass.name}")
+            release(view)
+            return@runCatching false
+        }
         val setMaterial = findMethod(
             view.javaClass,
             "setMiViewMaterialType",
@@ -144,34 +197,42 @@ internal object SoftGlassController {
         if (!managedViews.contains(view)) {
             stockBackgrounds[view] = view.background
         }
-        val methods = blurMethods
-        methods?.setViewMode?.invoke(null, view, 1)
-        methods?.clearBlend?.invoke(null, view)
-        installFallbackOutline(view)
+        blurMethods?.setViewMode?.invoke(null, view, 1)
+        if (!preserveSystemOutline) installFallbackOutline(view)
+        val params = customizeParams(systemParams ?: defaultParams(), config)
         setMaterial.invoke(view, 1)
-        setGlass.invoke(view, customizeParams(systemParams ?: defaultParams(), config))
-        enableWindowBlur(view, config)
+        setGlass.invoke(view, params)
+        val window = findWindowView(view)
+        val radiusApplied = window != null && runCatching {
+            findMethod(
+                window.javaClass,
+                "setMiGlassBlurRadius",
+                Int::class.javaPrimitiveType!!,
+                Int::class.javaPrimitiveType!!,
+            )?.let { method ->
+                method.invoke(window, config.blurRadius, config.blurRadius)
+                true
+            } ?: false
+        }.getOrDefault(false)
         view.background = null
         managedViews.add(view)
         view.invalidate()
+        log(
+            "$TAG apply success view=${view.javaClass.name} outline=$preserveSystemOutline " +
+                "material=${setMaterial.declaringClass.name} glass=${setGlass.declaringClass.name} " +
+                "radius=${config.blurRadius}/$radiusApplied " + summarize(params),
+        )
         true
     }.getOrElse {
         logWarn("$TAG native soft glass unavailable: ${it.message}")
         false
     }
 
-    fun activateWindowSession(config: SoftGlassConfig) {
-        sessionConfig = config
-    }
-
-    fun clearWindowSession() {
-        sessionConfig = null
-        val root = sessionWindow?.get()
-        if (root != null) disableWindowBlur(root)
-        sessionWindow = null
-    }
-
     fun isManaged(view: View): Boolean = managedViews.contains(view)
+
+    fun isSystemBionicsActive(view: View): Boolean = runCatching {
+        isBionicsActiveMethod?.invoke(null, view.context) as? Boolean
+    }.getOrNull() == true
 
     /** Releases a View owned by this renderer and restores its captured background when needed. */
     fun release(view: View) {
@@ -187,55 +248,20 @@ internal object SoftGlassController {
         stockBackgrounds.remove(view)
     }
 
-    private fun retainWindow(root: View?, source: String): Boolean {
-        val config = sessionConfig ?: return false
-        root ?: return false
-        return runCatching {
-            sessionWindow = WeakReference(root)
-            enableWindowBlur(root, config)
-            log("$TAG retained pass-window blur before $source")
-            true
-        }.getOrElse { error ->
-            logWarn("$TAG $source retain failed safely: ${error.message}")
-            false
-        }
-    }
-
-    private fun enableWindowBlur(view: View, config: SoftGlassConfig) {
-        val root = findWindowView(view) ?: return
-        sessionWindow = WeakReference(root)
+    private fun enforcePassWindowBlur(root: View) {
+        val enabled = lastSystemPassWindowBlur || retainPassWindowBlur
         blurMethods?.let { methods ->
-            runCatching { methods.setPassWindowBlur?.invoke(null, root, true) }
-            runCatching { methods.setPassFps?.invoke(null, root, 60) }
-            runCatching { methods.setBackgroundMode?.invoke(null, root, 1) }
-            runCatching { methods.setBackgroundRadius?.invoke(null, root, 0) }
-        }
-        runCatching {
-            findMethod(
-                root.javaClass,
-                "setMiGlassBlurRadius",
-                Int::class.javaPrimitiveType!!,
-                Int::class.javaPrimitiveType!!,
-            )?.invoke(root, config.blurRadius, config.blurRadius)
-        }
-    }
-
-    private fun disableWindowBlur(root: View) {
-        blurMethods?.let { methods ->
-            runCatching { methods.setPassWindowBlur?.invoke(null, root, false) }
-            runCatching { methods.setPassFps?.invoke(null, root, -1) }
-            runCatching { methods.setBackgroundMode?.invoke(null, root, 0) }
-            runCatching { methods.setBackgroundRadius?.invoke(null, root, 0) }
+            runCatching { methods.setPassWindowBlur?.invoke(null, root, enabled) }
+            runCatching { methods.setPassFps?.invoke(null, root, if (enabled) 60 else -1) }
         }
     }
 
     private fun findWindowView(view: View): View? {
-        var root = view
-        while (root.parent is View) {
-            root = root.parent as View
-            if (root.javaClass.name == WINDOW_VIEW_CLASS) return root
+        var current = view
+        while (true) {
+            if (current.javaClass.name == WINDOW_VIEW_CLASS) return current
+            current = current.parent as? View ?: return null
         }
-        return root.takeIf { it.javaClass.name == WINDOW_VIEW_CLASS }
     }
 
     private fun installFallbackOutline(view: View) {
@@ -265,14 +291,13 @@ internal object SoftGlassController {
             params[index] = if (original == 0f) {
                 configured.toFloat()
             } else {
-                original * (1f + configured.toFloat() / 10f)
+                original * (1f + configured.toFloat() / 100f)
             }
         }
         apply(4, config.softLight)
         apply(5, config.saturation)
         apply(6, config.brightness)
         apply(7, config.darker)
-        apply(14, config.transparency)
         apply(21, config.edgeThickness)
         apply(24, config.reflection)
         apply(28, config.directionalLightIntensity)
@@ -287,16 +312,31 @@ internal object SoftGlassController {
             params[28] = 0f
         }
 
-        if (Color.alpha(config.tintColor) > 0) {
-            val tintWeight = Color.alpha(config.tintColor) / 255f
-            fun mixInnerColor(index: Int, target: Float) {
-                params[index] = params[index] * (1f - tintWeight) + target * tintWeight
-            }
-            mixInnerColor(11, Color.red(config.tintColor) / 255f)
-            mixInnerColor(12, Color.green(config.tintColor) / 255f)
-            mixInnerColor(13, Color.blue(config.tintColor) / 255f)
+        // EXPANDED_GLASS_TOKEN contains Xiaomi's gray inner mix (.06/.06/.06/.6).
+        // The module's default is transparent; the native gray must not survive as a
+        // second dark layer. User blend color/opacity exclusively owns channels 11..14.
+        val tintAlpha = Color.alpha(config.tintColor) / 255f
+        if (tintAlpha > 0f) {
+            params[11] = Color.red(config.tintColor) / 255f
+            params[12] = Color.green(config.tintColor) / 255f
+            params[13] = Color.blue(config.tintColor) / 255f
+            params[14] = (tintAlpha * (1f + config.transparency.toFloat() / 100f))
+                .coerceIn(0f, 1f)
+        } else {
+            params[11] = 0f
+            params[12] = 0f
+            params[13] = 0f
+            params[14] = 0f
         }
         return params
+    }
+
+    private fun summarize(params: FloatArray): String {
+        fun value(index: Int) = params.getOrNull(index)?.toString() ?: "missing"
+        return "size=${params.size} p4=${value(4)} p5=${value(5)} p6=${value(6)} " +
+            "p7=${value(7)} rgb=${value(11)},${value(12)},${value(13)} " +
+            "p14=${value(14)} p21=${value(21)} p24=${value(24)} p28=${value(28)} " +
+            "p32=${value(32)} p33=${value(33)} p34=${value(34)} p35=${value(35)}"
     }
 
     private fun clearMaterial(view: View) {
@@ -333,9 +373,6 @@ internal object SoftGlassController {
 
     private data class BlurMethods(
         val setViewMode: Method?,
-        val clearBlend: Method?,
-        val setBackgroundMode: Method?,
-        val setBackgroundRadius: Method?,
         val setPassWindowBlur: Method?,
         val setPassFps: Method?,
     )

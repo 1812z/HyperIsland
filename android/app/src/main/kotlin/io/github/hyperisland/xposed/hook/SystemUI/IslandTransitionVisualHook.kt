@@ -7,6 +7,8 @@ import android.view.View
 import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.hyperisland.xposed.hook.IslandBackgroundHook
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.IslandBlurRuntime
+import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.model.IslandType
+import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.model.MaterialType
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
@@ -36,6 +38,9 @@ object IslandTransitionVisualHook : BaseHook() {
     )
     private val fakeLayerTargets = Collections.synchronizedMap(
         WeakHashMap<Any, FakeLayerTarget>()
+    )
+    private val softLayerOwners = Collections.synchronizedSet(
+        Collections.newSetFromMap(WeakHashMap<Any, Boolean>())
     )
     private val opaqueHandoffBackgrounds = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<Any, Boolean>())
@@ -261,7 +266,6 @@ object IslandTransitionVisualHook : BaseHook() {
     private fun prepareRealSoftGlass(fakeView: Any, access: FakeViewAccess) {
         val realView = access.realView(fakeView) ?: return
         val typeName = access.stateType(fakeView) ?: return
-        if (!IslandBlurRuntime.transitionBlurController.isSoftGlass(typeName)) return
         val getterName = when (typeName) {
             "SMALL" -> "getSmallIslandView"
             "BIG" -> "getBigIslandView"
@@ -271,7 +275,11 @@ object IslandTransitionVisualHook : BaseHook() {
         val target = findMethod(realView.javaClass, getterName)
             ?.let { runCatching { it.invoke(realView) as? View }.getOrNull() }
             ?: return
-        IslandBlurRuntime.transitionBlurController.apply(target, typeName)
+        if (IslandBlurRuntime.configStore.materialFor(IslandType.valueOf(typeName)).type ==
+            MaterialType.SOFT
+        ) {
+            IslandBlurRuntime.transitionBlurController.apply(target, typeName)
+        }
     }
 
     private fun realBackgroundTarget(
@@ -361,14 +369,24 @@ object IslandTransitionVisualHook : BaseHook() {
         }
         // OS3 and OS4 both animate through this fake subtree. Newer OS4 builds restore these
         // shared layers more aggressively, but the ownership rule is version-independent:
-        // clear only after every visible state has an independent managed visual.
-        val visibleTargets = access.visibleViews(fakeView)
-        val clearSharedMask = root.visibility == View.VISIBLE && visibleTargets.isNotEmpty() &&
-            visibleTargets.all { (_, view) ->
-                targets[view]?.managedVisual == true &&
-                    (view.background != null ||
-                        IslandBlurRuntime.transitionBlurController.hasManagedSoftGlass(view))
+        // a SOFT session must never restore fake_container's solid-black stock background,
+        // including the frames where every state child is temporarily invisible while shrinking.
+        access.stateType(fakeView)?.let { typeName ->
+            val type = IslandType.valueOf(typeName)
+            if (IslandBlurRuntime.configStore.materialFor(type).type == MaterialType.SOFT) {
+                softLayerOwners.add(fakeView)
+            } else {
+                softLayerOwners.remove(fakeView)
             }
+        }
+        val visibleTargets = access.visibleViews(fakeView)
+        val clearSharedMask = softLayerOwners.contains(fakeView) ||
+            (root.visibility == View.VISIBLE && visibleTargets.isNotEmpty() &&
+                visibleTargets.all { (_, view) ->
+                    targets[view]?.managedVisual == true &&
+                        (view.background != null ||
+                            IslandBlurRuntime.transitionBlurController.hasManagedSoftGlass(view))
+                })
         if (clearSharedMask) {
             IslandBackgroundHook.clearManagedVisualMask(root)
             if (container !== root && container != null) {
@@ -387,6 +405,7 @@ object IslandTransitionVisualHook : BaseHook() {
     private fun releaseFakeView(fakeView: Any, access: FakeViewAccess) {
         fakeViews.remove(fakeView)
         fakeLayerTargets.remove(fakeView)
+        softLayerOwners.remove(fakeView)
         realBackgroundTarget(fakeView, access)?.let { target ->
             opaqueHandoffBackgrounds.remove(target.view)
         }

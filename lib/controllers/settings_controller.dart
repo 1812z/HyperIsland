@@ -2076,8 +2076,11 @@ class SettingsController extends ChangeNotifier {
       IslandMaterialState.small => kPrefIslandRefractionSmallEnabled,
       IslandMaterialState.expand => kPrefIslandRefractionExpandEnabled,
     };
-    final custom = config.isCustom;
-    await prefs.setBool(enabledKey, custom);
+    final moduleBlurEnabled =
+        config.type == IslandMaterialType.gaussian ||
+        config.type == IslandMaterialType.highlightGlass ||
+        config.type == IslandMaterialType.liquidGlass;
+    await prefs.setBool(enabledKey, moduleBlurEnabled);
     await prefs.setInt(radiusKey, config.blur);
     await prefs.setString(colorKey, config.blendColor);
     await prefs.setBool(
@@ -2091,7 +2094,7 @@ class SettingsController extends ChangeNotifier {
     );
     switch (state) {
       case IslandMaterialState.big:
-        islandBlurBigEnabled = custom;
+        islandBlurBigEnabled = moduleBlurEnabled;
         islandBlurBigRadius = config.blur;
         islandBlurBigColor = config.blendColor;
         islandGlassBigEnabled =
@@ -2100,7 +2103,7 @@ class SettingsController extends ChangeNotifier {
         islandRefractionBigEnabled =
             config.type == IslandMaterialType.liquidGlass;
       case IslandMaterialState.small:
-        islandBlurSmallEnabled = custom;
+        islandBlurSmallEnabled = moduleBlurEnabled;
         islandBlurSmallRadius = config.blur;
         islandBlurSmallColor = config.blendColor;
         islandGlassSmallEnabled =
@@ -2109,7 +2112,7 @@ class SettingsController extends ChangeNotifier {
         islandRefractionSmallEnabled =
             config.type == IslandMaterialType.liquidGlass;
       case IslandMaterialState.expand:
-        islandBlurExpandEnabled = custom;
+        islandBlurExpandEnabled = moduleBlurEnabled;
         islandBlurExpandRadius = config.blur;
         islandBlurExpandColor = config.blendColor;
         islandGlassExpandEnabled =

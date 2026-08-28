@@ -10,6 +10,8 @@ import android.view.ViewGroup
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.IslandBlurRuntime
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.model.IslandType as BlurIslandType
+import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.model.MaterialType
+import io.github.hyperisland.xposed.hook.SystemUI.SoftGlass.SoftGlassController
 import io.github.hyperisland.xposed.hook.SystemUI.IslandOutlineHook
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
@@ -259,6 +261,20 @@ object IslandBackgroundHook : BaseHook() {
 
                 val type = getCurrentIslandType()
                 val bgView = chain.thisObject as? View
+
+                // updateDarkLightMode writes the stock dark drawable synchronously when
+                // EXPAND collapses to BIG/SMALL. With native Bionics on the concrete target,
+                // allowing that drawable to survive until a posted refresh produces one gray
+                // handoff frame. Clear the exact final writer in the same call stack.
+                if (type != null && type != IslandType.EXPAND &&
+                    isSystemSoftGlass(type) && bgView != null &&
+                    SoftGlassController.isSystemBionicsActive(bgView)
+                ) {
+                    getCachedField(drawableFieldCache, bgViewClass, "drawable")
+                        ?.set(chain.thisObject, null)
+                    bgView.invalidate()
+                    return@intercept null
+                }
 
                 if (type != null && shouldOwnOuterDrawable(type)) {
                     val context = try { bgView?.context } catch (_: Exception) { null }
@@ -851,11 +867,12 @@ object IslandBackgroundHook : BaseHook() {
         // shrinking the previous island after entering them, so continue clearing the masks for
         // that previous SMALL/BIG/EXPAND type until the View instance is discarded.
         val type = resolvedType ?: managedContentTypes[contentView] ?: return
-        if (!anyManagedOuterVisual() || !shouldClearSharedMask(type)) return
+        if (!anyManagedOuterVisual()) return
 
-        runCatching { access.containerMethod.invoke(contentView) as? View }
+        val container = runCatching { access.containerMethod.invoke(contentView) as? View }
             .getOrNull()
-            ?.let { clearSharedContainer(it, type) }
+        if (container == null || !shouldClearSharedMask(type, container)) return
+        clearSharedContainer(container, type)
 
         // OS3 did not use island_mask as the final per-frame visual writer. OS4 does, and its
         // gradient/bionics state is independent from View.background, so clear all three states.
@@ -921,20 +938,22 @@ object IslandBackgroundHook : BaseHook() {
     }
 
     private fun shouldClearMaskForType(type: IslandType): Boolean {
-        return hasBgFileForType(type) || isBlurEnabledForType(type)
+        return hasBgFileForType(type) ||
+            (!isSystemSoftGlass(type) && isBlurEnabledForType(type))
     }
 
     private fun shouldOwnOuterDrawable(type: IslandType): Boolean {
+        if (isSystemSoftGlass(type)) return false
         return hasBgFileForType(type) ||
             (!isBlurEnabledForType(type) && anyCustomBgConfigured())
     }
 
     private fun anyManagedOuterVisual(): Boolean {
-        return anyCustomBgConfigured() || anyBlurEnabled()
+        return anyCustomBgConfigured() || anyBlurEnabled() || anySystemSoftGlass()
     }
 
     private fun clearSharedContainer(container: View, type: IslandType) {
-        if (!shouldClearSharedMask(type)) return
+        if (!shouldClearSharedMask(type, container)) return
         synchronized(clearedSharedContainers) {
             clearedSharedContainers[container] = type
         }
@@ -943,7 +962,14 @@ object IslandBackgroundHook : BaseHook() {
         clearMaskForView(container)
     }
 
-    private fun shouldClearSharedMask(type: IslandType): Boolean {
+    private fun shouldClearSharedMask(type: IslandType, host: View): Boolean {
+        // System Bionics lives on the concrete SMALL/BIG/EXPAND View. OS4's shared
+        // container/island_mask is drawn above it and must be cleared, while
+        // hookUpdateBackgroundBg still lets the concrete View follow SystemUI.
+        if (isSystemSoftGlass(type)) {
+            return type != IslandType.EXPAND &&
+                SoftGlassController.isSystemBionicsActive(host)
+        }
         // LiquidGlassDrawable is installed only on an active blur state, so the same blur key
         // deliberately covers both the plain glass/blur pipeline and custom image backgrounds.
         return isBlurEnabledForType(type) || anyCustomBgConfigured()
@@ -961,9 +987,24 @@ object IslandBackgroundHook : BaseHook() {
             IslandType.BIG -> BlurIslandType.BIG
             IslandType.EXPAND -> BlurIslandType.EXPAND
         }
-        val enabled = ConfigManager.getBoolean(blurKey, false) ||
-            IslandBlurRuntime.configStore.blurFor(runtimeType).isActive
+        val runtimeStore = IslandBlurRuntime.configStore
+        val enabled = runtimeStore.materialFor(runtimeType).type != MaterialType.SOFT &&
+            (ConfigManager.getBoolean(blurKey, false) ||
+                runtimeStore.blurFor(runtimeType).isActive)
         return enabled.also { cachedBlurEnabled[type] = it }
+    }
+
+    private fun isSystemSoftGlass(type: IslandType): Boolean {
+        val runtimeType = when (type) {
+            IslandType.SMALL -> BlurIslandType.SMALL
+            IslandType.BIG -> BlurIslandType.BIG
+            IslandType.EXPAND -> BlurIslandType.EXPAND
+        }
+        return IslandBlurRuntime.configStore.materialFor(runtimeType).type == MaterialType.SOFT
+    }
+
+    private fun anySystemSoftGlass(): Boolean {
+        return IslandType.entries.any(::isSystemSoftGlass)
     }
 
     /**

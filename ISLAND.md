@@ -768,7 +768,12 @@ Mini Window 手势
 16. 不能用“任一模糊开启”清除共享遮罩，也不能固定只读取 `SMALL`；两者都会破坏三态组合。
 17. fake 隐藏前仍完全不透明但到达后透明再渐显时，应检查真实 `DynamicIslandBackgroundView.backgroundAlpha` 和 `alphaAnimation()`。
 18. 交接期固定真实背景 alpha 只适用于当前真实类型未开启模糊的实例；已开启模糊时必须解除该限制。
-19. OS4 柔光玻璃的 SMALL/BIG/EXPAND 均写入系统 Bionics View 材质；EXPAND 在 `setContentView*()` 替换通知内容树之后必须重新提交完整 token，不能回退到模块的 `LiquidGlassDrawable`。
+19. OS4 柔光玻璃的 SMALL/BIG/EXPAND 均写入系统 Bionics View 材质，不能回退到模块的 `LiquidGlassDrawable`。
+20. EXPAND 的权威写入顺序是 `updateBackgroundBg(expanded_view)` 后再替换通知内容子 View；参数定制应拦截该调用中的 `EXPANDED_GLASS_TOKEN`，不要在 `setContentView*()` 后再次覆盖父 View 材质。
+21. 原生 EXPAND token 含 `.06/.06/.06/.6` 灰色混色；模块默认必须把 11..14 通道清零，仅在用户配置混色时写入颜色与 alpha。`dynamic_island_background_island` 本身无填充色，但 fake 根容器的 `dynamic_island_background` 是纯黑色，三态 Bionics View 就绪后必须清掉该共享黑底。
+22. `DynamicIslandWindowView.updateWindowBlur()` 在 Bionics 模式使用 `setMiGlassBlurRadius(50, 500)`；该半径不属于 42 项 shader 参数。模块的用户半径需通过同一独立 API 写入，不能塞进 token 数组。
+23. `-50..50` 柔光配置是百分比微调：非零 token 通道按 `/100` 缩放，原值为零的通道才直接写入配置值。
+24. `MaterialConfig.toBlurConfig()` 对 SOFT 返回 disabled；真实 SMALL/BIG 刷新不得用 `BlurConfig.isActive` 作门禁，否则只会写入 fake 动画层，稳定态会完全透明。
 
 ## 16. 信息来源和可信度
 
@@ -782,6 +787,9 @@ Mini Window 手势
 - `updateOutline()` 和 `updateExpandViewBlur()` 更新圆角和 RenderNode。
 - `updateExpandedFakeViewToReal()` 从 fake View 交回真实 View。
 - 系统 `updateBackgroundBg()` 的 Drawable、MiBlur 和 BlendColor 行为。
+- `DynamicIslandContentView.updateExpandedView()` 先更新 EXPAND 材质，再替换通知内容子 View。
+- `DynamicIslandWindowView.updateWindowBlur()` 的 Classic/Bionics 半径分支及 `50/500` 两级半径。
+- `DynamicIslandEventCoordinator` 仅在展开/动画需要时切换 pass-window blur。
 - `DynamicIslandBackgroundView.onDraw()` 每帧按 `actual*` 设置 Drawable bounds。
 - `containerScheduleUpdate()` 更新动态背景几何。
 

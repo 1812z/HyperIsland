@@ -18,6 +18,7 @@ import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.model.Material
 import io.github.hyperisland.xposed.hook.SystemUI.SoftGlass.SoftGlassController
 import io.github.hyperisland.xposed.log
 import io.github.hyperisland.xposed.logError
+import io.github.hyperisland.xposed.logWarn
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
@@ -36,8 +37,6 @@ object IslandBlurHook : BaseHook() {
         "miui.systemui.dynamicisland.DynamicIslandBackgroundView"
     private const val CONTENT_VIEW_CONTROLLER_CLASS =
         "miui.systemui.dynamicisland.window.content.DynamicIslandContentViewController"
-    private const val EXPANDED_VIEW_CLASS =
-        "miui.systemui.dynamicisland.view.DynamicIslandExpandedView"
     private const val NO_CONTENT_CLEANUP_POLL_MS = 16L
     private const val NO_CONTENT_CLEANUP_TIMEOUT_MS = 1_500L
     private val hookedContentClasses = Collections.synchronizedSet(
@@ -64,9 +63,6 @@ object IslandBlurHook : BaseHook() {
     @Volatile
     private var islandTempHidden = false
 
-    @Volatile
-    private var activeSoftGlassType: IslandType? = null
-
     override fun getTag() = TAG
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
@@ -80,17 +76,14 @@ object IslandBlurHook : BaseHook() {
 
     override fun onConfigChanged() {
         configStore.reload()
+        val currentType = lastIslandType
+        if (currentType == null || currentType == IslandType.EXPAND ||
+            materialForType(currentType).type != MaterialType.SOFT
+        ) {
+            SoftGlassController.setPassWindowRetention(false)
+        }
         mainHandler.post {
             refreshTrackedSoftGlassViews()
-            val softType = activeSoftGlassType
-            if (softType == null || materialForType(softType).type != MaterialType.SOFT) {
-                activeSoftGlassType = null
-                SoftGlassController.clearWindowSession()
-            } else {
-                SoftGlassController.activateWindowSession(
-                    materialForType(softType).softGlass
-                )
-            }
             outerBlurRegistry.onConfigChanged()
         }
         mainHandler.removeCallbacks(refreshRunnable)
@@ -100,26 +93,34 @@ object IslandBlurHook : BaseHook() {
     }
 
     private fun hookPlugin(module: XposedModule, classLoader: ClassLoader) {
+        var installStage = "content-class"
         try {
             val contentClass = Class.forName(CONTENT_VIEW_CLASS, false, classLoader)
+            installStage = "background-class"
             val backgroundClass = Class.forName(BACKGROUND_VIEW_CLASS, false, classLoader)
+            installStage = "state-class"
             val stateClass = Class.forName(
                 "miui.systemui.dynamicisland.event.DynamicIslandState",
                 false,
                 classLoader,
             )
+            installStage = "window-class"
             val windowViewClass = Class.forName(
                 "miui.systemui.dynamicisland.window.DynamicIslandWindowView",
                 false,
                 classLoader,
             )
+            installStage = "blur-compat"
             val compatClass = sequenceOf(
                 "miui.systemui.util.MiBlurCompat",
                 "miui.util.MiBlurCompat",
             ).mapNotNull { name ->
                 runCatching { Class.forName(name, false, classLoader) }.getOrNull()
             }.firstOrNull() ?: throw ClassNotFoundException("MiBlurCompat")
+            installStage = "runtime-bind"
             SoftGlassController.bindRuntime(contentClass, compatClass)
+            SoftGlassController.hookExpandedTokenParams(module, contentClass)
+            SoftGlassController.hookWindowLifecycle(module, windowViewClass)
             val updateMethod = contentClass.getDeclaredMethod(
                 "updateBackgroundBg",
                 View::class.java,
@@ -135,7 +136,6 @@ object IslandBlurHook : BaseHook() {
                 isAccessible = true
             }
             if (!hookedContentClasses.add(contentClass)) return
-            SoftGlassController.hookWindowLifecycle(module, windowViewClass)
             hookIslandState(
                 module,
                 contentClass,
@@ -149,15 +149,26 @@ object IslandBlurHook : BaseHook() {
             hookBackgroundAlphaUpdates(module, backgroundClass)
             hookContentVisibility(module, classLoader, backgroundViewField)
             hookTempHiddenLifecycle(module, windowViewClass)
-            hookExpandedContentInstall(
-                module,
-                classLoader,
-            )
             module.hook(updateMethod).intercept { chain ->
-                val result = chain.proceed()
-                val view = chain.args.getOrNull(0) as? View ?: return@intercept result
+                val view = chain.args.getOrNull(0) as? View
+                val contentViewBeforeUpdate = chain.thisObject
+                val typeBeforeUpdate = view?.let(IslandStateResolver::forView)
+                    ?: islandTypeHolder.get()
+                    ?: runCatching {
+                        IslandStateResolver.fromState(stateField.get(contentViewBeforeUpdate))
+                    }.getOrNull()
+                    ?: lastIslandType
+                val materialBeforeUpdate = typeBeforeUpdate?.let(::materialForType)
+                val result = if (materialBeforeUpdate?.type == MaterialType.SOFT) {
+                    SoftGlassController.withSystemTokenConfig(materialBeforeUpdate.softGlass) {
+                        chain.proceed()
+                    }
+                } else {
+                    chain.proceed()
+                }
+                view ?: return@intercept result
                 val contentView = chain.thisObject ?: return@intercept result
-                val type = IslandStateResolver.forView(view)
+                val type = typeBeforeUpdate
                 refreshTargets[view] = RefreshTarget(
                     contentView = WeakReference(contentView),
                     updateMethod = updateMethod,
@@ -185,17 +196,33 @@ object IslandBlurHook : BaseHook() {
                 // which is then exposed unchanged when the island collapses.
                 // The stale-state guard is only needed by the shared outer drawable.
                 val active = if (material.type == MaterialType.SOFT) {
-                    if (!staleUpdate) {
-                        deactivateOuterBlur(backgroundView, outerDrawableField, "soft-glass")
+                    val systemBionicsActive = SoftGlassController.isSystemBionicsActive(view)
+                    module.log(
+                        "soft update view=${view.javaClass.name} type=$type state=$stateType " +
+                            "stale=$staleUpdate bionics=$systemBionicsActive " +
+                            "config=${material.softGlass}",
+                    )
+                    if (!staleUpdate && systemBionicsActive && type != IslandType.EXPAND) {
+                        clearOuterForSoftGlass(
+                            backgroundView,
+                            outerDrawableField,
+                            "soft-glass",
+                        )
                     }
-                    val softActive = SoftGlassController.apply(view, material.softGlass)
-                    if (softActive) {
-                        if (!staleUpdate) {
-                            activateSoftGlassSession(type, material)
-                        }
-                        true
+                    if (systemBionicsActive) {
+                        // SystemUI first establishes the native material lifecycle, outline and
+                        // EXPAND gray/outer treatment. Submit the customized parameter array only
+                        // after that writer. SMALL/BIG need the direct Bionics call because the
+                        // stock method is designed for EXPAND and is not sufficient on those Views.
+                        SoftGlassController.apply(
+                            view,
+                            material.softGlass,
+                            preserveSystemOutline = type == IslandType.EXPAND,
+                        )
+                    } else {
+                        SoftGlassController.onSystemMaterialReplaced(view)
+                        false
                     }
-                    softActive
                 } else if (staleUpdate) {
                     SoftGlassController.onSystemMaterialReplaced(view)
                     false
@@ -222,10 +249,15 @@ object IslandBlurHook : BaseHook() {
                 }
                 result
             }
-            module.log("native island blur hook installed")
-        } catch (_: ClassNotFoundException) {
+            module.logWarn("native island blur hook installed loader=$classLoader")
+        } catch (e: ClassNotFoundException) {
+            // Most process/plugin loaders are irrelevant and legitimately miss the content
+            // class. Once that class resolves, every later miss is a real compatibility fault.
+            if (installStage != "content-class") {
+                module.logWarn("hook installation stopped at $installStage: ${e.message}")
+            }
         } catch (e: Throwable) {
-            module.logError("hook installation failed: ${e.message}")
+            module.logError("hook installation failed at $installStage: ${e.stackTraceToString()}")
         }
     }
 
@@ -267,10 +299,16 @@ object IslandBlurHook : BaseHook() {
         module.hook(method).intercept { chain ->
             val state = chain.args.getOrNull(0)
             val type = IslandStateResolver.fromState(state)
+            val noContent = IslandStateResolver.isNoContent(state)
+            val previousType = lastIslandType
+            val leavingSoft = noContent && previousType?.let(::materialForType)?.type ==
+                MaterialType.SOFT
             if (type != null) {
                 islandTypeHolder.set(type)
                 lastIslandType = type
                 cancelNoContentCleanup(chain.thisObject)
+            } else if (noContent && !leavingSoft) {
+                SoftGlassController.setPassWindowRetention(false)
             }
             try {
                 val result = chain.proceed()
@@ -279,7 +317,12 @@ object IslandBlurHook : BaseHook() {
                     mainHandler.post(refreshRunnable)
                 }
                 if (type != null) {
-                    mainHandler.post {
+                    val material = materialForType(type)
+                    if (material.type == MaterialType.SOFT) {
+                        // updateDarkLightMode is the final synchronous writer of the outer dark
+                        // drawable during EXPAND -> BIG/SMALL. Prepare the destination Bionics
+                        // view in this same transaction; posting this work creates a gray frame.
+                        refreshConcreteIslandViews(chain.thisObject, updateMethod, type)
                         synchronizeOuterVisual(
                             chain.thisObject,
                             type,
@@ -287,17 +330,44 @@ object IslandBlurHook : BaseHook() {
                             backgroundViewField,
                             outerDrawableField,
                         )
-                        if (materialForType(type).isCustom) {
-                            refreshConcreteIslandViews(chain.thisObject, updateMethod, type)
+                    } else {
+                        SoftGlassController.setPassWindowRetention(false)
+                        mainHandler.post {
+                            synchronizeOuterVisual(
+                                chain.thisObject,
+                                type,
+                                stateField,
+                                backgroundViewField,
+                                outerDrawableField,
+                            )
+                            if (material.isCustom) {
+                                refreshConcreteIslandViews(chain.thisObject, updateMethod, type)
+                            }
                         }
                     }
-                } else if (IslandStateResolver.isNoContent(state)) {
+                } else if (noContent) {
                     val contentView = chain.thisObject
+                    if (leavingSoft) {
+                        // Hidden/Deleted installs the stock dark outer drawable at the start of
+                        // the shrink. The fake Bionics View is the complete SOFT transition;
+                        // keep pass-window sampling alive and remove that black writer now.
+                        val backgroundView = runCatching {
+                            backgroundViewField.get(contentView) as? View
+                        }.getOrNull()
+                        if (backgroundView != null) {
+                            clearOuterForSoftGlass(
+                                backgroundView,
+                                outerDrawableField,
+                                "soft-glass-no-content",
+                            )
+                        }
+                    }
                     scheduleNoContentCleanup(
                         contentView,
                         stateField,
                         backgroundViewField,
                         outerDrawableField,
+                        holdSoftGlass = leavingSoft,
                     )
                 }
                 result
@@ -319,6 +389,7 @@ object IslandBlurHook : BaseHook() {
         stateField: java.lang.reflect.Field,
         backgroundViewField: java.lang.reflect.Field,
         outerDrawableField: java.lang.reflect.Field,
+        holdSoftGlass: Boolean,
     ) {
         cancelNoContentCleanup(contentView)
         val deadline = SystemClock.uptimeMillis() + NO_CONTENT_CLEANUP_TIMEOUT_MS
@@ -342,7 +413,7 @@ object IslandBlurHook : BaseHook() {
             }.getOrNull() ?: backgroundView.alpha
             val stillDrawing = backgroundView.isAttachedToWindow &&
                 backgroundView.visibility == View.VISIBLE &&
-                outerBlurRegistry.hasDrawableBounds(backgroundView) &&
+                (holdSoftGlass || outerBlurRegistry.hasDrawableBounds(backgroundView)) &&
                 internalAlpha > 0.01f
             if (stillDrawing && SystemClock.uptimeMillis() < deadline) {
                 mainHandler.postDelayed(cleanup, NO_CONTENT_CLEANUP_POLL_MS)
@@ -351,8 +422,7 @@ object IslandBlurHook : BaseHook() {
 
             noContentCleanupRunnables.remove(contentView)
             deactivateOuterBlur(backgroundView, outerDrawableField, "no-content-animation-finished")
-            activeSoftGlassType = null
-            SoftGlassController.clearWindowSession()
+            SoftGlassController.setPassWindowRetention(false, backgroundView)
             if (outerBlurRegistry.isEmpty()) {
                 lastIslandType = null
             }
@@ -380,7 +450,12 @@ object IslandBlurHook : BaseHook() {
             IslandType.BIG -> "getBigIslandView"
             IslandType.EXPAND -> return
         }
-        if (!configForType(type).isActive) return
+        // SOFT intentionally has no BlurDrawable config, so toBlurConfig().isActive is false.
+        // Gating this refresh on BlurConfig silently skipped the real SMALL/BIG views while
+        // the fake animation FrameLayouts still received Bionics, producing a transparent
+        // settled island after an apparently-correct transition.
+        val material = materialForType(type)
+        if (material.type != MaterialType.SOFT && !configForType(type).isActive) return
         val getter = findMethod(contentView.javaClass, getterName)
         val view = runCatching { getter?.invoke(contentView) as? View }.getOrNull()
         if (view == null) return
@@ -521,14 +596,14 @@ object IslandBlurHook : BaseHook() {
         val shapeView = IslandStateResolver.concreteView(contentView, type)
         val material = materialForType(type)
         if (material.type == MaterialType.SOFT) {
-            deactivateOuterBlur(backgroundView, outerDrawableField, "soft-glass-sync")
-            if (shapeView != null) {
-                if (SoftGlassController.apply(
-                        shapeView,
-                        material.softGlass,
-                    )
-                ) {
-                    activateSoftGlassSession(type, material)
+            val active = shapeView != null && SoftGlassController.isSystemBionicsActive(shapeView)
+            SoftGlassController.setPassWindowRetention(
+                active && type != IslandType.EXPAND,
+                shapeView,
+            )
+            if (active) {
+                if (type != IslandType.EXPAND) {
+                    clearOuterForSoftGlass(backgroundView, outerDrawableField, "soft-glass-sync")
                 }
             }
             return
@@ -547,22 +622,41 @@ object IslandBlurHook : BaseHook() {
 
     private fun configForType(type: IslandType): BlurConfig = configStore.blurFor(type)
 
-    /** Rewrites native Bionics parameters even when SystemUI emits no state callback. */
+    /** Re-runs SystemUI's own material writer when module configuration changes. */
     private fun refreshTrackedSoftGlassViews() {
         val targets = synchronized(refreshTargets) {
             refreshTargets.entries.mapNotNull { (view, target) ->
-                target.type?.let { type -> view to type }
+                val contentView = target.contentView.get() ?: return@mapNotNull null
+                target.type?.let { type -> Triple(view, contentView, target) }
             }
         }
-        targets.forEach { (view, type) ->
+        targets.forEach { (view, contentView, target) ->
             if (!view.isAttachedToWindow) return@forEach
+            val type = target.type ?: return@forEach
             val material = materialForType(type)
             if (material.type == MaterialType.SOFT) {
-                SoftGlassController.apply(view, material.softGlass)
-            } else if (SoftGlassController.isManaged(view)) {
-                SoftGlassController.release(view)
+                runCatching { target.updateMethod.invoke(contentView, view, target.promoted) }
+                val currentType = runCatching {
+                    IslandStateResolver.fromState(target.stateField.get(contentView))
+                }.getOrNull()
+                if (currentType == type && type != IslandType.EXPAND) {
+                    SoftGlassController.setPassWindowRetention(
+                        SoftGlassController.isSystemBionicsActive(view),
+                        view,
+                    )
+                }
             }
         }
+    }
+
+    private fun clearOuterForSoftGlass(
+        backgroundView: View,
+        drawableField: java.lang.reflect.Field,
+        reason: String,
+    ) {
+        deactivateOuterBlur(backgroundView, drawableField, reason)
+        runCatching { drawableField.set(backgroundView, null) }
+        backgroundView.invalidate()
     }
 
     private fun applyOuterBlur(
@@ -585,48 +679,6 @@ object IslandBlurHook : BaseHook() {
         drawableField: java.lang.reflect.Field,
         reason: String = "state-disabled",
     ) = outerBlurRegistry.deactivate(backgroundView, drawableField, reason)
-
-    private fun activateSoftGlassSession(type: IslandType, material: MaterialConfig) {
-        activeSoftGlassType = type
-        SoftGlassController.activateWindowSession(material.softGlass)
-    }
-
-    /**
-     * EXPAND installs its content after updateBackgroundBg(), unlike SMALL/BIG.
-     * Apply native Bionics parameters after the child-tree transaction so a
-     * notification RemoteViews update cannot invalidate the material RenderNode.
-     */
-    private fun hookExpandedContentInstall(
-        module: XposedModule,
-        classLoader: ClassLoader,
-    ) {
-        val expandedClass = runCatching {
-            Class.forName(EXPANDED_VIEW_CLASS, false, classLoader)
-        }.getOrNull() ?: return
-        expandedClass.declaredMethods
-            .filter { method ->
-                method.name.startsWith("setContentView") &&
-                    method.parameterTypes.contentEquals(arrayOf(View::class.java))
-            }
-            .forEach { method ->
-                method.isAccessible = true
-                module.hook(method).intercept { chain ->
-                    val result = chain.proceed()
-                    val expandedView = chain.thisObject as? View
-                        ?: return@intercept result
-                    val material = materialForType(IslandType.EXPAND)
-                    if (material.type == MaterialType.SOFT) {
-                        // setContentView* may replace the RemoteViews subtree without a
-                        // subsequent state callback. Re-submit Xiaomi's native token directly
-                        // to the authoritative expanded View after every replacement.
-                        if (SoftGlassController.apply(expandedView, material.softGlass)) {
-                            activateSoftGlassSession(IslandType.EXPAND, material)
-                        }
-                    }
-                    result
-                }
-            }
-    }
 
     private data class RefreshTarget(
         val contentView: WeakReference<Any>,

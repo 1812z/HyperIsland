@@ -24,11 +24,6 @@ internal class TransitionBlurController(
         return configStore.materialFor(type).isCustom
     }
 
-    fun isSoftGlass(typeName: String): Boolean {
-        val type = typeFromName(typeName) ?: return false
-        return configStore.materialFor(type).type == MaterialType.SOFT
-    }
-
     fun apply(view: View, typeName: String): Boolean {
         val type = typeFromName(typeName) ?: return false
         val config = configStore.blurFor(type)
@@ -38,7 +33,11 @@ internal class TransitionBlurController(
             return false
         }
         if (material.type == MaterialType.SOFT) {
-            val applied = SoftGlassController.apply(view, material.softGlass)
+            val applied = SoftGlassController.apply(
+                view,
+                material.softGlass,
+                preserveSystemOutline = type == IslandType.EXPAND,
+            )
             releaseNative(view)
             if (applied) ensureDetachCleanup(view)
             // Soft glass must stay entirely on HyperOS' Bionics channel. Never
