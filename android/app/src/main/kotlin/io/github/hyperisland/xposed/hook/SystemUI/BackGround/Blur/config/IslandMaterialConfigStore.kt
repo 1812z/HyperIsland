@@ -153,10 +153,10 @@ internal class IslandMaterialConfigStore {
             ?: return MaterialConfig.default()
         fun int(name: String, fallback: Int, min: Int, max: Int) =
             json.optInt(name, fallback).coerceIn(min, max)
-        val softV2 = json.optInt("softSchema", 0) == 2
+        val hasSoftSchema = json.optInt("softSchema", 0) >= 2
         val color = parseColor(json.optString("blendColor", "#0F0F0F"))
         val type = MaterialType.fromValue(json.optString("type", "default"))
-        val opacity = if (!softV2 && type == MaterialType.SOFT) {
+        val opacity = if (!hasSoftSchema && type == MaterialType.SOFT) {
             0
         } else {
             int("blendOpacity", 0, 0, 100)

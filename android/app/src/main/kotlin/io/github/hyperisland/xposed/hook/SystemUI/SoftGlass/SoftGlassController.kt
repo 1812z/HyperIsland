@@ -4,13 +4,13 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.Outline
 import android.graphics.drawable.Drawable
+import android.os.Looper
 import android.util.TypedValue
 import android.view.View
 import android.view.ViewOutlineProvider
 import io.github.hyperisland.xposed.logWarn
 import io.github.hyperisland.xposed.log
 import io.github.libxposed.api.XposedModule
-import java.lang.ref.WeakReference
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.util.Collections
@@ -20,8 +20,9 @@ import java.util.WeakHashMap
  * Owns the complete HyperOS 4 native soft-glass pipeline.
  *
  * Callers only provide a [SoftGlassConfig] and lifecycle signals. Xiaomi reflection,
- * Bionics parameter conversion, managed View state, and pass-window blur retention
- * intentionally stay behind this boundary.
+ * Bionics parameter conversion and managed View state intentionally stay behind this boundary.
+ * SystemUI still owns window/pass-window sampling; this controller only prevents its settled
+ * SMALL/BIG shutdown while a visible module Bionics layer still consumes that sampler.
  */
 internal object SoftGlassController {
     private const val TAG = "HyperIsland[SoftGlass]"
@@ -36,14 +37,29 @@ internal object SoftGlassController {
     private val appliedConfigs = Collections.synchronizedMap(
         WeakHashMap<View, SoftGlassConfig>()
     )
+    private val appliedParams = Collections.synchronizedMap(
+        WeakHashMap<View, FloatArray>()
+    )
     private val windowBlurRadii = Collections.synchronizedMap(
         WeakHashMap<View, Int>()
     )
-    private val windowPassStates = Collections.synchronizedMap(
-        WeakHashMap<View, Boolean>()
-    )
     private val hookedWindowClasses = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>())
+    )
+    private val hookedStyleClasses = Collections.synchronizedSet(
+        Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>())
+    )
+    private val passWindowRoots = Collections.synchronizedSet(
+        Collections.newSetFromMap(WeakHashMap<View, Boolean>())
+    )
+    private val pendingPassWindowRoots = Collections.synchronizedSet(
+        Collections.newSetFromMap(WeakHashMap<View, Boolean>())
+    )
+    private val pendingPassWindowCloseRoots = Collections.synchronizedSet(
+        Collections.newSetFromMap(WeakHashMap<View, Boolean>())
+    )
+    private val refreshedPassWindowRoots = Collections.synchronizedSet(
+        Collections.newSetFromMap(WeakHashMap<View, Boolean>())
     )
     private val setMiSelfBlurMethod: Method? by lazy {
         runCatching {
@@ -63,15 +79,6 @@ internal object SoftGlassController {
 
     @Volatile
     private var isBionicsActiveMethod: Method? = null
-
-    @Volatile
-    private var retainPassWindowBlur = false
-
-    @Volatile
-    private var lastSystemPassWindowBlur = false
-
-    @Volatile
-    private var sessionWindow: WeakReference<View>? = null
 
     /** Resolves the Xiaomi APIs for one SystemUI plugin class loader. */
     fun bindRuntime(contentClass: Class<*>, compatClass: Class<*>) {
@@ -127,60 +134,11 @@ internal object SoftGlassController {
         )
     }
 
-    /**
-     * Keeps SystemUI's pass-window switch stable while a module Bionics layer is visible.
-     *
-     * finalizeAnimFinished() requests false whenever EXPAND ends, even when a module-owned BIG
-     * remains on screen. Letting that false write run and turning it back on afterwards resets
-     * the shared sampler and flashes the otherwise stationary BIG. Suppress that source write;
-     * once the last managed layer is hidden, SystemUI's next false request proceeds normally.
-     */
+    /** Installs the two window-boundary hooks used by native soft glass. */
     fun hookWindowLifecycle(module: XposedModule, windowViewClass: Class<*>) {
         if (!hookedWindowClasses.add(windowViewClass)) return
-        val lastPassWindowBlurField = findField(
-            windowViewClass,
-            "lastPassWindowBlurEnabled",
-        )
-        findMethod(
-            windowViewClass,
-            "updatePassWindowBlur",
-            Boolean::class.javaPrimitiveType!!,
-        )?.let { method ->
-            module.hook(method).intercept { chain ->
-                val requested = chain.args.getOrNull(0) as? Boolean ?: false
-                val root = chain.thisObject as? View ?: return@intercept chain.proceed()
-                sessionWindow = WeakReference(root)
-                lastSystemPassWindowBlur = requested
-                if (!requested &&
-                    isSystemBionicsActive(root) &&
-                    (retainPassWindowBlur || hasVisibleManagedView(root))
-                ) {
-                    // Keep the native sampler alive for module-owned SMALL/BIG, but retain the
-                    // logical false transition. If the field stays true, the next stock true
-                    // request is skipped and EXPAND renders as an opaque self-blur layer.
-                    val logicalStateReset = runCatching {
-                        lastPassWindowBlurField?.set(root, false)
-                        lastPassWindowBlurField != null
-                    }.getOrDefault(false)
-                    if (!logicalStateReset) {
-                        // Compatibility fallback for a renamed OS build: let SystemUI update its
-                        // field, then restore the sampler in the same UI transaction.
-                        chain.proceed()
-                    }
-                    windowPassStates.remove(root)
-                    enforcePassWindowBlur(root)
-                    log(
-                        "$TAG preserve pass-window false request " +
-                            "retention=$retainPassWindowBlur visible=${hasVisibleManagedView(root)} " +
-                            "logicalReset=$logicalStateReset",
-                    )
-                    return@intercept null
-                }
-                val result = chain.proceed()
-                windowPassStates[root] = requested && isSystemBionicsActive(root)
-                result
-            }
-        }
+        hookMaterialOwnership(module, windowViewClass.classLoader)
+        hookPassWindowLifecycle(module, windowViewClass)
         findMethod(
             windowViewClass,
             "updateWindowBlur",
@@ -208,11 +166,102 @@ internal object SoftGlassController {
         }
     }
 
-    fun setPassWindowRetention(enabled: Boolean, source: View? = null) {
-        retainPassWindowBlur = enabled
-        val root = source?.let(::findWindowView) ?: sessionWindow?.get() ?: return
-        sessionWindow = WeakReference(root)
-        enforcePassWindowBlur(root)
+    /**
+     * Protects managed island Views at SystemUI's two common Bionics writer methods.
+     * This substitutes a conflicting stock write before it reaches View/RenderNode; it never
+     * schedules a second setMiGlass transaction and does not affect non-island SystemUI surfaces.
+     */
+    private fun hookMaterialOwnership(module: XposedModule, classLoader: ClassLoader) {
+        val styleClass = runCatching {
+            Class.forName("miui.systemui.util.MiBackgroundStyle", false, classLoader)
+        }.getOrNull() ?: return
+        if (!hookedStyleClasses.add(styleClass)) return
+
+        findMethod(
+            styleClass,
+            "setMiViewMaterialType",
+            View::class.java,
+            Int::class.javaPrimitiveType!!,
+        )?.let { method ->
+            runCatching {
+                module.hook(method).intercept { chain ->
+                    val view = chain.args.getOrNull(0) as? View
+                    val type = chain.args.getOrNull(1) as? Int
+                    if (view != null && type != 1 && managedViews.contains(view)) {
+                        return@intercept chain.proceed(arrayOf(view, 1))
+                    }
+                    chain.proceed()
+                }
+            }.onFailure {
+                logWarn("$TAG material-type ownership hook unavailable: ${it.message}")
+            }
+        }
+        findMethod(
+            styleClass,
+            "setMiGlassCompat",
+            View::class.java,
+            FloatArray::class.java,
+        )?.let { method ->
+            runCatching {
+                module.hook(method).intercept { chain ->
+                    val view = chain.args.getOrNull(0) as? View
+                    val params = view?.let(appliedParams::get)
+                    if (view != null && params != null && managedViews.contains(view)) {
+                        return@intercept chain.proceed(arrayOf(view, params))
+                    }
+                    chain.proceed()
+                }
+            }.onFailure {
+                logWarn("$TAG glass ownership hook unavailable: ${it.message}")
+            }
+        }
+    }
+
+    /**
+     * Keeps one continuous native sampler session for visible SOFT layers.
+     *
+     * SystemUI normally turns pass-window off after settling in SMALL/BIG. A module Bionics layer
+     * still consumes that sampler, so keep one continuous session until the last visible SOFT View
+     * disappears. Crucially, the native flag and SystemUI's lastPassWindowBlurEnabled cache always
+     * remain identical: there is no false -> true rebuild and therefore no white frame or flash.
+     */
+    private fun hookPassWindowLifecycle(module: XposedModule, windowViewClass: Class<*>) {
+        findMethod(
+            windowViewClass,
+            "updatePassWindowBlur",
+            Boolean::class.javaPrimitiveType!!,
+        )?.let { method ->
+            runCatching {
+                module.hook(method).intercept { chain ->
+                    val requested = chain.args.getOrNull(0) as? Boolean ?: false
+                    val root = chain.thisObject as? View ?: return@intercept chain.proceed()
+                    if (!requested && isSystemBionicsActive(root) &&
+                        hasVisibleManagedView(root)
+                    ) {
+                        if (!passWindowRoots.contains(root)) {
+                            // Startup/restoration may reach the stock final false without a prior
+                            // scheduled animation. Turn that same source transaction into the one
+                            // native open; do not post a corrective write after it.
+                            val result = chain.proceed(arrayOf(true))
+                            passWindowRoots.add(root)
+                            pendingPassWindowRoots.remove(root)
+                            return@intercept result
+                        }
+                        passWindowRoots.add(root)
+                        return@intercept null
+                    }
+                    val result = chain.proceed()
+                    if (requested && isSystemBionicsActive(root)) {
+                        passWindowRoots.add(root)
+                    } else if (!requested) {
+                        passWindowRoots.remove(root)
+                    }
+                    result
+                }
+            }.onFailure {
+                logWarn("$TAG pass-window hook unavailable: ${it.message}")
+            }
+        }
     }
 
     /**
@@ -258,9 +307,10 @@ internal object SoftGlassController {
         setGlass.invoke(view, params)
         // Clear a self-blur left by the stock transition once when material ownership changes.
         // OS4 frame writers are intercepted at their source, so this must not run every frame.
-        runCatching { setMiSelfBlurMethod?.invoke(view, 0, null) }
+        clearSelfBlur(view)
         managedViews.add(view)
         appliedConfigs[view] = config
+        appliedParams[view] = params
         ensurePassWindowBlur(view)
         view.invalidate()
         log(
@@ -276,6 +326,11 @@ internal object SoftGlassController {
 
     fun isManaged(view: View): Boolean = managedViews.contains(view)
 
+    /** Clears Xiaomi's independent RenderNode self-blur without touching the glass material. */
+    fun clearSelfBlur(view: View) {
+        runCatching { setMiSelfBlurMethod?.invoke(view, 0, null) }
+    }
+
     fun isSystemBionicsActive(view: View): Boolean = runCatching {
         isBionicsActiveMethod?.invoke(null, view.context) as? Boolean
     }.getOrNull() == true
@@ -283,8 +338,12 @@ internal object SoftGlassController {
     /** The radius belongs to DynamicIslandWindowView, so only the settled real-state path calls it. */
     fun updateWindowBlurRadius(source: View, radius: Int) {
         val root = findWindowView(source) ?: return
+        setWindowBlurRadius(root, radius, force = false)
+    }
+
+    private fun setWindowBlurRadius(root: View, radius: Int, force: Boolean) {
         val value = radius.coerceAtLeast(0)
-        if (windowBlurRadii[root] == value) return
+        if (!force && windowBlurRadii[root] == value) return
         val method = findMethod(
             root.javaClass,
             "setMiGlassBlurRadius",
@@ -299,38 +358,116 @@ internal object SoftGlassController {
         }
     }
 
-    /** Enables the sampler as soon as a managed View is actually visible, independent of state. */
-    fun ensurePassWindowBlur(source: View) {
-        if (!isSystemBionicsActive(source)) return
+    /**
+     * Reconciles native window properties after SystemUI exposes one cached fake slot.
+     *
+     * View visibility/surface reuse can recreate RenderNode state without changing
+     * lastPassWindowBlurEnabled. Re-enter the system method to keep its cache correct, then
+     * idempotently reassert only the two window-owned properties. The per-View glass material is
+     * deliberately untouched, so its edge/refraction effect cannot restart or flash.
+     */
+    fun refreshPassWindowBlur(source: View) {
+        if (!source.isAttachedToWindow || !source.isShown || !isSystemBionicsActive(source)
+        ) {
+            return
+        }
         val root = findWindowView(source) ?: return
-        sessionWindow = WeakReference(root)
-        enforcePassWindowBlur(root)
+        if (!refreshedPassWindowRoots.add(root)) return
+        if (!root.post { refreshedPassWindowRoots.remove(root) }) {
+            refreshedPassWindowRoots.remove(root)
+        }
+        val method = findMethod(
+            root.javaClass,
+            "updatePassWindowBlur",
+            Boolean::class.javaPrimitiveType!!,
+        ) ?: return
+        runCatching {
+            val retainedSession = passWindowRoots.contains(root)
+            method.invoke(root, true)
+            val passApplied = !retainedSession || reassertNativePassWindow(root)
+            appliedConfigs[source]?.let { config ->
+                setWindowBlurRadius(root, config.blurRadius, force = true)
+            }
+            passWindowRoots.add(root)
+            log(
+                "$TAG sampler refresh view=${source.javaClass.name} " +
+                    "pass=$passApplied radius=${appliedConfigs[source]?.blurRadius}",
+            )
+        }.onFailure {
+            refreshedPassWindowRoots.remove(root)
+            logWarn("$TAG sampler refresh unavailable: ${it.message}")
+        }
+    }
+
+    private fun reassertNativePassWindow(root: View): Boolean {
+        val methods = blurMethods ?: return false
+        val passApplied = runCatching {
+            methods.setPassWindowBlur?.invoke(null, root, true) as? Boolean
+        }.getOrNull() == true
+        runCatching { methods.setPassFps?.invoke(null, root, 60) }
+        return passApplied
+    }
+
+    /** Opens the native sampler once when a prepared SOFT state actually becomes visible. */
+    fun ensurePassWindowBlur(source: View) {
+        if (!source.isAttachedToWindow || !source.isShown || source.alpha <= 0.01f ||
+            !isSystemBionicsActive(source)
+        ) {
+            return
+        }
+        val root = findWindowView(source) ?: return
+        if (passWindowRoots.contains(root) || !pendingPassWindowRoots.add(root)) return
+        val open = Runnable {
+            pendingPassWindowRoots.remove(root)
+            if (passWindowRoots.contains(root) || !hasVisibleManagedView(root)) return@Runnable
+            val method = findMethod(
+                root.javaClass,
+                "updatePassWindowBlur",
+                Boolean::class.javaPrimitiveType!!,
+            ) ?: return@Runnable
+            runCatching { method.invoke(root, true) }
+                .onFailure {
+                    passWindowRoots.remove(root)
+                    logWarn("$TAG cannot open native sampler: ${it.message}")
+                }
+        }
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            open.run()
+        } else if (!root.post(open)) {
+            pendingPassWindowRoots.remove(root)
+        }
+    }
+
+    private fun closePassWindowIfIdle(root: View) {
+        if (!passWindowRoots.contains(root) || !pendingPassWindowCloseRoots.add(root)) return
+        val close = Runnable {
+            pendingPassWindowCloseRoots.remove(root)
+            if (!passWindowRoots.contains(root) || hasVisibleManagedView(root)) return@Runnable
+            findMethod(
+                root.javaClass,
+                "updatePassWindowBlur",
+                Boolean::class.javaPrimitiveType!!,
+            )?.let { method ->
+                runCatching { method.invoke(root, false) }
+            }
+        }
+        // Release and replacement can occur in one SystemUI transaction. Recheck after that
+        // transaction so an A -> B handoff never creates a false -> true sampler cycle.
+        if (!root.post(close)) pendingPassWindowCloseRoots.remove(root)
     }
 
     /** Releases a View owned by this renderer and restores its captured background when needed. */
     fun release(view: View, restoreBackground: Boolean = true) {
         if (!managedViews.remove(view)) return
-        val window = findWindowView(view)
+        val root = findWindowView(view)
         clearMaterial(view)
         val stock = stockBackgrounds.remove(view)
         appliedConfigs.remove(view)
+        appliedParams.remove(view)
         if (restoreBackground && view.background == null) view.background = stock
-        if (window != null) enforcePassWindowBlur(window)
+        if (root != null) closePassWindowIfIdle(root)
     }
 
-    private fun enforcePassWindowBlur(root: View) {
-        val enabled = lastSystemPassWindowBlur || retainPassWindowBlur ||
-            hasVisibleManagedView(root)
-        if (windowPassStates[root] == enabled) return
-        blurMethods?.let { methods ->
-            runCatching { methods.setPassWindowBlur?.invoke(null, root, enabled) }
-            runCatching { methods.setPassFps?.invoke(null, root, if (enabled) 60 else -1) }
-        }
-        windowPassStates[root] = enabled
-        log("$TAG direct pass-window enabled=$enabled visible=${hasVisibleManagedView(root)}")
-    }
-
-    /** One island leaving must not disable the window sampler used by a surviving island. */
     private fun hasVisibleManagedView(root: View): Boolean {
         val snapshot = synchronized(managedViews) { managedViews.toList() }
         return snapshot.any { view ->

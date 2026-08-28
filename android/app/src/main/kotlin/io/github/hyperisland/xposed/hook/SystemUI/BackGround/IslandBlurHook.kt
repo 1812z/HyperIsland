@@ -81,12 +81,6 @@ object IslandBlurHook : BaseHook() {
 
     override fun onConfigChanged() {
         configStore.reload()
-        val currentType = lastIslandType
-        if (currentType == null || currentType == IslandType.EXPAND ||
-            materialForType(currentType).type != MaterialType.SOFT
-        ) {
-            SoftGlassController.setPassWindowRetention(false)
-        }
         mainHandler.post {
             refreshTrackedSoftGlassViews()
             outerBlurRegistry.onConfigChanged()
@@ -344,8 +338,6 @@ object IslandBlurHook : BaseHook() {
                 islandTypeHolder.set(type)
                 lastIslandType = type
                 cancelNoContentCleanup(contentView)
-            } else if (noContent && !leavingSoft) {
-                SoftGlassController.setPassWindowRetention(false)
             }
             try {
                 val result = chain.proceed()
@@ -370,7 +362,6 @@ object IslandBlurHook : BaseHook() {
                             outerDrawableField,
                         )
                     } else {
-                        SoftGlassController.setPassWindowRetention(false)
                         mainHandler.post {
                             synchronizeOuterVisual(
                                 chain.thisObject,
@@ -387,8 +378,8 @@ object IslandBlurHook : BaseHook() {
                 } else if (noContent) {
                     if (leavingSoft) {
                         // Hidden/Deleted installs the stock dark outer drawable at the start of
-                        // the shrink. The fake Bionics View is the complete SOFT transition;
-                        // keep pass-window sampling alive and remove that black writer now.
+                        // the shrink. The fake Bionics View is the complete SOFT transition, so
+                        // remove that black writer while SystemUI owns the sampling lifecycle.
                         val backgroundView = runCatching {
                             backgroundViewField.get(contentView) as? View
                         }.getOrNull()
@@ -400,13 +391,17 @@ object IslandBlurHook : BaseHook() {
                             )
                         }
                     }
-                    scheduleNoContentCleanup(
-                        contentView,
-                        stateField,
-                        backgroundViewField,
-                        outerDrawableField,
-                        holdSoftGlass = leavingSoft,
-                    )
+                    // SOFT owns no outer BlurDrawable after the source clear above. Polling its
+                    // geometry until timeout was an obsolete workaround and only added UI-thread
+                    // work. Gaussian materials still need the delayed drawable release below.
+                    if (!leavingSoft) {
+                        scheduleNoContentCleanup(
+                            contentView,
+                            stateField,
+                            backgroundViewField,
+                            outerDrawableField,
+                        )
+                    }
                 }
                 result
             } finally {
@@ -427,7 +422,6 @@ object IslandBlurHook : BaseHook() {
         stateField: java.lang.reflect.Field,
         backgroundViewField: java.lang.reflect.Field,
         outerDrawableField: java.lang.reflect.Field,
-        holdSoftGlass: Boolean,
     ) {
         cancelNoContentCleanup(contentView)
         val deadline = SystemClock.uptimeMillis() + NO_CONTENT_CLEANUP_TIMEOUT_MS
@@ -451,7 +445,7 @@ object IslandBlurHook : BaseHook() {
             }.getOrNull() ?: backgroundView.alpha
             val stillDrawing = backgroundView.isAttachedToWindow &&
                 backgroundView.visibility == View.VISIBLE &&
-                (holdSoftGlass || outerBlurRegistry.hasDrawableBounds(backgroundView)) &&
+                outerBlurRegistry.hasDrawableBounds(backgroundView) &&
                 internalAlpha > 0.01f
             if (stillDrawing && SystemClock.uptimeMillis() < deadline) {
                 mainHandler.postDelayed(cleanup, NO_CONTENT_CLEANUP_POLL_MS)
@@ -460,7 +454,6 @@ object IslandBlurHook : BaseHook() {
 
             noContentCleanupRunnables.remove(contentView)
             deactivateOuterBlur(backgroundView, outerDrawableField, "no-content-animation-finished")
-            SoftGlassController.setPassWindowRetention(false, backgroundView)
             contentLastTypes.remove(contentView)
             if (outerBlurRegistry.isEmpty()) {
                 lastIslandType = null
@@ -637,10 +630,6 @@ object IslandBlurHook : BaseHook() {
         val material = materialForType(type)
         if (material.type == MaterialType.SOFT) {
             val active = shapeView != null && SoftGlassController.isManaged(shapeView)
-            SoftGlassController.setPassWindowRetention(
-                active && type != IslandType.EXPAND,
-                shapeView,
-            )
             if (active) {
                 clearOuterForSoftGlass(backgroundView, outerDrawableField, "soft-glass-sync")
             }
@@ -678,12 +667,6 @@ object IslandBlurHook : BaseHook() {
                 }.getOrNull()
                 if (currentType != type) return@forEach
                 runCatching { target.updateMethod.invoke(contentView, view, target.promoted) }
-                if (currentType == type && type != IslandType.EXPAND) {
-                    SoftGlassController.setPassWindowRetention(
-                        SoftGlassController.isSystemBionicsActive(view),
-                        view,
-                    )
-                }
             }
         }
     }
