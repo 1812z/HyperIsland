@@ -30,7 +30,11 @@ internal class TransitionBlurController(
         return configStore.materialFor(type).type == MaterialType.SOFT
     }
 
-    fun apply(view: View, typeName: String): Boolean {
+    fun apply(
+        view: View,
+        typeName: String,
+        forceMaterialUpdate: Boolean = false,
+    ): Boolean {
         val type = typeFromName(typeName) ?: return false
         val material = configStore.materialFor(type)
         if (!material.isCustom || !view.isAttachedToWindow) {
@@ -39,7 +43,11 @@ internal class TransitionBlurController(
         }
         if (material.type == MaterialType.SOFT) {
             releaseNative(view)
-            val applied = SoftGlassController.apply(view, material.softGlass)
+            val applied = SoftGlassController.apply(
+                view,
+                material.softGlass,
+                forceMaterialUpdate,
+            )
             if (applied) ensureDetachCleanup(view)
             if (applied) return true
             // Keep the same host/lifecycle as Gaussian blur when native Bionics is unavailable.

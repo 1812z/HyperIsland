@@ -38,6 +38,9 @@ internal object SoftGlassController {
     private val windowBlurRadii = Collections.synchronizedMap(
         WeakHashMap<View, Int>()
     )
+    private val windowPassStates = Collections.synchronizedMap(
+        WeakHashMap<View, Boolean>()
+    )
     private val hookedWindowClasses = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>())
     )
@@ -115,8 +118,12 @@ internal object SoftGlassController {
     }
 
     /**
-     * Lets SystemUI keep its own pass-window state while extending sampling only for
-     * module-provided SMALL/BIG Bionics materials. The system's bookkeeping still runs first.
+     * Keeps SystemUI's pass-window switch stable while a module Bionics layer is visible.
+     *
+     * finalizeAnimFinished() requests false whenever EXPAND ends, even when a module-owned BIG
+     * remains on screen. Letting that false write run and turning it back on afterwards resets
+     * the shared sampler and flashes the otherwise stationary BIG. Suppress that source write;
+     * once the last managed layer is hidden, SystemUI's next false request proceeds normally.
      */
     fun hookWindowLifecycle(module: XposedModule, windowViewClass: Class<*>) {
         if (!hookedWindowClasses.add(windowViewClass)) return
@@ -127,11 +134,24 @@ internal object SoftGlassController {
         )?.let { method ->
             module.hook(method).intercept { chain ->
                 val requested = chain.args.getOrNull(0) as? Boolean ?: false
-                val result = chain.proceed()
-                val root = chain.thisObject as? View ?: return@intercept result
+                val root = chain.thisObject as? View ?: return@intercept chain.proceed()
                 sessionWindow = WeakReference(root)
                 lastSystemPassWindowBlur = requested
-                enforcePassWindowBlur(root)
+                if (!requested &&
+                    isSystemBionicsActive(root) &&
+                    (retainPassWindowBlur || hasVisibleManagedView(root))
+                ) {
+                    // Keep DynamicIslandWindowView.lastPassWindowBlurEnabled and the native
+                    // sampler true together. A post-call re-enable is already one toggle too late.
+                    enforcePassWindowBlur(root)
+                    log(
+                        "$TAG preserve pass-window false request " +
+                            "retention=$retainPassWindowBlur visible=${hasVisibleManagedView(root)}",
+                    )
+                    return@intercept null
+                }
+                val result = chain.proceed()
+                windowPassStates[root] = requested && isSystemBionicsActive(root)
                 result
             }
         }
@@ -176,7 +196,11 @@ internal object SoftGlassController {
      * method must be complete and idempotent: notification updates with unchanged parameters do
      * not resubmit setMiGlass and therefore cannot restart the edge-highlight RenderNode effect.
      */
-    fun apply(view: View, config: SoftGlassConfig): Boolean = runCatching {
+    fun apply(
+        view: View,
+        config: SoftGlassConfig,
+        forceMaterialUpdate: Boolean = false,
+    ): Boolean = runCatching {
         val bionicsActive = isSystemBionicsActive(view)
         if (!bionicsActive) {
             log("$TAG skip apply bionics=false view=${view.javaClass.name}")
@@ -192,7 +216,7 @@ internal object SoftGlassController {
             ?: return@runCatching false
 
         val newlyManaged = !managedViews.contains(view)
-        if (!newlyManaged && appliedConfigs[view] == config) {
+        if (!forceMaterialUpdate && !newlyManaged && appliedConfigs[view] == config) {
             if (view.background != null) view.background = null
             return@runCatching true
         }
@@ -259,10 +283,12 @@ internal object SoftGlassController {
     private fun enforcePassWindowBlur(root: View) {
         val enabled = lastSystemPassWindowBlur || retainPassWindowBlur ||
             hasVisibleManagedView(root)
+        if (windowPassStates[root] == enabled) return
         blurMethods?.let { methods ->
             runCatching { methods.setPassWindowBlur?.invoke(null, root, enabled) }
             runCatching { methods.setPassFps?.invoke(null, root, if (enabled) 60 else -1) }
         }
+        windowPassStates[root] = enabled
     }
 
     /** One island leaving must not disable the window sampler used by a surviving island. */

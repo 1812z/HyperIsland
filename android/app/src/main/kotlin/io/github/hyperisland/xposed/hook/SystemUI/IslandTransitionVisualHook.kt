@@ -238,7 +238,15 @@ object IslandTransitionVisualHook : BaseHook() {
                             val fakeView = runCatching { getFakeView.invoke(animator) }.getOrNull()
                                 ?: return@hookRefreshAfter
                             fakeViews.add(fakeView)
-                            refreshFakeView(fakeView, access)
+                            // These methods are the source-level ownership switch between the
+                            // three reused fake slots. Their RenderNode material may have been
+                            // discarded while hidden even though our weak cache still remembers
+                            // the View, so restore only the newly activated slot once here.
+                            refreshFakeView(
+                                fakeView,
+                                access,
+                                forceMaterialUpdate = true,
+                            )
                         }
                     }.onFailure { error ->
                         logError(module, "failed to hook ${animatorClass.name}.$name: ${error.message}")
@@ -441,8 +449,19 @@ object IslandTransitionVisualHook : BaseHook() {
             ?.let { runCatching { it.invoke(realView) as? View }.getOrNull() }
             ?: return
         val controller = IslandBlurRuntime.transitionBlurController
-        if (controller.isSoftGlass(typeName) && !controller.isApplied(target, typeName)) {
-            controller.apply(target, typeName)
+        if (controller.isSoftGlass(typeName)) {
+            // EXPAND's real RenderNode is sometimes discarded while its fake layer owns the
+            // animation; restoring it here prevents the settled white-blur fallback. BIG and
+            // SMALL stay alive underneath EXPAND, so resubmitting either material here would
+            // restart its edge highlight exactly when the upper layer disappears.
+            val forceExpandedHandoff = typeName == "EXPAND"
+            if (forceExpandedHandoff || !controller.isApplied(target, typeName)) {
+                controller.apply(
+                    target,
+                    typeName,
+                    forceMaterialUpdate = forceExpandedHandoff,
+                )
+            }
         }
     }
 
@@ -647,7 +666,12 @@ object IslandTransitionVisualHook : BaseHook() {
         fun realView(owner: Any): Any? = runCatching { realView?.invoke(owner) }.getOrNull()
 
         fun stateType(owner: Any): String? {
-            val currentState = runCatching { state?.invoke(owner) }.getOrNull()
+            // The fake object can retain its previous state during a handoff. SystemUI makes
+            // the destination decision from DynamicIslandContentView, so prefer that state
+            // and only fall back to the fake object's inherited field.
+            val currentState = runCatching {
+                realView(owner)?.let { state?.invoke(it) }
+            }.getOrNull() ?: runCatching { state?.invoke(owner) }.getOrNull()
             val name = currentState?.javaClass?.simpleName.orEmpty()
             return when {
                 name.contains("SmallIsland") -> "SMALL"
