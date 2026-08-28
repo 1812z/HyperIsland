@@ -51,6 +51,9 @@ object IslandBlurHook : BaseHook() {
     private val noContentCleanupRunnables = Collections.synchronizedMap(
         WeakHashMap<Any, Runnable>()
     )
+    private val contentLastTypes = Collections.synchronizedMap(
+        WeakHashMap<Any, IslandType>()
+    )
     private val mainHandler = Handler(Looper.getMainLooper())
     private val refreshRunnable = Runnable { refreshTrackedViews() }
     private val islandTypeHolder = ThreadLocal<IslandType>()
@@ -169,6 +172,7 @@ object IslandBlurHook : BaseHook() {
                 view ?: return@intercept result
                 val contentView = chain.thisObject ?: return@intercept result
                 val type = typeBeforeUpdate
+                if (type != null) contentLastTypes[contentView] = type
                 refreshTargets[view] = RefreshTarget(
                     contentView = WeakReference(contentView),
                     updateMethod = updateMethod,
@@ -300,13 +304,15 @@ object IslandBlurHook : BaseHook() {
             val state = chain.args.getOrNull(0)
             val type = IslandStateResolver.fromState(state)
             val noContent = IslandStateResolver.isNoContent(state)
-            val previousType = lastIslandType
+            val contentView = chain.thisObject
+            val previousType = contentView?.let { contentLastTypes[it] } ?: lastIslandType
             val leavingSoft = noContent && previousType?.let(::materialForType)?.type ==
                 MaterialType.SOFT
             if (type != null) {
+                if (contentView != null) contentLastTypes[contentView] = type
                 islandTypeHolder.set(type)
                 lastIslandType = type
-                cancelNoContentCleanup(chain.thisObject)
+                cancelNoContentCleanup(contentView)
             } else if (noContent && !leavingSoft) {
                 SoftGlassController.setPassWindowRetention(false)
             }
@@ -346,7 +352,6 @@ object IslandBlurHook : BaseHook() {
                         }
                     }
                 } else if (noContent) {
-                    val contentView = chain.thisObject
                     if (leavingSoft) {
                         // Hidden/Deleted installs the stock dark outer drawable at the start of
                         // the shrink. The fake Bionics View is the complete SOFT transition;
@@ -423,6 +428,7 @@ object IslandBlurHook : BaseHook() {
             noContentCleanupRunnables.remove(contentView)
             deactivateOuterBlur(backgroundView, outerDrawableField, "no-content-animation-finished")
             SoftGlassController.setPassWindowRetention(false, backgroundView)
+            contentLastTypes.remove(contentView)
             if (outerBlurRegistry.isEmpty()) {
                 lastIslandType = null
             }
@@ -657,6 +663,15 @@ object IslandBlurHook : BaseHook() {
         deactivateOuterBlur(backgroundView, drawableField, reason)
         runCatching { drawableField.set(backgroundView, null) }
         backgroundView.invalidate()
+    }
+
+    /** Clears the shared stock drawable for a real content View owned by SOFT. */
+    internal fun clearSoftGlassOuter(contentView: Any, reason: String) {
+        val backgroundView = findMethod(contentView.javaClass, "getBackgroundView")
+            ?.let { runCatching { it.invoke(contentView) as? View }.getOrNull() }
+            ?: return
+        val drawableField = findField(backgroundView.javaClass, "drawable") ?: return
+        clearOuterForSoftGlass(backgroundView, drawableField, reason)
     }
 
     private fun applyOuterBlur(

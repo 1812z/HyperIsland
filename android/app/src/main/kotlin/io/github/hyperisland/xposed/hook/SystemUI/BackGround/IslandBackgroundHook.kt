@@ -257,10 +257,21 @@ object IslandBackgroundHook : BaseHook() {
             val setDrawableMethod = bgViewClass.getDeclaredMethod("setDrawable", Drawable::class.java)
 
             module.hook(setDrawableMethod).intercept { chain ->
-                chain.proceed()
-
-                val type = getCurrentIslandType()
                 val bgView = chain.thisObject as? View
+                val type = bgView?.let(::resolveTypeForBackgroundView)
+                    ?: getCurrentIslandType()
+
+                // updateDarkLightMode() creates dynamic_island_background_big_island_dark
+                // when another island disappears and BIG is re-asserted. Reject that
+                // outer drawable before it reaches DynamicIslandBackgroundView; clearing
+                // only container/fake layers cannot affect this independent draw slot.
+                if (chain.args.getOrNull(0) is Drawable && type != null &&
+                    isSystemSoftGlass(type)
+                ) {
+                    return@intercept null
+                }
+
+                val result = chain.proceed()
 
                 // updateDarkLightMode writes the stock dark drawable synchronously when
                 // EXPAND collapses to BIG/SMALL. With native Bionics on the concrete target,
@@ -308,12 +319,57 @@ object IslandBackgroundHook : BaseHook() {
                     }
                 }
 
-                null
+                result
             }
 
         } catch (e: Throwable) {
             logError(module, "Failed to hook setDrawable: ${e.message}")
         }
+    }
+
+    private fun resolveTypeForBackgroundView(backgroundView: View): IslandType? {
+        val root = backgroundView as? ViewGroup ?: return null
+        val contentView = findRealContentView(root) ?: return null
+        val state = runCatching {
+            contentView.javaClass.getMethod("getState").invoke(contentView)
+        }.getOrNull()
+        val resolvedState = resolveIslandType(
+            state?.javaClass?.simpleName.orEmpty(),
+            state?.javaClass?.name.orEmpty(),
+        )
+        val visibleType = if (resolvedState == null) {
+            sequenceOf(
+                IslandType.EXPAND to "getExpandedView",
+                IslandType.BIG to "getBigIslandView",
+                IslandType.SMALL to "getSmallIslandView",
+            ).firstOrNull { (_, getterName) ->
+                val child = runCatching {
+                    contentView.javaClass.getMethod(getterName).invoke(contentView) as? View
+                }.getOrNull()
+                child?.visibility == View.VISIBLE && child.alpha > 0f
+            }?.first
+        } else {
+            null
+        }
+        val currentType = resolvedState ?: visibleType
+        if (currentType != null) managedContentTypes[contentView] = currentType
+        return currentType ?: managedContentTypes[contentView]
+    }
+
+    private fun findRealContentView(root: ViewGroup): Any? {
+        val stack = ArrayDeque<ViewGroup>()
+        stack.add(root)
+        while (stack.isNotEmpty()) {
+            val group = stack.removeFirst()
+            for (index in 0 until group.childCount) {
+                val child = group.getChildAt(index)
+                if (child.javaClass.name ==
+                    "miui.systemui.dynamicisland.window.content.DynamicIslandContentView"
+                ) return child
+                if (child is ViewGroup) stack.add(child)
+            }
+        }
+        return null
     }
 
     /**

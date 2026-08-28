@@ -237,9 +237,11 @@ internal object SoftGlassController {
     /** Releases a View owned by this renderer and restores its captured background when needed. */
     fun release(view: View) {
         if (!managedViews.remove(view)) return
+        val window = findWindowView(view)
         clearMaterial(view)
         val stock = stockBackgrounds.remove(view)
         if (view.background == null) view.background = stock
+        if (window != null) enforcePassWindowBlur(window)
     }
 
     /** Drops ownership after SystemUI has already installed the next material/background. */
@@ -249,10 +251,20 @@ internal object SoftGlassController {
     }
 
     private fun enforcePassWindowBlur(root: View) {
-        val enabled = lastSystemPassWindowBlur || retainPassWindowBlur
+        val enabled = lastSystemPassWindowBlur || retainPassWindowBlur ||
+            hasVisibleManagedView(root)
         blurMethods?.let { methods ->
             runCatching { methods.setPassWindowBlur?.invoke(null, root, enabled) }
             runCatching { methods.setPassFps?.invoke(null, root, if (enabled) 60 else -1) }
+        }
+    }
+
+    /** One island leaving must not disable the window sampler used by a surviving island. */
+    private fun hasVisibleManagedView(root: View): Boolean {
+        val snapshot = synchronized(managedViews) { managedViews.toList() }
+        return snapshot.any { view ->
+            view.isAttachedToWindow && view.isShown && view.alpha > 0.01f &&
+                findWindowView(view) === root
         }
     }
 
