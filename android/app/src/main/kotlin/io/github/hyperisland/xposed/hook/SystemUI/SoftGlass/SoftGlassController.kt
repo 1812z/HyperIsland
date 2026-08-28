@@ -280,7 +280,12 @@ internal object SoftGlassController {
         apply(33, config.backgroundSaturation)
         apply(34, config.backgroundBrightness)
         apply(35, config.burn)
-        if (!config.highlight) params[24] = 0f
+        if (!config.highlight) {
+            // Bionics builds the edge highlight from both the reflection lobe and
+            // directional light. Refraction is independently controlled by index 32.
+            params[24] = 0f
+            params[28] = 0f
+        }
 
         if (Color.alpha(config.tintColor) > 0) {
             val tintWeight = Color.alpha(config.tintColor) / 255f

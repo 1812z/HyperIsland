@@ -37,17 +37,13 @@ internal class TransitionBlurController(
             release(view)
             return false
         }
-        if (material.type == MaterialType.SOFT &&
-            SoftGlassController.apply(view, material.softGlass)
-        ) {
+        if (material.type == MaterialType.SOFT) {
+            val applied = SoftGlassController.apply(view, material.softGlass)
             releaseNative(view)
-            ensureDetachCleanup(view)
-            return true
-        }
-        val effectiveConfig = if (material.type == MaterialType.SOFT) {
-            material.softFallback()
-        } else {
-            config
+            if (applied) ensureDetachCleanup(view)
+            // Soft glass must stay entirely on HyperOS' Bionics channel. Never
+            // substitute the module's LiquidGlassDrawable when native setup fails.
+            return applied
         }
         return runCatching {
             var transition = transitionBlurs[view]
@@ -58,7 +54,7 @@ internal class TransitionBlurController(
                 transitionBlurs[view] = transition
             }
             val active = transition
-            nativeBlurRenderer.update(view, active.owned, effectiveConfig, view)
+            nativeBlurRenderer.update(view, active.owned, config, view)
             if (view.background !== active.owned.drawable) {
                 view.background = active.owned.drawable
             }
@@ -79,6 +75,11 @@ internal class TransitionBlurController(
     }
 
     fun hasManagedSoftGlass(view: View): Boolean = SoftGlassController.isManaged(view)
+
+    /** Native Bionics state does not reliably survive fake-View reuse or child replacement. */
+    fun invalidateSoftGlass(view: View) {
+        SoftGlassController.onSystemMaterialReplaced(view)
+    }
 
     fun release(view: View) {
         SoftGlassController.release(view)

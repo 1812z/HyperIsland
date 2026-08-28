@@ -57,6 +57,54 @@ class _IslandMaterialPageState extends State<IslandMaterialPage> {
     } catch (_) {}
   }
 
+  Future<void> _resetToDefaults() async {
+    final l10n = AppLocalizations.of(context)!;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.restoreDefault),
+        content: Text('${l10n.restoreDefaultConfig}?'),
+        actions: [
+          TextButton(
+            onPressed: InteractionHaptics.interceptButton(
+              () => Navigator.pop(dialogContext, false),
+            ),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: InteractionHaptics.interceptButton(
+              () => Navigator.pop(dialogContext, true),
+            ),
+            child: Text(l10n.confirm),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    const defaultConfig = IslandMaterialConfig();
+    await _controller.setIslandMaterialConfig(
+      IslandMaterialState.big,
+      defaultConfig,
+    );
+    await _controller.setIslandMaterialConfig(
+      IslandMaterialState.small,
+      defaultConfig,
+    );
+    await _controller.setIslandMaterialConfig(
+      IslandMaterialState.expand,
+      defaultConfig,
+    );
+    await _controller.setIslandMaterialFollowBig(
+      IslandMaterialState.small,
+      true,
+    );
+    await _controller.setIslandMaterialFollowBig(
+      IslandMaterialState.expand,
+      true,
+    );
+  }
+
   Future<void> _exportToClipboard() async {
     final data = <String, dynamic>{
       'type': _clipboardConfigType,
@@ -156,6 +204,11 @@ class _IslandMaterialPageState extends State<IslandMaterialPage> {
         appBar: AppBar(
           title: Text(l10n.islandMaterialCustomize),
           actions: [
+            IconButton(
+              icon: const Icon(Icons.restart_alt_rounded),
+              tooltip: l10n.restoreDefault,
+              onPressed: InteractionHaptics.interceptButton(_resetToDefaults),
+            ),
             IconButton(
               icon: const Icon(Icons.copy_outlined),
               tooltip: l10n.exportToClipboard,

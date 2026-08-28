@@ -8,6 +8,8 @@ import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
 import io.github.hyperisland.xposed.ConfigManager
+import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.IslandBlurRuntime
+import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.model.IslandType as BlurIslandType
 import io.github.hyperisland.xposed.hook.SystemUI.IslandOutlineHook
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
@@ -954,7 +956,14 @@ object IslandBackgroundHook : BaseHook() {
             IslandType.BIG -> KEY_BIG_BLUR_ENABLED
             IslandType.EXPAND -> KEY_EXPAND_BLUR_ENABLED
         }
-        return ConfigManager.getBoolean(blurKey, false).also { cachedBlurEnabled[type] = it }
+        val runtimeType = when (type) {
+            IslandType.SMALL -> BlurIslandType.SMALL
+            IslandType.BIG -> BlurIslandType.BIG
+            IslandType.EXPAND -> BlurIslandType.EXPAND
+        }
+        val enabled = ConfigManager.getBoolean(blurKey, false) ||
+            IslandBlurRuntime.configStore.blurFor(runtimeType).isActive
+        return enabled.also { cachedBlurEnabled[type] = it }
     }
 
     /**

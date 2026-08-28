@@ -125,11 +125,9 @@ internal class IslandMaterialConfigStore {
         if (materialSchemaEnabled) {
             val material = materialFor(type)
             val glassEnabled = material.type == MaterialType.HIGHLIGHT ||
-                material.type == MaterialType.LIQUID ||
-                material.type == MaterialType.SOFT
+                material.type == MaterialType.LIQUID
             return glassConfig.copy(
-                enabled = glassEnabled &&
-                    (blurFor(type).isActive || material.type == MaterialType.SOFT),
+                enabled = glassEnabled && blurFor(type).isActive,
                 edgeWidth = material.edgeThickness.coerceIn(4, 40) / 100f,
                 refraction = material.refraction / 100f,
                 highlight = if (material.highlight) {

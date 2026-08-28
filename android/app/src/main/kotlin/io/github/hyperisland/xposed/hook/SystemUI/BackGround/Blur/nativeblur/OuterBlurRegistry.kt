@@ -30,13 +30,30 @@ internal class OuterBlurRegistry(
     )
 
     fun onConfigChanged() {
-        val stale = synchronized(active) {
-            active.entries.mapNotNull { (view, outer) ->
-                if (configStore.blurFor(outer.owned.type).isActive) null else view to outer
-            }
+        val snapshot = synchronized(active) {
+            active.entries.map { (view, outer) -> view to outer }
         }
-        stale.forEach { (view, outer) ->
-            deactivate(view, outer.drawableField, "config-disabled")
+        snapshot.forEach { (view, outer) ->
+            val config = configStore.blurFor(outer.owned.type)
+            if (!config.isActive) {
+                deactivate(view, outer.drawableField, "config-disabled")
+                return@forEach
+            }
+            val shapeView = outer.shapeView.get() ?: return@forEach
+            if (!view.isAttachedToWindow || !shapeView.isAttachedToWindow) return@forEach
+            runCatching {
+                // Material-only changes (for example the soft-glass highlight switch)
+                // do not necessarily produce a SystemUI state/content callback. Refresh the
+                // live drawable here so its config revision changes without waiting for the
+                // next notification update. Refraction remains owned by the same drawable.
+                renderer.update(view, outer.owned, config, shapeView)
+                show(outer)
+                outer.drawableField.set(view, outer.renderDrawable)
+                ensureCallback(view, outer)
+                view.invalidate()
+            }.onFailure { error ->
+                logWarn("$TAG live config refresh failed: ${error.message}")
+            }
         }
         synchronized(pending) {
             pending.entries.removeAll { (view, item) ->
@@ -59,6 +76,10 @@ internal class OuterBlurRegistry(
             if (drawableField.get(view) !== outer.renderDrawable) {
                 drawableField.set(view, outer.renderDrawable)
             }
+            // BackgroundBlurDrawable can remain visually active when SystemUI leaves the
+            // wrapper alpha at zero, while LiquidGlassDrawable correctly fades its rim to
+            // zero. Reassert the owned drawable alpha immediately before the same onDraw.
+            outer.renderDrawable.alpha = 255
         }
     }
 

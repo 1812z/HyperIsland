@@ -768,6 +768,7 @@ Mini Window 手势
 16. 不能用“任一模糊开启”清除共享遮罩，也不能固定只读取 `SMALL`；两者都会破坏三态组合。
 17. fake 隐藏前仍完全不透明但到达后透明再渐显时，应检查真实 `DynamicIslandBackgroundView.backgroundAlpha` 和 `alphaAnimation()`。
 18. 交接期固定真实背景 alpha 只适用于当前真实类型未开启模糊的实例；已开启模糊时必须解除该限制。
+19. OS4 柔光玻璃的 SMALL/BIG/EXPAND 均写入系统 Bionics View 材质；EXPAND 在 `setContentView*()` 替换通知内容树之后必须重新提交完整 token，不能回退到模块的 `LiquidGlassDrawable`。
 
 ## 16. 信息来源和可信度
 

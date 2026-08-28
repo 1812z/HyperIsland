@@ -51,6 +51,8 @@ object IslandTransitionVisualHook : BaseHook() {
     }
 
     override fun onConfigChanged() {
+        // This callback can arrive before IslandBlurHook reloads the shared snapshot.
+        IslandBlurRuntime.configStore.reload()
         mainHandler.post {
             synchronized(fakeViews) { fakeViews.toList() }.forEach(::refreshFakeView)
         }
@@ -89,6 +91,20 @@ object IslandTransitionVisualHook : BaseHook() {
         ) { owner ->
             refreshFakeView(owner, access)
         }
+        // EXPAND differs from SMALL/BIG: SystemUI configures fakeExpandedView first,
+        // then updateExpandedView replaces its entire child tree. Native Bionics
+        // state installed before that replacement is no longer reliable. Reapply
+        // only after the authoritative content transaction has completed.
+        fakeClass.declaredMethods
+            .filter { it.name == "updateExpandedView" && it.parameterCount == 3 }
+            .forEach { method ->
+                hookRefreshAfter(module, method) { owner ->
+                    access.expanded(owner)?.let {
+                        IslandBlurRuntime.transitionBlurController.invalidateSoftGlass(it)
+                    }
+                    refreshFakeView(owner, access)
+                }
+            }
         hookFakeVisibility(module, fakeClass, access)
         hookDeclaredRefreshAfter(module, fakeClass, "onDetachedFromWindow") { owner ->
             releaseFakeView(owner, access)
@@ -198,6 +214,13 @@ object IslandTransitionVisualHook : BaseHook() {
                 if (owner != null) {
                     if (nextVisibility == View.VISIBLE) {
                         armRealBackgroundHandoff(owner, access)
+                        // The fake subtree is reused across animations. Xiaomi's
+                        // native material is RenderNode state and may be discarded
+                        // while the subtree is invisible even though the View and
+                        // our weak ownership entry both survive.
+                        access.forEach(owner) { _, view ->
+                            IslandBlurRuntime.transitionBlurController.invalidateSoftGlass(view)
+                        }
                     }
                     refreshFakeView(owner, access)
                 }
@@ -298,13 +321,11 @@ object IslandTransitionVisualHook : BaseHook() {
                 targets.getOrPut(view) { TransitionTarget(view.background) }
             }
             if (IslandBlurRuntime.transitionBlurController.isEnabled(typeName)) {
-                if (!IslandBlurRuntime.transitionBlurController.isApplied(view, typeName)) {
-                    if (target.customDrawable != null) restoreStockBackground(view, target)
-                    target.managedVisual =
-                        IslandBlurRuntime.transitionBlurController.apply(view, typeName)
-                } else {
-                    target.managedVisual = true
-                }
+                if (target.customDrawable != null) restoreStockBackground(view, target)
+                // apply() updates already-owned Bionics/blur resources as well, which
+                // is necessary when only a material parameter changed.
+                target.managedVisual =
+                    IslandBlurRuntime.transitionBlurController.apply(view, typeName)
                 return@forEach
             }
 
@@ -417,6 +438,8 @@ object IslandTransitionVisualHook : BaseHook() {
         fun container(owner: Any): View? = invokeView(owner, container)
 
         fun mask(owner: Any): View? = invokeView(owner, mask)
+
+        fun expanded(owner: Any): View? = invokeView(owner, expand)
 
         fun realView(owner: Any): Any? = runCatching { realView?.invoke(owner) }.getOrNull()
 
