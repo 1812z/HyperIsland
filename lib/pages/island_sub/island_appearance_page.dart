@@ -585,8 +585,6 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                           await _ctrl.setSmallIslandHorizontalOffset(
                             value.round(),
                           );
-                          if (!context.mounted) return;
-                          showRestartScopeSnackBar(context);
                         },
                         isLast: true,
                       ),
