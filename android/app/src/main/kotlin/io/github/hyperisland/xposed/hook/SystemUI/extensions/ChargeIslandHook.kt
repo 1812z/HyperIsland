@@ -1,4 +1,4 @@
-package io.github.hyperisland.xposed.hook
+package io.github.hyperisland.xposed.hook.SystemUI.extensions
 
 import android.animation.ValueAnimator
 import android.content.Context
@@ -7,6 +7,8 @@ import android.os.Handler
 import android.os.Looper
 import android.view.View
 import io.github.hyperisland.xposed.ConfigManager
+import io.github.hyperisland.xposed.hook.BaseHook
+import io.github.hyperisland.xposed.hook.IslandDataManager
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam

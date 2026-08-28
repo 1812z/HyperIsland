@@ -1,4 +1,4 @@
-package io.github.hyperisland.xposed.hook
+package io.github.hyperisland.xposed.hook.SystemUI.extensions
 
 import android.content.Context
 import android.content.BroadcastReceiver
@@ -7,6 +7,7 @@ import android.content.IntentFilter
 import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam

@@ -1,4 +1,4 @@
-package io.github.hyperisland.xposed.hook.SystemUI
+package io.github.hyperisland.xposed.hook.SystemUI.extensions
 
 import android.graphics.Canvas
 import android.graphics.Color

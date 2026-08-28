@@ -1,4 +1,4 @@
-package io.github.hyperisland.xposed.hook
+package io.github.hyperisland.xposed.hook.SystemUI.extensions
 
 import android.app.KeyguardManager
 import android.content.Context

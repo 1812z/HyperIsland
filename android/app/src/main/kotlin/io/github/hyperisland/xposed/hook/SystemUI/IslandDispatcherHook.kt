@@ -3,6 +3,8 @@ package io.github.hyperisland.xposed.hook
 import android.app.KeyguardManager
 import android.os.PowerManager
 import io.github.hyperisland.xposed.ConfigManager
+import io.github.hyperisland.xposed.hook.SystemUI.extensions.FaceUnlockFocusController
+import io.github.hyperisland.xposed.hook.SystemUI.extensions.KeyguardUnlockStateHook
 import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import io.github.libxposed.api.XposedModule

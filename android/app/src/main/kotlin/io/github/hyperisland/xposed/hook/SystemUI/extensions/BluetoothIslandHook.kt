@@ -1,4 +1,4 @@
-package io.github.hyperisland.xposed.hook
+package io.github.hyperisland.xposed.hook.SystemUI.extensions
 
 import android.bluetooth.BluetoothDevice
 import android.content.BroadcastReceiver
@@ -16,6 +16,7 @@ import android.os.Handler
 import android.os.Looper
 import io.github.hyperisland.R
 import io.github.hyperisland.xposed.ConfigManager
+import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
 import io.github.hyperisland.xposed.islanddispatch.definition.IslandRequest
 import io.github.hyperisland.xposed.utils.moduleContext
