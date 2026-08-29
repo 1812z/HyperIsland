@@ -48,7 +48,7 @@ internal fun CollapsingPage(
     BarBlurHost(enabled = blurEnabled) {
         Scaffold(
             topBar = {
-                BlurredBar {
+                BlurredBar(topGradient = true) {
                     TopAppBar(
                         title = title,
                         largeTitle = title,
@@ -96,7 +96,7 @@ internal fun DetailPage(
     BarBlurHost(enabled = blurEnabled) {
         Scaffold(
             topBar = {
-                BlurredBar {
+                BlurredBar(topGradient = true) {
                     TopAppBar(
                         title = title,
                         largeTitle = title,

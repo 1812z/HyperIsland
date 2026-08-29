@@ -234,7 +234,7 @@ internal fun NotificationChannelsPage(
     BarBlurHost(enabled = pageBlurEnabled) {
         Scaffold(
             topBar = {
-                BlurredBar {
+                BlurredBar(topGradient = true) {
                     TopAppBar(
                     title = app.appName,
                     largeTitle = app.appName,

@@ -34,6 +34,44 @@ internal data class DefaultConfigSettings(
     val islandOuterGlowColor: String = "",
 )
 
+internal data class ToastAppSettings(
+    val forwardEnabled: Boolean = false,
+    val blockOriginal: Boolean = false,
+    val showNotification: Boolean = false,
+    val showIslandIcon: Boolean = true,
+    val firstFloat: String = "default",
+    val enableFloat: String = "default",
+    val preserveSmallIcon: String = "default",
+    val marquee: String = "default",
+    val marqueeAutoHide: String = "default",
+    val timeout: String = "default",
+    val highlightColor: String = "",
+    val dynamicHighlightColor: String = "default",
+    val showLeftHighlight: String = "off",
+    val showRightHighlight: String = "off",
+    val outerGlow: String = "default",
+    val outEffectColor: String = "",
+    val islandOuterGlow: String = "default",
+    val islandOuterGlowColor: String = "",
+    val filterMode: String = "blacklist",
+    val whitelistKeywords: List<String> = emptyList(),
+    val blacklistKeywords: List<String> = emptyList(),
+)
+
+internal data class AiConfigSettings(
+    val enabled: Boolean = false,
+    val url: String = "",
+    val apiKey: String = "",
+    val model: String = "",
+    val prompt: String = "",
+    val promptInUser: Boolean = false,
+    val customFields: String = "{\"enable_thinking\":false}",
+    val timeout: Int = 3,
+    val temperature: Double = 0.1,
+    val maxTokens: Int = 50,
+    val triggerCharCount: Int = 10,
+)
+
 /** 与 Flutter shared_preferences、XposedPrefsSyncApp 共用同一份配置。 */
 class FlutterPrefsRepository(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences(
@@ -60,6 +98,17 @@ class FlutterPrefsRepository(context: Context) {
 
     fun putLong(key: String, value: Long) {
         prefs.edit().putLong(storageKey(key), value).apply()
+    }
+
+    fun getDouble(key: String, default: Double): Double = runCatching {
+        val raw = prefs.getString(storageKey(key), null) ?: return@runCatching default
+        raw.removePrefix(FLUTTER_DOUBLE_PREFIX).toDoubleOrNull() ?: default
+    }.getOrElse {
+        runCatching { prefs.getFloat(storageKey(key), default.toFloat()).toDouble() }.getOrDefault(default)
+    }
+
+    fun putDouble(key: String, value: Double) {
+        prefs.edit().putString(storageKey(key), FLUTTER_DOUBLE_PREFIX + value).apply()
     }
 
     fun remove(key: String) {
@@ -96,6 +145,77 @@ class FlutterPrefsRepository(context: Context) {
         val packages = enabledPackages().toMutableSet()
         if (enabled) packages += packageNames else packages -= packageNames.toSet()
         putString("pref_generic_whitelist", packages.joinToString(","))
+    }
+
+    fun foregroundExcludedPackages(): Set<String> = getString(KEY_FOREGROUND_EXCLUDED)
+        .split(',')
+        .filter(String::isNotEmpty)
+        .toSet()
+
+    fun foregroundAction(packageName: String): String {
+        val explicit = getString("$KEY_FOREGROUND_PREFIX$packageName")
+        if (explicit in FOREGROUND_ACTIONS) return explicit
+        return if (packageName in getString(KEY_LEGACY_BLACKLIST).split(',')) {
+            "small_only"
+        } else {
+            "default"
+        }
+    }
+
+    fun configuredForegroundPackages(): Set<String> = buildSet {
+        addAll(getString(KEY_LEGACY_BLACKLIST).split(',').filter(String::isNotEmpty))
+        val index = getString(KEY_FOREGROUND_INDEX).split(',').filter(String::isNotEmpty)
+        addAll(index)
+    }
+
+    fun setForegroundAction(packageName: String, action: String) {
+        val normalized = action.takeIf { it in FOREGROUND_ACTIONS } ?: "default"
+        val blacklist = getString(KEY_LEGACY_BLACKLIST).split(',')
+            .filter(String::isNotEmpty).toMutableSet()
+        val configured = configuredForegroundPackages().toMutableSet()
+        when (normalized) {
+            "default" -> {
+                remove("$KEY_FOREGROUND_PREFIX$packageName")
+                blacklist -= packageName
+                configured -= packageName
+            }
+            "small_only" -> {
+                remove("$KEY_FOREGROUND_PREFIX$packageName")
+                blacklist += packageName
+                configured += packageName
+            }
+            else -> {
+                putString("$KEY_FOREGROUND_PREFIX$packageName", normalized)
+                blacklist -= packageName
+                configured += packageName
+            }
+        }
+        if (blacklist.isEmpty()) remove(KEY_LEGACY_BLACKLIST)
+        else putString(KEY_LEGACY_BLACKLIST, blacklist.joinToString(","))
+        if (configured.isEmpty()) remove(KEY_FOREGROUND_INDEX)
+        else putString(KEY_FOREGROUND_INDEX, configured.joinToString(","))
+    }
+
+    fun setForegroundExcluded(packageName: String, excluded: Boolean) {
+        val packages = foregroundExcludedPackages().toMutableSet()
+        if (excluded) packages += packageName else packages -= packageName
+        if (packages.isEmpty()) remove(KEY_FOREGROUND_EXCLUDED)
+        else putString(KEY_FOREGROUND_EXCLUDED, packages.joinToString(","))
+    }
+
+    fun applyForegroundPreset(packageNames: Collection<String>): Int {
+        val changed = packageNames.count { foregroundAction(it) != "small_only" }
+        packageNames.forEach { setForegroundAction(it, "small_only") }
+        return changed
+    }
+
+    fun resetForegroundRules(): Int {
+        val affected = configuredForegroundPackages() + foregroundExcludedPackages()
+        configuredForegroundPackages().forEach { remove("$KEY_FOREGROUND_PREFIX$it") }
+        remove(KEY_LEGACY_BLACKLIST)
+        remove(KEY_FOREGROUND_INDEX)
+        remove(KEY_FOREGROUND_EXCLUDED)
+        return affected.size
     }
 
     fun isToastEnabled(packageName: String): Boolean = runCatching {
@@ -214,6 +334,94 @@ class FlutterPrefsRepository(context: Context) {
         else putString("pref_default_island_outer_glow_color", value.islandOuterGlowColor.trim())
     }
 
+    internal fun toastAppSettings(packageName: String): ToastAppSettings = runCatching {
+        val toast = JSONObject(getString("pref_app_config_$packageName"))
+            .optJSONObject("toast") ?: return@runCatching ToastAppSettings()
+        val defaultTimeout = defaultConfigSettings().timeout.toString()
+        val storedTimeout = toast.optString("timeout", TRI_STATE_DEFAULT)
+        ToastAppSettings(
+            forwardEnabled = toast.optBoolean("forward", false),
+            blockOriginal = toast.optBoolean("block", false),
+            showNotification = toast.optBoolean("show_notification", false),
+            showIslandIcon = toast.optBoolean("show_island_icon", true),
+            firstFloat = toast.optString("first_float", TRI_STATE_DEFAULT),
+            enableFloat = toast.optString("enable_float", TRI_STATE_DEFAULT),
+            preserveSmallIcon = toast.optString("preserve_small_icon", TRI_STATE_DEFAULT),
+            marquee = toast.optString("marquee", TRI_STATE_DEFAULT),
+            marqueeAutoHide = toast.optString("marquee_auto_hide", TRI_STATE_DEFAULT),
+            timeout = storedTimeout.takeUnless {
+                it.isBlank() || it == "5" || it == defaultTimeout
+            } ?: TRI_STATE_DEFAULT,
+            highlightColor = toast.optString("highlight_color", ""),
+            dynamicHighlightColor = toast.optString("dynamic_highlight_color", TRI_STATE_DEFAULT),
+            showLeftHighlight = toast.optString("show_left_highlight", TRI_STATE_OFF),
+            showRightHighlight = toast.optString("show_right_highlight", TRI_STATE_OFF),
+            outerGlow = toast.optString("outer_glow", TRI_STATE_DEFAULT),
+            outEffectColor = toast.optString("out_effect_color", ""),
+            islandOuterGlow = toast.optString("island_outer_glow", TRI_STATE_DEFAULT),
+            islandOuterGlowColor = toast.optString("island_outer_glow_color", ""),
+            filterMode = toast.optString("filter_mode", "blacklist"),
+            whitelistKeywords = decodeKeywords(toast.optString("whitelist_keywords", "")),
+            blacklistKeywords = decodeKeywords(toast.optString("blacklist_keywords", "")),
+        )
+    }.getOrDefault(ToastAppSettings())
+
+    internal fun setToastAppSettings(packageName: String, value: ToastAppSettings) {
+        updateAppConfig(packageName) { root ->
+            val toast = root.optJSONObject("toast") ?: JSONObject().also { root.put("toast", it) }
+            putIfNonDefault(toast, "forward", value.forwardEnabled, false)
+            putIfNonDefault(toast, "block", value.blockOriginal, false)
+            putIfNonDefault(toast, "show_notification", value.showNotification, false)
+            putIfNonDefault(toast, "show_island_icon", value.showIslandIcon, true)
+            putIfNonDefault(toast, "first_float", value.firstFloat, TRI_STATE_DEFAULT)
+            putIfNonDefault(toast, "enable_float", value.enableFloat, TRI_STATE_DEFAULT)
+            putIfNonDefault(toast, "preserve_small_icon", value.preserveSmallIcon, TRI_STATE_DEFAULT)
+            putIfNonDefault(toast, "marquee", value.marquee, TRI_STATE_DEFAULT)
+            putIfNonDefault(toast, "marquee_auto_hide", value.marqueeAutoHide, TRI_STATE_DEFAULT)
+            putIfNonDefault(toast, "timeout", value.timeout, TRI_STATE_DEFAULT)
+            putIfNonDefault(toast, "highlight_color", value.highlightColor.trim(), "")
+            putIfNonDefault(toast, "dynamic_highlight_color", value.dynamicHighlightColor, TRI_STATE_DEFAULT)
+            putIfNonDefault(toast, "show_left_highlight", value.showLeftHighlight, TRI_STATE_OFF)
+            putIfNonDefault(toast, "show_right_highlight", value.showRightHighlight, TRI_STATE_OFF)
+            putIfNonDefault(toast, "outer_glow", value.outerGlow, TRI_STATE_DEFAULT)
+            putIfNonDefault(toast, "out_effect_color", value.outEffectColor.trim(), "")
+            putIfNonDefault(toast, "island_outer_glow", value.islandOuterGlow, TRI_STATE_DEFAULT)
+            putIfNonDefault(toast, "island_outer_glow_color", value.islandOuterGlowColor.trim(), "")
+            putIfNonDefault(toast, "filter_mode", value.filterMode, "blacklist")
+            putIfNonDefault(toast, "whitelist_keywords", encodeKeywords(value.whitelistKeywords), "")
+            putIfNonDefault(toast, "blacklist_keywords", encodeKeywords(value.blacklistKeywords), "")
+            if (toast.length() == 0) root.remove("toast")
+        }
+    }
+
+    internal fun aiConfigSettings(): AiConfigSettings = AiConfigSettings(
+        enabled = getBoolean("pref_ai_enabled", false),
+        url = getString("pref_ai_url"),
+        apiKey = getString("pref_ai_api_key"),
+        model = getString("pref_ai_model"),
+        prompt = getString("pref_ai_prompt"),
+        promptInUser = getBoolean("pref_ai_prompt_in_user", false),
+        customFields = getString("pref_ai_custom_fields", DEFAULT_AI_CUSTOM_FIELDS),
+        timeout = getLong("pref_ai_timeout", 3L).toInt().coerceIn(3, 15),
+        temperature = getDouble("pref_ai_temperature", 0.1).coerceIn(0.0, 1.0),
+        maxTokens = getLong("pref_ai_max_tokens", 50L).toInt().coerceIn(20, 100),
+        triggerCharCount = getLong("pref_ai_trigger_char_count", 10L).toInt().coerceIn(0, 100),
+    )
+
+    internal fun setAiConfigSettings(value: AiConfigSettings) {
+        putBoolean("pref_ai_enabled", value.enabled)
+        putString("pref_ai_url", value.url.trim())
+        putString("pref_ai_api_key", value.apiKey.trim())
+        putString("pref_ai_model", value.model.trim())
+        putString("pref_ai_prompt", value.prompt.trim())
+        putBoolean("pref_ai_prompt_in_user", value.promptInUser)
+        putString("pref_ai_custom_fields", value.customFields)
+        putLong("pref_ai_timeout", value.timeout.coerceIn(3, 15).toLong())
+        putDouble("pref_ai_temperature", value.temperature.coerceIn(0.0, 1.0))
+        putLong("pref_ai_max_tokens", value.maxTokens.coerceIn(20, 100).toLong())
+        putLong("pref_ai_trigger_char_count", value.triggerCharCount.coerceIn(0, 100).toLong())
+    }
+
     internal fun exportChannelSettings(
         packageName: String,
         appName: String,
@@ -299,6 +507,18 @@ class FlutterPrefsRepository(context: Context) {
         if (value == defaultValue) target.remove(key) else target.put(key, value)
     }
 
+    private fun decodeKeywords(raw: String): List<String> = raw.lineSequence()
+        .map(String::trim)
+        .filter(String::isNotEmpty)
+        .distinct()
+        .toList()
+
+    private fun encodeKeywords(keywords: List<String>): String = keywords.asSequence()
+        .map(String::trim)
+        .filter(String::isNotEmpty)
+        .distinct()
+        .joinToString("\n")
+
     private fun getOuterGlowMode(key: String): String = runCatching {
         prefs.getString(storageKey(key), null)
     }.getOrNull()?.takeIf { it == "on" || it == "off" || it == "follow_dynamic" }
@@ -309,5 +529,13 @@ class FlutterPrefsRepository(context: Context) {
         const val FLUTTER_PREFIX = "flutter."
         const val DEFAULT_CHANNEL_TEMPLATE = "notification_island"
         const val TRI_STATE_DEFAULT = "default"
+        const val TRI_STATE_OFF = "off"
+        const val FLUTTER_DOUBLE_PREFIX = "VGhpcyBpcyB0aGUgcHJlZml4IGZvciBEb3VibGUu"
+        const val DEFAULT_AI_CUSTOM_FIELDS = "{\"enable_thinking\":false}"
+        const val KEY_LEGACY_BLACKLIST = "pref_app_blacklist"
+        const val KEY_FOREGROUND_PREFIX = "pref_scene_foreground_"
+        const val KEY_FOREGROUND_INDEX = "pref_scene_foreground_packages"
+        const val KEY_FOREGROUND_EXCLUDED = "pref_scene_excluded_foreground_packages"
+        val FOREGROUND_ACTIONS = setOf("small_only", "expand", "suppress")
     }
 }

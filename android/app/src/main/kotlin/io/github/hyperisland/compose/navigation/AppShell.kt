@@ -5,11 +5,16 @@ import android.net.Uri
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,6 +23,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,25 +41,35 @@ import io.github.hyperisland.compose.component.BarBackdropContent
 import io.github.hyperisland.compose.component.BarBlurHost
 import io.github.hyperisland.compose.component.BlurredBar
 import io.github.hyperisland.compose.component.LocalRootBottomBarPadding
+import io.github.hyperisland.compose.component.PredictiveBackBackdrop
 import io.github.hyperisland.compose.component.barBlurBackground
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.InstalledApp
 import io.github.hyperisland.compose.data.rememberBooleanPreference
+import io.github.hyperisland.compose.data.rememberLongPreference
 import io.github.hyperisland.compose.page.AppsPage
+import io.github.hyperisland.compose.page.AboutPage
 import io.github.hyperisland.compose.page.apps.NotificationChannelsPage
 import io.github.hyperisland.compose.page.apps.MediaNotificationPage
+import io.github.hyperisland.compose.page.apps.ToastSettingsPage
 import io.github.hyperisland.compose.page.home.OverviewPage
 import io.github.hyperisland.compose.page.SettingsDetail
 import io.github.hyperisland.compose.page.SettingsPage
 import io.github.hyperisland.compose.page.settings.HideBehaviorPage
 import io.github.hyperisland.compose.page.settings.DefaultConfigPage
+import io.github.hyperisland.compose.page.settings.AiConfigPage
+import io.github.hyperisland.compose.page.settings.BackupRestorePage
+import io.github.hyperisland.compose.page.settings.FilterRulesPage
 import io.github.hyperisland.compose.page.settings.IslandOtherPage
 import io.github.hyperisland.compose.page.settings.MiscPage
 import io.github.hyperisland.compose.page.settings.ReferencesPage
 import io.github.hyperisland.compose.page.settings.ThemeSettingsPage
 import io.github.hyperisland.compose.theme.PREF_BLUR_BARS
 import io.github.hyperisland.compose.theme.PREF_FLOATING_NAVIGATION_BAR
+import io.github.hyperisland.compose.theme.DEFAULT_PREDICTIVE_BACK_TRANSLATION_PERCENT
+import io.github.hyperisland.compose.theme.PREF_PREDICTIVE_BACK_MAX_TRANSLATION
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
@@ -66,6 +82,7 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.GridView
 import top.yukonga.miuix.kmp.icon.extended.Home
+import top.yukonga.miuix.kmp.icon.extended.Info
 import top.yukonga.miuix.kmp.icon.extended.Settings
 
 private data class RootDestination(@StringRes val title: Int, val icon: ImageVector)
@@ -78,18 +95,31 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
             RootDestination(R.string.compose_nav_home, MiuixIcons.Home),
             RootDestination(R.string.compose_nav_apps, MiuixIcons.GridView),
             RootDestination(R.string.compose_nav_settings, MiuixIcons.Settings),
+            RootDestination(R.string.compose_about, MiuixIcons.Info),
         )
     }
     val pagerState = rememberPagerState(pageCount = { destinations.size })
     val scope = rememberCoroutineScope()
     val floatingNavigationBar = rememberBooleanPreference(prefs, PREF_FLOATING_NAVIGATION_BAR, false)
     val blurBars = rememberBooleanPreference(prefs, PREF_BLUR_BARS, false)
+    val predictiveBackMaxTranslation = rememberLongPreference(
+        prefs,
+        PREF_PREDICTIVE_BACK_MAX_TRANSLATION,
+        DEFAULT_PREDICTIVE_BACK_TRANSLATION_PERCENT,
+    )
     var visibleDetail by remember { mutableStateOf<SettingsDetail?>(null) }
     var visibleChannelApp by remember { mutableStateOf<InstalledApp?>(null) }
+    var visibleToastApp by remember { mutableStateOf<InstalledApp?>(null) }
     var detailShown by remember { mutableStateOf(false) }
     var mediaShown by remember { mutableStateOf(false) }
+    var detailPredictiveBackActive by remember { mutableStateOf(false) }
+    var mediaPredictiveBackActive by remember { mutableStateOf(false) }
     val predictiveProgress = remember { Animatable(0f) }
     val mediaPredictiveProgress = remember { Animatable(0f) }
+    val detailBackdropIntensity = remember { Animatable(0f) }
+    val mediaBackdropIntensity = remember { Animatable(0f) }
+    val rootLayerDepth = remember { Animatable(0f) }
+    val detailLayerDepth = remember { Animatable(0f) }
     val openLegacy = remember(context) {
         { route: String ->
             context.startActivity(
@@ -102,60 +132,213 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
         detailShown = false
     }
 
+    LaunchedEffect(detailShown, detailPredictiveBackActive) {
+        if (!detailPredictiveBackActive) {
+            val target = if (detailShown) 1f else 0f
+            val duration = if (detailShown) LAYER_ENTER_DURATION else LAYER_EXIT_DURATION
+            coroutineScope {
+                launch {
+                    detailBackdropIntensity.animateTo(
+                        target,
+                        tween(duration, easing = FastOutSlowInEasing),
+                    )
+                }
+                launch {
+                    rootLayerDepth.animateTo(
+                        target,
+                        tween(duration, easing = FastOutSlowInEasing),
+                    )
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(mediaShown, mediaPredictiveBackActive) {
+        if (!mediaPredictiveBackActive) {
+            val target = if (mediaShown) 1f else 0f
+            val duration = if (mediaShown) LAYER_ENTER_DURATION else LAYER_EXIT_DURATION
+            coroutineScope {
+                launch {
+                    mediaBackdropIntensity.animateTo(
+                        target,
+                        tween(duration, easing = FastOutSlowInEasing),
+                    )
+                }
+                launch {
+                    detailLayerDepth.animateTo(
+                        target,
+                        tween(duration, easing = FastOutSlowInEasing),
+                    )
+                }
+            }
+        }
+    }
+
     PredictiveBackHandler(enabled = detailShown && !mediaShown) { events ->
         try {
-            events.collect { event -> predictiveProgress.snapTo(event.progress) }
-            predictiveProgress.animateTo(1f, tween(120))
+            events.collect { event ->
+                detailPredictiveBackActive = true
+                predictiveProgress.snapTo(event.progress)
+                val smoothProgress = smootherStep(event.progress)
+                detailBackdropIntensity.snapTo(predictiveEffectIntensity(smoothProgress))
+                rootLayerDepth.snapTo(1f - smoothProgress)
+            }
             detailShown = false
-            delay(280)
+            coroutineScope {
+                launch {
+                    predictiveProgress.animateTo(
+                        1f,
+                        tween(PREDICTIVE_SETTLE_DURATION, easing = FastOutSlowInEasing),
+                    )
+                }
+                launch {
+                    detailBackdropIntensity.animateTo(
+                        0f,
+                        tween(PREDICTIVE_SETTLE_DURATION, easing = FastOutSlowInEasing),
+                    )
+                }
+                launch {
+                    rootLayerDepth.animateTo(
+                        0f,
+                        tween(PREDICTIVE_SETTLE_DURATION, easing = FastOutSlowInEasing),
+                    )
+                }
+            }
+            delay(PREDICTIVE_SETTLE_FRAME_DELAY)
             predictiveProgress.snapTo(0f)
+            detailPredictiveBackActive = false
         } catch (_: CancellationException) {
-            predictiveProgress.animateTo(0f, tween(180))
+            coroutineScope {
+                launch {
+                    predictiveProgress.animateTo(
+                        0f,
+                        tween(PREDICTIVE_CANCEL_DURATION, easing = FastOutSlowInEasing),
+                    )
+                }
+                launch {
+                    detailBackdropIntensity.animateTo(
+                        1f,
+                        tween(PREDICTIVE_CANCEL_DURATION, easing = FastOutSlowInEasing),
+                    )
+                }
+                launch {
+                    rootLayerDepth.animateTo(
+                        1f,
+                        tween(PREDICTIVE_CANCEL_DURATION, easing = FastOutSlowInEasing),
+                    )
+                }
+            }
+            detailPredictiveBackActive = false
         }
     }
 
     PredictiveBackHandler(enabled = mediaShown) { events ->
         try {
-            events.collect { event -> mediaPredictiveProgress.snapTo(event.progress) }
-            mediaPredictiveProgress.animateTo(1f, tween(120))
+            events.collect { event ->
+                mediaPredictiveBackActive = true
+                mediaPredictiveProgress.snapTo(event.progress)
+                val smoothProgress = smootherStep(event.progress)
+                mediaBackdropIntensity.snapTo(predictiveEffectIntensity(smoothProgress))
+                detailLayerDepth.snapTo(1f - smoothProgress)
+            }
             mediaShown = false
-            delay(280)
+            coroutineScope {
+                launch {
+                    mediaPredictiveProgress.animateTo(
+                        1f,
+                        tween(PREDICTIVE_SETTLE_DURATION, easing = FastOutSlowInEasing),
+                    )
+                }
+                launch {
+                    mediaBackdropIntensity.animateTo(
+                        0f,
+                        tween(PREDICTIVE_SETTLE_DURATION, easing = FastOutSlowInEasing),
+                    )
+                }
+                launch {
+                    detailLayerDepth.animateTo(
+                        0f,
+                        tween(PREDICTIVE_SETTLE_DURATION, easing = FastOutSlowInEasing),
+                    )
+                }
+            }
+            delay(PREDICTIVE_SETTLE_FRAME_DELAY)
             mediaPredictiveProgress.snapTo(0f)
+            mediaPredictiveBackActive = false
         } catch (_: CancellationException) {
-            mediaPredictiveProgress.animateTo(0f, tween(180))
+            coroutineScope {
+                launch {
+                    mediaPredictiveProgress.animateTo(
+                        0f,
+                        tween(PREDICTIVE_CANCEL_DURATION, easing = FastOutSlowInEasing),
+                    )
+                }
+                launch {
+                    mediaBackdropIntensity.animateTo(
+                        1f,
+                        tween(PREDICTIVE_CANCEL_DURATION, easing = FastOutSlowInEasing),
+                    )
+                }
+                launch {
+                    detailLayerDepth.animateTo(
+                        1f,
+                        tween(PREDICTIVE_CANCEL_DURATION, easing = FastOutSlowInEasing),
+                    )
+                }
+            }
+            mediaPredictiveBackActive = false
         }
     }
 
-    BarBlurHost(enabled = blurBars.value) {
+    BarBlurHost(
+        enabled = blurBars.value,
+        captureForEffects = detailBackdropIntensity.value > EFFECT_VISIBILITY_THRESHOLD,
+    ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Scaffold(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        val depth = rootLayerDepth.value.coerceIn(0f, 1f)
+                        scaleX = 1f - depth * BACKGROUND_SCALE_REDUCTION
+                        scaleY = scaleX
+                        translationX = -size.width * depth * BACKGROUND_PARALLAX
+                    },
                 bottomBar = {
-                    if (floatingNavigationBar.value) {
-                        FloatingNavigationBar(
-                            modifier = Modifier.barBlurBackground(
-                                RoundedCornerShape(FloatingToolbarDefaults.CornerRadius),
-                            ),
-                            color = Color.Transparent,
-                        ) {
-                            destinations.forEachIndexed { index, destination ->
-                                FloatingNavigationBarItem(
-                                    selected = pagerState.currentPage == index,
-                                    onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
-                                    icon = destination.icon,
-                                    label = stringResource(destination.title),
-                                )
-                            }
-                        }
-                    } else {
-                        BlurredBar {
-                            NavigationBar(color = Color.Transparent) {
+                    AnimatedVisibility(
+                        visible = !detailShown &&
+                            !detailPredictiveBackActive &&
+                            rootLayerDepth.value < EFFECT_VISIBILITY_THRESHOLD,
+                        enter = slideInVertically(tween(260)) { it } + fadeIn(tween(180)),
+                        exit = slideOutVertically(tween(200)) { it } + fadeOut(tween(140)),
+                    ) {
+                        if (floatingNavigationBar.value) {
+                            FloatingNavigationBar(
+                                modifier = Modifier.barBlurBackground(
+                                    RoundedCornerShape(FloatingToolbarDefaults.CornerRadius),
+                                ),
+                                color = Color.Transparent,
+                            ) {
                                 destinations.forEachIndexed { index, destination ->
-                                    NavigationBarItem(
+                                    FloatingNavigationBarItem(
                                         selected = pagerState.currentPage == index,
                                         onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
                                         icon = destination.icon,
                                         label = stringResource(destination.title),
                                     )
+                                }
+                            }
+                        } else {
+                            BlurredBar {
+                                NavigationBar(color = Color.Transparent) {
+                                    destinations.forEachIndexed { index, destination ->
+                                        NavigationBarItem(
+                                            selected = pagerState.currentPage == index,
+                                            onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
+                                            icon = destination.icon,
+                                            label = stringResource(destination.title),
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -175,19 +358,42 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                 0 -> OverviewPage(prefs)
                                 1 -> AppsPage(
                                     prefs = prefs,
-                                    openLegacy = openLegacy,
                                     onOpenChannels = { app ->
                                         visibleDetail = null
+                                        visibleToastApp = null
                                         visibleChannelApp = app
                                         detailShown = true
                                     },
+                                    onOpenToastSettings = { app ->
+                                        visibleDetail = null
+                                        visibleChannelApp = null
+                                        visibleToastApp = app
+                                        detailShown = true
+                                    },
                                 )
-                                else -> SettingsPage(
+                                2 -> SettingsPage(
                                     prefs = prefs,
                                     openLegacy = openLegacy,
                                     onOpenDetail = {
                                         visibleChannelApp = null
+                                        visibleToastApp = null
                                         visibleDetail = it
+                                        detailShown = true
+                                    },
+                                )
+                                else -> AboutPage(
+                                    isActive = pagerState.currentPage == page,
+                                    openLegacy = openLegacy,
+                                    onOpenBackupRestore = {
+                                        visibleChannelApp = null
+                                        visibleToastApp = null
+                                        visibleDetail = SettingsDetail.BackupRestore
+                                        detailShown = true
+                                    },
+                                    onOpenReferences = {
+                                        visibleChannelApp = null
+                                        visibleToastApp = null
+                                        visibleDetail = SettingsDetail.References
                                         detailShown = true
                                     },
                                 )
@@ -197,59 +403,164 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                 }
             }
 
-            AnimatedVisibility(
-                visible = detailShown,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer { translationX = size.width * predictiveProgress.value },
-                enter = slideInHorizontally(tween(300)) { it } + fadeIn(tween(180)),
-                exit = slideOutHorizontally(tween(260)) { it } + fadeOut(tween(160)),
+            PredictiveBackBackdrop(
+                intensity = detailBackdropIntensity.value,
+                visible = detailBackdropIntensity.value > EFFECT_VISIBILITY_THRESHOLD,
+                modifier = Modifier.fillMaxSize(),
+            )
+
+            BarBlurHost(
+                enabled = blurBars.value,
+                captureForEffects = mediaBackdropIntensity.value > EFFECT_VISIBILITY_THRESHOLD,
             ) {
-                val channelApp = visibleChannelApp
-                if (channelApp != null) {
-                    NotificationChannelsPage(
-                        app = channelApp,
-                        prefs = prefs,
-                        onBack = ::closeDetail,
-                        onOpenMediaSettings = { mediaShown = true },
-                        openLegacySettings = {
-                            openLegacy(
-                                "/app-settings?package=${Uri.encode(channelApp.packageName)}" +
-                                    "&name=${Uri.encode(channelApp.appName)}&mode=notification" +
-                                    "&system=${channelApp.isSystem}",
-                            )
+                BarBackdropContent(modifier = Modifier.fillMaxSize()) {
+                    AnimatedVisibility(
+                        visible = detailShown,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer {
+                                val progress = predictiveProgress.value.coerceIn(0f, 1f)
+                                val depth = detailLayerDepth.value.coerceIn(0f, 1f)
+                                translationX = -size.width * depth * BACKGROUND_PARALLAX +
+                                    size.width * progress *
+                                    predictiveBackMaxTranslation.value.coerceIn(0L, 100L).toFloat() / 100f
+                                scaleX = (1f - depth * BACKGROUND_SCALE_REDUCTION) *
+                                    (1f - progress * PREDICTIVE_SCALE_REDUCTION)
+                                scaleY = scaleX
+                            },
+                        enter = slideInHorizontally(
+                            tween(LAYER_ENTER_DURATION, easing = FastOutSlowInEasing),
+                        ) { it } + scaleIn(
+                            animationSpec = tween(LAYER_ENTER_DURATION, easing = FastOutSlowInEasing),
+                            initialScale = FOREGROUND_ENTER_SCALE,
+                        ) + fadeIn(tween(LAYER_ENTER_FADE_DURATION)),
+                        exit = if (detailPredictiveBackActive) {
+                            scaleOut(
+                                animationSpec = tween(
+                                    PREDICTIVE_SETTLE_DURATION,
+                                    easing = FastOutSlowInEasing,
+                                ),
+                                targetScale = FOREGROUND_EXIT_SCALE,
+                            ) + fadeOut(tween(PREDICTIVE_SETTLE_DURATION))
+                        } else {
+                            slideOutHorizontally(
+                                tween(LAYER_EXIT_DURATION, easing = FastOutSlowInEasing),
+                            ) { it } + scaleOut(
+                                animationSpec = tween(LAYER_EXIT_DURATION, easing = FastOutSlowInEasing),
+                                targetScale = FOREGROUND_EXIT_SCALE,
+                            ) + fadeOut(tween(LAYER_EXIT_FADE_DURATION))
                         },
-                    )
-                } else {
-                    when (visibleDetail) {
-                        SettingsDetail.Theme -> ThemeSettingsPage(prefs, ::closeDetail)
-                        SettingsDetail.HideBehavior -> HideBehaviorPage(prefs, ::closeDetail)
-                        SettingsDetail.DefaultConfig -> DefaultConfigPage(prefs, ::closeDetail)
-                        SettingsDetail.Misc -> MiscPage(prefs, openLegacy, ::closeDetail)
-                        SettingsDetail.Other -> IslandOtherPage(prefs, ::closeDetail)
-                        SettingsDetail.References -> ReferencesPage(::closeDetail)
-                        null -> Unit
+                    ) {
+                        val channelApp = visibleChannelApp
+                        if (channelApp != null) {
+                            NotificationChannelsPage(
+                                app = channelApp,
+                                prefs = prefs,
+                                onBack = ::closeDetail,
+                                onOpenMediaSettings = { mediaShown = true },
+                                openLegacySettings = {
+                                    openLegacy(
+                                        "/app-settings?package=${Uri.encode(channelApp.packageName)}" +
+                                            "&name=${Uri.encode(channelApp.appName)}&mode=notification" +
+                                            "&system=${channelApp.isSystem}",
+                                    )
+                                },
+                            )
+                        } else if (visibleToastApp != null) {
+                            ToastSettingsPage(
+                                app = visibleToastApp!!,
+                                prefs = prefs,
+                                onBack = ::closeDetail,
+                            )
+                        } else {
+                            when (visibleDetail) {
+                                SettingsDetail.Theme -> ThemeSettingsPage(prefs, ::closeDetail)
+                                SettingsDetail.HideBehavior -> HideBehaviorPage(prefs, ::closeDetail)
+                                SettingsDetail.DefaultConfig -> DefaultConfigPage(prefs, ::closeDetail)
+                                SettingsDetail.AiConfig -> AiConfigPage(prefs, ::closeDetail)
+                                SettingsDetail.Misc -> MiscPage(prefs, openLegacy, ::closeDetail)
+                                SettingsDetail.Other -> IslandOtherPage(prefs, ::closeDetail)
+                                SettingsDetail.References -> ReferencesPage(::closeDetail)
+                                SettingsDetail.BackupRestore -> BackupRestorePage(::closeDetail)
+                                SettingsDetail.FilterRules -> FilterRulesPage(prefs, ::closeDetail)
+                                null -> Unit
+                            }
+                        }
                     }
                 }
-            }
 
+                PredictiveBackBackdrop(
+                    intensity = mediaBackdropIntensity.value,
+                    visible = mediaBackdropIntensity.value > EFFECT_VISIBILITY_THRESHOLD,
+                    modifier = Modifier.fillMaxSize(),
+                )
 
-            AnimatedVisibility(
-                visible = mediaShown,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .graphicsLayer { translationX = size.width * mediaPredictiveProgress.value },
-                enter = slideInHorizontally(tween(300)) { it } + fadeIn(tween(180)),
-                exit = slideOutHorizontally(tween(260)) { it } + fadeOut(tween(160)),
-            ) {
-                visibleChannelApp?.let { app ->
-                    MediaNotificationPage(
-                        app = app,
-                        prefs = prefs,
-                        onBack = { mediaShown = false },
-                    )
+                AnimatedVisibility(
+                    visible = mediaShown,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            val progress = mediaPredictiveProgress.value.coerceIn(0f, 1f)
+                            translationX = size.width * progress *
+                                predictiveBackMaxTranslation.value.coerceIn(0L, 100L).toFloat() / 100f
+                            scaleX = 1f - progress * PREDICTIVE_SCALE_REDUCTION
+                            scaleY = scaleX
+                        },
+                    enter = slideInHorizontally(
+                        tween(LAYER_ENTER_DURATION, easing = FastOutSlowInEasing),
+                    ) { it } + scaleIn(
+                        animationSpec = tween(LAYER_ENTER_DURATION, easing = FastOutSlowInEasing),
+                        initialScale = FOREGROUND_ENTER_SCALE,
+                    ) + fadeIn(tween(LAYER_ENTER_FADE_DURATION)),
+                    exit = if (mediaPredictiveBackActive) {
+                        scaleOut(
+                            animationSpec = tween(
+                                PREDICTIVE_SETTLE_DURATION,
+                                easing = FastOutSlowInEasing,
+                            ),
+                            targetScale = FOREGROUND_EXIT_SCALE,
+                        ) + fadeOut(tween(PREDICTIVE_SETTLE_DURATION))
+                    } else {
+                        slideOutHorizontally(
+                            tween(LAYER_EXIT_DURATION, easing = FastOutSlowInEasing),
+                        ) { it } + scaleOut(
+                            animationSpec = tween(LAYER_EXIT_DURATION, easing = FastOutSlowInEasing),
+                            targetScale = FOREGROUND_EXIT_SCALE,
+                        ) + fadeOut(tween(LAYER_EXIT_FADE_DURATION))
+                    },
+                ) {
+                    visibleChannelApp?.let { app ->
+                        MediaNotificationPage(
+                            app = app,
+                            prefs = prefs,
+                            onBack = { mediaShown = false },
+                        )
+                    }
                 }
             }
         }
     }
 }
+
+private fun smootherStep(progress: Float): Float {
+    val value = progress.coerceIn(0f, 1f)
+    return value * value * value * (value * (value * 6f - 15f) + 10f)
+}
+
+private fun predictiveEffectIntensity(smoothProgress: Float): Float =
+    1f - smoothProgress * (1f - PREDICTIVE_MIN_EFFECT_INTENSITY)
+
+private const val LAYER_ENTER_DURATION = 420
+private const val LAYER_EXIT_DURATION = 380
+private const val LAYER_ENTER_FADE_DURATION = 260
+private const val LAYER_EXIT_FADE_DURATION = 300
+private const val PREDICTIVE_SETTLE_DURATION = 420
+private const val PREDICTIVE_CANCEL_DURATION = 280
+private const val PREDICTIVE_SETTLE_FRAME_DELAY = 24L
+private const val PREDICTIVE_MIN_EFFECT_INTENSITY = 0.5f
+private const val PREDICTIVE_SCALE_REDUCTION = 0.025f
+private const val BACKGROUND_SCALE_REDUCTION = 0.035f
+private const val BACKGROUND_PARALLAX = 0.025f
+private const val FOREGROUND_ENTER_SCALE = 0.965f
+private const val FOREGROUND_EXIT_SCALE = 0.98f
+private const val EFFECT_VISIBILITY_THRESHOLD = 0.001f

@@ -1,12 +1,14 @@
 package io.github.hyperisland.compose.page.settings
 
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.DetailPage
 import io.github.hyperisland.compose.component.PreferenceSwitch
@@ -14,7 +16,7 @@ import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.rememberBooleanPreference
 import kotlinx.coroutines.launch
-import top.yukonga.miuix.kmp.basic.BasicComponent
+import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
@@ -25,6 +27,7 @@ import top.yukonga.miuix.kmp.icon.extended.Pin
 import top.yukonga.miuix.kmp.icon.extended.ScreenMirroring
 import top.yukonga.miuix.kmp.icon.extended.Settings
 import top.yukonga.miuix.kmp.icon.extended.Show
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 internal fun HideBehaviorPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) {
@@ -48,8 +51,11 @@ internal fun HideBehaviorPage(prefs: FlutterPrefsRepository, onBack: () -> Unit)
     ) {
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
-                BasicComponent(
-                    title = stringResource(R.string.compose_hide_behavior_description),
+                Text(
+                    text = stringResource(R.string.compose_hide_behavior_description),
+                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+                    fontSize = MiuixTheme.textStyles.body2.fontSize,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
             }
         }

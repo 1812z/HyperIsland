@@ -18,16 +18,20 @@ import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.DetailPage
 import io.github.hyperisland.compose.component.PreferenceSwitch
+import io.github.hyperisland.compose.component.PreferenceSlider
 import io.github.hyperisland.compose.component.SettingsActionWithArrow
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.rememberBooleanPreference
 import io.github.hyperisland.compose.data.rememberLongPreference
 import io.github.hyperisland.compose.data.rememberStringPreference
 import io.github.hyperisland.compose.theme.PREF_BLUR_BARS
+import io.github.hyperisland.compose.theme.DEFAULT_PREDICTIVE_BACK_TRANSLATION_PERCENT
 import io.github.hyperisland.compose.theme.PREF_FLOATING_NAVIGATION_BAR
 import io.github.hyperisland.compose.theme.PREF_MONET_ENABLED
 import io.github.hyperisland.compose.theme.PREF_THEME_MODE
 import io.github.hyperisland.compose.theme.PREF_THEME_SEED_COLOR
+import io.github.hyperisland.compose.theme.PREF_PREDICTIVE_BACK_MAX_TRANSLATION
+import kotlin.math.roundToInt
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
@@ -37,6 +41,7 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Layers
+import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.icon.extended.Sidebar
 import top.yukonga.miuix.kmp.icon.extended.Theme
 import top.yukonga.miuix.kmp.icon.extended.Tune
@@ -50,6 +55,11 @@ internal fun ThemeSettingsPage(prefs: FlutterPrefsRepository, onBack: () -> Unit
     val themeColor = rememberLongPreference(prefs, PREF_THEME_SEED_COLOR, DEFAULT_THEME_COLOR)
     val floatingNavigationBar = rememberBooleanPreference(prefs, PREF_FLOATING_NAVIGATION_BAR, false)
     val blurBars = rememberBooleanPreference(prefs, PREF_BLUR_BARS, false)
+    val predictiveBackMaxTranslation = rememberLongPreference(
+        prefs,
+        PREF_PREDICTIVE_BACK_MAX_TRANSLATION,
+        DEFAULT_PREDICTIVE_BACK_TRANSLATION_PERCENT,
+    )
     var showColorDialog by remember { mutableStateOf(false) }
     var selectedColor by remember { mutableStateOf(Color.Red) }
 
@@ -113,6 +123,26 @@ internal fun ThemeSettingsPage(prefs: FlutterPrefsRepository, onBack: () -> Unit
                     blurBars.value = enabled
                     prefs.putBoolean(PREF_BLUR_BARS, enabled)
                 }
+                PreferenceSlider(
+                    value = predictiveBackMaxTranslation.value.toFloat(),
+                    onValueChange = { value ->
+                        predictiveBackMaxTranslation.value = value.roundToInt().toLong()
+                    },
+                    title = stringResource(R.string.compose_predictive_back_distance),
+                    summary = stringResource(R.string.compose_predictive_back_distance_summary),
+                    icon = MiuixIcons.Back,
+                    valueText = "${predictiveBackMaxTranslation.value}%",
+                    valueRange = 0f..100f,
+                    steps = 19,
+                    onValueChangeFinished = {
+                        prefs.putLong(
+                            PREF_PREDICTIVE_BACK_MAX_TRANSLATION,
+                            predictiveBackMaxTranslation.value,
+                        )
+                    },
+                    showKeyPoints = true,
+                    keyPoints = listOf(0f, 25f, 50f, 75f, 100f),
+                )
             }
         }
     }

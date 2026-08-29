@@ -13,8 +13,10 @@ import androidx.compose.ui.unit.dp
 import top.yukonga.miuix.kmp.blur.BlendColorEntry
 import top.yukonga.miuix.kmp.blur.BlurDefaults
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
+import top.yukonga.miuix.kmp.blur.ProgressiveBlur
 import top.yukonga.miuix.kmp.blur.isRuntimeShaderSupported
 import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.blur.progressiveTextureBlur
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.blur.textureBlur
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -27,10 +29,11 @@ private val LocalBarBlurBackdrop = staticCompositionLocalOf<LayerBackdrop?> { nu
 @Composable
 internal fun BarBlurHost(
     enabled: Boolean,
+    captureForEffects: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val surfaceColor = MiuixTheme.colorScheme.surface
-    val backdrop = if (enabled && isRuntimeShaderSupported()) {
+    val backdrop = if ((enabled || captureForEffects) && isRuntimeShaderSupported()) {
         rememberLayerBackdrop {
             drawRect(surfaceColor)
             drawContent()
@@ -49,6 +52,39 @@ internal fun BarBlurHost(
 }
 
 @Composable
+internal fun PredictiveBackBackdrop(
+    intensity: Float,
+    visible: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val backdrop = LocalBarBlurBackdrop.current
+    if (!visible) return
+    val effectIntensity = intensity.coerceIn(0f, 1f)
+    val dimColor = MiuixTheme.colorScheme.windowDimming.copy(
+        alpha = PREDICTIVE_BACK_DIM_ALPHA * effectIntensity,
+    )
+    Box(
+        modifier = if (backdrop != null) {
+            modifier.textureBlur(
+                backdrop = backdrop,
+                shape = RectangleShape,
+                blurRadius = PREDICTIVE_BACK_BLUR_RADIUS * effectIntensity,
+                noiseCoefficient = 0f,
+                colors = BlurDefaults.blurColors(
+                    blendColors = listOf(
+                        BlendColorEntry(
+                            color = dimColor,
+                        ),
+                    ),
+                ),
+            )
+        } else {
+            modifier.background(dimColor)
+        },
+    )
+}
+
+@Composable
 internal fun BarBackdropContent(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
@@ -64,28 +100,70 @@ internal fun BarBackdropContent(
 }
 
 @Composable
-internal fun BlurredBar(content: @Composable () -> Unit) {
-    Box(modifier = Modifier.barBlurBackground(RectangleShape)) {
+internal fun BlurredBar(
+    topGradient: Boolean = false,
+    content: @Composable () -> Unit,
+) {
+    Box(
+        modifier = Modifier.barBlurBackground(
+            shape = RectangleShape,
+            topGradient = topGradient,
+        ),
+    ) {
         content()
     }
 }
 
 @Composable
-internal fun Modifier.barBlurBackground(shape: Shape): Modifier {
+internal fun Modifier.barBlurBackground(
+    shape: Shape,
+    topGradient: Boolean = false,
+): Modifier {
     val backdrop = LocalBarBlurBackdrop.current
+    val blurEnabled = LocalBarBlurEnabled.current
     val surfaceColor = MiuixTheme.colorScheme.surface
-    return if (backdrop != null) {
-        textureBlur(
-            backdrop = backdrop,
-            shape = shape,
-            blurRadius = 25f,
-            colors = BlurDefaults.blurColors(
-                blendColors = listOf(
-                    BlendColorEntry(color = surfaceColor.copy(alpha = 0.8f)),
-                ),
-            ),
+    val contentColor = MiuixTheme.colorScheme.onSurface
+    return if (blurEnabled && backdrop != null) {
+        val blendColors = if (topGradient) {
+            listOf(BlendColorEntry(color = surfaceColor.copy(alpha = TOP_BAR_SURFACE_ALPHA)))
+        } else {
+            listOf(
+                BlendColorEntry(color = surfaceColor.copy(alpha = BOTTOM_BAR_SURFACE_ALPHA)),
+                BlendColorEntry(color = contentColor.copy(alpha = BAR_GLASS_TINT_ALPHA)),
+            )
+        }
+        val blurColors = BlurDefaults.blurColors(
+            blendColors = blendColors,
         )
+        if (topGradient) {
+            progressiveTextureBlur(
+                backdrop = backdrop,
+                shape = shape,
+                blurRadius = BAR_BLUR_RADIUS,
+                gradient = TOP_BAR_PROGRESSIVE_BLUR,
+                colors = blurColors,
+            )
+        } else {
+            textureBlur(
+                backdrop = backdrop,
+                shape = shape,
+                blurRadius = BAR_BLUR_RADIUS,
+                colors = blurColors,
+            )
+        }
     } else {
         background(color = surfaceColor, shape = shape)
     }
 }
+
+private val TOP_BAR_PROGRESSIVE_BLUR = ProgressiveBlur.Top.copy(
+    startFraction = 0.12f,
+    endFraction = 1f,
+    curve = 1.25f,
+)
+private const val BAR_BLUR_RADIUS = 16f
+private const val TOP_BAR_SURFACE_ALPHA = 0.66f
+private const val BOTTOM_BAR_SURFACE_ALPHA = 0.58f
+private const val BAR_GLASS_TINT_ALPHA = 0.025f
+private const val PREDICTIVE_BACK_BLUR_RADIUS = 12f
+private const val PREDICTIVE_BACK_DIM_ALPHA = 0.16f

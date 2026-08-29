@@ -1,6 +1,5 @@
 package io.github.hyperisland.compose.page
 
-import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -78,15 +77,16 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 @Composable
 internal fun AppsPage(
     prefs: FlutterPrefsRepository,
-    openLegacy: (String) -> Unit,
     onOpenChannels: (InstalledApp) -> Unit,
+    onOpenToastSettings: (InstalledApp) -> Unit,
 ) {
     val context = LocalContext.current
     val appsRepository = remember(context) { InstalledAppsRepository(context.applicationContext) }
     val scope = rememberCoroutineScope()
     val scrollBehavior = MiuixScrollBehavior()
-    var allApps by remember { mutableStateOf(emptyList<InstalledApp>()) }
-    var loading by remember { mutableStateOf(true) }
+    var allApps by remember { mutableStateOf(appsRepository.cachedApps()) }
+    var initialLoading by remember { mutableStateOf(allApps.isEmpty()) }
+    var refreshing by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     var searchExpanded by remember { mutableStateOf(false) }
     var selectedMode by remember { mutableIntStateOf(0) }
@@ -95,17 +95,29 @@ internal fun AppsPage(
     var selectedPackages by remember { mutableStateOf(emptySet<String>()) }
     var configRevision by remember { mutableIntStateOf(0) }
 
-    fun refresh() {
+    fun loadApps(forceRefresh: Boolean) {
         scope.launch {
-            loading = true
-            allApps = withContext(Dispatchers.IO) { appsRepository.load() }
-            loading = false
+            if (forceRefresh) refreshing = true else initialLoading = allApps.isEmpty()
+            try {
+                val loadedApps = withContext(Dispatchers.IO) {
+                    runCatching { appsRepository.load(forceRefresh) }.getOrNull()
+                }
+                if (loadedApps != null) allApps = loadedApps
+            } finally {
+                initialLoading = false
+                refreshing = false
+            }
         }
     }
 
-    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { refresh() }
+    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        loadApps(forceRefresh = false)
+    }
     LaunchedEffect(Unit) {
-        if (appsRepository.needsAppListPermission()) permissionLauncher.launch(APP_LIST_PERMISSION) else refresh()
+        if (allApps.isEmpty()) {
+            if (appsRepository.needsAppListPermission()) permissionLauncher.launch(APP_LIST_PERMISSION)
+            else loadApps(forceRefresh = false)
+        }
     }
     DisposableEffect(prefs) {
         val removeListener = prefs.addChangeListener { key ->
@@ -155,7 +167,7 @@ internal fun AppsPage(
             ),
             DropdownItem(
                 text = stringResource(R.string.compose_refresh_list),
-                onClick = ::refresh,
+                onClick = { loadApps(forceRefresh = true) },
                 icon = { modifier -> Icon(MiuixIcons.Refresh, null, modifier = modifier) },
             ),
             DropdownItem(
@@ -204,7 +216,7 @@ internal fun AppsPage(
     BarBlurHost(enabled = pageBlurEnabled) {
         Scaffold(
         topBar = {
-            BlurredBar {
+            BlurredBar(topGradient = true) {
                 TopAppBar(
                 title = if (selectionMode) {
                     stringResource(R.string.compose_selected_count, selectedPackages.size)
@@ -249,7 +261,7 @@ internal fun AppsPage(
                                 selectionMode = true
                                 selectedPackages = emptySet()
                             },
-                            enabled = !loading,
+                            enabled = !initialLoading && !refreshing,
                         ) {
                             Icon(MiuixIcons.SelectAll, stringResource(R.string.compose_multi_select))
                         }
@@ -266,8 +278,8 @@ internal fun AppsPage(
         ) { padding ->
             BarBackdropContent(modifier = Modifier.fillMaxSize()) {
                 PullToRefresh(
-            isRefreshing = loading,
-            onRefresh = ::refresh,
+            isRefreshing = refreshing,
+            onRefresh = { loadApps(forceRefresh = true) },
             topAppBarScrollBehavior = scrollBehavior,
             contentPadding = PaddingValues(top = padding.calculateTopPadding()),
             modifier = Modifier.fillMaxSize(),
@@ -319,7 +331,7 @@ internal fun AppsPage(
                         modifier = Modifier.padding(horizontal = 4.dp),
                     )
                 }
-                if (!loading && filteredApps.isEmpty()) {
+                if (!initialLoading && filteredApps.isEmpty()) {
                     item {
                         Box(
                             modifier = Modifier.fillMaxWidth().padding(vertical = 64.dp),
@@ -363,10 +375,7 @@ internal fun AppsPage(
                                     if (selectedMode == 0) {
                                         onOpenChannels(app)
                                     } else {
-                                        openLegacy(
-                                            "/app-settings?package=${Uri.encode(app.packageName)}" +
-                                                "&name=${Uri.encode(app.appName)}&mode=toast&system=${app.isSystem}",
-                                        )
+                                        onOpenToastSettings(app)
                                     }
                                 }
                             },

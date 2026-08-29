@@ -49,20 +49,26 @@ internal fun PreferenceDropdown(
 @Composable
 internal fun PreferenceSlider(
     title: String,
+    summary: String? = null,
     icon: ImageVector?,
     value: Float,
     valueText: String,
     valueRange: ClosedFloatingPointRange<Float>,
     steps: Int,
+    showKeyPoints: Boolean = false,
+    keyPoints: List<Float>? = null,
     onValueChange: (Float) -> Unit,
     onValueChangeFinished: () -> Unit,
 ) {
     SliderPreference(
         title = title,
+        summary = summary,
         value = value,
         valueText = valueText,
         valueRange = valueRange,
         steps = steps,
+        showKeyPoints = showKeyPoints,
+        keyPoints = keyPoints,
         startAction = icon?.let { image -> { SettingsIcon(image) } },
         insideMargin = SettingsItemMargin,
         onValueChange = onValueChange,

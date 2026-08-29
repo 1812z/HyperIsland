@@ -109,11 +109,11 @@ flutter {
 
 dependencies {
     implementation("androidx.activity:activity-compose:1.13.0")
-    implementation("androidx.compose.foundation:foundation:1.11.0")
-    implementation("top.yukonga.miuix.kmp:miuix-ui-android:0.9.3")
-    implementation("top.yukonga.miuix.kmp:miuix-preference-android:0.9.3")
-    implementation("top.yukonga.miuix.kmp:miuix-icons-android:0.9.3")
-    implementation("top.yukonga.miuix.kmp:miuix-blur-android:0.9.3")
+    implementation("org.jetbrains.compose.foundation:foundation-android:1.12.0-rc01")
+    implementation("top.yukonga.miuix.kmp:miuix-ui-android:0.9.4-rc01")
+    implementation("top.yukonga.miuix.kmp:miuix-preference-android:0.9.4-rc01")
+    implementation("top.yukonga.miuix.kmp:miuix-icons-android:0.9.4-rc01")
+    implementation("top.yukonga.miuix.kmp:miuix-blur-android:0.9.4-rc01")
     implementation("androidx.graphics:graphics-shapes:1.1.0")
     implementation("io.github.d4viddf:hyperisland_kit:0.4.4")
     compileOnly("io.github.libxposed:api:102.0.0")
