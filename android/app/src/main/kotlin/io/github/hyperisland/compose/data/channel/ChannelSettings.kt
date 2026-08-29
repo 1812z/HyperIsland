@@ -68,6 +68,70 @@ internal data class ChannelSettingsPatch(
         get() = this != ChannelSettingsPatch()
 }
 
+/** 将单渠道的完整配置转换为共享表单状态。 */
+internal fun ChannelSettings.toFullPatch(): ChannelSettingsPatch = ChannelSettingsPatch(
+    template = template,
+    renderer = renderer,
+    iconMode = iconMode,
+    focus = focus,
+    showNotification = showNotification,
+    preserveSmallIcon = preserveSmallIcon,
+    showIslandIcon = showIslandIcon,
+    firstFloat = firstFloat,
+    enableFloat = enableFloat,
+    timeout = timeout,
+    marquee = marquee,
+    marqueeAutoHide = marqueeAutoHide,
+    restoreLockscreen = restoreLockscreen,
+    highlightColor = highlightColor,
+    dynamicHighlightColor = dynamicHighlightColor,
+    showLeftHighlight = showLeftHighlight,
+    showRightHighlight = showRightHighlight,
+    showLeftNarrowFont = showLeftNarrowFont,
+    showRightNarrowFont = showRightNarrowFont,
+    outerGlow = outerGlow,
+    islandOuterGlow = islandOuterGlow,
+    islandOuterGlowColor = islandOuterGlowColor,
+    outEffectColor = outEffectColor,
+    aodText = aodText,
+    filterMode = filterMode,
+    whitelistKeywords = whitelistKeywords,
+    blacklistKeywords = blacklistKeywords,
+    islandEnabled = islandEnabled,
+)
+
+/** 合并单渠道或批量渠道补丁；null 始终保留现有值，兼容原批量设置语义。 */
+internal fun ChannelSettings.withPatch(patch: ChannelSettingsPatch): ChannelSettings = copy(
+    template = patch.template ?: template,
+    renderer = patch.renderer ?: renderer,
+    iconMode = patch.iconMode ?: iconMode,
+    focus = patch.focus ?: focus,
+    showNotification = patch.showNotification ?: showNotification,
+    preserveSmallIcon = patch.preserveSmallIcon ?: preserveSmallIcon,
+    showIslandIcon = patch.showIslandIcon ?: showIslandIcon,
+    firstFloat = patch.firstFloat ?: firstFloat,
+    enableFloat = patch.enableFloat ?: enableFloat,
+    timeout = patch.timeout ?: timeout,
+    marquee = patch.marquee ?: marquee,
+    marqueeAutoHide = patch.marqueeAutoHide ?: marqueeAutoHide,
+    restoreLockscreen = patch.restoreLockscreen ?: restoreLockscreen,
+    highlightColor = patch.highlightColor ?: highlightColor,
+    dynamicHighlightColor = patch.dynamicHighlightColor ?: dynamicHighlightColor,
+    showLeftHighlight = patch.showLeftHighlight ?: showLeftHighlight,
+    showRightHighlight = patch.showRightHighlight ?: showRightHighlight,
+    showLeftNarrowFont = patch.showLeftNarrowFont ?: showLeftNarrowFont,
+    showRightNarrowFont = patch.showRightNarrowFont ?: showRightNarrowFont,
+    outerGlow = patch.outerGlow ?: outerGlow,
+    islandOuterGlow = patch.islandOuterGlow ?: islandOuterGlow,
+    islandOuterGlowColor = patch.islandOuterGlowColor ?: islandOuterGlowColor,
+    outEffectColor = patch.outEffectColor ?: outEffectColor,
+    aodText = patch.aodText ?: aodText,
+    filterMode = patch.filterMode ?: filterMode,
+    whitelistKeywords = patch.whitelistKeywords ?: whitelistKeywords,
+    blacklistKeywords = patch.blacklistKeywords ?: blacklistKeywords,
+    islandEnabled = patch.islandEnabled ?: islandEnabled,
+)
+
 internal sealed interface BatchChannelTarget {
     data class Channels(val packageName: String, val channelIds: Set<String>) : BatchChannelTarget
     data class Apps(val packageNames: Set<String>) : BatchChannelTarget

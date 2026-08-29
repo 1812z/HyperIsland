@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import io.github.hyperisland.compose.data.channel.ChannelSettings
 import io.github.hyperisland.compose.data.channel.ChannelSettingsPatch
+import io.github.hyperisland.compose.data.channel.withPatch
 import io.github.hyperisland.compose.data.channel.FILTER_BLACKLIST
 import io.github.hyperisland.compose.data.channel.ICON_AUTO
 import io.github.hyperisland.compose.data.channel.OPTION_DEFAULT
@@ -102,7 +103,7 @@ internal data class KeepIslandSettings(
     val customIconPath: String = "",
 )
 
-/** 与 Flutter shared_preferences、XposedPrefsSyncApp 共用同一份配置。 */
+/** 直接读写旧版 shared_preferences 存储格式，保证升级后配置无损。 */
 class FlutterPrefsRepository(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences(
         PREFS_NAME,
@@ -408,40 +409,7 @@ class FlutterPrefsRepository(context: Context) {
         if (!patch.hasChanges) return
         channelIds.forEach { channelId ->
             val current = channelSettings(packageName, channelId)
-            setChannelSettings(
-                packageName,
-                channelId,
-                current.copy(
-                    template = patch.template ?: current.template,
-                    renderer = patch.renderer ?: current.renderer,
-                    iconMode = patch.iconMode ?: current.iconMode,
-                    focus = patch.focus ?: current.focus,
-                    showNotification = patch.showNotification ?: current.showNotification,
-                    preserveSmallIcon = patch.preserveSmallIcon ?: current.preserveSmallIcon,
-                    showIslandIcon = patch.showIslandIcon ?: current.showIslandIcon,
-                    firstFloat = patch.firstFloat ?: current.firstFloat,
-                    enableFloat = patch.enableFloat ?: current.enableFloat,
-                    timeout = patch.timeout ?: current.timeout,
-                    marquee = patch.marquee ?: current.marquee,
-                    marqueeAutoHide = patch.marqueeAutoHide ?: current.marqueeAutoHide,
-                    restoreLockscreen = patch.restoreLockscreen ?: current.restoreLockscreen,
-                    highlightColor = patch.highlightColor ?: current.highlightColor,
-                    dynamicHighlightColor = patch.dynamicHighlightColor ?: current.dynamicHighlightColor,
-                    showLeftHighlight = patch.showLeftHighlight ?: current.showLeftHighlight,
-                    showRightHighlight = patch.showRightHighlight ?: current.showRightHighlight,
-                    showLeftNarrowFont = patch.showLeftNarrowFont ?: current.showLeftNarrowFont,
-                    showRightNarrowFont = patch.showRightNarrowFont ?: current.showRightNarrowFont,
-                    outerGlow = patch.outerGlow ?: current.outerGlow,
-                    islandOuterGlow = patch.islandOuterGlow ?: current.islandOuterGlow,
-                    islandOuterGlowColor = patch.islandOuterGlowColor ?: current.islandOuterGlowColor,
-                    outEffectColor = patch.outEffectColor ?: current.outEffectColor,
-                    aodText = patch.aodText ?: current.aodText,
-                    filterMode = patch.filterMode ?: current.filterMode,
-                    whitelistKeywords = patch.whitelistKeywords ?: current.whitelistKeywords,
-                    blacklistKeywords = patch.blacklistKeywords ?: current.blacklistKeywords,
-                    islandEnabled = patch.islandEnabled ?: current.islandEnabled,
-                ),
-            )
+            setChannelSettings(packageName, channelId, current.withPatch(patch))
         }
     }
 
