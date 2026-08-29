@@ -21,6 +21,7 @@ import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.ColorPalette
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.window.WindowDialog
 
 @Composable
@@ -33,12 +34,29 @@ internal fun ColorPaletteDialog(
     onSave: (Color) -> Unit,
 ) {
     var selectedColor by remember(show, initialColor) { mutableStateOf(initialColor) }
+    var colorCode by remember(show, initialColor) { mutableStateOf(initialColor.toArgbHex()) }
     WindowDialog(show = show, title = title, onDismissRequest = onDismiss) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             ColorPalette(
                 color = selectedColor,
-                onColorChanged = { newColor -> selectedColor = newColor },
+                onColorChanged = { newColor ->
+                    selectedColor = newColor
+                    colorCode = newColor.toArgbHex()
+                },
                 modifier = Modifier.fillMaxWidth(),
+            )
+            TextField(
+                value = colorCode,
+                onValueChange = { value ->
+                    colorCode = value
+                    if (HEX_COLOR.matches(value)) {
+                        selectedColor = parseHexColor(value, selectedColor)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                label = stringResource(R.string.color_code),
+                useLabelAsPlaceholder = true,
+                singleLine = true,
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -59,6 +77,7 @@ internal fun ColorPaletteDialog(
                 Button(
                     onClick = { onSave(selectedColor) },
                     modifier = Modifier.weight(1f),
+                    enabled = HEX_COLOR.matches(colorCode),
                     colors = ButtonDefaults.buttonColorsPrimary(),
                 ) {
                     Text(stringResource(R.string.save))

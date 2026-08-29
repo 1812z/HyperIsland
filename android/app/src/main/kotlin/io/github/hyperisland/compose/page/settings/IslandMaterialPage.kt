@@ -263,11 +263,22 @@ internal fun IslandMaterialPage(
     val activeColorState = colorState
     if (activeColorState != null) {
         val config = settings.config(activeColorState)
+        val defaults = IslandMaterialConfig()
         ColorPaletteDialog(
             show = true,
             title = stringResource(R.string.material_blend_color),
             initialColor = config.toPickerColor(),
             onDismiss = { colorState = null },
+            onDelete = {
+                save(
+                    activeColorState,
+                    config.copy(
+                        blendColor = defaults.blendColor,
+                        blendOpacity = defaults.blendOpacity,
+                    ),
+                )
+                colorState = null
+            },
         ) { color ->
             save(
                 activeColorState,

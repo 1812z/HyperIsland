@@ -288,6 +288,14 @@ internal fun DefaultConfigPage(
         title = stringResource(R.string.out_effect_color),
         initialColor = selectedColor,
         onDismiss = { activeColorTarget = null },
+        onDelete = {
+            when (activeColorTarget) {
+                DefaultColorTarget.Focus -> update(settings.copy(outEffectColor = ""))
+                DefaultColorTarget.Island -> update(settings.copy(islandOuterGlowColor = ""))
+                null -> Unit
+            }
+            activeColorTarget = null
+        },
         onSave = { color ->
             when (activeColorTarget) {
                 DefaultColorTarget.Focus -> update(settings.copy(outEffectColor = color.toArgbHex()))

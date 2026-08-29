@@ -139,6 +139,14 @@ internal fun MediaNotificationPage(
         title = stringResource(R.string.out_effect_color),
         initialColor = selectedColor,
         onDismiss = { activeColorTarget = null },
+        onDelete = {
+            when (activeColorTarget) {
+                ColorTarget.Focus -> updateSettings(draft.copy(outEffectColor = ""))
+                ColorTarget.Island -> updateSettings(draft.copy(islandOuterGlowColor = ""))
+                null -> Unit
+            }
+            activeColorTarget = null
+        },
         onSave = { color ->
             when (activeColorTarget) {
                 ColorTarget.Focus -> updateSettings(draft.copy(outEffectColor = color.toArgbHex()))

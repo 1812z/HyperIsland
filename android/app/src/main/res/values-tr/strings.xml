@@ -802,4 +802,5 @@
     <string name="batch_channel_scope_channels">%1$d kanallara uygula</string>
     <string name="batch_channel_scope_apps">%1$d uygulamalara uygulanan etkin kanallar</string>
     <string name="applying">Başvuruyor</string>
+    <string name="color_code">Renk kodu (#RRGGBB veya #AARRGGBB)</string>
 </resources>

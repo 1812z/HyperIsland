@@ -401,6 +401,10 @@ internal fun KeepIslandPage(
         title = stringResource(R.string.keep_island_highlight_color),
         initialColor = parseHexColor(settings.highlightColor, Color.Red),
         onDismiss = { showColor = false },
+        onDelete = {
+            update(settings.copy(highlightColor = ""))
+            showColor = false
+        },
     ) { update(settings.copy(highlightColor = it.toArgbHex())); showColor = false }
     KeepIslandPlaceholderSheet(
         show = showPlaceholders,

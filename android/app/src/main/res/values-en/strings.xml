@@ -802,4 +802,5 @@
     <string name="batch_channel_scope_channels">Apply to %1$d channels</string>
     <string name="batch_channel_scope_apps">Enabled channels applied to %1$d apps</string>
     <string name="applying">Applying</string>
+    <string name="color_code">Color code (#RRGGBB or #AARRGGBB)</string>
 </resources>

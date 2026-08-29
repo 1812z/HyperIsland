@@ -802,4 +802,5 @@
     <string name="batch_channel_scope_channels">%1$d チャネルに適用する</string>
     <string name="batch_channel_scope_apps">%1$d アプリに適用される有効なチャネル</string>
     <string name="applying">申請中</string>
+    <string name="color_code">カラーコード（#RRGGBB または #AARRGGBB）</string>
 </resources>

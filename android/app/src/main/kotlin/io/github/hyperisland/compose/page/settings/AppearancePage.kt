@@ -322,6 +322,11 @@ internal fun AppearancePage(
         title = stringResource(R.string.glow_base_color),
         initialColor = parseHexColor(glowBaseColor.value, Color(0xFF0096FF)),
         onDismiss = { colorDialog = false },
+        onDelete = {
+            glowBaseColor.value = ""
+            prefs.remove(KEY_GLOW_BASE_COLOR)
+            colorDialog = false
+        },
     ) { color ->
         val value = color.toArgbHex()
         glowBaseColor.value = value

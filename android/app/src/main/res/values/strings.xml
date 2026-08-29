@@ -808,4 +808,5 @@
     <string name="batch_channel_scope_channels">应用到 %1$d 个渠道</string>
     <string name="batch_channel_scope_apps">应用到 %1$d 个应用的已启用渠道</string>
     <string name="applying">正在应用</string>
+    <string name="color_code">颜色编码（#RRGGBB 或 #AARRGGBB）</string>
 </resources>

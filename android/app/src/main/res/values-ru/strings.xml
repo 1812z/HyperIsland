@@ -802,4 +802,5 @@
     <string name="batch_channel_scope_channels">Применить к каналам %1$d</string>
     <string name="batch_channel_scope_apps">Включенные каналы применены к приложениям %1$d.</string>
     <string name="applying">Применение</string>
+    <string name="color_code">Код цвета (#RRGGBB или #AARRGGBB)</string>
 </resources>

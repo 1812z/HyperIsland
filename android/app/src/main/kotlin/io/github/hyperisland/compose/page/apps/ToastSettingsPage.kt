@@ -417,6 +417,15 @@ internal fun ToastSettingsPage(
         ),
         initialColor = selectedColor,
         onDismiss = { colorTarget = null },
+        onDelete = {
+            when (colorTarget) {
+                ToastColorTarget.Highlight -> update(settings.copy(highlightColor = ""))
+                ToastColorTarget.FocusGlow -> update(settings.copy(outEffectColor = ""))
+                ToastColorTarget.IslandGlow -> update(settings.copy(islandOuterGlowColor = ""))
+                null -> Unit
+            }
+            colorTarget = null
+        },
         onSave = { color ->
             val hex = color.toArgbHex()
             when (colorTarget) {
