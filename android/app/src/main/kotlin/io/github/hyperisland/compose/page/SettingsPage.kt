@@ -36,6 +36,7 @@ internal enum class SettingsDetail {
     BackupRestore,
     FilterRules,
     KeepIsland,
+    HookExtension,
 }
 
 @Composable
@@ -87,7 +88,7 @@ internal fun SettingsPage(
             SectionTitle(stringResource(R.string.compose_hook_extension))
             Card(modifier = Modifier.fillMaxWidth()) {
                 SettingsActionWithArrow(stringResource(R.string.compose_hook_extension), MiuixIcons.Settings) {
-                    openLegacy("/settings/hook-extension")
+                    onOpenDetail(SettingsDetail.HookExtension)
                 }
             }
         }

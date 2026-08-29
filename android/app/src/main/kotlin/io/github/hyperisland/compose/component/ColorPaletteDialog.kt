@@ -29,6 +29,7 @@ internal fun ColorPaletteDialog(
     title: String,
     initialColor: Color,
     onDismiss: () -> Unit,
+    onDelete: (() -> Unit)? = null,
     onSave: (Color) -> Unit,
 ) {
     var selectedColor by remember(show, initialColor) { mutableStateOf(initialColor) }
@@ -48,6 +49,13 @@ internal fun ColorPaletteDialog(
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
                 )
+                if (onDelete != null) {
+                    TextButton(
+                        text = stringResource(R.string.compose_delete),
+                        onClick = onDelete,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
                 Button(
                     onClick = { onSave(selectedColor) },
                     modifier = Modifier.weight(1f),

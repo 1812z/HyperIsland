@@ -67,6 +67,11 @@ import io.github.hyperisland.compose.page.settings.KeepIslandPage
 import io.github.hyperisland.compose.page.settings.MiscPage
 import io.github.hyperisland.compose.page.settings.ReferencesPage
 import io.github.hyperisland.compose.page.settings.ThemeSettingsPage
+import io.github.hyperisland.compose.page.settings.extensions.BluetoothIslandPage
+import io.github.hyperisland.compose.page.settings.extensions.ChargeIslandPage
+import io.github.hyperisland.compose.page.settings.extensions.FaceUnlockIslandPage
+import io.github.hyperisland.compose.page.settings.extensions.HookExtensionDetail
+import io.github.hyperisland.compose.page.settings.extensions.HookExtensionPage
 import io.github.hyperisland.compose.theme.PREF_BLUR_BARS
 import io.github.hyperisland.compose.theme.PREF_FLOATING_NAVIGATION_BAR
 import io.github.hyperisland.compose.theme.DEFAULT_PREDICTIVE_BACK_TRANSLATION_PERCENT
@@ -117,7 +122,8 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     var detailShown by remember { mutableStateOf(false) }
     var mediaShown by remember { mutableStateOf(false) }
     var materialShown by remember { mutableStateOf(false) }
-    val nestedDetailShown = mediaShown || materialShown
+    var extensionDetail by remember { mutableStateOf<HookExtensionDetail?>(null) }
+    val nestedDetailShown = mediaShown || materialShown || extensionDetail != null
     var detailPredictiveBackActive by remember { mutableStateOf(false) }
     var mediaPredictiveBackActive by remember { mutableStateOf(false) }
     val predictiveProgress = remember { Animatable(0f) }
@@ -269,6 +275,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
             }
             mediaShown = false
             materialShown = false
+            extensionDetail = null
             delay(PREDICTIVE_DISMISS_DURATION.toLong())
             mediaPredictiveProgress.snapTo(0f)
             mediaPredictiveBackActive = false
@@ -389,6 +396,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                     onOpenDetail = {
                                         visibleChannelApp = null
                                         visibleToastApp = null
+                                        extensionDetail = null
                                         visibleDetail = it
                                         detailShown = true
                                     },
@@ -496,6 +504,11 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                 SettingsDetail.BackupRestore -> BackupRestorePage(::closeDetail)
                                 SettingsDetail.FilterRules -> FilterRulesPage(prefs, ::closeDetail)
                                 SettingsDetail.KeepIsland -> KeepIslandPage(prefs, ::closeDetail)
+                                SettingsDetail.HookExtension -> HookExtensionPage(
+                                    prefs = prefs,
+                                    onOpenDetail = { extensionDetail = it },
+                                    onBack = ::closeDetail,
+                                )
                                 null -> Unit
                             }
                         }
@@ -528,18 +541,32 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                         ) { it }
                     },
                 ) {
-                    if (materialShown) {
-                        IslandMaterialPage(
+                    when (extensionDetail) {
+                        HookExtensionDetail.Bluetooth -> BluetoothIslandPage(
                             prefs = prefs,
-                            onBack = { materialShown = false },
+                            onBack = { extensionDetail = null },
                         )
-                    } else {
-                        visibleChannelApp?.let { app ->
-                            MediaNotificationPage(
-                                app = app,
+                        HookExtensionDetail.Charge -> ChargeIslandPage(
+                            prefs = prefs,
+                            onBack = { extensionDetail = null },
+                        )
+                        HookExtensionDetail.FaceUnlock -> FaceUnlockIslandPage(
+                            prefs = prefs,
+                            onBack = { extensionDetail = null },
+                        )
+                        null -> if (materialShown) {
+                            IslandMaterialPage(
                                 prefs = prefs,
-                                onBack = { mediaShown = false },
+                                onBack = { materialShown = false },
                             )
+                        } else {
+                            visibleChannelApp?.let { app ->
+                                MediaNotificationPage(
+                                    app = app,
+                                    prefs = prefs,
+                                    onBack = { mediaShown = false },
+                                )
+                            }
                         }
                     }
                 }
