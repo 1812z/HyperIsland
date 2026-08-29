@@ -5,6 +5,18 @@ import 'controllers/settings_controller.dart';
 import 'l10n/generated/app_localizations.dart';
 import 'pages/main_page.dart';
 import 'pages/onboarding_page.dart';
+import 'pages/blacklist_page.dart';
+import 'pages/ai_config_page.dart';
+import 'pages/references_page.dart';
+import 'pages/island_sub/backup_restore_page.dart';
+import 'pages/island_sub/default_config_page.dart';
+import 'pages/island_sub/hook_extension_page.dart';
+import 'pages/island_sub/hide_behavior_page.dart';
+import 'pages/island_sub/island_appearance_page.dart';
+import 'pages/island_sub/island_other_page.dart';
+import 'pages/island_sub/keep_island_page.dart';
+import 'pages/island_sub/misc_page.dart';
+import 'pages/island_sub/theme_page.dart';
 import 'services/app_cache_service.dart';
 
 void main() {
@@ -200,6 +212,23 @@ class _MyAppState extends State<MyApp> {
         blur: _blurBars,
       ),
       themeMode: _themeMode,
+      routes: {
+        '/apps': (_) => const MainPage(initialIndex: 1),
+        '/onboarding': (_) => const OnboardingPage(showCloseButton: true),
+        '/settings': (_) => const MainPage(initialIndex: 2),
+        '/settings/appearance': (_) => const IslandAppearancePage(),
+        '/settings/ai': (_) => const AiConfigPage(),
+        '/settings/theme': (_) => const ThemePage(),
+        '/settings/default': (_) => const DefaultConfigPage(),
+        '/settings/keep-island': (_) => const KeepIslandPage(),
+        '/settings/filter-rules': (_) => const BlacklistPage(),
+        '/settings/hide-behavior': (_) => const HideBehaviorPage(),
+        '/settings/other': (_) => const IslandOtherPage(),
+        '/settings/misc': (_) => const MiscPage(),
+        '/settings/hook-extension': (_) => const HookExtensionPage(),
+        '/settings/backup-restore': (_) => const BackupRestorePage(),
+        '/settings/references': (_) => const ReferencesPage(),
+      },
       home: _settingsLoading
           ? const Scaffold(body: Center(child: CircularProgressIndicator()))
           : _onboardingCompleted

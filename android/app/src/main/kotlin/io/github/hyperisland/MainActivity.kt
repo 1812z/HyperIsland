@@ -38,6 +38,9 @@ class MainActivity : FlutterActivity() {
     private var pendingAppsIncludeSystem: Boolean = false
     private var pendingBtDevicesResult: MethodChannel.Result? = null
 
+    override fun getInitialRoute(): String? =
+        intent.getStringExtra("legacy_route") ?: super.getInitialRoute()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Thread {

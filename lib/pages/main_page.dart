@@ -8,14 +8,16 @@ import 'whitelist_page.dart';
 import 'settings_page.dart';
 
 class MainPage extends StatefulWidget {
-  const MainPage({super.key});
+  const MainPage({super.key, this.initialIndex = 0});
+
+  final int initialIndex;
 
   @override
   State<MainPage> createState() => _MainPageState();
 }
 
 class _MainPageState extends State<MainPage> {
-  int _currentIndex = 0;
+  late int _currentIndex;
   final _ctrl = SettingsController.instance;
   // WhitelistPage 懒创建：首次点击「应用」Tab 时才初始化，避免启动时触发权限申请
   WhitelistPage? _whitelistPage;
@@ -24,6 +26,7 @@ class _MainPageState extends State<MainPage> {
   @override
   void initState() {
     super.initState();
+    _currentIndex = widget.initialIndex.clamp(0, 2);
     _ctrl.addListener(_onChanged);
   }
 

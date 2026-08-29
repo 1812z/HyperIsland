@@ -6,6 +6,7 @@ val buildTime = providers.gradleProperty("buildTime")
 
 plugins {
     id("com.android.application")
+    id("org.jetbrains.kotlin.plugin.compose")
     // The Flutter Gradle Plugin must be applied after the Android Gradle plugin.
     id("dev.flutter.flutter-gradle-plugin")
 }
@@ -17,6 +18,7 @@ android {
 
     buildFeatures {
         buildConfig = true
+        compose = true
     }
 
     compileOptions {
@@ -104,14 +106,13 @@ flutter {
     source = "../.."
 }
 
-configurations.all {
-    resolutionStrategy {
-        force("androidx.core:core:1.15.0")
-        force("androidx.core:core-ktx:1.15.0")
-    }
-}
 
 dependencies {
+    implementation("androidx.activity:activity-compose:1.13.0")
+    implementation("androidx.compose.foundation:foundation:1.11.0")
+    implementation("top.yukonga.miuix.kmp:miuix-ui-android:0.9.3")
+    implementation("top.yukonga.miuix.kmp:miuix-preference-android:0.9.3")
+    implementation("top.yukonga.miuix.kmp:miuix-icons-android:0.9.3")
     implementation("androidx.graphics:graphics-shapes:1.1.0")
     implementation("io.github.d4viddf:hyperisland_kit:0.4.4")
     compileOnly("io.github.libxposed:api:102.0.0")
