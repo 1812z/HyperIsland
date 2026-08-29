@@ -44,15 +44,17 @@ object MediaNotificationTextColorHook : BaseHook() {
     private val attachRefreshViews = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<TextView, Boolean>())
     )
+    private val pendingPostViews = Collections.synchronizedSet(
+        Collections.newSetFromMap(WeakHashMap<TextView, Boolean>())
+    )
     private val expandedViewData = Collections.synchronizedMap(
         WeakHashMap<View, Any>()
     )
-    private val internalTitleViewId: Int by lazy {
-        runCatching {
-            Class.forName("com.android.internal.R\$id")
-                .getField("title")
-                .getInt(null)
-        }.getOrDefault(View.NO_ID)
+    private val internalTitleViewIds: List<Int> by lazy {
+        resolveInternalViewIds("title")
+    }
+    private val internalSubtitleViewIds: List<Int> by lazy {
+        resolveInternalViewIds("text", "text2")
     }
     private val expandedProbeCount = AtomicInteger()
 
@@ -109,6 +111,17 @@ object MediaNotificationTextColorHook : BaseHook() {
         }.onFailure { error ->
             if (error !is ClassNotFoundException) {
                 logError(module, "failed to hook DynamicIslandExpandedView: ${error.message}")
+            }
+        }
+
+        runCatching {
+            val windowViewClass = classLoader.loadClass(DYNAMIC_ISLAND_WINDOW_VIEW_CLASS)
+            if (hookedClasses.add(windowViewClass)) {
+                hookExpandedMediaUpdate(module, windowViewClass)
+            }
+        }.onFailure { error ->
+            if (error !is ClassNotFoundException) {
+                logError(module, "failed to hook DynamicIslandWindowView: ${error.message}")
             }
         }
 
@@ -238,6 +251,40 @@ object MediaNotificationTextColorHook : BaseHook() {
         }
     }
 
+    /**
+     * HyperOS 4 reuses pendingMediaView when the media notification changes, so setContentView is
+     * not called again. This callback runs after both the real and fake content views finish their
+     * update and therefore avoids a draw/layout listener while still applying the color late enough.
+     */
+    private fun hookExpandedMediaUpdate(module: XposedModule, windowViewClass: Class<*>) {
+        val methods = windowViewClass.declaredMethods.filter { method ->
+            method.name == "handleContentViewUpdateOperate" && method.parameterTypes.size == 2
+        }
+        methods.forEach { method ->
+            module.hook(method).intercept { chain ->
+                val contentView = chain.args.firstOrNull() as? View
+                val params = chain.args.getOrNull(1)
+                val data = params?.let { invokeNoArg(it, "getIslandData") }
+                val result = chain.proceed()
+                if (data != null) {
+                    val fakeView = contentView?.let { invokeNoArg(it, "getFakeView") as? View }
+                    val expandedView = contentView
+                        ?.let { invokeNoArg(it, "getExpandedView") as? View }
+                        ?: contentView
+                    val fakeExpandedView = fakeView
+                        ?.let { invokeNoArg(it, "getFakeExpandedView") as? View }
+                        ?: fakeView
+                    handleExpandedIslandData(
+                        data,
+                        listOfNotNull(expandedView, fakeExpandedView),
+                    )
+                }
+                result
+            }
+            log(module, "hooked DynamicIslandWindowView#${method.name}")
+        }
+    }
+
     private fun findCurrentIslandData(start: View?): Any? {
         var current: Any? = start
         while (current is View) {
@@ -249,49 +296,63 @@ object MediaNotificationTextColorHook : BaseHook() {
         return null
     }
 
-    private fun handleExpandedIslandData(data: Any) {
+    private fun handleExpandedIslandData(data: Any, installedRoots: List<View> = emptyList()) {
         runCatching {
             val extras = invokeNoArg(data, "getExtras") as? Bundle
-            val realRoot = invokeNoArg(data, "getView") as? View ?: return
+            val realRoot = invokeNoArg(data, "getView") as? View
             val fakeRoot = invokeNoArg(data, "getFakeView") as? View
             val hasMediaPendingIntent = extras
                 ?.getParcelable<PendingIntent>("miui.pending.intent") != null
             val sbn = extras?.getParcelable<StatusBarNotification>("miui.sbn")
             val sbnMedia = sbn?.notification?.let(::isMediaNotification) == true
-            val titleProbe = findExpandedMediaTitle(realRoot)
-            if (expandedProbeCount.getAndIncrement() < MAX_EXPANDED_PROBES) {
+            if (!hasMediaPendingIntent && !sbnMedia) return
+
+            val notification = sbn?.notification
+            val roots = (listOfNotNull(realRoot, fakeRoot) + installedRoots).distinct()
+            if (roots.isEmpty()) return
+            val shouldLogProbe = expandedProbeCount.getAndIncrement() < MAX_EXPANDED_PROBES
+            if (shouldLogProbe) {
+                val titleProbe = roots.firstNotNullOfOrNull { root ->
+                    findExpandedMediaTitle(root, notification)
+                }
                 log(
                     "$TAG [MediaTitleDiag] expanded install probe " +
                         "data=${data.javaClass.name}, " +
                         "pkg=${sbn?.packageName ?: extras?.getString("miui.pkg.name")}, " +
                         "pendingIntent=$hasMediaPendingIntent, sbnMedia=$sbnMedia, " +
-                        "root=${realRoot.javaClass.name}, titleId=${titleProbe?.let(::resourceEntryName)}, " +
-                        "textViewIds=${collectTextViewResourceNames(realRoot).distinct()}"
+                        "root=${realRoot?.javaClass?.name}, titleId=${titleProbe?.let(::resourceEntryName)}, " +
+                        "textViewIds=${roots.flatMap(::collectTextViewResourceNames).distinct()}"
                 )
             }
-            if (!hasMediaPendingIntent && !sbnMedia) return
 
-            val roots = listOfNotNull(realRoot, fakeRoot).distinct()
             var matched = 0
             var subtitleMatched = 0
+            val handledTitles = mutableSetOf<TextView>()
+            val handledSubtitles = mutableSetOf<TextView>()
             roots.forEach { root ->
-                findExpandedMediaTitle(root)?.let { title ->
-                    matched++
-                    applyExpandedMediaTextColor(title, false)
+                findExpandedMediaTitle(root, notification)?.let { title ->
+                    if (handledTitles.add(title)) {
+                        matched++
+                        applyExpandedMediaTextColor(title, false)
+                    }
                 }
-                findExpandedMediaSubtitle(root)?.let { subtitle ->
-                    subtitleMatched++
-                    applyExpandedMediaTextColor(subtitle, true)
+                findExpandedMediaSubtitle(root, notification)?.let { subtitle ->
+                    if (handledSubtitles.add(subtitle)) {
+                        subtitleMatched++
+                        applyExpandedMediaTextColor(subtitle, true)
+                    }
                 }
             }
-            log(
-                "$TAG [MediaTitleDiag] expanded media install " +
-                    "pkg=${sbn?.packageName ?: extras?.getString("miui.pkg.name")}, " +
-                    "pendingIntent=$hasMediaPendingIntent, sbnMedia=$sbnMedia, " +
-                    "realRoot=${realRoot.javaClass.name}, roots=${roots.size}, " +
-                    "titles=$matched, subtitles=$subtitleMatched"
-            )
-            if (matched == 0) {
+            if (shouldLogProbe) {
+                log(
+                    "$TAG [MediaTitleDiag] expanded media color " +
+                        "pkg=${sbn?.packageName ?: extras?.getString("miui.pkg.name")}, " +
+                        "pendingIntent=$hasMediaPendingIntent, sbnMedia=$sbnMedia, " +
+                        "realRoot=${realRoot?.javaClass?.name}, roots=${roots.size}, " +
+                        "titles=$matched, subtitles=$subtitleMatched"
+                )
+            }
+            if (matched == 0 && shouldLogProbe) {
                 val ids = roots.flatMap(::collectTextViewResourceNames).distinct()
                 log("$TAG [MediaTitleDiag] expanded title not found, textViewIds=$ids")
             }
@@ -313,17 +374,15 @@ object MediaNotificationTextColorHook : BaseHook() {
         if (mode == MODE_DEFAULT) return
         val color = resolveTargetColor(mode, subtitle)
         applyTextColor(textView, color)
-        textView.post {
-            val currentMode = getConfiguredMode()
-            if (currentMode != MODE_DEFAULT) {
-                applyTextColor(textView, resolveTargetColor(currentMode, subtitle))
+        if (pendingPostViews.add(textView)) {
+            textView.post {
+                pendingPostViews.remove(textView)
+                val currentMode = getConfiguredMode()
+                if (currentMode != MODE_DEFAULT) {
+                    applyTextColor(textView, resolveTargetColor(currentMode, subtitle))
+                }
             }
         }
-        log(
-            "$TAG [MediaTitleDiag] expanded ${if (subtitle) "subtitle" else "title"} applied " +
-                "mode=$mode, target=${color.toColorHex()}, " +
-                "after=${textView.currentTextColor.toColorHex()}"
-        )
     }
 
     private fun ensureAttachRefresh(textView: TextView, subtitle: Boolean) {
@@ -377,17 +436,62 @@ object MediaNotificationTextColorHook : BaseHook() {
         return synchronized(colors) { colors.keys.toList() }
     }
 
-    private fun findExpandedMediaTitle(root: View): TextView? {
-        if (internalTitleViewId != View.NO_ID) {
-            (root.findViewById(internalTitleViewId) as? TextView)?.let { return it }
-        }
-        return MEDIA_TITLE_IDS.firstNotNullOfOrNull { id ->
+    private fun findExpandedMediaTitle(root: View, notification: Notification?): TextView? {
+        internalTitleViewIds.firstNotNullOfOrNull { id ->
+            root.findViewById(id) as? TextView
+        }?.let { return it }
+        MEDIA_TITLE_IDS.firstNotNullOfOrNull { id ->
             findTextViewByResourceName(root, id)
-        }
+        }?.let { return it }
+        return findTextViewByExpectedText(root, mediaTextCandidates(notification, true))
     }
 
-    private fun findExpandedMediaSubtitle(root: View): TextView? {
-        return findTextViewByResourceName(root, MEDIA_SUBTITLE_ID)
+    private fun findExpandedMediaSubtitle(root: View, notification: Notification?): TextView? {
+        internalSubtitleViewIds.firstNotNullOfOrNull { id ->
+            root.findViewById(id) as? TextView
+        }?.let { return it }
+        MEDIA_SUBTITLE_IDS.firstNotNullOfOrNull { id ->
+            findTextViewByResourceName(root, id)
+        }?.let { return it }
+        return findTextViewByExpectedText(root, mediaTextCandidates(notification, false))
+    }
+
+    private fun resolveInternalViewIds(vararg fieldNames: String): List<Int> {
+        return runCatching { Class.forName("com.android.internal.R\$id") }
+            .getOrNull()
+            ?.let { resourceClass ->
+                fieldNames.mapNotNull { fieldName ->
+                    runCatching { resourceClass.getField(fieldName).getInt(null) }
+                        .getOrNull()
+                        ?.takeUnless { it == View.NO_ID }
+                }
+            }
+            .orEmpty()
+    }
+
+    private fun mediaTextCandidates(notification: Notification?, title: Boolean): Set<String> {
+        val extras = notification?.extras ?: return emptySet()
+        val keys = if (title) {
+            arrayOf(Notification.EXTRA_TITLE_BIG, Notification.EXTRA_TITLE)
+        } else {
+            arrayOf(Notification.EXTRA_TEXT, Notification.EXTRA_SUB_TEXT, Notification.EXTRA_INFO_TEXT)
+        }
+        return keys.mapNotNull { key -> normalizeText(extras.getCharSequence(key)) }.toSet()
+    }
+
+    private fun findTextViewByExpectedText(view: View, expected: Set<String>): TextView? {
+        if (expected.isEmpty()) return null
+        if (view is TextView && normalizeText(view.text) in expected) return view
+        if (view is ViewGroup) {
+            for (index in 0 until view.childCount) {
+                findTextViewByExpectedText(view.getChildAt(index), expected)?.let { return it }
+            }
+        }
+        return null
+    }
+
+    private fun normalizeText(text: CharSequence?): String? {
+        return text?.toString()?.trim()?.takeIf(String::isNotEmpty)
     }
 
     private fun collectTextViewResourceNames(root: View): List<String> {
@@ -503,13 +607,22 @@ object MediaNotificationTextColorHook : BaseHook() {
 
     private fun Int.toColorHex(): String = "#%08X".format(this)
 
-    private val MEDIA_TITLE_IDS = listOf("header_title", "title", "audio_title")
-
-    private const val MEDIA_SUBTITLE_ID = "header_artist"
+    private val MEDIA_TITLE_IDS = listOf("header_title", "title", "audio_title", "media_title")
+    private val MEDIA_SUBTITLE_IDS = listOf(
+        "header_artist",
+        "artist",
+        "media_artist",
+        "subtitle",
+        "sub_title",
+        "text",
+        "text2",
+    )
     private const val MEDIA_SUBTITLE_DARK = 0xFF555555.toInt()
     private const val MEDIA_SUBTITLE_LIGHT = 0xFFB3B3B3.toInt()
     private const val DYNAMIC_ISLAND_CONTENT_VIEW_CLASS =
         "miui.systemui.dynamicisland.window.content.DynamicIslandContentView"
+    private const val DYNAMIC_ISLAND_WINDOW_VIEW_CLASS =
+        "miui.systemui.dynamicisland.window.DynamicIslandWindowView"
     private const val COLLAPSE_EVENT_CLASS =
         "miui.systemui.dynamicisland.event.DynamicIslandEvent\$Collapse"
     private const val MAX_EXPANDED_PROBES = 8
