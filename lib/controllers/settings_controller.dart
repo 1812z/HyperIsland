@@ -26,7 +26,6 @@ const kPrefBluetoothIslandWhitelistEnabled =
 const kPrefBluetoothIslandWhitelistAddresses =
     'pref_bluetooth_island_whitelist_addresses';
 
-const kPrefInteractionHaptics = 'pref_interaction_haptics';
 const kPrefRoundIcon = 'pref_round_icon';
 const kPrefRoundIconRadius = 'pref_round_icon_radius';
 const kPrefIslandIconSize = 'pref_island_icon_size';
@@ -246,7 +245,6 @@ class SettingsController extends ChangeNotifier {
   String bluetoothIslandOuterGlowColor = '';
   bool bluetoothIslandWhitelistEnabled = false;
   List<String> bluetoothIslandWhitelistAddresses = [];
-  bool interactionHaptics = true;
   bool roundIcon = true;
   int roundIconRadius = 40;
   int islandIconSize = 100;
@@ -442,7 +440,6 @@ class SettingsController extends ChangeNotifier {
     bluetoothIslandWhitelistAddresses = _decodeStringList(
       prefs.getString(kPrefBluetoothIslandWhitelistAddresses),
     );
-    interactionHaptics = prefs.getBool(kPrefInteractionHaptics) ?? true;
     roundIcon = prefs.getBool(kPrefRoundIcon) ?? true;
     roundIconRadius = prefs.getInt(kPrefRoundIconRadius)?.clamp(0, 100) ?? 40;
     islandIconSize = (prefs.getInt(kPrefIslandIconSize) ?? 100).clamp(50, 150);
@@ -874,13 +871,6 @@ class SettingsController extends ChangeNotifier {
       }
     } catch (_) {}
     return [];
-  }
-
-  Future<void> setInteractionHaptics(bool value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(kPrefInteractionHaptics, value);
-    interactionHaptics = value;
-    notifyListeners();
   }
 
   Future<void> setRoundIcon(bool value) async {

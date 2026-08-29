@@ -27,6 +27,7 @@ import top.yukonga.miuix.kmp.basic.SnackbarHostState
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Backup
 import top.yukonga.miuix.kmp.icon.extended.Blocklist
+import top.yukonga.miuix.kmp.icon.extended.Copy
 import top.yukonga.miuix.kmp.icon.extended.Hide
 import top.yukonga.miuix.kmp.icon.extended.Image
 import top.yukonga.miuix.kmp.icon.extended.Info
@@ -40,7 +41,7 @@ import top.yukonga.miuix.kmp.icon.extended.Translate
 import top.yukonga.miuix.kmp.icon.extended.Tune
 import top.yukonga.miuix.kmp.icon.extended.Update
 
-internal enum class SettingsDetail { Theme, HideBehavior, Misc, Other }
+internal enum class SettingsDetail { Theme, HideBehavior, Misc, Other, References }
 
 @Composable
 internal fun SettingsPage(
@@ -162,16 +163,17 @@ internal fun SettingsPage(
                     context.openUrl(TELEGRAM_URL)
                 }
                 SettingsAction(
-                    stringResource(R.string.compose_qq_group),
-                    MiuixIcons.Messages,
-                    stringResource(R.string.compose_qq_group_summary),
+                    title = stringResource(R.string.compose_qq_group),
+                    icon = MiuixIcons.Messages,
+                    summary = stringResource(R.string.compose_qq_group_summary),
+                    endIcon = MiuixIcons.Copy,
                 ) {
                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                     clipboard.setPrimaryClip(ClipData.newPlainText(QQ_CLIP_LABEL, QQ_GROUP_NUMBER))
                     scope.launch { snackbarState.showSnackbar(copiedMessage) }
                 }
                 SettingsActionWithArrow(stringResource(R.string.compose_references), MiuixIcons.Info) {
-                    openLegacy("/settings/references")
+                    onOpenDetail(SettingsDetail.References)
                 }
             }
         }

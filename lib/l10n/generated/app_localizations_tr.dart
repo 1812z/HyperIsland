@@ -260,13 +260,6 @@ class AppLocalizationsTr extends AppLocalizations {
       'Karşılama ve hızlı başlangıç akışını yeniden görüntüle';
 
   @override
-  String get interactionHapticsTitle => 'Etkileşim haptikleri';
-
-  @override
-  String get interactionHapticsSubtitle =>
-      'Anahtarlar, kaydırıcılar ve düğmeler için Hyper özel dokunsal geri bildirimi etkinleştir';
-
-  @override
   String get checkUpdate => 'Güncellemeleri Denetle';
 
   @override

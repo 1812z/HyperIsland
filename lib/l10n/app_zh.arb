@@ -115,8 +115,6 @@
   "showWelcomeSubtitle": "应用启动时在超级岛显示欢迎信息",
   "openOnboardingTitle": "打开初始引导",
   "openOnboardingSubtitle": "重新查看欢迎与快速上手流程",
-  "interactionHapticsTitle": "交互触感",
-  "interactionHapticsSubtitle": "为开关、滑块和按钮启用 Hyper 定制震感反馈",
   "checkUpdate": "检查更新",
   "alreadyLatest": "已是最新版本",
   "roundIconRadiusTitle": "圆角程度",

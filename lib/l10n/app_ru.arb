@@ -108,8 +108,6 @@
   "showWelcomeSubtitle": "Отображать приветственную информацию на Острове при запуске приложения",
   "openOnboardingTitle": "Открыть онбординг",
   "openOnboardingSubtitle": "Просмотреть приветствие и процесс быстрого старта",
-  "interactionHapticsTitle": "Тактильный отклик при взаимодействии",
-  "interactionHapticsSubtitle": "Включить пользовательский тактильный отклик Hyper для переключателей, ползунков и кнопок",
   "checkUpdate": "Проверить обновления",
   "alreadyLatest": "Уже установлена последняя версия",
   "roundIconRadiusTitle": "Степень скругления",

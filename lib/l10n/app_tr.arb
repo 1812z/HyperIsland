@@ -115,8 +115,6 @@
   "showWelcomeSubtitle": "Uygulama başladığında Ada üzerinde karşılama bilgisini göster",
   "openOnboardingTitle": "İlk kurulumu aç",
   "openOnboardingSubtitle": "Karşılama ve hızlı başlangıç akışını yeniden görüntüle",
-  "interactionHapticsTitle": "Etkileşim haptikleri",
-  "interactionHapticsSubtitle": "Anahtarlar, kaydırıcılar ve düğmeler için Hyper özel dokunsal geri bildirimi etkinleştir",
   "checkUpdate": "Güncellemeleri Denetle",
   "alreadyLatest": "Zaten en güncel sürümdesiniz",
   "roundIconRadiusTitle": "Köşe yuvarlaklığı",

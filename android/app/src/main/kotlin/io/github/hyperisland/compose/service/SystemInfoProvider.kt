@@ -7,6 +7,7 @@ import java.util.concurrent.TimeUnit
 internal data class HomeSystemInfo(
     val systemVersion: String,
     val appVersion: String,
+    val appVersionCode: Int,
     val deviceModel: String,
 )
 
@@ -15,6 +16,7 @@ internal object SystemInfoProvider {
         systemVersion = getProperty("ro.build.version.incremental")
             .ifBlank { Build.VERSION.INCREMENTAL.orEmpty() },
         appVersion = BuildConfig.VERSION_NAME,
+        appVersionCode = BuildConfig.VERSION_CODE,
         deviceModel = getProperty("ro.product.marketname")
             .ifBlank { Build.MODEL.orEmpty() },
     )

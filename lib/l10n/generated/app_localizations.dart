@@ -542,18 +542,6 @@ abstract class AppLocalizations {
   /// **'Review the welcome and quick start flow'**
   String get openOnboardingSubtitle;
 
-  /// No description provided for @interactionHapticsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Interaction Haptics'**
-  String get interactionHapticsTitle;
-
-  /// No description provided for @interactionHapticsSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Enable Hyper custom haptic feedback for switches, sliders, and buttons'**
-  String get interactionHapticsSubtitle;
-
   /// No description provided for @checkUpdate.
   ///
   /// In en, this message translates to:

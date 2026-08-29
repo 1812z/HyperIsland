@@ -30,7 +30,7 @@
         <activity
             android:name=".compose.ComposeMainActivity"
             android:exported="true"
-            android:theme="@style/NormalTheme">
+            android:theme="@style/ComposeTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="de.robv.android.xposed.category.MODULE_SETTINGS"/>

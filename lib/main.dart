@@ -7,6 +7,7 @@ import 'pages/main_page.dart';
 import 'pages/onboarding_page.dart';
 import 'pages/blacklist_page.dart';
 import 'pages/ai_config_page.dart';
+import 'pages/app_settings_route_page.dart';
 import 'pages/references_page.dart';
 import 'pages/island_sub/backup_restore_page.dart';
 import 'pages/island_sub/default_config_page.dart';
@@ -228,6 +229,21 @@ class _MyAppState extends State<MyApp> {
         '/settings/hook-extension': (_) => const HookExtensionPage(),
         '/settings/backup-restore': (_) => const BackupRestorePage(),
         '/settings/references': (_) => const ReferencesPage(),
+      },
+      onGenerateRoute: (settings) {
+        final uri = Uri.tryParse(settings.name ?? '');
+        if (uri?.path != '/app-settings') return null;
+        final packageName = uri!.queryParameters['package'] ?? '';
+        if (packageName.isEmpty) return null;
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => AppSettingsRoutePage(
+            packageName: packageName,
+            appName: uri.queryParameters['name'] ?? packageName,
+            toastMode: uri.queryParameters['mode'] == 'toast',
+            isSystem: uri.queryParameters['system'] == 'true',
+          ),
+        );
       },
       home: _settingsLoading
           ? const Scaffold(body: Center(child: CircularProgressIndicator()))

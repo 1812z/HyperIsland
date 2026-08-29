@@ -108,8 +108,6 @@
   "showWelcomeSubtitle": "アプリ起動時に Island にウェルカム情報を表示します",
   "openOnboardingTitle": "初期ガイドを開く",
   "openOnboardingSubtitle": "ようこそ画面とクイックスタートをもう一度確認します",
-  "interactionHapticsTitle": "インタラクションの触覚フィードバック",
-  "interactionHapticsSubtitle": "スイッチ、スライダー、ボタンに Hyper カスタム振動フィードバックを有効にします",
   "checkUpdate": "更新を確認",
   "alreadyLatest": "最新のバージョンを使用しています",
   "roundIconRadiusTitle": "角の丸み",

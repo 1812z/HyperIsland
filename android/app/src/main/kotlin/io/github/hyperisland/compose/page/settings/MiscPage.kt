@@ -29,7 +29,6 @@ internal fun MiscPage(
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
-    val haptics = rememberBooleanPreference(prefs, KEY_HAPTICS, true)
     val showWelcome = rememberBooleanPreference(prefs, KEY_SHOW_WELCOME, true)
     val hideDesktopIcon = rememberBooleanPreference(prefs, KEY_HIDE_DESKTOP_ICON, false)
     val checkUpdate = rememberBooleanPreference(prefs, KEY_CHECK_UPDATE, true)
@@ -39,12 +38,6 @@ internal fun MiscPage(
         item {
             SectionTitle(stringResource(R.string.compose_misc))
             Card(modifier = Modifier.fillMaxWidth()) {
-                PreferenceSwitch(
-                    stringResource(R.string.compose_interaction_haptics),
-                    stringResource(R.string.compose_interaction_haptics_summary),
-                    MiuixIcons.Settings,
-                    haptics.value,
-                ) { haptics.value = it; prefs.putBoolean(KEY_HAPTICS, it) }
                 SettingsActionWithArrow(
                     stringResource(R.string.compose_open_onboarding),
                     MiuixIcons.AppRecording,
@@ -87,7 +80,6 @@ private fun Context.setDesktopIconVisible(visible: Boolean) {
     runCatching { AppService().setDesktopIconVisible(packageManager, packageName, visible) }
 }
 
-private const val KEY_HAPTICS = "pref_interaction_haptics"
 private const val KEY_SHOW_WELCOME = "pref_show_welcome"
 private const val KEY_HIDE_DESKTOP_ICON = "pref_hide_desktop_icon"
 private const val KEY_CHECK_UPDATE = "pref_check_update_on_launch"

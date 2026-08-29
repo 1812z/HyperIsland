@@ -66,6 +66,7 @@ private data class ModuleState(
     val serviceConnected: Boolean = false,
     val framework: String = "",
     val frameworkVersion: String = "",
+    val frameworkVersionCode: Int = 0,
     val apiVersion: Int = 0,
     val hasSystemUiScope: Boolean = false,
 )
@@ -105,6 +106,7 @@ internal fun OverviewPage(prefs: FlutterPrefsRepository) {
                 serviceConnected = true,
                 framework = frameworkInfo["frameworkName"]?.toString().orEmpty(),
                 frameworkVersion = frameworkInfo["frameworkVersion"]?.toString().orEmpty(),
+                frameworkVersionCode = (frameworkInfo["frameworkVersionCode"] as? Number)?.toInt() ?: 0,
                 apiVersion = apiVersion,
                 hasSystemUiScope = SYSTEM_UI_PACKAGE in scopePackages,
             )
@@ -126,6 +128,7 @@ internal fun OverviewPage(prefs: FlutterPrefsRepository) {
         item {
             StatusGrid(
                 status = status,
+                appVersion = systemInfo?.appVersion,
                 enabledAppCount = enabledAppCount,
                 toastEnabledAppCount = toastEnabledAppCount,
                 onSendTest = { TestNotificationService.sendDefault(context) },
@@ -177,6 +180,7 @@ internal fun OverviewPage(prefs: FlutterPrefsRepository) {
 @Composable
 private fun StatusGrid(
     status: ModuleState?,
+    appVersion: String?,
     enabledAppCount: Int,
     toastEnabledAppCount: Int,
     onSendTest: () -> Unit,
@@ -189,7 +193,7 @@ private fun StatusGrid(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                StatusCard(status, Modifier.weight(1f).height(112.dp), onSendTest, onCustomTest)
+                StatusCard(status, appVersion, Modifier.weight(1f).height(112.dp), onSendTest, onCustomTest)
                 StatCard(
                     title = stringResource(R.string.compose_enabled_app_islands),
                     value = enabledAppCount.toString(),
@@ -207,7 +211,7 @@ private fun StatusGrid(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                StatusCard(status, Modifier.weight(1f).aspectRatio(1f), onSendTest, onCustomTest)
+                StatusCard(status, appVersion, Modifier.weight(1f).aspectRatio(1f), onSendTest, onCustomTest)
                 Column(
                     modifier = Modifier.weight(1f).aspectRatio(1f),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -231,6 +235,7 @@ private fun StatusGrid(
 @Composable
 private fun StatusCard(
     status: ModuleState?,
+    appVersion: String?,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
     onLongPress: () -> Unit,
@@ -270,7 +275,7 @@ private fun StatusCard(
                     color = Color(0xFF101010),
                 )
                 Text(
-                    text = moduleSummary(status),
+                    text = moduleSummary(status, appVersion),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     color = if (active) Color(0xFF101010) else statusColor,
@@ -282,14 +287,14 @@ private fun StatusCard(
 }
 
 @Composable
-private fun moduleSummary(status: ModuleState?): String = when {
+private fun moduleSummary(status: ModuleState?, appVersion: String?): String = when {
     status == null -> stringResource(R.string.compose_detecting_module_status)
     !status.serviceConnected -> stringResource(R.string.compose_enable_in_lsposed)
     status.apiVersion < MIN_SUPPORTED_API -> stringResource(R.string.compose_update_lsposed)
     !status.hasSystemUiScope -> stringResource(R.string.compose_enable_systemui_scope)
     else -> stringResource(
-        R.string.compose_framework_version,
-        status.frameworkVersion.ifBlank { stringResource(R.string.compose_unknown) },
+        R.string.compose_software_version,
+        appVersion.orEmpty().ifBlank { stringResource(R.string.compose_unknown) },
     )
 }
 
@@ -412,11 +417,24 @@ private fun Context.openUrl(url: String) {
 @Composable
 private fun InfoCard(info: HomeSystemInfo?, status: ModuleState?) {
     val unknown = stringResource(R.string.compose_unknown)
+    val appVersion = info?.let { "${it.appVersion} (${it.appVersionCode})" }.orEmpty().ifBlank { unknown }
+    val frameworkVersion = status
+        ?.takeIf { it.serviceConnected }
+        ?.let {
+            stringResource(
+                R.string.compose_framework_details,
+                it.framework.ifBlank { unknown },
+                it.frameworkVersion.ifBlank { unknown },
+                it.frameworkVersionCode,
+                it.apiVersion,
+            )
+        }
+        ?: unknown
     Card {
         Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             InfoText(stringResource(R.string.compose_system_version), info?.systemVersion.orEmpty().ifBlank { unknown })
-            InfoText(stringResource(R.string.compose_app_version), info?.appVersion.orEmpty().ifBlank { unknown })
-            InfoText(stringResource(R.string.compose_lsposed_version), status?.frameworkVersion.orEmpty().ifBlank { unknown })
+            InfoText(stringResource(R.string.compose_app_version), appVersion)
+            InfoText(stringResource(R.string.compose_xposed_framework), frameworkVersion)
             InfoText(stringResource(R.string.compose_device_model), info?.deviceModel.orEmpty().ifBlank { unknown }, 0.dp)
         }
     }

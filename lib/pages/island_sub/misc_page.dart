@@ -17,7 +17,6 @@ class _MiscPageState extends State<MiscPage> {
   late int _uiStateHash;
 
   int _buildUiStateHash() => Object.hashAll([
-    _ctrl.interactionHaptics,
     _ctrl.showWelcome,
     _ctrl.hideDesktopIcon,
     _ctrl.checkUpdateOnLaunch,
@@ -70,35 +69,16 @@ class _MiscPageState extends State<MiscPage> {
                   color: cs.surfaceContainerHighest,
                   child: Column(
                     children: [
-                      SwitchListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 4,
-                        ),
-                        title: Text(
-                          l10n.interactionHapticsTitle,
-                          style: titleStyle,
-                        ),
-                        subtitle: Text(l10n.interactionHapticsSubtitle),
-                        value: _ctrl.interactionHaptics,
-                        onChanged: InteractionHaptics.interceptToggle(
-                          (value) => _ctrl.setInteractionHaptics(value),
-                          force: true,
-                        ),
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(16),
-                          ),
-                        ),
-                      ),
-                      const Divider(height: 1, indent: 16, endIndent: 16),
                       ListTile(
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 4,
                         ),
                         leading: const Icon(Icons.auto_awesome_outlined),
-                        title: Text(l10n.openOnboardingTitle, style: titleStyle),
+                        title: Text(
+                          l10n.openOnboardingTitle,
+                          style: titleStyle,
+                        ),
                         subtitle: Text(l10n.openOnboardingSubtitle),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: InteractionHaptics.interceptButton(

@@ -264,13 +264,6 @@ class AppLocalizationsRu extends AppLocalizations {
       'Просмотреть приветствие и процесс быстрого старта';
 
   @override
-  String get interactionHapticsTitle => 'Тактильный отклик при взаимодействии';
-
-  @override
-  String get interactionHapticsSubtitle =>
-      'Включить пользовательский тактильный отклик Hyper для переключателей, ползунков и кнопок';
-
-  @override
   String get checkUpdate => 'Проверить обновления';
 
   @override

@@ -259,13 +259,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Review the welcome and quick start flow';
 
   @override
-  String get interactionHapticsTitle => 'Interaction Haptics';
-
-  @override
-  String get interactionHapticsSubtitle =>
-      'Enable Hyper custom haptic feedback for switches, sliders, and buttons';
-
-  @override
   String get checkUpdate => 'Check for updates';
 
   @override

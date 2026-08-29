@@ -244,13 +244,6 @@ class AppLocalizationsJa extends AppLocalizations {
   String get openOnboardingSubtitle => 'ようこそ画面とクイックスタートをもう一度確認します';
 
   @override
-  String get interactionHapticsTitle => 'インタラクションの触覚フィードバック';
-
-  @override
-  String get interactionHapticsSubtitle =>
-      'スイッチ、スライダー、ボタンに Hyper カスタム振動フィードバックを有効にします';
-
-  @override
   String get checkUpdate => '更新を確認';
 
   @override

@@ -9,6 +9,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
@@ -45,19 +46,22 @@ internal fun CollapsingPage(
     val scrollBehavior = MiuixScrollBehavior()
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = title,
-                largeTitle = title,
-                subtitle = subtitle,
-                scrollBehavior = scrollBehavior,
-                actions = {
-                    if (actionIcon != null && onAction != null) {
-                        IconButton(onClick = onAction) {
-                            Icon(actionIcon, actionDescription)
+            BlurredBar {
+                TopAppBar(
+                    title = title,
+                    largeTitle = title,
+                    subtitle = subtitle,
+                    color = Color.Transparent,
+                    scrollBehavior = scrollBehavior,
+                    actions = {
+                        if (actionIcon != null && onAction != null) {
+                            IconButton(onClick = onAction) {
+                                Icon(actionIcon, actionDescription)
+                            }
                         }
-                    }
-                },
-            )
+                    },
+                )
+            }
         },
         snackbarHost = snackbarHost,
     ) { padding ->
@@ -76,22 +80,35 @@ internal fun CollapsingPage(
 internal fun DetailPage(
     title: String,
     onBack: () -> Unit,
+    actionIcon: ImageVector? = null,
+    actionDescription: String = "",
+    onAction: (() -> Unit)? = null,
     snackbarHost: @Composable () -> Unit = {},
     content: LazyListScope.() -> Unit,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = title,
-                largeTitle = title,
-                scrollBehavior = scrollBehavior,
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(MiuixIcons.Back, stringResource(R.string.compose_back))
-                    }
-                },
-            )
+            BlurredBar {
+                TopAppBar(
+                    title = title,
+                    largeTitle = title,
+                    color = Color.Transparent,
+                    scrollBehavior = scrollBehavior,
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(MiuixIcons.Back, stringResource(R.string.compose_back))
+                        }
+                    },
+                    actions = {
+                        if (actionIcon != null && onAction != null) {
+                            IconButton(onClick = onAction) {
+                                Icon(actionIcon, actionDescription)
+                            }
+                        }
+                    },
+                )
+            }
         },
         snackbarHost = snackbarHost,
     ) { padding ->
@@ -121,7 +138,7 @@ private fun PageList(
             start = horizontalContentPadding,
             top = padding.calculateTopPadding() + topContentPadding,
             end = horizontalContentPadding,
-            bottom = bottomContentPadding,
+            bottom = bottomContentPadding + LocalRootBottomBarPadding.current,
         ),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         content = content,
@@ -130,7 +147,11 @@ private fun PageList(
 
 @Composable
 internal fun SectionTitle(title: String) {
-    SmallTitle(text = title, modifier = Modifier.padding(start = 10.dp, top = 4.dp))
+    SmallTitle(
+        text = title,
+        modifier = Modifier.padding(top = 4.dp),
+        insideMargin = PaddingValues(horizontal = 18.dp, vertical = 8.dp),
+    )
 }
 
 @Composable
