@@ -47,7 +47,7 @@ internal fun SettingsPage(
     onOpenDetail: (SettingsDetail) -> Unit,
 ) {
     val context = LocalContext.current
-    val localeValues = listOf("", "zh", "en", "ja", "ru", "tr")
+    val localeValues = listOf("", "zh", "en", "ja", "ru", "tr", "ar")
     val currentLocale = AppLocaleController.currentLanguageTag(context)
     CollapsingPage(
         title = stringResource(R.string.nav_settings),
@@ -111,6 +111,7 @@ internal fun SettingsPage(
                         stringResource(R.string.japanese),
                         stringResource(R.string.russian),
                         stringResource(R.string.turkish),
+                        stringResource(R.string.arabic),
                     ),
                     selectedIndex = localeValues.indexOf(currentLocale).coerceAtLeast(0),
                 ) { index ->

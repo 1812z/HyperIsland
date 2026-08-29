@@ -25,6 +25,7 @@
         android:label="HyperIsland"
         android:name=".XposedPrefsSyncApp"
         android:enableOnBackInvokedCallback="true"
+        android:supportsRtl="true"
         android:description="@string/module_description"
         android:icon="@drawable/ic_launcher">
         <activity
