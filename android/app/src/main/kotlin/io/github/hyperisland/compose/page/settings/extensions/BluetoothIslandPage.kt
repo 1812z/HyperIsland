@@ -69,6 +69,7 @@ internal fun BluetoothIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Un
     val outerGlow = rememberBooleanPreference(prefs, KEY_BLUETOOTH_OUTER_GLOW, false)
     val glowColor = rememberStringPreference(prefs, KEY_BLUETOOTH_OUTER_GLOW_COLOR, "")
     val showColorDialog = remember { mutableStateOf(false) }
+    val showDurationDialog = remember { mutableStateOf(false) }
     val showDeviceDialog = remember { mutableStateOf(false) }
     val devices = remember { mutableStateOf<List<PairedBluetoothDevice>>(emptyList()) }
     val deviceDraft = remember { mutableStateOf<Set<String>>(emptySet()) }
@@ -121,21 +122,14 @@ internal fun BluetoothIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Un
                     icon = null,
                     checked = showName.value,
                 ) { value -> showName.value = value; prefs.putBoolean(KEY_BLUETOOTH_SHOW_DEVICE_NAME, value) }
-                TextField(
-                    value = durationDraft.value,
-                    onValueChange = { input ->
-                        val digits = input.filter(Char::isDigit).take(5)
-                        durationDraft.value = digits
-                        digits.toLongOrNull()?.coerceIn(1L, 86400L)?.let { value ->
-                            duration.value = value
-                            prefs.putLong(KEY_BLUETOOTH_DURATION, value)
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = stringResource(R.string.compose_ext_display_duration),
-                    useLabelAsPlaceholder = true,
-                    singleLine = true,
-                )
+                SettingsAction(
+                    title = stringResource(R.string.compose_ext_display_duration),
+                    summary = stringResource(R.string.compose_ext_duration_value, duration.value),
+                    endIcon = MiuixIcons.ChevronForward,
+                ) {
+                    durationDraft.value = duration.value.toString()
+                    showDurationDialog.value = true
+                }
                 PreferenceSwitch(
                     title = stringResource(R.string.compose_ext_device_whitelist),
                     summary = stringResource(
@@ -186,6 +180,48 @@ internal fun BluetoothIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Un
         glowColor.value = color.toArgbHex()
         prefs.putString(KEY_BLUETOOTH_OUTER_GLOW_COLOR, glowColor.value)
         showColorDialog.value = false
+    }
+
+    WindowDialog(
+        show = showDurationDialog.value,
+        title = stringResource(R.string.compose_ext_display_duration),
+        onDismissRequest = { showDurationDialog.value = false },
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            TextField(
+                value = durationDraft.value,
+                onValueChange = { input ->
+                    durationDraft.value = input.filter(Char::isDigit).take(5)
+                },
+                modifier = Modifier.fillMaxWidth(),
+                label = stringResource(R.string.compose_ext_display_duration),
+                useLabelAsPlaceholder = true,
+                singleLine = true,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                TextButton(
+                    text = stringResource(R.string.compose_cancel),
+                    onClick = { showDurationDialog.value = false },
+                    modifier = Modifier.weight(1f),
+                )
+                Button(
+                    onClick = {
+                        val value = durationDraft.value.toLongOrNull()
+                            ?.coerceIn(1L, 86400L)
+                            ?: duration.value
+                        duration.value = value
+                        durationDraft.value = value.toString()
+                        prefs.putLong(KEY_BLUETOOTH_DURATION, value)
+                        showDurationDialog.value = false
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColorsPrimary(),
+                ) { Text(stringResource(R.string.compose_save)) }
+            }
+        }
     }
 
     WindowDialog(

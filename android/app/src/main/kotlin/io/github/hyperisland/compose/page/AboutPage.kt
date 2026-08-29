@@ -46,6 +46,7 @@ import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
@@ -68,6 +69,7 @@ import io.github.hyperisland.compose.component.SettingsActionWithArrow
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
+import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
@@ -96,7 +98,8 @@ import kotlin.math.sin
 @Composable
 internal fun AboutPage(
     isActive: Boolean,
-    openLegacy: (String) -> Unit,
+    isCheckingUpdate: Boolean,
+    onCheckUpdate: () -> Unit,
     onOpenBackupRestore: () -> Unit,
     onOpenReferences: () -> Unit,
 ) {
@@ -229,9 +232,24 @@ internal fun AboutPage(
                             ) {
                                 onOpenBackupRestore()
                             }
-                            SettingsAction(stringResource(R.string.compose_check_update_action), MiuixIcons.Update) {
-                                openLegacy("/settings")
-                            }
+                            SettingsAction(
+                                title = stringResource(R.string.compose_check_update_action),
+                                icon = MiuixIcons.Update,
+                                endContent = if (isCheckingUpdate) {
+                                    {
+                                        Box(
+                                            modifier = Modifier.padding(end = 8.dp).size(26.dp),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            CircularProgressIndicator(size = 20.dp)
+                                        }
+                                    }
+                                } else {
+                                    null
+                                },
+                                enabled = !isCheckingUpdate,
+                                onClick = onCheckUpdate,
+                            )
                         }
                     }
                     item {
@@ -245,6 +263,14 @@ internal fun AboutPage(
                                 endIconSize = 26.dp,
                             ) {
                                 context.openUrl(GITHUB_URL)
+                            }
+                            SettingsAction(
+                                title = stringResource(R.string.compose_changelog),
+                                icon = MiuixIcons.Info,
+                                endIcon = MiuixIcons.Link,
+                                endIconSize = 26.dp,
+                            ) {
+                                context.openUrl(CHANGELOG_URL)
                             }
                             SettingsActionWithArrow(
                                 title = stringResource(R.string.compose_references),
@@ -303,7 +329,7 @@ private fun AboutHero(
                 backdrop = backdrop,
                 darkMode = darkMode,
                 blurRadius = 200f,
-                shape = RoundedCornerShape(22.dp),
+                shape = RectangleShape,
                 modifier = Modifier
                     .size(90.dp),
             )
@@ -612,6 +638,7 @@ private fun Context.openUrl(url: String) {
 }
 
 private const val GITHUB_URL = "https://github.com/1812z/HyperIsland"
+private const val CHANGELOG_URL = "https://hyperisland.1812z.top/CHANGELOG.html"
 private const val DEVELOPER_GITHUB_URL = "https://github.com/1812z"
 private const val TELEGRAM_URL = "https://t.me/HyperIsland_Module"
 private const val QQ_GROUP_NUMBER = "1045114341"

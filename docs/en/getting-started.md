@@ -57,10 +57,25 @@ Download Island is disabled by default. Go to the app and enable **"Show System 
 
 ### AI Summary Configuration
 
-- AI summary only supports **non-reasoning** models. Do not use reasoning models. For DeepSeek, use **deepseek-v4-flash**
-- URL must be fully filled in. For DeepSeek models, fill in `https://api.deepseek.com/v1/chat/completions` — **do not omit `/chat/completions`**
-- If summary fails, it will automatically fall back to normal notifications. If not working, check your configuration
-- If still failing, check if your **account balance** is sufficient
+- AI Summary only supports **non-thinking** models. Please do not use thinking models.
+
+- The URL must be fully filled in. **Do not omit /chat/completions**.
+- If the summary fails, it will automatically fall back to a regular notification. If it does not work, please check your configuration.
+- If the error persists, please check whether your **account balance** is sufficient.
+
+::: details DeepSeek Configuration
+- Model: **deepseek-v4-flash**
+- API: **https://api.deepseek.com/v1/chat/completions**
+- Thinking disable field: **thinking**
+- Thinking disable value: **{"type":"disabled"}**
+:::
+
+::: details Alibaba Cloud Bailian Configuration
+- Model: **qwen-flash**
+- API: **https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions**
+- Thinking disable field: **enable_thinking**
+- Thinking disable value: **false**
+:::
 
 ## FAQ
 

@@ -171,6 +171,7 @@ internal fun SettingsAction(
     summary: String? = null,
     endIcon: ImageVector? = null,
     endIconSize: Dp = 20.dp,
+    endContent: (@Composable () -> Unit)? = null,
     enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
@@ -179,7 +180,9 @@ internal fun SettingsAction(
         summary = summary,
         startAction = icon?.let { image -> { SettingsIcon(image) } },
         endActions = {
-            if (endIcon != null) {
+            if (endContent != null) {
+                endContent()
+            } else if (endIcon != null) {
                 Icon(
                     imageVector = endIcon,
                     contentDescription = null,

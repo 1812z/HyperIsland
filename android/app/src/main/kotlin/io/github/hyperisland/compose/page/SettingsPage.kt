@@ -37,12 +37,12 @@ internal enum class SettingsDetail {
     FilterRules,
     KeepIsland,
     HookExtension,
+    Onboarding,
 }
 
 @Composable
 internal fun SettingsPage(
     prefs: FlutterPrefsRepository,
-    openLegacy: (String) -> Unit,
     onOpenDetail: (SettingsDetail) -> Unit,
 ) {
     val locale = rememberStringPreference(prefs, KEY_LOCALE, "")

@@ -1,8 +1,11 @@
 package io.github.hyperisland.compose.page.settings
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -23,11 +26,16 @@ import io.github.hyperisland.compose.component.toArgbHex
 import io.github.hyperisland.compose.data.DefaultConfigSettings
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import top.yukonga.miuix.kmp.basic.BasicComponent
+import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
+import top.yukonga.miuix.kmp.window.WindowDialog
 
 @Composable
 internal fun DefaultConfigPage(
@@ -36,6 +44,7 @@ internal fun DefaultConfigPage(
 ) {
     var settings by remember { mutableStateOf(prefs.defaultConfigSettings()) }
     var timeoutText by remember { mutableStateOf(settings.timeout.toString()) }
+    var showTimeoutDialog by remember { mutableStateOf(false) }
     var activeColorTarget by remember { mutableStateOf<DefaultColorTarget?>(null) }
     var selectedColor by remember { mutableStateOf(Color.Red) }
     val glowModes = remember { listOf(GLOW_ON, GLOW_OFF, GLOW_FOLLOW_DYNAMIC) }
@@ -100,26 +109,13 @@ internal fun DefaultConfigPage(
                     summary = stringResource(R.string.compose_restore_lockscreen_summary),
                     insideMargin = DEFAULT_ITEM_MARGIN,
                 )
-                BasicComponent(
+                ArrowPreference(
                     title = stringResource(R.string.compose_auto_disappear),
-                    summary = stringResource(R.string.compose_default_timeout_summary),
+                    summary = stringResource(R.string.compose_timeout_seconds_value, settings.timeout),
                     insideMargin = DEFAULT_ITEM_MARGIN,
-                    endActions = {
-                        TextField(
-                            value = timeoutText,
-                            onValueChange = { raw ->
-                                val digits = raw.filter(Char::isDigit)
-                                timeoutText = digits
-                                digits.toIntOrNull()?.takeIf { it >= 1 }?.let { timeout ->
-                                    update(settings.copy(timeout = timeout))
-                                }
-                            },
-                            modifier = Modifier.width(104.dp),
-                            label = stringResource(R.string.compose_seconds),
-                            useLabelAsPlaceholder = true,
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        )
+                    onClick = {
+                        timeoutText = settings.timeout.toString()
+                        showTimeoutDialog = true
                     },
                 )
             }
@@ -244,6 +240,45 @@ internal fun DefaultConfigPage(
                         },
                     )
                 }
+            }
+        }
+    }
+
+    WindowDialog(
+        show = showTimeoutDialog,
+        title = stringResource(R.string.compose_auto_disappear),
+        onDismissRequest = { showTimeoutDialog = false },
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            TextField(
+                value = timeoutText,
+                onValueChange = { raw -> timeoutText = raw.filter(Char::isDigit).take(9) },
+                modifier = Modifier.fillMaxWidth(),
+                label = stringResource(R.string.compose_seconds),
+                useLabelAsPlaceholder = true,
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                TextButton(
+                    text = stringResource(R.string.compose_cancel),
+                    onClick = { showTimeoutDialog = false },
+                    modifier = Modifier.weight(1f),
+                )
+                Button(
+                    onClick = {
+                        val timeout = timeoutText.toIntOrNull()?.takeIf { it >= 1 }
+                            ?: settings.timeout
+                        timeoutText = timeout.toString()
+                        update(settings.copy(timeout = timeout))
+                        showTimeoutDialog = false
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColorsPrimary(),
+                ) { Text(stringResource(R.string.compose_save)) }
             }
         }
     }

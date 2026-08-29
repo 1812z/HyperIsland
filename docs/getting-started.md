@@ -57,10 +57,24 @@
 
 ### AI 总结配置
 
-- AI总结仅支持**非思考**模型，请勿使用思考模型，如DeepSeek请使用 **deepseek-v4-flash**
-- URL需完整填写，如DeepSeek模型需填写 https://api.deepseek.com/v1/chat/completions **不可遗漏/chat/completions**
+- AI总结仅支持**非思考**模型，请勿使用思考模型
+- URL需完整填写， **不可遗漏/chat/completions**
 - 总结失败会自动回退为普通通知，如不生效请检查是否正确配置
 - 如果仍报错请检查**账户余额**是否充足
+
+::: details DeepSeek 配置
+- 模型: **deepseek-v4-flash**
+- API: **https://api.deepseek.com/v1/chat/completions**
+- 关闭思考字段: **thinking**
+- 关闭思考值: **{"type":"disabled"}**
+:::
+
+::: details 阿里云百炼 配置
+- 模型: **qwen-flash**
+- API: **https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions**
+- 关闭思考字段: **enable_thinking**
+- 关闭思考值: **false**
+:::
 
 ## 常见问题
 

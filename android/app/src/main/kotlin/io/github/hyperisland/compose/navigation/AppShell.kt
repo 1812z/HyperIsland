@@ -2,11 +2,13 @@ package io.github.hyperisland.compose.navigation
 
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -24,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -34,25 +37,43 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import io.github.hyperisland.MainActivity
+import io.github.hyperisland.BuildConfig
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.BarBackdropContent
 import io.github.hyperisland.compose.component.BarBlurHost
 import io.github.hyperisland.compose.component.BlurredBar
 import io.github.hyperisland.compose.component.LocalRootBottomBarPadding
 import io.github.hyperisland.compose.component.PredictiveBackBackdrop
+import io.github.hyperisland.compose.component.BACKGROUND_PARALLAX
+import io.github.hyperisland.compose.component.BACKGROUND_SCALE_REDUCTION
+import io.github.hyperisland.compose.component.EFFECT_VISIBILITY_THRESHOLD
+import io.github.hyperisland.compose.component.LAYER_ENTER_DURATION
+import io.github.hyperisland.compose.component.LAYER_EXIT_DURATION
+import io.github.hyperisland.compose.component.PREDICTIVE_CANCEL_DURATION
+import io.github.hyperisland.compose.component.PREDICTIVE_DISMISS_DURATION
+import io.github.hyperisland.compose.component.predictiveEffectIntensity
+import io.github.hyperisland.compose.component.predictiveExitProgress
+import io.github.hyperisland.compose.component.predictiveSettleDuration
+import io.github.hyperisland.compose.component.predictiveTranslationFraction
+import io.github.hyperisland.compose.component.smootherStep
+import io.github.hyperisland.compose.component.UpdateDialogHost
+import io.github.hyperisland.compose.component.UpdateDialogState
 import io.github.hyperisland.compose.component.barBlurBackground
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.InstalledApp
+import io.github.hyperisland.compose.data.channel.BatchChannelTarget
 import io.github.hyperisland.compose.data.rememberBooleanPreference
 import io.github.hyperisland.compose.data.rememberLongPreference
 import io.github.hyperisland.compose.page.AppsPage
 import io.github.hyperisland.compose.page.AboutPage
 import io.github.hyperisland.compose.page.apps.NotificationChannelsPage
+import io.github.hyperisland.compose.page.apps.channel.ChannelEditorPage
+import io.github.hyperisland.compose.page.apps.channel.BatchChannelSettingsPage
 import io.github.hyperisland.compose.page.apps.MediaNotificationPage
 import io.github.hyperisland.compose.page.apps.ToastSettingsPage
 import io.github.hyperisland.compose.page.home.OverviewPage
 import io.github.hyperisland.compose.page.home.rememberHomeOverviewState
+import io.github.hyperisland.compose.page.onboarding.OnboardingPage
 import io.github.hyperisland.compose.page.SettingsDetail
 import io.github.hyperisland.compose.page.SettingsPage
 import io.github.hyperisland.compose.page.settings.HideBehaviorPage
@@ -72,6 +93,7 @@ import io.github.hyperisland.compose.page.settings.extensions.ChargeIslandPage
 import io.github.hyperisland.compose.page.settings.extensions.FaceUnlockIslandPage
 import io.github.hyperisland.compose.page.settings.extensions.HookExtensionDetail
 import io.github.hyperisland.compose.page.settings.extensions.HookExtensionPage
+import io.github.hyperisland.compose.service.UpdateService
 import io.github.hyperisland.compose.theme.PREF_BLUR_BARS
 import io.github.hyperisland.compose.theme.PREF_FLOATING_NAVIGATION_BAR
 import io.github.hyperisland.compose.theme.DEFAULT_PREDICTIVE_BACK_TRANSLATION_PERCENT
@@ -87,6 +109,8 @@ import top.yukonga.miuix.kmp.basic.FloatingToolbarDefaults
 import top.yukonga.miuix.kmp.basic.NavigationBar
 import top.yukonga.miuix.kmp.basic.NavigationBarItem
 import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SnackbarHost
+import top.yukonga.miuix.kmp.basic.SnackbarHostState
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.GridView
 import top.yukonga.miuix.kmp.icon.extended.Home
@@ -107,8 +131,13 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
         )
     }
     val pagerState = rememberPagerState(pageCount = { destinations.size })
+    var appsSelectedMode by remember { mutableIntStateOf(0) }
     val homeOverviewState = rememberHomeOverviewState(prefs)
     val scope = rememberCoroutineScope()
+    val updateSnackbarState = remember { SnackbarHostState() }
+    val alreadyLatestMessage = stringResource(R.string.compose_already_latest)
+    var updateDialogState by remember { mutableStateOf<UpdateDialogState?>(null) }
+    var isCheckingUpdate by remember { mutableStateOf(false) }
     val floatingNavigationBar = rememberBooleanPreference(prefs, PREF_FLOATING_NAVIGATION_BAR, false)
     val blurBars = rememberBooleanPreference(prefs, PREF_BLUR_BARS, false)
     val predictiveBackMaxTranslation = rememberLongPreference(
@@ -121,27 +150,60 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     var visibleToastApp by remember { mutableStateOf<InstalledApp?>(null) }
     var detailShown by remember { mutableStateOf(false) }
     var mediaShown by remember { mutableStateOf(false) }
+    var visibleChannelEditor by remember { mutableStateOf<io.github.hyperisland.compose.data.NotificationChannelInfo?>(null) }
+    var batchChannelTarget by remember { mutableStateOf<BatchChannelTarget?>(null) }
     var materialShown by remember { mutableStateOf(false) }
     var extensionDetail by remember { mutableStateOf<HookExtensionDetail?>(null) }
-    val nestedDetailShown = mediaShown || materialShown || extensionDetail != null
+    val nestedDetailShown = mediaShown || materialShown || visibleChannelEditor != null ||
+        (visibleChannelApp != null && batchChannelTarget != null) || extensionDetail != null
     var detailPredictiveBackActive by remember { mutableStateOf(false) }
     var mediaPredictiveBackActive by remember { mutableStateOf(false) }
+    var detailPredictiveCommitting by remember { mutableStateOf(false) }
+    var mediaPredictiveCommitting by remember { mutableStateOf(false) }
     val predictiveProgress = remember { Animatable(0f) }
     val mediaPredictiveProgress = remember { Animatable(0f) }
     val detailBackdropIntensity = remember { Animatable(0f) }
     val mediaBackdropIntensity = remember { Animatable(0f) }
     val rootLayerDepth = remember { Animatable(0f) }
     val detailLayerDepth = remember { Animatable(0f) }
-    val openLegacy = remember(context) {
-        { route: String ->
-            context.startActivity(
-                Intent(context, MainActivity::class.java).putExtra("legacy_route", route),
-            )
+
+    fun requestUpdateCheck(showUpToDate: Boolean) {
+        if (isCheckingUpdate) return
+        isCheckingUpdate = true
+        scope.launch {
+            var showAlreadyLatest = false
+            try {
+                val update = UpdateService.fetchIfNewer(BuildConfig.VERSION_NAME)
+                if (update != null) {
+                    updateDialogState = UpdateDialogState.Available(
+                        currentVersion = BuildConfig.VERSION_NAME,
+                        update = update,
+                    )
+                } else if (showUpToDate) {
+                    showAlreadyLatest = true
+                }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                updateDialogState = UpdateDialogState.Failure
+            } finally {
+                isCheckingUpdate = false
+            }
+            if (showAlreadyLatest) {
+                updateSnackbarState.showSnackbar(alreadyLatestMessage)
+            }
+        }
+    }
+
+    LaunchedEffect(prefs) {
+        if (prefs.getBoolean(PREF_CHECK_UPDATE_ON_LAUNCH, true)) {
+            requestUpdateCheck(showUpToDate = false)
         }
     }
 
     fun closeDetail() {
         detailShown = false
+        batchChannelTarget = null
     }
 
     LaunchedEffect(detailShown, detailPredictiveBackActive) {
@@ -186,6 +248,65 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
         }
     }
 
+    suspend fun finishDetailPredictiveBack() {
+        detailPredictiveCommitting = true
+        val duration = predictiveSettleDuration(
+            progress = predictiveProgress.value,
+            maxTranslationPercent = predictiveBackMaxTranslation.value,
+        )
+        coroutineScope {
+            launch {
+                predictiveProgress.animateTo(
+                    predictiveExitProgress(predictiveBackMaxTranslation.value),
+                    tween(duration, easing = LinearEasing),
+                )
+            }
+            launch {
+                detailBackdropIntensity.animateTo(0f, tween(duration, easing = LinearEasing))
+            }
+            launch {
+                rootLayerDepth.animateTo(0f, tween(duration, easing = LinearEasing))
+            }
+        }
+        detailShown = false
+        batchChannelTarget = null
+        delay(PREDICTIVE_DISMISS_DURATION.toLong())
+        predictiveProgress.snapTo(0f)
+        detailPredictiveBackActive = false
+        detailPredictiveCommitting = false
+    }
+
+    suspend fun finishNestedPredictiveBack() {
+        mediaPredictiveCommitting = true
+        val duration = predictiveSettleDuration(
+            progress = mediaPredictiveProgress.value,
+            maxTranslationPercent = predictiveBackMaxTranslation.value,
+        )
+        coroutineScope {
+            launch {
+                mediaPredictiveProgress.animateTo(
+                    predictiveExitProgress(predictiveBackMaxTranslation.value),
+                    tween(duration, easing = LinearEasing),
+                )
+            }
+            launch {
+                mediaBackdropIntensity.animateTo(0f, tween(duration, easing = LinearEasing))
+            }
+            launch {
+                detailLayerDepth.animateTo(0f, tween(duration, easing = LinearEasing))
+            }
+        }
+        mediaShown = false
+        materialShown = false
+        visibleChannelEditor = null
+        if (visibleChannelApp != null) batchChannelTarget = null
+        extensionDetail = null
+        delay(PREDICTIVE_DISMISS_DURATION.toLong())
+        mediaPredictiveProgress.snapTo(0f)
+        mediaPredictiveBackActive = false
+        mediaPredictiveCommitting = false
+    }
+
     PredictiveBackHandler(enabled = detailShown && !nestedDetailShown) { events ->
         try {
             events.collect { event ->
@@ -195,52 +316,31 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                 detailBackdropIntensity.snapTo(predictiveEffectIntensity(smoothProgress))
                 rootLayerDepth.snapTo(1f - smoothProgress)
             }
-            coroutineScope {
-                launch {
-                    predictiveProgress.animateTo(
-                        predictiveExitProgress(predictiveBackMaxTranslation.value),
-                        tween(PREDICTIVE_SETTLE_DURATION, easing = FastOutSlowInEasing),
-                    )
-                }
-                launch {
-                    detailBackdropIntensity.animateTo(
-                        0f,
-                        tween(PREDICTIVE_SETTLE_DURATION, easing = FastOutSlowInEasing),
-                    )
-                }
-                launch {
-                    rootLayerDepth.animateTo(
-                        0f,
-                        tween(PREDICTIVE_SETTLE_DURATION, easing = FastOutSlowInEasing),
-                    )
-                }
-            }
-            detailShown = false
-            delay(PREDICTIVE_DISMISS_DURATION.toLong())
-            predictiveProgress.snapTo(0f)
-            detailPredictiveBackActive = false
+            finishDetailPredictiveBack()
         } catch (_: CancellationException) {
-            coroutineScope {
-                launch {
-                    predictiveProgress.animateTo(
-                        0f,
-                        tween(PREDICTIVE_CANCEL_DURATION, easing = FastOutSlowInEasing),
-                    )
+            if (!detailPredictiveCommitting) {
+                coroutineScope {
+                    launch {
+                        predictiveProgress.animateTo(
+                            0f,
+                            tween(PREDICTIVE_CANCEL_DURATION, easing = FastOutSlowInEasing),
+                        )
+                    }
+                    launch {
+                        detailBackdropIntensity.animateTo(
+                            1f,
+                            tween(PREDICTIVE_CANCEL_DURATION, easing = FastOutSlowInEasing),
+                        )
+                    }
+                    launch {
+                        rootLayerDepth.animateTo(
+                            1f,
+                            tween(PREDICTIVE_CANCEL_DURATION, easing = FastOutSlowInEasing),
+                        )
+                    }
                 }
-                launch {
-                    detailBackdropIntensity.animateTo(
-                        1f,
-                        tween(PREDICTIVE_CANCEL_DURATION, easing = FastOutSlowInEasing),
-                    )
-                }
-                launch {
-                    rootLayerDepth.animateTo(
-                        1f,
-                        tween(PREDICTIVE_CANCEL_DURATION, easing = FastOutSlowInEasing),
-                    )
-                }
+                detailPredictiveBackActive = false
             }
-            detailPredictiveBackActive = false
         }
     }
 
@@ -253,55 +353,40 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                 mediaBackdropIntensity.snapTo(predictiveEffectIntensity(smoothProgress))
                 detailLayerDepth.snapTo(1f - smoothProgress)
             }
-            coroutineScope {
-                launch {
-                    mediaPredictiveProgress.animateTo(
-                        predictiveExitProgress(predictiveBackMaxTranslation.value),
-                        tween(PREDICTIVE_SETTLE_DURATION, easing = FastOutSlowInEasing),
-                    )
-                }
-                launch {
-                    mediaBackdropIntensity.animateTo(
-                        0f,
-                        tween(PREDICTIVE_SETTLE_DURATION, easing = FastOutSlowInEasing),
-                    )
-                }
-                launch {
-                    detailLayerDepth.animateTo(
-                        0f,
-                        tween(PREDICTIVE_SETTLE_DURATION, easing = FastOutSlowInEasing),
-                    )
-                }
-            }
-            mediaShown = false
-            materialShown = false
-            extensionDetail = null
-            delay(PREDICTIVE_DISMISS_DURATION.toLong())
-            mediaPredictiveProgress.snapTo(0f)
-            mediaPredictiveBackActive = false
+            finishNestedPredictiveBack()
         } catch (_: CancellationException) {
-            coroutineScope {
-                launch {
-                    mediaPredictiveProgress.animateTo(
-                        0f,
-                        tween(PREDICTIVE_CANCEL_DURATION, easing = FastOutSlowInEasing),
-                    )
+            if (!mediaPredictiveCommitting) {
+                coroutineScope {
+                    launch {
+                        mediaPredictiveProgress.animateTo(
+                            0f,
+                            tween(PREDICTIVE_CANCEL_DURATION, easing = FastOutSlowInEasing),
+                        )
+                    }
+                    launch {
+                        mediaBackdropIntensity.animateTo(
+                            1f,
+                            tween(PREDICTIVE_CANCEL_DURATION, easing = FastOutSlowInEasing),
+                        )
+                    }
+                    launch {
+                        detailLayerDepth.animateTo(
+                            1f,
+                            tween(PREDICTIVE_CANCEL_DURATION, easing = FastOutSlowInEasing),
+                        )
+                    }
                 }
-                launch {
-                    mediaBackdropIntensity.animateTo(
-                        1f,
-                        tween(PREDICTIVE_CANCEL_DURATION, easing = FastOutSlowInEasing),
-                    )
-                }
-                launch {
-                    detailLayerDepth.animateTo(
-                        1f,
-                        tween(PREDICTIVE_CANCEL_DURATION, easing = FastOutSlowInEasing),
-                    )
-                }
+                mediaPredictiveBackActive = false
             }
-            mediaPredictiveBackActive = false
         }
+    }
+
+    BackHandler(enabled = detailPredictiveBackActive && detailPredictiveCommitting) {
+        scope.launch { finishDetailPredictiveBack() }
+    }
+
+    BackHandler(enabled = mediaPredictiveBackActive && mediaPredictiveCommitting) {
+        scope.launch { finishNestedPredictiveBack() }
     }
 
     BarBlurHost(
@@ -320,6 +405,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                         scaleY = scaleX
                         translationX = -size.width * depth * BACKGROUND_PARALLAX
                     },
+                snackbarHost = { SnackbarHost(updateSnackbarState) },
                 bottomBar = {
                     AnimatedVisibility(
                         visible = !detailShown &&
@@ -374,26 +460,45 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                 0 -> OverviewPage(
                                     state = homeOverviewState,
                                     isActive = pagerState.settledPage == page,
+                                    onOpenApps = {
+                                        appsSelectedMode = 0
+                                        scope.launch { pagerState.animateScrollToPage(1) }
+                                    },
+                                    onOpenToastApps = {
+                                        appsSelectedMode = 1
+                                        scope.launch { pagerState.animateScrollToPage(1) }
+                                    },
                                 )
                                 1 -> AppsPage(
                                     prefs = prefs,
+                                    selectedMode = appsSelectedMode,
+                                    onSelectedModeChange = { appsSelectedMode = it },
                                     onOpenChannels = { app ->
+                                        batchChannelTarget = null
                                         visibleDetail = null
                                         visibleToastApp = null
                                         visibleChannelApp = app
                                         detailShown = true
                                     },
                                     onOpenToastSettings = { app ->
+                                        batchChannelTarget = null
                                         visibleDetail = null
                                         visibleChannelApp = null
                                         visibleToastApp = app
                                         detailShown = true
                                     },
+                                    onOpenBatchChannelSettings = { packages ->
+                                        visibleDetail = null
+                                        visibleChannelApp = null
+                                        visibleToastApp = null
+                                        batchChannelTarget = BatchChannelTarget.Apps(packages)
+                                        detailShown = true
+                                    },
                                 )
                                 2 -> SettingsPage(
                                     prefs = prefs,
-                                    openLegacy = openLegacy,
                                     onOpenDetail = {
+                                        batchChannelTarget = null
                                         visibleChannelApp = null
                                         visibleToastApp = null
                                         extensionDetail = null
@@ -403,14 +508,17 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                 )
                                 else -> AboutPage(
                                     isActive = pagerState.currentPage == page,
-                                    openLegacy = openLegacy,
+                                    isCheckingUpdate = isCheckingUpdate,
+                                    onCheckUpdate = { requestUpdateCheck(showUpToDate = true) },
                                     onOpenBackupRestore = {
+                                        batchChannelTarget = null
                                         visibleChannelApp = null
                                         visibleToastApp = null
                                         visibleDetail = SettingsDetail.BackupRestore
                                         detailShown = true
                                     },
                                     onOpenReferences = {
+                                        batchChannelTarget = null
                                         visibleChannelApp = null
                                         visibleToastApp = null
                                         visibleDetail = SettingsDetail.References
@@ -468,19 +576,33 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                 onBack = ::closeDetail,
                                 onOpenMediaSettings = {
                                     materialShown = false
+                                    visibleChannelEditor = null
                                     mediaShown = true
                                 },
-                                openLegacySettings = {
-                                    openLegacy(
-                                        "/app-settings?package=${Uri.encode(channelApp.packageName)}" +
-                                            "&name=${Uri.encode(channelApp.appName)}&mode=notification" +
-                                            "&system=${channelApp.isSystem}",
+                                onOpenChannelSettings = { channel ->
+                                    mediaShown = false
+                                    materialShown = false
+                                    visibleChannelEditor = channel
+                                },
+                                onOpenBatchChannelSettings = { channelIds ->
+                                    mediaShown = false
+                                    materialShown = false
+                                    visibleChannelEditor = null
+                                    batchChannelTarget = BatchChannelTarget.Channels(
+                                        channelApp.packageName,
+                                        channelIds,
                                     )
                                 },
                             )
                         } else if (visibleToastApp != null) {
                             ToastSettingsPage(
                                 app = visibleToastApp!!,
+                                prefs = prefs,
+                                onBack = ::closeDetail,
+                            )
+                        } else if (batchChannelTarget != null) {
+                            BatchChannelSettingsPage(
+                                target = batchChannelTarget!!,
                                 prefs = prefs,
                                 onBack = ::closeDetail,
                             )
@@ -498,7 +620,13 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                 SettingsDetail.HideBehavior -> HideBehaviorPage(prefs, ::closeDetail)
                                 SettingsDetail.DefaultConfig -> DefaultConfigPage(prefs, ::closeDetail)
                                 SettingsDetail.AiConfig -> AiConfigPage(prefs, ::closeDetail)
-                                SettingsDetail.Misc -> MiscPage(prefs, openLegacy, ::closeDetail)
+                                SettingsDetail.Misc -> MiscPage(
+                                    prefs = prefs,
+                                    onOpenOnboarding = {
+                                        visibleDetail = SettingsDetail.Onboarding
+                                    },
+                                    onBack = ::closeDetail,
+                                )
                                 SettingsDetail.Other -> IslandOtherPage(prefs, ::closeDetail)
                                 SettingsDetail.References -> ReferencesPage(::closeDetail)
                                 SettingsDetail.BackupRestore -> BackupRestorePage(::closeDetail)
@@ -508,6 +636,11 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                     prefs = prefs,
                                     onOpenDetail = { extensionDetail = it },
                                     onBack = ::closeDetail,
+                                )
+                                SettingsDetail.Onboarding -> OnboardingPage(
+                                    prefs = prefs,
+                                    showCloseButton = true,
+                                    onFinished = ::closeDetail,
                                 )
                                 null -> Unit
                             }
@@ -554,7 +687,20 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                             prefs = prefs,
                             onBack = { extensionDetail = null },
                         )
-                        null -> if (materialShown) {
+                        null -> if (batchChannelTarget != null && visibleChannelApp != null) {
+                            BatchChannelSettingsPage(
+                                target = batchChannelTarget!!,
+                                prefs = prefs,
+                                onBack = { batchChannelTarget = null },
+                            )
+                        } else if (visibleChannelEditor != null && visibleChannelApp != null) {
+                            ChannelEditorPage(
+                                appPackage = visibleChannelApp!!.packageName,
+                                channel = visibleChannelEditor!!,
+                                prefs = prefs,
+                                onBack = { visibleChannelEditor = null },
+                            )
+                        } else if (materialShown) {
                             IslandMaterialPage(
                                 prefs = prefs,
                                 onBack = { materialShown = false },
@@ -573,28 +719,19 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
             }
         }
     }
+
+    UpdateDialogHost(
+        state = updateDialogState,
+        onDismiss = { updateDialogState = null },
+        onViewUpdate = { releaseUrl ->
+            updateDialogState = null
+            runCatching {
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(releaseUrl)))
+            }.onFailure {
+                updateDialogState = UpdateDialogState.Failure
+            }
+        },
+    )
 }
 
-private fun smootherStep(progress: Float): Float {
-    val value = progress.coerceIn(0f, 1f)
-    return value * value * value * (value * (value * 6f - 15f) + 10f)
-}
-
-private fun predictiveEffectIntensity(smoothProgress: Float): Float =
-    1f - smoothProgress * (1f - PREDICTIVE_MIN_EFFECT_INTENSITY)
-
-private fun predictiveTranslationFraction(percent: Long): Float =
-    percent.coerceIn(1L, 100L).toFloat() / 100f
-
-private fun predictiveExitProgress(maxTranslationPercent: Long): Float =
-    1f / predictiveTranslationFraction(maxTranslationPercent)
-
-private const val LAYER_ENTER_DURATION = 420
-private const val LAYER_EXIT_DURATION = 380
-private const val PREDICTIVE_SETTLE_DURATION = 420
-private const val PREDICTIVE_CANCEL_DURATION = 280
-private const val PREDICTIVE_DISMISS_DURATION = 24
-private const val PREDICTIVE_MIN_EFFECT_INTENSITY = 0.5f
-private const val BACKGROUND_SCALE_REDUCTION = 0.035f
-private const val BACKGROUND_PARALLAX = 0.025f
-private const val EFFECT_VISIBILITY_THRESHOLD = 0.001f
+private const val PREF_CHECK_UPDATE_ON_LAUNCH = "pref_check_update_on_launch"

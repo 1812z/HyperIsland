@@ -1398,7 +1398,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get keywordFilterPriority =>
-      'Whitelist takes priority: only whitelist-matched notifications are shown, but blacklist can still veto';
+      'Blacklist takes priority: only notifications matching the whitelist and not the blacklist are shown';
 
   @override
   String get exportChannelsToClipboard => 'Export Channel Settings';

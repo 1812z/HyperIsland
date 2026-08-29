@@ -2,6 +2,15 @@ package io.github.hyperisland.compose.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import io.github.hyperisland.compose.data.channel.ChannelSettings
+import io.github.hyperisland.compose.data.channel.ChannelSettingsPatch
+import io.github.hyperisland.compose.data.channel.FILTER_BLACKLIST
+import io.github.hyperisland.compose.data.channel.ICON_AUTO
+import io.github.hyperisland.compose.data.channel.OPTION_DEFAULT
+import io.github.hyperisland.compose.data.channel.OPTION_OFF
+import io.github.hyperisland.compose.data.channel.OPTION_ON
+import io.github.hyperisland.compose.data.channel.RENDERER_IMAGE_TEXT_BUTTONS
+import io.github.hyperisland.compose.data.channel.TEMPLATE_NOTIFICATION
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -307,6 +316,135 @@ class FlutterPrefsRepository(context: Context) {
         }
     }
 
+    internal fun channelSettings(packageName: String, channelId: String): ChannelSettings = runCatching {
+        val channel = JSONObject(getString("pref_app_config_$packageName"))
+            .optJSONObject("channels")
+            ?.optJSONObject("settings")
+            ?.optJSONObject(channelId) ?: return@runCatching ChannelSettings()
+        ChannelSettings(
+            template = channel.optString("template", TEMPLATE_NOTIFICATION).let {
+                if (it == "download_lite") "generic_progress" else it
+            },
+            renderer = channel.optString("renderer", RENDERER_IMAGE_TEXT_BUTTONS),
+            iconMode = channel.optString("icon", ICON_AUTO),
+            focus = channel.optString("focus", OPTION_DEFAULT),
+            showNotification = channel.optString("show_notification", OPTION_ON),
+            preserveSmallIcon = channel.optString("preserve_small_icon", OPTION_DEFAULT),
+            showIslandIcon = channel.optString("show_island_icon", OPTION_DEFAULT),
+            firstFloat = channel.optString("first_float", OPTION_DEFAULT),
+            enableFloat = channel.optString("enable_float", OPTION_DEFAULT),
+            timeout = channel.optString("timeout", OPTION_DEFAULT),
+            marquee = channel.optString("marquee", OPTION_DEFAULT),
+            marqueeAutoHide = channel.optString("marquee_auto_hide", OPTION_DEFAULT),
+            restoreLockscreen = channel.optString("restore_lockscreen", OPTION_DEFAULT),
+            highlightColor = channel.optString("highlight_color", ""),
+            dynamicHighlightColor = channel.optString("dynamic_highlight_color", OPTION_DEFAULT),
+            showLeftHighlight = channel.optString("show_left_highlight", OPTION_OFF),
+            showRightHighlight = channel.optString("show_right_highlight", OPTION_OFF),
+            showLeftNarrowFont = channel.optString("show_left_narrow_font", OPTION_OFF),
+            showRightNarrowFont = channel.optString("show_right_narrow_font", OPTION_OFF),
+            outerGlow = channel.optString("outer_glow", OPTION_DEFAULT),
+            islandOuterGlow = channel.optString("island_outer_glow", OPTION_DEFAULT),
+            islandOuterGlowColor = channel.optString("island_outer_glow_color", ""),
+            outEffectColor = channel.optString("out_effect_color", ""),
+            focusCustom = channel.optString("focus_custom", ""),
+            islandCustom = channel.optString("island_custom", ""),
+            aodText = channel.optString("aod_text", OPTION_DEFAULT),
+            aodCustom = channel.optString("aod_custom", ""),
+            filterMode = channel.optString("filter_mode", FILTER_BLACKLIST),
+            whitelistKeywords = decodeChannelKeywords(channel.optString("whitelist_keywords", "")),
+            blacklistKeywords = decodeChannelKeywords(channel.optString("blacklist_keywords", "")),
+            islandEnabled = channel.optString("island_enabled", "true").toBooleanStrictOrNull() ?: true,
+        )
+    }.getOrDefault(ChannelSettings())
+
+    internal fun setChannelSettings(packageName: String, channelId: String, value: ChannelSettings) {
+        updateAppConfig(packageName) { root ->
+            val channels = root.optJSONObject("channels") ?: JSONObject().also { root.put("channels", it) }
+            val settings = channels.optJSONObject("settings") ?: JSONObject().also { channels.put("settings", it) }
+            val channel = settings.optJSONObject(channelId) ?: JSONObject().also { settings.put(channelId, it) }
+            putIfNonDefault(channel, "template", value.template, TEMPLATE_NOTIFICATION)
+            putIfNonDefault(channel, "renderer", value.renderer, RENDERER_IMAGE_TEXT_BUTTONS)
+            putIfNonDefault(channel, "icon", value.iconMode, ICON_AUTO)
+            putIfNonDefault(channel, "focus", value.focus, OPTION_DEFAULT)
+            putIfNonDefault(channel, "show_notification", value.showNotification, OPTION_ON)
+            putIfNonDefault(channel, "preserve_small_icon", value.preserveSmallIcon, OPTION_DEFAULT)
+            putIfNonDefault(channel, "show_island_icon", value.showIslandIcon, OPTION_DEFAULT)
+            putIfNonDefault(channel, "first_float", value.firstFloat, OPTION_DEFAULT)
+            putIfNonDefault(channel, "enable_float", value.enableFloat, OPTION_DEFAULT)
+            putIfNonDefault(channel, "timeout", value.timeout, OPTION_DEFAULT)
+            putIfNonDefault(channel, "marquee", value.marquee, OPTION_DEFAULT)
+            putIfNonDefault(channel, "marquee_auto_hide", value.marqueeAutoHide, OPTION_DEFAULT)
+            putIfNonDefault(channel, "restore_lockscreen", value.restoreLockscreen, OPTION_DEFAULT)
+            putIfNonDefault(channel, "highlight_color", value.highlightColor.trim(), "")
+            putIfNonDefault(channel, "dynamic_highlight_color", value.dynamicHighlightColor, OPTION_DEFAULT)
+            putIfNonDefault(channel, "show_left_highlight", value.showLeftHighlight, OPTION_OFF)
+            putIfNonDefault(channel, "show_right_highlight", value.showRightHighlight, OPTION_OFF)
+            putIfNonDefault(channel, "show_left_narrow_font", value.showLeftNarrowFont, OPTION_OFF)
+            putIfNonDefault(channel, "show_right_narrow_font", value.showRightNarrowFont, OPTION_OFF)
+            putIfNonDefault(channel, "outer_glow", value.outerGlow, OPTION_DEFAULT)
+            putIfNonDefault(channel, "island_outer_glow", value.islandOuterGlow, OPTION_DEFAULT)
+            putIfNonDefault(channel, "island_outer_glow_color", value.islandOuterGlowColor.trim(), "")
+            putIfNonDefault(channel, "out_effect_color", value.outEffectColor.trim(), "")
+            putIfNonDefault(channel, "focus_custom", value.focusCustom, "")
+            putIfNonDefault(channel, "island_custom", value.islandCustom, "")
+            putIfNonDefault(channel, "aod_text", value.aodText, OPTION_DEFAULT)
+            putIfNonDefault(channel, "aod_custom", value.aodCustom, "")
+            putIfNonDefault(channel, "filter_mode", value.filterMode, FILTER_BLACKLIST)
+            putIfNonDefault(channel, "whitelist_keywords", encodeChannelKeywords(value.whitelistKeywords), "")
+            putIfNonDefault(channel, "blacklist_keywords", encodeChannelKeywords(value.blacklistKeywords), "")
+            putIfNonDefault(channel, "island_enabled", value.islandEnabled.toString(), "true")
+            if (channel.length() == 0) settings.remove(channelId)
+            if (settings.length() == 0) channels.remove("settings")
+            if (channels.length() == 0) root.remove("channels")
+        }
+    }
+
+    internal fun applyChannelSettingsPatch(
+        packageName: String,
+        channelIds: Collection<String>,
+        patch: ChannelSettingsPatch,
+    ) {
+        if (!patch.hasChanges) return
+        channelIds.forEach { channelId ->
+            val current = channelSettings(packageName, channelId)
+            setChannelSettings(
+                packageName,
+                channelId,
+                current.copy(
+                    template = patch.template ?: current.template,
+                    renderer = patch.renderer ?: current.renderer,
+                    iconMode = patch.iconMode ?: current.iconMode,
+                    focus = patch.focus ?: current.focus,
+                    showNotification = patch.showNotification ?: current.showNotification,
+                    preserveSmallIcon = patch.preserveSmallIcon ?: current.preserveSmallIcon,
+                    showIslandIcon = patch.showIslandIcon ?: current.showIslandIcon,
+                    firstFloat = patch.firstFloat ?: current.firstFloat,
+                    enableFloat = patch.enableFloat ?: current.enableFloat,
+                    timeout = patch.timeout ?: current.timeout,
+                    marquee = patch.marquee ?: current.marquee,
+                    marqueeAutoHide = patch.marqueeAutoHide ?: current.marqueeAutoHide,
+                    restoreLockscreen = patch.restoreLockscreen ?: current.restoreLockscreen,
+                    highlightColor = patch.highlightColor ?: current.highlightColor,
+                    dynamicHighlightColor = patch.dynamicHighlightColor ?: current.dynamicHighlightColor,
+                    showLeftHighlight = patch.showLeftHighlight ?: current.showLeftHighlight,
+                    showRightHighlight = patch.showRightHighlight ?: current.showRightHighlight,
+                    showLeftNarrowFont = patch.showLeftNarrowFont ?: current.showLeftNarrowFont,
+                    showRightNarrowFont = patch.showRightNarrowFont ?: current.showRightNarrowFont,
+                    outerGlow = patch.outerGlow ?: current.outerGlow,
+                    islandOuterGlow = patch.islandOuterGlow ?: current.islandOuterGlow,
+                    islandOuterGlowColor = patch.islandOuterGlowColor ?: current.islandOuterGlowColor,
+                    outEffectColor = patch.outEffectColor ?: current.outEffectColor,
+                    aodText = patch.aodText ?: current.aodText,
+                    filterMode = patch.filterMode ?: current.filterMode,
+                    whitelistKeywords = patch.whitelistKeywords ?: current.whitelistKeywords,
+                    blacklistKeywords = patch.blacklistKeywords ?: current.blacklistKeywords,
+                    islandEnabled = patch.islandEnabled ?: current.islandEnabled,
+                ),
+            )
+        }
+    }
+
     internal fun defaultConfigSettings(): DefaultConfigSettings = DefaultConfigSettings(
         firstFloat = getBoolean("pref_default_first_float", false),
         aodText = getBoolean("pref_default_aod_text", false),
@@ -585,6 +723,18 @@ class FlutterPrefsRepository(context: Context) {
         .filter(String::isNotEmpty)
         .distinct()
         .joinToString("\n")
+
+    private fun decodeChannelKeywords(raw: String): List<String> = raw
+        .split(',', '\n')
+        .map(String::trim)
+        .filter(String::isNotEmpty)
+        .distinct()
+
+    private fun encodeChannelKeywords(keywords: List<String>): String = keywords.asSequence()
+        .map(String::trim)
+        .filter(String::isNotEmpty)
+        .distinct()
+        .joinToString(",")
 
     private fun decodeStringList(raw: String, defaults: List<String>): List<String> {
         if (raw.isBlank()) return defaults

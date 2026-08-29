@@ -160,8 +160,7 @@ Used to control whether notifications appear on the island.
 Supports blacklist mode and whitelist mode.
 
 - **Blacklist Mode:** Notifications containing keywords will not be displayed as a super island.
-- **Whitelist Mode:** Notifications will only appear as a super island if they contain the specified keywords.
-- **Blacklist-Whitelist Mode:** The blacklist is processed first, and then notifications are displayed based on the whitelist criteria.
+- **Whitelist Mode:** Only notifications matching a whitelist keyword and no blacklist keyword will appear as a Super Island. If both match, the blacklist takes priority.
 
 ## Focus Notification Bypass
 

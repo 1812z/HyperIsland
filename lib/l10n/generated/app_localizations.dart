@@ -2597,7 +2597,7 @@ abstract class AppLocalizations {
   /// No description provided for @keywordFilterPriority.
   ///
   /// In en, this message translates to:
-  /// **'Whitelist takes priority: only whitelist-matched notifications are shown, but blacklist can still veto'**
+  /// **'Blacklist takes priority: only notifications matching the whitelist and not the blacklist are shown'**
   String get keywordFilterPriority;
 
   /// No description provided for @exportChannelsToClipboard.

@@ -111,7 +111,6 @@ internal fun HookExtensionPage(
                     ) { index ->
                         settingsIcon.value = values[index]
                         prefs.putString(KEY_SETTINGS_HOME_ENTRY_ICON_STYLE, values[index])
-                        restart()
                     }
                 }
             }
@@ -162,6 +161,7 @@ internal fun HookExtensionPage(
                     if (request(value, listOf("com.android.systemui"))) {
                         unlockAll.value = value
                         prefs.putBoolean(KEY_UNLOCK_ALL_FOCUS, value)
+                        restart()
                     }
                 }
             }
@@ -272,6 +272,7 @@ internal fun HookExtensionPage(
                     if (request(value, listOf("com.xiaomi.xmsf"))) {
                         unlockAuth.value = value
                         prefs.putBoolean(KEY_UNLOCK_FOCUS_AUTH, value)
+                        restart()
                     }
                 }
             }

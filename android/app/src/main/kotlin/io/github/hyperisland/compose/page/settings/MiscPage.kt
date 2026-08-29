@@ -25,7 +25,7 @@ import top.yukonga.miuix.kmp.icon.extended.Update
 @Composable
 internal fun MiscPage(
     prefs: FlutterPrefsRepository,
-    openLegacy: (String) -> Unit,
+    onOpenOnboarding: () -> Unit,
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -42,7 +42,7 @@ internal fun MiscPage(
                     stringResource(R.string.compose_open_onboarding),
                     MiuixIcons.AppRecording,
                     stringResource(R.string.compose_open_onboarding_summary),
-                ) { openLegacy("/onboarding") }
+                ) { onOpenOnboarding() }
                 PreferenceSwitch(
                     stringResource(R.string.compose_show_welcome),
                     stringResource(R.string.compose_show_welcome_summary),

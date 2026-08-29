@@ -1,6 +1,7 @@
 package io.github.hyperisland.compose.component
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
@@ -28,6 +29,7 @@ internal fun PreferenceSwitch(
     icon: ImageVector?,
     checked: Boolean,
     enabled: Boolean = true,
+    insideMargin: PaddingValues = SettingsItemMargin,
     onCheckedChange: (Boolean) -> Unit,
 ) {
     SwitchPreference(
@@ -36,7 +38,7 @@ internal fun PreferenceSwitch(
         checked = checked,
         enabled = enabled,
         startAction = icon?.let { image -> { SettingsIcon(image) } },
-        insideMargin = SettingsItemMargin,
+        insideMargin = insideMargin,
         onCheckedChange = onCheckedChange,
     )
 }
@@ -49,6 +51,7 @@ internal fun PreferenceDropdown(
     items: List<String>,
     selectedIndex: Int,
     enabled: Boolean = true,
+    insideMargin: PaddingValues = SettingsItemMargin,
     onSelectedIndexChange: (Int) -> Unit,
 ) {
     WindowDropdownPreference(
@@ -58,7 +61,7 @@ internal fun PreferenceDropdown(
         selectedIndex = selectedIndex,
         enabled = enabled,
         startAction = icon?.let { image -> { SettingsIcon(image) } },
-        insideMargin = SettingsItemMargin,
+        insideMargin = insideMargin,
         onSelectedIndexChange = onSelectedIndexChange,
     )
 }

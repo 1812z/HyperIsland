@@ -1,6 +1,5 @@
 package io.github.hyperisland.compose
 
-import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Bundle
@@ -10,20 +9,18 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.remember
-import io.github.hyperisland.MainActivity
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.navigation.HyperIslandApp
+import io.github.hyperisland.compose.page.onboarding.OnboardingPage
 import io.github.hyperisland.compose.theme.HyperIslandTheme
 
 class ComposeMainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val prefs = FlutterPrefsRepository(this)
-        if (!prefs.getBoolean("pref_onboarding_completed", false)) {
-            startActivity(Intent(this, MainActivity::class.java))
-            finish()
-            return
-        }
         window.clearFlags(
             WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS or
                 WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION,
@@ -50,8 +47,19 @@ class ComposeMainActivity : ComponentActivity() {
         )
         setContent {
             val repository = remember { FlutterPrefsRepository(this) }
+            var onboardingCompleted by remember {
+                mutableStateOf(repository.getBoolean("pref_onboarding_completed", false))
+            }
             HyperIslandTheme(repository) {
-                HyperIslandApp(repository)
+                if (onboardingCompleted) {
+                    HyperIslandApp(repository)
+                } else {
+                    OnboardingPage(
+                        prefs = repository,
+                        showCloseButton = false,
+                        onFinished = { onboardingCompleted = true },
+                    )
+                }
             }
         }
     }

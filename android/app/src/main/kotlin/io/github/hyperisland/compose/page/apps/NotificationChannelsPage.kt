@@ -25,6 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -70,6 +71,7 @@ import top.yukonga.miuix.kmp.icon.extended.SelectAll
 import top.yukonga.miuix.kmp.icon.extended.Settings
 import top.yukonga.miuix.kmp.menu.OverlayIconDropdownMenu
 import top.yukonga.miuix.kmp.preference.ArrowPreference
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.window.WindowDialog
 import io.github.hyperisland.compose.component.SettingsIcon
@@ -81,13 +83,15 @@ internal fun NotificationChannelsPage(
     prefs: FlutterPrefsRepository,
     onBack: () -> Unit,
     onOpenMediaSettings: () -> Unit,
-    openLegacySettings: () -> Unit,
+    onOpenChannelSettings: (NotificationChannelInfo) -> Unit,
+    onOpenBatchChannelSettings: (Set<String>) -> Unit,
 ) {
     val context = LocalContext.current
     val repository = remember { NotificationChannelsRepository() }
     val scope = rememberCoroutineScope()
     val snackbarState = remember { SnackbarHostState() }
     val scrollBehavior = MiuixScrollBehavior()
+    val darkTheme = MiuixTheme.colorScheme.background.luminance() < 0.5f
     var channels by remember(app.packageName) { mutableStateOf(emptyList<NotificationChannelInfo>()) }
     var enabledChannelIds by remember(app.packageName) { mutableStateOf(prefs.enabledChannelIds(app.packageName)) }
     var appEnabled by remember(app.packageName) { mutableStateOf(app.packageName in prefs.enabledPackages()) }
@@ -216,6 +220,17 @@ internal fun NotificationChannelsPage(
                 enabled = channels.isNotEmpty(),
                 onClick = ::setAllChannelsEnabled,
                 icon = { modifier -> Icon(MiuixIcons.SelectAll, null, modifier) },
+            ),
+            DropdownItem(
+                text = stringResource(R.string.compose_batch_channel_settings),
+                enabled = channels.isNotEmpty() && appEnabled,
+                onClick = {
+                    onOpenBatchChannelSettings(
+                        if (enabledChannelIds.isEmpty()) channels.map { it.id }.toSet()
+                        else enabledChannelIds,
+                    )
+                },
+                icon = { modifier -> Icon(MiuixIcons.Settings, null, modifier) },
             ),
             DropdownItem(
                 text = stringResource(R.string.compose_export_channels),
@@ -374,13 +389,19 @@ internal fun NotificationChannelsPage(
                                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                                             ) {
                                                 IconButton(
-                                                    onClick = openLegacySettings,
+                                                    onClick = { onOpenChannelSettings(channel) },
                                                     enabled = channelEnabled,
+                                                    modifier = Modifier.size(48.dp),
                                                 ) {
                                                     Icon(
                                                         MiuixIcons.Settings,
                                                         stringResource(R.string.compose_channel_settings),
-                                                        modifier = Modifier.size(26.dp),
+                                                        modifier = Modifier.size(24.dp),
+                                                        tint = if (channelEnabled) {
+                                                            if (darkTheme) Color.White else Color.Black
+                                                        } else {
+                                                            if (darkTheme) Color.DarkGray else Color.LightGray
+                                                        },
                                                     )
                                                 }
                                                 Switch(

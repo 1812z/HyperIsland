@@ -1415,7 +1415,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get keywordFilterPriority =>
-      'Белый список имеет приоритет: показываются только уведомления, совпадающие с белым списком, но черный список все равно может заблокировать';
+      'Черный список имеет приоритет: показываются только уведомления, совпадающие с белым списком и не совпадающие с черным';
 
   @override
   String get exportChannelsToClipboard => 'Экспорт настроек каналов';

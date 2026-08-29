@@ -71,14 +71,18 @@ import top.yukonga.miuix.kmp.icon.extended.Filter
 import top.yukonga.miuix.kmp.icon.extended.More
 import top.yukonga.miuix.kmp.icon.extended.Refresh
 import top.yukonga.miuix.kmp.icon.extended.SelectAll
+import top.yukonga.miuix.kmp.icon.extended.Settings
 import top.yukonga.miuix.kmp.menu.OverlayIconDropdownMenu
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 internal fun AppsPage(
     prefs: FlutterPrefsRepository,
+    selectedMode: Int,
+    onSelectedModeChange: (Int) -> Unit,
     onOpenChannels: (InstalledApp) -> Unit,
     onOpenToastSettings: (InstalledApp) -> Unit,
+    onOpenBatchChannelSettings: (Set<String>) -> Unit,
 ) {
     val context = LocalContext.current
     val appsRepository = remember(context) { InstalledAppsRepository(context.applicationContext) }
@@ -89,7 +93,6 @@ internal fun AppsPage(
     var refreshing by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     var searchExpanded by remember { mutableStateOf(false) }
-    var selectedMode by remember { mutableIntStateOf(0) }
     var showSystemApps by remember { mutableStateOf(false) }
     var selectionMode by remember { mutableStateOf(false) }
     var selectedPackages by remember { mutableStateOf(emptySet<String>()) }
@@ -196,6 +199,15 @@ internal fun AppsPage(
                 text = stringResource(R.string.compose_select_enabled_apps),
                 onClick = { selectedPackages = filteredApps.map { it.packageName }.filter { it in activeEnabledPackages }.toSet() },
                 icon = { modifier -> Icon(MiuixIcons.SelectAll, null, modifier = modifier) },
+            ),
+            DropdownItem(
+                text = stringResource(R.string.compose_batch_channel_settings),
+                enabled = selectedMode == 0 && selectedPackages.isNotEmpty(),
+                onClick = {
+                    onOpenBatchChannelSettings(selectedPackages)
+                    leaveSelectionMode()
+                },
+                icon = { modifier -> Icon(MiuixIcons.Settings, null, modifier = modifier) },
             ),
             DropdownItem(
                 text = stringResource(R.string.compose_batch_enable),
@@ -325,7 +337,7 @@ internal fun AppsPage(
                         ),
                         selectedTabIndex = selectedMode,
                         onTabSelected = {
-                            selectedMode = it
+                            onSelectedModeChange(it)
                             leaveSelectionMode()
                         },
                         modifier = Modifier.padding(horizontal = 4.dp),

@@ -1,9 +1,11 @@
 package io.github.hyperisland.compose.page.apps
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,11 +29,16 @@ import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.InstalledApp
 import io.github.hyperisland.compose.data.ToastAppSettings
 import top.yukonga.miuix.kmp.basic.BasicComponent
+import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
+import top.yukonga.miuix.kmp.window.WindowDialog
 
 @Composable
 internal fun ToastSettingsPage(
@@ -44,6 +51,7 @@ internal fun ToastSettingsPage(
     var timeoutText by remember(app.packageName) {
         mutableStateOf(settings.timeout.takeUnless { it == TRI_DEFAULT }.orEmpty())
     }
+    var showTimeoutDialog by remember(app.packageName) { mutableStateOf(false) }
     var colorTarget by remember { mutableStateOf<ToastColorTarget?>(null) }
     var selectedColor by remember { mutableStateOf(Color.Red) }
     var keywordTarget by remember { mutableStateOf<KeywordTarget?>(null) }
@@ -187,33 +195,15 @@ internal fun ToastSettingsPage(
                                 },
                             )
                         }
-                        BasicComponent(
+                        ArrowPreference(
                             title = stringResource(R.string.compose_auto_disappear),
-                            summary = stringResource(
-                                R.string.compose_default_timeout_value,
-                                defaults.timeout,
-                            ),
+                            summary = settings.timeout.toIntOrNull()?.let {
+                                stringResource(R.string.compose_timeout_seconds_value, it)
+                            } ?: stringResource(R.string.compose_default_timeout_value, defaults.timeout),
                             insideMargin = ITEM_MARGIN,
-                            endActions = {
-                                TextField(
-                                    value = timeoutText,
-                                    onValueChange = { raw ->
-                                        val digits = raw.filter(Char::isDigit).take(2)
-                                        timeoutText = digits
-                                        if (digits.isEmpty()) {
-                                            update(settings.copy(timeout = TRI_DEFAULT))
-                                        } else {
-                                            digits.toIntOrNull()?.takeIf { it in 1..20 }?.let {
-                                                update(settings.copy(timeout = it.toString()))
-                                            }
-                                        }
-                                    },
-                                    modifier = Modifier.width(104.dp),
-                                    label = stringResource(R.string.compose_seconds),
-                                    useLabelAsPlaceholder = true,
-                                    singleLine = true,
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                )
+                            onClick = {
+                                timeoutText = settings.timeout.takeUnless { it == TRI_DEFAULT }.orEmpty()
+                                showTimeoutDialog = true
                             },
                         )
                     }
@@ -367,6 +357,51 @@ internal fun ToastSettingsPage(
                         }
                     }
                 }
+            }
+        }
+    }
+
+    WindowDialog(
+        show = showTimeoutDialog,
+        title = stringResource(R.string.compose_auto_disappear),
+        onDismissRequest = { showTimeoutDialog = false },
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            TextField(
+                value = timeoutText,
+                onValueChange = { raw -> timeoutText = raw.filter(Char::isDigit).take(2) },
+                modifier = Modifier.fillMaxWidth(),
+                label = stringResource(R.string.compose_seconds),
+                useLabelAsPlaceholder = true,
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                TextButton(
+                    text = stringResource(R.string.compose_reset_default),
+                    onClick = {
+                        timeoutText = ""
+                        update(settings.copy(timeout = TRI_DEFAULT))
+                        showTimeoutDialog = false
+                    },
+                    modifier = Modifier.weight(1f),
+                )
+                Button(
+                    onClick = {
+                        val timeout = timeoutText.toIntOrNull()
+                            ?.takeIf { it in 1..20 }
+                            ?.toString()
+                            ?: TRI_DEFAULT
+                        timeoutText = timeout.takeUnless { it == TRI_DEFAULT }.orEmpty()
+                        update(settings.copy(timeout = timeout))
+                        showTimeoutDialog = false
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColorsPrimary(),
+                ) { Text(stringResource(R.string.compose_save)) }
             }
         }
     }
