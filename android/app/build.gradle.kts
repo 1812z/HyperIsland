@@ -76,10 +76,6 @@ android {
         }
     }
 
-    sourceSets.named("main") {
-        assets.directories.add("../../assets")
-    }
-
     buildTypes {
         release {
             val releaseSigning = signingConfigs.getByName("release")
