@@ -83,6 +83,7 @@ internal fun AppsPage(
     onOpenChannels: (InstalledApp) -> Unit,
     onOpenToastSettings: (InstalledApp) -> Unit,
     onOpenBatchChannelSettings: (Set<String>) -> Unit,
+    onOpenBatchToastSettings: (Set<String>) -> Unit,
 ) {
     val context = LocalContext.current
     val appsRepository = remember(context) { InstalledAppsRepository(context.applicationContext) }
@@ -201,10 +202,16 @@ internal fun AppsPage(
                 icon = { modifier -> Icon(MiuixIcons.SelectAll, null, modifier = modifier) },
             ),
             DropdownItem(
-                text = stringResource(R.string.batch_channel_settings),
-                enabled = selectedMode == 0 && selectedPackages.isNotEmpty(),
+                text = stringResource(
+                    if (selectedMode == 0) R.string.batch_channel_settings else R.string.batch_toast_settings,
+                ),
+                enabled = selectedPackages.isNotEmpty(),
                 onClick = {
-                    onOpenBatchChannelSettings(selectedPackages)
+                    if (selectedMode == 0) {
+                        onOpenBatchChannelSettings(selectedPackages)
+                    } else {
+                        onOpenBatchToastSettings(selectedPackages)
+                    }
                     leaveSelectionMode()
                 },
                 icon = { modifier -> Icon(MiuixIcons.Settings, null, modifier = modifier) },

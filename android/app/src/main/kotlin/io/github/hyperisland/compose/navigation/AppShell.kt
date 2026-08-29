@@ -8,7 +8,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -44,6 +43,7 @@ import io.github.hyperisland.compose.component.BarBlurHost
 import io.github.hyperisland.compose.component.BlurredBar
 import io.github.hyperisland.compose.component.LocalRootBottomBarPadding
 import io.github.hyperisland.compose.component.PredictiveBackBackdrop
+import io.github.hyperisland.compose.component.PredictiveSettleEasing
 import io.github.hyperisland.compose.component.BACKGROUND_PARALLAX
 import io.github.hyperisland.compose.component.BACKGROUND_SCALE_REDUCTION
 import io.github.hyperisland.compose.component.EFFECT_VISIBILITY_THRESHOLD
@@ -71,6 +71,7 @@ import io.github.hyperisland.compose.page.apps.channel.ChannelEditorPage
 import io.github.hyperisland.compose.page.apps.channel.BatchChannelSettingsPage
 import io.github.hyperisland.compose.page.apps.MediaNotificationPage
 import io.github.hyperisland.compose.page.apps.ToastSettingsPage
+import io.github.hyperisland.compose.page.apps.toast.BatchToastSettingsPage
 import io.github.hyperisland.compose.page.home.OverviewPage
 import io.github.hyperisland.compose.page.home.rememberHomeOverviewState
 import io.github.hyperisland.compose.page.onboarding.OnboardingPage
@@ -152,6 +153,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     var mediaShown by remember { mutableStateOf(false) }
     var visibleChannelEditor by remember { mutableStateOf<io.github.hyperisland.compose.data.NotificationChannelInfo?>(null) }
     var batchChannelTarget by remember { mutableStateOf<BatchChannelTarget?>(null) }
+    var batchToastPackages by remember { mutableStateOf<Set<String>?>(null) }
     var materialShown by remember { mutableStateOf(false) }
     var extensionDetail by remember { mutableStateOf<HookExtensionDetail?>(null) }
     val nestedDetailShown = mediaShown || materialShown || visibleChannelEditor != null ||
@@ -204,6 +206,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     fun closeDetail() {
         detailShown = false
         batchChannelTarget = null
+        batchToastPackages = null
     }
 
     LaunchedEffect(detailShown, detailPredictiveBackActive) {
@@ -258,18 +261,19 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
             launch {
                 predictiveProgress.animateTo(
                     predictiveExitProgress(predictiveBackMaxTranslation.value),
-                    tween(duration, easing = LinearEasing),
+                    tween(duration, easing = PredictiveSettleEasing),
                 )
             }
             launch {
-                detailBackdropIntensity.animateTo(0f, tween(duration, easing = LinearEasing))
+                detailBackdropIntensity.animateTo(0f, tween(duration, easing = PredictiveSettleEasing))
             }
             launch {
-                rootLayerDepth.animateTo(0f, tween(duration, easing = LinearEasing))
+                rootLayerDepth.animateTo(0f, tween(duration, easing = PredictiveSettleEasing))
             }
         }
         detailShown = false
         batchChannelTarget = null
+        batchToastPackages = null
         delay(PREDICTIVE_DISMISS_DURATION.toLong())
         predictiveProgress.snapTo(0f)
         detailPredictiveBackActive = false
@@ -286,14 +290,14 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
             launch {
                 mediaPredictiveProgress.animateTo(
                     predictiveExitProgress(predictiveBackMaxTranslation.value),
-                    tween(duration, easing = LinearEasing),
+                    tween(duration, easing = PredictiveSettleEasing),
                 )
             }
             launch {
-                mediaBackdropIntensity.animateTo(0f, tween(duration, easing = LinearEasing))
+                mediaBackdropIntensity.animateTo(0f, tween(duration, easing = PredictiveSettleEasing))
             }
             launch {
-                detailLayerDepth.animateTo(0f, tween(duration, easing = LinearEasing))
+                detailLayerDepth.animateTo(0f, tween(duration, easing = PredictiveSettleEasing))
             }
         }
         mediaShown = false
@@ -475,6 +479,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                     onSelectedModeChange = { appsSelectedMode = it },
                                     onOpenChannels = { app ->
                                         batchChannelTarget = null
+                                        batchToastPackages = null
                                         visibleDetail = null
                                         visibleToastApp = null
                                         visibleChannelApp = app
@@ -482,16 +487,26 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                     },
                                     onOpenToastSettings = { app ->
                                         batchChannelTarget = null
+                                        batchToastPackages = null
                                         visibleDetail = null
                                         visibleChannelApp = null
                                         visibleToastApp = app
                                         detailShown = true
                                     },
                                     onOpenBatchChannelSettings = { packages ->
+                                        batchToastPackages = null
                                         visibleDetail = null
                                         visibleChannelApp = null
                                         visibleToastApp = null
                                         batchChannelTarget = BatchChannelTarget.Apps(packages)
+                                        detailShown = true
+                                    },
+                                    onOpenBatchToastSettings = { packages ->
+                                        batchChannelTarget = null
+                                        visibleDetail = null
+                                        visibleChannelApp = null
+                                        visibleToastApp = null
+                                        batchToastPackages = packages
                                         detailShown = true
                                     },
                                 )
@@ -499,6 +514,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                     prefs = prefs,
                                     onOpenDetail = {
                                         batchChannelTarget = null
+                                        batchToastPackages = null
                                         visibleChannelApp = null
                                         visibleToastApp = null
                                         extensionDetail = null
@@ -512,6 +528,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                     onCheckUpdate = { requestUpdateCheck(showUpToDate = true) },
                                     onOpenBackupRestore = {
                                         batchChannelTarget = null
+                                        batchToastPackages = null
                                         visibleChannelApp = null
                                         visibleToastApp = null
                                         visibleDetail = SettingsDetail.BackupRestore
@@ -519,6 +536,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                     },
                                     onOpenReferences = {
                                         batchChannelTarget = null
+                                        batchToastPackages = null
                                         visibleChannelApp = null
                                         visibleToastApp = null
                                         visibleDetail = SettingsDetail.References
@@ -603,6 +621,12 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                         } else if (batchChannelTarget != null) {
                             BatchChannelSettingsPage(
                                 target = batchChannelTarget!!,
+                                prefs = prefs,
+                                onBack = ::closeDetail,
+                            )
+                        } else if (batchToastPackages != null) {
+                            BatchToastSettingsPage(
+                                packageNames = batchToastPackages!!,
                                 prefs = prefs,
                                 onBack = ::closeDetail,
                             )

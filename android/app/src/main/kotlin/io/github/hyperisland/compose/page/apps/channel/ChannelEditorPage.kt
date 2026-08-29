@@ -5,7 +5,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
@@ -30,6 +29,7 @@ import io.github.hyperisland.compose.component.LocalBarBlurEnabled
 import io.github.hyperisland.compose.component.PREDICTIVE_CANCEL_DURATION
 import io.github.hyperisland.compose.component.PREDICTIVE_DISMISS_DURATION
 import io.github.hyperisland.compose.component.PredictiveBackBackdrop
+import io.github.hyperisland.compose.component.PredictiveSettleEasing
 import io.github.hyperisland.compose.component.predictiveEffectIntensity
 import io.github.hyperisland.compose.component.predictiveExitProgress
 import io.github.hyperisland.compose.component.predictiveSettleDuration
@@ -124,11 +124,11 @@ internal fun ChannelEditorPage(
             launch {
                 predictiveProgress.animateTo(
                     predictiveExitProgress(predictiveBackMaxTranslation.value),
-                    tween(duration, easing = LinearEasing),
+                    tween(duration, easing = PredictiveSettleEasing),
                 )
             }
-            launch { backdropIntensity.animateTo(0f, tween(duration, easing = LinearEasing)) }
-            launch { editorLayerDepth.animateTo(0f, tween(duration, easing = LinearEasing)) }
+            launch { backdropIntensity.animateTo(0f, tween(duration, easing = PredictiveSettleEasing)) }
+            launch { editorLayerDepth.animateTo(0f, tween(duration, easing = PredictiveSettleEasing)) }
         }
         closeCustomization()
         delay(PREDICTIVE_DISMISS_DURATION.toLong())

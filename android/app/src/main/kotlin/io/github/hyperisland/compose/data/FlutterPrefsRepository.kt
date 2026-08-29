@@ -5,6 +5,8 @@ import android.content.SharedPreferences
 import io.github.hyperisland.compose.data.channel.ChannelSettings
 import io.github.hyperisland.compose.data.channel.ChannelSettingsPatch
 import io.github.hyperisland.compose.data.channel.withPatch
+import io.github.hyperisland.compose.data.toast.ToastSettingsPatch
+import io.github.hyperisland.compose.data.toast.withPatch as withToastPatch
 import io.github.hyperisland.compose.data.channel.FILTER_BLACKLIST
 import io.github.hyperisland.compose.data.channel.ICON_AUTO
 import io.github.hyperisland.compose.data.channel.OPTION_DEFAULT
@@ -512,6 +514,16 @@ class FlutterPrefsRepository(context: Context) {
             putIfNonDefault(toast, "whitelist_keywords", encodeKeywords(value.whitelistKeywords), "")
             putIfNonDefault(toast, "blacklist_keywords", encodeKeywords(value.blacklistKeywords), "")
             if (toast.length() == 0) root.remove("toast")
+        }
+    }
+
+    internal fun applyToastSettingsPatch(
+        packageNames: Collection<String>,
+        patch: ToastSettingsPatch,
+    ) {
+        if (!patch.hasChanges) return
+        packageNames.forEach { packageName ->
+            setToastAppSettings(packageName, toastAppSettings(packageName).withToastPatch(patch))
         }
     }
 

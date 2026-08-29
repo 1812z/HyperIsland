@@ -1,6 +1,9 @@
 package io.github.hyperisland.compose.component
 
+import androidx.compose.animation.core.CubicBezierEasing
 import kotlin.math.roundToInt
+
+internal val PredictiveSettleEasing = CubicBezierEasing(0.30f, 0.45f, 0.35f, 1f)
 
 internal fun smootherStep(progress: Float): Float {
     val value = progress.coerceIn(0f, 1f)
@@ -32,6 +35,6 @@ internal const val BACKGROUND_SCALE_REDUCTION = 0.035f
 internal const val BACKGROUND_PARALLAX = 0.025f
 internal const val EFFECT_VISIBILITY_THRESHOLD = 0.001f
 
-private const val PREDICTIVE_SETTLE_DURATION = 420
+private const val PREDICTIVE_SETTLE_DURATION = 480
 private const val PREDICTIVE_MIN_SETTLE_DURATION = 24
 private const val PREDICTIVE_MIN_EFFECT_INTENSITY = 0.5f
