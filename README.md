@@ -4,14 +4,14 @@
 
 # HyperIsland
 
-**为澎湃 OS3 打造的超级岛通知增强模块**
+**为澎湃 OS3/4 打造的超级岛通知增强模块**
 
 [![GitHub Release](https://img.shields.io/github/v/release/1812z/HyperIsland?style=flat-square&logo=github&color=black)](https://github.com/1812z/HyperIsland/releases)
 ![Downloads](https://img.shields.io/github/downloads/1812z/HyperIsland/total?style=flat-square)
 [![License](https://img.shields.io/github/license/1812z/HyperIsland?style=flat-square&color=orange)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Android-green?style=flat-square&logo=android)](https://android.com)
 [![LSPosed](https://img.shields.io/badge/Framework-LSPosed-blueviolet?style=flat-square)](https://github.com/LSPosed/LSPosed)
-[![HyperOS](https://img.shields.io/badge/ROM-澎湃OS3-orange?style=flat-square)](https://hyperos.mi.com)
+[![HyperOS](https://img.shields.io/badge/ROM-澎湃OS3%2F4-orange?style=flat-square)](https://hyperos.mi.com)
 [![Build](https://img.shields.io/badge/Build-Compose-7F52FF?style=flat-square&logo=kotlin)](https://developer.android.com/compose)
 
 
@@ -41,8 +41,8 @@
 <tr>
 <td width="50%">
 
-### 🚫 通知黑名单
-黑名单应用不会弹出通知，仅显示超级岛（全屏状态下随状态栏自动隐藏）。
+### 🧊 玻璃材质
+支持高斯模糊、高光玻璃、柔光玻璃、液态玻璃4种材质，并支持自定义参数。
 
 </td>
 <td width="50%">

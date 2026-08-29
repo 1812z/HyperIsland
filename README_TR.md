@@ -4,14 +4,14 @@
 
 # HyperIsland
 
-**HyperOS 3 için tasarlanmış Süper Ada ilerleme bildirimi geliştirme modülü**
+**HyperOS 3/4 için tasarlanmış Süper Ada ilerleme bildirimi geliştirme modülü**
 
 [![GitHub Release](https://img.shields.io/github/v/release/1812z/HyperIsland?style=flat-square&logo=github&color=black)](https://github.com/1812z/HyperIsland/releases)
 ![Downloads](https://img.shields.io/github/downloads/1812z/HyperIsland/total?style=flat-square)
 [![License](https://img.shields.io/github/license/1812z/HyperIsland?style=flat-square&color=orange)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Android-green?style=flat-square&logo=android)](https://android.com)
 [![LSPosed](https://img.shields.io/badge/Framework-LSPosed-blueviolet?style=flat-square)](https://github.com/LSPosed/LSPosed)
-[![HyperOS](https://img.shields.io/badge/ROM-HyperOS3-orange?style=flat-square)](https://hyperos.mi.com)
+[![HyperOS](https://img.shields.io/badge/ROM-HyperOS3%2F4-orange?style=flat-square)](https://hyperos.mi.com)
 [![Build](https://img.shields.io/badge/Build-Compose-7F52FF?style=flat-square&logo=kotlin)](https://developer.android.com/compose)
 
 
@@ -41,8 +41,8 @@ Herhangi bir uygulama tarafından gönderilen standart Android bildirimlerini en
 <tr>
 <td width="50%">
 
-### 🚫 Bildirim Kara Listesi
-Kara listedeki uygulamalar bildirim açılır pencereleri üretmez, yalnızca bir Süper Ada gösterir (tam ekran modunda durum çubuğu ile otomatik olarak gizlenir).
+### 🧊 Cam Malzemeler
+Gauss Bulanıklığı, Parlak Cam, Yumuşak Cam ve Sıvı Cam olmak üzere dört malzemeyi ve özelleştirilebilir parametreleri destekler.
 
 </td>
 <td width="50%">
