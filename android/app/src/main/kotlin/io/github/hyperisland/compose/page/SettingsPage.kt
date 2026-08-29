@@ -3,14 +3,15 @@ package io.github.hyperisland.compose.page
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import io.github.hyperisland.AppLocaleController
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.CollapsingPage
 import io.github.hyperisland.compose.component.PreferenceDropdown
 import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.component.SettingsActionWithArrow
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
-import io.github.hyperisland.compose.data.rememberStringPreference
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Blocklist
@@ -45,8 +46,9 @@ internal fun SettingsPage(
     prefs: FlutterPrefsRepository,
     onOpenDetail: (SettingsDetail) -> Unit,
 ) {
-    val locale = rememberStringPreference(prefs, KEY_LOCALE, "")
+    val context = LocalContext.current
     val localeValues = listOf("", "zh", "en", "ja", "ru", "tr")
+    val currentLocale = AppLocaleController.currentLanguageTag(context)
     CollapsingPage(
         title = stringResource(R.string.nav_settings),
     ) {
@@ -110,16 +112,15 @@ internal fun SettingsPage(
                         stringResource(R.string.russian),
                         stringResource(R.string.turkish),
                     ),
-                    selectedIndex = localeValues.indexOf(locale.value).coerceAtLeast(0),
+                    selectedIndex = localeValues.indexOf(currentLocale).coerceAtLeast(0),
                 ) { index ->
                     val selectedLocale = localeValues[index]
-                    locale.value = selectedLocale
                     if (selectedLocale.isBlank()) {
-                        locale.value = ""
                         prefs.remove(KEY_LOCALE)
                     } else {
                         prefs.putString(KEY_LOCALE, selectedLocale)
                     }
+                    AppLocaleController.apply(context, selectedLocale)
                 }
             }
         }

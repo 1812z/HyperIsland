@@ -34,6 +34,10 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
 
     override fun onCreate() {
         super.onCreate()
+        AppLocaleController.apply(
+            this,
+            configPrefs.getString("flutter.pref_locale", "").orEmpty(),
+        )
         XposedServiceHelper.registerListener(this)
         configPrefs.registerOnSharedPreferenceChangeListener(configPrefsListener)
     }

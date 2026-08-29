@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="module_description">More HyperOS 3 Xiaomi HyperIsland features</string>
+    <string name="module_description">Xiaomi HyperIsland enhancements for HyperOS</string>
     <!-- 欢迎超级岛 -->
     <string name="island_welcome_title">Welcome</string>
     <!-- 超级岛状态标签（GenericProgress / Download 通用） -->
@@ -43,7 +43,7 @@
     <string name="lsposed_version_unsupported">LSPosed The version is too low</string>
     <string name="systemui_scope_missing">System interface scope is not enabled</string>
     <string name="system_not_supported">System Not Supported</string>
-    <string name="system_not_supported_summary">The current system does not support the Xiaomi HyperIsland function (protocol version %1$d, version %2$d is required)</string>
+    <string name="system_not_supported_summary">The current system does not support the Island function (protocol version %1$d, version %2$d is required)</string>
     <string name="android_15_limited">Android 15 support is limited</string>
     <string name="android_15_limited_summary">Some features may not work properly, Android 16 or higher is recommended</string>
     <string name="framework_details">%1$s %2$s (%3$d) API %4$d</string>
@@ -55,7 +55,7 @@
     <string name="back">return</string>
     <string name="island">Island</string>
     <string name="toast_adaptation">Toast Adaptation</string>
-    <string name="enabled_apps_count">Xiaomi HyperIsland enabled for %1$d apps</string>
+    <string name="enabled_apps_count">Island enabled for %1$d apps</string>
     <string name="toast_enabled_apps_count">Toast intercept enabled for %1$d apps</string>
     <string name="enabled_app_islands">Application island enabled</string>
     <string name="enabled_toast_islands">Enabled Toast Island access</string>
@@ -63,7 +63,7 @@
     <string name="notification_mode">Notification</string>
     <string name="toast_mode">Toast</string>
     <string name="toast_forward">Forward standard toast</string>
-    <string name="toast_forward_summary">Convert this app\'s standard toast text to HyperIsland focus notification and Xiaomi HyperIsland</string>
+    <string name="toast_forward_summary">Convert this app\'s standard Toast into a focus notification and post it to the Island</string>
     <string name="toast_block_original">Block original toast</string>
     <string name="toast_block_original_summary">After forwarding, block this app\'s original standard toast popup</string>
     <string name="toast_show_notification">Show in notification center</string>
@@ -137,8 +137,8 @@
     </plurals>
     <string name="default_config">Default Channel Settings</string>
     <string name="behavior">Behavior</string>
-    <string name="first_float">First float</string>
-    <string name="first_float_summary">Whether to expand as focus notification when Island receives notification for the first time</string>
+    <string name="first_float">Expand on first notification</string>
+    <string name="first_float_summary">Whether Island expands into a focus notification when the first notification arrives</string>
     <string name="aod_text">AOD text switch</string>
     <string name="aod_text_summary">Show notification text on the AOD when enabled</string>
     <string name="update_float">Update float</string>
@@ -197,7 +197,7 @@
     <string name="keyword_filter_priority">Blacklist takes priority: only notifications matching the whitelist and not the blacklist are shown</string>
     <string name="appearance">Appearance</string>
     <string name="always_on_island">Always-on Island</string>
-    <string name="keep_island_subtitle">Displays a notification, supports customizing island and focus notification content respectively, and supports multi-screen display</string>
+    <string name="keep_island_subtitle">Posts a notification with separate content for the island and focus notification, with Always-on display support</string>
     <string name="keep_island_display_timing">Display timing</string>
     <string name="keep_island_display_always">Always</string>
     <string name="keep_island_display_charging">While charging</string>
@@ -305,7 +305,7 @@
     <string name="ext_disabled">Disabled</string>
     <string name="ext_bluetooth_summary">%1$s · Listen for Bluetooth device connections and disconnections, then forward the island through System UI</string>
     <string name="ext_charge_summary">%1$s · Replace the power or battery segment in Charging Island</string>
-    <string name="ext_face_summary">%1$s · Adds an unlock state Xiaomi HyperIsland to the lock screen</string>
+    <string name="ext_face_summary">%1$s · Adds an unlock-state Island to the lock screen</string>
     <string name="ext_hide_face_icon">Disable Face Unlock Icon</string>
     <string name="ext_hide_face_icon_summary">Hide the face recognition graphic on the lock screen without affecting face unlock</string>
     <string name="ext_small_icon">Small island icon adjustment</string>
@@ -355,7 +355,7 @@
     <string name="ext_face_settings">Unlock Island Settings</string>
     <string name="ext_face_enable">Enable Unlock Island</string>
     <string name="ext_face_enable_summary">Restart SystemUI required after toggling</string>
-    <string name="ext_face_first_float">Auto Expand Xiaomi HyperIsland</string>
+    <string name="ext_face_first_float">Auto Expand Island</string>
     <string name="ext_face_first_float_summary">Expand as focus notification</string>
     <string name="ext_animation_style">Animation Style</string>
     <string name="ext_animation_style_summary">Lock style shows a closed lock while locked, then rotates the shackle right when any unlock method succeeds</string>
@@ -375,10 +375,10 @@
     <string name="backup_cleanup_section">Configuration cleanup</string>
     <string name="backup_clean_uninstalled">Clean uninstalled application configurations</string>
     <string name="backup_clean_uninstalled_summary">Delete the remaining configurations of uninstalled applications and correct the number of opened ones</string>
-    <string name="backup_clean_uninstalled_confirm">The Xiaomi HyperIsland, Toast forwarding, media island, and notification channel configurations of uninstalled apps will be deleted, and the number of open apps will be corrected. This operation cannot be undone. It is recommended to export the backup first.</string>
+    <string name="backup_clean_uninstalled_confirm">Deletes Island, Toast forwarding, media island, and notification channel settings left by uninstalled apps, then corrects the enabled app count. This cannot be undone; export a backup first.</string>
     <string name="backup_clean_disabled">Clean up unopened application configurations</string>
-    <string name="backup_clean_disabled_summary">Delete the application-level and channel-level configuration of the Xiaomi HyperIsland application that is not enabled</string>
-    <string name="backup_clean_disabled_confirm">Toast forwarding, media island and notification channel configurations for unopened Xiaomi HyperIsland applications will be deleted; opened applications and global configurations will be retained. This operation cannot be undone. It is recommended to export the backup first.</string>
+    <string name="backup_clean_disabled_summary">Delete app-level and channel-level settings for apps without Island enabled</string>
+    <string name="backup_clean_disabled_confirm">Deletes Toast forwarding, media island, and notification channel settings for apps without Island enabled. Enabled apps and global settings are kept. This cannot be undone; export a backup first.</string>
     <string name="backup_error_invalid_format">Configuration file format is invalid</string>
     <string name="backup_error_no_file_selected">No file selected</string>
     <string name="backup_error_empty_clipboard">Clipboard is empty</string>
@@ -411,7 +411,7 @@
     <string name="marquee">Text Scrolling Island</string>
     <string name="marquee_summary">Whether to scroll long messages on Island</string>
     <string name="smooth_island">Smooth Island</string>
-    <string name="smooth_island_summary">Optimize Xiaomi HyperIsland contours using continuous curvature capsules, OS3 only</string>
+    <string name="smooth_island_summary">Optimize Island contours using continuous curvature capsules, OS3 only</string>
     <string name="charge_island">Charging Island</string>
     <string name="bluetooth_island">Bluetooth Island</string>
     <string name="face_unlock_island">Unlock Island</string>
@@ -743,13 +743,13 @@
     <string name="onboarding_protocol_failed">The system protocol version does not meet the requirements, the current version is %1$d</string>
     <string name="onboarding_android_failed">The system version does not meet the requirements, currently Android %1$d</string>
     <string name="onboarding_environment_dialog_message">Please check whether the permissions or system meet the requirements</string>
-    <string name="onboarding_focus_dialog_message">Cracking the focus whitelist is a must. Failure to enable it may result in the application being unable to be displayedXiaomi HyperIsland</string>
+    <string name="onboarding_focus_dialog_message">Focus notification restrictions must be removed; otherwise apps may be unable to appear on the Island</string>
     <string name="channel_template_section">Template</string>
     <string name="channel_template">Template</string>
     <string name="channel_renderer">Style</string>
     <string name="template_progress">Download</string>
-    <string name="template_notification">Notification Island</string>
-    <string name="template_ai_notification">AI Notification Island</string>
+    <string name="template_notification">Notification HyperIsland</string>
+    <string name="template_ai_notification">AI notification HyperIsland</string>
     <string name="renderer_image_text_buttons">Image+Text+Bottom Text Buttons</string>
     <string name="renderer_image_text_wrap">Cover Info+Auto Wrap</string>
     <string name="renderer_image_text_right_button">Image+Text+Right Text Button</string>
