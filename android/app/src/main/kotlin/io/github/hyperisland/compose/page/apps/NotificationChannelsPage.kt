@@ -30,7 +30,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.BarBackdropContent
+import io.github.hyperisland.compose.component.BarBlurHost
 import io.github.hyperisland.compose.component.BlurredBar
+import io.github.hyperisland.compose.component.LocalBarBlurEnabled
 import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.InstalledApp
@@ -227,10 +230,12 @@ internal fun NotificationChannelsPage(
         ),
     )
 
-    Scaffold(
-        topBar = {
-            BlurredBar {
-                TopAppBar(
+    val pageBlurEnabled = LocalBarBlurEnabled.current
+    BarBlurHost(enabled = pageBlurEnabled) {
+        Scaffold(
+            topBar = {
+                BlurredBar {
+                    TopAppBar(
                     title = app.appName,
                     largeTitle = app.appName,
                     color = Color.Transparent,
@@ -252,12 +257,13 @@ internal fun NotificationChannelsPage(
                             Icon(MiuixIcons.More, stringResource(R.string.compose_list_actions))
                         }
                     },
-                )
-            }
-        },
-        snackbarHost = { SnackbarHost(snackbarState) },
-    ) { padding ->
-        PullToRefresh(
+                    )
+                }
+            },
+            snackbarHost = { SnackbarHost(snackbarState) },
+        ) { padding ->
+            BarBackdropContent(modifier = Modifier.fillMaxSize()) {
+                PullToRefresh(
             isRefreshing = loading,
             onRefresh = ::refresh,
             topAppBarScrollBehavior = scrollBehavior,
@@ -388,6 +394,8 @@ internal fun NotificationChannelsPage(
                             }
                         }
                     }
+                }
+            }
                 }
             }
         }

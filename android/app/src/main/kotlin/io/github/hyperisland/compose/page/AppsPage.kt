@@ -36,7 +36,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.BarBackdropContent
+import io.github.hyperisland.compose.component.BarBlurHost
 import io.github.hyperisland.compose.component.BlurredBar
+import io.github.hyperisland.compose.component.LocalBarBlurEnabled
 import io.github.hyperisland.compose.component.LocalRootBottomBarPadding
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.InstalledApp
@@ -197,7 +200,9 @@ internal fun AppsPage(
         ),
     )
 
-    Scaffold(
+    val pageBlurEnabled = LocalBarBlurEnabled.current
+    BarBlurHost(enabled = pageBlurEnabled) {
+        Scaffold(
         topBar = {
             BlurredBar {
                 TopAppBar(
@@ -258,8 +263,9 @@ internal fun AppsPage(
             )
             }
         },
-    ) { padding ->
-        PullToRefresh(
+        ) { padding ->
+            BarBackdropContent(modifier = Modifier.fillMaxSize()) {
+                PullToRefresh(
             isRefreshing = loading,
             onRefresh = ::refresh,
             topAppBarScrollBehavior = scrollBehavior,
@@ -372,9 +378,10 @@ internal fun AppsPage(
                     }
                 }
             }
+                }
+            }
         }
     }
-
 }
 
 @Composable

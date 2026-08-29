@@ -49,7 +49,7 @@ internal fun ThemeSettingsPage(prefs: FlutterPrefsRepository, onBack: () -> Unit
     val monetEnabled = rememberBooleanPreference(prefs, PREF_MONET_ENABLED, false)
     val themeColor = rememberLongPreference(prefs, PREF_THEME_SEED_COLOR, DEFAULT_THEME_COLOR)
     val floatingNavigationBar = rememberBooleanPreference(prefs, PREF_FLOATING_NAVIGATION_BAR, false)
-    val blurBars = rememberBooleanPreference(prefs, PREF_BLUR_BARS, true)
+    val blurBars = rememberBooleanPreference(prefs, PREF_BLUR_BARS, false)
     var showColorDialog by remember { mutableStateOf(false) }
     var selectedColor by remember { mutableStateOf(Color.Red) }
 

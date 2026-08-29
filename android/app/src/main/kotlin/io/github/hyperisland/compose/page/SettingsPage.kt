@@ -12,6 +12,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.CollapsingPage
 import io.github.hyperisland.compose.component.PreferenceDropdown
@@ -41,7 +42,7 @@ import top.yukonga.miuix.kmp.icon.extended.Translate
 import top.yukonga.miuix.kmp.icon.extended.Tune
 import top.yukonga.miuix.kmp.icon.extended.Update
 
-internal enum class SettingsDetail { Theme, HideBehavior, Misc, Other, References }
+internal enum class SettingsDetail { Theme, HideBehavior, DefaultConfig, Misc, Other, References }
 
 @Composable
 internal fun SettingsPage(
@@ -72,7 +73,7 @@ internal fun SettingsPage(
                     openLegacy("/settings/filter-rules")
                 }
                 SettingsActionWithArrow(stringResource(R.string.compose_default_config), MiuixIcons.Tune) {
-                    openLegacy("/settings/default")
+                    onOpenDetail(SettingsDetail.DefaultConfig)
                 }
                 SettingsActionWithArrow(stringResource(R.string.compose_hide_behavior), MiuixIcons.Hide) {
                     onOpenDetail(SettingsDetail.HideBehavior)
@@ -151,6 +152,7 @@ internal fun SettingsPage(
                     icon = MiuixIcons.Info,
                     summary = stringResource(R.string.compose_github_summary),
                     endIcon = MiuixIcons.Link,
+                    endIconSize = 26.dp,
                 ) {
                     context.openUrl(GITHUB_URL)
                 }
@@ -159,6 +161,7 @@ internal fun SettingsPage(
                     icon = MiuixIcons.Messages,
                     summary = stringResource(R.string.compose_telegram_summary),
                     endIcon = MiuixIcons.Link,
+                    endIconSize = 26.dp,
                 ) {
                     context.openUrl(TELEGRAM_URL)
                 }
@@ -167,6 +170,7 @@ internal fun SettingsPage(
                     icon = MiuixIcons.Messages,
                     summary = stringResource(R.string.compose_qq_group_summary),
                     endIcon = MiuixIcons.Copy,
+                    endIconSize = 26.dp,
                 ) {
                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                     clipboard.setPrimaryClip(ClipData.newPlainText(QQ_CLIP_LABEL, QQ_GROUP_NUMBER))

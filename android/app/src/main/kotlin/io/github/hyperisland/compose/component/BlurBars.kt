@@ -20,6 +20,7 @@ import top.yukonga.miuix.kmp.blur.textureBlur
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 internal val LocalRootBottomBarPadding = staticCompositionLocalOf { 0.dp }
+internal val LocalBarBlurEnabled = staticCompositionLocalOf { false }
 
 private val LocalBarBlurBackdrop = staticCompositionLocalOf<LayerBackdrop?> { null }
 
@@ -37,14 +38,28 @@ internal fun BarBlurHost(
     } else {
         null
     }
-    CompositionLocalProvider(LocalBarBlurBackdrop provides backdrop) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .then(if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier),
-        ) {
+    CompositionLocalProvider(
+        LocalBarBlurEnabled provides enabled,
+        LocalBarBlurBackdrop provides backdrop,
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
             content()
         }
+    }
+}
+
+@Composable
+internal fun BarBackdropContent(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    val backdrop = LocalBarBlurBackdrop.current
+    Box(
+        modifier = modifier.then(
+            if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier,
+        ),
+    ) {
+        content()
     }
 }
 

@@ -44,35 +44,40 @@ internal fun CollapsingPage(
     content: LazyListScope.() -> Unit,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
-    Scaffold(
-        topBar = {
-            BlurredBar {
-                TopAppBar(
-                    title = title,
-                    largeTitle = title,
-                    subtitle = subtitle,
-                    color = Color.Transparent,
-                    scrollBehavior = scrollBehavior,
-                    actions = {
-                        if (actionIcon != null && onAction != null) {
-                            IconButton(onClick = onAction) {
-                                Icon(actionIcon, actionDescription)
+    val blurEnabled = LocalBarBlurEnabled.current
+    BarBlurHost(enabled = blurEnabled) {
+        Scaffold(
+            topBar = {
+                BlurredBar {
+                    TopAppBar(
+                        title = title,
+                        largeTitle = title,
+                        subtitle = subtitle,
+                        color = Color.Transparent,
+                        scrollBehavior = scrollBehavior,
+                        actions = {
+                            if (actionIcon != null && onAction != null) {
+                                IconButton(onClick = onAction) {
+                                    Icon(actionIcon, actionDescription)
+                                }
                             }
-                        }
-                    },
+                        },
+                    )
+                }
+            },
+            snackbarHost = snackbarHost,
+        ) { padding ->
+            BarBackdropContent(modifier = Modifier.fillMaxSize()) {
+                PageList(
+                    padding = padding,
+                    scrollBehavior = scrollBehavior,
+                    horizontalContentPadding = horizontalContentPadding,
+                    topContentPadding = topContentPadding,
+                    bottomContentPadding = bottomContentPadding,
+                    content = content,
                 )
             }
-        },
-        snackbarHost = snackbarHost,
-    ) { padding ->
-        PageList(
-            padding = padding,
-            scrollBehavior = scrollBehavior,
-            horizontalContentPadding = horizontalContentPadding,
-            topContentPadding = topContentPadding,
-            bottomContentPadding = bottomContentPadding,
-            content = content,
-        )
+        }
     }
 }
 
@@ -87,36 +92,41 @@ internal fun DetailPage(
     content: LazyListScope.() -> Unit,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
-    Scaffold(
-        topBar = {
-            BlurredBar {
-                TopAppBar(
-                    title = title,
-                    largeTitle = title,
-                    color = Color.Transparent,
-                    scrollBehavior = scrollBehavior,
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(MiuixIcons.Back, stringResource(R.string.compose_back))
-                        }
-                    },
-                    actions = {
-                        if (actionIcon != null && onAction != null) {
-                            IconButton(onClick = onAction) {
-                                Icon(actionIcon, actionDescription)
+    val blurEnabled = LocalBarBlurEnabled.current
+    BarBlurHost(enabled = blurEnabled) {
+        Scaffold(
+            topBar = {
+                BlurredBar {
+                    TopAppBar(
+                        title = title,
+                        largeTitle = title,
+                        color = Color.Transparent,
+                        scrollBehavior = scrollBehavior,
+                        navigationIcon = {
+                            IconButton(onClick = onBack) {
+                                Icon(MiuixIcons.Back, stringResource(R.string.compose_back))
                             }
-                        }
-                    },
+                        },
+                        actions = {
+                            if (actionIcon != null && onAction != null) {
+                                IconButton(onClick = onAction) {
+                                    Icon(actionIcon, actionDescription)
+                                }
+                            }
+                        },
+                    )
+                }
+            },
+            snackbarHost = snackbarHost,
+        ) { padding ->
+            BarBackdropContent(modifier = Modifier.fillMaxSize()) {
+                PageList(
+                    padding = padding,
+                    scrollBehavior = scrollBehavior,
+                    content = content,
                 )
             }
-        },
-        snackbarHost = snackbarHost,
-    ) { padding ->
-        PageList(
-            padding = padding,
-            scrollBehavior = scrollBehavior,
-            content = content,
-        )
+        }
     }
 }
 

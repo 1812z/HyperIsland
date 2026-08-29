@@ -51,6 +51,7 @@ internal fun ReferencesPage(onBack: () -> Unit) {
                         title = project.name,
                         summary = project.url,
                         endIcon = MiuixIcons.Link,
+                        endIconSize = 26.dp,
                     ) {
                         context.openUrl(project.url)
                     }

@@ -14,6 +14,26 @@ internal data class MediaNotificationSettings(
     val islandOuterGlowColor: String = "",
 )
 
+internal data class DefaultConfigSettings(
+    val firstFloat: Boolean = false,
+    val aodText: Boolean = false,
+    val enableFloat: Boolean = false,
+    val marquee: Boolean = false,
+    val marqueeAutoHide: String = "off",
+    val timeout: Int = 5,
+    val dynamicHighlightColor: Boolean = false,
+    val focusNotification: Boolean = true,
+    val restoreLockscreen: Boolean = false,
+    val showIslandIcon: Boolean = true,
+    val preserveSmallIcon: Boolean = false,
+    val outerGlow: String = "off",
+    val forceOuterGlow: Boolean = false,
+    val outEffectColor: String = "",
+    val islandOuterGlow: String = "off",
+    val forceIslandOuterGlow: Boolean = false,
+    val islandOuterGlowColor: String = "",
+)
+
 /** 与 Flutter shared_preferences、XposedPrefsSyncApp 共用同一份配置。 */
 class FlutterPrefsRepository(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences(
@@ -152,6 +172,48 @@ class FlutterPrefsRepository(context: Context) {
         }
     }
 
+    internal fun defaultConfigSettings(): DefaultConfigSettings = DefaultConfigSettings(
+        firstFloat = getBoolean("pref_default_first_float", false),
+        aodText = getBoolean("pref_default_aod_text", false),
+        enableFloat = getBoolean("pref_default_enable_float", false),
+        marquee = getBoolean("pref_default_marquee", false),
+        marqueeAutoHide = getString("pref_default_marquee_auto_hide", "off"),
+        timeout = getLong("pref_default_timeout", 5L).toInt().coerceAtLeast(1),
+        dynamicHighlightColor = getBoolean("pref_default_dynamic_highlight_color", false),
+        focusNotification = getBoolean("pref_default_focus_notif", true),
+        restoreLockscreen = getBoolean("pref_default_restore_lockscreen", false),
+        showIslandIcon = getBoolean("pref_default_show_island_icon", true),
+        preserveSmallIcon = getBoolean("pref_default_preserve_small_icon", false),
+        outerGlow = getOuterGlowMode("pref_default_outer_glow"),
+        forceOuterGlow = getBoolean("pref_default_force_outer_glow", false),
+        outEffectColor = getString("pref_default_out_effect_color"),
+        islandOuterGlow = getOuterGlowMode("pref_default_island_outer_glow"),
+        forceIslandOuterGlow = getBoolean("pref_default_force_island_outer_glow", false),
+        islandOuterGlowColor = getString("pref_default_island_outer_glow_color"),
+    )
+
+    internal fun setDefaultConfigSettings(value: DefaultConfigSettings) {
+        putBoolean("pref_default_first_float", value.firstFloat)
+        putBoolean("pref_default_aod_text", value.aodText)
+        putBoolean("pref_default_enable_float", value.enableFloat)
+        putBoolean("pref_default_marquee", value.marquee)
+        putString("pref_default_marquee_auto_hide", value.marqueeAutoHide)
+        putLong("pref_default_timeout", value.timeout.coerceAtLeast(1).toLong())
+        putBoolean("pref_default_dynamic_highlight_color", value.dynamicHighlightColor)
+        putBoolean("pref_default_focus_notif", value.focusNotification)
+        putBoolean("pref_default_restore_lockscreen", value.restoreLockscreen)
+        putBoolean("pref_default_show_island_icon", value.showIslandIcon)
+        putBoolean("pref_default_preserve_small_icon", value.preserveSmallIcon)
+        putString("pref_default_outer_glow", value.outerGlow)
+        putBoolean("pref_default_force_outer_glow", value.forceOuterGlow)
+        if (value.outEffectColor.isBlank()) remove("pref_default_out_effect_color")
+        else putString("pref_default_out_effect_color", value.outEffectColor.trim())
+        putString("pref_default_island_outer_glow", value.islandOuterGlow)
+        putBoolean("pref_default_force_island_outer_glow", value.forceIslandOuterGlow)
+        if (value.islandOuterGlowColor.isBlank()) remove("pref_default_island_outer_glow_color")
+        else putString("pref_default_island_outer_glow_color", value.islandOuterGlowColor.trim())
+    }
+
     internal fun exportChannelSettings(
         packageName: String,
         appName: String,
@@ -236,6 +298,11 @@ class FlutterPrefsRepository(context: Context) {
     private fun putIfNonDefault(target: JSONObject, key: String, value: Any, defaultValue: Any) {
         if (value == defaultValue) target.remove(key) else target.put(key, value)
     }
+
+    private fun getOuterGlowMode(key: String): String = runCatching {
+        prefs.getString(storageKey(key), null)
+    }.getOrNull()?.takeIf { it == "on" || it == "off" || it == "follow_dynamic" }
+        ?: runCatching { if (prefs.getBoolean(storageKey(key), false)) "on" else "off" }.getOrDefault("off")
 
     private companion object {
         const val PREFS_NAME = "FlutterSharedPreferences"

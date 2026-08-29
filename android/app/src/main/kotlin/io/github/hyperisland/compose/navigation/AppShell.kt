@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import io.github.hyperisland.MainActivity
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.BarBackdropContent
 import io.github.hyperisland.compose.component.BarBlurHost
 import io.github.hyperisland.compose.component.BlurredBar
 import io.github.hyperisland.compose.component.LocalRootBottomBarPadding
@@ -45,6 +46,7 @@ import io.github.hyperisland.compose.page.home.OverviewPage
 import io.github.hyperisland.compose.page.SettingsDetail
 import io.github.hyperisland.compose.page.SettingsPage
 import io.github.hyperisland.compose.page.settings.HideBehaviorPage
+import io.github.hyperisland.compose.page.settings.DefaultConfigPage
 import io.github.hyperisland.compose.page.settings.IslandOtherPage
 import io.github.hyperisland.compose.page.settings.MiscPage
 import io.github.hyperisland.compose.page.settings.ReferencesPage
@@ -81,7 +83,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     val pagerState = rememberPagerState(pageCount = { destinations.size })
     val scope = rememberCoroutineScope()
     val floatingNavigationBar = rememberBooleanPreference(prefs, PREF_FLOATING_NAVIGATION_BAR, false)
-    val blurBars = rememberBooleanPreference(prefs, PREF_BLUR_BARS, true)
+    val blurBars = rememberBooleanPreference(prefs, PREF_BLUR_BARS, false)
     var visibleDetail by remember { mutableStateOf<SettingsDetail?>(null) }
     var visibleChannelApp by remember { mutableStateOf<InstalledApp?>(null) }
     var detailShown by remember { mutableStateOf(false) }
@@ -160,34 +162,36 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                     }
                 },
             ) { padding ->
-                CompositionLocalProvider(
-                    LocalRootBottomBarPadding provides padding.calculateBottomPadding(),
-                ) {
-                    HorizontalPager(
-                        state = pagerState,
-                        modifier = Modifier.fillMaxSize(),
-                        beyondViewportPageCount = 1,
-                    ) { page ->
-                        when (page) {
-                            0 -> OverviewPage(prefs)
-                            1 -> AppsPage(
-                                prefs = prefs,
-                                openLegacy = openLegacy,
-                                onOpenChannels = { app ->
-                                    visibleDetail = null
-                                    visibleChannelApp = app
-                                    detailShown = true
-                                },
-                            )
-                            else -> SettingsPage(
-                                prefs = prefs,
-                                openLegacy = openLegacy,
-                                onOpenDetail = {
-                                    visibleChannelApp = null
-                                    visibleDetail = it
-                                    detailShown = true
-                                },
-                            )
+                BarBackdropContent(modifier = Modifier.fillMaxSize()) {
+                    CompositionLocalProvider(
+                        LocalRootBottomBarPadding provides padding.calculateBottomPadding(),
+                    ) {
+                        HorizontalPager(
+                            state = pagerState,
+                            modifier = Modifier.fillMaxSize(),
+                            beyondViewportPageCount = 1,
+                        ) { page ->
+                            when (page) {
+                                0 -> OverviewPage(prefs)
+                                1 -> AppsPage(
+                                    prefs = prefs,
+                                    openLegacy = openLegacy,
+                                    onOpenChannels = { app ->
+                                        visibleDetail = null
+                                        visibleChannelApp = app
+                                        detailShown = true
+                                    },
+                                )
+                                else -> SettingsPage(
+                                    prefs = prefs,
+                                    openLegacy = openLegacy,
+                                    onOpenDetail = {
+                                        visibleChannelApp = null
+                                        visibleDetail = it
+                                        detailShown = true
+                                    },
+                                )
+                            }
                         }
                     }
                 }
@@ -220,6 +224,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                     when (visibleDetail) {
                         SettingsDetail.Theme -> ThemeSettingsPage(prefs, ::closeDetail)
                         SettingsDetail.HideBehavior -> HideBehaviorPage(prefs, ::closeDetail)
+                        SettingsDetail.DefaultConfig -> DefaultConfigPage(prefs, ::closeDetail)
                         SettingsDetail.Misc -> MiscPage(prefs, openLegacy, ::closeDetail)
                         SettingsDetail.Other -> IslandOtherPage(prefs, ::closeDetail)
                         SettingsDetail.References -> ReferencesPage(::closeDetail)

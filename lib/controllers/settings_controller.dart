@@ -390,7 +390,7 @@ class SettingsController extends ChangeNotifier {
   bool tempHideForegroundApp = true;
   bool tempHideFullscreenLandscapeDisable = false;
   int themeSeedColor = 0xFF6750A4;
-  bool blurBars = true;
+  bool blurBars = false;
   bool debugLog = false;
   bool onboardingCompleted = false;
   Locale? locale;
@@ -745,7 +745,7 @@ class SettingsController extends ChangeNotifier {
     tempHideFullscreenLandscapeDisable =
         prefs.getBool(kPrefTempHideFullscreenLandscapeDisable) ?? false;
     themeSeedColor = prefs.getInt(kPrefThemeSeedColor) ?? 0xFF6750A4;
-    blurBars = prefs.getBool(kPrefBlurBars) ?? true;
+    blurBars = prefs.getBool(kPrefBlurBars) ?? false;
     debugLog = prefs.getBool(kPrefDebugLog) ?? false;
     onboardingCompleted = prefs.getBool(kPrefOnboardingCompleted) ?? false;
   }

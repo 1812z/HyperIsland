@@ -1,12 +1,7 @@
 package io.github.hyperisland.compose.page.apps
 
-import android.graphics.Color as AndroidColor
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -14,27 +9,23 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.DetailPage
+import io.github.hyperisland.compose.component.ColorPaletteDialog
 import io.github.hyperisland.compose.component.SectionTitle
+import io.github.hyperisland.compose.component.parseHexColor
+import io.github.hyperisland.compose.component.toArgbHex
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.InstalledApp
 import io.github.hyperisland.compose.data.MediaNotificationSettings
-import top.yukonga.miuix.kmp.basic.Button
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
-import top.yukonga.miuix.kmp.basic.ColorPalette
-import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Refresh
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
-import top.yukonga.miuix.kmp.window.WindowDialog
 
 @Composable
 internal fun MediaNotificationPage(
@@ -105,7 +96,7 @@ internal fun MediaNotificationPage(
                         summary = draft.outEffectColor.takeIf(String::isNotEmpty),
                         insideMargin = MEDIA_ITEM_MARGIN,
                         onClick = {
-                            selectedColor = parseHexColor(draft.outEffectColor) ?: Color.Red
+                            selectedColor = parseHexColor(draft.outEffectColor)
                             activeColorTarget = ColorTarget.Focus
                         },
                     )
@@ -134,7 +125,7 @@ internal fun MediaNotificationPage(
                         summary = draft.islandOuterGlowColor.takeIf(String::isNotEmpty),
                         insideMargin = MEDIA_ITEM_MARGIN,
                         onClick = {
-                            selectedColor = parseHexColor(draft.islandOuterGlowColor) ?: Color.Red
+                            selectedColor = parseHexColor(draft.islandOuterGlowColor)
                             activeColorTarget = ColorTarget.Island
                         },
                     )
@@ -143,47 +134,20 @@ internal fun MediaNotificationPage(
         }
     }
 
-    WindowDialog(
+    ColorPaletteDialog(
         show = activeColorTarget != null,
         title = stringResource(R.string.compose_out_effect_color),
-        onDismissRequest = { activeColorTarget = null },
-    ) {
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            ColorPalette(
-                color = selectedColor,
-                onColorChanged = { newColor -> selectedColor = newColor },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                TextButton(
-                    text = stringResource(R.string.compose_cancel),
-                    onClick = { activeColorTarget = null },
-                    modifier = Modifier.weight(1f),
-                )
-                Button(
-                    onClick = {
-                        when (activeColorTarget) {
-                            ColorTarget.Focus -> updateSettings(
-                                draft.copy(outEffectColor = selectedColor.toArgbHex()),
-                            )
-                            ColorTarget.Island -> updateSettings(
-                                draft.copy(islandOuterGlowColor = selectedColor.toArgbHex()),
-                            )
-                            null -> Unit
-                        }
-                        activeColorTarget = null
-                    },
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColorsPrimary(),
-                ) {
-                    Text(stringResource(R.string.compose_save))
-                }
+        initialColor = selectedColor,
+        onDismiss = { activeColorTarget = null },
+        onSave = { color ->
+            when (activeColorTarget) {
+                ColorTarget.Focus -> updateSettings(draft.copy(outEffectColor = color.toArgbHex()))
+                ColorTarget.Island -> updateSettings(draft.copy(islandOuterGlowColor = color.toArgbHex()))
+                null -> Unit
             }
-        }
-    }
+            activeColorTarget = null
+        },
+    )
 }
 
 @Composable
@@ -196,15 +160,7 @@ private fun glowModeLabels(defaultMode: String): List<String> = listOf(
     stringResource(R.string.compose_follow_dynamic_color),
 )
 
-private fun parseHexColor(value: String): Color? = runCatching {
-    if (!HEX_COLOR.matches(value)) return@runCatching null
-    Color(AndroidColor.parseColor(value))
-}.getOrNull()
-
-private fun Color.toArgbHex(): String = "#%08X".format(toArgb())
-
 private val MEDIA_ITEM_MARGIN = PaddingValues(horizontal = 18.dp, vertical = 14.dp)
-private val HEX_COLOR = Regex("^#(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$")
 private const val PREF_DEFAULT_OUTER_GLOW = "pref_default_outer_glow"
 private const val PREF_DEFAULT_ISLAND_OUTER_GLOW = "pref_default_island_outer_glow"
 private const val TRI_STATE_DEFAULT = "default"
