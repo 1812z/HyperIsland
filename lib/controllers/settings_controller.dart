@@ -32,6 +32,8 @@ const kPrefMarqueeFeature = 'pref_marquee_feature';
 const kPrefMarqueeSpeed = 'pref_marquee_speed';
 const kPrefBigIslandMaxWidth = 'pref_big_island_max_width';
 const kPrefBigIslandMinWidth = 'pref_big_island_min_width';
+const kPrefSmallIslandWidth = 'pref_small_island_width';
+const kPrefSmallIslandHorizontalOffset = 'pref_small_island_horizontal_offset';
 const kPrefSmoothIsland = 'pref_smooth_island';
 const kPrefSmoothIslandSmoothing = 'pref_smooth_island_smoothing';
 const kPrefUnlockAllFocus = 'pref_unlock_all_focus';
@@ -124,6 +126,7 @@ const kPrefIslandGlassCaptureFps = 'pref_island_glass_capture_fps';
 const kPrefIslandGlassCaptureQuality = 'pref_island_glass_capture_quality';
 const kPrefIslandHeight = 'pref_island_height';
 const kPrefIslandTopOffset = 'pref_island_top_offset';
+const kPrefIslandTextScale = 'pref_island_text_scale';
 const kPrefIslandTextColorMode = 'pref_island_text_color_mode';
 const kPrefFocusNotificationTextColorMode =
     'pref_focus_notification_text_color_mode';
@@ -217,7 +220,7 @@ class SettingsController extends ChangeNotifier {
   SharedPreferences? _prefs;
 
   SettingsController._() {
-    _load();
+    _initialize();
   }
 
   bool showWelcome = true;
@@ -240,6 +243,8 @@ class SettingsController extends ChangeNotifier {
   int marqueeSpeed = 100;
   int bigIslandMaxWidth = 0;
   int bigIslandMinWidth = 0;
+  int smallIslandWidth = 34;
+  int smallIslandHorizontalOffset = 0;
   bool smoothIsland = false;
   double smoothIslandSmoothing = 0.8;
   bool unlockAllFocus = false;
@@ -325,6 +330,7 @@ class SettingsController extends ChangeNotifier {
   int islandGlassCaptureQuality = 30;
   double islandHeight = 0;
   double islandTopOffset = 0;
+  int islandTextScale = 100;
   String islandTextColorMode = kIslandTextColorDefault;
   String focusNotificationTextColorMode = kIslandTextColorDefault;
   String mediaNotificationTextColorMode = kIslandTextColorDefault;
@@ -374,6 +380,18 @@ class SettingsController extends ChangeNotifier {
     return prefs;
   }
 
+  Future<void> _initialize() async {
+    try {
+      await _load();
+    } catch (error, stackTrace) {
+      debugPrint('SettingsController initialization failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+    } finally {
+      loading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> _load() async {
     final prefs = await _getPrefs();
     showWelcome = prefs.getBool(kPrefShowWelcome) ?? true;
@@ -410,6 +428,9 @@ class SettingsController extends ChangeNotifier {
     marqueeSpeed = prefs.getInt(kPrefMarqueeSpeed) ?? 100;
     bigIslandMaxWidth = prefs.getInt(kPrefBigIslandMaxWidth) ?? 0;
     bigIslandMinWidth = prefs.getInt(kPrefBigIslandMinWidth) ?? 0;
+    smallIslandWidth = _readInt(prefs, kPrefSmallIslandWidth, 34).clamp(1, 100);
+    smallIslandHorizontalOffset =
+        (prefs.getInt(kPrefSmallIslandHorizontalOffset) ?? 0).clamp(-10, 50);
     smoothIsland = prefs.getBool(kPrefSmoothIsland) ?? false;
     smoothIslandSmoothing = prefs.getDouble(kPrefSmoothIslandSmoothing) ?? 0.8;
     unlockAllFocus = prefs.getBool(kPrefUnlockAllFocus) ?? false;
@@ -590,6 +611,7 @@ class SettingsController extends ChangeNotifier {
         (prefs.getInt(kPrefIslandGlassCaptureQuality) ?? 30).clamp(10, 100);
     islandHeight = prefs.getDouble(kPrefIslandHeight) ?? 0;
     islandTopOffset = prefs.getDouble(kPrefIslandTopOffset) ?? 0;
+    islandTextScale = _readInt(prefs, kPrefIslandTextScale, 100).clamp(10, 200);
     islandTextColorMode = _normalizeIslandTextColorMode(
       prefs.getString(kPrefIslandTextColorMode),
     );
@@ -691,8 +713,17 @@ class SettingsController extends ChangeNotifier {
     blurBars = prefs.getBool(kPrefBlurBars) ?? true;
     debugLog = prefs.getBool(kPrefDebugLog) ?? false;
     onboardingCompleted = prefs.getBool(kPrefOnboardingCompleted) ?? false;
-    loading = false;
-    notifyListeners();
+  }
+
+  static int _readInt(SharedPreferences prefs, String key, int defaultValue) {
+    final value = prefs.get(key);
+    return switch (value) {
+      int number => number,
+      double number => number.round(),
+      String text =>
+        int.tryParse(text) ?? double.tryParse(text)?.round() ?? defaultValue,
+      _ => defaultValue,
+    };
   }
 
   Future<void> setOnboardingCompleted(bool value) async {
@@ -901,6 +932,43 @@ class SettingsController extends ChangeNotifier {
       await prefs.setInt(kPrefBigIslandMinWidth, clamped);
     }
     bigIslandMinWidth = clamped;
+    notifyListeners();
+  }
+
+  Future<void> setSmallIslandWidth(int value) => _setIslandDimenInt(
+    kPrefSmallIslandWidth,
+    value,
+    1,
+    100,
+    34,
+    (next) => smallIslandWidth = next,
+  );
+
+  Future<void> setSmallIslandHorizontalOffset(int value) => _setIslandDimenInt(
+    kPrefSmallIslandHorizontalOffset,
+    value,
+    -10,
+    50,
+    0,
+    (next) => smallIslandHorizontalOffset = next,
+  );
+
+  Future<void> _setIslandDimenInt(
+    String key,
+    int value,
+    int min,
+    int max,
+    int defaultValue,
+    ValueChanged<int> update,
+  ) async {
+    final clamped = value.clamp(min, max);
+    final prefs = await _getPrefs();
+    if (clamped == defaultValue) {
+      await prefs.remove(key);
+    } else {
+      await prefs.setInt(key, clamped);
+    }
+    update(clamped);
     notifyListeners();
   }
 
@@ -1779,6 +1847,15 @@ class SettingsController extends ChangeNotifier {
     islandTopOffset = clamped;
     notifyListeners();
   }
+
+  Future<void> setIslandTextScale(int value) => _setIslandDimenInt(
+    kPrefIslandTextScale,
+    value,
+    10,
+    200,
+    100,
+    (next) => islandTextScale = next,
+  );
 
   Future<void> setOuterGlowRange(int value) async {
     final clamped = value.clamp(0, 100);

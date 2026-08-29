@@ -418,6 +418,7 @@
   "islandDimenSection": "アイランドサイズ設定",
   "islandDimenHeight": "島の高さ",
   "islandTopOffset": "画面上端からの距離",
+  "smallIslandHorizontalOffset": "大小アイランドの間隔",
   "followSystem": "システムに従う",
   "islandDimenMiniY": "垂直位置",
   "islandDimenMiniYHint": "0=システムに従う",

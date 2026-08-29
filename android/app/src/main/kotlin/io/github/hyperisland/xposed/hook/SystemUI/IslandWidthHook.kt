@@ -4,6 +4,7 @@ import android.content.res.Resources
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.hyperisland.xposed.utils.HookUtils
+import io.github.hyperisland.xposed.utils.ResourceDimenHook
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import io.github.libxposed.api.XposedModule
 
@@ -12,6 +13,8 @@ object BigIslandMinWidthHook : BaseHook() {
     private const val TAG = "HyperIsland[IslandWidthHook]"
     private const val KEY_MAX_WIDTH = "pref_big_island_max_width"
     private const val KEY_MIN_WIDTH = "pref_big_island_min_width"
+    private const val KEY_SMALL_WIDTH = "pref_small_island_width"
+    private const val KEY_SMALL_OFFSET = "pref_small_island_horizontal_offset"
     private const val BASE_CONTENT_VIEW_CLASS =
         "miui.systemui.dynamicisland.window.content.DynamicIslandBaseContentView"
     private const val PHONE_HELPER_CLASS =
@@ -24,6 +27,7 @@ object BigIslandMinWidthHook : BaseHook() {
     private var hookedLegacyCalculateMaxWidthWithSmall = false
     private var hookedModernCalculateMaxWidthWithSmall = false
     private var hookedSetMaxWidth = false
+    private var hookedSmallIslandOffset = false
     private val hookedMinWidthClasses = mutableSetOf<String>()
     private val registrationLock = Any()
     private var dynamicClassLoaderCallbackRegistered = false
@@ -34,7 +38,18 @@ object BigIslandMinWidthHook : BaseHook() {
     }
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
+        registerDimensionResources(module)
         hookDynamicClassLoaders(module)
+    }
+
+    private fun registerDimensionResources(module: XposedModule) {
+        ResourceDimenHook.registerDp(
+            module,
+            "small_island_width",
+            KEY_SMALL_WIDTH,
+            34,
+            1..100,
+        )
     }
 
     private fun hookContentViewClasses(module: XposedModule, classLoader: ClassLoader) {
@@ -48,6 +63,26 @@ object BigIslandMinWidthHook : BaseHook() {
     private fun hookBaseContentView(module: XposedModule, classLoader: ClassLoader) {
         try {
             val clazz = classLoader.loadClass(BASE_CONTENT_VIEW_CLASS)
+
+            if (!hookedSmallIslandOffset) {
+                val getSpaceMethod = clazz.declaredMethods.firstOrNull {
+                    it.name == "getSpace" &&
+                        it.returnType == Int::class.javaPrimitiveType &&
+                        it.parameterTypes.isEmpty()
+                }
+                if (getSpaceMethod != null) {
+                    module.hook(getSpaceMethod).intercept { chain ->
+                        val systemSpace = chain.proceed() as Int
+                        val offsetDp = ConfigManager.getInt(KEY_SMALL_OFFSET, 0).coerceIn(-10, 50)
+                        if (offsetDp == 0) {
+                            return@intercept systemSpace
+                        }
+                        (systemSpace + dpToPx(offsetDp).toInt()).coerceAtLeast(0)
+                    }
+                    hookedSmallIslandOffset = true
+                    log(module, "hooked dual-island spacing on $BASE_CONTENT_VIEW_CLASS")
+                }
+            }
 
             // 旧版 SystemUI 将双岛宽度计算放在 BaseContentView 中。
             if (!hookedLegacyCalculateMaxWidthWithSmall) {

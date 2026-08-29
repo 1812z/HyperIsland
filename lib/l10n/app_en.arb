@@ -83,6 +83,13 @@
     }
   },
   "restartFailed": "Restart failed: {message}",
+  "@restartFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
   "restartRootRequired": "Please check if ROOT permission has been granted to this app",
   "note1": "1. Be sure to read the usage tutorial in the top-right corner before using",
   "note2": "2. Most settings support hot reload; restart the scope if issues occur",
@@ -164,10 +171,38 @@
   "restartScopeApp": "Please restart the scope app for settings to take effect",
   "groupNumberCopied": "Group number copied to clipboard",
   "exportedTo": "Exported to: {path}",
+  "@exportedTo": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "exportFailed": "Export failed: {error}",
+  "@exportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "configCopied": "Configuration copied to clipboard",
   "importSuccess": "Import successful, {count} items, please restart the app",
+  "@importSuccess": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "importFailed": "Import failed: {error}",
+  "@importFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "appAdaptation": "App Adaptation",
   "toastAdaptation": "Toast Adaptation",
   "adaptationModeNotification": "Notification",
@@ -175,6 +210,13 @@
   "toastEnabledAppsCount": "Toast intercept enabled for {count} apps",
   "toastEnabledAppsCountWithSystem": "Toast intercept enabled for {count} apps (including system apps)",
   "selectedAppsCount": "{count} apps selected",
+  "@selectedAppsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "cancelSelection": "Cancel selection",
   "deselectAll": "Deselect all",
   "selectAll": "Select all",
@@ -188,24 +230,96 @@
   "enableAll": "Enable all",
   "disableAll": "Disable all",
   "enabledAppsCount": "Dynamic Island enabled for {count} apps",
+  "@enabledAppsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "enabledAppsCountWithSystem": "Dynamic Island enabled for {count} apps (including system apps)",
+  "@enabledAppsCountWithSystem": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "searchApps": "Search app name or package name",
   "noAppsFound": "No installed apps found\nPlease check if app list permission is enabled",
   "noMatchingApps": "No matching apps",
   "applyToSelectedAppsChannels": "Will apply to enabled channels of {count} selected apps",
+  "@applyToSelectedAppsChannels": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "applyingConfig": "Applying configuration...",
   "progressApps": "Progress: {done} / {total}",
+  "@progressApps": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "batchApplied": "Batch applied to {count} apps",
+  "@batchApplied": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "cannotReadChannels": "Cannot Read Notification Channels",
   "rootRequiredMessage": "Reading notification channels requires ROOT permission.\nPlease confirm ROOT permission is granted and try again.",
   "enableAllChannels": "Enable all channels",
   "noChannelsFound": "No notification channels found",
   "noChannelsFoundSubtitle": "This app has no notification channels, or they cannot be read",
   "allChannelsActive": "Active for all {count} channels",
+  "@allChannelsActive": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "selectedChannels": "{selected} / {total} channels selected",
+  "@selectedChannels": {
+    "placeholders": {
+      "selected": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "allChannelsDisabled": "All {count} channels (disabled)",
+  "@allChannelsDisabled": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "appDisabledBanner": "App is disabled, the following channel settings have no effect",
   "channelImportance": "Importance: {importance}  ·  {id}",
+  "@channelImportance": {
+    "placeholders": {
+      "importance": {
+        "type": "String"
+      },
+      "id": {
+        "type": "String"
+      }
+    }
+  },
   "channelSettings": "Channel settings",
   "toastForwardTitle": "Forward standard toast",
   "toastForwardSubtitle": "Convert this app's standard toast text to HyperIsland focus notification and super island",
@@ -223,7 +337,21 @@
   "importanceHigh": "High",
   "importanceUnknown": "Unknown",
   "applyToEnabledChannels": "Will apply to {count} enabled channels",
+  "@applyToEnabledChannels": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "applyToAllChannels": "Will apply to all {count} channels",
+  "@applyToAllChannels": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "templateDownloadName": "Download",
   "templateNotificationIslandName": "Notification Island",
   "templateNotificationIslandLiteName": "Notification Island|Lite",
@@ -325,6 +453,16 @@
   "colorOpacity": "Opacity",
   "onlyEnabledChannels": "Only apply to enabled channels",
   "enabledChannelsCount": "{enabled} / {total} channels enabled",
+  "@enabledChannelsCount": {
+    "placeholders": {
+      "enabled": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "iconModeAuto": "Auto",
   "iconModeNotifSmall": "Small notification icon",
   "iconModeNotifLarge": "Large notification icon",
@@ -351,7 +489,21 @@
     }
   },
   "blacklistedAppsCount": "Blocked focus notifications for {count} apps",
+  "@blacklistedAppsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "blacklistedAppsCountWithSystem": "Blocked focus notifications for {count} apps (including system apps)",
+  "@blacklistedAppsCountWithSystem": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "firstFloatLabelSubtitle": "Whether to expand as focus notification when Island receives notification for the first time",
   "updateFloatLabelSubtitle": "Whether to expand notification when Island updates",
   "marqueeChannelTitleSubtitle": "Whether to scroll long messages on Island",
@@ -531,6 +683,8 @@
   "islandDimenSection": "Island Dimensions",
   "islandDimenHeight": "Island Height",
   "islandTopOffset": "Distance from Top of Screen",
+  "smallIslandWidth": "Small Island Width",
+  "smallIslandHorizontalOffset": "Large-Small Island Gap",
   "followSystem": "Follow system",
   "islandDimenMiniY": "Vertical Position",
   "islandDimenMiniYHint": "0=follow system",
@@ -859,6 +1013,7 @@
   "hideBehaviorForegroundAppSubtitle": "Hide the app's own island while it is in the foreground",
   "off": "Off",
   "islandTextSection": "Island Text",
+  "islandTextSizeTitle": "Island Text Size",
   "islandOutlineSection": "Outline controls",
   "outerGlowAppearanceSection": "Outer glow",
   "outerGlowRangeTitle": "Glow range",

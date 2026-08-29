@@ -25,6 +25,9 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
   late double _islandTopOffsetDraft;
   late int _bigIslandMaxWidthDraft;
   late int _bigIslandMinWidthDraft;
+  late int _smallIslandWidthDraft;
+  late int _smallIslandHorizontalOffsetDraft;
+  late int _islandTextScaleDraft;
   late int _roundIconRadiusDraft;
   late int _islandIconSizeDraft;
   late double _islandIconPaddingDraft;
@@ -37,6 +40,9 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _ctrl.islandTopOffset,
     _ctrl.bigIslandMaxWidth,
     _ctrl.bigIslandMinWidth,
+    _ctrl.smallIslandWidth,
+    _ctrl.smallIslandHorizontalOffset,
+    _ctrl.islandTextScale,
     _ctrl.roundIcon,
     _ctrl.roundIconRadius,
     _ctrl.islandIconSize,
@@ -86,6 +92,9 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     _islandTopOffsetDraft = _ctrl.islandTopOffset;
     _bigIslandMaxWidthDraft = _ctrl.bigIslandMaxWidth;
     _bigIslandMinWidthDraft = _ctrl.bigIslandMinWidth;
+    _smallIslandWidthDraft = _ctrl.smallIslandWidth;
+    _smallIslandHorizontalOffsetDraft = _ctrl.smallIslandHorizontalOffset;
+    _islandTextScaleDraft = _ctrl.islandTextScale;
     _roundIconRadiusDraft = _ctrl.roundIconRadius;
     _islandIconSizeDraft = _ctrl.islandIconSize;
     _islandIconPaddingDraft = _ctrl.islandIconPadding;
@@ -111,6 +120,9 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
     final nextTopOffset = _ctrl.islandTopOffset;
     final nextMaxWidth = _ctrl.bigIslandMaxWidth;
     final nextMinWidth = _ctrl.bigIslandMinWidth;
+    final nextSmallWidth = _ctrl.smallIslandWidth;
+    final nextSmallOffset = _ctrl.smallIslandHorizontalOffset;
+    final nextTextScale = _ctrl.islandTextScale;
     final nextRoundIconRadius = _ctrl.roundIconRadius;
     final nextIslandIconSize = _ctrl.islandIconSize;
     final nextIslandIconPadding = _ctrl.islandIconPadding;
@@ -121,6 +133,9 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
         nextTopOffset == _islandTopOffsetDraft &&
         nextMaxWidth == _bigIslandMaxWidthDraft &&
         nextMinWidth == _bigIslandMinWidthDraft &&
+        nextSmallWidth == _smallIslandWidthDraft &&
+        nextSmallOffset == _smallIslandHorizontalOffsetDraft &&
+        nextTextScale == _islandTextScaleDraft &&
         nextRoundIconRadius == _roundIconRadiusDraft &&
         nextIslandIconSize == _islandIconSizeDraft &&
         nextIslandIconPadding == _islandIconPaddingDraft &&
@@ -133,6 +148,9 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
       _islandTopOffsetDraft = nextTopOffset;
       _bigIslandMaxWidthDraft = nextMaxWidth;
       _bigIslandMinWidthDraft = nextMinWidth;
+      _smallIslandWidthDraft = nextSmallWidth;
+      _smallIslandHorizontalOffsetDraft = nextSmallOffset;
+      _islandTextScaleDraft = nextTextScale;
       _roundIconRadiusDraft = nextRoundIconRadius;
       _islandIconSizeDraft = nextIslandIconSize;
       _islandIconPaddingDraft = nextIslandIconPadding;
@@ -707,8 +725,8 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                       _DimenTile(
                         title: l10n.islandTopOffset,
                         value: _islandTopOffsetDraft,
-                        min: -100,
-                        max: 100,
+                        min: -10,
+                        max: 50,
                         unit: 'dp',
                         defaultVal: 0,
                         followSystemLabel: l10n.followSystem,
@@ -852,10 +870,40 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                           ),
                         ),
                         shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.vertical(
-                            bottom: Radius.circular(16),
-                          ),
+                          borderRadius: BorderRadius.zero,
                         ),
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      _DimenTile(
+                        title: l10n.smallIslandWidth,
+                        value: _smallIslandWidthDraft.toDouble(),
+                        min: 1,
+                        max: 100,
+                        unit: 'dp',
+                        defaultVal: 34,
+                        followSystemLabel: l10n.optDefault,
+                        onChanged: (value) => setState(
+                          () => _smallIslandWidthDraft = value.round(),
+                        ),
+                        onPersist: (value) =>
+                            _ctrl.setSmallIslandWidth(value.round()),
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                      _DimenTile(
+                        title: l10n.smallIslandHorizontalOffset,
+                        value: _smallIslandHorizontalOffsetDraft.toDouble(),
+                        min: -10,
+                        max: 50,
+                        unit: 'dp',
+                        defaultVal: 0,
+                        followSystemLabel: l10n.optDefault,
+                        onChanged: (value) => setState(
+                          () =>
+                              _smallIslandHorizontalOffsetDraft = value.round(),
+                        ),
+                        onPersist: (value) =>
+                            _ctrl.setSmallIslandHorizontalOffset(value.round()),
+                        isLast: true,
                       ),
                     ],
                   ),
@@ -1065,6 +1113,23 @@ class _IslandAppearancePageState extends State<IslandAppearancePage> {
                   clipBehavior: Clip.antiAlias,
                   child: Column(
                     children: [
+                      _DimenTile(
+                        title: l10n.islandTextSizeTitle,
+                        value: _islandTextScaleDraft.toDouble(),
+                        min: 10,
+                        max: 200,
+                        unit: '%',
+                        defaultVal: 100,
+                        followSystemLabel: '100%',
+                        onChanged: (value) => setState(
+                          () => _islandTextScaleDraft = value.round(),
+                        ),
+                        onPersist: (value) =>
+                            _ctrl.setIslandTextScale(value.round()),
+                        isFirst: true,
+                        alwaysShowReset: true,
+                      ),
+                      const Divider(height: 1, indent: 16, endIndent: 16),
                       ListTile(
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16,
@@ -1473,6 +1538,8 @@ class _DimenTile extends StatelessWidget {
     required this.onChanged,
     required this.onPersist,
     this.isFirst = false,
+    this.isLast = false,
+    this.alwaysShowReset = false,
     this.decimalPlaces = 0,
   });
 
@@ -1486,6 +1553,8 @@ class _DimenTile extends StatelessWidget {
   final ValueChanged<double> onChanged;
   final ValueChanged<double> onPersist;
   final bool isFirst;
+  final bool isLast;
+  final bool alwaysShowReset;
   final int decimalPlaces;
 
   @override
@@ -1504,6 +1573,8 @@ class _DimenTile extends StatelessWidget {
     BorderRadius? borderRadius;
     if (isFirst) {
       borderRadius = const BorderRadius.vertical(top: Radius.circular(16));
+    } else if (isLast) {
+      borderRadius = const BorderRadius.vertical(bottom: Radius.circular(16));
     }
 
     return ListTile(
@@ -1522,7 +1593,7 @@ class _DimenTile extends StatelessWidget {
               context,
             ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
           ),
-          if (displayValue != defaultDisplayValue)
+          if (alwaysShowReset || displayValue != defaultDisplayValue)
             SizedBox(
               width: 18,
               height: 18,
@@ -1530,10 +1601,12 @@ class _DimenTile extends StatelessWidget {
                 icon: const Icon(Icons.refresh, size: 18),
                 padding: EdgeInsets.zero,
                 visualDensity: VisualDensity.compact,
-                onPressed: InteractionHaptics.interceptButton(() {
-                  onChanged(defaultVal);
-                  onPersist(defaultVal);
-                }),
+                onPressed: displayValue == defaultDisplayValue
+                    ? null
+                    : InteractionHaptics.interceptButton(() {
+                        onChanged(defaultVal);
+                        onPersist(defaultVal);
+                      }),
               ),
             ),
         ],

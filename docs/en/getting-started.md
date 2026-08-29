@@ -3,7 +3,7 @@
 ::: warning Prerequisites
 - Device must have **Root** access
 - **LSPosed** framework installed with **API version >= 101**
-- System running **HyperOS 3**
+- System running **HyperOS 3/4**
 - **HyperCeiler** installed
 :::
 

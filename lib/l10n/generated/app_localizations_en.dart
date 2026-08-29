@@ -49,6 +49,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String lsposedApiVersion(int version) {
+    return 'LSPosed API Version: $version';
+  }
+
+  @override
   String get later => 'Later';
 
   @override
@@ -147,11 +152,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get enableSystemUiScopeInLSPosed =>
       'Please select System UI in the LSPosed scope';
-
-  @override
-  String lsposedApiVersion(int version) {
-    return 'LSPosed API Version: $version';
-  }
 
   @override
   String get updateLSPosedRequired => 'Please update LSPosed version';
@@ -374,12 +374,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportToClipboardSubtitle => 'Copy configuration as JSON text';
 
   @override
-  String get exportConfig => 'Export Configuration';
-
-  @override
-  String get exportConfigSubtitle => 'Choose to export to file or clipboard';
-
-  @override
   String get importFromFile => 'Import from file';
 
   @override
@@ -391,6 +385,12 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get importFromClipboardSubtitle =>
       'Restore configuration from JSON text in clipboard';
+
+  @override
+  String get exportConfig => 'Export Configuration';
+
+  @override
+  String get exportConfigSubtitle => 'Choose to export to file or clipboard';
 
   @override
   String get importConfig => 'Import Configuration';
@@ -678,13 +678,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get islandIcon => 'Island icon';
 
   @override
-  String get islandIconLabel => 'Large island icon';
-
-  @override
-  String get islandIconLabelSubtitle =>
-      'Show the large icon of the island when enabled (small island not affected)';
-
-  @override
   String get focusIconLabel => 'Focus icon';
 
   @override
@@ -822,11 +815,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get preserveStatusBarSmallIconLabel => 'Status bar icon';
 
   @override
-  String get restoreLockscreenTitle => 'Restore Lockscreen Notification';
+  String get preserveStatusBarSmallIconLabelSubtitle =>
+      'Whether to force keep status bar icon when focus notification is displayed';
 
   @override
-  String get restoreLockscreenSubtitle =>
-      'Skip focus notification processing on lockscreen, keep original privacy behavior';
+  String get islandIconLabel => 'Large island icon';
+
+  @override
+  String get islandIconLabelSubtitle =>
+      'Show the large icon of the island when enabled (small island not affected)';
 
   @override
   String get firstFloatLabel => 'First float';
@@ -1041,10 +1038,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Replace notification with focus notification (shows original notification when disabled)';
 
   @override
-  String get preserveStatusBarSmallIconLabelSubtitle =>
-      'Whether to force keep status bar icon when focus notification is displayed';
-
-  @override
   String get fullscreenBehaviorTitle => 'Fullscreen behavior';
 
   @override
@@ -1156,11 +1149,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiModelPickerFetchError => 'Failed to load model list';
 
   @override
+  String get aiTestButton => 'Test Connection';
+
+  @override
+  String get aiTestUrlEmpty => 'Please enter an API URL first';
+
+  @override
+  String get aiConfigSaveButton => 'Save';
+
+  @override
+  String get aiConfigSaved => 'AI configuration saved';
+
+  @override
+  String get aiConfigTips =>
+      'AI receives the app package, title, and content of each notification, and returns short left (source) and right (content) text. Compatible with OpenAI-format APIs (e.g. DeepSeek, Claude). Falls back to default logic if no response.';
+
+  @override
+  String get templateAiNotificationIslandName => 'AI Notification Island';
+
+  @override
   String get aiPromptLabel => 'Custom Prompt';
 
   @override
   String get aiPromptHint =>
       'Leave empty to use default: Extract key info, left and right each no more than 6 words or 12 characters';
+
+  @override
+  String get aiPromptDefault =>
+      'Extract key info from notification, left and right each no more than 6 words or 12 characters';
 
   @override
   String get aiPromptInUserTitle => 'Put prompt in user message';
@@ -1216,6 +1232,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String defaultTimeoutHint(int seconds) {
+    return 'Default (${seconds}s)';
+  }
+
+  @override
   String get aiTemperatureTitle => 'Sampling Temperature';
 
   @override
@@ -1241,36 +1262,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'Always trigger AI regardless of notification length';
 
   @override
-  String defaultTimeoutHint(int seconds) {
-    return 'Default (${seconds}s)';
-  }
-
-  @override
   String get aiDefaultPromptFull =>
       'Leave empty to use default prompt: Extract key info from notification, no more than 6 words or 12 characters for left and right sides';
-
-  @override
-  String get aiTestButton => 'Test Connection';
-
-  @override
-  String get aiTestUrlEmpty => 'Please enter an API URL first';
-
-  @override
-  String get aiConfigSaveButton => 'Save';
-
-  @override
-  String get aiConfigSaved => 'AI configuration saved';
-
-  @override
-  String get aiConfigTips =>
-      'AI receives the app package, title, and content of each notification, and returns short left (source) and right (content) text. Compatible with OpenAI-format APIs (e.g. DeepSeek, Claude). Falls back to default logic if no response.';
-
-  @override
-  String get templateAiNotificationIslandName => 'AI Notification Island';
-
-  @override
-  String get aiPromptDefault =>
-      'Extract key info from notification, left and right each no more than 6 words or 12 characters';
 
   @override
   String get aiDefaultNotificationText =>
@@ -1330,6 +1323,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get hideDesktopIconSubtitle =>
       'Hide the app icon from launcher. Open via LSPosed Manager after hiding';
+
+  @override
+  String get restoreLockscreenTitle => 'Restore Lockscreen Notification';
+
+  @override
+  String get restoreLockscreenSubtitle =>
+      'Skip focus notification processing on lockscreen, keep original privacy behavior';
 
   @override
   String get filterRulesSection => 'Filter Rules';
@@ -1472,6 +1472,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get islandTopOffset => 'Distance from Top of Screen';
+
+  @override
+  String get smallIslandWidth => 'Small Island Width';
+
+  @override
+  String get smallIslandHorizontalOffset => 'Large-Small Island Gap';
 
   @override
   String get followSystem => 'Follow system';
@@ -2305,6 +2311,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get islandTextSection => 'Island Text';
+
+  @override
+  String get islandTextSizeTitle => 'Island Text Size';
 
   @override
   String get islandOutlineSection => 'Outline controls';
