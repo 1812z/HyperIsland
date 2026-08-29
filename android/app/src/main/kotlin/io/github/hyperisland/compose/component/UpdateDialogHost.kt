@@ -45,13 +45,13 @@ internal fun UpdateDialogHost(
     val available = state as? UpdateDialogState.Available
     WindowDialog(
         show = available != null,
-        title = stringResource(R.string.compose_new_version_found),
+        title = stringResource(R.string.new_version_found),
         onDismissRequest = onDismiss,
     ) {
         if (available != null) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(stringResource(R.string.compose_current_version, "v${available.currentVersion}"))
-                Text(stringResource(R.string.compose_latest_version, "v${available.update.version}"))
+                Text(stringResource(R.string.current_version, "v${available.currentVersion}"))
+                Text(stringResource(R.string.latest_version, "v${available.update.version}"))
                 if (available.update.changelog.isNotBlank()) {
                     Spacer(Modifier.height(4.dp))
                     Box(
@@ -72,12 +72,12 @@ internal fun UpdateDialogHost(
 
     WindowDialog(
         show = state == UpdateDialogState.Failure,
-        title = stringResource(R.string.compose_update_check_failed),
+        title = stringResource(R.string.update_check_failed),
         onDismissRequest = onDismiss,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(
-                text = stringResource(R.string.compose_update_check_failed_message),
+                text = stringResource(R.string.update_check_failed_message),
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             )
             Button(
@@ -85,7 +85,7 @@ internal fun UpdateDialogHost(
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColorsPrimary(),
             ) {
-                Text(stringResource(R.string.compose_confirm))
+                Text(stringResource(R.string.confirm))
             }
         }
     }
@@ -135,7 +135,7 @@ private fun DialogActions(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         TextButton(
-            text = stringResource(R.string.compose_cancel),
+            text = stringResource(R.string.cancel),
             onClick = onCancel,
             modifier = Modifier.weight(1f),
         )
@@ -144,7 +144,7 @@ private fun DialogActions(
             modifier = Modifier.weight(1f),
             colors = ButtonDefaults.buttonColorsPrimary(),
         ) {
-            Text(stringResource(R.string.compose_view))
+            Text(stringResource(R.string.view))
         }
     }
 }

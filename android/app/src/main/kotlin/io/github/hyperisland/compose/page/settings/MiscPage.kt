@@ -34,24 +34,24 @@ internal fun MiscPage(
     val checkUpdate = rememberBooleanPreference(prefs, KEY_CHECK_UPDATE, true)
     val debugLog = rememberBooleanPreference(prefs, KEY_DEBUG_LOG, false)
 
-    DetailPage(title = stringResource(R.string.compose_misc), onBack = onBack) {
+    DetailPage(title = stringResource(R.string.misc), onBack = onBack) {
         item {
-            SectionTitle(stringResource(R.string.compose_misc))
+            SectionTitle(stringResource(R.string.misc))
             Card(modifier = Modifier.fillMaxWidth()) {
                 SettingsActionWithArrow(
-                    stringResource(R.string.compose_open_onboarding),
+                    stringResource(R.string.open_onboarding),
                     MiuixIcons.AppRecording,
-                    stringResource(R.string.compose_open_onboarding_summary),
+                    stringResource(R.string.open_onboarding_summary),
                 ) { onOpenOnboarding() }
                 PreferenceSwitch(
-                    stringResource(R.string.compose_show_welcome),
-                    stringResource(R.string.compose_show_welcome_summary),
+                    stringResource(R.string.show_welcome),
+                    stringResource(R.string.show_welcome_summary),
                     MiuixIcons.Show,
                     showWelcome.value,
                 ) { showWelcome.value = it; prefs.putBoolean(KEY_SHOW_WELCOME, it) }
                 PreferenceSwitch(
-                    stringResource(R.string.compose_hide_desktop_icon),
-                    stringResource(R.string.compose_hide_desktop_icon_summary),
+                    stringResource(R.string.hide_desktop_icon),
+                    stringResource(R.string.hide_desktop_icon_summary),
                     MiuixIcons.Hide,
                     hideDesktopIcon.value,
                 ) {
@@ -60,14 +60,14 @@ internal fun MiscPage(
                     context.setDesktopIconVisible(!it)
                 }
                 PreferenceSwitch(
-                    stringResource(R.string.compose_check_update),
-                    stringResource(R.string.compose_check_update_summary),
+                    stringResource(R.string.check_update),
+                    stringResource(R.string.check_update_summary),
                     MiuixIcons.Update,
                     checkUpdate.value,
                 ) { checkUpdate.value = it; prefs.putBoolean(KEY_CHECK_UPDATE, it) }
                 PreferenceSwitch(
-                    stringResource(R.string.compose_debug_log),
-                    stringResource(R.string.compose_debug_log_summary),
+                    stringResource(R.string.debug_log),
+                    stringResource(R.string.debug_log_summary),
                     MiuixIcons.Settings,
                     debugLog.value,
                 ) { debugLog.value = it; prefs.putBoolean(KEY_DEBUG_LOG, it) }

@@ -30,13 +30,13 @@ internal fun ReferencesPage(onBack: () -> Unit) {
     val context = LocalContext.current
 
     DetailPage(
-        title = stringResource(R.string.compose_references),
+        title = stringResource(R.string.references),
         onBack = onBack,
     ) {
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = stringResource(R.string.compose_references_description),
+                    text = stringResource(R.string.references_description),
                     modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
                     fontSize = MiuixTheme.textStyles.body2.fontSize,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
@@ -44,7 +44,7 @@ internal fun ReferencesPage(onBack: () -> Unit) {
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_reference_projects))
+            SectionTitle(stringResource(R.string.reference_projects))
             Card(modifier = Modifier.fillMaxWidth()) {
                 referenceProjects.forEach { project ->
                     SettingsAction(

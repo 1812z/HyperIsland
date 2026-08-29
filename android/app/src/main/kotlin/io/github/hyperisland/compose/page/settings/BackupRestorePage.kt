@@ -48,16 +48,16 @@ internal fun BackupRestorePage(onBack: () -> Unit) {
     var busyAction by remember { mutableStateOf<BackupAction?>(null) }
     var confirmCleanup by remember { mutableStateOf<CleanupAction?>(null) }
 
-    val invalidFormat = stringResource(R.string.compose_backup_error_invalid_format)
-    val noFileSelected = stringResource(R.string.compose_backup_error_no_file_selected)
-    val emptyClipboard = stringResource(R.string.compose_backup_error_empty_clipboard)
-    val exportFailed = stringResource(R.string.compose_backup_export_failed)
-    val importFailed = stringResource(R.string.compose_backup_import_failed)
-    val exported = stringResource(R.string.compose_backup_exported)
-    val copied = stringResource(R.string.compose_backup_copied)
-    val imported = stringResource(R.string.compose_backup_imported)
-    val cleaned = stringResource(R.string.compose_backup_cleaned)
-    val cleanFailed = stringResource(R.string.compose_backup_clean_failed)
+    val invalidFormat = stringResource(R.string.backup_error_invalid_format)
+    val noFileSelected = stringResource(R.string.backup_error_no_file_selected)
+    val emptyClipboard = stringResource(R.string.backup_error_empty_clipboard)
+    val exportFailed = stringResource(R.string.backup_export_failed)
+    val importFailed = stringResource(R.string.backup_import_failed)
+    val exported = stringResource(R.string.backup_exported)
+    val copied = stringResource(R.string.backup_copied)
+    val imported = stringResource(R.string.backup_imported)
+    val cleaned = stringResource(R.string.backup_cleaned)
+    val cleanFailed = stringResource(R.string.backup_clean_failed)
 
     fun errorText(error: Throwable): String = when (error) {
         is InvalidConfigException -> invalidFormat
@@ -182,30 +182,30 @@ internal fun BackupRestorePage(onBack: () -> Unit) {
     }
 
     DetailPage(
-        title = stringResource(R.string.compose_backup_restore),
+        title = stringResource(R.string.backup_restore),
         onBack = onBack,
         snackbarHost = { SnackbarHost(snackbarState) },
     ) {
         item {
-            SectionTitle(stringResource(R.string.compose_config))
+            SectionTitle(stringResource(R.string.config))
             Card(modifier = Modifier.fillMaxWidth()) {
                 BackupRow(
-                    title = stringResource(R.string.compose_backup_export_file),
-                    summary = stringResource(R.string.compose_backup_export_file_summary),
+                    title = stringResource(R.string.backup_export_file),
+                    summary = stringResource(R.string.backup_export_file_summary),
                     loading = busyAction == BackupAction.ExportFile,
                     enabled = busyAction == null,
                     onClick = ::exportFile,
                 )
                 BackupRow(
-                    title = stringResource(R.string.compose_backup_export_clipboard),
-                    summary = stringResource(R.string.compose_backup_export_clipboard_summary),
+                    title = stringResource(R.string.backup_export_clipboard),
+                    summary = stringResource(R.string.backup_export_clipboard_summary),
                     loading = busyAction == BackupAction.ExportClipboard,
                     enabled = busyAction == null,
                     onClick = ::exportClipboard,
                 )
                 BackupRow(
-                    title = stringResource(R.string.compose_backup_import_file),
-                    summary = stringResource(R.string.compose_backup_import_file_summary),
+                    title = stringResource(R.string.backup_import_file),
+                    summary = stringResource(R.string.backup_import_file_summary),
                     loading = busyAction == BackupAction.ImportFile,
                     enabled = busyAction == null,
                     onClick = {
@@ -214,8 +214,8 @@ internal fun BackupRestorePage(onBack: () -> Unit) {
                     },
                 )
                 BackupRow(
-                    title = stringResource(R.string.compose_backup_import_clipboard),
-                    summary = stringResource(R.string.compose_backup_import_clipboard_summary),
+                    title = stringResource(R.string.backup_import_clipboard),
+                    summary = stringResource(R.string.backup_import_clipboard_summary),
                     loading = busyAction == BackupAction.ImportClipboard,
                     enabled = busyAction == null,
                     onClick = ::importClipboard,
@@ -223,18 +223,18 @@ internal fun BackupRestorePage(onBack: () -> Unit) {
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_backup_cleanup_section))
+            SectionTitle(stringResource(R.string.backup_cleanup_section))
             Card(modifier = Modifier.fillMaxWidth()) {
                 BackupRow(
-                    title = stringResource(R.string.compose_backup_clean_uninstalled),
-                    summary = stringResource(R.string.compose_backup_clean_uninstalled_summary),
+                    title = stringResource(R.string.backup_clean_uninstalled),
+                    summary = stringResource(R.string.backup_clean_uninstalled_summary),
                     loading = busyAction == BackupAction.CleanUninstalled,
                     enabled = busyAction == null,
                     onClick = { confirmCleanup = CleanupAction.Uninstalled },
                 )
                 BackupRow(
-                    title = stringResource(R.string.compose_backup_clean_disabled),
-                    summary = stringResource(R.string.compose_backup_clean_disabled_summary),
+                    title = stringResource(R.string.backup_clean_disabled),
+                    summary = stringResource(R.string.backup_clean_disabled_summary),
                     loading = busyAction == BackupAction.CleanDisabled,
                     enabled = busyAction == null,
                     onClick = { confirmCleanup = CleanupAction.Disabled },
@@ -259,7 +259,7 @@ internal fun BackupRestorePage(onBack: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 TextButton(
-                    text = stringResource(R.string.compose_cancel),
+                    text = stringResource(R.string.cancel),
                     onClick = { confirmCleanup = null },
                     modifier = Modifier.weight(1f),
                 )
@@ -268,7 +268,7 @@ internal fun BackupRestorePage(onBack: () -> Unit) {
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColorsPrimary(),
                 ) {
-                    Text(stringResource(R.string.compose_confirm))
+                    Text(stringResource(R.string.confirm))
                 }
             }
         }
@@ -309,13 +309,13 @@ private enum class CleanupAction(
     val busyAction: BackupAction,
 ) {
     Uninstalled(
-        R.string.compose_backup_clean_uninstalled,
-        R.string.compose_backup_clean_uninstalled_confirm,
+        R.string.backup_clean_uninstalled,
+        R.string.backup_clean_uninstalled_confirm,
         BackupAction.CleanUninstalled,
     ),
     Disabled(
-        R.string.compose_backup_clean_disabled,
-        R.string.compose_backup_clean_disabled_confirm,
+        R.string.backup_clean_disabled,
+        R.string.backup_clean_disabled_confirm,
         BackupAction.CleanDisabled,
     ),
 }

@@ -82,10 +82,10 @@ internal fun ChannelSettingsFormPage(
     footer: (@Composable () -> Unit)? = null,
 ) {
     val isBatch = mode == ChannelSettingsFormMode.Batch
-    val noChange = stringResource(R.string.compose_no_change)
-    val on = stringResource(R.string.compose_enabled_option)
-    val off = stringResource(R.string.compose_disabled_option)
-    val default = stringResource(R.string.compose_default)
+    val noChange = stringResource(R.string.no_change)
+    val on = stringResource(R.string.enabled_option)
+    val off = stringResource(R.string.disabled_option)
+    val default = stringResource(R.string.default_option)
     var timeoutDialog by remember { mutableStateOf(false) }
     var timeoutDraft by remember { mutableStateOf("") }
     var colorTarget by remember { mutableStateOf<ChannelFormColorTarget?>(null) }
@@ -128,7 +128,7 @@ internal fun ChannelSettingsFormPage(
     @Composable
     fun glowLabels(defaultValue: String): List<String> {
         val defaultLabel = if (isBatch) default else defaultGlowLabel(defaultValue)
-        val labels = listOf(defaultLabel, on, off, stringResource(R.string.compose_follow_dynamic_color))
+        val labels = listOf(defaultLabel, on, off, stringResource(R.string.follow_dynamic_color))
         return if (isBatch) listOf(noChange) + labels else labels
     }
 
@@ -145,22 +145,22 @@ internal fun ChannelSettingsFormPage(
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_channel_template_section))
+            SectionTitle(stringResource(R.string.channel_template_section))
             Card {
                 FormDropdown(
-                    title = stringResource(R.string.compose_channel_template),
+                    title = stringResource(R.string.channel_template),
                     value = state.template,
                     values = optionalValues(isBatch, TEMPLATE_PROGRESS, TEMPLATE_NOTIFICATION, TEMPLATE_AI_NOTIFICATION),
                     labels = optionalLabels(
                         isBatch,
                         noChange,
-                        stringResource(R.string.compose_template_progress),
-                        stringResource(R.string.compose_template_notification),
-                        stringResource(R.string.compose_template_ai_notification),
+                        stringResource(R.string.template_progress),
+                        stringResource(R.string.template_notification),
+                        stringResource(R.string.template_ai_notification),
                     ),
                 ) { onStateChange(state.copy(template = it)) }
                 FormDropdown(
-                    title = stringResource(R.string.compose_channel_renderer),
+                    title = stringResource(R.string.channel_renderer),
                     value = state.renderer,
                     values = optionalValues(
                         isBatch,
@@ -172,20 +172,20 @@ internal fun ChannelSettingsFormPage(
                     labels = optionalLabels(
                         isBatch,
                         noChange,
-                        stringResource(R.string.compose_renderer_image_text_buttons),
-                        stringResource(R.string.compose_renderer_image_text_wrap),
-                        stringResource(R.string.compose_renderer_image_text_right_button),
-                        stringResource(R.string.compose_renderer_image_text_progress),
+                        stringResource(R.string.renderer_image_text_buttons),
+                        stringResource(R.string.renderer_image_text_wrap),
+                        stringResource(R.string.renderer_image_text_right_button),
+                        stringResource(R.string.renderer_image_text_progress),
                     ),
                 ) { onStateChange(state.copy(renderer = it)) }
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_island))
+            SectionTitle(stringResource(R.string.island))
             Card {
                 if (isBatch) {
                     FormDropdown(
-                        title = stringResource(R.string.compose_channel_enable_island),
+                        title = stringResource(R.string.channel_enable_island),
                         value = state.islandEnabled,
                         values = listOf(null, true, false),
                         labels = listOf(noChange, on, off),
@@ -193,7 +193,7 @@ internal fun ChannelSettingsFormPage(
                     ) { onStateChange(state.copy(islandEnabled = it)) }
                 } else {
                     PreferenceSwitch(
-                        title = stringResource(R.string.compose_channel_enable_island),
+                        title = stringResource(R.string.channel_enable_island),
                         summary = null,
                         icon = null,
                         checked = state.islandEnabled != false,
@@ -204,7 +204,7 @@ internal fun ChannelSettingsFormPage(
                 AnimatedVisibility(visible = islandVisible) {
                     Column {
                         FormDropdown(
-                            title = stringResource(R.string.compose_channel_icon_source),
+                            title = stringResource(R.string.channel_icon_source),
                             value = state.iconMode,
                             values = optionalValues(
                                 isBatch,
@@ -216,45 +216,45 @@ internal fun ChannelSettingsFormPage(
                             labels = optionalLabels(
                                 isBatch,
                                 noChange,
-                                stringResource(R.string.compose_icon_auto),
-                                stringResource(R.string.compose_icon_notification_small),
-                                stringResource(R.string.compose_icon_notification_large),
-                                stringResource(R.string.compose_icon_app),
+                                stringResource(R.string.icon_auto),
+                                stringResource(R.string.icon_notification_small),
+                                stringResource(R.string.icon_notification_large),
+                                stringResource(R.string.icon_app),
                             ),
                         ) { onStateChange(state.copy(iconMode = it)) }
-                        TriField(stringResource(R.string.compose_island_icon), state.showIslandIcon, triValues, triLabels(defaults.showIslandIcon)) {
+                        TriField(stringResource(R.string.island_icon), state.showIslandIcon, triValues, triLabels(defaults.showIslandIcon)) {
                             onStateChange(state.copy(showIslandIcon = it))
                         }
-                        TriField(stringResource(R.string.compose_first_float), state.firstFloat, triValues, triLabels(defaults.firstFloat)) {
+                        TriField(stringResource(R.string.first_float), state.firstFloat, triValues, triLabels(defaults.firstFloat)) {
                             onStateChange(state.copy(firstFloat = it))
                         }
-                        TriField(stringResource(R.string.compose_update_float), state.enableFloat, triValues, triLabels(defaults.enableFloat)) {
+                        TriField(stringResource(R.string.update_float), state.enableFloat, triValues, triLabels(defaults.enableFloat)) {
                             onStateChange(state.copy(enableFloat = it))
                         }
-                        TriField(stringResource(R.string.compose_marquee_channel), state.marquee, triValues, triLabels(defaults.marquee)) {
+                        TriField(stringResource(R.string.marquee_channel), state.marquee, triValues, triLabels(defaults.marquee)) {
                             onStateChange(state.copy(marquee = it))
                         }
                         FormDropdown(
-                            title = stringResource(R.string.compose_marquee_auto_hide),
+                            title = stringResource(R.string.marquee_auto_hide),
                             value = state.marqueeAutoHide,
                             values = optionalValues(isBatch, OPTION_DEFAULT, OPTION_OFF, "1", "2", "1_override", "2_override"),
                             labels = optionalLabels(
                                 isBatch,
                                 noChange,
                                 if (isBatch) default else stringResource(
-                                    R.string.compose_default_with_value,
+                                    R.string.default_with_value,
                                     marqueeAutoHideLabel(defaults.marqueeAutoHide),
                                 ),
                                 off,
-                                stringResource(R.string.compose_marquee_once),
-                                stringResource(R.string.compose_marquee_twice),
-                                stringResource(R.string.compose_marquee_once_override),
-                                stringResource(R.string.compose_marquee_twice_override),
+                                stringResource(R.string.marquee_once),
+                                stringResource(R.string.marquee_twice),
+                                stringResource(R.string.marquee_once_override),
+                                stringResource(R.string.marquee_twice_override),
                             ),
                             enabled = marqueeEnabled,
                         ) { onStateChange(state.copy(marqueeAutoHide = it)) }
                         ArrowPreference(
-                            title = stringResource(R.string.compose_auto_disappear),
+                            title = stringResource(R.string.auto_disappear),
                             summary = timeoutSummary(state.timeout, defaults.timeout, isBatch, noChange),
                             insideMargin = CHANNEL_FORM_MARGIN,
                             onClick = {
@@ -264,7 +264,7 @@ internal fun ChannelSettingsFormPage(
                         )
                         if (!isBatch && onOpenCustomization != null) {
                             ArrowPreference(
-                                title = stringResource(R.string.compose_channel_island_customization),
+                                title = stringResource(R.string.channel_island_customization),
                                 insideMargin = CHANNEL_FORM_MARGIN,
                                 onClick = { onOpenCustomization(ChannelCustomizationTarget.Island) },
                             )
@@ -276,16 +276,16 @@ internal fun ChannelSettingsFormPage(
         item {
             AnimatedVisibility(visible = islandVisible) {
                 Column {
-                    SectionTitle(stringResource(R.string.compose_appearance))
+                    SectionTitle(stringResource(R.string.appearance))
                     Card {
                         FormDropdown(
-                            title = stringResource(R.string.compose_island_outer_glow),
+                            title = stringResource(R.string.island_outer_glow),
                             value = state.islandOuterGlow,
                             values = glowValues,
                             labels = glowLabels(defaults.islandOuterGlow),
                         ) { onStateChange(state.copy(islandOuterGlow = it)) }
                         ColorField(
-                            title = stringResource(R.string.compose_out_effect_color),
+                            title = stringResource(R.string.out_effect_color),
                             value = state.islandOuterGlowColor,
                             noChange = noChange,
                             isBatch = isBatch,
@@ -295,25 +295,25 @@ internal fun ChannelSettingsFormPage(
                             colorTarget = ChannelFormColorTarget.Island
                         }
                         FormDropdown(
-                            title = stringResource(R.string.compose_dynamic_highlight_color),
+                            title = stringResource(R.string.dynamic_highlight_color),
                             value = state.dynamicHighlightColor,
                             values = optionalValues(isBatch, OPTION_DEFAULT, OPTION_OFF, OPTION_ON, "dark", "darker"),
                             labels = optionalLabels(
                                 isBatch,
                                 noChange,
                                 if (isBatch) default else stringResource(
-                                    R.string.compose_default_with_value,
+                                    R.string.default_with_value,
                                     enabledLabel(defaults.dynamicHighlightColor),
                                 ),
                                 off,
                                 on,
-                                stringResource(R.string.compose_dynamic_dark),
-                                stringResource(R.string.compose_dynamic_darker),
+                                stringResource(R.string.dynamic_dark),
+                                stringResource(R.string.dynamic_darker),
                             ),
                         ) { onStateChange(state.copy(dynamicHighlightColor = it)) }
                         AnimatedVisibility(visible = !dynamicHighlightEnabled) {
                             ColorField(
-                                title = stringResource(R.string.compose_highlight_color),
+                                title = stringResource(R.string.highlight_color),
                                 value = state.highlightColor,
                                 noChange = noChange,
                                 isBatch = isBatch,
@@ -324,18 +324,18 @@ internal fun ChannelSettingsFormPage(
                         }
                         AnimatedVisibility(visible = hasHighlightColor) {
                             Column {
-                                ToggleField(stringResource(R.string.compose_channel_left_text_highlight), state.showLeftHighlight, triValues, triLabels(false), isBatch) {
+                                ToggleField(stringResource(R.string.channel_left_text_highlight), state.showLeftHighlight, triValues, triLabels(false), isBatch) {
                                     onStateChange(state.copy(showLeftHighlight = it))
                                 }
-                                ToggleField(stringResource(R.string.compose_channel_right_text_highlight), state.showRightHighlight, triValues, triLabels(false), isBatch) {
+                                ToggleField(stringResource(R.string.channel_right_text_highlight), state.showRightHighlight, triValues, triLabels(false), isBatch) {
                                     onStateChange(state.copy(showRightHighlight = it))
                                 }
                             }
                         }
-                        ToggleField(stringResource(R.string.compose_channel_left_narrow_font), state.showLeftNarrowFont, triValues, triLabels(false), isBatch) {
+                        ToggleField(stringResource(R.string.channel_left_narrow_font), state.showLeftNarrowFont, triValues, triLabels(false), isBatch) {
                             onStateChange(state.copy(showLeftNarrowFont = it))
                         }
-                        ToggleField(stringResource(R.string.compose_channel_right_narrow_font), state.showRightNarrowFont, triValues, triLabels(false), isBatch) {
+                        ToggleField(stringResource(R.string.channel_right_narrow_font), state.showRightNarrowFont, triValues, triLabels(false), isBatch) {
                             onStateChange(state.copy(showRightNarrowFont = it))
                         }
                     }
@@ -343,9 +343,9 @@ internal fun ChannelSettingsFormPage(
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_focus_notification))
+            SectionTitle(stringResource(R.string.focus_notification))
             Card {
-                TriField(stringResource(R.string.compose_focus_notification), state.focus, triValues, triLabels(defaults.focusNotification)) { value ->
+                TriField(stringResource(R.string.focus_notification), state.focus, triValues, triLabels(defaults.focusNotification)) { value ->
                     onStateChange(
                         if (value == OPTION_OFF) {
                             state.copy(
@@ -363,7 +363,7 @@ internal fun ChannelSettingsFormPage(
                     Column {
                         if (isBatch) {
                             FormDropdown(
-                                title = stringResource(R.string.compose_channel_hide_notification),
+                                title = stringResource(R.string.channel_hide_notification),
                                 value = state.showNotification?.let { it == OPTION_OFF },
                                 values = listOf(null, true, false),
                                 labels = listOf(noChange, on, off),
@@ -372,29 +372,29 @@ internal fun ChannelSettingsFormPage(
                             }
                         } else {
                             PreferenceSwitch(
-                                title = stringResource(R.string.compose_channel_hide_notification),
+                                title = stringResource(R.string.channel_hide_notification),
                                 summary = null,
                                 icon = null,
                                 checked = state.showNotification == OPTION_OFF,
                                 insideMargin = CHANNEL_FORM_MARGIN,
                             ) { onStateChange(state.copy(showNotification = if (it) OPTION_OFF else OPTION_ON)) }
                         }
-                        TriField(stringResource(R.string.compose_preserve_small_icon), state.preserveSmallIcon, triValues, triLabels(defaults.preserveSmallIcon)) {
+                        TriField(stringResource(R.string.preserve_small_icon), state.preserveSmallIcon, triValues, triLabels(defaults.preserveSmallIcon)) {
                             onStateChange(state.copy(preserveSmallIcon = it))
                         }
-                        TriField(stringResource(R.string.compose_restore_lockscreen), state.restoreLockscreen, triValues, triLabels(defaults.restoreLockscreen)) {
+                        TriField(stringResource(R.string.restore_lockscreen), state.restoreLockscreen, triValues, triLabels(defaults.restoreLockscreen)) {
                             onStateChange(state.copy(restoreLockscreen = it))
                         }
                     }
                 }
                 FormDropdown(
-                    title = stringResource(R.string.compose_focus_outer_glow),
+                    title = stringResource(R.string.focus_outer_glow),
                     value = state.outerGlow,
                     values = glowValues,
                     labels = glowLabels(defaults.outerGlow),
                 ) { onStateChange(state.copy(outerGlow = it)) }
                 ColorField(
-                    title = stringResource(R.string.compose_out_effect_color),
+                    title = stringResource(R.string.out_effect_color),
                     value = state.outEffectColor,
                     noChange = noChange,
                     isBatch = isBatch,
@@ -405,7 +405,7 @@ internal fun ChannelSettingsFormPage(
                 }
                 if (!isBatch && onOpenCustomization != null) {
                     ArrowPreference(
-                        title = stringResource(R.string.compose_channel_focus_customization),
+                        title = stringResource(R.string.channel_focus_customization),
                         insideMargin = CHANNEL_FORM_MARGIN,
                         onClick = { onOpenCustomization(ChannelCustomizationTarget.Focus) },
                     )
@@ -413,13 +413,13 @@ internal fun ChannelSettingsFormPage(
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_filter_rules))
+            SectionTitle(stringResource(R.string.filter_rules))
             Card {
                 FormDropdown(
-                    title = stringResource(R.string.compose_filter_mode),
+                    title = stringResource(R.string.filter_mode),
                     summary = when (state.filterMode) {
-                        FILTER_WHITELIST -> stringResource(R.string.compose_filter_whitelist_summary)
-                        FILTER_BLACKLIST -> stringResource(R.string.compose_filter_blacklist_summary)
+                        FILTER_WHITELIST -> stringResource(R.string.filter_whitelist_summary)
+                        FILTER_BLACKLIST -> stringResource(R.string.filter_blacklist_summary)
                         else -> null
                     },
                     value = state.filterMode,
@@ -427,19 +427,19 @@ internal fun ChannelSettingsFormPage(
                     labels = optionalLabels(
                         isBatch,
                         noChange,
-                        stringResource(R.string.compose_filter_blacklist),
-                        stringResource(R.string.compose_filter_whitelist),
+                        stringResource(R.string.filter_blacklist),
+                        stringResource(R.string.filter_whitelist),
                     ),
                 ) { onStateChange(state.copy(filterMode = it)) }
                 ArrowPreference(
-                    title = stringResource(R.string.compose_whitelist_keywords),
+                    title = stringResource(R.string.whitelist_keywords),
                     summary = keywordSummary(state.whitelistKeywords, isBatch, noChange),
                     enabled = state.filterMode == FILTER_WHITELIST,
                     insideMargin = CHANNEL_FORM_MARGIN,
                     onClick = { keywordTarget = ChannelFormKeywordTarget.Whitelist },
                 )
                 ArrowPreference(
-                    title = stringResource(R.string.compose_blacklist_keywords),
+                    title = stringResource(R.string.blacklist_keywords),
                     summary = keywordSummary(state.blacklistKeywords, isBatch, noChange),
                     insideMargin = CHANNEL_FORM_MARGIN,
                     onClick = { keywordTarget = ChannelFormKeywordTarget.Blacklist },
@@ -447,10 +447,10 @@ internal fun ChannelSettingsFormPage(
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_channel_aod_section))
+            SectionTitle(stringResource(R.string.channel_aod_section))
             Card {
                 TriField(
-                    title = stringResource(R.string.compose_aod_text),
+                    title = stringResource(R.string.aod_text),
                     value = state.aodText,
                     values = triValues,
                     labels = triLabels(defaults.aodText),
@@ -458,7 +458,7 @@ internal fun ChannelSettingsFormPage(
                 ) { onStateChange(state.copy(aodText = it)) }
                 AnimatedVisibility(visible = !isBatch && focusEnabled && aodEnabled && onOpenCustomization != null) {
                     ArrowPreference(
-                        title = stringResource(R.string.compose_channel_aod_customization),
+                        title = stringResource(R.string.channel_aod_customization),
                         insideMargin = CHANNEL_FORM_MARGIN,
                         onClick = { onOpenCustomization?.invoke(ChannelCustomizationTarget.Aod) },
                     )
@@ -470,7 +470,7 @@ internal fun ChannelSettingsFormPage(
 
     WindowDialog(
         show = timeoutDialog,
-        title = stringResource(R.string.compose_auto_disappear),
+        title = stringResource(R.string.auto_disappear),
         onDismissRequest = { timeoutDialog = false },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -478,7 +478,7 @@ internal fun ChannelSettingsFormPage(
                 value = timeoutDraft,
                 onValueChange = { timeoutDraft = it.filter(Char::isDigit).take(9) },
                 modifier = Modifier.fillMaxWidth(),
-                label = stringResource(R.string.compose_seconds),
+                label = stringResource(R.string.seconds),
                 useLabelAsPlaceholder = true,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -486,7 +486,7 @@ internal fun ChannelSettingsFormPage(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (isBatch) {
                     TextButton(
-                        text = stringResource(R.string.compose_no_change),
+                        text = stringResource(R.string.no_change),
                         onClick = {
                             onStateChange(state.copy(timeout = null))
                             timeoutDialog = false
@@ -495,7 +495,7 @@ internal fun ChannelSettingsFormPage(
                     )
                 }
                 TextButton(
-                    text = stringResource(R.string.compose_restore_default),
+                    text = stringResource(R.string.restore_default),
                     onClick = { onStateChange(state.copy(timeout = OPTION_DEFAULT)); timeoutDialog = false },
                     modifier = Modifier.weight(1f),
                 )
@@ -511,7 +511,7 @@ internal fun ChannelSettingsFormPage(
                     },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColorsPrimary(),
-                ) { Text(stringResource(R.string.compose_save)) }
+                ) { Text(stringResource(R.string.save)) }
             }
         }
     }
@@ -520,9 +520,9 @@ internal fun ChannelSettingsFormPage(
         show = colorTarget != null,
         title = stringResource(
             if (colorTarget == ChannelFormColorTarget.Highlight) {
-                R.string.compose_highlight_color
+                R.string.highlight_color
             } else {
-                R.string.compose_out_effect_color
+                R.string.out_effect_color
             },
         ),
         initialColor = colorDraft,
@@ -541,9 +541,9 @@ internal fun ChannelSettingsFormPage(
         show = keywordTarget != null,
         title = stringResource(
             if (keywordTarget == ChannelFormKeywordTarget.Whitelist) {
-                R.string.compose_whitelist_keywords
+                R.string.whitelist_keywords
             } else {
-                R.string.compose_blacklist_keywords
+                R.string.blacklist_keywords
             },
         ),
         keywords = when (keywordTarget) {
@@ -633,7 +633,11 @@ private fun ColorField(
         summary = if (isBatch) value ?: noChange else value?.takeIf(String::isNotEmpty),
         enabled = enabled,
         insideMargin = CHANNEL_FORM_MARGIN,
-        endActions = if (isBatch) null else ({ ChannelColorPreview(value.orEmpty()) }),
+        endActions = {
+            if (!isBatch) {
+                ChannelColorPreview(value.orEmpty())
+            }
+        },
         onClick = onClick,
     )
 }
@@ -678,46 +682,46 @@ private fun resolveOption(value: String?, defaultValue: Boolean): Boolean = when
 
 @Composable
 private fun defaultOptionLabel(defaultValue: Boolean): String = stringResource(
-    R.string.compose_default_with_value,
+    R.string.default_with_value,
     enabledLabel(defaultValue),
 )
 
 @Composable
 private fun defaultGlowLabel(defaultValue: String): String = stringResource(
-    R.string.compose_default_with_value,
+    R.string.default_with_value,
     when (defaultValue) {
-        OPTION_ON -> stringResource(R.string.compose_enabled_option)
-        OPTION_FOLLOW_DYNAMIC -> stringResource(R.string.compose_follow_dynamic_color)
-        else -> stringResource(R.string.compose_disabled_option)
+        OPTION_ON -> stringResource(R.string.enabled_option)
+        OPTION_FOLLOW_DYNAMIC -> stringResource(R.string.follow_dynamic_color)
+        else -> stringResource(R.string.disabled_option)
     },
 )
 
 @Composable
 private fun enabledLabel(value: Boolean): String = stringResource(
-    if (value) R.string.compose_enabled_option else R.string.compose_disabled_option,
+    if (value) R.string.enabled_option else R.string.disabled_option,
 )
 
 @Composable
 private fun marqueeAutoHideLabel(value: String): String = when (value) {
-    "1" -> stringResource(R.string.compose_marquee_once)
-    "2" -> stringResource(R.string.compose_marquee_twice)
-    "1_override" -> stringResource(R.string.compose_marquee_once_override)
-    "2_override" -> stringResource(R.string.compose_marquee_twice_override)
-    else -> stringResource(R.string.compose_disabled_option)
+    "1" -> stringResource(R.string.marquee_once)
+    "2" -> stringResource(R.string.marquee_twice)
+    "1_override" -> stringResource(R.string.marquee_once_override)
+    "2_override" -> stringResource(R.string.marquee_twice_override)
+    else -> stringResource(R.string.disabled_option)
 }
 
 @Composable
 private fun timeoutSummary(value: String?, defaultValue: Int, isBatch: Boolean, noChange: String): String = when {
     value == null && isBatch -> noChange
-    value == OPTION_DEFAULT -> stringResource(R.string.compose_default_timeout_seconds, defaultValue)
-    else -> stringResource(R.string.compose_timeout_seconds_value, value?.toIntOrNull() ?: defaultValue)
+    value == OPTION_DEFAULT -> stringResource(R.string.default_timeout_seconds, defaultValue)
+    else -> stringResource(R.string.timeout_seconds_value, value?.toIntOrNull() ?: defaultValue)
 }
 
 @Composable
 private fun keywordSummary(values: List<String>?, isBatch: Boolean, noChange: String): String = when {
     values == null && isBatch -> noChange
-    values.isNullOrEmpty() -> stringResource(R.string.compose_not_configured)
-    else -> stringResource(R.string.compose_keyword_count, values.size)
+    values.isNullOrEmpty() -> stringResource(R.string.not_configured)
+    else -> stringResource(R.string.keyword_count, values.size)
 }
 
 private enum class ChannelFormColorTarget { Highlight, Island, Focus }

@@ -45,26 +45,26 @@ internal fun IslandOtherPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) 
     val expandedValues = listOf(ACTION_NONE, ACTION_CANCEL, ACTION_HIDE)
     val bigValues = listOf(ACTION_NONE, ACTION_CANCEL)
 
-    DetailPage(title = stringResource(R.string.compose_other), onBack = onBack) {
+    DetailPage(title = stringResource(R.string.other), onBack = onBack) {
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 BasicComponent(
-                    title = stringResource(R.string.compose_filter_rules_order),
-                    summary = stringResource(R.string.compose_filter_rules_order_summary),
+                    title = stringResource(R.string.filter_rules_order),
+                    summary = stringResource(R.string.filter_rules_order_summary),
                 )
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_filter_rules_title))
+            SectionTitle(stringResource(R.string.filter_rules_title))
             Card(modifier = Modifier.fillMaxWidth()) {
                 PreferenceDropdown(
-                    stringResource(R.string.compose_dnd_behavior),
+                    stringResource(R.string.dnd_behavior),
                     dndSummary(dnd.value),
                     null,
                     listOf(
-                        stringResource(R.string.compose_default),
-                        stringResource(R.string.compose_fallback_notification),
-                        stringResource(R.string.compose_small_only),
+                        stringResource(R.string.default_option),
+                        stringResource(R.string.fallback_notification),
+                        stringResource(R.string.small_only),
                     ),
                     dndValues.indexOf(dnd.value).coerceAtLeast(0),
                 ) {
@@ -73,14 +73,14 @@ internal fun IslandOtherPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) 
                     else prefs.putString(KEY_DND, dndValues[it])
                 }
                 PreferenceDropdown(
-                    stringResource(R.string.compose_fullscreen_rule),
+                    stringResource(R.string.fullscreen_rule),
                     sceneSummary(fullscreen.value),
                     null,
                     sceneLabels(),
                     sceneValues.indexOf(fullscreen.value).coerceAtLeast(0),
                 ) { fullscreen.value = sceneValues[it]; prefs.putString(KEY_FULLSCREEN, sceneValues[it]) }
                 PreferenceDropdown(
-                    stringResource(R.string.compose_landscape_rule),
+                    stringResource(R.string.landscape_rule),
                     sceneSummary(landscape.value),
                     null,
                     sceneLabels(),
@@ -89,24 +89,24 @@ internal fun IslandOtherPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) 
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_swipe_actions))
+            SectionTitle(stringResource(R.string.swipe_actions))
             Card(modifier = Modifier.fillMaxWidth()) {
                 PreferenceDropdown(
-                    stringResource(R.string.compose_expanded_collapse_action),
+                    stringResource(R.string.expanded_collapse_action),
                     null,
                     null,
                     expandedActionLabels(),
                     expandedValues.indexOf(expandedAction.value).coerceAtLeast(0),
                 ) { expandedAction.value = expandedValues[it]; prefs.putString(KEY_EXPANDED_ACTION, expandedValues[it]) }
                 PreferenceDropdown(
-                    stringResource(R.string.compose_big_collapse_action),
+                    stringResource(R.string.big_collapse_action),
                     null,
                     null,
                     bigActionLabels(),
                     bigValues.indexOf(bigAction.value).coerceAtLeast(0),
                 ) { bigAction.value = bigValues[it]; prefs.putString(KEY_BIG_ACTION, bigValues[it]) }
                 PreferenceSwitch(
-                    stringResource(R.string.compose_ignore_ongoing),
+                    stringResource(R.string.ignore_ongoing),
                     null,
                     null,
                     ignoreOngoing.value,
@@ -114,13 +114,13 @@ internal fun IslandOtherPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) 
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_marquee))
+            SectionTitle(stringResource(R.string.marquee))
             Card(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSlider(
-                    title = stringResource(R.string.compose_marquee_speed),
+                    title = stringResource(R.string.marquee_speed),
                     icon = null,
                     value = speedDraft,
-                    valueText = stringResource(R.string.compose_marquee_speed_value, speedDraft.toInt()),
+                    valueText = stringResource(R.string.marquee_speed_value, speedDraft.toInt()),
                     valueRange = 20f..500f,
                     steps = 47,
                     resetVisible = speedDraft.toLong() != DEFAULT_MARQUEE_SPEED,
@@ -143,36 +143,36 @@ internal fun IslandOtherPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) 
 
 @Composable
 private fun dndSummary(value: String): String = when (value) {
-    "suppress" -> stringResource(R.string.compose_behavior_suppress)
-    "small_only" -> stringResource(R.string.compose_behavior_small_only)
-    else -> stringResource(R.string.compose_behavior_default)
+    "suppress" -> stringResource(R.string.behavior_suppress)
+    "small_only" -> stringResource(R.string.behavior_small_only)
+    else -> stringResource(R.string.behavior_default)
 }
 
 @Composable
 private fun sceneSummary(value: String): String = when (value) {
-    "fallback" -> stringResource(R.string.compose_behavior_suppress)
-    "expand" -> stringResource(R.string.compose_behavior_expand)
-    else -> stringResource(R.string.compose_behavior_default)
+    "fallback" -> stringResource(R.string.behavior_suppress)
+    "expand" -> stringResource(R.string.behavior_expand)
+    else -> stringResource(R.string.behavior_default)
 }
 
 @Composable
 private fun sceneLabels() = listOf(
-    stringResource(R.string.compose_default),
-    stringResource(R.string.compose_fallback_notification),
-    stringResource(R.string.compose_expand_notification),
+    stringResource(R.string.default_option),
+    stringResource(R.string.fallback_notification),
+    stringResource(R.string.expand_notification),
 )
 
 @Composable
 private fun expandedActionLabels() = listOf(
-    stringResource(R.string.compose_action_none),
-    stringResource(R.string.compose_action_clear_notification),
-    stringResource(R.string.compose_action_hide_island),
+    stringResource(R.string.action_none),
+    stringResource(R.string.action_clear_notification),
+    stringResource(R.string.action_hide_island),
 )
 
 @Composable
 private fun bigActionLabels() = listOf(
-    stringResource(R.string.compose_action_none),
-    stringResource(R.string.compose_action_clear_notification),
+    stringResource(R.string.action_none),
+    stringResource(R.string.action_clear_notification),
 )
 
 private const val KEY_DND = "pref_scene_dnd"

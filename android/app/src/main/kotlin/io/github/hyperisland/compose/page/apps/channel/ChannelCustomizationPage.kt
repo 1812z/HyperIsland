@@ -83,25 +83,25 @@ internal fun ChannelCustomizationPage(
     DetailPage(
         title = stringResource(
             when (target) {
-                ChannelCustomizationTarget.Island -> R.string.compose_channel_island_customization
-                ChannelCustomizationTarget.Focus -> R.string.compose_channel_focus_customization
-                ChannelCustomizationTarget.Aod -> R.string.compose_channel_aod_customization
+                ChannelCustomizationTarget.Island -> R.string.channel_island_customization
+                ChannelCustomizationTarget.Focus -> R.string.channel_focus_customization
+                ChannelCustomizationTarget.Aod -> R.string.channel_aod_customization
             },
         ),
         onBack = onBack,
     ) {
         item {
-            SectionTitle(stringResource(R.string.compose_channel_expression_reference))
+            SectionTitle(stringResource(R.string.channel_expression_reference))
             Card {
                 BasicComponent(
-                    title = stringResource(R.string.compose_channel_expression_reference),
-                    summary = stringResource(R.string.compose_channel_expression_reference_summary),
+                    title = stringResource(R.string.channel_expression_reference),
+                    summary = stringResource(R.string.channel_expression_reference_summary),
                     onClick = { showReferences = true },
                 )
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_channel_customization_fields))
+            SectionTitle(stringResource(R.string.channel_customization_fields))
             Card(modifier = Modifier.fillMaxWidth()) {
                 fields.forEach { field ->
                     when (field.type) {
@@ -155,7 +155,7 @@ internal fun ChannelCustomizationPage(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 TextButton(
-                    text = stringResource(R.string.compose_restore_default),
+                    text = stringResource(R.string.restore_default),
                     onClick = { fields.forEach { values[it.key] = it.defaultValue } },
                     modifier = Modifier.weight(1f),
                 )
@@ -170,7 +170,7 @@ internal fun ChannelCustomizationPage(
                     },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColorsPrimary(),
-                ) { Text(stringResource(R.string.compose_apply)) }
+                ) { Text(stringResource(R.string.apply)) }
             }
         }
     }
@@ -193,7 +193,7 @@ internal fun ChannelCustomizationPage(
 
     WindowBottomSheet(
         show = showReferences,
-        title = stringResource(R.string.compose_channel_expression_reference),
+        title = stringResource(R.string.channel_expression_reference),
         onDismissRequest = { showReferences = false },
     ) {
         val placeholders = (schema["placeholders"] as? List<*>)
@@ -206,7 +206,7 @@ internal fun ChannelCustomizationPage(
             contentPadding = PaddingValues(bottom = 12.dp),
         ) {
             if (placeholders.isNotEmpty()) {
-                item { SectionTitle(stringResource(R.string.compose_channel_available_placeholders)) }
+                item { SectionTitle(stringResource(R.string.channel_available_placeholders)) }
                 item {
                     Card {
                         placeholders.forEach { key ->
@@ -223,7 +223,7 @@ internal fun ChannelCustomizationPage(
                 }
             }
             if (functions.isNotEmpty()) {
-                item { SectionTitle(stringResource(R.string.compose_channel_expression_functions)) }
+                item { SectionTitle(stringResource(R.string.channel_expression_functions)) }
                 item {
                     Card {
                         functions.forEach { example ->
@@ -272,32 +272,32 @@ private fun schemaFields(schema: Map<String, Any?>): List<CustomizationField> =
 
 @Composable
 private fun customizationFieldLabel(key: String, fallback: String): String = when (key) {
-    "focus_title_expr" -> stringResource(R.string.compose_channel_focus_title_expression)
-    "focus_content_expr" -> stringResource(R.string.compose_channel_focus_content_expression)
-    "focus_icon_mode" -> stringResource(R.string.compose_channel_focus_icon_source)
-    "focus_pic_profile_mode" -> stringResource(R.string.compose_channel_focus_picture_source)
-    "focus_app_icon_pkg" -> stringResource(R.string.compose_channel_focus_app_icon_package)
-    "focus_app_icon_pkg_mode" -> stringResource(R.string.compose_channel_focus_secondary_icon_source)
-    "progress_color" -> stringResource(R.string.compose_channel_progress_color)
-    "progress_bar_color" -> stringResource(R.string.compose_channel_progress_bar_color)
-    "progress_bar_color_end" -> stringResource(R.string.compose_channel_progress_bar_end_color)
-    "chat_title_color" -> stringResource(R.string.compose_channel_chat_title_color)
-    "chat_title_color_dark" -> stringResource(R.string.compose_channel_chat_title_dark_color)
-    "chat_content_color" -> stringResource(R.string.compose_channel_chat_content_color)
-    "chat_content_color_dark" -> stringResource(R.string.compose_channel_chat_content_dark_color)
-    "island_left_expr" -> stringResource(R.string.compose_channel_island_left_expression)
-    "island_right_expr" -> stringResource(R.string.compose_channel_island_right_expression)
-    "aodTitle" -> stringResource(R.string.compose_channel_aod_expression)
-    "aodPic" -> stringResource(R.string.compose_channel_aod_icon_source)
+    "focus_title_expr" -> stringResource(R.string.channel_focus_title_expression)
+    "focus_content_expr" -> stringResource(R.string.channel_focus_content_expression)
+    "focus_icon_mode" -> stringResource(R.string.channel_focus_icon_source)
+    "focus_pic_profile_mode" -> stringResource(R.string.channel_focus_picture_source)
+    "focus_app_icon_pkg" -> stringResource(R.string.channel_focus_app_icon_package)
+    "focus_app_icon_pkg_mode" -> stringResource(R.string.channel_focus_secondary_icon_source)
+    "progress_color" -> stringResource(R.string.channel_progress_color)
+    "progress_bar_color" -> stringResource(R.string.channel_progress_bar_color)
+    "progress_bar_color_end" -> stringResource(R.string.channel_progress_bar_end_color)
+    "chat_title_color" -> stringResource(R.string.channel_chat_title_color)
+    "chat_title_color_dark" -> stringResource(R.string.channel_chat_title_dark_color)
+    "chat_content_color" -> stringResource(R.string.channel_chat_content_color)
+    "chat_content_color_dark" -> stringResource(R.string.channel_chat_content_dark_color)
+    "island_left_expr" -> stringResource(R.string.channel_island_left_expression)
+    "island_right_expr" -> stringResource(R.string.channel_island_right_expression)
+    "aodTitle" -> stringResource(R.string.channel_aod_expression)
+    "aodPic" -> stringResource(R.string.channel_aod_icon_source)
     else -> fallback
 }
 
 @Composable
 private fun optionLabel(fieldKey: String, value: String, fallback: String): String = when {
-    fieldKey in ICON_FIELDS && value == "auto" -> stringResource(R.string.compose_icon_auto)
-    fieldKey in ICON_FIELDS && value == "notif_small" -> stringResource(R.string.compose_icon_notification_small)
-    fieldKey in ICON_FIELDS && value == "notif_large" -> stringResource(R.string.compose_icon_notification_large)
-    fieldKey in ICON_FIELDS && value == "app_icon" -> stringResource(R.string.compose_icon_app)
+    fieldKey in ICON_FIELDS && value == "auto" -> stringResource(R.string.icon_auto)
+    fieldKey in ICON_FIELDS && value == "notif_small" -> stringResource(R.string.icon_notification_small)
+    fieldKey in ICON_FIELDS && value == "notif_large" -> stringResource(R.string.icon_notification_large)
+    fieldKey in ICON_FIELDS && value == "app_icon" -> stringResource(R.string.icon_app)
     else -> fallback
 }
 

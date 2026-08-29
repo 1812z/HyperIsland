@@ -56,7 +56,7 @@ internal fun KeywordListDialog(
                     value = input,
                     onValueChange = { input = it },
                     modifier = Modifier.weight(1f),
-                    label = stringResource(R.string.compose_keyword_hint),
+                    label = stringResource(R.string.keyword_hint),
                     useLabelAsPlaceholder = true,
                     singleLine = true,
                 )
@@ -65,7 +65,7 @@ internal fun KeywordListDialog(
                     enabled = input.trim().isNotEmpty(),
                     colors = ButtonDefaults.buttonColorsPrimary(),
                 ) {
-                    Text(stringResource(R.string.compose_add_keyword))
+                    Text(stringResource(R.string.add_keyword))
                 }
             }
             if (draft.isNotEmpty()) {
@@ -78,7 +78,7 @@ internal fun KeywordListDialog(
                                     IconButton(onClick = { draft = draft - keyword }) {
                                         Icon(
                                             MiuixIcons.Close,
-                                            stringResource(R.string.compose_remove_keyword),
+                                            stringResource(R.string.remove_keyword),
                                         )
                                     }
                                 },
@@ -92,7 +92,7 @@ internal fun KeywordListDialog(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 TextButton(
-                    text = stringResource(R.string.compose_cancel),
+                    text = stringResource(R.string.cancel),
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
                 )
@@ -101,7 +101,7 @@ internal fun KeywordListDialog(
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColorsPrimary(),
                 ) {
-                    Text(stringResource(R.string.compose_save))
+                    Text(stringResource(R.string.save))
                 }
             }
         }

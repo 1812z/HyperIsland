@@ -48,7 +48,7 @@ internal fun AiModelPickerDialog(
     onDismiss: () -> Unit,
     onSelected: (String) -> Unit,
 ) {
-    val unexpectedFormatMessage = stringResource(R.string.compose_ai_model_picker_unexpected_format)
+    val unexpectedFormatMessage = stringResource(R.string.ai_model_picker_unexpected_format)
     var models by remember(show) { mutableStateOf<List<String>?>(null) }
     var error by remember(show) { mutableStateOf<String?>(null) }
     var query by remember(show) { mutableStateOf("") }
@@ -73,7 +73,7 @@ internal fun AiModelPickerDialog(
 
     WindowDialog(
         show = show,
-        title = stringResource(R.string.compose_ai_model_picker_title),
+        title = stringResource(R.string.ai_model_picker_title),
         onDismissRequest = onDismiss,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -82,7 +82,7 @@ internal fun AiModelPickerDialog(
                     value = query,
                     onValueChange = { query = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = stringResource(R.string.compose_ai_model_picker_search),
+                    label = stringResource(R.string.ai_model_picker_search),
                     useLabelAsPlaceholder = true,
                     singleLine = true,
                 )
@@ -90,7 +90,7 @@ internal fun AiModelPickerDialog(
             when {
                 error != null -> {
                     Text(
-                        text = stringResource(R.string.compose_ai_model_picker_error),
+                        text = stringResource(R.string.ai_model_picker_error),
                         color = MiuixTheme.colorScheme.error,
                     )
                     Text(
@@ -98,7 +98,7 @@ internal fun AiModelPickerDialog(
                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     )
                     Button(onClick = { revision++ }, modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(R.string.compose_ai_model_picker_retry))
+                        Text(stringResource(R.string.ai_model_picker_retry))
                     }
                 }
                 models == null -> Row(
@@ -108,7 +108,7 @@ internal fun AiModelPickerDialog(
                     CircularProgressIndicator()
                 }
                 filtered.isEmpty() -> Text(
-                    text = stringResource(R.string.compose_ai_model_picker_empty),
+                    text = stringResource(R.string.ai_model_picker_empty),
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
                 else -> Card {
@@ -117,7 +117,7 @@ internal fun AiModelPickerDialog(
                             BasicComponent(
                                 title = model,
                                 summary = if (model == currentModel) {
-                                    stringResource(R.string.compose_selected)
+                                    stringResource(R.string.selected)
                                 } else {
                                     null
                                 },
@@ -129,7 +129,7 @@ internal fun AiModelPickerDialog(
                 }
             }
             TextButton(
-                text = stringResource(R.string.compose_ai_model_picker_close),
+                text = stringResource(R.string.ai_model_picker_close),
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -161,12 +161,12 @@ internal fun AiCustomFieldsDialog(
 
     WindowDialog(
         show = show,
-        title = stringResource(R.string.compose_ai_custom_fields_dialog),
+        title = stringResource(R.string.ai_custom_fields_dialog),
         onDismissRequest = onDismiss,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
-                text = stringResource(R.string.compose_ai_custom_fields_description),
+                text = stringResource(R.string.ai_custom_fields_description),
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             )
             Row(
@@ -174,7 +174,7 @@ internal fun AiCustomFieldsDialog(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 TextButton(
-                    text = stringResource(R.string.compose_ai_custom_fields_reset),
+                    text = stringResource(R.string.ai_custom_fields_reset),
                     onClick = {
                         fields = parseCustomFields(DEFAULT_CUSTOM_FIELDS)
                         error = false
@@ -188,7 +188,7 @@ internal fun AiCustomFieldsDialog(
                     },
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text(stringResource(R.string.compose_ai_custom_field_add))
+                    Text(stringResource(R.string.ai_custom_field_add))
                 }
             }
             if (fields.isNotEmpty()) {
@@ -210,7 +210,7 @@ internal fun AiCustomFieldsDialog(
                                             error = false
                                         },
                                         modifier = Modifier.weight(1f),
-                                        label = stringResource(R.string.compose_ai_custom_field_name),
+                                        label = stringResource(R.string.ai_custom_field_name),
                                         useLabelAsPlaceholder = true,
                                         singleLine = true,
                                     )
@@ -220,7 +220,7 @@ internal fun AiCustomFieldsDialog(
                                     }) {
                                         Icon(
                                             MiuixIcons.Close,
-                                            stringResource(R.string.compose_ai_custom_field_delete),
+                                            stringResource(R.string.ai_custom_field_delete),
                                         )
                                     }
                                 }
@@ -233,7 +233,7 @@ internal fun AiCustomFieldsDialog(
                                         error = false
                                     },
                                     modifier = Modifier.fillMaxWidth(),
-                                    label = stringResource(R.string.compose_ai_custom_field_value),
+                                    label = stringResource(R.string.ai_custom_field_value),
                                     useLabelAsPlaceholder = true,
                                     maxLines = 3,
                                 )
@@ -244,7 +244,7 @@ internal fun AiCustomFieldsDialog(
             }
             if (error) {
                 Text(
-                    text = stringResource(R.string.compose_ai_custom_fields_error),
+                    text = stringResource(R.string.ai_custom_fields_error),
                     color = MiuixTheme.colorScheme.error,
                 )
             }
@@ -253,7 +253,7 @@ internal fun AiCustomFieldsDialog(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 TextButton(
-                    text = stringResource(R.string.compose_cancel),
+                    text = stringResource(R.string.cancel),
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
                 )
@@ -262,7 +262,7 @@ internal fun AiCustomFieldsDialog(
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColorsPrimary(),
                 ) {
-                    Text(stringResource(R.string.compose_save))
+                    Text(stringResource(R.string.save))
                 }
             }
         }

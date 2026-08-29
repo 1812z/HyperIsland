@@ -48,67 +48,67 @@ internal fun SettingsPage(
     val locale = rememberStringPreference(prefs, KEY_LOCALE, "")
     val localeValues = listOf("", "zh", "en", "ja", "ru", "tr")
     CollapsingPage(
-        title = stringResource(R.string.compose_nav_settings),
+        title = stringResource(R.string.nav_settings),
     ) {
         item {
-            SectionTitle(stringResource(R.string.compose_island))
+            SectionTitle(stringResource(R.string.island))
             Card(modifier = Modifier.fillMaxWidth()) {
-                SettingsActionWithArrow(stringResource(R.string.compose_appearance), MiuixIcons.Image) {
+                SettingsActionWithArrow(stringResource(R.string.appearance), MiuixIcons.Image) {
                     onOpenDetail(SettingsDetail.Appearance)
                 }
-                SettingsActionWithArrow(stringResource(R.string.compose_ai_summary), MiuixIcons.Messages) {
+                SettingsActionWithArrow(stringResource(R.string.ai_summary), MiuixIcons.Messages) {
                     onOpenDetail(SettingsDetail.AiConfig)
                 }
-                SettingsActionWithArrow(stringResource(R.string.compose_filter_rules), MiuixIcons.Blocklist) {
+                SettingsActionWithArrow(stringResource(R.string.filter_rules), MiuixIcons.Blocklist) {
                     onOpenDetail(SettingsDetail.FilterRules)
                 }
-                SettingsActionWithArrow(stringResource(R.string.compose_default_config), MiuixIcons.Tune) {
+                SettingsActionWithArrow(stringResource(R.string.default_config), MiuixIcons.Tune) {
                     onOpenDetail(SettingsDetail.DefaultConfig)
                 }
-                SettingsActionWithArrow(stringResource(R.string.compose_hide_behavior), MiuixIcons.Hide) {
+                SettingsActionWithArrow(stringResource(R.string.hide_behavior), MiuixIcons.Hide) {
                     onOpenDetail(SettingsDetail.HideBehavior)
                 }
-                SettingsActionWithArrow(stringResource(R.string.compose_always_on_island), MiuixIcons.Pin) {
+                SettingsActionWithArrow(stringResource(R.string.always_on_island), MiuixIcons.Pin) {
                     onOpenDetail(SettingsDetail.KeepIsland)
                 }
-                SettingsActionWithArrow(stringResource(R.string.compose_other), MiuixIcons.More) {
+                SettingsActionWithArrow(stringResource(R.string.other), MiuixIcons.More) {
                     onOpenDetail(SettingsDetail.Other)
                 }
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_misc))
+            SectionTitle(stringResource(R.string.misc))
             Card(modifier = Modifier.fillMaxWidth()) {
-                SettingsActionWithArrow(stringResource(R.string.compose_misc), MiuixIcons.Settings) {
+                SettingsActionWithArrow(stringResource(R.string.misc), MiuixIcons.Settings) {
                     onOpenDetail(SettingsDetail.Misc)
                 }
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_hook_extension))
+            SectionTitle(stringResource(R.string.hook_extension))
             Card(modifier = Modifier.fillMaxWidth()) {
-                SettingsActionWithArrow(stringResource(R.string.compose_hook_extension), MiuixIcons.Settings) {
+                SettingsActionWithArrow(stringResource(R.string.hook_extension), MiuixIcons.Settings) {
                     onOpenDetail(SettingsDetail.HookExtension)
                 }
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_appearance))
+            SectionTitle(stringResource(R.string.appearance))
             Card(modifier = Modifier.fillMaxWidth()) {
-                SettingsActionWithArrow(stringResource(R.string.compose_theme), MiuixIcons.Theme) {
+                SettingsActionWithArrow(stringResource(R.string.theme), MiuixIcons.Theme) {
                     onOpenDetail(SettingsDetail.Theme)
                 }
                 PreferenceDropdown(
-                    title = stringResource(R.string.compose_language),
+                    title = stringResource(R.string.language),
                     summary = null,
                     icon = MiuixIcons.Translate,
                     items = listOf(
-                        stringResource(R.string.compose_follow_system),
-                        stringResource(R.string.compose_chinese),
-                        stringResource(R.string.compose_english),
-                        stringResource(R.string.compose_japanese),
-                        stringResource(R.string.compose_russian),
-                        stringResource(R.string.compose_turkish),
+                        stringResource(R.string.follow_system),
+                        stringResource(R.string.chinese),
+                        stringResource(R.string.english),
+                        stringResource(R.string.japanese),
+                        stringResource(R.string.russian),
+                        stringResource(R.string.turkish),
                     ),
                     selectedIndex = localeValues.indexOf(locale.value).coerceAtLeast(0),
                 ) { index ->

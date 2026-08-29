@@ -122,14 +122,14 @@ internal fun KeepIslandPage(
     val placeholderGroups = placeholderGroups()
 
     DetailPage(
-        title = stringResource(R.string.compose_always_on_island),
+        title = stringResource(R.string.always_on_island),
         onBack = onBack,
         snackbarHost = { SnackbarHost(snackbarState) },
     ) {
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = stringResource(R.string.compose_keep_island_subtitle),
+                    text = stringResource(R.string.keep_island_subtitle),
                     modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
                     fontSize = MiuixTheme.textStyles.body2.fontSize,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
@@ -137,64 +137,64 @@ internal fun KeepIslandPage(
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_keep_island_display_timing))
+            SectionTitle(stringResource(R.string.keep_island_display_timing))
             Card(modifier = Modifier.fillMaxWidth()) {
                 PreferenceDropdown(
-                    title = stringResource(R.string.compose_keep_island_display_timing),
+                    title = stringResource(R.string.keep_island_display_timing),
                     summary = null,
                     icon = null,
                     items = listOf(
-                        stringResource(R.string.compose_keep_island_display_always),
-                        stringResource(R.string.compose_keep_island_display_charging),
+                        stringResource(R.string.keep_island_display_always),
+                        stringResource(R.string.keep_island_display_charging),
                     ),
                     selectedIndex = timingValues.indexOf(settings.displayTiming).coerceAtLeast(0),
                 ) { update(settings.copy(displayTiming = timingValues[it])) }
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_keep_island_island_config))
+            SectionTitle(stringResource(R.string.keep_island_island_config))
             Card(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(
-                    title = stringResource(R.string.compose_keep_island_enable),
+                    title = stringResource(R.string.keep_island_enable),
                     summary = null,
                     icon = null,
                     checked = settings.enabled,
                 ) { update(settings.copy(enabled = it)) }
                 PreferenceSwitch(
-                    title = stringResource(R.string.compose_keep_island_auto_hide),
-                    summary = stringResource(R.string.compose_keep_island_auto_hide_summary),
+                    title = stringResource(R.string.keep_island_auto_hide),
+                    summary = stringResource(R.string.keep_island_auto_hide_summary),
                     icon = null,
                     checked = settings.autoHide,
                     enabled = settings.enabled,
                 ) { update(settings.copy(autoHide = it)) }
                 AnimatedVisibility(visible = settings.autoHide) {
                     PreferenceSwitch(
-                        title = stringResource(R.string.compose_keep_island_hide_landscape),
-                        summary = stringResource(R.string.compose_keep_island_hide_landscape_summary),
+                        title = stringResource(R.string.keep_island_hide_landscape),
+                        summary = stringResource(R.string.keep_island_hide_landscape_summary),
                         icon = null,
                         checked = settings.hideLandscape,
                         enabled = settings.enabled,
                     ) { update(settings.copy(hideLandscape = it)) }
                 }
                 ContentAction(
-                    title = stringResource(R.string.compose_keep_island_left_content),
+                    title = stringResource(R.string.keep_island_left_content),
                     values = settings.leftContents,
                     enabled = settings.enabled,
                 ) { activeEditor = KeepIslandEditor.Left }
                 ContentAction(
-                    title = stringResource(R.string.compose_keep_island_right_content),
+                    title = stringResource(R.string.keep_island_right_content),
                     values = settings.rightContents,
                     enabled = settings.enabled,
                 ) { activeEditor = KeepIslandEditor.Right }
                 SettingsAction(
-                    title = stringResource(R.string.compose_keep_island_carousel_interval),
-                    summary = stringResource(R.string.compose_keep_island_carousel_interval_summary),
+                    title = stringResource(R.string.keep_island_carousel_interval),
+                    summary = stringResource(R.string.keep_island_carousel_interval_summary),
                     endIcon = MiuixIcons.ChevronForward,
                     enabled = settings.enabled,
                 ) { showInterval = true }
                 ArrowPreference(
-                    title = stringResource(R.string.compose_keep_island_highlight_color),
-                    summary = stringResource(R.string.compose_keep_island_highlight_color_summary),
+                    title = stringResource(R.string.keep_island_highlight_color),
+                    summary = stringResource(R.string.keep_island_highlight_color_summary),
                     enabled = settings.enabled,
                     insideMargin = SettingsItemMargin,
                     endActions = {
@@ -207,7 +207,7 @@ internal fun KeepIslandPage(
                             ) {
                                 Icon(
                                     MiuixIcons.Refresh,
-                                    stringResource(R.string.compose_reset_default),
+                                    stringResource(R.string.reset_default),
                                     tint = if (settings.enabled) {
                                         MiuixTheme.colorScheme.onSurfaceVariantActions
                                     } else {
@@ -221,8 +221,8 @@ internal fun KeepIslandPage(
                 )
                 AnimatedVisibility(visible = settings.highlightColor.isNotBlank()) {
                     PreferenceSwitch(
-                        title = stringResource(R.string.compose_keep_island_highlight_left),
-                        summary = stringResource(R.string.compose_keep_island_text_highlight),
+                        title = stringResource(R.string.keep_island_highlight_left),
+                        summary = stringResource(R.string.keep_island_text_highlight),
                         icon = null,
                         checked = settings.leftHighlight,
                         enabled = settings.enabled,
@@ -230,16 +230,16 @@ internal fun KeepIslandPage(
                 }
                 AnimatedVisibility(visible = settings.highlightColor.isNotBlank()) {
                     PreferenceSwitch(
-                        title = stringResource(R.string.compose_keep_island_highlight_right),
-                        summary = stringResource(R.string.compose_keep_island_text_highlight),
+                        title = stringResource(R.string.keep_island_highlight_right),
+                        summary = stringResource(R.string.keep_island_text_highlight),
                         icon = null,
                         checked = settings.rightHighlight,
                         enabled = settings.enabled,
                     ) { update(settings.copy(rightHighlight = it)) }
                 }
                 PreferenceSwitch(
-                    title = stringResource(R.string.compose_keep_island_show_icon),
-                    summary = stringResource(R.string.compose_keep_island_show_icon_summary),
+                    title = stringResource(R.string.keep_island_show_icon),
+                    summary = stringResource(R.string.keep_island_show_icon_summary),
                     icon = null,
                     checked = settings.showIslandIcon,
                     enabled = settings.enabled,
@@ -247,13 +247,13 @@ internal fun KeepIslandPage(
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_keep_island_custom_icon))
+            SectionTitle(stringResource(R.string.keep_island_custom_icon))
             Card(modifier = Modifier.fillMaxWidth()) {
                 BasicComponent(
-                    title = stringResource(R.string.compose_keep_island_custom_icon),
+                    title = stringResource(R.string.keep_island_custom_icon),
                     summary = stringResource(
-                        if (settings.customIconPath.isBlank()) R.string.compose_click_select_file
-                        else R.string.compose_keep_island_custom_icon_selected,
+                        if (settings.customIconPath.isBlank()) R.string.click_select_file
+                        else R.string.keep_island_custom_icon_selected,
                     ),
                     insideMargin = SettingsItemMargin,
                     endActions = {
@@ -274,7 +274,7 @@ internal fun KeepIslandPage(
                                     update(settings.copy(customIconPath = ""))
                                 }
                             }) {
-                                Icon(MiuixIcons.Close, stringResource(R.string.compose_delete))
+                                Icon(MiuixIcons.Close, stringResource(R.string.delete))
                             }
                         }
                     },
@@ -283,36 +283,36 @@ internal fun KeepIslandPage(
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_keep_island_focus_config))
+            SectionTitle(stringResource(R.string.keep_island_focus_config))
             Card(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(
-                    title = stringResource(R.string.compose_keep_island_clickable),
-                    summary = stringResource(R.string.compose_keep_island_clickable_summary),
+                    title = stringResource(R.string.keep_island_clickable),
+                    summary = stringResource(R.string.keep_island_clickable_summary),
                     icon = null,
                     checked = settings.focusNotification,
                     enabled = settings.enabled,
                 ) { update(settings.copy(focusNotification = it)) }
                 PreferenceDropdown(
-                    title = stringResource(R.string.compose_keep_island_focus_content_type),
+                    title = stringResource(R.string.keep_island_focus_content_type),
                     summary = null,
                     icon = null,
                     items = listOf(
-                        stringResource(R.string.compose_keep_island_focus_notification),
-                        stringResource(R.string.compose_keep_island_focus_performance),
-                        stringResource(R.string.compose_keep_island_focus_device),
-                        stringResource(R.string.compose_keep_island_focus_charging),
+                        stringResource(R.string.keep_island_focus_notification),
+                        stringResource(R.string.keep_island_focus_performance),
+                        stringResource(R.string.keep_island_focus_device),
+                        stringResource(R.string.keep_island_focus_charging),
                     ),
                     selectedIndex = contentTypeValues.indexOf(settings.focusContentType).coerceAtLeast(0),
                     enabled = focusContentEnabled,
                 ) { update(settings.copy(focusContentType = contentTypeValues[it])) }
                 if (settings.focusContentType == CONTENT_NOTIFICATION) {
                     TextAction(
-                        title = stringResource(R.string.compose_keep_island_notification_title),
+                        title = stringResource(R.string.keep_island_notification_title),
                         value = settings.notificationTitle,
                         enabled = focusContentEnabled,
                     ) { activeEditor = KeepIslandEditor.NotificationTitle }
                     TextAction(
-                        title = stringResource(R.string.compose_keep_island_notification_content),
+                        title = stringResource(R.string.keep_island_notification_content),
                         value = settings.notificationContent,
                         enabled = focusContentEnabled,
                     ) { activeEditor = KeepIslandEditor.NotificationContent }
@@ -321,21 +321,21 @@ internal fun KeepIslandPage(
                     visible = settings.focusContentType != CONTENT_NOTIFICATION,
                 ) {
                     PreferenceDropdown(
-                        title = stringResource(R.string.compose_keep_island_expand_text_color),
+                        title = stringResource(R.string.keep_island_expand_text_color),
                         summary = null,
                         icon = null,
                         items = listOf(
-                            stringResource(R.string.compose_keep_island_text_white),
-                            stringResource(R.string.compose_keep_island_text_follow_status_bar),
-                            stringResource(R.string.compose_keep_island_text_invert_status_bar),
-                            stringResource(R.string.compose_keep_island_text_black),
+                            stringResource(R.string.keep_island_text_white),
+                            stringResource(R.string.keep_island_text_follow_status_bar),
+                            stringResource(R.string.keep_island_text_invert_status_bar),
+                            stringResource(R.string.keep_island_text_black),
                         ),
                         selectedIndex = textColorValues.indexOf(settings.expandTextColorMode).coerceAtLeast(0),
                         enabled = settings.enabled && settings.focusNotification,
                     ) { update(settings.copy(expandTextColorMode = textColorValues[it])) }
                 }
                 PreferenceSwitch(
-                    title = stringResource(R.string.compose_keep_island_show_notification),
+                    title = stringResource(R.string.keep_island_show_notification),
                     summary = null,
                     icon = null,
                     checked = settings.showNotification,
@@ -351,16 +351,16 @@ internal fun KeepIslandPage(
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_keep_island_placeholders))
+            SectionTitle(stringResource(R.string.keep_island_placeholders))
             Card(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = stringResource(R.string.compose_keep_island_placeholders_summary),
+                    text = stringResource(R.string.keep_island_placeholders_summary),
                     modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
                     fontSize = MiuixTheme.textStyles.body2.fontSize,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
                 SettingsAction(
-                    title = stringResource(R.string.compose_keep_island_placeholders),
+                    title = stringResource(R.string.keep_island_placeholders),
                     endIcon = MiuixIcons.ChevronForward,
                 ) { showPlaceholders = true }
             }
@@ -369,25 +369,25 @@ internal fun KeepIslandPage(
 
     KeepIslandContentListDialog(
         show = activeEditor == KeepIslandEditor.Left,
-        title = stringResource(R.string.compose_keep_island_left_content),
+        title = stringResource(R.string.keep_island_left_content),
         initialValues = settings.leftContents,
         onDismiss = { activeEditor = null },
     ) { update(settings.copy(leftContents = it)); activeEditor = null }
     KeepIslandContentListDialog(
         show = activeEditor == KeepIslandEditor.Right,
-        title = stringResource(R.string.compose_keep_island_right_content),
+        title = stringResource(R.string.keep_island_right_content),
         initialValues = settings.rightContents,
         onDismiss = { activeEditor = null },
     ) { update(settings.copy(rightContents = it)); activeEditor = null }
     KeepIslandTextDialog(
         show = activeEditor == KeepIslandEditor.NotificationTitle,
-        title = stringResource(R.string.compose_keep_island_notification_title),
+        title = stringResource(R.string.keep_island_notification_title),
         initialValue = settings.notificationTitle,
         onDismiss = { activeEditor = null },
     ) { update(settings.copy(notificationTitle = it)); activeEditor = null }
     KeepIslandTextDialog(
         show = activeEditor == KeepIslandEditor.NotificationContent,
-        title = stringResource(R.string.compose_keep_island_notification_content),
+        title = stringResource(R.string.keep_island_notification_content),
         initialValue = settings.notificationContent,
         onDismiss = { activeEditor = null },
     ) { update(settings.copy(notificationContent = it)); activeEditor = null }
@@ -398,13 +398,13 @@ internal fun KeepIslandPage(
     ) { update(settings.copy(carouselInterval = it)); showInterval = false }
     ColorPaletteDialog(
         show = showColor,
-        title = stringResource(R.string.compose_keep_island_highlight_color),
+        title = stringResource(R.string.keep_island_highlight_color),
         initialColor = parseHexColor(settings.highlightColor, Color.Red),
         onDismiss = { showColor = false },
     ) { update(settings.copy(highlightColor = it.toArgbHex())); showColor = false }
     KeepIslandPlaceholderSheet(
         show = showPlaceholders,
-        title = stringResource(R.string.compose_keep_island_placeholders),
+        title = stringResource(R.string.keep_island_placeholders),
         groups = placeholderGroups,
         onDismiss = { showPlaceholders = false },
     ) { placeholder ->
@@ -413,7 +413,7 @@ internal fun KeepIslandPage(
         showPlaceholders = false
         scope.launch {
             snackbarState.showSnackbar(
-                context.getString(R.string.compose_keep_island_placeholder_copied, placeholder.label),
+                context.getString(R.string.keep_island_placeholder_copied, placeholder.label),
             )
         }
     }
@@ -429,7 +429,7 @@ private fun ContentAction(
     val preview = values.filter(String::isNotEmpty).joinToString("  |  ")
     SettingsAction(
         title = title,
-        summary = preview.ifBlank { stringResource(R.string.compose_keep_island_default_empty) },
+        summary = preview.ifBlank { stringResource(R.string.keep_island_default_empty) },
         endIcon = MiuixIcons.ChevronForward,
         enabled = enabled,
         onClick = onClick,
@@ -445,7 +445,7 @@ private fun TextAction(
 ) {
     SettingsAction(
         title = title,
-        summary = value.ifBlank { stringResource(R.string.compose_keep_island_default_empty) },
+        summary = value.ifBlank { stringResource(R.string.keep_island_default_empty) },
         endIcon = MiuixIcons.ChevronForward,
         enabled = enabled,
         onClick = onClick,
@@ -479,82 +479,82 @@ private fun RowScope.ColorPreview(value: String, enabled: Boolean) {
 @Composable
 private fun placeholderGroups(): List<PlaceholderGroup> = listOf(
     PlaceholderGroup(
-        stringResource(R.string.compose_keep_island_category_battery),
+        stringResource(R.string.keep_island_category_battery),
         listOf(
-            placeholder(R.string.compose_keep_placeholder_battery_power, "{battery.power}"),
-            placeholder(R.string.compose_keep_placeholder_battery_voltage, "{battery.voltage}"),
-            placeholder(R.string.compose_keep_placeholder_battery_current, "{battery.current}"),
-            placeholder(R.string.compose_keep_placeholder_battery_level, "{battery.level}"),
-            placeholder(R.string.compose_keep_placeholder_battery_temperature, "{battery.temperature}"),
+            placeholder(R.string.keep_placeholder_battery_power, "{battery.power}"),
+            placeholder(R.string.keep_placeholder_battery_voltage, "{battery.voltage}"),
+            placeholder(R.string.keep_placeholder_battery_current, "{battery.current}"),
+            placeholder(R.string.keep_placeholder_battery_level, "{battery.level}"),
+            placeholder(R.string.keep_placeholder_battery_temperature, "{battery.temperature}"),
         ),
     ),
     PlaceholderGroup(
-        stringResource(R.string.compose_keep_island_category_cpu),
+        stringResource(R.string.keep_island_category_cpu),
         listOf(
-            placeholder(R.string.compose_keep_placeholder_cpu_usage, "{cpu.usage}"),
-            placeholder(R.string.compose_keep_placeholder_cpu_temperature, "{cpu.temperature}"),
+            placeholder(R.string.keep_placeholder_cpu_usage, "{cpu.usage}"),
+            placeholder(R.string.keep_placeholder_cpu_temperature, "{cpu.temperature}"),
         ),
     ),
     PlaceholderGroup(
-        stringResource(R.string.compose_keep_island_category_gpu),
+        stringResource(R.string.keep_island_category_gpu),
         listOf(
-            placeholder(R.string.compose_keep_placeholder_gpu_usage, "{gpu.usage}"),
-            placeholder(R.string.compose_keep_placeholder_gpu_frequency, "{gpu.frequency}"),
+            placeholder(R.string.keep_placeholder_gpu_usage, "{gpu.usage}"),
+            placeholder(R.string.keep_placeholder_gpu_frequency, "{gpu.frequency}"),
         ),
     ),
     PlaceholderGroup(
-        stringResource(R.string.compose_keep_island_category_memory),
+        stringResource(R.string.keep_island_category_memory),
         listOf(
-            placeholder(R.string.compose_keep_placeholder_memory_usage, "{memory.usage}"),
-            placeholder(R.string.compose_keep_placeholder_memory_used, "{memory.used}"),
-            placeholder(R.string.compose_keep_placeholder_memory_total, "{memory.total}"),
+            placeholder(R.string.keep_placeholder_memory_usage, "{memory.usage}"),
+            placeholder(R.string.keep_placeholder_memory_used, "{memory.used}"),
+            placeholder(R.string.keep_placeholder_memory_total, "{memory.total}"),
         ),
     ),
     PlaceholderGroup(
-        stringResource(R.string.compose_keep_island_category_network),
+        stringResource(R.string.keep_island_category_network),
         listOf(
-            placeholder(R.string.compose_keep_placeholder_network_download, "{network.download}"),
-            placeholder(R.string.compose_keep_placeholder_network_upload, "{network.upload}"),
-            placeholder(R.string.compose_keep_placeholder_network_speed, "{network.speed}"),
-            placeholder(R.string.compose_keep_placeholder_network_received, "{network.received}"),
-            placeholder(R.string.compose_keep_placeholder_network_sent, "{network.sent}"),
+            placeholder(R.string.keep_placeholder_network_download, "{network.download}"),
+            placeholder(R.string.keep_placeholder_network_upload, "{network.upload}"),
+            placeholder(R.string.keep_placeholder_network_speed, "{network.speed}"),
+            placeholder(R.string.keep_placeholder_network_received, "{network.received}"),
+            placeholder(R.string.keep_placeholder_network_sent, "{network.sent}"),
         ),
     ),
     PlaceholderGroup(
-        stringResource(R.string.compose_keep_island_category_time),
+        stringResource(R.string.keep_island_category_time),
         listOf(
-            placeholder(R.string.compose_keep_placeholder_time_24_hour, "{time.HH}"),
-            placeholder(R.string.compose_keep_placeholder_time_12_hour_padded, "{time.hh}"),
-            placeholder(R.string.compose_keep_placeholder_time_12_hour, "{time.h}"),
-            placeholder(R.string.compose_keep_placeholder_time_minute, "{time.mm}"),
-            placeholder(R.string.compose_keep_placeholder_time_second, "{time.ss}"),
-            placeholder(R.string.compose_keep_placeholder_time_hour_minute, "{time.HH:mm}"),
-            placeholder(R.string.compose_keep_placeholder_time_full, "{time.HH:mm:ss}"),
+            placeholder(R.string.keep_placeholder_time_24_hour, "{time.HH}"),
+            placeholder(R.string.keep_placeholder_time_12_hour_padded, "{time.hh}"),
+            placeholder(R.string.keep_placeholder_time_12_hour, "{time.h}"),
+            placeholder(R.string.keep_placeholder_time_minute, "{time.mm}"),
+            placeholder(R.string.keep_placeholder_time_second, "{time.ss}"),
+            placeholder(R.string.keep_placeholder_time_hour_minute, "{time.HH:mm}"),
+            placeholder(R.string.keep_placeholder_time_full, "{time.HH:mm:ss}"),
         ),
     ),
     PlaceholderGroup(
-        stringResource(R.string.compose_keep_island_category_weather),
+        stringResource(R.string.keep_island_category_weather),
         listOf(
-            placeholder(R.string.compose_keep_placeholder_weather_location, "{weather.location}"),
-            placeholder(R.string.compose_keep_placeholder_weather_condition, "{weather.condition}"),
-            placeholder(R.string.compose_keep_placeholder_weather_temperature, "{weather.temperature}"),
+            placeholder(R.string.keep_placeholder_weather_location, "{weather.location}"),
+            placeholder(R.string.keep_placeholder_weather_condition, "{weather.condition}"),
+            placeholder(R.string.keep_placeholder_weather_temperature, "{weather.temperature}"),
         ),
     ),
     PlaceholderGroup(
-        stringResource(R.string.compose_keep_island_category_display),
+        stringResource(R.string.keep_island_category_display),
         listOf(
-            placeholder(R.string.compose_keep_placeholder_display_refresh_rate, "{display.refreshRate}"),
-            placeholder(R.string.compose_keep_placeholder_display_actual_refresh_rate, "{display.actualRefreshRate}"),
+            placeholder(R.string.keep_placeholder_display_refresh_rate, "{display.refreshRate}"),
+            placeholder(R.string.keep_placeholder_display_actual_refresh_rate, "{display.actualRefreshRate}"),
         ),
     ),
     PlaceholderGroup(
-        stringResource(R.string.compose_keep_island_category_device),
+        stringResource(R.string.keep_island_category_device),
         listOf(
-            placeholder(R.string.compose_keep_placeholder_device_manufacturer, "{device.manufacturer}"),
-            placeholder(R.string.compose_keep_placeholder_device_model, "{device.model}"),
-            placeholder(R.string.compose_keep_placeholder_device_name, "{device.name}"),
-            placeholder(R.string.compose_keep_placeholder_device_chipset, "{device.chipset}"),
-            placeholder(R.string.compose_keep_placeholder_device_uptime, "{device.uptime}"),
+            placeholder(R.string.keep_placeholder_device_manufacturer, "{device.manufacturer}"),
+            placeholder(R.string.keep_placeholder_device_model, "{device.model}"),
+            placeholder(R.string.keep_placeholder_device_name, "{device.name}"),
+            placeholder(R.string.keep_placeholder_device_chipset, "{device.chipset}"),
+            placeholder(R.string.keep_placeholder_device_uptime, "{device.uptime}"),
         ),
     ),
 )

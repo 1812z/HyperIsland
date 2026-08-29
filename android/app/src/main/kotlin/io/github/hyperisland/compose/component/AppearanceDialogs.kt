@@ -77,7 +77,7 @@ internal fun BackgroundPickerDialog(
                         )
                     } else {
                         Text(
-                            text = stringResource(R.string.compose_click_select_file),
+                            text = stringResource(R.string.click_select_file),
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         )
                     }
@@ -88,7 +88,7 @@ internal fun BackgroundPickerDialog(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 TextButton(
-                    text = stringResource(R.string.compose_delete),
+                    text = stringResource(R.string.delete),
                     enabled = currentPath.isNotBlank(),
                     onClick = onDelete,
                     modifier = Modifier.weight(1f),
@@ -99,7 +99,7 @@ internal fun BackgroundPickerDialog(
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColorsPrimary(),
                 ) {
-                    Text(stringResource(R.string.compose_save))
+                    Text(stringResource(R.string.save))
                 }
             }
         }
@@ -118,13 +118,13 @@ internal fun GlassSamplingDialog(
     var quality by remember(show, initialQuality) { mutableIntStateOf(initialQuality) }
     WindowDialog(
         show = show,
-        title = stringResource(R.string.compose_glass_sampling_settings),
+        title = stringResource(R.string.glass_sampling_settings),
         onDismissRequest = onDismiss,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
             SamplingSlider(
-                title = stringResource(R.string.compose_glass_sampling_fps),
-                valueText = stringResource(R.string.compose_fps_value, fps),
+                title = stringResource(R.string.glass_sampling_fps),
+                valueText = stringResource(R.string.fps_value, fps),
                 value = fps.toFloat(),
                 defaultValue = DEFAULT_SAMPLING_FPS,
                 range = 1f..90f,
@@ -133,8 +133,8 @@ internal fun GlassSamplingDialog(
                 onReset = { fps = DEFAULT_SAMPLING_FPS },
             )
             SamplingSlider(
-                title = stringResource(R.string.compose_glass_sampling_quality),
-                valueText = stringResource(R.string.compose_percent_value, quality),
+                title = stringResource(R.string.glass_sampling_quality),
+                valueText = stringResource(R.string.percent_value, quality),
                 value = quality.toFloat(),
                 defaultValue = DEFAULT_SAMPLING_QUALITY,
                 range = 10f..100f,
@@ -147,7 +147,7 @@ internal fun GlassSamplingDialog(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 TextButton(
-                    text = stringResource(R.string.compose_cancel),
+                    text = stringResource(R.string.cancel),
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
                 )
@@ -156,7 +156,7 @@ internal fun GlassSamplingDialog(
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColorsPrimary(),
                 ) {
-                    Text(stringResource(R.string.compose_save))
+                    Text(stringResource(R.string.save))
                 }
             }
         }

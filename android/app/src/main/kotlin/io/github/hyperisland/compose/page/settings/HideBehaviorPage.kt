@@ -42,17 +42,17 @@ internal fun HideBehaviorPage(prefs: FlutterPrefsRepository, onBack: () -> Unit)
     val master by masterState
     val snackbarState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    val restartMessage = stringResource(R.string.compose_restart_scope_app)
+    val restartMessage = stringResource(R.string.restart_scope_app)
 
     DetailPage(
-        title = stringResource(R.string.compose_hide_behavior),
+        title = stringResource(R.string.hide_behavior),
         onBack = onBack,
         snackbarHost = { SnackbarHost(snackbarState) },
     ) {
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = stringResource(R.string.compose_hide_behavior_description),
+                    text = stringResource(R.string.hide_behavior_description),
                     modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
                     fontSize = MiuixTheme.textStyles.body2.fontSize,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
@@ -60,11 +60,11 @@ internal fun HideBehaviorPage(prefs: FlutterPrefsRepository, onBack: () -> Unit)
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_hide_behavior))
+            SectionTitle(stringResource(R.string.hide_behavior))
             Card(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(
-                    title = stringResource(R.string.compose_hide_behavior_master),
-                    summary = stringResource(R.string.compose_hide_behavior_master_summary),
+                    title = stringResource(R.string.hide_behavior_master),
+                    summary = stringResource(R.string.hide_behavior_master_summary),
                     icon = MiuixIcons.Settings,
                     checked = master,
                 ) {
@@ -73,50 +73,50 @@ internal fun HideBehaviorPage(prefs: FlutterPrefsRepository, onBack: () -> Unit)
                     scope.launch { snackbarState.showSnackbar(restartMessage) }
                 }
                 PreferenceSwitch(
-                    stringResource(R.string.compose_hide_behavior_screen_pinning),
-                    stringResource(R.string.compose_hide_behavior_screen_pinning_summary),
+                    stringResource(R.string.hide_behavior_screen_pinning),
+                    stringResource(R.string.hide_behavior_screen_pinning_summary),
                     MiuixIcons.Pin,
                     screenPinningState.value,
                     master,
                 ) { screenPinningState.value = it; prefs.putBoolean(KEY_SCREEN_PINNING, it) }
                 PreferenceSwitch(
-                    stringResource(R.string.compose_hide_behavior_bouncer),
-                    stringResource(R.string.compose_hide_behavior_bouncer_summary),
+                    stringResource(R.string.hide_behavior_bouncer),
+                    stringResource(R.string.hide_behavior_bouncer_summary),
                     MiuixIcons.Lock,
                     bouncerState.value,
                     master,
                 ) { bouncerState.value = it; prefs.putBoolean(KEY_BOUNCER, it) }
                 PreferenceSwitch(
-                    stringResource(R.string.compose_hide_behavior_fullscreen),
-                    stringResource(R.string.compose_hide_behavior_fullscreen_summary),
+                    stringResource(R.string.hide_behavior_fullscreen),
+                    stringResource(R.string.hide_behavior_fullscreen_summary),
                     MiuixIcons.ScreenMirroring,
                     fullscreenState.value,
                     master,
                 ) { fullscreenState.value = it; prefs.putBoolean(KEY_FULLSCREEN, it) }
                 PreferenceSwitch(
-                    stringResource(R.string.compose_hide_behavior_landscape_disable),
-                    stringResource(R.string.compose_hide_behavior_landscape_disable_summary),
+                    stringResource(R.string.hide_behavior_landscape_disable),
+                    stringResource(R.string.hide_behavior_landscape_disable_summary),
                     MiuixIcons.ScreenMirroring,
                     landscapeState.value,
                     master && !fullscreenState.value,
                 ) { landscapeState.value = it; prefs.putBoolean(KEY_FULLSCREEN_LANDSCAPE_DISABLE, it) }
                 PreferenceSwitch(
-                    stringResource(R.string.compose_hide_behavior_screen_locked),
-                    stringResource(R.string.compose_hide_behavior_screen_locked_summary),
+                    stringResource(R.string.hide_behavior_screen_locked),
+                    stringResource(R.string.hide_behavior_screen_locked_summary),
                     MiuixIcons.Lock,
                     screenLockedState.value,
                     master,
                 ) { screenLockedState.value = it; prefs.putBoolean(KEY_SCREEN_LOCKED, it) }
                 PreferenceSwitch(
-                    stringResource(R.string.compose_hide_behavior_notification_center),
-                    stringResource(R.string.compose_hide_behavior_notification_center_summary),
+                    stringResource(R.string.hide_behavior_notification_center),
+                    stringResource(R.string.hide_behavior_notification_center_summary),
                     MiuixIcons.Hide,
                     notificationCenterState.value,
                     master,
                 ) { notificationCenterState.value = it; prefs.putBoolean(KEY_NOTIFICATION_CENTER, it) }
                 PreferenceSwitch(
-                    stringResource(R.string.compose_hide_behavior_foreground_app),
-                    stringResource(R.string.compose_hide_behavior_foreground_app_summary),
+                    stringResource(R.string.hide_behavior_foreground_app),
+                    stringResource(R.string.hide_behavior_foreground_app_summary),
                     MiuixIcons.Show,
                     foregroundAppState.value,
                     master,

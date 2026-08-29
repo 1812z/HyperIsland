@@ -141,7 +141,7 @@ internal fun AboutPage(
     val logoScale = 1f - logoProgress * 0.1f
     val snackbarState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    val copiedMessage = stringResource(R.string.compose_group_number_copied)
+    val copiedMessage = stringResource(R.string.group_number_copied)
     val animationTime = rememberAboutAnimationTime(isActive)
     val darkMode = isSystemInDarkTheme()
     val gradientColors = animatedGradientColors(animationTime, darkMode)
@@ -194,26 +194,26 @@ internal fun AboutPage(
                     item {
                         Column(modifier = Modifier.fillMaxWidth()) {
                             Spacer(Modifier.height(heroHeight + DEVELOPER_TOP_GAP))
-                            SectionTitle(stringResource(R.string.compose_about_developer))
+                            SectionTitle(stringResource(R.string.about_developer))
                             DeveloperCard()
                         }
                     }
                     item {
-                        SectionTitle(stringResource(R.string.compose_about_discussion))
+                        SectionTitle(stringResource(R.string.about_discussion))
                         Card(modifier = Modifier.fillMaxWidth()) {
                             SettingsAction(
-                                title = stringResource(R.string.compose_telegram),
+                                title = stringResource(R.string.telegram),
                                 icon = MiuixIcons.Messages,
-                                summary = stringResource(R.string.compose_telegram_summary),
+                                summary = stringResource(R.string.telegram_summary),
                                 endIcon = MiuixIcons.Link,
                                 endIconSize = 26.dp,
                             ) {
                                 context.openUrl(TELEGRAM_URL)
                             }
                             SettingsAction(
-                                title = stringResource(R.string.compose_qq_group),
+                                title = stringResource(R.string.qq_group),
                                 icon = MiuixIcons.Messages,
-                                summary = stringResource(R.string.compose_qq_group_summary),
+                                summary = stringResource(R.string.qq_group_summary),
                                 endIcon = MiuixIcons.Copy,
                                 endIconSize = 26.dp,
                             ) {
@@ -224,16 +224,16 @@ internal fun AboutPage(
                         }
                     }
                     item {
-                        SectionTitle(stringResource(R.string.compose_about_module))
+                        SectionTitle(stringResource(R.string.about_module))
                         Card(modifier = Modifier.fillMaxWidth()) {
                             SettingsActionWithArrow(
-                                title = stringResource(R.string.compose_backup_restore),
+                                title = stringResource(R.string.backup_restore),
                                 icon = MiuixIcons.Backup,
                             ) {
                                 onOpenBackupRestore()
                             }
                             SettingsAction(
-                                title = stringResource(R.string.compose_check_update_action),
+                                title = stringResource(R.string.check_update_action),
                                 icon = MiuixIcons.Update,
                                 endContent = if (isCheckingUpdate) {
                                     {
@@ -253,19 +253,19 @@ internal fun AboutPage(
                         }
                     }
                     item {
-                        SectionTitle(stringResource(R.string.compose_about_project))
+                        SectionTitle(stringResource(R.string.about_project))
                         Card(modifier = Modifier.fillMaxWidth()) {
                             SettingsAction(
-                                title = stringResource(R.string.compose_github),
+                                title = stringResource(R.string.github),
                                 icon = MiuixIcons.Info,
-                                summary = stringResource(R.string.compose_github_summary),
+                                summary = stringResource(R.string.github_summary),
                                 endIcon = MiuixIcons.Link,
                                 endIconSize = 26.dp,
                             ) {
                                 context.openUrl(GITHUB_URL)
                             }
                             SettingsAction(
-                                title = stringResource(R.string.compose_changelog),
+                                title = stringResource(R.string.changelog),
                                 icon = MiuixIcons.Info,
                                 endIcon = MiuixIcons.Link,
                                 endIconSize = 26.dp,
@@ -273,7 +273,7 @@ internal fun AboutPage(
                                 context.openUrl(CHANGELOG_URL)
                             }
                             SettingsActionWithArrow(
-                                title = stringResource(R.string.compose_references),
+                                title = stringResource(R.string.references),
                                 icon = MiuixIcons.Info,
                                 onClick = onOpenReferences,
                             )
@@ -322,16 +322,11 @@ private fun AboutHero(
                 },
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            BackgroundBlendedArtwork(
-                resourceId = R.drawable.about_logo_mark,
+            AboutAppIcon(
                 animationTime = animationTime,
                 colors = gradientColors,
                 backdrop = backdrop,
                 darkMode = darkMode,
-                blurRadius = 200f,
-                shape = RectangleShape,
-                modifier = Modifier
-                    .size(90.dp),
             )
             Spacer(Modifier.height(20.dp))
             BackgroundBlendedArtwork(
@@ -355,6 +350,26 @@ private fun AboutHero(
             )
         }
     }
+}
+
+@Composable
+private fun AboutAppIcon(
+    animationTime: Float,
+    colors: List<Color>,
+    backdrop: LayerBackdrop?,
+    darkMode: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    BackgroundBlendedArtwork(
+        resourceId = R.drawable.about_logo_mark,
+        animationTime = animationTime,
+        colors = colors,
+        backdrop = backdrop,
+        darkMode = darkMode,
+        blurRadius = 200f,
+        shape = RectangleShape,
+        modifier = modifier.size(88.dp),
+    )
 }
 
 @Composable
@@ -407,7 +422,7 @@ private fun DeveloperCard(modifier: Modifier = Modifier) {
         ) {
             Image(
                 painter = painterResource(R.drawable.about_developer_avatar),
-                contentDescription = stringResource(R.string.compose_developer_avatar),
+                contentDescription = stringResource(R.string.developer_avatar),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .size(56.dp)
@@ -416,13 +431,13 @@ private fun DeveloperCard(modifier: Modifier = Modifier) {
             )
             Column(modifier = Modifier.padding(start = 14.dp)) {
                 Text(
-                    text = stringResource(R.string.compose_developer_name),
+                    text = stringResource(R.string.developer_name),
                     fontSize = 19.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = MiuixTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = stringResource(R.string.compose_developer_handle),
+                    text = stringResource(R.string.developer_handle),
                     modifier = Modifier.padding(top = 1.dp),
                     fontSize = 14.sp,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,

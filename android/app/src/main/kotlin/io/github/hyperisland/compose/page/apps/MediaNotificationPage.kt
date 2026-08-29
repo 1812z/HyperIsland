@@ -50,27 +50,27 @@ internal fun MediaNotificationPage(
     }
 
     DetailPage(
-        title = stringResource(R.string.compose_media_notification),
+        title = stringResource(R.string.media_notification),
         onBack = onBack,
         actionIcon = MiuixIcons.Refresh,
-        actionDescription = stringResource(R.string.compose_restore_default),
+        actionDescription = stringResource(R.string.restore_default),
         onAction = { updateSettings(MediaNotificationSettings()) },
     ) {
         item {
-            SectionTitle(stringResource(R.string.compose_media_notification))
+            SectionTitle(stringResource(R.string.media_notification))
             Card {
                 SwitchPreference(
                     checked = draft.enabled,
                     onCheckedChange = { updateSettings(draft.copy(enabled = it)) },
-                    title = stringResource(R.string.compose_media_notification),
-                    summary = stringResource(R.string.compose_media_notification_disabled_summary),
+                    title = stringResource(R.string.media_notification),
+                    summary = stringResource(R.string.media_notification_disabled_summary),
                     insideMargin = MEDIA_ITEM_MARGIN,
                 )
                 SwitchPreference(
                     checked = draft.normalNotification,
                     onCheckedChange = { updateSettings(draft.copy(normalNotification = it)) },
-                    title = stringResource(R.string.compose_normal_notification),
-                    summary = stringResource(R.string.compose_normal_notification_summary),
+                    title = stringResource(R.string.normal_notification),
+                    summary = stringResource(R.string.normal_notification_summary),
                     enabled = draft.enabled,
                     insideMargin = MEDIA_ITEM_MARGIN,
                 )
@@ -78,13 +78,13 @@ internal fun MediaNotificationPage(
         }
         item {
             SectionTitle(
-                stringResource(R.string.compose_glow_section, stringResource(R.string.compose_focus_notification)),
+                stringResource(R.string.glow_section, stringResource(R.string.focus_notification)),
             )
             Card {
                 OverlayDropdownPreference(
                     items = outerGlowLabels,
                     selectedIndex = modes.indexOf(draft.outerGlow).coerceAtLeast(0),
-                    title = stringResource(R.string.compose_outer_glow),
+                    title = stringResource(R.string.outer_glow),
                     onSelectedIndexChange = { index -> updateSettings(draft.copy(outerGlow = modes[index])) },
                     enabled = draft.enabled,
                     insideMargin = MEDIA_ITEM_MARGIN,
@@ -92,7 +92,7 @@ internal fun MediaNotificationPage(
                 )
                 AnimatedVisibility(visible = draft.enabled && draft.outerGlow == TRI_STATE_ON) {
                     ArrowPreference(
-                        title = stringResource(R.string.compose_out_effect_color),
+                        title = stringResource(R.string.out_effect_color),
                         summary = draft.outEffectColor.takeIf(String::isNotEmpty),
                         insideMargin = MEDIA_ITEM_MARGIN,
                         onClick = {
@@ -105,13 +105,13 @@ internal fun MediaNotificationPage(
         }
         item {
             SectionTitle(
-                stringResource(R.string.compose_glow_section, stringResource(R.string.compose_enable_island)),
+                stringResource(R.string.glow_section, stringResource(R.string.enable_island)),
             )
             Card {
                 OverlayDropdownPreference(
                     items = islandOuterGlowLabels,
                     selectedIndex = modes.indexOf(draft.islandOuterGlow).coerceAtLeast(0),
-                    title = stringResource(R.string.compose_outer_glow),
+                    title = stringResource(R.string.outer_glow),
                     onSelectedIndexChange = { index ->
                         updateSettings(draft.copy(islandOuterGlow = modes[index]))
                     },
@@ -121,7 +121,7 @@ internal fun MediaNotificationPage(
                 )
                 AnimatedVisibility(visible = draft.enabled && draft.islandOuterGlow == TRI_STATE_ON) {
                     ArrowPreference(
-                        title = stringResource(R.string.compose_out_effect_color),
+                        title = stringResource(R.string.out_effect_color),
                         summary = draft.islandOuterGlowColor.takeIf(String::isNotEmpty),
                         insideMargin = MEDIA_ITEM_MARGIN,
                         onClick = {
@@ -136,7 +136,7 @@ internal fun MediaNotificationPage(
 
     ColorPaletteDialog(
         show = activeColorTarget != null,
-        title = stringResource(R.string.compose_out_effect_color),
+        title = stringResource(R.string.out_effect_color),
         initialColor = selectedColor,
         onDismiss = { activeColorTarget = null },
         onSave = { color ->
@@ -153,11 +153,11 @@ internal fun MediaNotificationPage(
 @Composable
 private fun glowModeLabels(defaultMode: String): List<String> = listOf(
     stringResource(
-        if (defaultMode == TRI_STATE_ON) R.string.compose_default_on else R.string.compose_default_off,
+        if (defaultMode == TRI_STATE_ON) R.string.default_on else R.string.default_off,
     ),
-    stringResource(R.string.compose_enabled_option),
-    stringResource(R.string.compose_disabled_option),
-    stringResource(R.string.compose_follow_dynamic_color),
+    stringResource(R.string.enabled_option),
+    stringResource(R.string.disabled_option),
+    stringResource(R.string.follow_dynamic_color),
 )
 
 private val MEDIA_ITEM_MARGIN = PaddingValues(horizontal = 18.dp, vertical = 14.dp)

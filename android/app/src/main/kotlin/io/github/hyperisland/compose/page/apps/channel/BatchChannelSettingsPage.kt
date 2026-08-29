@@ -37,8 +37,8 @@ internal fun BatchChannelSettingsPage(
     }
     val headerText = stringResource(
         when (target) {
-            is BatchChannelTarget.Channels -> R.string.compose_batch_channel_scope_channels
-            is BatchChannelTarget.Apps -> R.string.compose_batch_channel_scope_apps
+            is BatchChannelTarget.Channels -> R.string.batch_channel_scope_channels
+            is BatchChannelTarget.Apps -> R.string.batch_channel_scope_apps
         },
         targetCount,
     )
@@ -76,7 +76,7 @@ internal fun BatchChannelSettingsPage(
     }
 
     ChannelSettingsFormPage(
-        title = stringResource(R.string.compose_batch_channel_settings),
+        title = stringResource(R.string.batch_channel_settings),
         state = patch,
         defaults = defaults,
         mode = ChannelSettingsFormMode.Batch,
@@ -90,7 +90,7 @@ internal fun BatchChannelSettingsPage(
                 enabled = patch.hasChanges && !applying,
                 colors = ButtonDefaults.buttonColorsPrimary(),
             ) {
-                Text(stringResource(if (applying) R.string.compose_applying else R.string.compose_apply))
+                Text(stringResource(if (applying) R.string.applying else R.string.apply))
             }
         },
     )

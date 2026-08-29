@@ -117,87 +117,87 @@ internal fun AppearancePage(
         if (path.isBlank()) prefs.remove(type.preferenceKey) else prefs.putString(type.preferenceKey, path)
     }
 
-    val savedMessage = stringResource(R.string.compose_background_saved)
-    val deletedMessage = stringResource(R.string.compose_background_deleted)
-    val failedMessage = stringResource(R.string.compose_background_operation_failed)
+    val savedMessage = stringResource(R.string.background_saved)
+    val deletedMessage = stringResource(R.string.background_deleted)
+    val failedMessage = stringResource(R.string.background_operation_failed)
     fun showMessage(message: String) {
         scope.launch { snackbarState.showSnackbar(message) }
     }
 
     DetailPage(
-        title = stringResource(R.string.compose_appearance),
+        title = stringResource(R.string.appearance),
         onBack = onBack,
         actionIcon = ImageVector.vectorResource(R.drawable.ic_test_notification),
-        actionDescription = stringResource(R.string.compose_send_test_notification),
+        actionDescription = stringResource(R.string.send_test_notification),
         onAction = { TestNotificationService.sendDefault(context) },
         snackbarHost = { SnackbarHost(snackbarState) },
     ) {
         item {
-            SectionTitle(stringResource(R.string.compose_island_dimensions))
+            SectionTitle(stringResource(R.string.island_dimensions))
             Card(modifier = Modifier.fillMaxWidth()) {
-                DoublePreferenceSlider(prefs, KEY_ISLAND_HEIGHT, R.string.compose_island_height, 0.0, 100.0, 0.0)
-                DoublePreferenceSlider(prefs, KEY_ISLAND_TOP_OFFSET, R.string.compose_vertical_position, -10.0, 50.0, 0.0)
-                LongPreferenceSlider(prefs, KEY_BIG_MAX_WIDTH, R.string.compose_big_max_width, 0, 500, 0, 5)
-                LongPreferenceSlider(prefs, KEY_BIG_MIN_WIDTH, R.string.compose_big_min_width, 0, 500, 0, 5)
+                DoublePreferenceSlider(prefs, KEY_ISLAND_HEIGHT, R.string.island_height, 0.0, 100.0, 0.0)
+                DoublePreferenceSlider(prefs, KEY_ISLAND_TOP_OFFSET, R.string.vertical_position, -10.0, 50.0, 0.0)
+                LongPreferenceSlider(prefs, KEY_BIG_MAX_WIDTH, R.string.big_max_width, 0, 500, 0, 5)
+                LongPreferenceSlider(prefs, KEY_BIG_MIN_WIDTH, R.string.big_min_width, 0, 500, 0, 5)
                 LongPreferenceSlider(
                     prefs,
                     KEY_SMALL_WIDTH,
-                    R.string.compose_small_island_width,
+                    R.string.small_island_width,
                     1,
                     100,
                     34,
                     followSystemAtDefault = true,
                 )
-                LongPreferenceSlider(prefs, KEY_SMALL_OFFSET, R.string.compose_small_island_offset, -10, 50, 0)
+                LongPreferenceSlider(prefs, KEY_SMALL_OFFSET, R.string.small_island_offset, -10, 50, 0)
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_island_background))
+            SectionTitle(stringResource(R.string.island_background))
             Card(modifier = Modifier.fillMaxWidth()) {
                 BackgroundRow(
-                    title = stringResource(R.string.compose_small_background),
+                    title = stringResource(R.string.small_background),
                     path = smallBackground.value,
                     enabled = !usesCustomMaterial(resolvedSmallMaterial) && !legacyBlurSmall.value,
                 ) { backgroundDialog = IslandBackgroundType.Small; selectedBackgroundUri = null }
                 BackgroundRow(
-                    title = stringResource(R.string.compose_big_background),
+                    title = stringResource(R.string.big_background),
                     path = bigBackground.value,
                     enabled = !usesCustomMaterial(bigMaterial.value) && !legacyBlurBig.value,
                 ) { backgroundDialog = IslandBackgroundType.Big; selectedBackgroundUri = null }
                 BackgroundRow(
-                    title = stringResource(R.string.compose_expand_background),
+                    title = stringResource(R.string.expand_background),
                     path = expandBackground.value,
                     enabled = !usesCustomMaterial(resolvedExpandMaterial) && !legacyBlurExpand.value,
                 ) { backgroundDialog = IslandBackgroundType.Expand; selectedBackgroundUri = null }
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_glass_effect))
+            SectionTitle(stringResource(R.string.glass_effect))
             Card(modifier = Modifier.fillMaxWidth()) {
                 SettingsAction(
-                    title = stringResource(R.string.compose_material_customize),
-                    summary = stringResource(R.string.compose_material_customize_summary),
+                    title = stringResource(R.string.material_customize),
+                    summary = stringResource(R.string.material_customize_summary),
                     endIcon = MiuixIcons.ChevronForward,
                 ) { onOpenMaterial() }
                 PreferenceSwitch(
-                    title = stringResource(R.string.compose_glass_gyroscope),
-                    summary = stringResource(R.string.compose_glass_gyroscope_summary),
+                    title = stringResource(R.string.glass_gyroscope),
+                    summary = stringResource(R.string.glass_gyroscope_summary),
                     icon = null,
                     checked = gyroscope.value,
                     enabled = hasGlass,
                 ) { gyroscope.value = it; prefs.putBoolean(KEY_GLASS_GYROSCOPE, it) }
                 PreferenceSwitch(
-                    title = stringResource(R.string.compose_glass_hdr),
-                    summary = stringResource(R.string.compose_glass_hdr_summary),
+                    title = stringResource(R.string.glass_hdr),
+                    summary = stringResource(R.string.glass_hdr_summary),
                     icon = null,
                     checked = hdrHighlight.value,
                     enabled = hasGlass,
                 ) { hdrHighlight.value = it; prefs.putBoolean(KEY_GLASS_HDR, it) }
                 SettingsAction(
-                    title = stringResource(R.string.compose_glass_sampling_settings),
+                    title = stringResource(R.string.glass_sampling_settings),
                     summary = stringResource(
-                        if (hasLiquidGlass) R.string.compose_glass_sampling_summary
-                        else R.string.compose_glass_enable_liquid_first,
+                        if (hasLiquidGlass) R.string.glass_sampling_summary
+                        else R.string.glass_enable_liquid_first,
                     ),
                     endIcon = if (hasLiquidGlass) MiuixIcons.ChevronForward else null,
                     onClick = { if (hasLiquidGlass) samplingDialog = true },
@@ -205,40 +205,40 @@ internal fun AppearancePage(
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_island_text))
+            SectionTitle(stringResource(R.string.island_text))
             Card(modifier = Modifier.fillMaxWidth()) {
-                LongPreferenceSlider(prefs, KEY_TEXT_SCALE, R.string.compose_island_text_size, 10, 200, 100, unit = SliderUnit.Percent)
-                TextColorPreference(prefs, KEY_TEXT_COLOR, R.string.compose_island_text_color, includeBackground = true)
-                TextColorPreference(prefs, KEY_FOCUS_TEXT_COLOR, R.string.compose_focus_text_color, includeBackground = false)
-                TextColorPreference(prefs, KEY_MEDIA_TEXT_COLOR, R.string.compose_media_text_color, includeBackground = false)
+                LongPreferenceSlider(prefs, KEY_TEXT_SCALE, R.string.island_text_size, 10, 200, 100, unit = SliderUnit.Percent)
+                TextColorPreference(prefs, KEY_TEXT_COLOR, R.string.island_text_color, includeBackground = true)
+                TextColorPreference(prefs, KEY_FOCUS_TEXT_COLOR, R.string.focus_text_color, includeBackground = false)
+                TextColorPreference(prefs, KEY_MEDIA_TEXT_COLOR, R.string.media_text_color, includeBackground = false)
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_icon))
+            SectionTitle(stringResource(R.string.icon))
             Card(modifier = Modifier.fillMaxWidth()) {
-                LongPreferenceSlider(prefs, KEY_ICON_SIZE, R.string.compose_icon_size, 50, 150, 100, unit = SliderUnit.Percent)
-                LongPreferenceSlider(prefs, KEY_ROUND_RADIUS, R.string.compose_round_icon_radius, 0, 100, 40, unit = SliderUnit.Percent)
+                LongPreferenceSlider(prefs, KEY_ICON_SIZE, R.string.icon_size, 50, 150, 100, unit = SliderUnit.Percent)
+                LongPreferenceSlider(prefs, KEY_ROUND_RADIUS, R.string.round_icon_radius, 0, 100, 40, unit = SliderUnit.Percent)
                 PreferenceSwitch(
-                    title = stringResource(R.string.compose_round_icon),
-                    summary = stringResource(R.string.compose_round_icon_summary),
+                    title = stringResource(R.string.round_icon),
+                    summary = stringResource(R.string.round_icon_summary),
                     icon = null,
                     checked = roundIcon.value,
                 ) { roundIcon.value = it; if (it) prefs.remove(KEY_ROUND_ICON) else prefs.putBoolean(KEY_ROUND_ICON, false) }
-                DoublePreferenceSlider(prefs, KEY_ICON_PADDING, R.string.compose_icon_padding, 0.0, 10.0, 8.0, decimals = 1)
+                DoublePreferenceSlider(prefs, KEY_ICON_PADDING, R.string.icon_padding, 0.0, 10.0, 8.0, decimals = 1)
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_outline_control))
+            SectionTitle(stringResource(R.string.outline_control))
             Card(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(
-                    title = stringResource(R.string.compose_always_island_outline),
+                    title = stringResource(R.string.always_island_outline),
                     summary = null,
                     icon = null,
                     checked = alwaysIslandOutline.value,
                     enabled = !hasCustomMaterial && listOf(smallBackground.value, bigBackground.value, expandBackground.value).all(String::isBlank),
                 ) { alwaysIslandOutline.value = it; prefs.putBoolean(KEY_ALWAYS_ISLAND_OUTLINE, it) }
                 PreferenceSwitch(
-                    title = stringResource(R.string.compose_always_focus_outline),
+                    title = stringResource(R.string.always_focus_outline),
                     summary = null,
                     icon = null,
                     checked = alwaysFocusOutline.value,
@@ -247,19 +247,19 @@ internal fun AppearancePage(
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_outer_glow))
+            SectionTitle(stringResource(R.string.outer_glow))
             Card(modifier = Modifier.fillMaxWidth()) {
-                LongPreferenceSlider(prefs, KEY_GLOW_RANGE, R.string.compose_glow_range, 0, 100, 0, unit = SliderUnit.Percent)
+                LongPreferenceSlider(prefs, KEY_GLOW_RANGE, R.string.glow_range, 0, 100, 0, unit = SliderUnit.Percent)
                 PreferenceSwitch(
-                    title = stringResource(R.string.compose_single_color_glow),
+                    title = stringResource(R.string.single_color_glow),
                     summary = null,
                     icon = null,
                     checked = glowSingleColor.value,
                 ) { glowSingleColor.value = it; prefs.putBoolean(KEY_GLOW_SINGLE_COLOR, it) }
                 AnimatedVisibility(visible = !glowSingleColor.value) {
                     SettingsAction(
-                        title = stringResource(R.string.compose_glow_base_color),
-                        summary = glowBaseColor.value.ifBlank { stringResource(R.string.compose_default) },
+                        title = stringResource(R.string.glow_base_color),
+                        summary = glowBaseColor.value.ifBlank { stringResource(R.string.default_option) },
                         endIcon = MiuixIcons.ChevronForward,
                     ) { colorDialog = true }
                 }
@@ -319,7 +319,7 @@ internal fun AppearancePage(
     }
     ColorPaletteDialog(
         show = colorDialog,
-        title = stringResource(R.string.compose_glow_base_color),
+        title = stringResource(R.string.glow_base_color),
         initialColor = parseHexColor(glowBaseColor.value, Color(0xFF0096FF)),
         onDismiss = { colorDialog = false },
     ) { color ->
@@ -336,9 +336,9 @@ private fun BackgroundRow(title: String, path: String, enabled: Boolean, onClick
         title = title,
         summary = stringResource(
             when {
-                !enabled -> R.string.compose_background_material_conflict
-                path.isBlank() -> R.string.compose_not_set
-                else -> R.string.compose_selected
+                !enabled -> R.string.background_material_conflict
+                path.isBlank() -> R.string.not_set
+                else -> R.string.selected
             },
         ),
         endIcon = if (enabled) MiuixIcons.ChevronForward else null,
@@ -350,9 +350,9 @@ private fun BackgroundRow(title: String, path: String, enabled: Boolean, onClick
 @Composable
 private fun backgroundTitle(type: IslandBackgroundType): String = stringResource(
     when (type) {
-        IslandBackgroundType.Small -> R.string.compose_small_background
-        IslandBackgroundType.Big -> R.string.compose_big_background
-        IslandBackgroundType.Expand -> R.string.compose_expand_background
+        IslandBackgroundType.Small -> R.string.small_background
+        IslandBackgroundType.Big -> R.string.big_background
+        IslandBackgroundType.Expand -> R.string.expand_background
     },
 )
 
@@ -372,10 +372,10 @@ private fun LongPreferenceSlider(
     var draft by remember(key) { mutableFloatStateOf(state.value.toFloat()) }
     val display = if (
         draft.toLong() == default && (default == 0L || followSystemAtDefault)
-    ) stringResource(R.string.compose_follow_system)
+    ) stringResource(R.string.follow_system)
     else when (unit) {
-        SliderUnit.Dp -> stringResource(R.string.compose_dp_value, draft.toInt())
-        SliderUnit.Percent -> stringResource(R.string.compose_percent_value, draft.toInt())
+        SliderUnit.Dp -> stringResource(R.string.dp_value, draft.toInt())
+        SliderUnit.Percent -> stringResource(R.string.percent_value, draft.toInt())
     }
     PreferenceSlider(
         title = stringResource(titleRes),
@@ -412,9 +412,9 @@ private fun DoublePreferenceSlider(
 ) {
     var stored by remember(key) { mutableStateOf(prefs.getDouble(key, default)) }
     var draft by remember(key) { mutableFloatStateOf(stored.toFloat()) }
-    val valueText = if (draft == 0f && default == 0.0) stringResource(R.string.compose_follow_system)
-    else if (decimals == 1) stringResource(R.string.compose_dp_decimal_value, draft)
-    else stringResource(R.string.compose_dp_value, draft.toInt())
+    val valueText = if (draft == 0f && default == 0.0) stringResource(R.string.follow_system)
+    else if (decimals == 1) stringResource(R.string.dp_decimal_value, draft)
+    else stringResource(R.string.dp_value, draft.toInt())
     PreferenceSlider(
         title = stringResource(titleRes),
         icon = null,
@@ -454,14 +454,14 @@ private fun TextColorPreference(
         add("invert_status_bar")
     }
     val labels = buildList {
-        add(stringResource(R.string.compose_default))
-        add(stringResource(R.string.compose_black))
+        add(stringResource(R.string.default_option))
+        add(stringResource(R.string.black))
         if (includeBackground) {
-            add(stringResource(R.string.compose_follow_background))
-            add(stringResource(R.string.compose_invert_background))
+            add(stringResource(R.string.follow_background))
+            add(stringResource(R.string.invert_background))
         }
-        add(stringResource(R.string.compose_follow_status_bar))
-        add(stringResource(R.string.compose_invert_status_bar))
+        add(stringResource(R.string.follow_status_bar))
+        add(stringResource(R.string.invert_status_bar))
     }
     val state = rememberStringPreference(prefs, key, "default")
     PreferenceDropdown(

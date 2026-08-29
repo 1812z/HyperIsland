@@ -39,10 +39,10 @@ internal fun HookExtensionPage(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
-    val scopeFailed = stringResource(R.string.compose_ext_scope_failed)
-    val restartRequired = stringResource(R.string.compose_restart_scope_app)
-    val enabledText = stringResource(R.string.compose_ext_enabled)
-    val disabledText = stringResource(R.string.compose_ext_disabled)
+    val scopeFailed = stringResource(R.string.ext_scope_failed)
+    val restartRequired = stringResource(R.string.restart_scope_app)
+    val enabledText = stringResource(R.string.ext_enabled)
+    val disabledText = stringResource(R.string.ext_disabled)
 
     val settingsEntry = rememberBooleanPreference(prefs, KEY_SETTINGS_HOME_ENTRY, true)
     val settingsIcon = rememberStringPreference(prefs, KEY_SETTINGS_HOME_ENTRY_ICON_STYLE, MODE_DEFAULT)
@@ -78,16 +78,16 @@ internal fun HookExtensionPage(
     }
 
     DetailPage(
-        title = stringResource(R.string.compose_hook_extension),
+        title = stringResource(R.string.hook_extension),
         onBack = onBack,
         snackbarHost = { SnackbarHost(snackbar) },
     ) {
         item {
-            SectionTitle(stringResource(R.string.compose_ext_system_settings))
+            SectionTitle(stringResource(R.string.ext_system_settings))
             Card(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(
-                    title = stringResource(R.string.compose_ext_settings_entry),
-                    summary = stringResource(R.string.compose_ext_settings_entry_summary),
+                    title = stringResource(R.string.ext_settings_entry),
+                    summary = stringResource(R.string.ext_settings_entry_summary),
                     icon = null,
                     checked = settingsEntry.value,
                 ) { value ->
@@ -100,12 +100,12 @@ internal fun HookExtensionPage(
                 AnimatedVisibility(settingsEntry.value) {
                     val values = listOf(MODE_DEFAULT, MODE_OUTLINE)
                     PreferenceDropdown(
-                        title = stringResource(R.string.compose_ext_icon_style),
+                        title = stringResource(R.string.ext_icon_style),
                         summary = null,
                         icon = null,
                         items = listOf(
-                            stringResource(R.string.compose_default),
-                            stringResource(R.string.compose_ext_icon_outline),
+                            stringResource(R.string.default_option),
+                            stringResource(R.string.ext_icon_outline),
                         ),
                         selectedIndex = values.indexOf(settingsIcon.value).coerceAtLeast(0),
                     ) { index ->
@@ -116,11 +116,11 @@ internal fun HookExtensionPage(
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_ext_system_ui))
+            SectionTitle(stringResource(R.string.ext_system_ui))
             Card(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(
-                    title = stringResource(R.string.compose_smooth_island),
-                    summary = stringResource(R.string.compose_smooth_island_summary),
+                    title = stringResource(R.string.smooth_island),
+                    summary = stringResource(R.string.smooth_island_summary),
                     icon = null,
                     checked = smooth.value,
                     enabled = smoothSupported,
@@ -133,7 +133,7 @@ internal fun HookExtensionPage(
                 }
                 AnimatedVisibility(smooth.value && smoothSupported) {
                     PreferenceSlider(
-                        title = stringResource(R.string.compose_ext_smoothing),
+                        title = stringResource(R.string.ext_smoothing),
                         icon = null,
                         value = smoothingState.floatValue,
                         valueText = "%.2f".format(smoothingState.floatValue),
@@ -153,8 +153,8 @@ internal fun HookExtensionPage(
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(
-                    title = stringResource(R.string.compose_ext_unlock_all_focus),
-                    summary = stringResource(R.string.compose_ext_unlock_all_focus_summary),
+                    title = stringResource(R.string.ext_unlock_all_focus),
+                    summary = stringResource(R.string.ext_unlock_all_focus_summary),
                     icon = null,
                     checked = unlockAll.value,
                 ) { value ->
@@ -169,9 +169,9 @@ internal fun HookExtensionPage(
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 SettingsAction(
-                    title = stringResource(R.string.compose_bluetooth_island),
+                    title = stringResource(R.string.bluetooth_island),
                     summary = stringResource(
-                        R.string.compose_ext_bluetooth_summary,
+                        R.string.ext_bluetooth_summary,
                         if (bluetooth.value) enabledText else disabledText,
                     ),
                     endIcon = MiuixIcons.ChevronForward,
@@ -181,9 +181,9 @@ internal fun HookExtensionPage(
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 SettingsAction(
-                    title = stringResource(R.string.compose_charge_island),
+                    title = stringResource(R.string.charge_island),
                     summary = stringResource(
-                        R.string.compose_ext_charge_summary,
+                        R.string.ext_charge_summary,
                         if (charge.value) enabledText else disabledText,
                     ),
                     endIcon = MiuixIcons.ChevronForward,
@@ -193,9 +193,9 @@ internal fun HookExtensionPage(
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 SettingsAction(
-                    title = stringResource(R.string.compose_face_unlock_island),
+                    title = stringResource(R.string.face_unlock_island),
                     summary = stringResource(
-                        R.string.compose_ext_face_summary,
+                        R.string.ext_face_summary,
                         if (faceUnlock.value) enabledText else disabledText,
                     ),
                     endIcon = MiuixIcons.ChevronForward,
@@ -205,8 +205,8 @@ internal fun HookExtensionPage(
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(
-                    title = stringResource(R.string.compose_ext_hide_face_icon),
-                    summary = stringResource(R.string.compose_ext_hide_face_icon_summary),
+                    title = stringResource(R.string.ext_hide_face_icon),
+                    summary = stringResource(R.string.ext_hide_face_icon_summary),
                     icon = null,
                     checked = hideFaceIcon.value,
                 ) { value ->
@@ -221,17 +221,17 @@ internal fun HookExtensionPage(
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 BasicComponent(
-                    title = stringResource(R.string.compose_ext_small_icon),
+                    title = stringResource(R.string.ext_small_icon),
                     summary = if (iconAdjustment.value) {
-                        stringResource(R.string.compose_ext_small_icon_enabled, (iconOpacityState.floatValue * 100).toInt())
+                        stringResource(R.string.ext_small_icon_enabled, (iconOpacityState.floatValue * 100).toInt())
                     } else {
-                        stringResource(R.string.compose_ext_small_icon_disabled)
+                        stringResource(R.string.ext_small_icon_disabled)
                     },
                     insideMargin = SettingsItemMargin,
                 )
                 PreferenceSwitch(
-                    title = stringResource(R.string.compose_ext_small_icon_toggle),
-                    summary = stringResource(R.string.compose_ext_small_icon_toggle_summary),
+                    title = stringResource(R.string.ext_small_icon_toggle),
+                    summary = stringResource(R.string.ext_small_icon_toggle_summary),
                     icon = null,
                     checked = iconAdjustment.value,
                 ) { value ->
@@ -243,7 +243,7 @@ internal fun HookExtensionPage(
                 }
                 AnimatedVisibility(iconAdjustment.value) {
                     PreferenceSlider(
-                        title = stringResource(R.string.compose_ext_opacity),
+                        title = stringResource(R.string.ext_opacity),
                         icon = null,
                         value = iconOpacityState.floatValue,
                         valueText = "${(iconOpacityState.floatValue * 100).toInt()}%",
@@ -261,11 +261,11 @@ internal fun HookExtensionPage(
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_ext_xmsf))
+            SectionTitle(stringResource(R.string.ext_xmsf))
             Card(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(
-                    title = stringResource(R.string.compose_ext_unlock_auth),
-                    summary = stringResource(R.string.compose_ext_unlock_auth_summary),
+                    title = stringResource(R.string.ext_unlock_auth),
+                    summary = stringResource(R.string.ext_unlock_auth_summary),
                     icon = null,
                     checked = unlockAuth.value,
                 ) { value ->
@@ -278,11 +278,11 @@ internal fun HookExtensionPage(
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_ext_download_manager))
+            SectionTitle(stringResource(R.string.ext_download_manager))
             Card(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(
-                    title = stringResource(R.string.compose_ext_resume_notification),
-                    summary = stringResource(R.string.compose_ext_resume_notification_summary),
+                    title = stringResource(R.string.ext_resume_notification),
+                    summary = stringResource(R.string.ext_resume_notification_summary),
                     icon = null,
                     checked = resumeNotification.value,
                 ) { value ->

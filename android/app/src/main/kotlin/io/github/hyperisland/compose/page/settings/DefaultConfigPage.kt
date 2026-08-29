@@ -49,17 +49,17 @@ internal fun DefaultConfigPage(
     var selectedColor by remember { mutableStateOf(Color.Red) }
     val glowModes = remember { listOf(GLOW_ON, GLOW_OFF, GLOW_FOLLOW_DYNAMIC) }
     val glowModeLabels = listOf(
-        stringResource(R.string.compose_enabled_option),
-        stringResource(R.string.compose_disabled_option),
-        stringResource(R.string.compose_follow_dynamic_color),
+        stringResource(R.string.enabled_option),
+        stringResource(R.string.disabled_option),
+        stringResource(R.string.follow_dynamic_color),
     )
     val marqueeAutoHideValues = remember { listOf("off", "1", "2", "1_override", "2_override") }
     val marqueeAutoHideLabels = listOf(
-        stringResource(R.string.compose_disabled_option),
-        stringResource(R.string.compose_marquee_once),
-        stringResource(R.string.compose_marquee_twice),
-        stringResource(R.string.compose_marquee_once_override),
-        stringResource(R.string.compose_marquee_twice_override),
+        stringResource(R.string.disabled_option),
+        stringResource(R.string.marquee_once),
+        stringResource(R.string.marquee_twice),
+        stringResource(R.string.marquee_once_override),
+        stringResource(R.string.marquee_twice_override),
     )
 
     fun update(value: DefaultConfigSettings) {
@@ -68,50 +68,50 @@ internal fun DefaultConfigPage(
     }
 
     DetailPage(
-        title = stringResource(R.string.compose_default_config),
+        title = stringResource(R.string.default_config),
         onBack = onBack,
     ) {
         item {
-            SectionTitle(stringResource(R.string.compose_behavior))
+            SectionTitle(stringResource(R.string.behavior))
             Card {
                 SwitchPreference(
                     checked = settings.firstFloat,
                     onCheckedChange = { update(settings.copy(firstFloat = it)) },
-                    title = stringResource(R.string.compose_first_float),
-                    summary = stringResource(R.string.compose_first_float_summary),
+                    title = stringResource(R.string.first_float),
+                    summary = stringResource(R.string.first_float_summary),
                     insideMargin = DEFAULT_ITEM_MARGIN,
                 )
                 SwitchPreference(
                     checked = settings.aodText,
                     onCheckedChange = { update(settings.copy(aodText = it)) },
-                    title = stringResource(R.string.compose_aod_text),
-                    summary = stringResource(R.string.compose_aod_text_summary),
+                    title = stringResource(R.string.aod_text),
+                    summary = stringResource(R.string.aod_text_summary),
                     insideMargin = DEFAULT_ITEM_MARGIN,
                 )
                 SwitchPreference(
                     checked = settings.enableFloat,
                     onCheckedChange = { update(settings.copy(enableFloat = it)) },
-                    title = stringResource(R.string.compose_update_float),
-                    summary = stringResource(R.string.compose_update_float_summary),
+                    title = stringResource(R.string.update_float),
+                    summary = stringResource(R.string.update_float_summary),
                     insideMargin = DEFAULT_ITEM_MARGIN,
                 )
                 SwitchPreference(
                     checked = settings.focusNotification,
                     onCheckedChange = { update(settings.copy(focusNotification = it)) },
-                    title = stringResource(R.string.compose_focus_notification),
-                    summary = stringResource(R.string.compose_focus_notification_summary),
+                    title = stringResource(R.string.focus_notification),
+                    summary = stringResource(R.string.focus_notification_summary),
                     insideMargin = DEFAULT_ITEM_MARGIN,
                 )
                 SwitchPreference(
                     checked = settings.restoreLockscreen,
                     onCheckedChange = { update(settings.copy(restoreLockscreen = it)) },
-                    title = stringResource(R.string.compose_restore_lockscreen),
-                    summary = stringResource(R.string.compose_restore_lockscreen_summary),
+                    title = stringResource(R.string.restore_lockscreen),
+                    summary = stringResource(R.string.restore_lockscreen_summary),
                     insideMargin = DEFAULT_ITEM_MARGIN,
                 )
                 ArrowPreference(
-                    title = stringResource(R.string.compose_auto_disappear),
-                    summary = stringResource(R.string.compose_timeout_seconds_value, settings.timeout),
+                    title = stringResource(R.string.auto_disappear),
+                    summary = stringResource(R.string.timeout_seconds_value, settings.timeout),
                     insideMargin = DEFAULT_ITEM_MARGIN,
                     onClick = {
                         timeoutText = settings.timeout.toString()
@@ -121,20 +121,20 @@ internal fun DefaultConfigPage(
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_appearance))
+            SectionTitle(stringResource(R.string.appearance))
             Card {
                 SwitchPreference(
                     checked = settings.marquee,
                     onCheckedChange = { update(settings.copy(marquee = it)) },
-                    title = stringResource(R.string.compose_marquee_channel),
-                    summary = stringResource(R.string.compose_marquee_channel_summary),
+                    title = stringResource(R.string.marquee_channel),
+                    summary = stringResource(R.string.marquee_channel_summary),
                     insideMargin = DEFAULT_ITEM_MARGIN,
                 )
                 OverlayDropdownPreference(
                     items = marqueeAutoHideLabels,
                     selectedIndex = marqueeAutoHideValues.indexOf(settings.marqueeAutoHide).coerceAtLeast(0),
-                    title = stringResource(R.string.compose_marquee_auto_hide),
-                    summary = stringResource(R.string.compose_marquee_auto_hide_summary),
+                    title = stringResource(R.string.marquee_auto_hide),
+                    summary = stringResource(R.string.marquee_auto_hide_summary),
                     enabled = settings.marquee,
                     insideMargin = DEFAULT_ITEM_MARGIN,
                     renderInRootScaffold = false,
@@ -145,33 +145,33 @@ internal fun DefaultConfigPage(
                 SwitchPreference(
                     checked = settings.dynamicHighlightColor,
                     onCheckedChange = { update(settings.copy(dynamicHighlightColor = it)) },
-                    title = stringResource(R.string.compose_dynamic_highlight_color),
-                    summary = stringResource(R.string.compose_dynamic_highlight_color_summary),
+                    title = stringResource(R.string.dynamic_highlight_color),
+                    summary = stringResource(R.string.dynamic_highlight_color_summary),
                     insideMargin = DEFAULT_ITEM_MARGIN,
                 )
                 SwitchPreference(
                     checked = settings.showIslandIcon,
                     onCheckedChange = { update(settings.copy(showIslandIcon = it)) },
-                    title = stringResource(R.string.compose_island_icon),
-                    summary = stringResource(R.string.compose_island_icon_summary),
+                    title = stringResource(R.string.island_icon),
+                    summary = stringResource(R.string.island_icon_summary),
                     insideMargin = DEFAULT_ITEM_MARGIN,
                 )
                 SwitchPreference(
                     checked = settings.preserveSmallIcon,
                     onCheckedChange = { update(settings.copy(preserveSmallIcon = it)) },
-                    title = stringResource(R.string.compose_preserve_small_icon),
-                    summary = stringResource(R.string.compose_preserve_small_icon_summary),
+                    title = stringResource(R.string.preserve_small_icon),
+                    summary = stringResource(R.string.preserve_small_icon_summary),
                     insideMargin = DEFAULT_ITEM_MARGIN,
                 )
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_glow))
+            SectionTitle(stringResource(R.string.glow))
             Card {
                 OverlayDropdownPreference(
                     items = glowModeLabels,
                     selectedIndex = glowModes.indexOf(settings.outerGlow).coerceAtLeast(0),
-                    title = stringResource(R.string.compose_focus_outer_glow),
+                    title = stringResource(R.string.focus_outer_glow),
                     insideMargin = DEFAULT_ITEM_MARGIN,
                     renderInRootScaffold = false,
                     onSelectedIndexChange = { index ->
@@ -188,14 +188,14 @@ internal fun DefaultConfigPage(
                     SwitchPreference(
                         checked = settings.forceOuterGlow,
                         onCheckedChange = { update(settings.copy(forceOuterGlow = it)) },
-                        title = stringResource(R.string.compose_force_outer_glow),
-                        summary = stringResource(R.string.compose_force_focus_outer_glow_summary),
+                        title = stringResource(R.string.force_outer_glow),
+                        summary = stringResource(R.string.force_focus_outer_glow_summary),
                         insideMargin = DEFAULT_ITEM_MARGIN,
                     )
                 }
                 AnimatedVisibility(visible = settings.outerGlow == GLOW_ON) {
                     ArrowPreference(
-                        title = stringResource(R.string.compose_out_effect_color),
+                        title = stringResource(R.string.out_effect_color),
                         summary = settings.outEffectColor.takeIf(String::isNotEmpty),
                         insideMargin = DEFAULT_ITEM_MARGIN,
                         onClick = {
@@ -207,7 +207,7 @@ internal fun DefaultConfigPage(
                 OverlayDropdownPreference(
                     items = glowModeLabels,
                     selectedIndex = glowModes.indexOf(settings.islandOuterGlow).coerceAtLeast(0),
-                    title = stringResource(R.string.compose_island_outer_glow),
+                    title = stringResource(R.string.island_outer_glow),
                     insideMargin = DEFAULT_ITEM_MARGIN,
                     renderInRootScaffold = false,
                     onSelectedIndexChange = { index ->
@@ -224,14 +224,14 @@ internal fun DefaultConfigPage(
                     SwitchPreference(
                         checked = settings.forceIslandOuterGlow,
                         onCheckedChange = { update(settings.copy(forceIslandOuterGlow = it)) },
-                        title = stringResource(R.string.compose_force_outer_glow),
-                        summary = stringResource(R.string.compose_force_island_outer_glow_summary),
+                        title = stringResource(R.string.force_outer_glow),
+                        summary = stringResource(R.string.force_island_outer_glow_summary),
                         insideMargin = DEFAULT_ITEM_MARGIN,
                     )
                 }
                 AnimatedVisibility(visible = settings.islandOuterGlow == GLOW_ON) {
                     ArrowPreference(
-                        title = stringResource(R.string.compose_out_effect_color),
+                        title = stringResource(R.string.out_effect_color),
                         summary = settings.islandOuterGlowColor.takeIf(String::isNotEmpty),
                         insideMargin = DEFAULT_ITEM_MARGIN,
                         onClick = {
@@ -246,7 +246,7 @@ internal fun DefaultConfigPage(
 
     WindowDialog(
         show = showTimeoutDialog,
-        title = stringResource(R.string.compose_auto_disappear),
+        title = stringResource(R.string.auto_disappear),
         onDismissRequest = { showTimeoutDialog = false },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -254,7 +254,7 @@ internal fun DefaultConfigPage(
                 value = timeoutText,
                 onValueChange = { raw -> timeoutText = raw.filter(Char::isDigit).take(9) },
                 modifier = Modifier.fillMaxWidth(),
-                label = stringResource(R.string.compose_seconds),
+                label = stringResource(R.string.seconds),
                 useLabelAsPlaceholder = true,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -264,7 +264,7 @@ internal fun DefaultConfigPage(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 TextButton(
-                    text = stringResource(R.string.compose_cancel),
+                    text = stringResource(R.string.cancel),
                     onClick = { showTimeoutDialog = false },
                     modifier = Modifier.weight(1f),
                 )
@@ -278,14 +278,14 @@ internal fun DefaultConfigPage(
                     },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColorsPrimary(),
-                ) { Text(stringResource(R.string.compose_save)) }
+                ) { Text(stringResource(R.string.save)) }
             }
         }
     }
 
     ColorPaletteDialog(
         show = activeColorTarget != null,
-        title = stringResource(R.string.compose_out_effect_color),
+        title = stringResource(R.string.out_effect_color),
         initialColor = selectedColor,
         onDismiss = { activeColorTarget = null },
         onSave = { color ->

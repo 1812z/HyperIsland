@@ -102,12 +102,12 @@ internal fun IslandMaterialPage(
     var resetDialog by remember { mutableStateOf(false) }
     var colorState by remember { mutableStateOf<IslandMaterialState?>(null) }
 
-    val copied = stringResource(R.string.compose_material_config_copied)
-    val clipboardEmpty = stringResource(R.string.compose_import_empty_clipboard)
-    val importSuccess = stringResource(R.string.compose_material_import_success)
-    val importFailed = stringResource(R.string.compose_import_unknown_error)
-    val softUnsupported = stringResource(R.string.compose_material_soft_glass_os4_only)
-    val conflictMessage = stringResource(R.string.compose_material_background_conflict)
+    val copied = stringResource(R.string.material_config_copied)
+    val clipboardEmpty = stringResource(R.string.import_empty_clipboard)
+    val importSuccess = stringResource(R.string.material_import_success)
+    val importFailed = stringResource(R.string.import_unknown_error)
+    val softUnsupported = stringResource(R.string.material_soft_glass_os4_only)
+    val conflictMessage = stringResource(R.string.material_background_conflict)
     fun showMessage(message: String) { scope.launch { snackbarState.showSnackbar(message) } }
 
     fun save(state: IslandMaterialState, config: IslandMaterialConfig) {
@@ -128,16 +128,16 @@ internal fun IslandMaterialPage(
     val menuEntry = DropdownEntry(
         items = listOf(
             DropdownItem(
-                text = stringResource(R.string.compose_restore_default),
+                text = stringResource(R.string.restore_default),
                 onClick = { resetDialog = true },
                 icon = { modifier -> Icon(MiuixIcons.Reset, null, modifier) },
             ),
             DropdownItem(
-                text = stringResource(R.string.compose_export_to_clipboard),
+                text = stringResource(R.string.export_to_clipboard),
                 onClick = {
                     clipboard.setPrimaryClip(
                         ClipData.newPlainText(
-                            context.getString(R.string.compose_material_customize),
+                            context.getString(R.string.material_customize),
                             service.export(settings),
                         ),
                     )
@@ -146,7 +146,7 @@ internal fun IslandMaterialPage(
                 icon = { modifier -> Icon(MiuixIcons.Copy, null, modifier) },
             ),
             DropdownItem(
-                text = stringResource(R.string.compose_import_from_clipboard),
+                text = stringResource(R.string.import_from_clipboard),
                 onClick = {
                     val raw = clipboard.primaryClip?.getItemAt(0)?.coerceToText(context)?.toString()?.trim().orEmpty()
                     if (raw.isBlank()) {
@@ -173,13 +173,13 @@ internal fun IslandMaterialPage(
                 BlurredBar(topGradient = true) {
                     Column {
                         TopAppBar(
-                            title = stringResource(R.string.compose_material_customize),
-                            largeTitle = stringResource(R.string.compose_material_customize),
+                            title = stringResource(R.string.material_customize),
+                            largeTitle = stringResource(R.string.material_customize),
                             color = Color.Transparent,
                             scrollBehavior = scrollBehavior,
                             navigationIcon = {
                                 IconButton(onClick = onBack) {
-                                    Icon(MiuixIcons.Back, stringResource(R.string.compose_back))
+                                    Icon(MiuixIcons.Back, stringResource(R.string.back))
                                 }
                             },
                             actions = {
@@ -188,19 +188,19 @@ internal fun IslandMaterialPage(
                                 ) {
                                     Icon(
                                         ImageVector.vectorResource(R.drawable.ic_test_notification),
-                                        stringResource(R.string.compose_send_test_notification),
+                                        stringResource(R.string.send_test_notification),
                                     )
                                 }
                                 OverlayIconDropdownMenu(entry = menuEntry) {
-                                    Icon(MiuixIcons.More, stringResource(R.string.compose_list_actions))
+                                    Icon(MiuixIcons.More, stringResource(R.string.list_actions))
                                 }
                             },
                         )
                         TabRow(
                             tabs = listOf(
-                                stringResource(R.string.compose_material_big_tab),
-                                stringResource(R.string.compose_material_small_tab),
-                                stringResource(R.string.compose_material_expand_tab),
+                                stringResource(R.string.material_big_tab),
+                                stringResource(R.string.material_small_tab),
+                                stringResource(R.string.material_expand_tab),
                             ),
                             selectedTabIndex = pagerState.currentPage,
                             onTabSelected = { scope.launch { pagerState.animateScrollToPage(it) } },
@@ -234,12 +234,12 @@ internal fun IslandMaterialPage(
 
     WindowDialog(
         show = resetDialog,
-        title = stringResource(R.string.compose_restore_default),
+        title = stringResource(R.string.restore_default),
         onDismissRequest = { resetDialog = false },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(
-                text = stringResource(R.string.compose_restore_default_config_question),
+                text = stringResource(R.string.restore_default_config_question),
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             )
             androidx.compose.foundation.layout.Row(
@@ -247,7 +247,7 @@ internal fun IslandMaterialPage(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 TextButton(
-                    text = stringResource(R.string.compose_cancel),
+                    text = stringResource(R.string.cancel),
                     onClick = { resetDialog = false },
                     modifier = Modifier.weight(1f),
                 )
@@ -255,7 +255,7 @@ internal fun IslandMaterialPage(
                     onClick = { settings = service.reset(); resetDialog = false },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColorsPrimary(),
-                ) { Text(stringResource(R.string.compose_confirm)) }
+                ) { Text(stringResource(R.string.confirm)) }
             }
         }
     }
@@ -265,7 +265,7 @@ internal fun IslandMaterialPage(
         val config = settings.config(activeColorState)
         ColorPaletteDialog(
             show = true,
-            title = stringResource(R.string.compose_material_blend_color),
+            title = stringResource(R.string.material_blend_color),
             initialColor = config.toPickerColor(),
             onDismiss = { colorState = null },
         ) { color ->
@@ -306,11 +306,11 @@ private fun MaterialStateContent(
     ) {
         if (state != IslandMaterialState.Big) {
             item {
-                SectionTitle(stringResource(R.string.compose_material_follow_section))
+                SectionTitle(stringResource(R.string.material_follow_section))
                 Card(modifier = Modifier.fillMaxWidth()) {
                     PreferenceSwitch(
-                        title = stringResource(R.string.compose_material_follow_big),
-                        summary = stringResource(R.string.compose_material_follow_big_summary),
+                        title = stringResource(R.string.material_follow_big),
+                        summary = stringResource(R.string.material_follow_big_summary),
                         icon = null,
                         checked = follow,
                         onCheckedChange = onFollowChange,
@@ -319,12 +319,12 @@ private fun MaterialStateContent(
             }
         }
         item {
-            SectionTitle(stringResource(R.string.compose_material_type))
+            SectionTitle(stringResource(R.string.material_type))
             if (follow) {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Text(
                         text = stringResource(
-                            R.string.compose_material_following_type,
+                            R.string.material_following_type,
                             materialTypeLabel(effective.type),
                         ),
                         modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
@@ -335,7 +335,7 @@ private fun MaterialStateContent(
             } else {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     PreferenceDropdown(
-                        title = stringResource(R.string.compose_material_type),
+                        title = stringResource(R.string.material_type),
                         summary = null,
                         icon = null,
                         items = types.map { materialTypeLabel(it) },
@@ -346,10 +346,10 @@ private fun MaterialStateContent(
         }
         if (!follow && config.isCustom) {
             item {
-                SectionTitle(stringResource(R.string.compose_material_blur_section))
+                SectionTitle(stringResource(R.string.material_blur_section))
                 Card(modifier = Modifier.fillMaxWidth()) {
                     IntegerMaterialSlider(
-                        title = stringResource(R.string.compose_material_blur),
+                        title = stringResource(R.string.material_blur),
                         value = config.blur,
                         range = 0..100,
                     ) { onConfigChange(config.copy(blur = it)) }
@@ -357,58 +357,58 @@ private fun MaterialStateContent(
             }
             if (config.type == IslandMaterialType.HighlightGlass || config.type == IslandMaterialType.LiquidGlass) {
                 item {
-                    SectionTitle(stringResource(R.string.compose_glass_customize))
+                    SectionTitle(stringResource(R.string.glass_customize))
                     Card(modifier = Modifier.fillMaxWidth()) {
-                        IntegerMaterialSlider(stringResource(R.string.compose_glass_edge_width), config.edgeThickness, 4..40) { onConfigChange(config.copy(edgeThickness = it)) }
-                        IntegerMaterialSlider(stringResource(R.string.compose_glass_refraction), config.refraction, 0..40) { onConfigChange(config.copy(refraction = it)) }
-                        IntegerMaterialSlider(stringResource(R.string.compose_glass_highlight), config.reflectionStrength, 0..100) { onConfigChange(config.copy(reflectionStrength = it)) }
-                        IntegerMaterialSlider(stringResource(R.string.compose_glass_shadow), config.darker, 0..100) { onConfigChange(config.copy(darker = it)) }
-                        IntegerMaterialSlider(stringResource(R.string.compose_glass_light_direction), config.lightDirection, 0..359) { onConfigChange(config.copy(lightDirection = it)) }
-                        IntegerMaterialSlider(stringResource(R.string.compose_glass_dispersion), config.dispersion, 0..100) { onConfigChange(config.copy(dispersion = it)) }
+                        IntegerMaterialSlider(stringResource(R.string.glass_edge_width), config.edgeThickness, 4..40) { onConfigChange(config.copy(edgeThickness = it)) }
+                        IntegerMaterialSlider(stringResource(R.string.glass_refraction), config.refraction, 0..40) { onConfigChange(config.copy(refraction = it)) }
+                        IntegerMaterialSlider(stringResource(R.string.glass_highlight), config.reflectionStrength, 0..100) { onConfigChange(config.copy(reflectionStrength = it)) }
+                        IntegerMaterialSlider(stringResource(R.string.glass_shadow), config.darker, 0..100) { onConfigChange(config.copy(darker = it)) }
+                        IntegerMaterialSlider(stringResource(R.string.glass_light_direction), config.lightDirection, 0..359) { onConfigChange(config.copy(lightDirection = it)) }
+                        IntegerMaterialSlider(stringResource(R.string.glass_dispersion), config.dispersion, 0..100) { onConfigChange(config.copy(dispersion = it)) }
                     }
                 }
             }
             if (config.type == IslandMaterialType.SoftGlass) {
                 item {
-                    SectionTitle(stringResource(R.string.compose_material_lighting_section))
+                    SectionTitle(stringResource(R.string.material_lighting_section))
                     Card(modifier = Modifier.fillMaxWidth()) {
-                        DecimalMaterialSlider(stringResource(R.string.compose_material_soft_light), config.softLight) { onConfigChange(config.copy(softLight = it)) }
-                        DecimalMaterialSlider(stringResource(R.string.compose_material_saturation), config.saturation) { onConfigChange(config.copy(saturation = it)) }
-                        DecimalMaterialSlider(stringResource(R.string.compose_material_brightness), config.brightness) { onConfigChange(config.copy(brightness = it)) }
-                        DecimalMaterialSlider(stringResource(R.string.compose_material_darker), config.softDarker) { onConfigChange(config.copy(softDarker = it)) }
-                        DecimalMaterialSlider(stringResource(R.string.compose_material_transparency), config.transparency) { onConfigChange(config.copy(transparency = it)) }
-                        DecimalMaterialSlider(stringResource(R.string.compose_material_burn), config.burn) { onConfigChange(config.copy(burn = it)) }
+                        DecimalMaterialSlider(stringResource(R.string.material_soft_light), config.softLight) { onConfigChange(config.copy(softLight = it)) }
+                        DecimalMaterialSlider(stringResource(R.string.material_saturation), config.saturation) { onConfigChange(config.copy(saturation = it)) }
+                        DecimalMaterialSlider(stringResource(R.string.material_brightness), config.brightness) { onConfigChange(config.copy(brightness = it)) }
+                        DecimalMaterialSlider(stringResource(R.string.material_darker), config.softDarker) { onConfigChange(config.copy(softDarker = it)) }
+                        DecimalMaterialSlider(stringResource(R.string.material_transparency), config.transparency) { onConfigChange(config.copy(transparency = it)) }
+                        DecimalMaterialSlider(stringResource(R.string.material_burn), config.burn) { onConfigChange(config.copy(burn = it)) }
                     }
                 }
                 item {
-                    SectionTitle(stringResource(R.string.compose_material_refraction_section))
+                    SectionTitle(stringResource(R.string.material_refraction_section))
                     Card(modifier = Modifier.fillMaxWidth()) {
-                        DecimalMaterialSlider(stringResource(R.string.compose_material_refraction), config.softRefraction) { onConfigChange(config.copy(softRefraction = it)) }
-                        DecimalMaterialSlider(stringResource(R.string.compose_material_edge_thickness), config.softEdgeThickness) { onConfigChange(config.copy(softEdgeThickness = it)) }
-                        DecimalMaterialSlider(stringResource(R.string.compose_material_reflection_strength), config.softReflection) { onConfigChange(config.copy(softReflection = it)) }
-                        DecimalMaterialSlider(stringResource(R.string.compose_material_directional_light), config.directionalLightIntensity) { onConfigChange(config.copy(directionalLightIntensity = it)) }
+                        DecimalMaterialSlider(stringResource(R.string.material_refraction), config.softRefraction) { onConfigChange(config.copy(softRefraction = it)) }
+                        DecimalMaterialSlider(stringResource(R.string.material_edge_thickness), config.softEdgeThickness) { onConfigChange(config.copy(softEdgeThickness = it)) }
+                        DecimalMaterialSlider(stringResource(R.string.material_reflection_strength), config.softReflection) { onConfigChange(config.copy(softReflection = it)) }
+                        DecimalMaterialSlider(stringResource(R.string.material_directional_light), config.directionalLightIntensity) { onConfigChange(config.copy(directionalLightIntensity = it)) }
                     }
                 }
                 item {
-                    SectionTitle(stringResource(R.string.compose_material_background_section))
+                    SectionTitle(stringResource(R.string.material_background_section))
                     Card(modifier = Modifier.fillMaxWidth()) {
-                        DecimalMaterialSlider(stringResource(R.string.compose_material_background_saturation), config.backgroundSaturation) { onConfigChange(config.copy(backgroundSaturation = it)) }
-                        DecimalMaterialSlider(stringResource(R.string.compose_material_background_brightness), config.backgroundBrightness) { onConfigChange(config.copy(backgroundBrightness = it)) }
+                        DecimalMaterialSlider(stringResource(R.string.material_background_saturation), config.backgroundSaturation) { onConfigChange(config.copy(backgroundSaturation = it)) }
+                        DecimalMaterialSlider(stringResource(R.string.material_background_brightness), config.backgroundBrightness) { onConfigChange(config.copy(backgroundBrightness = it)) }
                     }
                 }
             }
             item {
-                SectionTitle(stringResource(R.string.compose_material_blend_section))
+                SectionTitle(stringResource(R.string.material_blend_section))
                 Card(modifier = Modifier.fillMaxWidth()) {
                     SettingsAction(
-                        title = stringResource(R.string.compose_material_blend_color),
+                        title = stringResource(R.string.material_blend_color),
                         summary = config.toPickerColor().toArgbHex(),
                         endIcon = MiuixIcons.ChevronForward,
                         onClick = onPickColor,
                     )
                     AnimatedVisibility(visible = config.type == IslandMaterialType.SoftGlass) {
                         PreferenceSwitch(
-                            title = stringResource(R.string.compose_material_highlight_switch),
+                            title = stringResource(R.string.material_highlight_switch),
                             summary = null,
                             icon = null,
                             checked = config.highlight,
@@ -462,11 +462,11 @@ private fun DecimalMaterialSlider(
 @Composable
 private fun materialTypeLabel(type: IslandMaterialType): String = stringResource(
     when (type) {
-        IslandMaterialType.Default -> R.string.compose_material_default
-        IslandMaterialType.Gaussian -> R.string.compose_material_gaussian
-        IslandMaterialType.HighlightGlass -> R.string.compose_material_highlight_glass
-        IslandMaterialType.LiquidGlass -> R.string.compose_material_liquid_glass
-        IslandMaterialType.SoftGlass -> R.string.compose_material_soft_glass
+        IslandMaterialType.Default -> R.string.material_default
+        IslandMaterialType.Gaussian -> R.string.material_gaussian
+        IslandMaterialType.HighlightGlass -> R.string.material_highlight_glass
+        IslandMaterialType.LiquidGlass -> R.string.material_liquid_glass
+        IslandMaterialType.SoftGlass -> R.string.material_soft_glass
     },
 )
 

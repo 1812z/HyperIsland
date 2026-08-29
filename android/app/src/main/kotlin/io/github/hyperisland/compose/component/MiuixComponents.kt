@@ -104,7 +104,7 @@ internal fun DetailPage(
                         scrollBehavior = scrollBehavior,
                         navigationIcon = {
                             IconButton(onClick = onBack) {
-                                Icon(MiuixIcons.Back, stringResource(R.string.compose_back))
+                                Icon(MiuixIcons.Back, stringResource(R.string.back))
                             }
                         },
                         actions = {

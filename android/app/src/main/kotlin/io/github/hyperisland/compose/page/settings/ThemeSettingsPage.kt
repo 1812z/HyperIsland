@@ -63,13 +63,13 @@ internal fun ThemeSettingsPage(prefs: FlutterPrefsRepository, onBack: () -> Unit
     var showColorDialog by remember { mutableStateOf(false) }
     var selectedColor by remember { mutableStateOf(Color.Red) }
 
-    DetailPage(title = stringResource(R.string.compose_theme), onBack = onBack) {
+    DetailPage(title = stringResource(R.string.theme), onBack = onBack) {
         item {
             TabRow(
                 tabs = listOf(
-                    stringResource(R.string.compose_follow_system),
-                    stringResource(R.string.compose_light),
-                    stringResource(R.string.compose_dark),
+                    stringResource(R.string.follow_system),
+                    stringResource(R.string.light),
+                    stringResource(R.string.dark),
                 ),
                 selectedTabIndex = themeModes.indexOf(selectedMode.value).coerceAtLeast(0),
                 onTabSelected = { index ->
@@ -83,8 +83,8 @@ internal fun ThemeSettingsPage(prefs: FlutterPrefsRepository, onBack: () -> Unit
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(
-                    title = stringResource(R.string.compose_monet_color),
-                    summary = stringResource(R.string.compose_monet_color_summary),
+                    title = stringResource(R.string.monet_color),
+                    summary = stringResource(R.string.monet_color_summary),
                     icon = MiuixIcons.Theme,
                     checked = monetEnabled.value,
                 ) { enabled ->
@@ -93,9 +93,9 @@ internal fun ThemeSettingsPage(prefs: FlutterPrefsRepository, onBack: () -> Unit
                 }
                 AnimatedVisibility(visible = monetEnabled.value) {
                     SettingsActionWithArrow(
-                        title = stringResource(R.string.compose_theme_color),
+                        title = stringResource(R.string.theme_color),
                         icon = MiuixIcons.Tune,
-                        summary = stringResource(R.string.compose_theme_color_summary),
+                        summary = stringResource(R.string.theme_color_summary),
                     ) {
                         selectedColor = Color(themeColor.value.toInt())
                         showColorDialog = true
@@ -106,8 +106,8 @@ internal fun ThemeSettingsPage(prefs: FlutterPrefsRepository, onBack: () -> Unit
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(
-                    title = stringResource(R.string.compose_floating_navigation_bar),
-                    summary = stringResource(R.string.compose_floating_navigation_bar_summary),
+                    title = stringResource(R.string.floating_navigation_bar),
+                    summary = stringResource(R.string.floating_navigation_bar_summary),
                     icon = MiuixIcons.Sidebar,
                     checked = floatingNavigationBar.value,
                 ) { enabled ->
@@ -115,8 +115,8 @@ internal fun ThemeSettingsPage(prefs: FlutterPrefsRepository, onBack: () -> Unit
                     prefs.putBoolean(PREF_FLOATING_NAVIGATION_BAR, enabled)
                 }
                 PreferenceSwitch(
-                    title = stringResource(R.string.compose_interface_blur),
-                    summary = stringResource(R.string.compose_interface_blur_summary),
+                    title = stringResource(R.string.interface_blur),
+                    summary = stringResource(R.string.interface_blur_summary),
                     icon = MiuixIcons.Layers,
                     checked = blurBars.value,
                 ) { enabled ->
@@ -128,8 +128,8 @@ internal fun ThemeSettingsPage(prefs: FlutterPrefsRepository, onBack: () -> Unit
                     onValueChange = { value ->
                         predictiveBackMaxTranslation.value = value.roundToInt().toLong()
                     },
-                    title = stringResource(R.string.compose_predictive_back_distance),
-                    summary = stringResource(R.string.compose_predictive_back_distance_summary),
+                    title = stringResource(R.string.predictive_back_distance),
+                    summary = stringResource(R.string.predictive_back_distance_summary),
                     icon = MiuixIcons.Back,
                     valueText = "${predictiveBackMaxTranslation.value}%",
                     valueRange = 0f..100f,
@@ -154,7 +154,7 @@ internal fun ThemeSettingsPage(prefs: FlutterPrefsRepository, onBack: () -> Unit
 
     WindowDialog(
         show = showColorDialog,
-        title = stringResource(R.string.compose_theme_color),
+        title = stringResource(R.string.theme_color),
         onDismissRequest = { showColorDialog = false },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -168,7 +168,7 @@ internal fun ThemeSettingsPage(prefs: FlutterPrefsRepository, onBack: () -> Unit
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 TextButton(
-                    text = stringResource(R.string.compose_cancel),
+                    text = stringResource(R.string.cancel),
                     onClick = { showColorDialog = false },
                     modifier = Modifier.weight(1f),
                 )
@@ -182,7 +182,7 @@ internal fun ThemeSettingsPage(prefs: FlutterPrefsRepository, onBack: () -> Unit
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColorsPrimary(),
                 ) {
-                    Text(stringResource(R.string.compose_save))
+                    Text(stringResource(R.string.save))
                 }
             }
         }

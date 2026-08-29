@@ -45,13 +45,13 @@ internal fun ColorPaletteDialog(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 TextButton(
-                    text = stringResource(R.string.compose_cancel),
+                    text = stringResource(R.string.cancel),
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
                 )
                 if (onDelete != null) {
                     TextButton(
-                        text = stringResource(R.string.compose_delete),
+                        text = stringResource(R.string.delete),
                         onClick = onDelete,
                         modifier = Modifier.weight(1f),
                     )
@@ -61,7 +61,7 @@ internal fun ColorPaletteDialog(
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColorsPrimary(),
                 ) {
-                    Text(stringResource(R.string.compose_save))
+                    Text(stringResource(R.string.save))
                 }
             }
         }

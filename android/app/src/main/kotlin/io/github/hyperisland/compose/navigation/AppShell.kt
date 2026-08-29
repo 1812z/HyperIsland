@@ -124,10 +124,10 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     val context = LocalContext.current
     val destinations = remember {
         listOf(
-            RootDestination(R.string.compose_nav_home, MiuixIcons.Home),
-            RootDestination(R.string.compose_nav_apps, MiuixIcons.GridView),
-            RootDestination(R.string.compose_nav_settings, MiuixIcons.Settings),
-            RootDestination(R.string.compose_about, MiuixIcons.Info),
+            RootDestination(R.string.nav_home, MiuixIcons.Home),
+            RootDestination(R.string.nav_apps, MiuixIcons.GridView),
+            RootDestination(R.string.nav_settings, MiuixIcons.Settings),
+            RootDestination(R.string.about, MiuixIcons.Info),
         )
     }
     val pagerState = rememberPagerState(pageCount = { destinations.size })
@@ -135,7 +135,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     val homeOverviewState = rememberHomeOverviewState(prefs)
     val scope = rememberCoroutineScope()
     val updateSnackbarState = remember { SnackbarHostState() }
-    val alreadyLatestMessage = stringResource(R.string.compose_already_latest)
+    val alreadyLatestMessage = stringResource(R.string.already_latest)
     var updateDialogState by remember { mutableStateOf<UpdateDialogState?>(null) }
     var isCheckingUpdate by remember { mutableStateOf(false) }
     val floatingNavigationBar = rememberBooleanPreference(prefs, PREF_FLOATING_NAVIGATION_BAR, false)

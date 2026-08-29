@@ -55,7 +55,7 @@ internal fun KeepIslandContentListDialog(
                                 values = values.toMutableList().also { it[index] = next }
                             },
                             modifier = Modifier.weight(1f),
-                            label = stringResource(R.string.compose_keep_island_carousel_item, index + 1),
+                            label = stringResource(R.string.keep_island_carousel_item, index + 1),
                             useLabelAsPlaceholder = true,
                             minLines = 1,
                             maxLines = 2,
@@ -66,13 +66,13 @@ internal fun KeepIslandContentListDialog(
                                 else values.filterIndexed { itemIndex, _ -> itemIndex != index }
                             },
                         ) {
-                            Icon(MiuixIcons.Close, stringResource(R.string.compose_delete))
+                            Icon(MiuixIcons.Close, stringResource(R.string.delete))
                         }
                     }
                 }
             }
             TextButton(
-                text = stringResource(R.string.compose_keep_island_add_content),
+                text = stringResource(R.string.keep_island_add_content),
                 onClick = { values = values + "" },
             )
             DialogActions(
@@ -98,7 +98,7 @@ internal fun KeepIslandTextDialog(
                 value = value,
                 onValueChange = { value = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = stringResource(R.string.compose_keep_island_content_hint, "{battery.level}"),
+                label = stringResource(R.string.keep_island_content_hint, "{battery.level}"),
                 useLabelAsPlaceholder = true,
                 minLines = 2,
                 maxLines = 4,
@@ -108,12 +108,12 @@ internal fun KeepIslandTextDialog(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 TextButton(
-                    text = stringResource(R.string.compose_cancel),
+                    text = stringResource(R.string.cancel),
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
                 )
                 TextButton(
-                    text = stringResource(R.string.compose_clear),
+                    text = stringResource(R.string.clear),
                     onClick = { onSave("") },
                     modifier = Modifier.weight(1f),
                 )
@@ -122,7 +122,7 @@ internal fun KeepIslandTextDialog(
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColorsPrimary(),
                 ) {
-                    Text(stringResource(R.string.compose_save))
+                    Text(stringResource(R.string.save))
                 }
             }
         }
@@ -140,7 +140,7 @@ internal fun KeepIslandIntervalDialog(
     val normalized = value.toIntOrNull()?.coerceIn(1, 6000)
     WindowDialog(
         show = show,
-        title = stringResource(R.string.compose_keep_island_carousel_interval),
+        title = stringResource(R.string.keep_island_carousel_interval),
         onDismissRequest = onDismiss,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -148,7 +148,7 @@ internal fun KeepIslandIntervalDialog(
                 value = value,
                 onValueChange = { next -> value = next.filter(Char::isDigit).take(4) },
                 modifier = Modifier.fillMaxWidth(),
-                label = stringResource(R.string.compose_keep_island_carousel_interval_summary),
+                label = stringResource(R.string.keep_island_carousel_interval_summary),
                 useLabelAsPlaceholder = true,
                 singleLine = true,
             )
@@ -157,7 +157,7 @@ internal fun KeepIslandIntervalDialog(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 TextButton(
-                    text = stringResource(R.string.compose_cancel),
+                    text = stringResource(R.string.cancel),
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
                 )
@@ -167,7 +167,7 @@ internal fun KeepIslandIntervalDialog(
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColorsPrimary(),
                 ) {
-                    Text(stringResource(R.string.compose_save))
+                    Text(stringResource(R.string.save))
                 }
             }
         }
@@ -184,7 +184,7 @@ private fun DialogActions(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         TextButton(
-            text = stringResource(R.string.compose_cancel),
+            text = stringResource(R.string.cancel),
             onClick = onDismiss,
             modifier = Modifier.weight(1f),
         )
@@ -193,7 +193,7 @@ private fun DialogActions(
             modifier = Modifier.weight(1f),
             colors = ButtonDefaults.buttonColorsPrimary(),
         ) {
-            Text(stringResource(R.string.compose_save))
+            Text(stringResource(R.string.save))
         }
     }
 }

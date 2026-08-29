@@ -98,7 +98,7 @@ internal fun FilterRulesPage(
     var showSystemApps by remember { mutableStateOf(false) }
     var revision by remember { mutableIntStateOf(0) }
 
-    val resetResult = stringResource(R.string.compose_filter_reset_result)
+    val resetResult = stringResource(R.string.filter_reset_result)
 
     fun loadApps(forceRefresh: Boolean) {
         scope.launch {
@@ -151,20 +151,20 @@ internal fun FilterRulesPage(
         items = listOf(
             DropdownItem(
                 text = stringResource(
-                    if (showSystemApps) R.string.compose_hide_system_apps
-                    else R.string.compose_show_system_apps,
+                    if (showSystemApps) R.string.hide_system_apps
+                    else R.string.show_system_apps,
                 ),
                 selected = showSystemApps,
                 onClick = { showSystemApps = !showSystemApps },
                 icon = { modifier -> Icon(MiuixIcons.Filter, null, modifier) },
             ),
             DropdownItem(
-                text = stringResource(R.string.compose_refresh_list),
+                text = stringResource(R.string.refresh_list),
                 onClick = { loadApps(true) },
                 icon = { modifier -> Icon(MiuixIcons.Refresh, null, modifier) },
             ),
             DropdownItem(
-                text = stringResource(R.string.compose_restore_default),
+                text = stringResource(R.string.restore_default),
                 onClick = {
                     val count = prefs.resetForegroundRules()
                     revision++
@@ -180,18 +180,18 @@ internal fun FilterRulesPage(
             topBar = {
                 BlurredBar(topGradient = true) {
                     TopAppBar(
-                        title = stringResource(R.string.compose_filter_rules),
-                        largeTitle = stringResource(R.string.compose_filter_rules),
+                        title = stringResource(R.string.filter_rules),
+                        largeTitle = stringResource(R.string.filter_rules),
                         color = Color.Transparent,
                         scrollBehavior = scrollBehavior,
                         navigationIcon = {
                             IconButton(onClick = onBack) {
-                                Icon(MiuixIcons.Back, stringResource(R.string.compose_back))
+                                Icon(MiuixIcons.Back, stringResource(R.string.back))
                             }
                         },
                         actions = {
                             OverlayIconDropdownMenu(entry = menuEntry) {
-                                Icon(MiuixIcons.More, stringResource(R.string.compose_list_actions))
+                                Icon(MiuixIcons.More, stringResource(R.string.list_actions))
                             }
                         },
                     )
@@ -221,8 +221,8 @@ internal fun FilterRulesPage(
                         item {
                             TabRow(
                                 tabs = listOf(
-                                    stringResource(R.string.compose_filter_foreground_tab),
-                                    stringResource(R.string.compose_filter_exclusion_tab),
+                                    stringResource(R.string.filter_foreground_tab),
+                                    stringResource(R.string.filter_exclusion_tab),
                                 ),
                                 selectedTabIndex = selectedTab,
                                 onTabSelected = { selectedTab = it },
@@ -232,8 +232,8 @@ internal fun FilterRulesPage(
                         item {
                             SectionTitle(
                                 stringResource(
-                                    if (selectedTab == 0) R.string.compose_filter_foreground_description
-                                    else R.string.compose_filter_exclusion_description,
+                                    if (selectedTab == 0) R.string.filter_foreground_description
+                                    else R.string.filter_exclusion_description,
                                 ),
                             )
                         }
@@ -246,14 +246,14 @@ internal fun FilterRulesPage(
                                         onSearch = {},
                                         expanded = searchExpanded,
                                         onExpandedChange = { searchExpanded = it },
-                                        label = stringResource(R.string.compose_search_apps),
+                                        label = stringResource(R.string.search_apps),
                                     )
                                 },
                                 onExpandedChange = { searchExpanded = it },
                                 expanded = searchExpanded,
                                 outsideEndAction = {
                                     TextButton(
-                                        text = stringResource(R.string.compose_cancel),
+                                        text = stringResource(R.string.cancel),
                                         onClick = { searchExpanded = false },
                                     )
                                 },
@@ -276,8 +276,8 @@ internal fun FilterRulesPage(
                                 ) {
                                     Text(
                                         stringResource(
-                                            if (query.isEmpty()) R.string.compose_no_apps_found
-                                            else R.string.compose_no_matching_apps,
+                                            if (query.isEmpty()) R.string.no_apps_found
+                                            else R.string.no_matching_apps,
                                         ),
                                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                                     )
@@ -353,10 +353,10 @@ private fun FilterAppRow(
                 app = app,
                 actions = actions,
                 labels = listOf(
-                    stringResource(R.string.compose_filter_action_default),
-                    stringResource(R.string.compose_filter_action_small_only),
-                    stringResource(R.string.compose_filter_action_expand),
-                    stringResource(R.string.compose_filter_action_suppress),
+                    stringResource(R.string.filter_action_default),
+                    stringResource(R.string.filter_action_small_only),
+                    stringResource(R.string.filter_action_expand),
+                    stringResource(R.string.filter_action_suppress),
                 ),
                 selectedIndex = actions.indexOf(action).coerceAtLeast(0),
                 startAction = startAction,

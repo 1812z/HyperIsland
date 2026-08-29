@@ -29,8 +29,8 @@ internal fun ChargeIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Unit)
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
-    val scopeFailed = stringResource(R.string.compose_ext_scope_failed)
-    val restartRequired = stringResource(R.string.compose_restart_scope_app)
+    val scopeFailed = stringResource(R.string.ext_scope_failed)
+    val restartRequired = stringResource(R.string.restart_scope_app)
     val enabled = rememberBooleanPreference(prefs, KEY_CHARGE_ISLAND, false)
     val leftMode = rememberStringPreference(prefs, KEY_CHARGE_LEFT_MODE, MODE_DEFAULT)
     val rightMode = rememberStringPreference(prefs, KEY_CHARGE_RIGHT_MODE, MODE_DEFAULT)
@@ -40,28 +40,28 @@ internal fun ChargeIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Unit)
     val durationDraft = remember(durationSeconds.value) { mutableStateOf(durationSeconds.value.toString()) }
     val modeValues = listOf(MODE_DEFAULT, MODE_POWER, MODE_VOLTAGE, MODE_CURRENT, MODE_LEVEL, MODE_TEMPERATURE)
     val modeLabels = listOf(
-        stringResource(R.string.compose_default),
-        stringResource(R.string.compose_ext_power),
-        stringResource(R.string.compose_ext_voltage),
-        stringResource(R.string.compose_ext_current),
-        stringResource(R.string.compose_ext_battery_level),
-        stringResource(R.string.compose_ext_battery_temperature),
+        stringResource(R.string.default_option),
+        stringResource(R.string.ext_power),
+        stringResource(R.string.ext_voltage),
+        stringResource(R.string.ext_current),
+        stringResource(R.string.ext_battery_level),
+        stringResource(R.string.ext_battery_temperature),
     )
     val durationValues = listOf(MODE_DEFAULT, DURATION_CUSTOM, DURATION_PERSISTENT)
 
     fun show(message: String) { scope.launch { snackbar.showSnackbar(message) } }
 
     DetailPage(
-        title = stringResource(R.string.compose_ext_charge_settings),
+        title = stringResource(R.string.ext_charge_settings),
         onBack = onBack,
         snackbarHost = { SnackbarHost(snackbar) },
     ) {
         item {
-            SectionTitle(stringResource(R.string.compose_config))
+            SectionTitle(stringResource(R.string.config))
             Card(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(
-                    title = stringResource(R.string.compose_ext_charge_enable),
-                    summary = stringResource(R.string.compose_ext_charge_enable_summary),
+                    title = stringResource(R.string.ext_charge_enable),
+                    summary = stringResource(R.string.ext_charge_enable_summary),
                     icon = null,
                     checked = enabled.value,
                 ) { value ->
@@ -76,27 +76,27 @@ internal fun ChargeIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Unit)
                     }
                 }
                 PreferenceDropdown(
-                    title = stringResource(R.string.compose_ext_charge_left_mode),
+                    title = stringResource(R.string.ext_charge_left_mode),
                     summary = null,
                     icon = null,
                     items = modeLabels,
                     selectedIndex = modeValues.indexOf(leftMode.value).coerceAtLeast(0),
                 ) { index -> leftMode.value = modeValues[index]; prefs.putString(KEY_CHARGE_LEFT_MODE, modeValues[index]) }
                 PreferenceDropdown(
-                    title = stringResource(R.string.compose_ext_charge_right_mode),
+                    title = stringResource(R.string.ext_charge_right_mode),
                     summary = null,
                     icon = null,
                     items = modeLabels,
                     selectedIndex = modeValues.indexOf(rightMode.value).coerceAtLeast(0),
                 ) { index -> rightMode.value = modeValues[index]; prefs.putString(KEY_CHARGE_RIGHT_MODE, modeValues[index]) }
                 PreferenceDropdown(
-                    title = stringResource(R.string.compose_ext_duration),
+                    title = stringResource(R.string.ext_duration),
                     summary = null,
                     icon = null,
                     items = listOf(
-                        stringResource(R.string.compose_default),
-                        stringResource(R.string.compose_ext_custom),
-                        stringResource(R.string.compose_ext_persistent),
+                        stringResource(R.string.default_option),
+                        stringResource(R.string.ext_custom),
+                        stringResource(R.string.ext_persistent),
                     ),
                     selectedIndex = durationValues.indexOf(durationMode.value).coerceAtLeast(0),
                 ) { index ->
@@ -115,14 +115,14 @@ internal fun ChargeIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Unit)
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        label = stringResource(R.string.compose_ext_custom_duration),
+                        label = stringResource(R.string.ext_custom_duration),
                         useLabelAsPlaceholder = true,
                         singleLine = true,
                     )
                 }
                 PreferenceSwitch(
-                    title = stringResource(R.string.compose_ext_outer_glow),
-                    summary = stringResource(R.string.compose_ext_charge_glow_summary),
+                    title = stringResource(R.string.ext_outer_glow),
+                    summary = stringResource(R.string.ext_charge_glow_summary),
                     icon = null,
                     checked = outerGlow.value,
                 ) { value -> outerGlow.value = value; prefs.putBoolean(KEY_CHARGE_OUTER_GLOW, value) }

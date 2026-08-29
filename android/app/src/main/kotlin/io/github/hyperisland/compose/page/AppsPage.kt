@@ -163,18 +163,18 @@ internal fun AppsPage(
     val normalMenuEntry = DropdownEntry(
         items = listOf(
             DropdownItem(
-                text = stringResource(R.string.compose_show_system_apps),
+                text = stringResource(R.string.show_system_apps),
                 selected = showSystemApps,
                 onClick = { showSystemApps = !showSystemApps },
                 icon = { modifier -> Icon(MiuixIcons.Filter, null, modifier = modifier) },
             ),
             DropdownItem(
-                text = stringResource(R.string.compose_refresh_list),
+                text = stringResource(R.string.refresh_list),
                 onClick = { loadApps(forceRefresh = true) },
                 icon = { modifier -> Icon(MiuixIcons.Refresh, null, modifier = modifier) },
             ),
             DropdownItem(
-                text = stringResource(R.string.compose_enable_all),
+                text = stringResource(R.string.enable_all),
                 onClick = {
                     val packages = filteredApps.map { it.packageName }
                     if (selectedMode == 0) prefs.setAppsEnabled(packages, true)
@@ -183,7 +183,7 @@ internal fun AppsPage(
                 icon = { modifier -> Icon(MiuixIcons.SelectAll, null, modifier = modifier) },
             ),
             DropdownItem(
-                text = stringResource(R.string.compose_disable_all),
+                text = stringResource(R.string.disable_all),
                 onClick = {
                     val packages = filteredApps.map { it.packageName }
                     if (selectedMode == 0) prefs.setAppsEnabled(packages, false)
@@ -196,12 +196,12 @@ internal fun AppsPage(
     val selectionMenuEntry = DropdownEntry(
         items = listOf(
             DropdownItem(
-                text = stringResource(R.string.compose_select_enabled_apps),
+                text = stringResource(R.string.select_enabled_apps),
                 onClick = { selectedPackages = filteredApps.map { it.packageName }.filter { it in activeEnabledPackages }.toSet() },
                 icon = { modifier -> Icon(MiuixIcons.SelectAll, null, modifier = modifier) },
             ),
             DropdownItem(
-                text = stringResource(R.string.compose_batch_channel_settings),
+                text = stringResource(R.string.batch_channel_settings),
                 enabled = selectedMode == 0 && selectedPackages.isNotEmpty(),
                 onClick = {
                     onOpenBatchChannelSettings(selectedPackages)
@@ -210,13 +210,13 @@ internal fun AppsPage(
                 icon = { modifier -> Icon(MiuixIcons.Settings, null, modifier = modifier) },
             ),
             DropdownItem(
-                text = stringResource(R.string.compose_batch_enable),
+                text = stringResource(R.string.batch_enable),
                 enabled = selectedPackages.isNotEmpty(),
                 onClick = { setSelectedEnabled(true) },
                 icon = { modifier -> Icon(MiuixIcons.SelectAll, null, modifier = modifier) },
             ),
             DropdownItem(
-                text = stringResource(R.string.compose_batch_disable),
+                text = stringResource(R.string.batch_disable),
                 enabled = selectedPackages.isNotEmpty(),
                 onClick = { setSelectedEnabled(false) },
                 icon = { modifier -> Icon(MiuixIcons.Blocklist, null, modifier = modifier) },
@@ -231,21 +231,21 @@ internal fun AppsPage(
             BlurredBar(topGradient = true) {
                 TopAppBar(
                 title = if (selectionMode) {
-                    stringResource(R.string.compose_selected_count, selectedPackages.size)
+                    stringResource(R.string.selected_count, selectedPackages.size)
                 } else {
-                    stringResource(R.string.compose_app_adaptation)
+                    stringResource(R.string.app_adaptation)
                 },
                 largeTitle = if (selectionMode) {
-                    stringResource(R.string.compose_selected_count, selectedPackages.size)
+                    stringResource(R.string.selected_count, selectedPackages.size)
                 } else {
-                    stringResource(R.string.compose_app_adaptation)
+                    stringResource(R.string.app_adaptation)
                 },
                 color = Color.Transparent,
                 scrollBehavior = scrollBehavior,
                 navigationIcon = {
                     if (selectionMode) {
                         IconButton(onClick = ::leaveSelectionMode) {
-                            Icon(MiuixIcons.Close, stringResource(R.string.compose_cancel_selection))
+                            Icon(MiuixIcons.Close, stringResource(R.string.cancel_selection))
                         }
                     }
                 },
@@ -263,7 +263,7 @@ internal fun AppsPage(
                             Icon(
                                 MiuixIcons.SelectAll,
                                 stringResource(
-                                    if (allVisibleSelected) R.string.compose_deselect_all else R.string.compose_select_all,
+                                    if (allVisibleSelected) R.string.deselect_all else R.string.select_all,
                                 ),
                             )
                         }
@@ -275,13 +275,13 @@ internal fun AppsPage(
                             },
                             enabled = !initialLoading && !refreshing,
                         ) {
-                            Icon(MiuixIcons.SelectAll, stringResource(R.string.compose_multi_select))
+                            Icon(MiuixIcons.SelectAll, stringResource(R.string.multi_select))
                         }
                     }
                     OverlayIconDropdownMenu(
                         entry = if (selectionMode) selectionMenuEntry else normalMenuEntry,
                     ) {
-                        Icon(MiuixIcons.More, stringResource(R.string.compose_list_actions))
+                        Icon(MiuixIcons.More, stringResource(R.string.list_actions))
                     }
                 },
             )
@@ -316,14 +316,14 @@ internal fun AppsPage(
                                 onSearch = {},
                                 expanded = searchExpanded,
                                 onExpandedChange = { searchExpanded = it },
-                                label = stringResource(R.string.compose_search_apps),
+                                label = stringResource(R.string.search_apps),
                             )
                         },
                         onExpandedChange = { searchExpanded = it },
                         expanded = searchExpanded,
                         outsideEndAction = {
                             TextButton(
-                                text = stringResource(R.string.compose_cancel),
+                                text = stringResource(R.string.cancel),
                                 onClick = { searchExpanded = false },
                             )
                         },
@@ -332,8 +332,8 @@ internal fun AppsPage(
                 item {
                     TabRow(
                         tabs = listOf(
-                            stringResource(R.string.compose_notification_mode),
-                            stringResource(R.string.compose_toast_mode),
+                            stringResource(R.string.notification_mode),
+                            stringResource(R.string.toast_mode),
                         ),
                         selectedTabIndex = selectedMode,
                         onTabSelected = {
@@ -350,8 +350,8 @@ internal fun AppsPage(
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
-                                if (query.isEmpty()) stringResource(R.string.compose_no_apps_found)
-                                else stringResource(R.string.compose_no_matching_apps),
+                                if (query.isEmpty()) stringResource(R.string.no_apps_found)
+                                else stringResource(R.string.no_matching_apps),
                                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                             )
                         }

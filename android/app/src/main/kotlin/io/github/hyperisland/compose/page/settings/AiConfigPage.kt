@@ -66,13 +66,13 @@ internal fun AiConfigPage(
     val snackbarState = remember { SnackbarHostState() }
     val initial = remember { prefs.aiConfigSettings() }
     val defaults = remember { AiConfigSettings() }
-    val defaultPrompt = stringResource(R.string.compose_ai_default_prompt)
+    val defaultPrompt = stringResource(R.string.ai_default_prompt)
     var saved by remember { mutableStateOf(initial) }
     var draft by remember {
         mutableStateOf(initial.copy(prompt = initial.prompt.ifBlank { defaultPrompt }))
     }
     var notificationContent by remember {
-        mutableStateOf(context.getString(R.string.compose_ai_default_notification))
+        mutableStateOf(context.getString(R.string.ai_default_notification))
     }
     var keyObscured by remember { mutableStateOf(true) }
     var showModels by remember { mutableStateOf(false) }
@@ -82,19 +82,19 @@ internal fun AiConfigPage(
     var sendingAi by remember { mutableStateOf(false) }
     var testResult by remember { mutableStateOf<AiTestResult?>(null) }
 
-    val urlEmpty = stringResource(R.string.compose_ai_url_empty)
-    val savedMessage = stringResource(R.string.compose_ai_saved)
-    val notificationSent = stringResource(R.string.compose_ai_notification_sent)
-    val aiNotificationSent = stringResource(R.string.compose_ai_ai_notification_sent)
-    val defaultNotification = stringResource(R.string.compose_ai_default_notification)
-    val testNotificationTitle = stringResource(R.string.compose_ai_test_notification_title)
-    val testSample = stringResource(R.string.compose_ai_test_sample)
-    val jsonOnlyInstruction = stringResource(R.string.compose_ai_json_only)
-    val jsonLeft = stringResource(R.string.compose_ai_json_left)
-    val jsonRight = stringResource(R.string.compose_ai_json_right)
-    val thinkingError = stringResource(R.string.compose_ai_thinking_error)
-    val invalidJsonError = stringResource(R.string.compose_ai_invalid_json)
-    val emptyJsonError = stringResource(R.string.compose_ai_empty_json)
+    val urlEmpty = stringResource(R.string.ai_url_empty)
+    val savedMessage = stringResource(R.string.ai_saved)
+    val notificationSent = stringResource(R.string.ai_notification_sent)
+    val aiNotificationSent = stringResource(R.string.ai_ai_notification_sent)
+    val defaultNotification = stringResource(R.string.ai_default_notification)
+    val testNotificationTitle = stringResource(R.string.ai_test_notification_title)
+    val testSample = stringResource(R.string.ai_test_sample)
+    val jsonOnlyInstruction = stringResource(R.string.ai_json_only)
+    val jsonLeft = stringResource(R.string.ai_json_left)
+    val jsonRight = stringResource(R.string.ai_json_right)
+    val thinkingError = stringResource(R.string.ai_thinking_error)
+    val invalidJsonError = stringResource(R.string.ai_invalid_json)
+    val emptyJsonError = stringResource(R.string.ai_empty_json)
 
     fun persistImmediate(update: (AiConfigSettings) -> AiConfigSettings) {
         draft = update(draft)
@@ -149,7 +149,7 @@ internal fun AiConfigPage(
                             settings = draft,
                             defaultPrompt = defaultPrompt,
                             userContent = context.getString(
-                                R.string.compose_ai_notification_user_content,
+                                R.string.ai_notification_user_content,
                                 content,
                             ),
                             jsonOnlyInstruction = jsonOnlyInstruction,
@@ -192,18 +192,18 @@ internal fun AiConfigPage(
     }
 
     DetailPage(
-        title = stringResource(R.string.compose_ai_summary),
+        title = stringResource(R.string.ai_summary),
         onBack = onBack,
         snackbarHost = { SnackbarHost(snackbarState) },
     ) {
         item {
-            SectionTitle(stringResource(R.string.compose_ai_section))
+            SectionTitle(stringResource(R.string.ai_section))
             Card {
                 SwitchPreference(
                     checked = draft.enabled,
                     onCheckedChange = { enabled -> persistImmediate { it.copy(enabled = enabled) } },
-                    title = stringResource(R.string.compose_ai_enabled),
-                    summary = stringResource(R.string.compose_ai_enabled_summary),
+                    title = stringResource(R.string.ai_enabled),
+                    summary = stringResource(R.string.ai_enabled_summary),
                     insideMargin = ITEM_MARGIN,
                 )
             }
@@ -219,7 +219,7 @@ internal fun AiConfigPage(
                 },
             ) {
                 Text(
-                    text = stringResource(R.string.compose_ai_warning),
+                    text = stringResource(R.string.ai_warning),
                     modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
                     fontSize = MiuixTheme.textStyles.body2.fontSize,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
@@ -228,7 +228,7 @@ internal fun AiConfigPage(
         }
 
         item {
-            SectionTitle(stringResource(R.string.compose_ai_api_section))
+            SectionTitle(stringResource(R.string.ai_api_section))
             Card {
                 Column(
                     modifier = Modifier.padding(16.dp),
@@ -238,7 +238,7 @@ internal fun AiConfigPage(
                         value = draft.url,
                         onValueChange = { draft = draft.copy(url = it) },
                         modifier = Modifier.fillMaxWidth(),
-                        label = stringResource(R.string.compose_ai_url),
+                        label = stringResource(R.string.ai_url),
                         useLabelAsPlaceholder = true,
                         singleLine = true,
                     )
@@ -246,7 +246,7 @@ internal fun AiConfigPage(
                         value = draft.apiKey,
                         onValueChange = { draft = draft.copy(apiKey = it) },
                         modifier = Modifier.fillMaxWidth(),
-                        label = stringResource(R.string.compose_ai_api_key),
+                        label = stringResource(R.string.ai_api_key),
                         useLabelAsPlaceholder = true,
                         singleLine = true,
                         visualTransformation = if (keyObscured) {
@@ -258,7 +258,7 @@ internal fun AiConfigPage(
                             IconButton(onClick = { keyObscured = !keyObscured }) {
                                 Icon(
                                     if (keyObscured) MiuixIcons.Show else MiuixIcons.Hide,
-                                    contentDescription = stringResource(R.string.compose_ai_api_key),
+                                    contentDescription = stringResource(R.string.ai_api_key),
                                 )
                             }
                         },
@@ -267,7 +267,7 @@ internal fun AiConfigPage(
                         value = draft.model,
                         onValueChange = { draft = draft.copy(model = it) },
                         modifier = Modifier.fillMaxWidth(),
-                        label = stringResource(R.string.compose_ai_model),
+                        label = stringResource(R.string.ai_model),
                         useLabelAsPlaceholder = true,
                         singleLine = true,
                         trailingIcon = {
@@ -280,7 +280,7 @@ internal fun AiConfigPage(
                             }) {
                                 Icon(
                                     MiuixIcons.Search,
-                                    contentDescription = stringResource(R.string.compose_ai_model_picker_title),
+                                    contentDescription = stringResource(R.string.ai_model_picker_title),
                                 )
                             }
                         },
@@ -289,15 +289,15 @@ internal fun AiConfigPage(
                         value = draft.prompt,
                         onValueChange = { draft = draft.copy(prompt = it) },
                         modifier = Modifier.fillMaxWidth(),
-                        label = stringResource(R.string.compose_ai_prompt),
+                        label = stringResource(R.string.ai_prompt),
                         useLabelAsPlaceholder = true,
                         minLines = 2,
                         maxLines = 10,
                     )
                 }
                 ArrowPreference(
-                    title = stringResource(R.string.compose_ai_custom_fields),
-                    summary = stringResource(R.string.compose_ai_custom_fields_summary),
+                    title = stringResource(R.string.ai_custom_fields),
+                    summary = stringResource(R.string.ai_custom_fields_summary),
                     insideMargin = ITEM_MARGIN,
                     onClick = { showCustomFields = true },
                 )
@@ -306,8 +306,8 @@ internal fun AiConfigPage(
                     onCheckedChange = { enabled ->
                         persistImmediate { it.copy(promptInUser = enabled) }
                     },
-                    title = stringResource(R.string.compose_ai_prompt_in_user),
-                    summary = stringResource(R.string.compose_ai_prompt_in_user_summary),
+                    title = stringResource(R.string.ai_prompt_in_user),
+                    summary = stringResource(R.string.ai_prompt_in_user_summary),
                     insideMargin = ITEM_MARGIN,
                 )
                 SliderPreference(
@@ -315,12 +315,12 @@ internal fun AiConfigPage(
                     onValueChange = {
                         draft = draft.copy(timeout = it.roundToInt().coerceIn(3, 15))
                     },
-                    title = stringResource(R.string.compose_ai_timeout),
+                    title = stringResource(R.string.ai_timeout),
                     valueRange = 3f..15f,
                     steps = 11,
                     endActions = {
                         SliderResetAction(
-                            valueText = stringResource(R.string.compose_ai_timeout_value, draft.timeout),
+                            valueText = stringResource(R.string.ai_timeout_value, draft.timeout),
                             visible = draft.timeout != defaults.timeout,
                             onClick = {
                                 persistImmediate { it.copy(timeout = defaults.timeout) }
@@ -339,12 +339,12 @@ internal fun AiConfigPage(
                         val value = ((it / 5f).roundToInt() * 5).coerceIn(0, 100)
                         draft = draft.copy(triggerCharCount = value)
                     },
-                    title = stringResource(R.string.compose_ai_trigger_count),
+                    title = stringResource(R.string.ai_trigger_count),
                     summary = stringResource(
                         if (draft.triggerCharCount == 0) {
-                            R.string.compose_ai_trigger_always
+                            R.string.ai_trigger_always
                         } else {
-                            R.string.compose_ai_trigger_count_summary
+                            R.string.ai_trigger_count_summary
                         },
                     ),
                     valueRange = 0f..100f,
@@ -371,8 +371,8 @@ internal fun AiConfigPage(
                             temperature = ((it * 10).roundToInt() / 10.0).coerceIn(0.0, 1.0),
                         )
                     },
-                    title = stringResource(R.string.compose_ai_temperature),
-                    summary = stringResource(R.string.compose_ai_temperature_summary),
+                    title = stringResource(R.string.ai_temperature),
+                    summary = stringResource(R.string.ai_temperature_summary),
                     valueRange = 0f..1f,
                     steps = 9,
                     endActions = {
@@ -395,8 +395,8 @@ internal fun AiConfigPage(
                     onValueChange = {
                         draft = draft.copy(maxTokens = it.roundToInt().coerceIn(20, 100))
                     },
-                    title = stringResource(R.string.compose_ai_max_tokens),
-                    summary = stringResource(R.string.compose_ai_max_tokens_summary),
+                    title = stringResource(R.string.ai_max_tokens),
+                    summary = stringResource(R.string.ai_max_tokens_summary),
                     valueRange = 20f..100f,
                     steps = 79,
                     endActions = {
@@ -428,14 +428,14 @@ internal fun AiConfigPage(
                             modifier = Modifier.weight(1f),
                         ) {
                             if (testing) CircularProgressIndicator(size = 18.dp)
-                            else Text(stringResource(R.string.compose_ai_test_connection))
+                            else Text(stringResource(R.string.ai_test_connection))
                         }
                         Button(
                             onClick = ::save,
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.buttonColorsPrimary(),
                         ) {
-                            Text(stringResource(R.string.compose_save))
+                            Text(stringResource(R.string.save))
                         }
                     }
                     testResult?.let { result ->
@@ -467,14 +467,14 @@ internal fun AiConfigPage(
         }
 
         item {
-            SectionTitle(stringResource(R.string.compose_notification_test))
+            SectionTitle(stringResource(R.string.notification_test))
             Card(insideMargin = PaddingValues(16.dp)) {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     TextField(
                         value = notificationContent,
                         onValueChange = { notificationContent = it },
                         modifier = Modifier.fillMaxWidth(),
-                        label = stringResource(R.string.compose_ai_notification_content),
+                        label = stringResource(R.string.ai_notification_content),
                         useLabelAsPlaceholder = true,
                         minLines = 2,
                         maxLines = 4,
@@ -489,7 +489,7 @@ internal fun AiConfigPage(
                             modifier = Modifier.weight(1f),
                         ) {
                             if (sendingNormal) CircularProgressIndicator(size = 18.dp)
-                            else Text(stringResource(R.string.compose_ai_send_notification))
+                            else Text(stringResource(R.string.ai_send_notification))
                         }
                         Button(
                             onClick = { sendNotification(true) },
@@ -498,7 +498,7 @@ internal fun AiConfigPage(
                             colors = ButtonDefaults.buttonColorsPrimary(),
                         ) {
                             if (sendingAi) CircularProgressIndicator(size = 18.dp)
-                            else Text(stringResource(R.string.compose_ai_send_ai_notification))
+                            else Text(stringResource(R.string.ai_send_ai_notification))
                         }
                     }
                 }
@@ -514,7 +514,7 @@ internal fun AiConfigPage(
                 ),
             ) {
                 Text(
-                    text = stringResource(R.string.compose_ai_tips),
+                    text = stringResource(R.string.ai_tips),
                     modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
                     fontSize = MiuixTheme.textStyles.body2.fontSize,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,

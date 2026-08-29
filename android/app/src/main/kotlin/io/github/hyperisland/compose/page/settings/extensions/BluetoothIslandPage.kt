@@ -55,9 +55,9 @@ internal fun BluetoothIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Un
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
-    val scopeFailed = stringResource(R.string.compose_ext_scope_failed)
-    val loadFailed = stringResource(R.string.compose_ext_bluetooth_load_failed)
-    val restartRequired = stringResource(R.string.compose_restart_scope_app)
+    val scopeFailed = stringResource(R.string.ext_scope_failed)
+    val loadFailed = stringResource(R.string.ext_bluetooth_load_failed)
+    val restartRequired = stringResource(R.string.restart_scope_app)
     val enabled = rememberBooleanPreference(prefs, KEY_BLUETOOTH_ISLAND, false)
     val showName = rememberBooleanPreference(prefs, KEY_BLUETOOTH_SHOW_DEVICE_NAME, true)
     val duration = rememberLongPreference(prefs, KEY_BLUETOOTH_DURATION, DEFAULT_BLUETOOTH_DURATION)
@@ -93,16 +93,16 @@ internal fun BluetoothIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Un
     }
 
     DetailPage(
-        title = stringResource(R.string.compose_ext_bluetooth_settings),
+        title = stringResource(R.string.ext_bluetooth_settings),
         onBack = onBack,
         snackbarHost = { SnackbarHost(snackbar) },
     ) {
         item {
-            SectionTitle(stringResource(R.string.compose_config))
+            SectionTitle(stringResource(R.string.config))
             Card(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(
-                    title = stringResource(R.string.compose_ext_bluetooth_enable),
-                    summary = stringResource(R.string.compose_ext_bluetooth_enable_summary),
+                    title = stringResource(R.string.ext_bluetooth_enable),
+                    summary = stringResource(R.string.ext_bluetooth_enable_summary),
                     icon = null,
                     checked = enabled.value,
                 ) { value ->
@@ -117,26 +117,26 @@ internal fun BluetoothIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Un
                     }
                 }
                 PreferenceSwitch(
-                    title = stringResource(R.string.compose_ext_show_device_name),
-                    summary = stringResource(R.string.compose_ext_show_device_name_summary),
+                    title = stringResource(R.string.ext_show_device_name),
+                    summary = stringResource(R.string.ext_show_device_name_summary),
                     icon = null,
                     checked = showName.value,
                 ) { value -> showName.value = value; prefs.putBoolean(KEY_BLUETOOTH_SHOW_DEVICE_NAME, value) }
                 SettingsAction(
-                    title = stringResource(R.string.compose_ext_display_duration),
-                    summary = stringResource(R.string.compose_ext_duration_value, duration.value),
+                    title = stringResource(R.string.ext_display_duration),
+                    summary = stringResource(R.string.ext_duration_value, duration.value),
                     endIcon = MiuixIcons.ChevronForward,
                 ) {
                     durationDraft.value = duration.value.toString()
                     showDurationDialog.value = true
                 }
                 PreferenceSwitch(
-                    title = stringResource(R.string.compose_ext_device_whitelist),
+                    title = stringResource(R.string.ext_device_whitelist),
                     summary = stringResource(
                         if (whitelistEnabled.value) {
-                            R.string.compose_ext_device_whitelist_summary
+                            R.string.ext_device_whitelist_summary
                         } else {
-                            R.string.compose_ext_whitelist_all_hint
+                            R.string.ext_whitelist_all_hint
                         },
                     ),
                     icon = null,
@@ -144,21 +144,21 @@ internal fun BluetoothIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Un
                 ) { value -> whitelistEnabled.value = value; prefs.putBoolean(KEY_BLUETOOTH_WHITELIST_ENABLED, value) }
                 AnimatedVisibility(whitelistEnabled.value) {
                     SettingsAction(
-                        title = stringResource(R.string.compose_ext_manage_devices),
-                        summary = stringResource(R.string.compose_ext_selected_devices, whitelist.value.size),
+                        title = stringResource(R.string.ext_manage_devices),
+                        summary = stringResource(R.string.ext_selected_devices, whitelist.value.size),
                         endIcon = MiuixIcons.ChevronForward,
                     ) { openDevices() }
                 }
                 PreferenceSwitch(
-                    title = stringResource(R.string.compose_ext_outer_glow),
-                    summary = stringResource(R.string.compose_ext_bluetooth_glow_summary),
+                    title = stringResource(R.string.ext_outer_glow),
+                    summary = stringResource(R.string.ext_bluetooth_glow_summary),
                     icon = null,
                     checked = outerGlow.value,
                 ) { value -> outerGlow.value = value; prefs.putBoolean(KEY_BLUETOOTH_OUTER_GLOW, value) }
                 AnimatedVisibility(outerGlow.value) {
                     SettingsAction(
-                        title = stringResource(R.string.compose_ext_outer_glow_color),
-                        summary = glowColor.value.ifBlank { stringResource(R.string.compose_default) },
+                        title = stringResource(R.string.ext_outer_glow_color),
+                        summary = glowColor.value.ifBlank { stringResource(R.string.default_option) },
                         endIcon = MiuixIcons.ChevronForward,
                     ) { showColorDialog.value = true }
                 }
@@ -168,7 +168,7 @@ internal fun BluetoothIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Un
 
     ColorPaletteDialog(
         show = showColorDialog.value,
-        title = stringResource(R.string.compose_ext_outer_glow_color),
+        title = stringResource(R.string.ext_outer_glow_color),
         initialColor = parseHexColor(glowColor.value, Color(0xFF0096FF)),
         onDismiss = { showColorDialog.value = false },
         onDelete = {
@@ -184,7 +184,7 @@ internal fun BluetoothIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Un
 
     WindowDialog(
         show = showDurationDialog.value,
-        title = stringResource(R.string.compose_ext_display_duration),
+        title = stringResource(R.string.ext_display_duration),
         onDismissRequest = { showDurationDialog.value = false },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -194,7 +194,7 @@ internal fun BluetoothIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Un
                     durationDraft.value = input.filter(Char::isDigit).take(5)
                 },
                 modifier = Modifier.fillMaxWidth(),
-                label = stringResource(R.string.compose_ext_display_duration),
+                label = stringResource(R.string.ext_display_duration),
                 useLabelAsPlaceholder = true,
                 singleLine = true,
             )
@@ -203,7 +203,7 @@ internal fun BluetoothIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Un
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 TextButton(
-                    text = stringResource(R.string.compose_cancel),
+                    text = stringResource(R.string.cancel),
                     onClick = { showDurationDialog.value = false },
                     modifier = Modifier.weight(1f),
                 )
@@ -219,21 +219,21 @@ internal fun BluetoothIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Un
                     },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColorsPrimary(),
-                ) { Text(stringResource(R.string.compose_save)) }
+                ) { Text(stringResource(R.string.save)) }
             }
         }
     }
 
     WindowDialog(
         show = showDeviceDialog.value,
-        title = stringResource(R.string.compose_ext_choose_devices),
+        title = stringResource(R.string.ext_choose_devices),
         onDismissRequest = { showDeviceDialog.value = false },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Card(modifier = Modifier.fillMaxWidth()) {
                 if (devices.value.isEmpty()) {
                     Text(
-                        text = stringResource(R.string.compose_ext_no_paired_devices),
+                        text = stringResource(R.string.ext_no_paired_devices),
                         modifier = Modifier.fillMaxWidth(),
                     )
                 } else {
@@ -260,7 +260,7 @@ internal fun BluetoothIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Un
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 TextButton(
-                    text = stringResource(R.string.compose_cancel),
+                    text = stringResource(R.string.cancel),
                     onClick = { showDeviceDialog.value = false },
                     modifier = Modifier.weight(1f),
                 )
@@ -273,7 +273,7 @@ internal fun BluetoothIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Un
                     },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColorsPrimary(),
-                ) { Text(stringResource(R.string.compose_confirm)) }
+                ) { Text(stringResource(R.string.confirm)) }
             }
         }
     }

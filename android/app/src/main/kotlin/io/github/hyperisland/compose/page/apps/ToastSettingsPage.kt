@@ -72,27 +72,27 @@ internal fun ToastSettingsPage(
     val islandGlowLabels = glowLabels(defaults.islandOuterGlow)
     val dynamicLabels = listOf(
         stringResource(
-            if (defaults.dynamicHighlightColor) R.string.compose_default_on else R.string.compose_default_off,
+            if (defaults.dynamicHighlightColor) R.string.default_on else R.string.default_off,
         ),
-        stringResource(R.string.compose_disabled_option),
-        stringResource(R.string.compose_enabled_option),
-        stringResource(R.string.compose_dynamic_dark),
-        stringResource(R.string.compose_dynamic_darker),
+        stringResource(R.string.disabled_option),
+        stringResource(R.string.enabled_option),
+        stringResource(R.string.dynamic_dark),
+        stringResource(R.string.dynamic_darker),
     )
     val marqueeAutoHideLabels = listOf(
         stringResource(
-            R.string.compose_default_value,
+            R.string.default_value,
             marqueeAutoHideLabel(defaults.marqueeAutoHide),
         ),
-        stringResource(R.string.compose_disabled_option),
-        stringResource(R.string.compose_marquee_once),
-        stringResource(R.string.compose_marquee_twice),
-        stringResource(R.string.compose_marquee_once_override),
-        stringResource(R.string.compose_marquee_twice_override),
+        stringResource(R.string.disabled_option),
+        stringResource(R.string.marquee_once),
+        stringResource(R.string.marquee_twice),
+        stringResource(R.string.marquee_once_override),
+        stringResource(R.string.marquee_twice_override),
     )
     val filterLabels = listOf(
-        stringResource(R.string.compose_filter_blacklist),
-        stringResource(R.string.compose_filter_whitelist),
+        stringResource(R.string.filter_blacklist),
+        stringResource(R.string.filter_whitelist),
     )
     val marqueeEnabled = resolveBoolean(settings.marquee, defaults.marquee)
     val dynamicHighlightEnabled = resolveDynamic(settings.dynamicHighlightColor, defaults.dynamicHighlightColor)
@@ -106,28 +106,28 @@ internal fun ToastSettingsPage(
 
     DetailPage(title = app.appName, onBack = onBack) {
         item {
-            SectionTitle(stringResource(R.string.compose_toast_adaptation))
+            SectionTitle(stringResource(R.string.toast_adaptation))
             Card {
                 SwitchPreference(
                     checked = settings.forwardEnabled,
                     onCheckedChange = { update(settings.copy(forwardEnabled = it)) },
-                    title = stringResource(R.string.compose_toast_forward),
-                    summary = stringResource(R.string.compose_toast_forward_summary),
+                    title = stringResource(R.string.toast_forward),
+                    summary = stringResource(R.string.toast_forward_summary),
                     insideMargin = ITEM_MARGIN,
                 )
                 SwitchPreference(
                     checked = settings.blockOriginal,
                     onCheckedChange = { update(settings.copy(blockOriginal = it)) },
-                    title = stringResource(R.string.compose_toast_block_original),
-                    summary = stringResource(R.string.compose_toast_block_original_summary),
+                    title = stringResource(R.string.toast_block_original),
+                    summary = stringResource(R.string.toast_block_original_summary),
                     insideMargin = ITEM_MARGIN,
                 )
                 AnimatedVisibility(visible = settings.forwardEnabled) {
                     SwitchPreference(
                         checked = settings.showNotification,
                         onCheckedChange = { update(settings.copy(showNotification = it)) },
-                        title = stringResource(R.string.compose_toast_show_notification),
-                        summary = stringResource(R.string.compose_toast_show_notification_summary),
+                        title = stringResource(R.string.toast_show_notification),
+                        summary = stringResource(R.string.toast_show_notification_summary),
                         insideMargin = ITEM_MARGIN,
                     )
                 }
@@ -137,20 +137,20 @@ internal fun ToastSettingsPage(
         item {
             AnimatedVisibility(visible = settings.forwardEnabled) {
                 Column {
-                    SectionTitle(stringResource(R.string.compose_island))
+                    SectionTitle(stringResource(R.string.island))
                     Card {
                         SwitchPreference(
                             checked = settings.showIslandIcon,
                             onCheckedChange = { update(settings.copy(showIslandIcon = it)) },
-                            title = stringResource(R.string.compose_island_icon),
-                            summary = stringResource(R.string.compose_island_icon_summary),
+                            title = stringResource(R.string.island_icon),
+                            summary = stringResource(R.string.island_icon_summary),
                             insideMargin = ITEM_MARGIN,
                         )
                         OverlayDropdownPreference(
                             items = firstFloatLabels,
                             selectedIndex = triValues.indexOf(settings.firstFloat).coerceAtLeast(0),
-                            title = stringResource(R.string.compose_first_float),
-                            summary = stringResource(R.string.compose_first_float_summary),
+                            title = stringResource(R.string.first_float),
+                            summary = stringResource(R.string.first_float_summary),
                             insideMargin = ITEM_MARGIN,
                             renderInRootScaffold = false,
                             onSelectedIndexChange = { update(settings.copy(firstFloat = triValues[it])) },
@@ -158,8 +158,8 @@ internal fun ToastSettingsPage(
                         OverlayDropdownPreference(
                             items = enableFloatLabels,
                             selectedIndex = triValues.indexOf(settings.enableFloat).coerceAtLeast(0),
-                            title = stringResource(R.string.compose_update_float),
-                            summary = stringResource(R.string.compose_update_float_summary),
+                            title = stringResource(R.string.update_float),
+                            summary = stringResource(R.string.update_float_summary),
                             insideMargin = ITEM_MARGIN,
                             renderInRootScaffold = false,
                             onSelectedIndexChange = { update(settings.copy(enableFloat = triValues[it])) },
@@ -167,8 +167,8 @@ internal fun ToastSettingsPage(
                         OverlayDropdownPreference(
                             items = preserveIconLabels,
                             selectedIndex = triValues.indexOf(settings.preserveSmallIcon).coerceAtLeast(0),
-                            title = stringResource(R.string.compose_preserve_small_icon),
-                            summary = stringResource(R.string.compose_preserve_small_icon_summary),
+                            title = stringResource(R.string.preserve_small_icon),
+                            summary = stringResource(R.string.preserve_small_icon_summary),
                             insideMargin = ITEM_MARGIN,
                             renderInRootScaffold = false,
                             onSelectedIndexChange = { update(settings.copy(preserveSmallIcon = triValues[it])) },
@@ -176,8 +176,8 @@ internal fun ToastSettingsPage(
                         OverlayDropdownPreference(
                             items = marqueeLabels,
                             selectedIndex = triValues.indexOf(settings.marquee).coerceAtLeast(0),
-                            title = stringResource(R.string.compose_marquee_channel),
-                            summary = stringResource(R.string.compose_marquee_channel_summary),
+                            title = stringResource(R.string.marquee_channel),
+                            summary = stringResource(R.string.marquee_channel_summary),
                             insideMargin = ITEM_MARGIN,
                             renderInRootScaffold = false,
                             onSelectedIndexChange = { update(settings.copy(marquee = triValues[it])) },
@@ -186,8 +186,8 @@ internal fun ToastSettingsPage(
                             OverlayDropdownPreference(
                                 items = marqueeAutoHideLabels,
                                 selectedIndex = marqueeAutoHideValues.indexOf(settings.marqueeAutoHide).coerceAtLeast(0),
-                                title = stringResource(R.string.compose_marquee_auto_hide),
-                                summary = stringResource(R.string.compose_marquee_auto_hide_summary),
+                                title = stringResource(R.string.marquee_auto_hide),
+                                summary = stringResource(R.string.marquee_auto_hide_summary),
                                 insideMargin = ITEM_MARGIN,
                                 renderInRootScaffold = false,
                                 onSelectedIndexChange = {
@@ -196,10 +196,10 @@ internal fun ToastSettingsPage(
                             )
                         }
                         ArrowPreference(
-                            title = stringResource(R.string.compose_auto_disappear),
+                            title = stringResource(R.string.auto_disappear),
                             summary = settings.timeout.toIntOrNull()?.let {
-                                stringResource(R.string.compose_timeout_seconds_value, it)
-                            } ?: stringResource(R.string.compose_default_timeout_value, defaults.timeout),
+                                stringResource(R.string.timeout_seconds_value, it)
+                            } ?: stringResource(R.string.default_timeout_value, defaults.timeout),
                             insideMargin = ITEM_MARGIN,
                             onClick = {
                                 timeoutText = settings.timeout.takeUnless { it == TRI_DEFAULT }.orEmpty()
@@ -214,13 +214,13 @@ internal fun ToastSettingsPage(
         item {
             AnimatedVisibility(visible = settings.forwardEnabled) {
                 Column {
-                    SectionTitle(stringResource(R.string.compose_highlight_color))
+                    SectionTitle(stringResource(R.string.highlight_color))
                     Card {
                         OverlayDropdownPreference(
                             items = dynamicLabels,
                             selectedIndex = dynamicValues.indexOf(settings.dynamicHighlightColor).coerceAtLeast(0),
-                            title = stringResource(R.string.compose_dynamic_highlight_color),
-                            summary = stringResource(R.string.compose_dynamic_highlight_color_summary),
+                            title = stringResource(R.string.dynamic_highlight_color),
+                            summary = stringResource(R.string.dynamic_highlight_color_summary),
                             insideMargin = ITEM_MARGIN,
                             renderInRootScaffold = false,
                             onSelectedIndexChange = {
@@ -229,7 +229,7 @@ internal fun ToastSettingsPage(
                         )
                         AnimatedVisibility(visible = !dynamicHighlightEnabled) {
                             ArrowPreference(
-                                title = stringResource(R.string.compose_highlight_color),
+                                title = stringResource(R.string.highlight_color),
                                 summary = settings.highlightColor.takeIf(String::isNotEmpty),
                                 insideMargin = ITEM_MARGIN,
                                 onClick = {
@@ -245,7 +245,7 @@ internal fun ToastSettingsPage(
                                     onCheckedChange = {
                                         update(settings.copy(showLeftHighlight = if (it) TRI_ON else TRI_OFF))
                                     },
-                                    title = stringResource(R.string.compose_left_side),
+                                    title = stringResource(R.string.left_side),
                                     insideMargin = ITEM_MARGIN,
                                 )
                                 SwitchPreference(
@@ -253,7 +253,7 @@ internal fun ToastSettingsPage(
                                     onCheckedChange = {
                                         update(settings.copy(showRightHighlight = if (it) TRI_ON else TRI_OFF))
                                     },
-                                    title = stringResource(R.string.compose_right_side),
+                                    title = stringResource(R.string.right_side),
                                     insideMargin = ITEM_MARGIN,
                                 )
                             }
@@ -266,19 +266,19 @@ internal fun ToastSettingsPage(
         item {
             AnimatedVisibility(visible = settings.forwardEnabled) {
                 Column {
-                    SectionTitle(stringResource(R.string.compose_glow))
+                    SectionTitle(stringResource(R.string.glow))
                     Card {
                         OverlayDropdownPreference(
                             items = glowLabels,
                             selectedIndex = glowValues.indexOf(settings.outerGlow).coerceAtLeast(0),
-                            title = stringResource(R.string.compose_focus_notification),
+                            title = stringResource(R.string.focus_notification),
                             insideMargin = ITEM_MARGIN,
                             renderInRootScaffold = false,
                             onSelectedIndexChange = { update(settings.copy(outerGlow = glowValues[it])) },
                         )
                         AnimatedVisibility(visible = settings.outerGlow == TRI_ON) {
                             ArrowPreference(
-                                title = stringResource(R.string.compose_out_effect_color),
+                                title = stringResource(R.string.out_effect_color),
                                 summary = settings.outEffectColor.takeIf(String::isNotEmpty),
                                 insideMargin = ITEM_MARGIN,
                                 onClick = {
@@ -290,7 +290,7 @@ internal fun ToastSettingsPage(
                         OverlayDropdownPreference(
                             items = islandGlowLabels,
                             selectedIndex = glowValues.indexOf(settings.islandOuterGlow).coerceAtLeast(0),
-                            title = stringResource(R.string.compose_island_outer_glow),
+                            title = stringResource(R.string.island_outer_glow),
                             insideMargin = ITEM_MARGIN,
                             renderInRootScaffold = false,
                             onSelectedIndexChange = {
@@ -299,7 +299,7 @@ internal fun ToastSettingsPage(
                         )
                         AnimatedVisibility(visible = settings.islandOuterGlow == TRI_ON) {
                             ArrowPreference(
-                                title = stringResource(R.string.compose_out_effect_color),
+                                title = stringResource(R.string.out_effect_color),
                                 summary = settings.islandOuterGlowColor.takeIf(String::isNotEmpty),
                                 insideMargin = ITEM_MARGIN,
                                 onClick = {
@@ -316,17 +316,17 @@ internal fun ToastSettingsPage(
         item {
             AnimatedVisibility(visible = filterEnabled) {
                 Column {
-                    SectionTitle(stringResource(R.string.compose_filter_rules))
+                    SectionTitle(stringResource(R.string.filter_rules))
                     Card {
                         OverlayDropdownPreference(
                             items = filterLabels,
                             selectedIndex = filterValues.indexOf(settings.filterMode).coerceAtLeast(0),
-                            title = stringResource(R.string.compose_filter_mode),
+                            title = stringResource(R.string.filter_mode),
                             summary = stringResource(
                                 if (settings.filterMode == "whitelist") {
-                                    R.string.compose_filter_whitelist_summary
+                                    R.string.filter_whitelist_summary
                                 } else {
-                                    R.string.compose_filter_blacklist_summary
+                                    R.string.filter_blacklist_summary
                                 },
                             ),
                             insideMargin = ITEM_MARGIN,
@@ -335,14 +335,14 @@ internal fun ToastSettingsPage(
                         )
                         AnimatedVisibility(visible = settings.filterMode == "whitelist") {
                             ArrowPreference(
-                                title = stringResource(R.string.compose_whitelist_keywords),
+                                title = stringResource(R.string.whitelist_keywords),
                                 summary = settings.whitelistKeywords.joinToString("、").takeIf(String::isNotEmpty),
                                 insideMargin = ITEM_MARGIN,
                                 onClick = { keywordTarget = KeywordTarget.Whitelist },
                             )
                         }
                         ArrowPreference(
-                            title = stringResource(R.string.compose_blacklist_keywords),
+                            title = stringResource(R.string.blacklist_keywords),
                             summary = settings.blacklistKeywords.joinToString("、").takeIf(String::isNotEmpty),
                             insideMargin = ITEM_MARGIN,
                             onClick = { keywordTarget = KeywordTarget.Blacklist },
@@ -351,7 +351,7 @@ internal fun ToastSettingsPage(
                     AnimatedVisibility(visible = settings.filterMode == "whitelist") {
                         Card {
                             BasicComponent(
-                                title = stringResource(R.string.compose_keyword_filter_priority),
+                                title = stringResource(R.string.keyword_filter_priority),
                                 insideMargin = ITEM_MARGIN,
                             )
                         }
@@ -363,7 +363,7 @@ internal fun ToastSettingsPage(
 
     WindowDialog(
         show = showTimeoutDialog,
-        title = stringResource(R.string.compose_auto_disappear),
+        title = stringResource(R.string.auto_disappear),
         onDismissRequest = { showTimeoutDialog = false },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -371,7 +371,7 @@ internal fun ToastSettingsPage(
                 value = timeoutText,
                 onValueChange = { raw -> timeoutText = raw.filter(Char::isDigit).take(2) },
                 modifier = Modifier.fillMaxWidth(),
-                label = stringResource(R.string.compose_seconds),
+                label = stringResource(R.string.seconds),
                 useLabelAsPlaceholder = true,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -381,7 +381,7 @@ internal fun ToastSettingsPage(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 TextButton(
-                    text = stringResource(R.string.compose_reset_default),
+                    text = stringResource(R.string.reset_default),
                     onClick = {
                         timeoutText = ""
                         update(settings.copy(timeout = TRI_DEFAULT))
@@ -401,7 +401,7 @@ internal fun ToastSettingsPage(
                     },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColorsPrimary(),
-                ) { Text(stringResource(R.string.compose_save)) }
+                ) { Text(stringResource(R.string.save)) }
             }
         }
     }
@@ -410,9 +410,9 @@ internal fun ToastSettingsPage(
         show = colorTarget != null,
         title = stringResource(
             if (colorTarget == ToastColorTarget.Highlight) {
-                R.string.compose_highlight_color
+                R.string.highlight_color
             } else {
-                R.string.compose_out_effect_color
+                R.string.out_effect_color
             },
         ),
         initialColor = selectedColor,
@@ -438,9 +438,9 @@ internal fun ToastSettingsPage(
         show = keywordTarget != null,
         title = stringResource(
             if (keywordTarget == KeywordTarget.Whitelist) {
-                R.string.compose_whitelist_keywords
+                R.string.whitelist_keywords
             } else {
-                R.string.compose_blacklist_keywords
+                R.string.blacklist_keywords
             },
         ),
         keywords = activeKeywords,
@@ -458,36 +458,36 @@ internal fun ToastSettingsPage(
 
 @Composable
 private fun triLabels(defaultEnabled: Boolean): List<String> = listOf(
-    stringResource(if (defaultEnabled) R.string.compose_default_on else R.string.compose_default_off),
-    stringResource(R.string.compose_enabled_option),
-    stringResource(R.string.compose_disabled_option),
+    stringResource(if (defaultEnabled) R.string.default_on else R.string.default_off),
+    stringResource(R.string.enabled_option),
+    stringResource(R.string.disabled_option),
 )
 
 @Composable
 private fun glowLabels(defaultMode: String): List<String> {
     val defaultLabel = when (defaultMode) {
-        TRI_ON -> stringResource(R.string.compose_default_on)
+        TRI_ON -> stringResource(R.string.default_on)
         TRI_FOLLOW_DYNAMIC -> stringResource(
-            R.string.compose_default_value,
-            stringResource(R.string.compose_follow_dynamic_color),
+            R.string.default_value,
+            stringResource(R.string.follow_dynamic_color),
         )
-        else -> stringResource(R.string.compose_default_off)
+        else -> stringResource(R.string.default_off)
     }
     return listOf(
         defaultLabel,
-        stringResource(R.string.compose_enabled_option),
-        stringResource(R.string.compose_disabled_option),
-        stringResource(R.string.compose_follow_dynamic_color),
+        stringResource(R.string.enabled_option),
+        stringResource(R.string.disabled_option),
+        stringResource(R.string.follow_dynamic_color),
     )
 }
 
 @Composable
 private fun marqueeAutoHideLabel(value: String): String = when (value) {
-    "1" -> stringResource(R.string.compose_marquee_once)
-    "2" -> stringResource(R.string.compose_marquee_twice)
-    "1_override" -> stringResource(R.string.compose_marquee_once_override)
-    "2_override" -> stringResource(R.string.compose_marquee_twice_override)
-    else -> stringResource(R.string.compose_disabled_option)
+    "1" -> stringResource(R.string.marquee_once)
+    "2" -> stringResource(R.string.marquee_twice)
+    "1_override" -> stringResource(R.string.marquee_once_override)
+    "2_override" -> stringResource(R.string.marquee_twice_override)
+    else -> stringResource(R.string.disabled_option)
 }
 
 private fun resolveBoolean(value: String, defaultValue: Boolean): Boolean = when (value) {

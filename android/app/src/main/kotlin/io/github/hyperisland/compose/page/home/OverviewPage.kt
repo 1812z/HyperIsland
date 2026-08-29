@@ -158,7 +158,7 @@ internal fun OverviewPage(
     CollapsingPage(
         title = "HyperIsland",
         actionIcon = MiuixIcons.Refresh,
-        actionDescription = stringResource(R.string.compose_restart_scope),
+        actionDescription = stringResource(R.string.restart_scope),
         onAction = { showRestartDialog = true },
         horizontalContentPadding = 12.dp,
         topContentPadding = 12.dp,
@@ -183,15 +183,15 @@ internal fun OverviewPage(
         item {
             Card {
                 SettingsAction(
-                    title = stringResource(R.string.compose_support_development),
-                    summary = stringResource(R.string.compose_support_development_summary),
+                    title = stringResource(R.string.support_development),
+                    summary = stringResource(R.string.support_development_summary),
                     endIcon = MiuixIcons.Link,
                     endIconSize = 26.dp,
                     onClick = { context.openUrl(DONATION_URL) },
                 )
                 SettingsAction(
-                    title = stringResource(R.string.compose_documentation),
-                    summary = stringResource(R.string.compose_documentation_summary),
+                    title = stringResource(R.string.documentation),
+                    summary = stringResource(R.string.documentation_summary),
                     endIcon = MiuixIcons.Link,
                     endIconSize = 26.dp,
                     onClick = { context.openUrl(DOCUMENTATION_URL) },
@@ -232,28 +232,28 @@ private fun homeStatusAlert(status: ModuleState?, info: HomeSystemInfo?): HomeSt
     if (status == null || info == null) return null
     return when {
         !status.serviceConnected -> HomeStatusAlert(
-            title = stringResource(R.string.compose_lsposed_service_unavailable),
-            message = stringResource(R.string.compose_lsposed_service_unavailable_summary),
+            title = stringResource(R.string.lsposed_service_unavailable),
+            message = stringResource(R.string.lsposed_service_unavailable_summary),
         )
         status.apiVersion < MIN_SUPPORTED_API -> HomeStatusAlert(
-            title = stringResource(R.string.compose_lsposed_version_unsupported),
-            message = stringResource(R.string.compose_update_lsposed),
+            title = stringResource(R.string.lsposed_version_unsupported),
+            message = stringResource(R.string.update_lsposed),
         )
         !status.hasSystemUiScope -> HomeStatusAlert(
-            title = stringResource(R.string.compose_systemui_scope_missing),
-            message = stringResource(R.string.compose_enable_systemui_scope),
+            title = stringResource(R.string.systemui_scope_missing),
+            message = stringResource(R.string.enable_systemui_scope),
         )
         info.focusProtocolVersion != REQUIRED_FOCUS_PROTOCOL -> HomeStatusAlert(
-            title = stringResource(R.string.compose_system_not_supported),
+            title = stringResource(R.string.system_not_supported),
             message = stringResource(
-                R.string.compose_system_not_supported_summary,
+                R.string.system_not_supported_summary,
                 info.focusProtocolVersion,
                 REQUIRED_FOCUS_PROTOCOL,
             ),
         )
         info.androidSdkVersion == ANDROID_15_SDK -> HomeStatusAlert(
-            title = stringResource(R.string.compose_android_15_limited),
-            message = stringResource(R.string.compose_android_15_limited_summary),
+            title = stringResource(R.string.android_15_limited),
+            message = stringResource(R.string.android_15_limited_summary),
             warning = true,
         )
         else -> null
@@ -320,13 +320,13 @@ private fun StatusGrid(
             ) {
                 StatusCard(status, appVersion, Modifier.weight(1f).height(112.dp), onSendTest, onCustomTest)
                 StatCard(
-                    title = stringResource(R.string.compose_enabled_app_islands),
+                    title = stringResource(R.string.enabled_app_islands),
                     value = enabledAppCount.toString(),
                     modifier = Modifier.weight(1f).height(112.dp),
                     onClick = onOpenApps,
                 )
                 StatCard(
-                    title = stringResource(R.string.compose_enabled_toast_islands),
+                    title = stringResource(R.string.enabled_toast_islands),
                     value = toastEnabledAppCount.toString(),
                     modifier = Modifier.weight(1f).height(112.dp),
                     onClick = onOpenToastApps,
@@ -344,13 +344,13 @@ private fun StatusGrid(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     StatCard(
-                        title = stringResource(R.string.compose_enabled_app_islands),
+                        title = stringResource(R.string.enabled_app_islands),
                         value = enabledAppCount.toString(),
                         modifier = Modifier.weight(1f),
                         onClick = onOpenApps,
                     )
                     StatCard(
-                        title = stringResource(R.string.compose_enabled_toast_islands),
+                        title = stringResource(R.string.enabled_toast_islands),
                         value = toastEnabledAppCount.toString(),
                         modifier = Modifier.weight(1f),
                         onClick = onOpenToastApps,
@@ -395,7 +395,7 @@ private fun StatusCard(
             Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
                 Text(
                     text = stringResource(
-                        if (active) R.string.compose_activated else R.string.compose_not_activated,
+                        if (active) R.string.activated else R.string.not_activated,
                     ),
                     fontSize = 20.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -403,8 +403,8 @@ private fun StatusCard(
                 )
                 Text(
                     text = stringResource(
-                        R.string.compose_software_version,
-                        appVersion.orEmpty().ifBlank { stringResource(R.string.compose_unknown) },
+                        R.string.software_version,
+                        appVersion.orEmpty().ifBlank { stringResource(R.string.unknown) },
                     ),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
@@ -454,22 +454,22 @@ private fun StatCard(
 private fun RestartScopeDialog(show: Boolean, onDismiss: () -> Unit) {
     val scope = rememberCoroutineScope()
     val scopeOptions = listOf(
-        SYSTEM_UI_PACKAGE to stringResource(R.string.compose_system_ui),
-        DOWNLOADS_PACKAGE to stringResource(R.string.compose_download_manager),
-        XMSF_PACKAGE to stringResource(R.string.compose_xmsf),
-        SETTINGS_PACKAGE to stringResource(R.string.compose_hook_scope_settings),
+        SYSTEM_UI_PACKAGE to stringResource(R.string.system_ui),
+        DOWNLOADS_PACKAGE to stringResource(R.string.download_manager),
+        XMSF_PACKAGE to stringResource(R.string.xmsf),
+        SETTINGS_PACKAGE to stringResource(R.string.hook_scope_settings),
     )
     var selectedPackages by remember(show) {
         mutableStateOf(scopeOptions.map { it.first }.toSet())
     }
     var restarting by remember(show) { mutableStateOf(false) }
     var error by remember(show) { mutableStateOf<String?>(null) }
-    val rootRequired = stringResource(R.string.compose_restart_root_required)
+    val rootRequired = stringResource(R.string.restart_root_required)
 
     WindowDialog(
         show = show,
-        title = stringResource(R.string.compose_restart_scope),
-        summary = stringResource(R.string.compose_restart_scope_summary),
+        title = stringResource(R.string.restart_scope),
+        summary = stringResource(R.string.restart_scope_summary),
         onDismissRequest = { if (!restarting) onDismiss() },
     ) {
         Column(
@@ -504,13 +504,13 @@ private fun RestartScopeDialog(show: Boolean, onDismiss: () -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             TextButton(
-                text = stringResource(R.string.compose_cancel),
+                text = stringResource(R.string.cancel),
                 enabled = !restarting,
                 onClick = onDismiss,
                 modifier = Modifier.weight(1f),
             )
             TextButton(
-                text = stringResource(R.string.compose_confirm),
+                text = stringResource(R.string.confirm),
                 enabled = !restarting && selectedPackages.isNotEmpty(),
                 onClick = {
                     val commands = buildList {
@@ -571,13 +571,13 @@ private fun Context.openUrl(url: String) {
 
 @Composable
 private fun InfoCard(info: HomeSystemInfo?, status: ModuleState?) {
-    val unknown = stringResource(R.string.compose_unknown)
+    val unknown = stringResource(R.string.unknown)
     val appVersion = info?.let { "${it.appVersion} (${it.appVersionCode})" }.orEmpty().ifBlank { unknown }
     val frameworkVersion = status
         ?.takeIf { it.serviceConnected }
         ?.let {
             stringResource(
-                R.string.compose_framework_details,
+                R.string.framework_details,
                 it.framework.ifBlank { unknown },
                 it.frameworkVersion.ifBlank { unknown },
                 it.frameworkVersionCode,
@@ -587,10 +587,10 @@ private fun InfoCard(info: HomeSystemInfo?, status: ModuleState?) {
         ?: unknown
     Card {
         Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-            InfoText(stringResource(R.string.compose_system_version), info?.systemVersion.orEmpty().ifBlank { unknown })
-            InfoText(stringResource(R.string.compose_app_version), appVersion)
-            InfoText(stringResource(R.string.compose_xposed_framework), frameworkVersion)
-            InfoText(stringResource(R.string.compose_device_model), info?.deviceModel.orEmpty().ifBlank { unknown }, 0.dp)
+            InfoText(stringResource(R.string.system_version), info?.systemVersion.orEmpty().ifBlank { unknown })
+            InfoText(stringResource(R.string.app_version), appVersion)
+            InfoText(stringResource(R.string.xposed_framework), frameworkVersion)
+            InfoText(stringResource(R.string.device_model), info?.deviceModel.orEmpty().ifBlank { unknown }, 0.dp)
         }
     }
 }
@@ -624,7 +624,7 @@ private fun CustomTestDialog(
     var enableFloat by remember(show) { mutableStateOf(true) }
     WindowDialog(
         show = show,
-        title = stringResource(R.string.compose_custom_test_notification),
+        title = stringResource(R.string.custom_test_notification),
         onDismissRequest = onDismiss,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -632,7 +632,7 @@ private fun CustomTestDialog(
                 value = title,
                 onValueChange = { title = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = stringResource(R.string.compose_custom_test_title),
+                label = stringResource(R.string.custom_test_title),
                 useLabelAsPlaceholder = true,
                 singleLine = true,
             )
@@ -640,7 +640,7 @@ private fun CustomTestDialog(
                 value = content,
                 onValueChange = { content = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = stringResource(R.string.compose_custom_test_content),
+                label = stringResource(R.string.custom_test_content),
                 useLabelAsPlaceholder = true,
                 minLines = 2,
                 maxLines = 4,
@@ -648,21 +648,21 @@ private fun CustomTestDialog(
             SwitchPreference(
                 checked = clearPrevious,
                 onCheckedChange = { clearPrevious = it },
-                title = stringResource(R.string.compose_clear_previous_notification),
-                summary = stringResource(R.string.compose_clear_previous_notification_summary),
+                title = stringResource(R.string.clear_previous_notification),
+                summary = stringResource(R.string.clear_previous_notification_summary),
             )
             SwitchPreference(
                 checked = enableFloat,
                 onCheckedChange = { enableFloat = it },
-                title = stringResource(R.string.compose_expand_notification),
-                summary = stringResource(R.string.compose_enable_float_summary),
+                title = stringResource(R.string.expand_notification),
+                summary = stringResource(R.string.enable_float_summary),
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 TextButton(
-                    text = stringResource(R.string.compose_cancel),
+                    text = stringResource(R.string.cancel),
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
                 )
@@ -672,7 +672,7 @@ private fun CustomTestDialog(
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColorsPrimary(),
                 ) {
-                    Text(stringResource(R.string.compose_send_test_notification))
+                    Text(stringResource(R.string.send_test_notification))
                 }
             }
         }

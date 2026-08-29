@@ -203,12 +203,12 @@ internal fun OnboardingPage(
                                         unlockFocusAuth = true
                                     }.onSuccess {
                                         snackbarState.showSnackbar(
-                                            context.getString(R.string.compose_onboarding_focus_success),
+                                            context.getString(R.string.onboarding_focus_success),
                                         )
                                     }.onFailure {
                                         snackbarState.showSnackbar(
                                             context.getString(
-                                                R.string.compose_onboarding_focus_failed,
+                                                R.string.onboarding_focus_failed,
                                                 it.message ?: it.javaClass.simpleName,
                                             ),
                                         )
@@ -279,7 +279,7 @@ private fun OnboardingHeader(
     ) {
         if (currentPage != 0) {
             Text(
-                text = stringResource(R.string.compose_onboarding_app_name),
+                text = stringResource(R.string.onboarding_app_name),
                 style = MiuixTheme.textStyles.title4,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -289,7 +289,7 @@ private fun OnboardingHeader(
             IconButton(onClick = onClose) {
                 Icon(
                     imageVector = MiuixIcons.Close,
-                    contentDescription = stringResource(R.string.compose_onboarding_close),
+                    contentDescription = stringResource(R.string.onboarding_close),
                 )
             }
         }
@@ -356,7 +356,7 @@ private fun CenteredStep(page: Int) {
             WelcomeLogo()
             Spacer(Modifier.height(28.dp))
             Text(
-                text = stringResource(R.string.compose_onboarding_app_name),
+                text = stringResource(R.string.onboarding_app_name),
                 fontSize = 40.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
@@ -428,39 +428,39 @@ private fun EnvironmentPanel(checking: Boolean, status: OnboardingStatus?) {
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         PermissionCard(
-            title = R.string.compose_onboarding_lsposed,
+            title = R.string.onboarding_lsposed,
             passed = status?.lsposedActive,
-            failure = stringResource(R.string.compose_onboarding_lsposed_failed),
+            failure = stringResource(R.string.onboarding_lsposed_failed),
             checking = checking,
         )
         PermissionCard(
-            title = R.string.compose_onboarding_root,
+            title = R.string.onboarding_root,
             passed = status?.rootGranted,
-            failure = stringResource(R.string.compose_onboarding_root_failed),
+            failure = stringResource(R.string.onboarding_root_failed),
             checking = checking,
         )
         PermissionCard(
-            title = R.string.compose_onboarding_app_list,
+            title = R.string.onboarding_app_list,
             passed = status?.appListGranted,
-            failure = stringResource(R.string.compose_onboarding_app_list_failed),
+            failure = stringResource(R.string.onboarding_app_list_failed),
             checking = checking,
         )
         val protocol = status?.protocolVersion
         PermissionCard(
-            title = R.string.compose_onboarding_protocol,
+            title = R.string.onboarding_protocol,
             passed = protocol?.let { it >= 3 },
             failure = protocol?.let {
-                stringResource(R.string.compose_onboarding_protocol_failed, it)
-            } ?: stringResource(R.string.compose_onboarding_checking),
+                stringResource(R.string.onboarding_protocol_failed, it)
+            } ?: stringResource(R.string.onboarding_checking),
             checking = checking,
         )
         val sdk = status?.androidSdkVersion
         PermissionCard(
-            title = R.string.compose_onboarding_android,
+            title = R.string.onboarding_android,
             passed = sdk?.let { it >= 35 },
             failure = sdk?.let {
-                stringResource(R.string.compose_onboarding_android_failed, it)
-            } ?: stringResource(R.string.compose_onboarding_checking),
+                stringResource(R.string.onboarding_android_failed, it)
+            } ?: stringResource(R.string.onboarding_checking),
             checking = checking,
         )
     }
@@ -503,11 +503,11 @@ private fun FocusUnlockPanel(
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Card(modifier = Modifier.fillMaxWidth()) {
             BasicComponent(
-                title = stringResource(R.string.compose_onboarding_focus_hyperceiler),
-                summary = stringResource(R.string.compose_onboarding_focus_hyperceiler_summary),
+                title = stringResource(R.string.onboarding_focus_hyperceiler),
+                summary = stringResource(R.string.onboarding_focus_hyperceiler_summary),
             )
             TextButton(
-                text = stringResource(R.string.compose_onboarding_view_tutorial),
+                text = stringResource(R.string.onboarding_view_tutorial),
                 onClick = onOpenTutorial,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -516,10 +516,10 @@ private fun FocusUnlockPanel(
         }
         Card(modifier = Modifier.fillMaxWidth()) {
             BasicComponent(
-                title = stringResource(R.string.compose_onboarding_focus_embedded),
+                title = stringResource(R.string.onboarding_focus_embedded),
                 summary = stringResource(
-                    if (enabled) R.string.compose_onboarding_focus_embedded_enabled
-                    else R.string.compose_onboarding_focus_embedded_summary,
+                    if (enabled) R.string.onboarding_focus_embedded_enabled
+                    else R.string.onboarding_focus_embedded_summary,
                 ),
             )
             Button(
@@ -532,8 +532,8 @@ private fun FocusUnlockPanel(
             ) {
                 Text(
                     stringResource(
-                        if (enabled) R.string.compose_onboarding_focus_enabled
-                        else R.string.compose_onboarding_focus_enable,
+                        if (enabled) R.string.onboarding_focus_enabled
+                        else R.string.onboarding_focus_enable,
                     ),
                 )
             }
@@ -548,13 +548,13 @@ private fun NotificationStylePanel(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         NotificationStyleCard(
-            title = stringResource(R.string.compose_onboarding_focus_notification),
+            title = stringResource(R.string.onboarding_focus_notification),
             assetPath = FOCUS_NOTIFICATION_ASSET,
             selected = defaultFocusNotification,
             onClick = { onChanged(true) },
         )
         NotificationStyleCard(
-            title = stringResource(R.string.compose_onboarding_normal_notification),
+            title = stringResource(R.string.onboarding_normal_notification),
             assetPath = NORMAL_NOTIFICATION_ASSET,
             selected = !defaultFocusNotification,
             onClick = { onChanged(false) },
@@ -615,7 +615,7 @@ private fun OnboardingControls(
             enabled = currentPage > 0,
             modifier = Modifier.weight(1f),
         ) {
-            Text(stringResource(R.string.compose_onboarding_previous))
+            Text(stringResource(R.string.onboarding_previous))
         }
         Button(
             onClick = onNext,
@@ -625,8 +625,8 @@ private fun OnboardingControls(
         ) {
             Text(
                 stringResource(
-                    if (currentPage == STEP_COUNT - 1) R.string.compose_onboarding_done
-                    else R.string.compose_onboarding_next,
+                    if (currentPage == STEP_COUNT - 1) R.string.onboarding_done
+                    else R.string.onboarding_next,
                 ),
             )
         }
@@ -642,13 +642,13 @@ private fun EnvironmentDialog(
 ) {
     WindowDialog(
         show = show,
-        title = stringResource(R.string.compose_onboarding_environment_title),
+        title = stringResource(R.string.onboarding_environment_title),
         onDismissRequest = onDismiss,
     ) {
         DialogBody(
-            message = stringResource(R.string.compose_onboarding_environment_dialog_message),
-            leftText = stringResource(R.string.compose_onboarding_continue),
-            rightText = stringResource(R.string.compose_onboarding_retry),
+            message = stringResource(R.string.onboarding_environment_dialog_message),
+            leftText = stringResource(R.string.onboarding_continue),
+            rightText = stringResource(R.string.onboarding_retry),
             onLeft = onContinue,
             onRight = onRetry,
         )
@@ -663,13 +663,13 @@ private fun FocusUnlockDialog(
 ) {
     WindowDialog(
         show = show,
-        title = stringResource(R.string.compose_onboarding_focus_title),
+        title = stringResource(R.string.onboarding_focus_title),
         onDismissRequest = onDismiss,
     ) {
         DialogBody(
-            message = stringResource(R.string.compose_onboarding_focus_dialog_message),
-            leftText = stringResource(R.string.compose_onboarding_continue),
-            rightText = stringResource(R.string.compose_cancel),
+            message = stringResource(R.string.onboarding_focus_dialog_message),
+            leftText = stringResource(R.string.onboarding_continue),
+            rightText = stringResource(R.string.cancel),
             onLeft = onContinue,
             onRight = onDismiss,
         )
@@ -710,25 +710,25 @@ private fun DialogBody(
 }
 
 private fun onboardingStep(page: Int): OnboardingStep = when (page) {
-    0 -> OnboardingStep(R.string.compose_onboarding_app_name, null, null)
+    0 -> OnboardingStep(R.string.onboarding_app_name, null, null)
     1 -> OnboardingStep(
-        R.string.compose_onboarding_environment_title,
-        R.string.compose_onboarding_environment_subtitle,
+        R.string.onboarding_environment_title,
+        R.string.onboarding_environment_subtitle,
         MiuixIcons.Settings,
     )
     2 -> OnboardingStep(
-        R.string.compose_onboarding_focus_title,
-        R.string.compose_onboarding_focus_subtitle,
+        R.string.onboarding_focus_title,
+        R.string.onboarding_focus_subtitle,
         MiuixIcons.Lock,
     )
     3 -> OnboardingStep(
-        R.string.compose_onboarding_style_title,
-        R.string.compose_onboarding_style_subtitle,
+        R.string.onboarding_style_title,
+        R.string.onboarding_style_subtitle,
         MiuixIcons.Help,
     )
     else -> OnboardingStep(
-        R.string.compose_onboarding_finish_title,
-        R.string.compose_onboarding_finish_subtitle,
+        R.string.onboarding_finish_title,
+        R.string.onboarding_finish_subtitle,
         MiuixIcons.Ok,
     )
 }

@@ -102,12 +102,12 @@ internal fun NotificationChannelsPage(
     var rootErrorVisible by remember { mutableStateOf(false) }
     var refreshRevision by remember { mutableIntStateOf(0) }
 
-    val exportSuccess = stringResource(R.string.compose_export_channels_success)
-    val emptyClipboard = stringResource(R.string.compose_import_empty_clipboard)
-    val invalidJson = stringResource(R.string.compose_import_invalid_json)
-    val missingChannels = stringResource(R.string.compose_import_missing_channels)
-    val noMatch = stringResource(R.string.compose_import_no_match)
-    val importUnknown = stringResource(R.string.compose_import_unknown_error)
+    val exportSuccess = stringResource(R.string.export_channels_success)
+    val emptyClipboard = stringResource(R.string.import_empty_clipboard)
+    val invalidJson = stringResource(R.string.import_invalid_json)
+    val missingChannels = stringResource(R.string.import_missing_channels)
+    val noMatch = stringResource(R.string.import_no_match)
+    val importUnknown = stringResource(R.string.import_unknown_error)
 
     fun refresh() {
         refreshRevision++
@@ -189,11 +189,11 @@ internal fun NotificationChannelsPage(
                 enabledChannelIds = prefs.enabledChannelIds(app.packageName)
                 appEnabled = true
                 val message = context.resources.getQuantityString(
-                    R.plurals.compose_import_channels_success,
+                    R.plurals.import_channels_success,
                     matched,
                     matched,
                 ) + if (matched < total) {
-                    context.getString(R.string.compose_import_channels_partial, total, matched)
+                    context.getString(R.string.import_channels_partial, total, matched)
                 } else {
                     ""
                 }
@@ -211,18 +211,18 @@ internal fun NotificationChannelsPage(
     val menuEntry = DropdownEntry(
         items = listOf(
             DropdownItem(
-                text = stringResource(R.string.compose_refresh_list),
+                text = stringResource(R.string.refresh_list),
                 onClick = ::refresh,
                 icon = { modifier -> Icon(MiuixIcons.Refresh, null, modifier) },
             ),
             DropdownItem(
-                text = stringResource(R.string.compose_enable_all_channels),
+                text = stringResource(R.string.enable_all_channels),
                 enabled = channels.isNotEmpty(),
                 onClick = ::setAllChannelsEnabled,
                 icon = { modifier -> Icon(MiuixIcons.SelectAll, null, modifier) },
             ),
             DropdownItem(
-                text = stringResource(R.string.compose_batch_channel_settings),
+                text = stringResource(R.string.batch_channel_settings),
                 enabled = channels.isNotEmpty() && appEnabled,
                 onClick = {
                     onOpenBatchChannelSettings(
@@ -233,13 +233,13 @@ internal fun NotificationChannelsPage(
                 icon = { modifier -> Icon(MiuixIcons.Settings, null, modifier) },
             ),
             DropdownItem(
-                text = stringResource(R.string.compose_export_channels),
+                text = stringResource(R.string.export_channels),
                 enabled = channels.isNotEmpty(),
                 onClick = ::exportChannels,
                 icon = { modifier -> Icon(MiuixIcons.Copy, null, modifier) },
             ),
             DropdownItem(
-                text = stringResource(R.string.compose_import_channels),
+                text = stringResource(R.string.import_channels),
                 enabled = channels.isNotEmpty(),
                 onClick = ::importChannels,
                 icon = { modifier -> Icon(MiuixIcons.Paste, null, modifier) },
@@ -259,7 +259,7 @@ internal fun NotificationChannelsPage(
                     scrollBehavior = scrollBehavior,
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(MiuixIcons.Back, stringResource(R.string.compose_back))
+                            Icon(MiuixIcons.Back, stringResource(R.string.back))
                         }
                     },
                     actions = {
@@ -271,7 +271,7 @@ internal fun NotificationChannelsPage(
                             },
                         )
                         OverlayIconDropdownMenu(entry = menuEntry) {
-                            Icon(MiuixIcons.More, stringResource(R.string.compose_list_actions))
+                            Icon(MiuixIcons.More, stringResource(R.string.list_actions))
                         }
                     },
                     )
@@ -305,7 +305,7 @@ internal fun NotificationChannelsPage(
                     item {
                         Card {
                             BasicComponent(
-                                title = stringResource(R.string.compose_app_disabled_banner),
+                                title = stringResource(R.string.app_disabled_banner),
                                 insideMargin = CHANNEL_ITEM_MARGIN,
                             )
                         }
@@ -313,10 +313,10 @@ internal fun NotificationChannelsPage(
                 }
                 item {
                     Column {
-                        SectionTitle(stringResource(R.string.compose_media_notification))
+                        SectionTitle(stringResource(R.string.media_notification))
                         Card {
                             ArrowPreference(
-                                title = stringResource(R.string.compose_media_notification),
+                                title = stringResource(R.string.media_notification),
                                 summary = mediaSettingsSummary(mediaSettings),
                                 startAction = { SettingsIcon(MiuixIcons.Music) },
                                 insideMargin = CHANNEL_ITEM_MARGIN,
@@ -338,8 +338,8 @@ internal fun NotificationChannelsPage(
                     item {
                         Card {
                             BasicComponent(
-                                title = stringResource(R.string.compose_no_channels_found),
-                                summary = stringResource(R.string.compose_no_channels_found_summary),
+                                title = stringResource(R.string.no_channels_found),
+                                summary = stringResource(R.string.no_channels_found_summary),
                                 insideMargin = CHANNEL_ITEM_MARGIN,
                             )
                         }
@@ -354,12 +354,12 @@ internal fun NotificationChannelsPage(
                             }
                             SectionTitle(
                                 title = if (!appEnabled) {
-                                    stringResource(R.string.compose_all_channels_disabled, channels.size)
+                                    stringResource(R.string.all_channels_disabled, channels.size)
                                 } else if (enabledChannelIds.isEmpty()) {
-                                    stringResource(R.string.compose_all_channels_active, channels.size)
+                                    stringResource(R.string.all_channels_active, channels.size)
                                 } else {
                                     stringResource(
-                                        R.string.compose_selected_channels,
+                                        R.string.selected_channels,
                                         enabledCount,
                                         channels.size,
                                     )
@@ -371,7 +371,7 @@ internal fun NotificationChannelsPage(
                                         (enabledChannelIds.isEmpty() || channel.id in enabledChannelIds)
                                     val importance = importanceLabel(channel.importance)
                                     val details = stringResource(
-                                        R.string.compose_channel_importance,
+                                        R.string.channel_importance,
                                         stringResource(importance),
                                         channel.id,
                                     )
@@ -395,7 +395,7 @@ internal fun NotificationChannelsPage(
                                                 ) {
                                                     Icon(
                                                         MiuixIcons.Settings,
-                                                        stringResource(R.string.compose_channel_settings),
+                                                        stringResource(R.string.channel_settings),
                                                         modifier = Modifier.size(24.dp),
                                                         tint = if (channelEnabled) {
                                                             if (darkTheme) Color.White else Color.Black
@@ -427,17 +427,17 @@ internal fun NotificationChannelsPage(
 
     WindowDialog(
         show = rootErrorVisible,
-        title = stringResource(R.string.compose_cannot_read_channels),
+        title = stringResource(R.string.cannot_read_channels),
         onDismissRequest = { rootErrorVisible = false },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(stringResource(R.string.compose_root_required_message))
+            Text(stringResource(R.string.root_required_message))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 TextButton(
-                    text = stringResource(R.string.compose_cancel),
+                    text = stringResource(R.string.cancel),
                     onClick = { rootErrorVisible = false },
                     modifier = Modifier.weight(1f),
                 )
@@ -448,7 +448,7 @@ internal fun NotificationChannelsPage(
                     },
                     modifier = Modifier.weight(1f),
                 ) {
-                    Text(stringResource(R.string.compose_refresh_list))
+                    Text(stringResource(R.string.refresh_list))
                 }
             }
         }
@@ -458,29 +458,29 @@ internal fun NotificationChannelsPage(
 @Composable
 private fun mediaSettingsSummary(settings: io.github.hyperisland.compose.data.MediaNotificationSettings): String {
     val modified = settings != io.github.hyperisland.compose.data.MediaNotificationSettings()
-    if (!modified) return stringResource(R.string.compose_channel_settings_unmodified)
+    if (!modified) return stringResource(R.string.channel_settings_unmodified)
     val enabled = stringResource(
-        if (settings.enabled) R.string.compose_enabled_option else R.string.compose_disabled_option,
+        if (settings.enabled) R.string.enabled_option else R.string.disabled_option,
     )
     val normalNotification = stringResource(
-        if (settings.normalNotification) R.string.compose_enabled_option else R.string.compose_disabled_option,
+        if (settings.normalNotification) R.string.enabled_option else R.string.disabled_option,
     )
     val glow = when (settings.islandOuterGlow) {
-        "on" -> stringResource(R.string.compose_enabled_option)
-        "off" -> stringResource(R.string.compose_disabled_option)
-        "follow_dynamic" -> stringResource(R.string.compose_follow_dynamic_color)
-        else -> stringResource(R.string.compose_default)
+        "on" -> stringResource(R.string.enabled_option)
+        "off" -> stringResource(R.string.disabled_option)
+        "follow_dynamic" -> stringResource(R.string.follow_dynamic_color)
+        else -> stringResource(R.string.default_option)
     }
-    return stringResource(R.string.compose_media_settings_summary, enabled, normalNotification, glow)
+    return stringResource(R.string.media_settings_summary, enabled, normalNotification, glow)
 }
 
 private fun importanceLabel(importance: Int): Int = when (importance) {
-    0 -> R.string.compose_importance_none
-    1 -> R.string.compose_importance_min
-    2 -> R.string.compose_importance_low
-    3 -> R.string.compose_importance_default
-    4, 5 -> R.string.compose_importance_high
-    else -> R.string.compose_importance_unknown
+    0 -> R.string.importance_none
+    1 -> R.string.importance_min
+    2 -> R.string.importance_low
+    3 -> R.string.importance_default
+    4, 5 -> R.string.importance_high
+    else -> R.string.importance_unknown
 }
 
 private val CHANNEL_ITEM_MARGIN = PaddingValues(horizontal = 18.dp, vertical = 14.dp)
