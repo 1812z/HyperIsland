@@ -30,7 +30,7 @@ internal fun IslandOtherPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) 
     val expandedAction = rememberStringPreference(prefs, KEY_EXPANDED_ACTION, ACTION_NONE)
     val bigAction = rememberStringPreference(prefs, KEY_BIG_ACTION, ACTION_NONE)
     val ignoreOngoing = rememberBooleanPreference(prefs, KEY_IGNORE_ONGOING, true)
-    val speed = rememberLongPreference(prefs, KEY_MARQUEE_SPEED, 100L)
+    val speed = rememberLongPreference(prefs, KEY_MARQUEE_SPEED, DEFAULT_MARQUEE_SPEED)
     var speedDraft by remember { mutableFloatStateOf(speed.value.toFloat()) }
 
     LaunchedEffect(Unit) {
@@ -123,6 +123,12 @@ internal fun IslandOtherPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) 
                     valueText = stringResource(R.string.compose_marquee_speed_value, speedDraft.toInt()),
                     valueRange = 20f..500f,
                     steps = 47,
+                    resetVisible = speedDraft.toLong() != DEFAULT_MARQUEE_SPEED,
+                    onReset = {
+                        speedDraft = DEFAULT_MARQUEE_SPEED.toFloat()
+                        speed.value = DEFAULT_MARQUEE_SPEED
+                        prefs.remove(KEY_MARQUEE_SPEED)
+                    },
                     onValueChange = { speedDraft = it },
                     onValueChangeFinished = {
                         val next = speedDraft.toLong()
@@ -177,6 +183,7 @@ private const val KEY_BIG_ACTION = "pref_big_island_collapse_action"
 private const val KEY_IGNORE_ONGOING = "pref_island_swipe_ignore_ongoing"
 private const val KEY_MARQUEE_FEATURE = "pref_marquee_feature"
 private const val KEY_MARQUEE_SPEED = "pref_marquee_speed"
+private const val DEFAULT_MARQUEE_SPEED = 100L
 private const val DEFAULT_DND = "default"
 private const val DEFAULT_SCENE = "off"
 private const val ACTION_NONE = "none"

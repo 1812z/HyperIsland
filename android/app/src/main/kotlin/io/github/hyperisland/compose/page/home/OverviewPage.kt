@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,6 +44,8 @@ import io.github.hyperisland.compose.service.SystemInfoProvider
 import io.github.hyperisland.compose.service.TestNotificationService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
@@ -61,7 +64,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
 import top.yukonga.miuix.kmp.window.WindowDialog
 
-private data class ModuleState(
+internal data class ModuleState(
     val active: Boolean,
     val serviceConnected: Boolean = false,
     val framework: String = "",
@@ -71,28 +74,29 @@ private data class ModuleState(
     val hasSystemUiScope: Boolean = false,
 )
 
-@Composable
-internal fun OverviewPage(prefs: FlutterPrefsRepository) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var status by remember { mutableStateOf<ModuleState?>(null) }
-    var systemInfo by remember { mutableStateOf<HomeSystemInfo?>(null) }
-    var showCustomTest by remember { mutableStateOf(false) }
-    var showRestartDialog by remember { mutableStateOf(false) }
-    var enabledAppCount by remember { mutableStateOf(prefs.enabledAppCount()) }
-    var toastEnabledAppCount by remember { mutableStateOf(prefs.toastEnabledAppCount()) }
+@Stable
+internal class HomeOverviewState(private val prefs: FlutterPrefsRepository) {
+    var status by mutableStateOf<ModuleState?>(null)
+        private set
+    var systemInfo by mutableStateOf<HomeSystemInfo?>(null)
+        private set
+    var enabledAppCount by mutableStateOf(prefs.enabledAppCount())
+        private set
+    var toastEnabledAppCount by mutableStateOf(prefs.toastEnabledAppCount())
+        private set
 
-    DisposableEffect(prefs) {
-        val removeListener = prefs.addChangeListener { key ->
-            if (key == "pref_generic_whitelist") enabledAppCount = prefs.enabledAppCount()
-            if (key.startsWith("pref_app_config_")) toastEnabledAppCount = prefs.toastEnabledAppCount()
+    private val refreshMutex = Mutex()
+
+    fun onPreferenceChanged(key: String) {
+        if (key == "pref_generic_whitelist") enabledAppCount = prefs.enabledAppCount()
+        if (key.startsWith("pref_app_config_")) {
+            toastEnabledAppCount = prefs.toastEnabledAppCount()
         }
-        onDispose(removeListener)
     }
 
-    suspend fun refresh() {
+    suspend fun refresh(context: Context) = refreshMutex.withLock {
         val refreshed = withContext(Dispatchers.IO) {
-            val info = SystemInfoProvider.load()
+            val info = systemInfo ?: SystemInfoProvider.load()
             val connected = XposedPrefsSyncApp.awaitReady()
             if (!connected) return@withContext info to ModuleState(active = false)
             val app = context.applicationContext as XposedPrefsSyncApp
@@ -114,8 +118,31 @@ internal fun OverviewPage(prefs: FlutterPrefsRepository) {
         systemInfo = refreshed.first
         status = refreshed.second
     }
+}
 
-    LaunchedEffect(Unit) { refresh() }
+@Composable
+internal fun rememberHomeOverviewState(prefs: FlutterPrefsRepository): HomeOverviewState {
+    val state = remember(prefs) { HomeOverviewState(prefs) }
+    DisposableEffect(prefs, state) {
+        val removeListener = prefs.addChangeListener(state::onPreferenceChanged)
+        onDispose(removeListener)
+    }
+    return state
+}
+
+@Composable
+internal fun OverviewPage(
+    state: HomeOverviewState,
+    isActive: Boolean,
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var showCustomTest by remember { mutableStateOf(false) }
+    var showRestartDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isActive) {
+        if (isActive) state.refresh(context)
+    }
     CollapsingPage(
         title = "HyperIsland",
         actionIcon = MiuixIcons.Refresh,
@@ -127,15 +154,15 @@ internal fun OverviewPage(prefs: FlutterPrefsRepository) {
     ) {
         item {
             StatusGrid(
-                status = status,
-                appVersion = systemInfo?.appVersion,
-                enabledAppCount = enabledAppCount,
-                toastEnabledAppCount = toastEnabledAppCount,
+                status = state.status,
+                appVersion = state.systemInfo?.appVersion,
+                enabledAppCount = state.enabledAppCount,
+                toastEnabledAppCount = state.toastEnabledAppCount,
                 onSendTest = { TestNotificationService.sendDefault(context) },
                 onCustomTest = { showCustomTest = true },
             )
         }
-        item { InfoCard(systemInfo, status) }
+        item { InfoCard(state.systemInfo, state.status) }
         item {
             Card {
                 SettingsAction(
@@ -158,7 +185,7 @@ internal fun OverviewPage(prefs: FlutterPrefsRepository) {
 
     CustomTestDialog(
         show = showCustomTest,
-        enabled = status?.active == true,
+        enabled = state.status?.active == true,
         onDismiss = { showCustomTest = false },
         onSend = { title, content, clearPrevious, enableFloat ->
             TestNotificationService.sendCustom(

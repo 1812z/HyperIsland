@@ -27,6 +27,7 @@ import io.github.hyperisland.compose.component.AiCustomFieldsDialog
 import io.github.hyperisland.compose.component.AiModelPickerDialog
 import io.github.hyperisland.compose.component.DetailPage
 import io.github.hyperisland.compose.component.SectionTitle
+import io.github.hyperisland.compose.component.SliderResetAction
 import io.github.hyperisland.compose.data.AiConfigSettings
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.service.AiConfigService
@@ -64,6 +65,7 @@ internal fun AiConfigPage(
     val scope = rememberCoroutineScope()
     val snackbarState = remember { SnackbarHostState() }
     val initial = remember { prefs.aiConfigSettings() }
+    val defaults = remember { AiConfigSettings() }
     val defaultPrompt = stringResource(R.string.compose_ai_default_prompt)
     var saved by remember { mutableStateOf(initial) }
     var draft by remember {
@@ -314,9 +316,17 @@ internal fun AiConfigPage(
                         draft = draft.copy(timeout = it.roundToInt().coerceIn(3, 15))
                     },
                     title = stringResource(R.string.compose_ai_timeout),
-                    valueText = stringResource(R.string.compose_ai_timeout_value, draft.timeout),
                     valueRange = 3f..15f,
                     steps = 11,
+                    endActions = {
+                        SliderResetAction(
+                            valueText = stringResource(R.string.compose_ai_timeout_value, draft.timeout),
+                            visible = draft.timeout != defaults.timeout,
+                            onClick = {
+                                persistImmediate { it.copy(timeout = defaults.timeout) }
+                            },
+                        )
+                    },
                     insideMargin = ITEM_MARGIN,
                     onValueChangeFinished = {
                         val value = draft.timeout
@@ -337,9 +347,17 @@ internal fun AiConfigPage(
                             R.string.compose_ai_trigger_count_summary
                         },
                     ),
-                    valueText = draft.triggerCharCount.toString(),
                     valueRange = 0f..100f,
                     steps = 19,
+                    endActions = {
+                        SliderResetAction(
+                            valueText = draft.triggerCharCount.toString(),
+                            visible = draft.triggerCharCount != defaults.triggerCharCount,
+                            onClick = {
+                                persistImmediate { it.copy(triggerCharCount = defaults.triggerCharCount) }
+                            },
+                        )
+                    },
                     insideMargin = ITEM_MARGIN,
                     onValueChangeFinished = {
                         val value = draft.triggerCharCount
@@ -355,9 +373,17 @@ internal fun AiConfigPage(
                     },
                     title = stringResource(R.string.compose_ai_temperature),
                     summary = stringResource(R.string.compose_ai_temperature_summary),
-                    valueText = "%.1f".format(draft.temperature),
                     valueRange = 0f..1f,
                     steps = 9,
+                    endActions = {
+                        SliderResetAction(
+                            valueText = "%.1f".format(draft.temperature),
+                            visible = draft.temperature != defaults.temperature,
+                            onClick = {
+                                persistImmediate { it.copy(temperature = defaults.temperature) }
+                            },
+                        )
+                    },
                     insideMargin = ITEM_MARGIN,
                     onValueChangeFinished = {
                         val value = draft.temperature
@@ -371,9 +397,17 @@ internal fun AiConfigPage(
                     },
                     title = stringResource(R.string.compose_ai_max_tokens),
                     summary = stringResource(R.string.compose_ai_max_tokens_summary),
-                    valueText = draft.maxTokens.toString(),
                     valueRange = 20f..100f,
                     steps = 79,
+                    endActions = {
+                        SliderResetAction(
+                            valueText = draft.maxTokens.toString(),
+                            visible = draft.maxTokens != defaults.maxTokens,
+                            onClick = {
+                                persistImmediate { it.copy(maxTokens = defaults.maxTokens) }
+                            },
+                        )
+                    },
                     insideMargin = ITEM_MARGIN,
                     onValueChangeFinished = {
                         val value = draft.maxTokens

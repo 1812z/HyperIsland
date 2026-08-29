@@ -7,9 +7,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,12 +18,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -43,14 +39,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -58,9 +57,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.hyperisland.BuildConfig
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.LocalRootBottomBarPadding
 import io.github.hyperisland.compose.component.SectionTitle
@@ -73,6 +72,14 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.blur.BlendColorEntry
+import top.yukonga.miuix.kmp.blur.BlurBlendMode
+import top.yukonga.miuix.kmp.blur.BlurColors
+import top.yukonga.miuix.kmp.blur.LayerBackdrop
+import top.yukonga.miuix.kmp.blur.isRuntimeShaderSupported
+import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
+import top.yukonga.miuix.kmp.blur.textureBlur
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Backup
 import top.yukonga.miuix.kmp.icon.extended.Copy
@@ -95,7 +102,6 @@ internal fun AboutPage(
 ) {
     val context = LocalContext.current
     val listState = rememberLazyListState()
-    val statusBarPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
     val density = LocalDensity.current
     val heroHeight = screenHeight * HERO_HEIGHT_FRACTION
@@ -134,7 +140,17 @@ internal fun AboutPage(
     val scope = rememberCoroutineScope()
     val copiedMessage = stringResource(R.string.compose_group_number_copied)
     val animationTime = rememberAboutAnimationTime(isActive)
-    val gradientColors = animatedGradientColors(animationTime, isSystemInDarkTheme())
+    val darkMode = isSystemInDarkTheme()
+    val gradientColors = animatedGradientColors(animationTime, darkMode)
+    val backgroundColor = MiuixTheme.colorScheme.background
+    val logoBackdrop = if (isRuntimeShaderSupported()) {
+        rememberLayerBackdrop {
+            drawRect(backgroundColor)
+            drawContent()
+        }
+    } else {
+        null
+    }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarState) },
@@ -150,7 +166,14 @@ internal fun AboutPage(
                         .graphicsLayer {
                             compositingStrategy = CompositingStrategy.Offscreen
                             translationY = -listState.firstVisibleItemScrollOffset * 0.12f
-                        },
+                        }
+                        .then(
+                            if (logoBackdrop != null) {
+                                Modifier.layerBackdrop(logoBackdrop)
+                            } else {
+                                Modifier
+                            },
+                        ),
                 )
                 LazyColumn(
                     state = listState,
@@ -167,7 +190,7 @@ internal fun AboutPage(
                 ) {
                     item {
                         Column(modifier = Modifier.fillMaxWidth()) {
-                            Spacer(Modifier.height(heroHeight))
+                            Spacer(Modifier.height(heroHeight + DEVELOPER_TOP_GAP))
                             SectionTitle(stringResource(R.string.compose_about_developer))
                             DeveloperCard()
                         }
@@ -234,16 +257,14 @@ internal fun AboutPage(
                 AboutHero(
                     animationTime = animationTime,
                     gradientColors = gradientColors,
+                    backdrop = logoBackdrop,
+                    darkMode = darkMode,
                     logoAlpha = logoAlpha,
                     logoScale = logoScale,
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .height(heroHeight)
-                        .padding(
-                            start = 16.dp,
-                            top = statusBarPadding,
-                            end = 16.dp,
-                        ),
+                        .padding(horizontal = 16.dp),
                 )
         }
     }
@@ -253,6 +274,8 @@ internal fun AboutPage(
 private fun AboutHero(
     animationTime: Float,
     gradientColors: List<Color>,
+    backdrop: LayerBackdrop?,
+    darkMode: Boolean,
     logoAlpha: Float,
     logoScale: Float,
     modifier: Modifier = Modifier,
@@ -265,6 +288,7 @@ private fun AboutHero(
     ) {
         Column(
             modifier = Modifier
+                .offset(y = HERO_CONTENT_OFFSET)
                 .graphicsLayer {
                     alpha = logoAlpha
                     scaleX = logoScale
@@ -272,44 +296,73 @@ private fun AboutHero(
                 },
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            val logoShape = RoundedCornerShape(23.dp)
-            Box(
+            BackgroundBlendedArtwork(
+                resourceId = R.drawable.about_logo_mark,
+                animationTime = animationTime,
+                colors = gradientColors,
+                backdrop = backdrop,
+                darkMode = darkMode,
+                blurRadius = 200f,
+                shape = RoundedCornerShape(22.dp),
                 modifier = Modifier
-                    .size(90.dp)
-                    .clip(logoShape)
-                    .background(
-                        brush = animatedGradientBrush(animationTime, gradientColors),
-                        shape = logoShape,
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Image(
-                    painter = painterResource(R.drawable.about_logo_mark),
-                    contentDescription = null,
-                    colorFilter = ColorFilter.tint(Color.White),
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
-            Box(
+                    .size(90.dp),
+            )
+            Spacer(Modifier.height(20.dp))
+            BackgroundBlendedArtwork(
+                resourceId = R.drawable.about_wordmark,
+                animationTime = animationTime,
+                colors = gradientColors,
+                backdrop = backdrop,
+                darkMode = darkMode,
+                blurRadius = 150f,
+                shape = RoundedCornerShape(12.dp),
+                contentScale = ContentScale.FillBounds,
                 modifier = Modifier
-                    .padding(top = 20.dp)
                     .width(280.dp)
-                    .height(44.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                BasicText(
-                    text = "HyperIsland",
-                    style = MiuixTheme.textStyles.title1.copy(
-                        brush = animatedGradientBrush(animationTime, gradientColors),
-                        fontSize = 36.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = (-1.2).sp,
-                        textAlign = TextAlign.Center,
-                    ),
-                )
-            }
+                    .height(40.dp),
+            )
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text = "${BuildConfig.VERSION_NAME}(${BuildConfig.VERSION_CODE})",
+                fontSize = 15.sp,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+            )
         }
     }
+}
+
+@Composable
+private fun BackgroundBlendedArtwork(
+    resourceId: Int,
+    animationTime: Float,
+    colors: List<Color>,
+    backdrop: LayerBackdrop?,
+    darkMode: Boolean,
+    blurRadius: Float,
+    shape: Shape,
+    modifier: Modifier = Modifier,
+    contentScale: ContentScale = ContentScale.Fit,
+) {
+    val blendColors = remember(darkMode) { aboutArtworkBlendColors(darkMode) }
+    val fallbackBrush = animatedGradientBrush(animationTime, colors)
+    val effectModifier = if (backdrop != null) {
+        Modifier.textureBlur(
+            backdrop = backdrop,
+            shape = shape,
+            blurRadius = blurRadius,
+            noiseCoefficient = 0f,
+            colors = BlurColors(blendColors = blendColors),
+            contentBlendMode = BlendMode.DstIn,
+        )
+    } else {
+        Modifier.colorfulMask(fallbackBrush)
+    }
+    Image(
+        painter = painterResource(resourceId),
+        contentDescription = null,
+        contentScale = contentScale,
+        modifier = modifier.then(effectModifier),
+    )
 }
 
 @Composable
@@ -366,40 +419,12 @@ private fun AnimatedAboutBackground(
     modifier: Modifier = Modifier,
 ) {
     Canvas(modifier = modifier) {
-        val radius = size.maxDimension * 0.46f
-        val motionTime = animationTime * BACKGROUND_SPEED
-        val centers = listOf(
-            Offset(
-                x = size.width * (0.18f + 0.10f * sin(motionTime)),
-                y = size.height * (0.20f + 0.08f * cos(motionTime * 0.8f)),
-            ),
-            Offset(
-                x = size.width * (0.82f + 0.10f * cos(motionTime * 0.9f)),
-                y = size.height * (0.78f + 0.10f * sin(motionTime * 0.7f)),
-            ),
-            Offset(
-                x = size.width * (0.22f + 0.12f * cos(motionTime * 0.65f)),
-                y = size.height * (0.80f + 0.08f * sin(motionTime * 0.85f)),
-            ),
-            Offset(
-                x = size.width * (0.80f + 0.12f * sin(motionTime * 0.72f)),
-                y = size.height * (0.20f + 0.08f * cos(motionTime * 0.62f)),
-            ),
+        drawAboutGradientField(
+            animationTime = animationTime,
+            colors = colors,
+            fieldSize = size,
+            sampleOrigin = Offset.Zero,
         )
-        centers.forEachIndexed { index, center ->
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        colors[index].copy(alpha = colors[index].alpha * 0.72f),
-                        colors[index].copy(alpha = 0f),
-                    ),
-                    center = center,
-                    radius = radius,
-                ),
-                center = center,
-                radius = radius,
-            )
-        }
         drawRect(
             brush = Brush.verticalGradient(
                 colorStops = arrayOf(
@@ -409,6 +434,103 @@ private fun AnimatedAboutBackground(
                 ),
             ),
             blendMode = BlendMode.DstIn,
+        )
+    }
+}
+
+private fun Modifier.colorfulMask(brush: Brush): Modifier = graphicsLayer {
+    compositingStrategy = CompositingStrategy.Offscreen
+}.drawWithCache {
+    onDrawWithContent {
+        drawContent()
+        drawRect(brush = brush, blendMode = BlendMode.SrcIn)
+    }
+}
+
+private fun aboutArtworkBlendColors(darkMode: Boolean): List<BlendColorEntry> =
+    if (darkMode) {
+        listOf(
+            BlendColorEntry(Color(0xE6A1A1A1), BlurBlendMode.ColorDodge),
+            BlendColorEntry(Color(0x4DE6E6E6), BlurBlendMode.LinearLight),
+            BlendColorEntry(Color(0xFF1AF500), BlurBlendMode.Lab),
+        )
+    } else {
+        listOf(
+            BlendColorEntry(Color(0xCC4A4A4A), BlurBlendMode.ColorBurn),
+            BlendColorEntry(Color(0xFF4F4F4F), BlurBlendMode.LinearLight),
+            BlendColorEntry(Color(0xFF1AF200), BlurBlendMode.Lab),
+        )
+    }
+
+private fun DrawScope.drawAboutGradientField(
+    animationTime: Float,
+    colors: List<Color>,
+    fieldSize: Size,
+    sampleOrigin: Offset,
+    blendMode: BlendMode = BlendMode.SrcOver,
+) {
+    val strengthenedColors = colors.map(::strengthenGradientColor)
+    val translucentPalette = strengthenedColors.any { it.alpha < 0.8f }
+    val radius = fieldSize.maxDimension * 0.62f
+    val motionTime = animationTime * BACKGROUND_SPEED
+    drawRect(
+        brush = Brush.linearGradient(
+            colors = strengthenedColors.map { color ->
+                color.copy(
+                    alpha = if (translucentPalette) {
+                        color.alpha * 0.72f
+                    } else {
+                        0.58f
+                    },
+                )
+            },
+            start = Offset(-sampleOrigin.x, -sampleOrigin.y),
+            end = Offset(
+                fieldSize.width - sampleOrigin.x,
+                fieldSize.height - sampleOrigin.y,
+            ),
+        ),
+        blendMode = blendMode,
+    )
+    val centers = listOf(
+        Offset(
+            x = fieldSize.width * (0.18f + 0.10f * sin(motionTime)),
+            y = fieldSize.height * (0.20f + 0.08f * cos(motionTime * 0.8f)),
+        ),
+        Offset(
+            x = fieldSize.width * (0.82f + 0.10f * cos(motionTime * 0.9f)),
+            y = fieldSize.height * (0.78f + 0.10f * sin(motionTime * 0.7f)),
+        ),
+        Offset(
+            x = fieldSize.width * (0.22f + 0.12f * cos(motionTime * 0.65f)),
+            y = fieldSize.height * (0.80f + 0.08f * sin(motionTime * 0.85f)),
+        ),
+        Offset(
+            x = fieldSize.width * (0.80f + 0.12f * sin(motionTime * 0.72f)),
+            y = fieldSize.height * (0.20f + 0.08f * cos(motionTime * 0.62f)),
+        ),
+    )
+    centers.forEachIndexed { index, globalCenter ->
+        val color = strengthenedColors[index]
+        val localCenter = globalCenter - sampleOrigin
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    color.copy(
+                        alpha = if (translucentPalette) {
+                            color.alpha * 0.96f
+                        } else {
+                            0.88f
+                        },
+                    ),
+                    color.copy(alpha = 0f),
+                ),
+                center = localCenter,
+                radius = radius,
+            ),
+            center = localCenter,
+            radius = radius,
+            blendMode = blendMode,
         )
     }
 }
@@ -435,19 +557,29 @@ private fun rememberAboutAnimationTime(running: Boolean): Float {
 private fun animatedGradientBrush(
     animationTime: Float,
     colors: List<Color>,
-    width: Float = 620f,
-    height: Float = 180f,
 ): Brush {
-    val center = Offset(width / 2f, height / 2f)
-    val opaqueColors = colors.map { it.copy(alpha = 1f) }
+    val center = Offset(310f, 90f)
     val vector = Offset(
-        x = cos(animationTime * BACKGROUND_SPEED) * width,
-        y = sin(animationTime * BACKGROUND_SPEED) * height,
+        x = cos(animationTime * BACKGROUND_SPEED) * 620f,
+        y = sin(animationTime * BACKGROUND_SPEED) * 180f,
     )
+    val opaqueColors = colors.map { it.copy(alpha = 1f) }
     return Brush.linearGradient(
         colors = opaqueColors + opaqueColors.first(),
         start = center - vector,
         end = center + vector,
+    )
+}
+
+private fun strengthenGradientColor(color: Color): Color {
+    val average = (color.red + color.green + color.blue) / 3f
+    val saturation = 1.18f
+    val brightnessOffset = 0.015f
+    return Color(
+        red = (average + (color.red - average) * saturation - brightnessOffset).coerceIn(0f, 1f),
+        green = (average + (color.green - average) * saturation - brightnessOffset).coerceIn(0f, 1f),
+        blue = (average + (color.blue - average) * saturation - brightnessOffset).coerceIn(0f, 1f),
+        alpha = color.alpha,
     )
 }
 
@@ -487,6 +619,8 @@ private const val QQ_CLIP_LABEL = "QQ"
 private const val BACKGROUND_SPEED = 0.12f
 private const val COLOR_INTERPOLATION_SECONDS = 12f
 private const val HERO_HEIGHT_FRACTION = 0.60f
+private val DEVELOPER_TOP_GAP = 16.dp
+private val HERO_CONTENT_OFFSET = 30.dp
 
 private val LightGradientPalettes = listOf(
     listOf(Color(1f, 0.90f, 0.94f), Color(1f, 0.84f, 0.89f), Color(0.97f, 0.73f, 0.82f), Color(0.64f, 0.65f, 0.98f)),

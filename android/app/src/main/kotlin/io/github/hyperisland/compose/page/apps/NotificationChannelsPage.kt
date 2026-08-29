@@ -72,6 +72,8 @@ import top.yukonga.miuix.kmp.menu.OverlayIconDropdownMenu
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.window.WindowDialog
+import io.github.hyperisland.compose.component.SettingsIcon
+import top.yukonga.miuix.kmp.icon.extended.Music
 
 @Composable
 internal fun NotificationChannelsPage(
@@ -301,6 +303,7 @@ internal fun NotificationChannelsPage(
                             ArrowPreference(
                                 title = stringResource(R.string.compose_media_notification),
                                 summary = mediaSettingsSummary(mediaSettings),
+                                startAction = { SettingsIcon(MiuixIcons.Music) },
                                 insideMargin = CHANNEL_ITEM_MARGIN,
                                 onClick = onOpenMediaSettings,
                             )
@@ -377,7 +380,7 @@ internal fun NotificationChannelsPage(
                                                     Icon(
                                                         MiuixIcons.Settings,
                                                         stringResource(R.string.compose_channel_settings),
-                                                        modifier = Modifier.size(24.dp),
+                                                        modifier = Modifier.size(26.dp),
                                                     )
                                                 }
                                                 Switch(

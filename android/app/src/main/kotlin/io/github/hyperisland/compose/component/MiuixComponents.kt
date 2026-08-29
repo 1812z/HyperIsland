@@ -171,6 +171,7 @@ internal fun SettingsAction(
     summary: String? = null,
     endIcon: ImageVector? = null,
     endIconSize: Dp = 20.dp,
+    enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
     BasicComponent(
@@ -185,11 +186,16 @@ internal fun SettingsAction(
                     modifier = Modifier
                         .padding(end = 8.dp)
                         .size(endIconSize),
-                    tint = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                    tint = if (enabled) {
+                        MiuixTheme.colorScheme.onSurfaceVariantActions
+                    } else {
+                        MiuixTheme.colorScheme.disabledOnSurface
+                    },
                 )
             }
         },
         insideMargin = SettingsItemMargin,
+        enabled = enabled,
         onClick = onClick,
     )
 }

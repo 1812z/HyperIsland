@@ -72,6 +72,27 @@ internal data class AiConfigSettings(
     val triggerCharCount: Int = 10,
 )
 
+internal data class KeepIslandSettings(
+    val enabled: Boolean = false,
+    val displayTiming: String = "always",
+    val showNotification: Boolean = false,
+    val autoHide: Boolean = true,
+    val hideLandscape: Boolean = false,
+    val highlightColor: String = "",
+    val leftHighlight: Boolean = false,
+    val rightHighlight: Boolean = false,
+    val leftContents: List<String> = listOf("{time.HH:mm}"),
+    val rightContents: List<String> = listOf("{battery.level}"),
+    val carouselInterval: Int = 5,
+    val focusNotification: Boolean = false,
+    val focusContentType: String = "notification",
+    val expandTextColorMode: String = "white",
+    val notificationTitle: String = "",
+    val notificationContent: String = "",
+    val showIslandIcon: Boolean = false,
+    val customIconPath: String = "",
+)
+
 /** 与 Flutter shared_preferences、XposedPrefsSyncApp 共用同一份配置。 */
 class FlutterPrefsRepository(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences(
@@ -201,12 +222,6 @@ class FlutterPrefsRepository(context: Context) {
         if (excluded) packages += packageName else packages -= packageName
         if (packages.isEmpty()) remove(KEY_FOREGROUND_EXCLUDED)
         else putString(KEY_FOREGROUND_EXCLUDED, packages.joinToString(","))
-    }
-
-    fun applyForegroundPreset(packageNames: Collection<String>): Int {
-        val changed = packageNames.count { foregroundAction(it) != "small_only" }
-        packageNames.forEach { setForegroundAction(it, "small_only") }
-        return changed
     }
 
     fun resetForegroundRules(): Int {
@@ -422,6 +437,58 @@ class FlutterPrefsRepository(context: Context) {
         putLong("pref_ai_trigger_char_count", value.triggerCharCount.coerceIn(0, 100).toLong())
     }
 
+    internal fun keepIslandSettings(): KeepIslandSettings = KeepIslandSettings(
+        enabled = getBoolean(KEY_KEEP_ISLAND, false),
+        displayTiming = getString(KEY_KEEP_ISLAND_DISPLAY_TIMING, "always")
+            .takeIf { it == "charging" } ?: "always",
+        showNotification = getBoolean(KEY_KEEP_ISLAND_SHOW_NOTIFICATION, false),
+        autoHide = getBoolean(KEY_KEEP_ISLAND_AUTO_HIDE, true),
+        hideLandscape = getBoolean(KEY_KEEP_ISLAND_HIDE_LANDSCAPE, false),
+        highlightColor = getString(KEY_KEEP_ISLAND_HIGHLIGHT_COLOR),
+        leftHighlight = getBoolean(KEY_KEEP_ISLAND_LEFT_HIGHLIGHT, false),
+        rightHighlight = getBoolean(KEY_KEEP_ISLAND_RIGHT_HIGHLIGHT, false),
+        leftContents = decodeStringList(
+            getString(KEY_KEEP_ISLAND_LEFT_CONTENT, ""),
+            listOf("{time.HH:mm}"),
+        ),
+        rightContents = decodeStringList(
+            getString(KEY_KEEP_ISLAND_RIGHT_CONTENT, ""),
+            listOf("{battery.level}"),
+        ),
+        carouselInterval = getLong(KEY_KEEP_ISLAND_CAROUSEL_INTERVAL, 5L).toInt().coerceIn(1, 6000),
+        focusNotification = getBoolean(KEY_KEEP_ISLAND_FOCUS_NOTIFICATION, false),
+        focusContentType = getString(KEY_KEEP_ISLAND_FOCUS_CONTENT_TYPE, "notification")
+            .takeIf { it in KEEP_ISLAND_CONTENT_TYPES } ?: "notification",
+        expandTextColorMode = getString(KEY_KEEP_ISLAND_EXPAND_TEXT_COLOR, "white")
+            .takeIf { it in KEEP_ISLAND_TEXT_COLORS } ?: "white",
+        notificationTitle = getString(KEY_KEEP_ISLAND_NOTIFICATION_TITLE),
+        notificationContent = getString(KEY_KEEP_ISLAND_NOTIFICATION_CONTENT),
+        showIslandIcon = getBoolean(KEY_KEEP_ISLAND_SHOW_ICON, false),
+        customIconPath = getString(KEY_KEEP_ISLAND_CUSTOM_ICON),
+    )
+
+    internal fun setKeepIslandSettings(value: KeepIslandSettings) {
+        putBoolean(KEY_KEEP_ISLAND, value.enabled)
+        putString(KEY_KEEP_ISLAND_DISPLAY_TIMING, value.displayTiming)
+        putBoolean(KEY_KEEP_ISLAND_SHOW_NOTIFICATION, value.showNotification)
+        putBoolean(KEY_KEEP_ISLAND_AUTO_HIDE, value.autoHide)
+        putBoolean(KEY_KEEP_ISLAND_HIDE_LANDSCAPE, value.hideLandscape)
+        if (value.highlightColor.isBlank()) remove(KEY_KEEP_ISLAND_HIGHLIGHT_COLOR)
+        else putString(KEY_KEEP_ISLAND_HIGHLIGHT_COLOR, value.highlightColor.trim())
+        putBoolean(KEY_KEEP_ISLAND_LEFT_HIGHLIGHT, value.leftHighlight)
+        putBoolean(KEY_KEEP_ISLAND_RIGHT_HIGHLIGHT, value.rightHighlight)
+        putString(KEY_KEEP_ISLAND_LEFT_CONTENT, JSONArray(value.leftContents).toString())
+        putString(KEY_KEEP_ISLAND_RIGHT_CONTENT, JSONArray(value.rightContents).toString())
+        putLong(KEY_KEEP_ISLAND_CAROUSEL_INTERVAL, value.carouselInterval.coerceIn(1, 6000).toLong())
+        putBoolean(KEY_KEEP_ISLAND_FOCUS_NOTIFICATION, value.focusNotification)
+        putString(KEY_KEEP_ISLAND_FOCUS_CONTENT_TYPE, value.focusContentType)
+        putString(KEY_KEEP_ISLAND_EXPAND_TEXT_COLOR, value.expandTextColorMode)
+        putString(KEY_KEEP_ISLAND_NOTIFICATION_TITLE, value.notificationTitle.trim())
+        putString(KEY_KEEP_ISLAND_NOTIFICATION_CONTENT, value.notificationContent.trim())
+        putBoolean(KEY_KEEP_ISLAND_SHOW_ICON, value.showIslandIcon)
+        putString(KEY_KEEP_ISLAND_CUSTOM_ICON, value.customIconPath.trim())
+    }
+
     internal fun exportChannelSettings(
         packageName: String,
         appName: String,
@@ -519,6 +586,14 @@ class FlutterPrefsRepository(context: Context) {
         .distinct()
         .joinToString("\n")
 
+    private fun decodeStringList(raw: String, defaults: List<String>): List<String> {
+        if (raw.isBlank()) return defaults
+        return runCatching {
+            val array = JSONArray(raw)
+            List(array.length()) { index -> array.optString(index) }
+        }.getOrElse { listOf(raw) }
+    }
+
     private fun getOuterGlowMode(key: String): String = runCatching {
         prefs.getString(storageKey(key), null)
     }.getOrNull()?.takeIf { it == "on" || it == "off" || it == "follow_dynamic" }
@@ -536,6 +611,26 @@ class FlutterPrefsRepository(context: Context) {
         const val KEY_FOREGROUND_PREFIX = "pref_scene_foreground_"
         const val KEY_FOREGROUND_INDEX = "pref_scene_foreground_packages"
         const val KEY_FOREGROUND_EXCLUDED = "pref_scene_excluded_foreground_packages"
+        const val KEY_KEEP_ISLAND = "pref_keep_island"
+        const val KEY_KEEP_ISLAND_DISPLAY_TIMING = "pref_keep_island_display_timing"
+        const val KEY_KEEP_ISLAND_SHOW_NOTIFICATION = "pref_keep_island_show_notification"
+        const val KEY_KEEP_ISLAND_AUTO_HIDE = "pref_keep_island_auto_hide"
+        const val KEY_KEEP_ISLAND_HIDE_LANDSCAPE = "pref_keep_island_hide_landscape"
+        const val KEY_KEEP_ISLAND_HIGHLIGHT_COLOR = "pref_keep_island_highlight_color"
+        const val KEY_KEEP_ISLAND_LEFT_HIGHLIGHT = "pref_keep_island_left_highlight"
+        const val KEY_KEEP_ISLAND_RIGHT_HIGHLIGHT = "pref_keep_island_right_highlight"
+        const val KEY_KEEP_ISLAND_LEFT_CONTENT = "pref_keep_island_left_content"
+        const val KEY_KEEP_ISLAND_RIGHT_CONTENT = "pref_keep_island_right_content"
+        const val KEY_KEEP_ISLAND_CAROUSEL_INTERVAL = "pref_keep_island_carousel_interval_seconds"
+        const val KEY_KEEP_ISLAND_FOCUS_NOTIFICATION = "pref_keep_island_focus_notification"
+        const val KEY_KEEP_ISLAND_FOCUS_CONTENT_TYPE = "pref_keep_island_focus_content_type"
+        const val KEY_KEEP_ISLAND_EXPAND_TEXT_COLOR = "pref_keep_island_expand_text_color_mode"
+        const val KEY_KEEP_ISLAND_NOTIFICATION_TITLE = "pref_keep_island_notification_title"
+        const val KEY_KEEP_ISLAND_NOTIFICATION_CONTENT = "pref_keep_island_notification_content"
+        const val KEY_KEEP_ISLAND_SHOW_ICON = "pref_keep_island_show_island_icon"
+        const val KEY_KEEP_ISLAND_CUSTOM_ICON = "pref_keep_island_custom_icon_path"
+        val KEEP_ISLAND_CONTENT_TYPES = setOf("notification", "performance", "device", "charging")
+        val KEEP_ISLAND_TEXT_COLORS = setOf("white", "follow_status_bar", "invert_status_bar", "black")
         val FOREGROUND_ACTIONS = setOf("small_only", "expand", "suppress")
     }
 }

@@ -4,13 +4,12 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
@@ -53,14 +52,18 @@ import io.github.hyperisland.compose.page.apps.NotificationChannelsPage
 import io.github.hyperisland.compose.page.apps.MediaNotificationPage
 import io.github.hyperisland.compose.page.apps.ToastSettingsPage
 import io.github.hyperisland.compose.page.home.OverviewPage
+import io.github.hyperisland.compose.page.home.rememberHomeOverviewState
 import io.github.hyperisland.compose.page.SettingsDetail
 import io.github.hyperisland.compose.page.SettingsPage
 import io.github.hyperisland.compose.page.settings.HideBehaviorPage
+import io.github.hyperisland.compose.page.settings.AppearancePage
+import io.github.hyperisland.compose.page.settings.IslandMaterialPage
 import io.github.hyperisland.compose.page.settings.DefaultConfigPage
 import io.github.hyperisland.compose.page.settings.AiConfigPage
 import io.github.hyperisland.compose.page.settings.BackupRestorePage
 import io.github.hyperisland.compose.page.settings.FilterRulesPage
 import io.github.hyperisland.compose.page.settings.IslandOtherPage
+import io.github.hyperisland.compose.page.settings.KeepIslandPage
 import io.github.hyperisland.compose.page.settings.MiscPage
 import io.github.hyperisland.compose.page.settings.ReferencesPage
 import io.github.hyperisland.compose.page.settings.ThemeSettingsPage
@@ -99,6 +102,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
         )
     }
     val pagerState = rememberPagerState(pageCount = { destinations.size })
+    val homeOverviewState = rememberHomeOverviewState(prefs)
     val scope = rememberCoroutineScope()
     val floatingNavigationBar = rememberBooleanPreference(prefs, PREF_FLOATING_NAVIGATION_BAR, false)
     val blurBars = rememberBooleanPreference(prefs, PREF_BLUR_BARS, false)
@@ -112,6 +116,8 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     var visibleToastApp by remember { mutableStateOf<InstalledApp?>(null) }
     var detailShown by remember { mutableStateOf(false) }
     var mediaShown by remember { mutableStateOf(false) }
+    var materialShown by remember { mutableStateOf(false) }
+    val nestedDetailShown = mediaShown || materialShown
     var detailPredictiveBackActive by remember { mutableStateOf(false) }
     var mediaPredictiveBackActive by remember { mutableStateOf(false) }
     val predictiveProgress = remember { Animatable(0f) }
@@ -153,10 +159,10 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
         }
     }
 
-    LaunchedEffect(mediaShown, mediaPredictiveBackActive) {
+    LaunchedEffect(nestedDetailShown, mediaPredictiveBackActive) {
         if (!mediaPredictiveBackActive) {
-            val target = if (mediaShown) 1f else 0f
-            val duration = if (mediaShown) LAYER_ENTER_DURATION else LAYER_EXIT_DURATION
+            val target = if (nestedDetailShown) 1f else 0f
+            val duration = if (nestedDetailShown) LAYER_ENTER_DURATION else LAYER_EXIT_DURATION
             coroutineScope {
                 launch {
                     mediaBackdropIntensity.animateTo(
@@ -174,7 +180,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
         }
     }
 
-    PredictiveBackHandler(enabled = detailShown && !mediaShown) { events ->
+    PredictiveBackHandler(enabled = detailShown && !nestedDetailShown) { events ->
         try {
             events.collect { event ->
                 detailPredictiveBackActive = true
@@ -183,11 +189,10 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                 detailBackdropIntensity.snapTo(predictiveEffectIntensity(smoothProgress))
                 rootLayerDepth.snapTo(1f - smoothProgress)
             }
-            detailShown = false
             coroutineScope {
                 launch {
                     predictiveProgress.animateTo(
-                        1f,
+                        predictiveExitProgress(predictiveBackMaxTranslation.value),
                         tween(PREDICTIVE_SETTLE_DURATION, easing = FastOutSlowInEasing),
                     )
                 }
@@ -204,7 +209,8 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                     )
                 }
             }
-            delay(PREDICTIVE_SETTLE_FRAME_DELAY)
+            detailShown = false
+            delay(PREDICTIVE_DISMISS_DURATION.toLong())
             predictiveProgress.snapTo(0f)
             detailPredictiveBackActive = false
         } catch (_: CancellationException) {
@@ -232,7 +238,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
         }
     }
 
-    PredictiveBackHandler(enabled = mediaShown) { events ->
+    PredictiveBackHandler(enabled = nestedDetailShown) { events ->
         try {
             events.collect { event ->
                 mediaPredictiveBackActive = true
@@ -241,11 +247,10 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                 mediaBackdropIntensity.snapTo(predictiveEffectIntensity(smoothProgress))
                 detailLayerDepth.snapTo(1f - smoothProgress)
             }
-            mediaShown = false
             coroutineScope {
                 launch {
                     mediaPredictiveProgress.animateTo(
-                        1f,
+                        predictiveExitProgress(predictiveBackMaxTranslation.value),
                         tween(PREDICTIVE_SETTLE_DURATION, easing = FastOutSlowInEasing),
                     )
                 }
@@ -262,7 +267,9 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                     )
                 }
             }
-            delay(PREDICTIVE_SETTLE_FRAME_DELAY)
+            mediaShown = false
+            materialShown = false
+            delay(PREDICTIVE_DISMISS_DURATION.toLong())
             mediaPredictiveProgress.snapTo(0f)
             mediaPredictiveBackActive = false
         } catch (_: CancellationException) {
@@ -292,7 +299,9 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
 
     BarBlurHost(
         enabled = blurBars.value,
-        captureForEffects = detailBackdropIntensity.value > EFFECT_VISIBILITY_THRESHOLD,
+        captureForEffects = detailShown ||
+            detailPredictiveBackActive ||
+            detailBackdropIntensity.value > EFFECT_VISIBILITY_THRESHOLD,
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Scaffold(
@@ -355,7 +364,10 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                             beyondViewportPageCount = 1,
                         ) { page ->
                             when (page) {
-                                0 -> OverviewPage(prefs)
+                                0 -> OverviewPage(
+                                    state = homeOverviewState,
+                                    isActive = pagerState.settledPage == page,
+                                )
                                 1 -> AppsPage(
                                     prefs = prefs,
                                     onOpenChannels = { app ->
@@ -411,7 +423,9 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
 
             BarBlurHost(
                 enabled = blurBars.value,
-                captureForEffects = mediaBackdropIntensity.value > EFFECT_VISIBILITY_THRESHOLD,
+                captureForEffects = nestedDetailShown ||
+                    mediaPredictiveBackActive ||
+                    mediaBackdropIntensity.value > EFFECT_VISIBILITY_THRESHOLD,
             ) {
                 BarBackdropContent(modifier = Modifier.fillMaxSize()) {
                     AnimatedVisibility(
@@ -419,36 +433,23 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                         modifier = Modifier
                             .fillMaxSize()
                             .graphicsLayer {
-                                val progress = predictiveProgress.value.coerceIn(0f, 1f)
+                                val progress = predictiveProgress.value.coerceAtLeast(0f)
                                 val depth = detailLayerDepth.value.coerceIn(0f, 1f)
                                 translationX = -size.width * depth * BACKGROUND_PARALLAX +
                                     size.width * progress *
-                                    predictiveBackMaxTranslation.value.coerceIn(0L, 100L).toFloat() / 100f
-                                scaleX = (1f - depth * BACKGROUND_SCALE_REDUCTION) *
-                                    (1f - progress * PREDICTIVE_SCALE_REDUCTION)
+                                    predictiveTranslationFraction(predictiveBackMaxTranslation.value)
+                                scaleX = 1f - depth * BACKGROUND_SCALE_REDUCTION
                                 scaleY = scaleX
                             },
                         enter = slideInHorizontally(
                             tween(LAYER_ENTER_DURATION, easing = FastOutSlowInEasing),
-                        ) { it } + scaleIn(
-                            animationSpec = tween(LAYER_ENTER_DURATION, easing = FastOutSlowInEasing),
-                            initialScale = FOREGROUND_ENTER_SCALE,
-                        ) + fadeIn(tween(LAYER_ENTER_FADE_DURATION)),
+                        ) { it },
                         exit = if (detailPredictiveBackActive) {
-                            scaleOut(
-                                animationSpec = tween(
-                                    PREDICTIVE_SETTLE_DURATION,
-                                    easing = FastOutSlowInEasing,
-                                ),
-                                targetScale = FOREGROUND_EXIT_SCALE,
-                            ) + fadeOut(tween(PREDICTIVE_SETTLE_DURATION))
+                            ExitTransition.None
                         } else {
                             slideOutHorizontally(
                                 tween(LAYER_EXIT_DURATION, easing = FastOutSlowInEasing),
-                            ) { it } + scaleOut(
-                                animationSpec = tween(LAYER_EXIT_DURATION, easing = FastOutSlowInEasing),
-                                targetScale = FOREGROUND_EXIT_SCALE,
-                            ) + fadeOut(tween(LAYER_EXIT_FADE_DURATION))
+                            ) { it }
                         },
                     ) {
                         val channelApp = visibleChannelApp
@@ -457,7 +458,10 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                 app = channelApp,
                                 prefs = prefs,
                                 onBack = ::closeDetail,
-                                onOpenMediaSettings = { mediaShown = true },
+                                onOpenMediaSettings = {
+                                    materialShown = false
+                                    mediaShown = true
+                                },
                                 openLegacySettings = {
                                     openLegacy(
                                         "/app-settings?package=${Uri.encode(channelApp.packageName)}" +
@@ -474,6 +478,14 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                             )
                         } else {
                             when (visibleDetail) {
+                                SettingsDetail.Appearance -> AppearancePage(
+                                    prefs = prefs,
+                                    onOpenMaterial = {
+                                        mediaShown = false
+                                        materialShown = true
+                                    },
+                                    onBack = ::closeDetail,
+                                )
                                 SettingsDetail.Theme -> ThemeSettingsPage(prefs, ::closeDetail)
                                 SettingsDetail.HideBehavior -> HideBehaviorPage(prefs, ::closeDetail)
                                 SettingsDetail.DefaultConfig -> DefaultConfigPage(prefs, ::closeDetail)
@@ -483,6 +495,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                 SettingsDetail.References -> ReferencesPage(::closeDetail)
                                 SettingsDetail.BackupRestore -> BackupRestorePage(::closeDetail)
                                 SettingsDetail.FilterRules -> FilterRulesPage(prefs, ::closeDetail)
+                                SettingsDetail.KeepIsland -> KeepIslandPage(prefs, ::closeDetail)
                                 null -> Unit
                             }
                         }
@@ -496,45 +509,38 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                 )
 
                 AnimatedVisibility(
-                    visible = mediaShown,
+                    visible = nestedDetailShown,
                     modifier = Modifier
                         .fillMaxSize()
                         .graphicsLayer {
-                            val progress = mediaPredictiveProgress.value.coerceIn(0f, 1f)
+                            val progress = mediaPredictiveProgress.value.coerceAtLeast(0f)
                             translationX = size.width * progress *
-                                predictiveBackMaxTranslation.value.coerceIn(0L, 100L).toFloat() / 100f
-                            scaleX = 1f - progress * PREDICTIVE_SCALE_REDUCTION
-                            scaleY = scaleX
+                                predictiveTranslationFraction(predictiveBackMaxTranslation.value)
                         },
                     enter = slideInHorizontally(
                         tween(LAYER_ENTER_DURATION, easing = FastOutSlowInEasing),
-                    ) { it } + scaleIn(
-                        animationSpec = tween(LAYER_ENTER_DURATION, easing = FastOutSlowInEasing),
-                        initialScale = FOREGROUND_ENTER_SCALE,
-                    ) + fadeIn(tween(LAYER_ENTER_FADE_DURATION)),
+                    ) { it },
                     exit = if (mediaPredictiveBackActive) {
-                        scaleOut(
-                            animationSpec = tween(
-                                PREDICTIVE_SETTLE_DURATION,
-                                easing = FastOutSlowInEasing,
-                            ),
-                            targetScale = FOREGROUND_EXIT_SCALE,
-                        ) + fadeOut(tween(PREDICTIVE_SETTLE_DURATION))
+                        ExitTransition.None
                     } else {
                         slideOutHorizontally(
                             tween(LAYER_EXIT_DURATION, easing = FastOutSlowInEasing),
-                        ) { it } + scaleOut(
-                            animationSpec = tween(LAYER_EXIT_DURATION, easing = FastOutSlowInEasing),
-                            targetScale = FOREGROUND_EXIT_SCALE,
-                        ) + fadeOut(tween(LAYER_EXIT_FADE_DURATION))
+                        ) { it }
                     },
                 ) {
-                    visibleChannelApp?.let { app ->
-                        MediaNotificationPage(
-                            app = app,
+                    if (materialShown) {
+                        IslandMaterialPage(
                             prefs = prefs,
-                            onBack = { mediaShown = false },
+                            onBack = { materialShown = false },
                         )
+                    } else {
+                        visibleChannelApp?.let { app ->
+                            MediaNotificationPage(
+                                app = app,
+                                prefs = prefs,
+                                onBack = { mediaShown = false },
+                            )
+                        }
                     }
                 }
             }
@@ -550,17 +556,18 @@ private fun smootherStep(progress: Float): Float {
 private fun predictiveEffectIntensity(smoothProgress: Float): Float =
     1f - smoothProgress * (1f - PREDICTIVE_MIN_EFFECT_INTENSITY)
 
+private fun predictiveTranslationFraction(percent: Long): Float =
+    percent.coerceIn(1L, 100L).toFloat() / 100f
+
+private fun predictiveExitProgress(maxTranslationPercent: Long): Float =
+    1f / predictiveTranslationFraction(maxTranslationPercent)
+
 private const val LAYER_ENTER_DURATION = 420
 private const val LAYER_EXIT_DURATION = 380
-private const val LAYER_ENTER_FADE_DURATION = 260
-private const val LAYER_EXIT_FADE_DURATION = 300
 private const val PREDICTIVE_SETTLE_DURATION = 420
 private const val PREDICTIVE_CANCEL_DURATION = 280
-private const val PREDICTIVE_SETTLE_FRAME_DELAY = 24L
+private const val PREDICTIVE_DISMISS_DURATION = 24
 private const val PREDICTIVE_MIN_EFFECT_INTENSITY = 0.5f
-private const val PREDICTIVE_SCALE_REDUCTION = 0.025f
 private const val BACKGROUND_SCALE_REDUCTION = 0.035f
 private const val BACKGROUND_PARALLAX = 0.025f
-private const val FOREGROUND_ENTER_SCALE = 0.965f
-private const val FOREGROUND_EXIT_SCALE = 0.98f
 private const val EFFECT_VISIBILITY_THRESHOLD = 0.001f

@@ -25,6 +25,7 @@ import top.yukonga.miuix.kmp.icon.extended.Translate
 import top.yukonga.miuix.kmp.icon.extended.Tune
 
 internal enum class SettingsDetail {
+    Appearance,
     Theme,
     HideBehavior,
     DefaultConfig,
@@ -34,6 +35,7 @@ internal enum class SettingsDetail {
     References,
     BackupRestore,
     FilterRules,
+    KeepIsland,
 }
 
 @Composable
@@ -51,7 +53,7 @@ internal fun SettingsPage(
             SectionTitle(stringResource(R.string.compose_island))
             Card(modifier = Modifier.fillMaxWidth()) {
                 SettingsActionWithArrow(stringResource(R.string.compose_appearance), MiuixIcons.Image) {
-                    openLegacy("/settings/appearance")
+                    onOpenDetail(SettingsDetail.Appearance)
                 }
                 SettingsActionWithArrow(stringResource(R.string.compose_ai_summary), MiuixIcons.Messages) {
                     onOpenDetail(SettingsDetail.AiConfig)
@@ -66,7 +68,7 @@ internal fun SettingsPage(
                     onOpenDetail(SettingsDetail.HideBehavior)
                 }
                 SettingsActionWithArrow(stringResource(R.string.compose_always_on_island), MiuixIcons.Pin) {
-                    openLegacy("/settings/keep-island")
+                    onOpenDetail(SettingsDetail.KeepIsland)
                 }
                 SettingsActionWithArrow(stringResource(R.string.compose_other), MiuixIcons.More) {
                     onOpenDetail(SettingsDetail.Other)
