@@ -90,8 +90,4 @@ private val referenceProjects = listOf(
         name = "AndroidX Graphics Shapes",
         url = "https://github.com/androidx/androidx/tree/androidx-main/graphics/graphics-shapes",
     ),
-    ReferenceProject(
-        name = "Flutter",
-        url = "https://github.com/flutter/flutter",
-    ),
 )

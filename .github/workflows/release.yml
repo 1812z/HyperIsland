@@ -47,15 +47,14 @@ jobs:
           fetch-depth: 2
 
       # 第二步：检测版本号是否变更
-      # 从 pubspec.yaml 读取当前版本，与上一个提交的版本对比
+      # 从 Android Gradle 配置读取当前版本，与上一个提交的版本对比
       - name: Detect version change
         id: version
         run: |
-          # 1. 优先获取手动输入的版本，如果没有则从 pubspec.yaml 提取
+          # 1. 优先获取手动输入的版本，否则从 android/gradle.properties 提取
           INPUT_VERSION="${{ github.event.inputs.version }}"
-          CURRENT_FULL=$(grep '^version:' pubspec.yaml | awk '{print $2}')
-          CURRENT_NAME=$(echo "$CURRENT_FULL" | cut -d'+' -f1)
-          CURRENT_CODE=$(echo "$CURRENT_FULL" | cut -d'+' -f2)
+          CURRENT_NAME=$(grep '^appVersionName=' android/gradle.properties | cut -d'=' -f2)
+          CURRENT_CODE=$(grep '^appVersionCode=' android/gradle.properties | cut -d'=' -f2)
 
           VERSION_NAME=${INPUT_VERSION:-$CURRENT_NAME}
           VERSION_CODE=$CURRENT_CODE
@@ -63,8 +62,7 @@ jobs:
           # 2. 判断是否发布
           # 手动触发时强制发布（除非指定 build_only=true）
           # 自动触发时根据版本是否变更来决定
-          PREVIOUS_FULL=$(git show HEAD~1:pubspec.yaml 2>/dev/null | grep '^version:' | awk '{print $2}' || echo "")
-          PREVIOUS_NAME=$(echo "$PREVIOUS_FULL" | cut -d'+' -f1)
+          PREVIOUS_NAME=$(git show HEAD~1:android/gradle.properties 2>/dev/null | grep '^appVersionName=' | cut -d'=' -f2 || echo "")
 
           SHOULD_RELEASE="true"
           if [[ "${{ github.event.inputs.build_only }}" == "true" ]]; then
@@ -98,42 +96,26 @@ jobs:
           echo "previous_version=$PREVIOUS_NAME" >> $GITHUB_OUTPUT
 
       # 第三步：安装 Java 环境
-      # Flutter 编译 Android 需要 Java 21
       - name: Set up Java
         uses: actions/setup-java@v4.3.0
         with:
           java-version: '21'
           distribution: 'temurin'
 
-      # 第四步：安装 Flutter SDK
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2.18.0
-        with:
-          flutter-version: '3.44.8'
-          cache: true
-          cache-key: 'flutter-:os:-:channel:-:version:-:arch:-:hash:'
-          pub-cache-key: 'flutter-pub-:os:-:channel:-:version:-:arch:-:hash:'
-
-      # 第五步：设置 Gradle
+      # 第四步：设置 Gradle
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4.1.0
         with:
           gradle-version: wrapper
           cache-disabled: false
 
-
-      # 第六步：安装 Flutter 依赖
-      # 执行 flutter pub get 下载 pubspec.yaml 中定义的所有依赖包
-      - name: Install dependencies
-        run: flutter pub get --offline || flutter pub get
-
-      # 第七步：解码签名密钥
+      # 第五步：解码签名密钥
       # 将 base64 编码的密钥文件解码为 .jks 文件
       - name: Decode keystore
         run: |
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/release.jks
 
-      # 第八步：编译 APK
+      # 第六步：编译 APK
       # 使用 release 模式编译（包含代码混淆和资源压缩）
       # 发布版本：使用原始版本号
       # 仅编译版本：versionName 添加 -dev 后缀，versionCode 递增
@@ -145,11 +127,10 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          export BUILD_TIME="$(date -u '+%Y-%m-%d %H:%M')"
-          flutter build apk --release --no-pub \
-            --target-platform android-arm64 \
-            --build-name="${{ steps.version.outputs.build_version_name }}" \
-            --build-number="${{ steps.version.outputs.build_version_code }}"
+          bash android/gradlew -p android :app:assembleRelease \
+            -PbuildTime="$(date -u '+%Y-%m-%d %H:%M')" \
+            -PappVersionName="${{ steps.version.outputs.build_version_name }}" \
+            -PappVersionCode="${{ steps.version.outputs.build_version_code }}"
 
       # ────────────────────────────────────────────────────────────────────────
       # 以下步骤：上传编译产物和发布
@@ -160,7 +141,7 @@ jobs:
         uses: actions/upload-artifact@v4.6.0
         with:
           name: HyperIsland-v${{ steps.version.outputs.version_name }}
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: build/app/outputs/apk/release/app-release.apk
           retention-days: 30
           compression-level: 0
 
@@ -168,7 +149,7 @@ jobs:
       - name: Rename APK for release
         if: steps.version.outputs.changed == 'true'
         run: |
-          cp build/app/outputs/flutter-apk/app-release.apk \
+          cp build/app/outputs/apk/release/app-release.apk \
             "HyperIsland-v${{ steps.version.outputs.version_name }}.apk"
 
       # 第十一步：提取更新日志（仅在版本变更时执行）

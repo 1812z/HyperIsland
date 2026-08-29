@@ -6,8 +6,3 @@
 
 # Keep all Xposed module classes
 -keep class io.github.hyperisland.xposed.** { *; }
-
-# Keep isModuleActive so LSPosed can hook it by name in release builds
--keepclassmembers class io.github.hyperisland.MainActivity {
-    public boolean isModuleActive();
-}

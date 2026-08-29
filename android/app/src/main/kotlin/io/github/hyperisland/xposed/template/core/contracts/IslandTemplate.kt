@@ -14,11 +14,11 @@ data class TemplatePlaceholder(
  * 灵动岛通知模板接口。
  *
  * 新增模板步骤：
- *  1. 创建 object 实现此接口，id 与 Flutter 侧常量对应
+ *  1. 创建 object 实现此接口，id 与 Compose 配置常量对应
  *  2. 在 TemplateRegistry.registry 中添加一行
  */
 interface IslandTemplate {
-    /** 唯一标识符，与 Flutter 侧 kTemplate* 常量对应。 */
+    /** 唯一标识符，与 Compose 侧模板常量对应。 */
     val id: String
 
     /** 模板可向用户暴露的表达式占位符。 */

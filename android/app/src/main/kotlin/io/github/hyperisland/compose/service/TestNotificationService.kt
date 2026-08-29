@@ -9,6 +9,22 @@ import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
 import io.github.hyperisland.xposed.islanddispatch.definition.IslandRequest
 
 internal object TestNotificationService {
+    fun sendWelcome(context: Context) {
+        sendWithReset(
+            context,
+            IslandRequest(
+                title = context.getString(R.string.island_welcome_title),
+                content = "HyperIsland",
+                icon = context.packageManager.getAppIcon(context.packageName),
+                firstFloat = false,
+                enableFloat = false,
+                highlightColor = "#E040FB",
+                showNotification = false,
+                islandOuterGlow = true,
+            ),
+        )
+    }
+
     fun sendDefault(context: Context) {
         val request = IslandRequest(
             title = context.getString(R.string.island_welcome_title),

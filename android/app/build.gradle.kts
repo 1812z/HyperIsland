@@ -3,12 +3,12 @@ import java.util.Properties
 val buildTime = providers.gradleProperty("buildTime")
     .orElse(providers.environmentVariable("BUILD_TIME"))
     .getOrElse("dev")
+val appVersionName = providers.gradleProperty("appVersionName").get()
+val appVersionCode = providers.gradleProperty("appVersionCode").map(String::toInt).get()
 
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
-    // The Flutter Gradle Plugin must be applied after the Android Gradle plugin.
-    id("dev.flutter.flutter-gradle-plugin")
 }
 
 android {
@@ -66,10 +66,18 @@ android {
     defaultConfig {
         applicationId = "io.github.hyperisland"
         minSdk = 33
-        targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        targetSdk = 37
+        versionCode = appVersionCode
+        versionName = appVersionName
         buildConfigField("String", "BUILD_TIME", "\"$buildTime\"")
+
+        ndk {
+            abiFilters += "arm64-v8a"
+        }
+    }
+
+    sourceSets.named("main") {
+        assets.directories.add("../../assets")
     }
 
     buildTypes {
@@ -87,6 +95,12 @@ android {
                 "proguard-rules.pro"
             )
         }
+        create("releaseFast") {
+            initWith(getByName("release"))
+            isMinifyEnabled = false
+            isShrinkResources = false
+            matchingFallbacks += "release"
+        }
     }
 
     lint {
@@ -101,11 +115,6 @@ kotlin {
         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21
     }
 }
-
-flutter {
-    source = "../.."
-}
-
 
 dependencies {
     implementation("androidx.activity:activity-compose:1.13.0")

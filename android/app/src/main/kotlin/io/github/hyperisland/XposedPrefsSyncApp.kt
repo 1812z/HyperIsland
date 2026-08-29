@@ -9,7 +9,7 @@ import io.github.libxposed.service.XposedServiceHelper
 import java.security.MessageDigest
 
 /**
- * 自定义 Application，负责将 Flutter 端写入的 SharedPreferences 镜像同步到
+ * 自定义 Application，负责将 Compose 端写入的兼容 SharedPreferences 镜像同步到
  * LSPosed 的 RemotePreferences，使 Hook 进程能读到最新配置。
  *
  * 架构参考 example/App.kt + example/MainActivity.kt：
@@ -19,8 +19,8 @@ import java.security.MessageDigest
  */
 class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener {
 
-    private val flutterPrefs: SharedPreferences by lazy {
-        getSharedPreferences(FLUTTER_PREFS_NAME, Context.MODE_PRIVATE)
+    private val configPrefs: SharedPreferences by lazy {
+        getSharedPreferences(LEGACY_PREFS_NAME, Context.MODE_PRIVATE)
     }
 
     @Volatile
@@ -28,18 +28,18 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
 
     private val syncLock = Any()
 
-    private val flutterPrefsListener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
+    private val configPrefsListener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
         syncKeyToRemote(prefs, key)
     }
 
     override fun onCreate() {
         super.onCreate()
         XposedServiceHelper.registerListener(this)
-        flutterPrefs.registerOnSharedPreferenceChangeListener(flutterPrefsListener)
+        configPrefs.registerOnSharedPreferenceChangeListener(configPrefsListener)
     }
 
     override fun onTerminate() {
-        flutterPrefs.unregisterOnSharedPreferenceChangeListener(flutterPrefsListener)
+        configPrefs.unregisterOnSharedPreferenceChangeListener(configPrefsListener)
         xposedService = null
         ServiceState.markNotReady()
         super.onTerminate()
@@ -71,7 +71,7 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
 
     /** Service 刚绑定时，仅在配置摘要变化后按分组差异同步。 */
     private fun syncAllToRemote(service: XposedService) {
-        syncToRemote(service, flutterPrefs, key = null)
+        syncToRemote(service, configPrefs, key = null)
     }
 
     private fun syncToRemote(service: XposedService, sourcePrefs: SharedPreferences, key: String?) {
@@ -252,8 +252,8 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
     }
 
     private fun shouldSyncKey(key: String): Boolean {
-        if (!key.startsWith(FLUTTER_KEY_PREFIX)) return false
-        val rawKey = key.removePrefix(FLUTTER_KEY_PREFIX)
+        if (!key.startsWith(LEGACY_KEY_PREFIX)) return false
+        val rawKey = key.removePrefix(LEGACY_KEY_PREFIX)
         if (!rawKey.startsWith("pref_")) return false
         return rawKey != "pref_onboarding_completed" &&
             rawKey != "pref_config_app_version" &&
@@ -261,7 +261,7 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
     }
 
     private fun remotePrefsNameForKey(key: String): String {
-        val rawKey = key.removePrefix(FLUTTER_KEY_PREFIX)
+        val rawKey = key.removePrefix(LEGACY_KEY_PREFIX)
         return if (isCoreKey(rawKey)) {
             REMOTE_PREFS_CORE
         } else {
@@ -280,8 +280,8 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
 
     companion object {
         private const val TAG = "HyperIsland[App]"
-        private const val FLUTTER_PREFS_NAME = "FlutterSharedPreferences"
-        private const val FLUTTER_KEY_PREFIX = "flutter."
+        private const val LEGACY_PREFS_NAME = "FlutterSharedPreferences"
+        private const val LEGACY_KEY_PREFIX = "flutter."
         const val REMOTE_PREFS_CORE = "HyperIslandXposedCore"
         const val REMOTE_PREFS_SHARD_PREFIX = "HyperIslandXposedShard"
         private const val REMOTE_PREFS_META = "HyperIslandXposedMeta"

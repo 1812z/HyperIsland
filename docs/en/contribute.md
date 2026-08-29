@@ -37,10 +37,10 @@ Documentation improvements are equally important! If you find any issues or area
 
 ## Development Environment
 
-HyperIsland is built with Flutter. Main tech stack:
+HyperIsland is built with Kotlin. Main tech stack:
 
-- **Framework**: Flutter
-- **State Management**: Provider / Riverpod
+- **UI**: Jetpack Compose / Miuix
+- **Build**: Android Gradle Plugin
 - **Notification Handling**: HyperOS Notification API
 - **Module Framework**: LSPosed
 

@@ -37,10 +37,10 @@
 
 ## 开发环境
 
-HyperIsland 使用 Flutter 开发，主要技术栈：
+HyperIsland 使用 Kotlin 开发，主要技术栈：
 
-- **框架**：Flutter
-- **状态管理**：Provider / Riverpod
+- **界面**：Jetpack Compose / Miuix
+- **构建**：Android Gradle Plugin
 - **通知处理**：HyperOS 通知 API
 - **模块框架**：LSPosed
 

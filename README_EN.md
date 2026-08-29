@@ -11,7 +11,7 @@
 [![Platform](https://img.shields.io/badge/Platform-Android-green?style=flat-square&logo=android)](https://android.com)
 [![LSPosed](https://img.shields.io/badge/Framework-LSPosed-blueviolet?style=flat-square)](https://github.com/LSPosed/LSPosed)
 [![HyperOS](https://img.shields.io/badge/ROM-HyperOS3-orange?style=flat-square)](https://hyperos.mi.com)
-[![Build](https://img.shields.io/badge/Build-Flutter-02569B?style=flat-square&logo=flutter)](https://flutter.dev)
+[![Build](https://img.shields.io/badge/Build-Compose-7F52FF?style=flat-square&logo=kotlin)](https://developer.android.com/compose)
 
 **English** | **[简体中文](README.md)** | **[日本語](README_JA.md)** | **[Türkçe](README_TR.md)**
 
@@ -76,10 +76,10 @@ Intercepts annoying Toast notifications and converts them into Dynamic Island di
 
 ## 🔨 Build
 
-Make sure Flutter is installed, then run:
+Make sure JDK 21 and the Android SDK are installed, then run:
 
 ```bash
-flutter build apk --target-platform=android-arm64
+./android/gradlew -p android :app:assembleRelease
 ```
 
 ---

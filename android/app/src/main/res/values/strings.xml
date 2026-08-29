@@ -34,7 +34,7 @@
     <string name="bluetooth_battery">电量：%s</string>
     <string name="bluetooth_battery_unknown">电量：--</string>
 
-    <!-- Compose / MIUIX 界面：暂以现有 Flutter 中文词条为准 -->
+    <!-- Compose / Miuix 中文界面 -->
     <string name="compose_nav_home">主页</string>
     <string name="compose_nav_apps">应用</string>
     <string name="compose_nav_settings">设置</string>

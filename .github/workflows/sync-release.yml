@@ -43,10 +43,9 @@ jobs:
         if: steps.release.outputs.found == 'true'
         id: version
         run: |
-          CURRENT_FULL=$(grep '^version:' pubspec.yaml | awk '{print $2}')
           VERSION_NAME="${{ steps.release.outputs.tag }}"
           VERSION_NAME="${VERSION_NAME#v}"
-          VERSION_CODE=$(echo "$CURRENT_FULL" | cut -d'+' -f2)
+          VERSION_CODE=$(grep '^appVersionCode=' android/gradle.properties | cut -d'=' -f2)
           
           echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
           echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT

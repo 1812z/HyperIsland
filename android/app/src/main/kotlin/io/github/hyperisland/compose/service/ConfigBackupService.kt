@@ -7,7 +7,7 @@ import org.json.JSONObject
 
 internal object ConfigBackupService {
     private const val prefsName = "FlutterSharedPreferences"
-    private const val flutterPrefix = "flutter."
+    private const val legacyStoragePrefix = "flutter."
     private const val doublePrefix = "VGhpcyBpcyB0aGUgcHJlZml4IGZvciBEb3VibGUu"
     private const val schemaVersion = 2
     private const val appConfigPrefix = "pref_app_config_"
@@ -219,8 +219,8 @@ internal object ConfigBackupService {
     }
 
     private fun logicalEntries(prefs: SharedPreferences): Map<String, Any?> = prefs.all
-        .filterKeys { it.startsWith(flutterPrefix) }
-        .mapKeys { it.key.removePrefix(flutterPrefix) }
+        .filterKeys { it.startsWith(legacyStoragePrefix) }
+        .mapKeys { it.key.removePrefix(legacyStoragePrefix) }
 
     private fun exportValue(value: Any?): Any = if (value is String && value.startsWith(doublePrefix)) {
         value.removePrefix(doublePrefix).toDoubleOrNull() ?: value
@@ -248,7 +248,7 @@ internal object ConfigBackupService {
     private fun isLegacyAppConfigKey(key: String): Boolean =
         legacyPackageName(key) != null || channelFields.values.any { key.startsWith(it.prefix) }
 
-    private fun storageKey(key: String) = flutterPrefix + key
+    private fun storageKey(key: String) = legacyStoragePrefix + key
     private fun prefs(context: Context) = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
     private fun csv(value: String?): Set<String> = value.orEmpty().split(',').filter(String::isNotEmpty).toSet()
     private fun JSONArray.stringSet(): Set<String> = buildSet {
