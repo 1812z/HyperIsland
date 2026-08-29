@@ -1,11 +1,13 @@
 # Build Guide
 
-Build HyperIsland APK from source.
+Build the HyperIsland APK from source. The app UI has migrated from Flutter to
+native Kotlin using Jetpack Compose and Miuix. The UI and Xposed hooks now live in
+the same Android Gradle project, so Flutter SDK and Dart are no longer required.
 
 ## Requirements
 
 - JDK 21
-- Android SDK (via Android Studio or command line tools)
+- Android SDK API 37 (installed through Android Studio or command-line tools)
 
 ## Build Steps
 
@@ -23,6 +25,10 @@ cd HyperIsland
 ```
 
 The APK is written to `build/app/outputs/apk/release/app-release.apk`.
+
+The Gradle Wrapper is located under `android/`, but run the command from the
+repository root. The `-p android` option selects the Android project directory.
+The first build downloads Gradle, Compose, Miuix, and other dependencies.
 
 ## Build Variants
 

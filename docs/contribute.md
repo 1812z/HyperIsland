@@ -39,7 +39,7 @@
 
 HyperIsland 使用 Kotlin 开发，主要技术栈：
 
-- **界面**：Jetpack Compose / Miuix
+- **界面**：原生 Kotlin + Jetpack Compose + Miuix（已废弃 Flutter）
 - **构建**：Android Gradle Plugin
 - **通知处理**：HyperOS 通知 API
 - **模块框架**：LSPosed

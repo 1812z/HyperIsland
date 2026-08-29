@@ -3,7 +3,7 @@ layout: home
 hero:
   name: HyperIsland
   text: 更多超级岛和焦点通知
-  tagline: 为澎湃 OS3 打造的超级岛增强模块
+  tagline: 为澎湃 OS3/4 打造的超级岛增强模块
   actions:
     - theme: brand
       text: 快速上手
@@ -19,9 +19,9 @@ features:
   - icon: 🏝️
     title: 超级岛 + 焦点通知适配
     details: 拦截任意 App 发出的标准安卓通知，处理后以超级岛 + 焦点通知样式展示。
-  - icon: 🚫
-    title: 通知黑名单
-    details: 黑名单应用不会弹出通知，仅显示超级岛（全屏状态下随状态栏自动隐藏）。
+  - icon: 🧊
+    title: 玻璃材质
+    details: 支持高斯模糊、高光玻璃、柔光玻璃、液态玻璃4种材质，并支持自定义参数
   - icon: 🏝️
     title: 常驻岛支持
     details: 显示一个类似苹果灵动岛的常驻岛，并支持自动隐藏避让。

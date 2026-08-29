@@ -2,8 +2,8 @@
 layout: home
 hero:
   name: HyperIsland
-  text: Enhanced Super Island Notifications
-  tagline: Super Island enhancement module for HyperOS 3
+  text: Enhanced HyperIsland Notifications
+  tagline: Super Island enhancement module for HyperOS 3/4
   actions:
     - theme: brand
       text: Quick Start
@@ -19,9 +19,9 @@ features:
   - icon: 🏝️
     title: Super Island + Focus Notification
     details: Intercept standard Android notifications from any app and display them in Super Island + Focus Notification style.
-  - icon: 🚫
-    title: Notification Blacklist
-    details: Blacklisted apps won't show popup notifications, only the Super Island (auto-hides in full-screen mode).
+  - icon: 🧊
+    title: Glass Materials
+    details: Supports 4 types of glass materials — Gaussian Blur, Glossy Glass, Frosted Glass, and Liquid Glass — with support for custom parameters.
   - icon: 🏝️
     title: Persistent Island Support
     details: Displays a persistent island similar to Apple's Dynamic Island, with automatic hiding and avoidance support.

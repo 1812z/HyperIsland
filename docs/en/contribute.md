@@ -39,7 +39,7 @@ Documentation improvements are equally important! If you find any issues or area
 
 HyperIsland is built with Kotlin. Main tech stack:
 
-- **UI**: Jetpack Compose / Miuix
+- **UI**: Native Kotlin + Jetpack Compose + Miuix (Flutter has been retired)
 - **Build**: Android Gradle Plugin
 - **Notification Handling**: HyperOS Notification API
 - **Module Framework**: LSPosed

@@ -1,11 +1,13 @@
 # 构建指南
 
-从源码构建 HyperIsland APK。
+从源码构建 HyperIsland APK。应用界面已经从 Flutter 迁移到原生 Kotlin，
+使用 Jetpack Compose 与 Miuix；界面和 Xposed Hook 位于同一个 Android Gradle 工程中。
+构建时不再需要 Flutter SDK 或 Dart 环境。
 
 ## 环境要求
 
 - JDK 21
-- Android SDK（通过 Android Studio 或命令行工具）
+- Android SDK API 37（通过 Android Studio 或命令行工具安装）
 
 ## 构建步骤
 
@@ -23,6 +25,9 @@ cd HyperIsland
 ```
 
 构建完成后，APK 文件位于 `build/app/outputs/apk/release/app-release.apk`。
+
+Gradle Wrapper 位于 `android/` 目录，但命令应在仓库根目录执行；`-p android`
+会指定 Android 工程目录。首次构建会自动下载 Gradle、Compose、Miuix 等依赖。
 
 ## 构建变体
 
