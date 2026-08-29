@@ -134,6 +134,11 @@ internal fun ThemeSettingsPage(prefs: FlutterPrefsRepository, onBack: () -> Unit
                     valueText = "${predictiveBackMaxTranslation.value}%",
                     valueRange = 0f..100f,
                     steps = 19,
+                    resetVisible = predictiveBackMaxTranslation.value != DEFAULT_PREDICTIVE_BACK_TRANSLATION_PERCENT,
+                    onReset = {
+                        predictiveBackMaxTranslation.value = DEFAULT_PREDICTIVE_BACK_TRANSLATION_PERCENT
+                        prefs.remove(PREF_PREDICTIVE_BACK_MAX_TRANSLATION)
+                    },
                     onValueChangeFinished = {
                         prefs.putLong(
                             PREF_PREDICTIVE_BACK_MAX_TRANSLATION,

@@ -1,7 +1,6 @@
 package io.github.hyperisland.compose.data
 
 import android.content.Context
-import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -49,10 +48,6 @@ internal class InstalledAppsRepository(private val context: Context) {
         iconCache[packageName] = bitmap
         bitmap
     }
-
-    fun isGame(packageName: String): Boolean = runCatching {
-        context.packageManager.getApplicationInfo(packageName, 0).category == ApplicationInfo.CATEGORY_GAME
-    }.getOrDefault(false)
 
     private companion object {
         const val APP_LIST_PERMISSION = "com.android.permission.GET_INSTALLED_APPS"

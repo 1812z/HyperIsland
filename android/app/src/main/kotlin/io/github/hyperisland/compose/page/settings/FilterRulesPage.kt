@@ -3,9 +3,11 @@ package io.github.hyperisland.compose.page.settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -19,14 +21,20 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.BarBackdropContent
@@ -41,8 +49,11 @@ import io.github.hyperisland.compose.data.InstalledAppsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.DropdownArrowEndAction
+import top.yukonga.miuix.kmp.basic.DropdownDefaults
 import top.yukonga.miuix.kmp.basic.DropdownEntry
 import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.Icon
@@ -54,6 +65,7 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SearchBar
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
+import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.TabRow
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
@@ -61,12 +73,10 @@ import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.icon.extended.Filter
-import top.yukonga.miuix.kmp.icon.extended.GridView
 import top.yukonga.miuix.kmp.icon.extended.More
 import top.yukonga.miuix.kmp.icon.extended.Refresh
 import top.yukonga.miuix.kmp.menu.OverlayIconDropdownMenu
-import top.yukonga.miuix.kmp.preference.SwitchPreference
-import top.yukonga.miuix.kmp.preference.WindowDropdownPreference
+import top.yukonga.miuix.kmp.popup.WindowDropdownPopup
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -88,7 +98,6 @@ internal fun FilterRulesPage(
     var showSystemApps by remember { mutableStateOf(false) }
     var revision by remember { mutableIntStateOf(0) }
 
-    val presetResult = stringResource(R.string.compose_filter_preset_result)
     val resetResult = stringResource(R.string.compose_filter_reset_result)
 
     fun loadApps(forceRefresh: Boolean) {
@@ -140,20 +149,6 @@ internal fun FilterRulesPage(
 
     val menuEntry = DropdownEntry(
         items = listOf(
-            DropdownItem(
-                text = stringResource(R.string.compose_filter_preset_games),
-                onClick = {
-                    scope.launch {
-                        val gamePackages = withContext(Dispatchers.IO) {
-                            apps.map { it.packageName }.filter(appsRepository::isGame)
-                        }
-                        val count = prefs.applyForegroundPreset(gamePackages)
-                        revision++
-                        snackbarState.showSnackbar(presetResult.format(count))
-                    }
-                },
-                icon = { modifier -> Icon(MiuixIcons.GridView, null, modifier) },
-            ),
             DropdownItem(
                 text = stringResource(
                     if (showSystemApps) R.string.compose_hide_system_apps
@@ -340,20 +335,24 @@ private fun FilterAppRow(
     }
     Card(modifier = Modifier.fillMaxWidth()) {
         if (exclusionMode) {
-            SwitchPreference(
-                checked = excluded,
-                onCheckedChange = onExcludedChange,
-                title = app.appName,
-                summary = app.packageName,
+            FilterAppPreference(
+                app = app,
                 startAction = startAction,
-                insideMargin = ROW_MARGIN,
+                role = Role.Switch,
+                onClick = { onExcludedChange(!excluded) },
+                endActions = {
+                    Switch(
+                        checked = excluded,
+                        onCheckedChange = onExcludedChange,
+                    )
+                },
             )
         } else {
             val actions = listOf("default", "small_only", "expand", "suppress")
-            WindowDropdownPreference(
-                title = app.appName,
-                summary = app.packageName,
-                items = listOf(
+            FilterActionPreference(
+                app = app,
+                actions = actions,
+                labels = listOf(
                     stringResource(R.string.compose_filter_action_default),
                     stringResource(R.string.compose_filter_action_small_only),
                     stringResource(R.string.compose_filter_action_expand),
@@ -361,11 +360,109 @@ private fun FilterAppRow(
                 ),
                 selectedIndex = actions.indexOf(action).coerceAtLeast(0),
                 startAction = startAction,
-                insideMargin = ROW_MARGIN,
                 onSelectedIndexChange = { onActionChange(actions[it]) },
             )
         }
     }
+}
+
+@Composable
+private fun FilterAppPreference(
+    app: InstalledApp,
+    startAction: (@Composable () -> Unit)?,
+    role: Role,
+    onClick: () -> Unit,
+    endActions: @Composable RowScope.() -> Unit,
+) {
+    BasicComponent(
+        startAction = startAction,
+        endActions = endActions,
+        insideMargin = ROW_MARGIN,
+        onClick = onClick,
+        role = role,
+    ) {
+        AppIdentityText(app)
+    }
+}
+
+@Composable
+private fun FilterActionPreference(
+    app: InstalledApp,
+    actions: List<String>,
+    labels: List<String>,
+    selectedIndex: Int,
+    startAction: (@Composable () -> Unit)?,
+    onSelectedIndexChange: (Int) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val hapticFeedback = LocalHapticFeedback.current
+    val currentOnSelectedIndexChange by rememberUpdatedState(onSelectedIndexChange)
+    val entry = remember(actions, labels, selectedIndex) {
+        DropdownEntry(
+            labels.mapIndexed { index, label ->
+                DropdownItem(
+                    text = label,
+                    selected = index == selectedIndex,
+                    onClick = { currentOnSelectedIndexChange(index) },
+                )
+            },
+        )
+    }
+    val actionColor = MiuixTheme.colorScheme.onSurfaceVariantActions
+
+    BasicComponent(
+        interactionSource = remember { MutableInteractionSource() },
+        startAction = startAction,
+        endActions = {
+            Text(
+                text = labels[selectedIndex],
+                modifier = Modifier.padding(end = 8.dp),
+                fontSize = MiuixTheme.textStyles.body2.fontSize,
+                color = actionColor,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            DropdownArrowEndAction(actionColor = actionColor)
+            WindowDropdownPopup(
+                entry = entry,
+                show = expanded,
+                onDismiss = { expanded = false },
+                onDismissFinished = {},
+                maxHeight = null,
+                dropdownColors = DropdownDefaults.dropdownColors(),
+                collapseOnSelection = true,
+            )
+        },
+        insideMargin = ROW_MARGIN,
+        onClick = {
+            expanded = !expanded
+            if (expanded) {
+                hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+            }
+        },
+        role = Role.DropdownList,
+    ) {
+        AppIdentityText(app)
+    }
+}
+
+@Composable
+private fun AppIdentityText(app: InstalledApp) {
+    Text(
+        text = app.appName,
+        fontSize = MiuixTheme.textStyles.headline1.fontSize,
+        fontWeight = FontWeight.Medium,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
+    Text(
+        text = app.packageName,
+        fontSize = MiuixTheme.textStyles.footnote1.fontSize,
+        fontWeight = FontWeight.Medium,
+        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
 }
 
 private val ROW_MARGIN = PaddingValues(horizontal = 16.dp, vertical = 12.dp)

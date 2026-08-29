@@ -25,6 +25,7 @@ import top.yukonga.miuix.kmp.icon.extended.Translate
 import top.yukonga.miuix.kmp.icon.extended.Tune
 
 internal enum class SettingsDetail {
+    Appearance,
     Theme,
     HideBehavior,
     DefaultConfig,
@@ -34,6 +35,7 @@ internal enum class SettingsDetail {
     References,
     BackupRestore,
     FilterRules,
+    HookExtension,
 }
 
 @Composable
@@ -51,7 +53,7 @@ internal fun SettingsPage(
             SectionTitle(stringResource(R.string.compose_island))
             Card(modifier = Modifier.fillMaxWidth()) {
                 SettingsActionWithArrow(stringResource(R.string.compose_appearance), MiuixIcons.Image) {
-                    openLegacy("/settings/appearance")
+                    onOpenDetail(SettingsDetail.Appearance)
                 }
                 SettingsActionWithArrow(stringResource(R.string.compose_ai_summary), MiuixIcons.Messages) {
                     onOpenDetail(SettingsDetail.AiConfig)
@@ -85,7 +87,7 @@ internal fun SettingsPage(
             SectionTitle(stringResource(R.string.compose_hook_extension))
             Card(modifier = Modifier.fillMaxWidth()) {
                 SettingsActionWithArrow(stringResource(R.string.compose_hook_extension), MiuixIcons.Settings) {
-                    openLegacy("/settings/hook-extension")
+                    onOpenDetail(SettingsDetail.HookExtension)
                 }
             }
         }
