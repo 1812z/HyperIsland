@@ -24,16 +24,17 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 internal val LocalRootBottomBarPadding = staticCompositionLocalOf { 0.dp }
 internal val LocalBarBlurEnabled = staticCompositionLocalOf { false }
 
-private val LocalBarBlurBackdrop = staticCompositionLocalOf<LayerBackdrop?> { null }
+internal val LocalBarBlurBackdrop = staticCompositionLocalOf<LayerBackdrop?> { null }
 
 @Composable
 internal fun BarBlurHost(
     enabled: Boolean,
     captureForEffects: Boolean = false,
+    liquidGlassEnabled: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val surfaceColor = MiuixTheme.colorScheme.surface
-    val backdrop = if ((enabled || captureForEffects) && isRuntimeShaderSupported()) {
+    val backdrop = if ((enabled || captureForEffects || liquidGlassEnabled) && isRuntimeShaderSupported()) {
         rememberLayerBackdrop {
             drawRect(surfaceColor)
             drawContent()

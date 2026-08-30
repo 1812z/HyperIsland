@@ -1,6 +1,14 @@
 package io.github.hyperisland.compose.page.settings
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,6 +19,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.stringResource
@@ -27,6 +36,7 @@ import io.github.hyperisland.compose.data.rememberStringPreference
 import io.github.hyperisland.compose.theme.PREF_BLUR_BARS
 import io.github.hyperisland.compose.theme.DEFAULT_PREDICTIVE_BACK_TRANSLATION_PERCENT
 import io.github.hyperisland.compose.theme.PREF_FLOATING_NAVIGATION_BAR
+import io.github.hyperisland.compose.theme.PREF_LIQUID_GLASS_NAVIGATION_BAR
 import io.github.hyperisland.compose.theme.PREF_MONET_ENABLED
 import io.github.hyperisland.compose.theme.PREF_THEME_MODE
 import io.github.hyperisland.compose.theme.PREF_THEME_SEED_COLOR
@@ -54,6 +64,11 @@ internal fun ThemeSettingsPage(prefs: FlutterPrefsRepository, onBack: () -> Unit
     val monetEnabled = rememberBooleanPreference(prefs, PREF_MONET_ENABLED, false)
     val themeColor = rememberLongPreference(prefs, PREF_THEME_SEED_COLOR, DEFAULT_THEME_COLOR)
     val floatingNavigationBar = rememberBooleanPreference(prefs, PREF_FLOATING_NAVIGATION_BAR, false)
+    val liquidGlassNavigationBar = rememberBooleanPreference(
+        prefs,
+        PREF_LIQUID_GLASS_NAVIGATION_BAR,
+        false,
+    )
     val blurBars = rememberBooleanPreference(prefs, PREF_BLUR_BARS, false)
     val predictiveBackMaxTranslation = rememberLongPreference(
         prefs,
@@ -113,6 +128,33 @@ internal fun ThemeSettingsPage(prefs: FlutterPrefsRepository, onBack: () -> Unit
                 ) { enabled ->
                     floatingNavigationBar.value = enabled
                     prefs.putBoolean(PREF_FLOATING_NAVIGATION_BAR, enabled)
+                }
+                AnimatedVisibility(
+                    visible = floatingNavigationBar.value,
+                    enter = expandVertically(
+                        animationSpec = tween(280, easing = FastOutSlowInEasing),
+                        expandFrom = Alignment.Top,
+                    ) + slideInVertically(
+                        animationSpec = tween(280, easing = FastOutSlowInEasing),
+                        initialOffsetY = { -it / 2 },
+                    ) + fadeIn(tween(180)),
+                    exit = shrinkVertically(
+                        animationSpec = tween(220, easing = FastOutSlowInEasing),
+                        shrinkTowards = Alignment.Top,
+                    ) + slideOutVertically(
+                        animationSpec = tween(220, easing = FastOutSlowInEasing),
+                        targetOffsetY = { -it / 2 },
+                    ) + fadeOut(tween(140)),
+                ) {
+                    PreferenceSwitch(
+                        title = stringResource(R.string.liquid_glass_navigation_bar),
+                        summary = stringResource(R.string.liquid_glass_navigation_bar_summary),
+                        icon = MiuixIcons.Theme,
+                        checked = liquidGlassNavigationBar.value,
+                    ) { enabled ->
+                        liquidGlassNavigationBar.value = enabled
+                        prefs.putBoolean(PREF_LIQUID_GLASS_NAVIGATION_BAR, enabled)
+                    }
                 }
                 PreferenceSwitch(
                     title = stringResource(R.string.interface_blur),

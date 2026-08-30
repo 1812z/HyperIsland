@@ -355,6 +355,8 @@
     <string name="first_float_summary">تحديد ما إذا كانت الجزيرة ستتوسع إلى إشعار مركّز عند وصول الإشعار الأول.</string>
     <string name="floating_navigation_bar">شريط تنقل عايم</string>
     <string name="floating_navigation_bar_summary">استخدم شريط تنقل عايم في الأسفل</string>
+    <string name="liquid_glass_navigation_bar">شريط سفلي بزجاج سائل</string>
+    <string name="liquid_glass_navigation_bar_summary">استبدال الشريط السفلي العائم بتأثير الزجاج السائل</string>
     <string name="focus_notification">إشعار مركّز</string>
     <string name="focus_notification_summary">استبدل الإشعار بإشعار مركّز (يظهر الإشعار الأصلي عند التعطيل).</string>
     <string name="focus_outer_glow">تأثير حلقة الضوء الخارجية لإشعار المركّز</string>

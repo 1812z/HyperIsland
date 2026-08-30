@@ -76,6 +76,7 @@ internal const val PREF_THEME_MODE = "pref_theme_mode"
 internal const val PREF_MONET_ENABLED = "pref_monet_color_enabled"
 internal const val PREF_THEME_SEED_COLOR = "pref_theme_seed_color"
 internal const val PREF_FLOATING_NAVIGATION_BAR = "pref_floating_navigation_bar"
+internal const val PREF_LIQUID_GLASS_NAVIGATION_BAR = "pref_liquid_glass_navigation_bar"
 internal const val PREF_BLUR_BARS = "pref_blur_bars"
 internal const val PREF_PREDICTIVE_BACK_MAX_TRANSLATION = "pref_predictive_back_max_translation"
 internal const val DEFAULT_PREDICTIVE_BACK_TRANSLATION_PERCENT = 50L

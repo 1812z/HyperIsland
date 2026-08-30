@@ -42,6 +42,8 @@ import io.github.hyperisland.compose.component.BarBackdropContent
 import io.github.hyperisland.compose.component.BarBlurHost
 import io.github.hyperisland.compose.component.BlurredBar
 import io.github.hyperisland.compose.component.LocalRootBottomBarPadding
+import io.github.hyperisland.compose.component.LiquidGlassNavigationBar
+import io.github.hyperisland.compose.component.LiquidGlassNavigationItem
 import io.github.hyperisland.compose.component.PredictiveBackBackdrop
 import io.github.hyperisland.compose.component.PredictiveBackMotionTracker
 import io.github.hyperisland.compose.component.BACKGROUND_PARALLAX
@@ -98,6 +100,7 @@ import io.github.hyperisland.compose.page.settings.extensions.HookExtensionPage
 import io.github.hyperisland.compose.service.UpdateService
 import io.github.hyperisland.compose.theme.PREF_BLUR_BARS
 import io.github.hyperisland.compose.theme.PREF_FLOATING_NAVIGATION_BAR
+import io.github.hyperisland.compose.theme.PREF_LIQUID_GLASS_NAVIGATION_BAR
 import io.github.hyperisland.compose.theme.DEFAULT_PREDICTIVE_BACK_TRANSLATION_PERCENT
 import io.github.hyperisland.compose.theme.PREF_PREDICTIVE_BACK_MAX_TRANSLATION
 import kotlinx.coroutines.CancellationException
@@ -141,6 +144,11 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     var updateDialogState by remember { mutableStateOf<UpdateDialogState?>(null) }
     var isCheckingUpdate by remember { mutableStateOf(false) }
     val floatingNavigationBar = rememberBooleanPreference(prefs, PREF_FLOATING_NAVIGATION_BAR, false)
+    val liquidGlassNavigationBar = rememberBooleanPreference(
+        prefs,
+        PREF_LIQUID_GLASS_NAVIGATION_BAR,
+        false,
+    )
     val blurBars = rememberBooleanPreference(prefs, PREF_BLUR_BARS, false)
     val predictiveBackMaxTranslation = rememberLongPreference(
         prefs,
@@ -426,6 +434,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
 
     BarBlurHost(
         enabled = blurBars.value,
+        liquidGlassEnabled = floatingNavigationBar.value && liquidGlassNavigationBar.value,
         captureForEffects = detailShown ||
             detailPredictiveBackActive ||
             detailBackdropIntensity.value > EFFECT_VISIBILITY_THRESHOLD,
@@ -450,19 +459,36 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                         exit = slideOutVertically(tween(200)) { it } + fadeOut(tween(140)),
                     ) {
                         if (floatingNavigationBar.value) {
-                            FloatingNavigationBar(
-                                modifier = Modifier.barBlurBackground(
-                                    RoundedCornerShape(FloatingToolbarDefaults.CornerRadius),
-                                ),
-                                color = Color.Transparent,
-                            ) {
-                                destinations.forEachIndexed { index, destination ->
-                                    FloatingNavigationBarItem(
-                                        selected = pagerState.currentPage == index,
-                                        onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
-                                        icon = destination.icon,
-                                        label = stringResource(destination.title),
-                                    )
+                            if (liquidGlassNavigationBar.value) {
+                                LiquidGlassNavigationBar(
+                                    selectedTabIndex = { pagerState.currentPage },
+                                    onTabSelected = { index ->
+                                        if (pagerState.currentPage != index) {
+                                            scope.launch { pagerState.animateScrollToPage(index) }
+                                        }
+                                    },
+                                    items = destinations.map { destination ->
+                                        LiquidGlassNavigationItem(
+                                            icon = destination.icon,
+                                            label = stringResource(destination.title),
+                                        )
+                                    },
+                                )
+                            } else {
+                                FloatingNavigationBar(
+                                    modifier = Modifier.barBlurBackground(
+                                        RoundedCornerShape(FloatingToolbarDefaults.CornerRadius),
+                                    ),
+                                    color = Color.Transparent,
+                                ) {
+                                    destinations.forEachIndexed { index, destination ->
+                                        FloatingNavigationBarItem(
+                                            selected = pagerState.currentPage == index,
+                                            onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
+                                            icon = destination.icon,
+                                            label = stringResource(destination.title),
+                                        )
+                                    }
                                 }
                             }
                         } else {

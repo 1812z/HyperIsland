@@ -439,6 +439,8 @@
     <string name="monet_color_summary">Создание программного сопоставления цветов с использованием выбранных цветов</string>
     <string name="floating_navigation_bar">плавающая нижняя полоса</string>
     <string name="floating_navigation_bar_summary">Используйте плавающую нижнюю панель</string>
+    <string name="liquid_glass_navigation_bar">Нижняя панель «Жидкое стекло»</string>
+    <string name="liquid_glass_navigation_bar_summary">Заменить плавающую нижнюю панель эффектом жидкого стекла</string>
     <string name="interface_blur">Размытие</string>
     <string name="interface_blur_summary">Включить размытие интерфейса, включая верхнюю и нижнюю панели.</string>
     <string name="predictive_back_distance">Прогнозируемое расстояние возврата</string>

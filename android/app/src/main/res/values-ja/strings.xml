@@ -439,6 +439,8 @@
     <string name="monet_color_summary">選択した色を使用してソフトウェア カラー マッチングを生成する</string>
     <string name="floating_navigation_bar">フローティングボトムバー</string>
     <string name="floating_navigation_bar_summary">フローティングボトムバーを使用する</string>
+    <string name="liquid_glass_navigation_bar">リキッドガラスボトムバー</string>
+    <string name="liquid_glass_navigation_bar_summary">フローティングボトムバーをリキッドガラス効果に置き換えます</string>
     <string name="interface_blur">ぼかし</string>
     <string name="interface_blur_summary">上部と下部のバーを含むインターフェースのぼかしを有効にする</string>
     <string name="predictive_back_distance">予想帰還距離</string>

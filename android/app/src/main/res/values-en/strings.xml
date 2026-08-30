@@ -439,6 +439,8 @@
     <string name="monet_color_summary">Generate software color matching using selected colors</string>
     <string name="floating_navigation_bar">floating bottom bar</string>
     <string name="floating_navigation_bar_summary">Use a floating bottom bar</string>
+    <string name="liquid_glass_navigation_bar">Liquid glass bottom bar</string>
+    <string name="liquid_glass_navigation_bar_summary">Replace the floating bottom bar with a liquid glass effect</string>
     <string name="interface_blur">Blur</string>
     <string name="interface_blur_summary">Enable interface blur, including top and bottom bars</string>
     <string name="predictive_back_distance">Predicted return distance</string>

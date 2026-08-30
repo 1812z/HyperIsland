@@ -439,6 +439,8 @@
     <string name="monet_color_summary">Seçilen renkleri kullanarak yazılım renk eşleştirmesi oluşturun</string>
     <string name="floating_navigation_bar">yüzen alt çubuk</string>
     <string name="floating_navigation_bar_summary">Yüzen bir alt çubuk kullanın</string>
+    <string name="liquid_glass_navigation_bar">Sıvı cam alt çubuk</string>
+    <string name="liquid_glass_navigation_bar_summary">Yüzen alt çubuğu sıvı cam efektiyle değiştir</string>
     <string name="interface_blur">Bulanıklık</string>
     <string name="interface_blur_summary">Üst ve alt çubuklar dahil olmak üzere arayüz bulanıklığını etkinleştirin</string>
     <string name="predictive_back_distance">Tahmini dönüş mesafesi</string>

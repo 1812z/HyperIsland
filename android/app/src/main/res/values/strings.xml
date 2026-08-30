@@ -449,6 +449,8 @@
     <string name="monet_color_summary">使用所选颜色生成软件配色</string>
     <string name="floating_navigation_bar">悬浮底栏</string>
     <string name="floating_navigation_bar_summary">使用悬浮风格的底栏</string>
+    <string name="liquid_glass_navigation_bar">液态玻璃底栏</string>
+    <string name="liquid_glass_navigation_bar_summary">使用液态玻璃效果替换当前悬浮底栏</string>
     <string name="interface_blur">模糊</string>
     <string name="interface_blur_summary">启用界面模糊，包括顶部与底部栏</string>
     <string name="predictive_back_distance">预测返回距离</string>
