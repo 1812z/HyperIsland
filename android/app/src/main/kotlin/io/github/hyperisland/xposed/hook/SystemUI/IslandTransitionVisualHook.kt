@@ -433,6 +433,7 @@ object IslandTransitionVisualHook : BaseHook() {
             // The real outer drawable is exposed in the same handoff transaction. Clear it now,
             // not in a later posted refresh, so it cannot contribute one gray/dark frame.
             IslandBlurHook.clearSoftGlassOuter(realView, "fake-to-real")
+            IslandBackgroundHook.clearCommittedSoftLayers(realView, typeName)
         }
     }
 

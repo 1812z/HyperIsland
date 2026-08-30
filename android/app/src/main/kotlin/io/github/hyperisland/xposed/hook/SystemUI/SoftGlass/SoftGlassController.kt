@@ -236,6 +236,17 @@ internal object SoftGlassController {
 
     fun isManaged(view: View): Boolean = managedViews.contains(view)
     fun isActive(view: View): Boolean = isManaged(view)
+    fun hasManagedDescendant(root: View): Boolean {
+        val views = synchronized(managedViews) { managedViews.toList() }
+        return views.any { candidate ->
+            var current: View? = candidate
+            while (current != null) {
+                if (current === root) return@any true
+                current = current.parent as? View
+            }
+            false
+        }
+    }
     fun isBionicsRuntimeAvailable(): Boolean = bionicsRuntimeAvailable
     fun isSystemBionicsActive(view: View): Boolean = runCatching {
         if (!bionicsRuntimeAvailable) return@runCatching false

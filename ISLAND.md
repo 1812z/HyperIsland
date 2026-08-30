@@ -799,6 +799,9 @@ Mini Window 手势
 39. `restoreFakeViewBackground()` 只在当前 fake 目标确实可用 Bionics 时禁止原调用；OS3 或系统关闭 Bionics 时必须先执行系统恢复，再在同一调用中安装高斯兜底，不能直接清空共享 mask。
 40. `updateExpandedView()` 的准备标记 Hook 必须实际注册，用于把隐藏 EXPAND 写入与普通 stale/真实 EXPAND 区分开，并在源头跳过隐藏 Bionics 创建。
 41. SOFT View 接管时必须保存并在 release/detach 时恢复原 `outlineProvider`、`clipToOutline` 和背景；detach listener 不得捕获 View，避免弱缓存 value 反向持有 key。
+42. OS4 的外层 stock drawable、`container/island_mask` 只能在当前 ContentView 已实际持有 Bionics 材质或实例级高斯兜底后清除；仅凭配置为 SOFT 就在 `setDrawable`、`onFinishInflate` 或 `IslandPropertyUpdater` 清层，会让少走标准背景回调的 RemoteViews、`ShowOnceBigIsland` 或替换 View 实例完全透明。
+43. `currentIslandVisible()` 只描述整个岛窗口，不能识别“窗口持续可见但具体 BIG/EXPAND View 被替换”的情况。首次可见预绘制还必须跟踪实际 concrete View 身份和祖先 alpha/visibility，在目标实例变化时重新提交材质与共享层；若 promoted/RemoteViews 宿主缺少 Bionics View API，则在同一实例走稳定态高斯兜底，禁止透明失败。
+44. `ShowOnceBigIsland`（例如充电岛）由 `currentTempShow` 的第二个 ContentView 承载，不一定出现在 controller `getView()`。其 `updateBackgroundBg()` 可能发生在真实 BIG View 尚未 attach/布局时；此时不得预先安装无采样租约的 Bionics 材质。应为该具体 View 注册一次性弱引用 pre-draw，在首次实际可见帧前原子提交材质、采样租约和共享层；状态离开、detach 或配置切换时立即取消 listener。
 
 ## 16. 信息来源和可信度
 
@@ -854,6 +857,8 @@ Mini Window 手势
 - 所有反射读写都应失败降级；反射异常不能传播到 SystemUI 绘制线程。
 - Bionics source Hook 仅在运行时能力探测成功后注册；OS3 不安装窗口保活、材质清理拦截或 self-blur 改写。
 - SOFT View 在 detach 时释放材质、采样租约、原背景/Outline 快照和 listener；fake 共享层快照使用弱 Drawable 引用，避免 `WeakHashMap key -> value -> Drawable.callback -> key` 环。
+- 延迟 SOFT 提交按具体目标 View 使用 `WeakHashMap`、弱目标引用和一次性 pre-draw；listener 在提交、状态失效、配置切换或 detach 时移除，不能让隐藏的 `currentTempShow` 在每帧执行检查。
+- OS4 共享遮罩清理使用“renderer committed”门禁：只扫描当前弱管理 SOFT View，并按所属 `DynamicIslandBackgroundView` 检查实例级高斯兜底，不按其他岛实例或全局配置推断。
 
 ### 17.2 自定义图片和 GIF
 

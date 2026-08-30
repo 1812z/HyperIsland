@@ -12,6 +12,7 @@ import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.IslandBlurRunt
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.model.IslandType as BlurIslandType
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.model.MaterialType
 import io.github.hyperisland.xposed.hook.SystemUI.IslandOutlineHook
+import io.github.hyperisland.xposed.hook.SystemUI.SoftGlass.SoftGlassController
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
@@ -276,12 +277,10 @@ object IslandBackgroundHook : BaseHook() {
                 // when another island disappears and BIG is re-asserted. Reject that
                 // outer drawable before it reaches DynamicIslandBackgroundView; clearing
                 // only container/fake layers cannot affect this independent draw slot.
-                if (chain.args.getOrNull(0) is Drawable && type != null &&
-                    isSystemSoftGlass(type)
+                if (chain.args.getOrNull(0) is Drawable && type != null && bgView != null &&
+                    isSystemSoftGlass(type) && hasCommittedSoftVisual(bgView, type)
                 ) {
-                    if (bgView != null) {
-                        suppressedSystemDrawables[bgView] = chain.args[0] as Drawable
-                    }
+                    suppressedSystemDrawables[bgView] = chain.args[0] as Drawable
                     return@intercept null
                 }
 
@@ -455,7 +454,10 @@ object IslandBackgroundHook : BaseHook() {
                     // OS4's real container starts with dynamic_island_background from XML.
                     // Restored islands can become visible without an IslandPropertyUpdater
                     // frame, so remove that initial host in the first state transaction.
-                    if (type != null && clearOs4InitialLayers && shouldClearSharedMask(type)) {
+                    if (type != null && clearOs4InitialLayers &&
+                        shouldClearSharedMask(type) &&
+                        hasCommittedVisual(chain.thisObject, type)
+                    ) {
                         val contentView = chain.thisObject
                         runCatching { containerMethod?.invoke(contentView) as? View }
                             .getOrNull()
@@ -572,6 +574,23 @@ object IslandBackgroundHook : BaseHook() {
 
     internal fun clearManagedVisualMask(view: View) {
         clearMaskForView(view)
+    }
+
+    /** Commits shared-layer transparency only after the real SOFT target owns its renderer. */
+    internal fun clearCommittedSoftLayers(contentView: Any, typeName: String) {
+        val type = when (typeName) {
+            "SMALL" -> IslandType.SMALL
+            "BIG" -> IslandType.BIG
+            "EXPAND" -> IslandType.EXPAND
+            else -> return
+        }
+        if (!hasCommittedVisual(contentView, type)) return
+        runCatching {
+            contentView.javaClass.getMethod("getContainer").invoke(contentView) as? View
+        }.getOrNull()?.let { clearSharedContainer(it, type) }
+        runCatching {
+            contentView.javaClass.getMethod("getMask").invoke(contentView) as? View
+        }.getOrNull()?.let(::clearMaskForView)
     }
 
     /** Restores the exact stock drawable rejected while this shared instance belonged to SOFT. */
@@ -890,7 +909,9 @@ object IslandBackgroundHook : BaseHook() {
             val result = chain.proceed()
             // With mixed stock/custom states, wait for updateDarkLightMode where the state is
             // known. Clearing at inflation is safe only when every state owns the shared host.
-            if (IslandType.entries.all(::shouldClearSharedMask)) {
+            if (IslandType.entries.all(::shouldClearSharedMask) &&
+                IslandType.entries.none(::isSystemSoftGlass)
+            ) {
                 val contentView = chain.thisObject
                 runCatching { containerMethod.invoke(contentView) as? View }
                     .getOrNull()
@@ -955,6 +976,7 @@ object IslandBackgroundHook : BaseHook() {
         // that previous SMALL/BIG/EXPAND type until the View instance is discarded.
         val type = resolvedType ?: managedContentTypes[contentView] ?: return
         if (!anyManagedOuterVisual()) return
+        if (!hasCommittedVisual(contentView, type)) return
 
         val container = runCatching { access.containerMethod.invoke(contentView) as? View }
             .getOrNull()
@@ -1045,6 +1067,33 @@ object IslandBackgroundHook : BaseHook() {
         // LiquidGlassDrawable is installed only on an active blur state, so the same blur key
         // deliberately covers both the plain glass/blur pipeline and custom image backgrounds.
         return isBlurEnabledForType(type) || anyCustomBgConfigured()
+    }
+
+    /** Shared masks may be removed only after this ContentView owns a drawable/material. */
+    private fun hasCommittedVisual(contentView: Any?, type: IslandType): Boolean {
+        if (!isSystemSoftGlass(type)) return true
+        val root = contentView as? View ?: return false
+        if (SoftGlassController.hasManagedDescendant(root)) return true
+        val backgroundView = findBackgroundAncestor(root) ?: return false
+        return IslandBlurRuntime.outerBlurRegistry.hasActiveVisual(backgroundView)
+    }
+
+    private fun hasCommittedSoftVisual(backgroundView: View, type: IslandType): Boolean {
+        if (!isSystemSoftGlass(type)) return true
+        val contentView = (backgroundView as? ViewGroup)?.let(::findRealContentView)
+        return hasCommittedVisual(contentView, type) ||
+            IslandBlurRuntime.outerBlurRegistry.hasActiveVisual(backgroundView)
+    }
+
+    private fun findBackgroundAncestor(start: View): View? {
+        var current: View? = start
+        while (current != null) {
+            if (current.javaClass.name ==
+                "miui.systemui.dynamicisland.DynamicIslandBackgroundView"
+            ) return current
+            current = current.parent as? View
+        }
+        return null
     }
 
     private fun isBlurEnabledForType(type: IslandType): Boolean {

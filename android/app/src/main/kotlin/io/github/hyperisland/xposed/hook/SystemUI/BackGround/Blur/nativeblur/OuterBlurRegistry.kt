@@ -66,6 +66,8 @@ internal class OuterBlurRegistry(
 
     fun isEmpty(): Boolean = synchronized(active) { active.isEmpty() }
 
+    fun hasActiveVisual(view: View): Boolean = active[view]?.active == true
+
     fun hasDrawableBounds(view: View): Boolean = currentBounds(view) != null
 
     fun prepareDraw(view: View, drawableField: Field, tempHidden: Boolean) {

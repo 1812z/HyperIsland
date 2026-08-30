@@ -5,6 +5,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.view.View
+import android.view.ViewTreeObserver
 import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.hyperisland.xposed.hook.IslandBackgroundHook
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.IslandBlurRuntime
@@ -55,11 +56,17 @@ object IslandBlurHook : BaseHook() {
     private val controllerVisibility = Collections.synchronizedMap(
         WeakHashMap<Any, Boolean>()
     )
+    private val controllerTargets = Collections.synchronizedMap(
+        WeakHashMap<Any, WeakReference<View>>()
+    )
     private val noContentCleanupRunnables = Collections.synchronizedMap(
         WeakHashMap<Any, Runnable>()
     )
     private val contentLastTypes = Collections.synchronizedMap(
         WeakHashMap<Any, IslandType>()
+    )
+    private val pendingSoftCommits = Collections.synchronizedMap(
+        WeakHashMap<View, PendingSoftCommit>()
     )
     private val mainHandler = Handler(Looper.getMainLooper())
     private val refreshRunnable = Runnable { refreshTrackedViews() }
@@ -155,7 +162,12 @@ object IslandBlurHook : BaseHook() {
             )
             hookBackgroundDrawing(module, backgroundClass, outerDrawableField)
             hookBackgroundAlphaUpdates(module, backgroundClass)
-            hookContentVisibility(module, classLoader, backgroundViewField)
+            hookContentVisibility(
+                module,
+                classLoader,
+                backgroundViewField,
+                outerDrawableField,
+            )
             hookTempHiddenLifecycle(module, windowViewClass)
             module.hook(updateMethod).intercept { chain ->
                 val view = chain.args.getOrNull(0) as? View
@@ -189,7 +201,12 @@ object IslandBlurHook : BaseHook() {
                         releaseSampling = false,
                     )
                 }
+                if (view != null && materialBeforeUpdate?.type != MaterialType.SOFT) {
+                    cancelVisibleSoftCommit(view)
+                }
+                val realOwner = contentViewBeforeUpdate?.javaClass?.name != FAKE_CONTENT_VIEW_CLASS
                 var directSoftApplied = false
+                var deferredSoftCommit = false
                 val result = if (view != null && materialBeforeUpdate?.type == MaterialType.SOFT) {
                     if (staleBeforeUpdate || hiddenPreparation) {
                         // A hidden/non-current state must own neither a sampler lease nor a
@@ -198,7 +215,19 @@ object IslandBlurHook : BaseHook() {
                         // material here lets its full-size crop contaminate the compact island
                         // even without a rendering lease. The fake-to-real handoff/onPreDraw
                         // installs it again before EXPAND can submit its first visible frame.
+                        cancelVisibleSoftCommit(view)
                         SoftGlassController.release(view, restoreBackground = false)
+                        null
+                    } else if (realOwner && !isActuallyVisible(view)) {
+                        // ShowOnceBigIsland/tempShow is created in a secondary ContentView. Its
+                        // updateBackgroundBg callback runs while the concrete View is still
+                        // detached/0x0, and the controller-level onPreDraw only observes the
+                        // primary ContentView. Installing Bionics now prepares a RenderNode but
+                        // cannot acquire a sampler lease; Xiaomi then closes pass blur in the
+                        // same transaction and the settled charging island becomes transparent.
+                        // Defer both material and lease to this exact View's first visible frame.
+                        SoftGlassController.release(view, restoreBackground = false)
+                        deferredSoftCommit = true
                         null
                     } else {
                         // Same lifecycle edge as Gaussian, different renderer implementation.
@@ -235,15 +264,22 @@ object IslandBlurHook : BaseHook() {
                 val material = materialForType(type)
                 val staleUpdate = stateType != null && type != stateType && !preparingDestination
                 val active = if (material.type == MaterialType.SOFT) {
-                    if (hiddenPreparation) {
+                    if (hiddenPreparation || deferredSoftCommit) {
                         // Do not mutate the currently visible SMALL/BIG outer layer for a hidden
                         // EXPAND preparation. This callback is ownership metadata only.
+                        if (deferredSoftCommit && realOwner) {
+                            armVisibleSoftCommit(
+                                view,
+                                type,
+                                backgroundViewField,
+                                outerDrawableField,
+                            )
+                        }
                         false
                     } else if (directSoftApplied) {
                         softOuterBackgrounds.add(backgroundView)
-                        val realOwner = contentView.javaClass.name != FAKE_CONTENT_VIEW_CLASS
                         if (realOwner && !hiddenPreparation && !staleUpdate &&
-                            view.isShown && view.alpha > 0.1f
+                            isActuallyVisible(view)
                         ) {
                             SoftGlassController.beginRendering(view)
                         }
@@ -583,11 +619,14 @@ object IslandBlurHook : BaseHook() {
         module.hook(setDrawable).intercept { chain ->
             val backgroundView = chain.thisObject as? View ?: return@intercept chain.proceed()
             val transitionType = islandTypeHolder.get()
-            val suppressStock = if (transitionType != null) {
+            val softConfigured = if (transitionType != null) {
                 materialForType(transitionType).type == MaterialType.SOFT
             } else {
                 softOuterBackgrounds.contains(backgroundView)
             }
+            val rendererCommitted = SoftGlassController.hasManagedDescendant(backgroundView) ||
+                outerBlurRegistry.hasActiveVisual(backgroundView)
+            val suppressStock = softConfigured && rendererCommitted
             if (!suppressStock) return@intercept chain.proceed()
             // updateDarkLightMode writes the opaque outer drawable before any post-hook can run.
             // Reject it at the owning setter so no black drawable can enter a submitted frame.
@@ -671,11 +710,158 @@ object IslandBlurHook : BaseHook() {
         outerBlurRegistry.enterTempHidden()
     }
 
+    /**
+     * Commits SOFT on the concrete View's own first visible frame.
+     *
+     * The controller exposes only its primary ContentView. ShowOnceBigIsland (charging and
+     * similar transient islands) lives in currentTempShow, so a controller-only pre-draw hook
+     * can never acquire its sampler lease. A target-local listener covers every real content
+     * slot without maintaining a template/event whitelist.
+     */
+    private fun armVisibleSoftCommit(
+        view: View,
+        expectedType: IslandType,
+        backgroundViewField: java.lang.reflect.Field,
+        outerDrawableField: java.lang.reflect.Field,
+    ) {
+        synchronized(pendingSoftCommits) {
+            if (pendingSoftCommits.containsKey(view)) return
+        }
+
+        val targetRef = WeakReference(view)
+        lateinit var preDrawListener: ViewTreeObserver.OnPreDrawListener
+        lateinit var attachListener: View.OnAttachStateChangeListener
+
+        preDrawListener = ViewTreeObserver.OnPreDrawListener {
+            val target = targetRef.get() ?: return@OnPreDrawListener true
+            val actualType = IslandStateResolver.forView(target) ?: expectedType
+            if (actualType != expectedType ||
+                materialForType(actualType).type != MaterialType.SOFT
+            ) {
+                cancelVisibleSoftCommit(target)
+                return@OnPreDrawListener true
+            }
+            val owner = findOwningContentView(target)
+            if (owner == null) return@OnPreDrawListener true
+            val ownerState = runCatching {
+                findField(owner.javaClass, "state")?.get(owner)
+            }.getOrNull()
+            val ownerType = IslandStateResolver.fromState(ownerState)
+            if (IslandStateResolver.isNoContent(ownerState) ||
+                (ownerType != null && ownerType != expectedType)
+            ) {
+                cancelVisibleSoftCommit(target)
+                return@OnPreDrawListener true
+            }
+            if (!isActuallyVisible(target)) return@OnPreDrawListener true
+
+            commitVisibleSoftTarget(
+                owner,
+                target,
+                actualType,
+                backgroundViewField,
+                outerDrawableField,
+            )
+            cancelVisibleSoftCommit(target)
+            true
+        }
+        attachListener = object : View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(target: View) {
+                registerVisibleSoftPreDraw(target)
+            }
+
+            override fun onViewDetachedFromWindow(target: View) {
+                cancelVisibleSoftCommit(target)
+            }
+        }
+        val pending = PendingSoftCommit(
+            preDrawListener = preDrawListener,
+            attachListener = attachListener,
+        )
+        pendingSoftCommits[view] = pending
+        view.addOnAttachStateChangeListener(attachListener)
+        if (view.isAttachedToWindow) registerVisibleSoftPreDraw(view)
+    }
+
+    private fun registerVisibleSoftPreDraw(view: View) {
+        val pending = pendingSoftCommits[view] ?: return
+        val observer = view.viewTreeObserver
+        val previousObserver = pending.observer?.get()
+        if (!observer.isAlive || previousObserver === observer) return
+        previousObserver?.takeIf(ViewTreeObserver::isAlive)
+            ?.removeOnPreDrawListener(pending.preDrawListener)
+        observer.addOnPreDrawListener(pending.preDrawListener)
+        pending.observer = WeakReference(observer)
+    }
+
+    private fun cancelVisibleSoftCommit(view: View) {
+        val pending = pendingSoftCommits.remove(view) ?: return
+        pending.observer?.get()?.takeIf(ViewTreeObserver::isAlive)
+            ?.removeOnPreDrawListener(pending.preDrawListener)
+        view.removeOnAttachStateChangeListener(pending.attachListener)
+    }
+
+    private fun findOwningContentView(view: View): Any? {
+        var current: View? = view
+        while (current != null) {
+            var clazz: Class<*>? = current.javaClass
+            while (clazz != null) {
+                if (clazz.name == CONTENT_VIEW_CLASS) return current
+                clazz = clazz.superclass
+            }
+            current = current.parent as? View
+        }
+        return null
+    }
+
+    private fun commitVisibleSoftTarget(
+        contentView: Any,
+        target: View,
+        type: IslandType,
+        backgroundViewField: java.lang.reflect.Field,
+        outerDrawableField: java.lang.reflect.Field,
+    ): Boolean {
+        val material = materialForType(type)
+        if (material.type != MaterialType.SOFT || !isActuallyVisible(target)) return false
+
+        val backgroundView = runCatching {
+            backgroundViewField.get(contentView) as? View
+        }.getOrNull()
+        val nativeReady = SoftGlassController.isManaged(target) ||
+            SoftGlassController.apply(target, material.softGlass)
+        if (nativeReady) {
+            SoftGlassController.beginRendering(target)
+            if (backgroundView != null) {
+                softOuterBackgrounds.add(backgroundView)
+                clearOuterForSoftGlass(backgroundView, outerDrawableField, "target-visible")
+            }
+            IslandBackgroundHook.clearCommittedSoftLayers(contentView, type.name)
+            return true
+        }
+
+        // OS3 and unusual View hosts retain the same source lifecycle but use the supported
+        // Gaussian host renderer. Do not clear the stock layer until that renderer commits.
+        if (backgroundView == null) return false
+        softOuterBackgrounds.add(backgroundView)
+        val fallbackReady = applyOuterBlur(
+            backgroundView,
+            target,
+            type,
+            material.softFallback(),
+            outerDrawableField,
+        )
+        if (fallbackReady && outerBlurRegistry.hasActiveVisual(backgroundView)) {
+            IslandBackgroundHook.clearManagedVisualMask(target)
+        }
+        return fallbackReady
+    }
+
     /** Restores the 2.4.8 visibility edge that was removed while retaining blur reuse. */
     private fun hookContentVisibility(
         module: XposedModule,
         classLoader: ClassLoader,
         backgroundViewField: java.lang.reflect.Field,
+        outerDrawableField: java.lang.reflect.Field,
     ) {
         val controllerClass = runCatching {
             Class.forName(CONTENT_VIEW_CONTROLLER_CLASS, false, classLoader)
@@ -697,18 +883,40 @@ object IslandBlurHook : BaseHook() {
                         null
                     }
                     val contentView = runCatching { getView.invoke(controller) }.getOrNull()
-                    val type = contentView?.let { owner ->
+                    val stateType = contentView?.let { owner ->
                         runCatching {
                             IslandStateResolver.fromState(
                                 findField(owner.javaClass, "state")?.get(owner),
                             )
                         }.getOrNull() ?: contentLastTypes[owner]
                     }
-                    val concrete = if (contentView != null && type != null) {
-                        IslandStateResolver.concreteView(contentView, type)
+                    val stateConcrete = if (contentView != null && stateType != null) {
+                        IslandStateResolver.concreteView(contentView, stateType)
                     } else {
                         null
                     }
+                    val rendered = if (stateConcrete != null && isActuallyVisible(stateConcrete)) {
+                        stateType?.let { it to stateConcrete }
+                    } else if (contentView != null) {
+                        sequenceOf(IslandType.EXPAND, IslandType.BIG, IslandType.SMALL)
+                            .mapNotNull { candidate ->
+                                IslandStateResolver.concreteView(contentView, candidate)
+                                    ?.takeIf(::isActuallyVisible)
+                                    ?.let { candidate to it }
+                            }
+                            .firstOrNull()
+                    } else {
+                        null
+                    }
+                    val type = rendered?.first ?: stateType
+                    val concrete = rendered?.second ?: stateConcrete
+                    val visibleConcrete = concrete?.takeIf(::isActuallyVisible)
+                    val previousTarget = if (visibleConcrete != null) {
+                        controllerTargets.put(controller, WeakReference(visibleConcrete))?.get()
+                    } else {
+                        controllerTargets[controller]?.get()
+                    }
+                    val targetChanged = visibleConcrete != null && previousTarget !== visibleConcrete
                     if (previouslyVisible != false && visible == false) {
                         val backgroundView = runCatching {
                             backgroundViewField.get(contentView) as? View
@@ -726,28 +934,38 @@ object IslandBlurHook : BaseHook() {
                             }
                         }
                     } else if (visible == true &&
-                        (previouslyVisible != true || tempHideRecoveryPending)
+                        (previouslyVisible != true || tempHideRecoveryPending || targetChanged)
                     ) {
                         // This is the source pre-draw edge for both first appearance and temporary
                         // hide recovery. Acquire before the frame instead of repairing afterwards.
-                        if (concrete != null && type != null &&
+                        if (contentView != null && visibleConcrete != null && type != null &&
                             materialForType(type).type == MaterialType.SOFT
                         ) {
-                            val nativeSoftReady = SoftGlassController.isManaged(concrete) ||
-                                SoftGlassController.apply(
-                                    concrete,
-                                    materialForType(type).softGlass,
-                                )
-                            if (nativeSoftReady) {
-                                SoftGlassController.beginRendering(concrete)
-                                clearSoftGlassOuter(contentView, "real-visible")
-                            }
+                            commitVisibleSoftTarget(
+                                contentView,
+                                visibleConcrete,
+                                type,
+                                backgroundViewField,
+                                outerDrawableField,
+                            )
                             tempHideRecoveryPending = false
                         }
                     }
                     result
                 }
             }
+    }
+
+    private fun isActuallyVisible(view: View): Boolean {
+        if (!view.isShown || view.windowVisibility != View.VISIBLE || view.alpha <= 0.01f) {
+            return false
+        }
+        var current: View? = view
+        while (current != null) {
+            if (current.visibility != View.VISIBLE || current.alpha <= 0.01f) return false
+            current = current.parent as? View
+        }
+        return true
     }
 
     /** Keeps the shared outer drawable aligned with the settled logical state. */
@@ -883,6 +1101,12 @@ object IslandBlurHook : BaseHook() {
         val promoted: Boolean,
         val type: IslandType?,
         val stateField: java.lang.reflect.Field,
+    )
+
+    private data class PendingSoftCommit(
+        val preDrawListener: ViewTreeObserver.OnPreDrawListener,
+        val attachListener: View.OnAttachStateChangeListener,
+        var observer: WeakReference<ViewTreeObserver>? = null,
     )
 
 }
