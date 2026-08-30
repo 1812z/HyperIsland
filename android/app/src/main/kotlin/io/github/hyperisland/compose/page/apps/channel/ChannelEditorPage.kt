@@ -1,5 +1,6 @@
 package io.github.hyperisland.compose.page.apps.channel
 
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExitTransition
@@ -15,6 +16,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -29,9 +31,10 @@ import io.github.hyperisland.compose.component.LocalBarBlurEnabled
 import io.github.hyperisland.compose.component.PREDICTIVE_CANCEL_DURATION
 import io.github.hyperisland.compose.component.PREDICTIVE_DISMISS_DURATION
 import io.github.hyperisland.compose.component.PredictiveBackBackdrop
-import io.github.hyperisland.compose.component.PredictiveSettleEasing
+import io.github.hyperisland.compose.component.PredictiveBackMotionTracker
 import io.github.hyperisland.compose.component.predictiveEffectIntensity
 import io.github.hyperisland.compose.component.predictiveExitProgress
+import io.github.hyperisland.compose.component.predictiveSettleEasing
 import io.github.hyperisland.compose.component.predictiveSettleDuration
 import io.github.hyperisland.compose.component.predictiveTranslationFraction
 import io.github.hyperisland.compose.component.smootherStep
@@ -71,6 +74,8 @@ internal fun ChannelEditorPage(
     val predictiveProgress = remember { Animatable(0f) }
     val backdropIntensity = remember { Animatable(0f) }
     val editorLayerDepth = remember { Animatable(0f) }
+    val predictiveMotion = remember { PredictiveBackMotionTracker() }
+    val scope = rememberCoroutineScope()
     val predictiveBackMaxTranslation = rememberLongPreference(
         prefs,
         PREF_PREDICTIVE_BACK_MAX_TRANSLATION,
@@ -116,23 +121,31 @@ internal fun ChannelEditorPage(
 
     suspend fun finishPredictiveBack() {
         predictiveCommitting = true
+        val targetProgress = predictiveExitProgress(predictiveBackMaxTranslation.value)
         val duration = predictiveSettleDuration(
             progress = predictiveProgress.value,
             maxTranslationPercent = predictiveBackMaxTranslation.value,
         )
+        val settleEasing = predictiveSettleEasing(
+            releaseVelocity = predictiveMotion.releaseVelocity(),
+            currentProgress = predictiveProgress.value,
+            targetProgress = targetProgress,
+            durationMillis = duration,
+        )
         coroutineScope {
             launch {
                 predictiveProgress.animateTo(
-                    predictiveExitProgress(predictiveBackMaxTranslation.value),
-                    tween(duration, easing = PredictiveSettleEasing),
+                    targetProgress,
+                    tween(duration, easing = settleEasing),
                 )
             }
-            launch { backdropIntensity.animateTo(0f, tween(duration, easing = PredictiveSettleEasing)) }
-            launch { editorLayerDepth.animateTo(0f, tween(duration, easing = PredictiveSettleEasing)) }
+            launch { backdropIntensity.animateTo(0f, tween(duration, easing = settleEasing)) }
+            launch { editorLayerDepth.animateTo(0f, tween(duration, easing = settleEasing)) }
         }
         closeCustomization()
         delay(PREDICTIVE_DISMISS_DURATION.toLong())
         predictiveProgress.snapTo(0f)
+        predictiveMotion.reset()
         predictiveBackActive = false
         predictiveCommitting = false
     }
@@ -140,6 +153,11 @@ internal fun ChannelEditorPage(
     PredictiveBackHandler(enabled = customizationVisible) { events ->
         try {
             events.collect { event ->
+                if (!predictiveBackActive) {
+                    predictiveMotion.reset(event.progress)
+                } else {
+                    predictiveMotion.update(event.progress)
+                }
                 predictiveBackActive = true
                 predictiveProgress.snapTo(event.progress)
                 val smoothProgress = smootherStep(event.progress)
@@ -169,9 +187,14 @@ internal fun ChannelEditorPage(
                         )
                     }
                 }
+                predictiveMotion.reset()
                 predictiveBackActive = false
             }
         }
+    }
+
+    BackHandler(enabled = predictiveBackActive && predictiveCommitting) {
+        scope.launch { finishPredictiveBack() }
     }
 
     BarBlurHost(

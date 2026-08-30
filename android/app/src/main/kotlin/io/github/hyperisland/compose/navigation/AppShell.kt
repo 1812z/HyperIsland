@@ -43,7 +43,7 @@ import io.github.hyperisland.compose.component.BarBlurHost
 import io.github.hyperisland.compose.component.BlurredBar
 import io.github.hyperisland.compose.component.LocalRootBottomBarPadding
 import io.github.hyperisland.compose.component.PredictiveBackBackdrop
-import io.github.hyperisland.compose.component.PredictiveSettleEasing
+import io.github.hyperisland.compose.component.PredictiveBackMotionTracker
 import io.github.hyperisland.compose.component.BACKGROUND_PARALLAX
 import io.github.hyperisland.compose.component.BACKGROUND_SCALE_REDUCTION
 import io.github.hyperisland.compose.component.EFFECT_VISIBILITY_THRESHOLD
@@ -53,6 +53,7 @@ import io.github.hyperisland.compose.component.PREDICTIVE_CANCEL_DURATION
 import io.github.hyperisland.compose.component.PREDICTIVE_DISMISS_DURATION
 import io.github.hyperisland.compose.component.predictiveEffectIntensity
 import io.github.hyperisland.compose.component.predictiveExitProgress
+import io.github.hyperisland.compose.component.predictiveSettleEasing
 import io.github.hyperisland.compose.component.predictiveSettleDuration
 import io.github.hyperisland.compose.component.predictiveTranslationFraction
 import io.github.hyperisland.compose.component.smootherStep
@@ -168,6 +169,8 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     val mediaBackdropIntensity = remember { Animatable(0f) }
     val rootLayerDepth = remember { Animatable(0f) }
     val detailLayerDepth = remember { Animatable(0f) }
+    val detailPredictiveMotion = remember { PredictiveBackMotionTracker() }
+    val mediaPredictiveMotion = remember { PredictiveBackMotionTracker() }
 
     fun requestUpdateCheck(showUpToDate: Boolean) {
         if (isCheckingUpdate) return
@@ -253,22 +256,29 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
 
     suspend fun finishDetailPredictiveBack() {
         detailPredictiveCommitting = true
+        val targetProgress = predictiveExitProgress(predictiveBackMaxTranslation.value)
         val duration = predictiveSettleDuration(
             progress = predictiveProgress.value,
             maxTranslationPercent = predictiveBackMaxTranslation.value,
         )
+        val settleEasing = predictiveSettleEasing(
+            releaseVelocity = detailPredictiveMotion.releaseVelocity(),
+            currentProgress = predictiveProgress.value,
+            targetProgress = targetProgress,
+            durationMillis = duration,
+        )
         coroutineScope {
             launch {
                 predictiveProgress.animateTo(
-                    predictiveExitProgress(predictiveBackMaxTranslation.value),
-                    tween(duration, easing = PredictiveSettleEasing),
+                    targetProgress,
+                    tween(duration, easing = settleEasing),
                 )
             }
             launch {
-                detailBackdropIntensity.animateTo(0f, tween(duration, easing = PredictiveSettleEasing))
+                detailBackdropIntensity.animateTo(0f, tween(duration, easing = settleEasing))
             }
             launch {
-                rootLayerDepth.animateTo(0f, tween(duration, easing = PredictiveSettleEasing))
+                rootLayerDepth.animateTo(0f, tween(duration, easing = settleEasing))
             }
         }
         detailShown = false
@@ -276,28 +286,36 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
         batchToastPackages = null
         delay(PREDICTIVE_DISMISS_DURATION.toLong())
         predictiveProgress.snapTo(0f)
+        detailPredictiveMotion.reset()
         detailPredictiveBackActive = false
         detailPredictiveCommitting = false
     }
 
     suspend fun finishNestedPredictiveBack() {
         mediaPredictiveCommitting = true
+        val targetProgress = predictiveExitProgress(predictiveBackMaxTranslation.value)
         val duration = predictiveSettleDuration(
             progress = mediaPredictiveProgress.value,
             maxTranslationPercent = predictiveBackMaxTranslation.value,
         )
+        val settleEasing = predictiveSettleEasing(
+            releaseVelocity = mediaPredictiveMotion.releaseVelocity(),
+            currentProgress = mediaPredictiveProgress.value,
+            targetProgress = targetProgress,
+            durationMillis = duration,
+        )
         coroutineScope {
             launch {
                 mediaPredictiveProgress.animateTo(
-                    predictiveExitProgress(predictiveBackMaxTranslation.value),
-                    tween(duration, easing = PredictiveSettleEasing),
+                    targetProgress,
+                    tween(duration, easing = settleEasing),
                 )
             }
             launch {
-                mediaBackdropIntensity.animateTo(0f, tween(duration, easing = PredictiveSettleEasing))
+                mediaBackdropIntensity.animateTo(0f, tween(duration, easing = settleEasing))
             }
             launch {
-                detailLayerDepth.animateTo(0f, tween(duration, easing = PredictiveSettleEasing))
+                detailLayerDepth.animateTo(0f, tween(duration, easing = settleEasing))
             }
         }
         mediaShown = false
@@ -307,6 +325,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
         extensionDetail = null
         delay(PREDICTIVE_DISMISS_DURATION.toLong())
         mediaPredictiveProgress.snapTo(0f)
+        mediaPredictiveMotion.reset()
         mediaPredictiveBackActive = false
         mediaPredictiveCommitting = false
     }
@@ -314,6 +333,11 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     PredictiveBackHandler(enabled = detailShown && !nestedDetailShown) { events ->
         try {
             events.collect { event ->
+                if (!detailPredictiveBackActive) {
+                    detailPredictiveMotion.reset(event.progress)
+                } else {
+                    detailPredictiveMotion.update(event.progress)
+                }
                 detailPredictiveBackActive = true
                 predictiveProgress.snapTo(event.progress)
                 val smoothProgress = smootherStep(event.progress)
@@ -343,6 +367,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                         )
                     }
                 }
+                detailPredictiveMotion.reset()
                 detailPredictiveBackActive = false
             }
         }
@@ -351,6 +376,11 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     PredictiveBackHandler(enabled = nestedDetailShown) { events ->
         try {
             events.collect { event ->
+                if (!mediaPredictiveBackActive) {
+                    mediaPredictiveMotion.reset(event.progress)
+                } else {
+                    mediaPredictiveMotion.update(event.progress)
+                }
                 mediaPredictiveBackActive = true
                 mediaPredictiveProgress.snapTo(event.progress)
                 val smoothProgress = smootherStep(event.progress)
@@ -380,6 +410,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                         )
                     }
                 }
+                mediaPredictiveMotion.reset()
                 mediaPredictiveBackActive = false
             }
         }
