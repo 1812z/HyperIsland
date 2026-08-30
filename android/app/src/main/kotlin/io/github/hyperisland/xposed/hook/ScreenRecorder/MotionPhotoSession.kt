@@ -31,7 +31,7 @@ internal object MotionPhotoSession {
     private const val CONVERSION_DELAY_MILLIS = 1_000L
     private const val PUBLISH_WAIT_MILLIS = 8_000L
     private const val PUBLISH_POLL_MILLIS = 250L
-    private const val MAX_RECORDING_DURATION_MILLIS = 30_000L
+    private const val MAX_RECORDING_DURATION_MILLIS = 60_000L
     private const val JPEG_QUALITY = 95
 
     private val outputs = Collections.synchronizedMap(WeakHashMap<Any, TrackedOutput>())
