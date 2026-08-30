@@ -263,5 +263,17 @@ export const donors: DonorItem[] = [
     amount: '6.66',
     date: '2026-08-25',
     message: '支持大小岛双向距离项目创作'
+  },
+  {
+    name: "庄均睿",
+    amount: '8',
+    date: '2026-08-30',
+    message: '加油( ˝ᗢ̈˝ )'
+  },
+  {
+    name: "匿名",
+    amount: '8.3',
+    date: '2026-08-30',
+    message: '麻烦看下 issue #131，感谢'
   }
 ]
