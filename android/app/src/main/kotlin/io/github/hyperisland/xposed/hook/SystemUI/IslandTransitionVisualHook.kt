@@ -31,6 +31,7 @@ object IslandTransitionVisualHook : BaseHook() {
     private val FAKE_VIEW_ANIMATOR_CLASSES = arrayOf(
         "miui.systemui.dynamicisland.anim.ui.animator.FakeViewAnimator",
         "miui.systemui.dynamicisland.anim.p110ui.animator.FakeViewAnimator",
+        "miui.systemui.dynamicisland.anim.p120ui.animator.FakeViewAnimator",
     )
 
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -54,6 +55,9 @@ object IslandTransitionVisualHook : BaseHook() {
     )
     private val fakeSlotTypes = Collections.synchronizedMap(
         WeakHashMap<View, String>()
+    )
+    private val activeFakeTypes = Collections.synchronizedMap(
+        WeakHashMap<Any, String>()
     )
     private val fakeLayerTargets = Collections.synchronizedMap(
         WeakHashMap<Any, FakeLayerTarget>()
@@ -105,9 +109,6 @@ object IslandTransitionVisualHook : BaseHook() {
                 armRealBackgroundHandoff(owner, access)
             }
         }
-        hookDeclaredRefreshAfter(module, fakeClass, "restoreFakeViewBackground") { owner ->
-            refreshFakeView(owner, access)
-        }
         hookDeclaredRefreshAfter(
             module,
             fakeClass,
@@ -117,6 +118,8 @@ object IslandTransitionVisualHook : BaseHook() {
             refreshFakeView(owner, access)
         }
         hookFakeVisibility(module, fakeClass, access)
+        hookRestoreFakeBackground(module, fakeClass, access)
+        hookSelfBlurSource(module, classLoader)
         hookDeclaredRefreshAfter(module, fakeClass, "onDetachedFromWindow") { owner ->
             releaseFakeView(owner, access)
         }
@@ -233,6 +236,7 @@ object IslandTransitionVisualHook : BaseHook() {
     ) {
         val animatorClass = findFirstClass(classLoader, FAKE_VIEW_ANIMATOR_CLASSES) ?: return
         if (!hookedAnimatorClasses.add(animatorClass)) return
+        log(module, "fake animator source hooked class=${animatorClass.name}")
         val getFakeView = findMethod(animatorClass, "getFakeView") ?: return
 
         sequenceOf(
@@ -249,6 +253,18 @@ object IslandTransitionVisualHook : BaseHook() {
                             val animator = chain.thisObject
                             val fakeView = runCatching { getFakeView.invoke(animator) }.getOrNull()
                                 ?: return@intercept chain.proceed()
+                            val targetType = when (name) {
+                                "fakeViewToExpanded" -> "EXPAND"
+                                "fakeViewToBigIsland" -> "BIG"
+                                "fakeViewToSmallIsland" -> "SMALL"
+                                else -> null
+                            }
+                            if (targetType != null) {
+                                activeFakeTypes[fakeView] = targetType
+                                // Acquire before Xiaomi starts Folme alpha/geometry. Waiting for
+                                // alpha > 0 makes the first transition frames transparent.
+                                prepareFakeSlot(fakeView, access, targetType)
+                            }
                             val result = chain.proceed()
                             fakeViews.add(fakeView)
                             refreshFakeView(fakeView, access)
@@ -353,6 +369,7 @@ object IslandTransitionVisualHook : BaseHook() {
                         // Child slots commonly remain VISIBLE after the fake root is hidden.
                         // Release their RenderNode material now; checking child visibility alone
                         // leaves the old transition crop registered after the real handoff.
+                        activeFakeTypes.remove(owner)
                         refreshFakeView(owner, access)
                     }
                 }
@@ -407,6 +424,7 @@ object IslandTransitionVisualHook : BaseHook() {
             if (!controller.isApplied(target, typeName)) {
                 controller.apply(target, typeName)
             }
+            SoftGlassController.beginRendering(target)
             // The real outer drawable is exposed in the same handoff transaction. Clear it now,
             // not in a later posted refresh, so it cannot contribute one gray/dark frame.
             IslandBlurHook.clearSoftGlassOuter(realView, "fake-to-real")
@@ -456,13 +474,19 @@ object IslandTransitionVisualHook : BaseHook() {
         access: FakeViewAccess,
     ) {
         val rootVisible = (fakeView as? View)?.visibility == View.VISIBLE
+        val activeType = if (rootVisible) {
+            activeFakeTypes[fakeView] ?: access.stateType(fakeView)
+        } else {
+            activeFakeTypes.remove(fakeView)
+            null
+        }
         if (rootVisible) {
             armRealBackgroundHandoff(fakeView, access)
         }
         access.forEach(fakeView) { typeName, view ->
             fakeSlotTypes[view] = typeName
             val controller = IslandBlurRuntime.transitionBlurController
-            if (!rootVisible || view.visibility != View.VISIBLE) {
+            if (!rootVisible || view.visibility != View.VISIBLE || typeName != activeType) {
                 if (controller.hasManagedSoftGlass(view)) {
                     controller.suspend(view)
                     targets[view]?.managedVisual = false
@@ -484,6 +508,9 @@ object IslandTransitionVisualHook : BaseHook() {
                     true
                 }
                 if (target.managedVisual) target.materialRevision = currentRevision
+                if (target.managedVisual && controller.isSoftGlass(typeName)) {
+                    SoftGlassController.beginRendering(view)
+                }
                 return@forEach
             }
 
@@ -517,20 +544,23 @@ object IslandTransitionVisualHook : BaseHook() {
         method.isAccessible = true
         module.hook(method).intercept { chain ->
             val owner = chain.thisObject ?: return@intercept chain.proceed()
-            val typeName = access.stateType(owner)
-            if (typeName == null ||
+            val typeName = activeFakeTypes[owner] ?: access.stateType(owner)
+            val result = if (typeName == null ||
                 !IslandBlurRuntime.transitionBlurController.isSoftGlass(typeName)
             ) {
-                return@intercept chain.proceed()
+                chain.proceed()
+            } else {
+                clearPreparedFakeMask(owner, access)
+                null
             }
-            clearPreparedFakeMask(owner, access)
-            null
+            refreshFakeView(owner, access)
+            result
         }
     }
 
     private fun clearPreparedFakeMask(fakeView: Any, access: FakeViewAccess) {
         val root = fakeView as? View ?: return
-        val logicalType = access.stateType(fakeView)
+        val logicalType = activeFakeTypes[fakeView] ?: access.stateType(fakeView)
         if (logicalType != null) {
             val logicalView = access.viewFor(fakeView, logicalType)
             if (logicalView == null ||
@@ -574,7 +604,10 @@ object IslandTransitionVisualHook : BaseHook() {
         } else {
             true
         }
-        if (target.managedVisual) target.materialRevision = currentRevision
+        if (target.managedVisual) {
+            target.materialRevision = currentRevision
+            SoftGlassController.beginRendering(view)
+        }
     }
 
     private fun updateFakeLayerMask(fakeView: Any, access: FakeViewAccess) {
@@ -592,13 +625,12 @@ object IslandTransitionVisualHook : BaseHook() {
         }
         // Use the same ownership rule as Gaussian blur and custom backgrounds: the shared
         // fake mask is removed only when every currently rendered child owns its visual.
-        val visibleTargets = access.visibleViews(fakeView)
-        val clearSharedMask = root.visibility == View.VISIBLE && visibleTargets.isNotEmpty() &&
-            visibleTargets.all { (_, view) ->
-                targets[view]?.managedVisual == true &&
-                    (view.background != null ||
-                        IslandBlurRuntime.transitionBlurController.hasManagedSoftGlass(view))
-            }
+        val activeType = activeFakeTypes[fakeView] ?: access.stateType(fakeView)
+        val activeView = activeType?.let { access.viewFor(fakeView, it) }
+        val clearSharedMask = root.visibility == View.VISIBLE && activeView != null &&
+            targets[activeView]?.managedVisual == true &&
+            (activeView.background != null ||
+                IslandBlurRuntime.transitionBlurController.hasManagedSoftGlass(activeView))
         if (clearSharedMask) {
             IslandBackgroundHook.clearManagedVisualMask(root)
             if (container !== root && container != null) {
@@ -616,6 +648,7 @@ object IslandTransitionVisualHook : BaseHook() {
 
     private fun releaseFakeView(fakeView: Any, access: FakeViewAccess) {
         fakeViews.remove(fakeView)
+        activeFakeTypes.remove(fakeView)
         fakeLayerTargets.remove(fakeView)
         realBackgroundTarget(fakeView, access)?.let { target ->
             opaqueHandoffBackgrounds.remove(target.view)
@@ -712,18 +745,6 @@ object IslandTransitionVisualHook : BaseHook() {
             "BIG" -> invokeView(owner, big)
             "EXPAND" -> invokeView(owner, expand)
             else -> null
-        }
-
-        fun visibleViews(owner: Any): List<Pair<String, View>> {
-            return listOf(
-                RenderedState("SMALL", invokeView(owner, small)),
-                RenderedState("BIG", invokeView(owner, big)),
-                RenderedState("EXPAND", invokeView(owner, expand)),
-            ).filter { state ->
-                state.view?.visibility == View.VISIBLE && state.view.alpha > 0f
-            }.mapNotNull { state ->
-                state.view?.let { state.type to it }
-            }
         }
 
         fun shownSlots(owner: Any): List<Pair<String, View>> {

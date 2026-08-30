@@ -75,6 +75,9 @@ object IslandBlurHook : BaseHook() {
     @Volatile
     private var islandTempHidden = false
 
+    @Volatile
+    private var tempHideRecoveryPending = false
+
     override fun getTag() = TAG
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
@@ -164,11 +167,16 @@ object IslandBlurHook : BaseHook() {
                     }.getOrNull()
                     ?: lastIslandType
                 val materialBeforeUpdate = typeBeforeUpdate?.let(::materialForType)
+                val preparingType = preparingTypeHolder.get()
                 val stateTypeBeforeUpdate = islandTypeHolder.get() ?: runCatching {
                     IslandStateResolver.fromState(stateField.get(contentViewBeforeUpdate))
                 }.getOrNull() ?: lastIslandType
+                // updateExpandedView() initializes the destination material before changing the
+                // ContentView state or replacing its notification child. This is an authoritative
+                // EXPAND write, not a stale hidden-state refresh.
+                val preparingDestination = preparingType != null && preparingType == typeBeforeUpdate
                 val staleBeforeUpdate = typeBeforeUpdate != null && stateTypeBeforeUpdate != null &&
-                    typeBeforeUpdate != stateTypeBeforeUpdate
+                    typeBeforeUpdate != stateTypeBeforeUpdate && !preparingDestination
                 if (view != null && materialBeforeUpdate?.type != MaterialType.SOFT &&
                     SoftGlassController.isManaged(view)
                 ) {
@@ -201,7 +209,7 @@ object IslandBlurHook : BaseHook() {
                 view ?: return@intercept result
                 val contentView = chain.thisObject ?: return@intercept result
                 val type = typeBeforeUpdate
-                if (type != null) contentLastTypes[contentView] = type
+                if (type != null && !preparingDestination) contentLastTypes[contentView] = type
                 refreshTargets[view] = RefreshTarget(
                     contentView = WeakReference(contentView),
                     updateMethod = updateMethod,
@@ -220,18 +228,25 @@ object IslandBlurHook : BaseHook() {
                 if (backgroundView == null) return@intercept result
 
                 val material = materialForType(type)
-                val staleUpdate = stateType != null && type != stateType
+                val staleUpdate = stateType != null && type != stateType && !preparingDestination
                 val active = if (material.type == MaterialType.SOFT) {
                     softOuterBackgrounds.add(backgroundView)
                     module.log(
                         "soft update view=${view.javaClass.name} type=$type state=$stateType " +
                             "stale=$staleUpdate " +
+                            "preparing=$preparingDestination " +
                             "owner=${System.identityHashCode(contentView).toString(16)} " +
                             "bg=${System.identityHashCode(backgroundView).toString(16)} " +
                             "direct=$directSoftApplied " +
                             "config=${material.softGlass}",
                     )
                     if (directSoftApplied) {
+                        val realOwner = contentView.javaClass.name != FAKE_CONTENT_VIEW_CLASS
+                        if (realOwner && !preparingDestination && !staleUpdate &&
+                            view.isShown && view.alpha > 0.1f
+                        ) {
+                            SoftGlassController.beginRendering(view)
+                        }
                         clearOuterForSoftGlass(
                             backgroundView,
                             outerDrawableField,
@@ -614,7 +629,11 @@ object IslandBlurHook : BaseHook() {
             val wasHidden = islandTempHidden
             val hidden = chain.args.getOrNull(0) as? Boolean
             when (hidden) {
-                true -> if (!wasHidden) enterTempHidden()
+                true -> if (!wasHidden) {
+                    tempHideRecoveryPending = false
+                    (chain.thisObject as? View)?.let(SoftGlassController::pauseWindow)
+                    enterTempHidden()
+                }
                 false, null -> Unit
             }
             val result = chain.proceed()
@@ -622,6 +641,7 @@ object IslandBlurHook : BaseHook() {
                 // The false callback precedes restoration of visible geometry. Keep
                 // the reusable drawable protected until a real target can be drawn.
                 islandTempHidden = false
+                tempHideRecoveryPending = true
                 mainHandler.removeCallbacks(refreshRunnable)
                 mainHandler.post(refreshRunnable)
                 val recoveryViews = outerBlurRegistry.rebuildRecoveryQueue()
@@ -685,13 +705,52 @@ object IslandBlurHook : BaseHook() {
                     } else {
                         null
                     }
+                    val contentView = runCatching { getView.invoke(controller) }.getOrNull()
+                    val type = contentView?.let { owner ->
+                        runCatching {
+                            IslandStateResolver.fromState(
+                                findField(owner.javaClass, "state")?.get(owner),
+                            )
+                        }.getOrNull() ?: contentLastTypes[owner]
+                    }
+                    val concrete = if (contentView != null && type != null) {
+                        IslandStateResolver.concreteView(contentView, type)
+                    } else {
+                        null
+                    }
                     if (previouslyVisible != false && visible == false) {
-                        val contentView = runCatching { getView.invoke(controller) }.getOrNull()
                         val backgroundView = runCatching {
                             backgroundViewField.get(contentView) as? View
                         }.getOrNull()
                         if (backgroundView != null) {
                             outerBlurRegistry.hideEdgeHighlight(backgroundView)
+                        }
+                        if (concrete != null && SoftGlassController.isManaged(concrete)) {
+                            if (islandTempHidden) {
+                                SoftGlassController.pauseRendering(concrete)
+                            } else {
+                                // SystemUI's own currentIslandVisible() is authoritative. A
+                                // sibling hidden by EXPAND must no longer submit a compact crop.
+                                SoftGlassController.release(concrete, restoreBackground = false)
+                            }
+                        }
+                    } else if (visible == true &&
+                        (previouslyVisible != true || tempHideRecoveryPending)
+                    ) {
+                        // This is the source pre-draw edge for both first appearance and temporary
+                        // hide recovery. Acquire before the frame instead of repairing afterwards.
+                        if (concrete != null && type != null &&
+                            materialForType(type).type == MaterialType.SOFT
+                        ) {
+                            if (!SoftGlassController.isManaged(concrete)) {
+                                SoftGlassController.apply(
+                                    concrete,
+                                    materialForType(type).softGlass,
+                                )
+                            }
+                            SoftGlassController.beginRendering(concrete)
+                            clearSoftGlassOuter(contentView, "real-visible")
+                            tempHideRecoveryPending = false
                         }
                     }
                     result

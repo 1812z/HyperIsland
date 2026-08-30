@@ -17,9 +17,9 @@ import java.util.WeakHashMap
 /**
  * Per-View renderer for Xiaomi's native Bionics soft-glass material.
  *
- * Lifecycle is identical to the Gaussian renderer: apply on the currently rendered real/fake
- * View and fully release when that View stops rendering. SystemUI exclusively owns window blur,
- * pass-window blur, FPS and crop state.
+ * Material ownership and rendering ownership are intentionally separate. A View can be prepared
+ * before its first frame, but only a rendering lease is allowed to keep the shared window/pass
+ * sampler alive. Xiaomi's close requests are rewritten at their source while a lease exists.
  */
 internal object SoftGlassController {
     private const val TAG = "HyperIsland[SoftGlass]"
@@ -28,6 +28,9 @@ internal object SoftGlassController {
     private const val SYSTEM_SMALL_BLUR_RADIUS = 50
     private const val SYSTEM_BIG_BLUR_RADIUS = 500
     private val managedViews = Collections.synchronizedSet(
+        Collections.newSetFromMap(WeakHashMap<View, Boolean>()),
+    )
+    private val renderingViews = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<View, Boolean>()),
     )
     private val stockBackgrounds = Collections.synchronizedMap(WeakHashMap<View, Drawable?>())
@@ -42,6 +45,9 @@ internal object SoftGlassController {
     private val hookedStyleClasses = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>()),
     )
+    private val hookedCompatClasses = Collections.synchronizedSet(
+        Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>()),
+    )
     private val hookedWindowClasses = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>()),
     )
@@ -49,7 +55,6 @@ internal object SoftGlassController {
     @Volatile private var systemParams: FloatArray? = null
     @Volatile private var setViewMode: Method? = null
     @Volatile private var clearBlend: Method? = null
-    @Volatile private var setPassBlurFps: Method? = null
     @Volatile private var isBionicsActiveMethod: Method? = null
 
     fun bindRuntime(module: XposedModule, contentClass: Class<*>, compatClass: Class<*>) {
@@ -81,20 +86,15 @@ internal object SoftGlassController {
             "clearMiBackgroundBlendColorCompat",
             View::class.java,
         )
-        setPassBlurFps = findMethod(
-            compatClass,
-            "setMiPassBlurFps",
-            View::class.java,
-            Int::class.javaPrimitiveType!!,
-        )
         if (styleClass != null) hookSystemWriters(module, styleClass)
+        hookCompatWriters(module, compatClass)
         log("$TAG runtime bound params=${systemParams?.size ?: -1}")
     }
 
     /**
-     * A settled SMALL/BIG still needs the root background sampler for native Bionics. SystemUI
-     * normally closes it after EXPAND; keep only updateWindowBlur enabled while a rendered module
-     * SOFT View exists. This does not touch pass-window blur, crop or FPS.
+     * Rewrites Xiaomi's shutdown transaction before it reaches the native sampler. Calling the
+     * original method with true keeps DynamicIslandWindowView's cache, FPS and native flag in one
+     * consistent state; no corrective post-write or private-field mutation is needed.
      */
     fun observeWindowLifecycle(module: XposedModule, windowClass: Class<*>) {
         if (!hookedWindowClasses.add(windowClass)) return
@@ -106,12 +106,12 @@ internal object SoftGlassController {
             module.hook(method).intercept { chain ->
                 val root = chain.thisObject as? View ?: return@intercept chain.proceed()
                 val requested = chain.args.getOrNull(0) as? Boolean ?: false
-                val keepForSoft = !requested && hasVisibleManagedView(root)
+                val keepForSoft = !requested && hasRenderingView(root)
                 val result = if (keepForSoft) chain.proceed(arrayOf(true)) else chain.proceed()
                 appliedWindowRadii.remove(root)
                 if (requested || keepForSoft) {
                     retainedWindowBlurRoots.add(root)
-                    currentVisibleConfig(root)?.let { updateWindowRadius(root, it.blurRadius) }
+                    currentRenderingConfig(root)?.let { updateWindowRadius(root, it.blurRadius) }
                 } else {
                     retainedWindowBlurRoots.remove(root)
                 }
@@ -126,18 +126,11 @@ internal object SoftGlassController {
             module.hook(method).intercept { chain ->
                 val root = chain.thisObject as? View ?: return@intercept chain.proceed()
                 val requested = chain.args.getOrNull(0) as? Boolean ?: false
-                if (!requested && hasManagedView(root)) {
-                    // Keep the same SurfaceTexture attached. Hidden states are released, so its
-                    // crop follows only the currently rendered SOFT View instead of stale BIG.
+                val keepForSoft = !requested && hasRenderingView(root)
+                val result = if (keepForSoft) chain.proceed(arrayOf(true)) else chain.proceed()
+                if (requested || keepForSoft) {
                     retainedPassBlurRoots.add(root)
-                    runCatching { setPassBlurFps?.invoke(null, root, -1) }
-                    return@intercept null
-                }
-                val result = chain.proceed()
-                if (requested && hasManagedView(root)) {
-                    retainedPassBlurRoots.add(root)
-                    runCatching { setPassBlurFps?.invoke(null, root, 60) }
-                } else if (!requested) {
+                } else {
                     retainedPassBlurRoots.remove(root)
                 }
                 result
@@ -155,9 +148,14 @@ internal object SoftGlassController {
             Int::class.javaPrimitiveType!!,
         )?.let { method ->
             module.hook(method).intercept { chain ->
-                val result = chain.proceed()
                 val view = chain.args.getOrNull(0) as? View
                 val type = chain.args.getOrNull(1) as? Int
+                if (view != null && type != 1 && renderingViews.contains(view)) {
+                    // The active slot owns Bionics until its source lifecycle releases the lease.
+                    // Do not let a late stock cleanup remove the material from a submitted frame.
+                    return@intercept null
+                }
+                val result = chain.proceed()
                 if (view != null && type != 1) forget(view)
                 result
             }
@@ -197,7 +195,6 @@ internal object SoftGlassController {
 
         if (managedViews.contains(view) && appliedConfigs[view] == config) {
             if (view.background != null) view.background = null
-            updateWindowRadius(view, config.blurRadius)
             return@runCatching true
         }
         if (!managedViews.contains(view)) {
@@ -211,9 +208,6 @@ internal object SoftGlassController {
         setGlass.invoke(view, customizeParams(baseParams(), config))
         managedViews.add(view)
         appliedConfigs[view] = config
-        ensureWindowBlur(view)
-        ensurePassWindowBlur(view)
-        updateWindowRadius(view, config.blurRadius)
         view.invalidate()
         true
     }.getOrElse { error ->
@@ -227,8 +221,62 @@ internal object SoftGlassController {
         isBionicsActiveMethod?.invoke(null, view.context) as? Boolean
     }.getOrNull() == true
 
-    /** Gaussian-equivalent hidden-state lifecycle: no retained or preheated renderer. */
+    /** Hidden state owns neither a material RenderNode nor a sampler lease. */
     fun suspend(view: View) = release(view, restoreBackground = false)
+
+    /** Acquires the shared sampler before the real/fake slot submits its first visible frame. */
+    fun beginRendering(view: View) {
+        if (!managedViews.contains(view) || !view.isAttachedToWindow) return
+        renderingViews.add(view)
+        ensureWindowBlur(view)
+        ensurePassWindowBlur(view)
+        appliedConfigs[view]?.let { updateWindowRadius(view, it.blurRadius) }
+    }
+
+    /** Temporarily removes only the sampler lease, retaining the prepared View material. */
+    fun pauseRendering(view: View, closeSampling: Boolean = true) {
+        if (!renderingViews.remove(view)) return
+        val root = findWindowView(view) ?: return
+        if (!hasRenderingView(root)) {
+            restoreWindowRadius(root)
+            if (closeSampling) {
+                closeRetainedPassBlur(root)
+                closeRetainedWindowBlur(root)
+            }
+        }
+    }
+
+    /** Prevents Xiaomi's per-View blur-mode cleanup from racing an active material lease. */
+    private fun hookCompatWriters(module: XposedModule, compatClass: Class<*>) {
+        if (!hookedCompatClasses.add(compatClass)) return
+        findMethod(
+            compatClass,
+            "setMiViewBlurModeCompat",
+            View::class.java,
+            Int::class.javaPrimitiveType!!,
+        )?.let { method ->
+            module.hook(method).intercept { chain ->
+                val view = chain.args.getOrNull(0) as? View
+                val mode = chain.args.getOrNull(1) as? Int
+                if (view != null && mode != 1 && renderingViews.contains(view)) {
+                    return@intercept chain.proceed(arrayOf(view, 1))
+                }
+                chain.proceed()
+            }
+        }
+    }
+
+    /** Temporary-hide is a window event, so pause every lease before Xiaomi requests shutdown. */
+    fun pauseWindow(root: View) {
+        val views = synchronized(renderingViews) { renderingViews.toList() }
+            .filter { findWindowView(it) === root }
+        views.forEach { renderingViews.remove(it) }
+        if (views.isNotEmpty()) {
+            restoreWindowRadius(root)
+            closeRetainedPassBlur(root)
+            closeRetainedWindowBlur(root)
+        }
+    }
 
     fun release(
         view: View,
@@ -237,11 +285,12 @@ internal object SoftGlassController {
     ) {
         if (!managedViews.remove(view)) return
         val root = findWindowView(view)
+        renderingViews.remove(view)
         val stock = stockBackgrounds.remove(view)
         appliedConfigs.remove(view)
         clearMaterial(view)
         if (restoreBackground && view.background == null) view.background = stock
-        if (root != null && !hasManagedView(root)) {
+        if (root != null && !hasRenderingView(root)) {
             restoreWindowRadius(root)
             if (releaseSampling) {
                 closeRetainedPassBlur(root)
@@ -256,9 +305,16 @@ internal object SoftGlassController {
     }
 
     private fun forget(view: View) {
+        val root = findWindowView(view)
         managedViews.remove(view)
+        renderingViews.remove(view)
         stockBackgrounds.remove(view)
         appliedConfigs.remove(view)
+        if (root != null && !hasRenderingView(root)) {
+            restoreWindowRadius(root)
+            closeRetainedPassBlur(root)
+            closeRetainedWindowBlur(root)
+        }
     }
 
     private fun clearMaterial(view: View) {
@@ -305,26 +361,15 @@ internal object SoftGlassController {
         }
     }
 
-    private fun hasManagedView(root: View): Boolean {
-        val views = synchronized(managedViews) { managedViews.toList() }
+    private fun hasRenderingView(root: View): Boolean {
+        val views = synchronized(renderingViews) { renderingViews.toList() }
         return views.any { findWindowView(it) === root }
     }
 
-    private fun hasVisibleManagedView(root: View): Boolean {
-        val views = synchronized(managedViews) { managedViews.toList() }
-        return views.any { view ->
-            view.isAttachedToWindow && view.isShown && view.alpha > 0.01f &&
-                findWindowView(view) === root
-        }
-    }
-
-    private fun currentVisibleConfig(root: View): SoftGlassConfig? {
-        val views = synchronized(managedViews) { managedViews.toList() }
+    private fun currentRenderingConfig(root: View): SoftGlassConfig? {
+        val views = synchronized(renderingViews) { renderingViews.toList() }
         return views.asSequence()
-            .filter { view ->
-                view.isAttachedToWindow && view.isShown && view.alpha > 0.01f &&
-                    findWindowView(view) === root
-            }
+            .filter { findWindowView(it) === root }
             .maxByOrNull(View::getAlpha)
             ?.let(appliedConfigs::get)
     }

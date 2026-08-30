@@ -782,13 +782,19 @@ Mini Window 手势
 22. `DynamicIslandWindowView.updateWindowBlur()` 在 Bionics 模式使用 `setMiGlassBlurRadius(50, 500)`；该半径不属于 42 项 shader 参数。自定义值必须保持 1:10 双级比例，并在最后一个 SOFT View 释放后恢复 `50/500`。
 23. `-50..50` 柔光配置是百分比微调：非零 token 通道按 `/100` 缩放，原值为零的通道才直接写入配置值。
 24. `MaterialConfig.toBlurConfig()` 对 SOFT 返回 disabled；真实 SMALL/BIG 刷新不得用 `BlurConfig.isActive` 作门禁，否则只会写入 fake 动画层，稳定态会完全透明。
-25. 当前 OS4 dex 中动画类的二进制包名包含 `anim.p110ui.animator`；jadx 声明可能显示为 `anim.ui.animator`，兼容 Hook 必须同时探测两种名称。
+25. OS4 dex 中动画类的二进制包名可能包含 `anim.p110ui.animator` 或 `anim.p120ui.animator`；jadx 声明可能统一显示为 `anim.ui.animator`，兼容 Hook 必须同时探测三种名称。
 26. `dynamic_island_child_view.xml` 在 `container` 上预置了 `dynamic_island_background`。恢复已有岛时可能没有首个 `IslandPropertyUpdater` 帧，因此 OS4 必须在内容膨胀/首个 `updateDarkLightMode()` 状态事务中清理该初始共享黑底。
 27. `DynamicIslandWindowView.updateExpandedViewMaterial()` 会在 owner 仍为 BIG/Hidden 时刷新 `fake_expanded_view`；该目标必须按自身槽位识别为 EXPAND，不能回退 owner 状态，否则晚到的刷新可能重新安装系统 `EXPANDED_GLASS_TOKEN`。
-28. `finalizeAnimFinished()` 按系统状态决定 pass-window blur；模块不得校准或保活该采样器，否则会破坏下一次系统 crop 更新。
+28. `finalizeAnimFinished()` 会按系统状态请求关闭 pass-window blur；模块不得事后校准或重建采样器。若仍有明确的 real/fake SOFT 渲染租约，只能在 `updatePassWindowBlur(false)` 源调用中把参数替换为 `true`，保证系统缓存、FPS 与 native flag 同步；无租约时必须放行关闭。
 29. `EXPAND state=BIG` 不代表共享外层一定应保留：若该 ContentView 的当前 BIG 和目标 EXPAND 都由 SOFT 接管，外层 drawable 必须在 EXPAND 写入的同一回调中清空；等待后续 BIG 回调会在同应用岛替换/复用时留下永久白色模糊层。
 30. SOFT 在稳定 SMALL/BIG 保留同一个 pass SurfaceTexture，但不读写 `lastPassWindowBlurEnabled`；隐藏材质必须释放，避免旧 crop。
 31. fake SMALL/BIG/EXPAND 是长期复用的附着 View，但模块只允许当前实际绘制槽位持有 Bionics 材质；隐藏槽位与 Gaussian 一样 release。
+32. pass-window 保活必须按包含父层 alpha/visibility 的实际绘制状态判断，不能按任意 managed View 判断；保活中的采样器必须保持 60 FPS，不能使用系统关闭态的 `-1`。
+33. `preparingTypeHolder=EXPAND` 标记的是 `updateExpandedView()` 在状态切换前发出的权威目标初始化，不能按 `state=BIG` 当作 stale 丢弃；柔光材质必须在通知内容替换前完成写入。
+34. 临时隐藏必须在 `onIslandTempHide(true)` 源事件暂停窗口全部 SOFT 租约并放行系统关闭；恢复时在真实 View 首次重新可见的 `onPreDraw` 边缘重新获取租约并清理系统写回的外层黑底。
+35. Bionics 材质所有权与采样器渲染租约必须分离：预备 View 可以先写材质，但只有实际 real/fake 槽能持有租约。仍有租约时在 `updateWindowBlur(false)` / `updatePassWindowBlur(false)` 源头把参数替换为 `true`；最后一个租约释放后完整放行系统关闭，禁止永久常驻采样器。
+36. fake 动画目标以 `FakeViewAnimator.fakeViewToSmallIsland/BigIsland/Expanded` 为权威来源；三种长期复用子槽中只允许该目标槽持有材质和采样租约，不能按子 View 的 `VISIBLE` 属性同时激活三槽。
+37. active SOFT 租约还必须保护对应 View 的 `setMiViewMaterialType(..., 0)` 与 `setMiViewBlurModeCompat(..., 0)` 源写入；租约释放后不拦截，确保默认材质、隐藏态和删除态继续执行系统清理。
 
 ## 16. 信息来源和可信度
 
