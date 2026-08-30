@@ -301,6 +301,11 @@
     <string name="ext_screen_recorder_island_summary">Substituir a janela flutuante do gravador oficial pelo Super Island.</string>
     <string name="ext_selected_devices">%1$d dispositivo(s) selecionado(s)</string>
     <string name="ext_settings_entry">Entrada nas Configurações do Sistema</string>
+    <string name="ext_settings_entry_position">Posição do atalho</string>
+<string name="ext_settings_entry_position_bottom">Inferior</string>
+<string name="ext_settings_entry_position_middle">Centro</string>
+<string name="ext_settings_entry_position_top">Superior</string>
+
     <string name="ext_settings_entry_summary">Mostra a entrada do HyperIsland na página inicial das configurações do sistema</string>
     <string name="ext_show_device_name">Mostrar nome do dispositivo</string>
     <string name="ext_show_device_name_summary">Ao conectar, mostra o nome do dispositivo à direita primeiro e, em seguida, o status da conexão</string>
