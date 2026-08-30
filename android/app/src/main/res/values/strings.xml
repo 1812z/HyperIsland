@@ -454,7 +454,7 @@
     <string name="marquee">消息滚动</string>
     <string name="marquee_summary">超级岛消息过长是否滚动显示</string>
     <string name="smooth_island">平滑超级岛</string>
-    <string name="smooth_island_summary">使用连续曲率胶囊优化超级岛轮廓，仅支持 OS3</string>
+    <string name="smooth_island_summary">使用可调连续曲率胶囊优化超级岛轮廓，支持 OS3/OS4</string>
     <string name="charge_island">充电超级岛</string>
     <string name="bluetooth_island">蓝牙超级岛</string>
     <string name="face_unlock_island">解锁岛</string>

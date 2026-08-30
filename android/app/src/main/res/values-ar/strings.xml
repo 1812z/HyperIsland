@@ -444,7 +444,7 @@
     <string name="marquee">تمرير النص في الأيلاند</string>
     <string name="marquee_summary">هل يتم تمرير الرسايل الطويلة على الأيلاند</string>
     <string name="smooth_island">أيلاند ناعم</string>
-    <string name="smooth_island_summary">حسّن حواف الأيلاند باستخدام كبسولات انحناء مستمر، مخصوص لـ OS3</string>
+    <string name="smooth_island_summary">حسّن حواف الأيلاند بانحناء مستمر قابل للتعديل على OS3 وOS4</string>
     <string name="charge_island">أيلاند الشحن</string>
     <string name="bluetooth_island">أيلاند البلوتوث</string>
     <string name="face_unlock_island">أيلاند فتح القفل</string>

@@ -45,8 +45,13 @@ object SmoothIslandHook : BaseHook() {
         "miui.systemui.dynamicisland.DynamicIslandBackgroundView"
 
     private val targetProviderClasses = listOf(
+        // HyperOS 3 SystemUI / media island.
         "com.android.systemui.statusbar.notification.DynamicIslandWindowAnimController\$updateFakeViewOutline\$1",
         "com.android.systemui.statusbar.notification.mediaisland.MiuiIslandMediaViewHolder\$Companion\$create\$1\$1",
+        // HyperOS 4 dynamic-island plugin. The main container provider is R8-inlined,
+        // so it is still covered by the scoped Outline hook below.
+        "miui.systemui.dynamicisland.window.content.DynamicIslandContentFakeView\$updateExpandViewBlur\$1\$1",
+        "miui.systemui.dynamicisland.window.content.DynamicIslandContentView\$updateExpandViewBlur\$1\$1",
     )
     private val dynamicIslandCallers = listOf("dynamicisland", "mediaisland")
     private val excludedOutlineCallers = listOf(
@@ -63,29 +68,43 @@ object SmoothIslandHook : BaseHook() {
     }
     private val capturedOutlineRects = java.util.Collections.synchronizedMap(WeakHashMap<View, Rect>())
     private val activeOutlineTarget = ThreadLocal<View?>()
+    private val installingOs4OutlineProvider = ThreadLocal<Boolean>()
     private val fillPaint = ThreadLocal.withInitial {
         Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
     }
     private val strokePaint = ThreadLocal.withInitial {
         Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
     }
-    private val hookedProviderClassLoaders = mutableSetOf<Int>()
+    private val hookedProviderClasses = java.util.Collections.synchronizedSet(
+        java.util.Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>()),
+    )
+    private val os4OfficialSmoothDisabledViews = java.util.Collections.synchronizedSet(
+        java.util.Collections.newSetFromMap(WeakHashMap<View, Boolean>()),
+    )
 
     @Volatile private var enabled = false
     @Volatile private var smoothing = DEFAULT_SMOOTHING
     @Volatile private var outlineHooked = false
     @Volatile private var outlineLifecycleHooked = false
     @Volatile private var pluginHooksInstalled = false
+    @Volatile private var os4OfficialSmoothMode = false
     @Volatile private var drawFallbackLogged = false
     @Volatile private var getDrawableMethod: java.lang.reflect.Method? = null
     @Volatile private var getStokeWidthMethod: java.lang.reflect.Method? = null
+    @Volatile private var getActualLeftMethod: java.lang.reflect.Method? = null
+    @Volatile private var getActualTopMethod: java.lang.reflect.Method? = null
+    @Volatile private var getActualWidthMethod: java.lang.reflect.Method? = null
+    @Volatile private var getActualHeightMethod: java.lang.reflect.Method? = null
     @Volatile private var drawableStrokePaintField: java.lang.reflect.Field? = null
+    @Volatile private var setViewSmoothCornerEnabledMethod: java.lang.reflect.Method? = null
 
     override fun getTag() = TAG
 
     override fun onConfigChanged() {
+        val wasEnabled = enabled
         loadConfig()
         synchronized(pathCache) { pathCache.clear() }
+        if (wasEnabled && !enabled) restoreOfficialSmoothCorners()
     }
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
@@ -134,6 +153,7 @@ object SmoothIslandHook : BaseHook() {
                     clampedRadius >= (height / 2f) - CAPSULE_RADIUS_TOLERANCE &&
                     dynamicIslandCall
                 ) {
+                    if (os4OfficialSmoothMode) disableOfficialSmoothCorner(target)
                     (chain.thisObject as? Outline)?.setPath(
                         createSmoothPath(
                             left.toFloat(),
@@ -170,7 +190,21 @@ object SmoothIslandHook : BaseHook() {
                 ViewOutlineProvider::class.java,
             )
             module.hook(setOutlineProvider).intercept { chain ->
-                withActiveOutlineTarget(chain.thisObject as? View) { chain.proceed() }
+                val view = chain.thisObject as? View
+                val provider = chain.args.getOrNull(0) as? ViewOutlineProvider
+                val result = withActiveOutlineTarget(view) { chain.proceed() }
+                if (
+                    enabled &&
+                    os4OfficialSmoothMode &&
+                    installingOs4OutlineProvider.get() != true &&
+                    view != null &&
+                    provider != null &&
+                    provider !is Os4SmoothOutlineProvider &&
+                    isDynamicIslandOutlineCall()
+                ) {
+                    installOs4OutlineProvider(view, provider)
+                }
+                result
             }
         } catch (_: Throwable) {
         }
@@ -188,16 +222,16 @@ object SmoothIslandHook : BaseHook() {
     }
 
     private fun hookTargetOutlineProviders(module: XposedModule, classLoader: ClassLoader) {
-        val clId = System.identityHashCode(classLoader)
-        if (!hookedProviderClassLoaders.add(clId)) return
         targetProviderClasses.forEach { className ->
             try {
                 val clazz = Class.forName(className, false, classLoader)
+                if (!hookedProviderClasses.add(clazz)) return@forEach
                 val method = clazz.getDeclaredMethod("getOutline", View::class.java, Outline::class.java)
                 module.hook(method).intercept { chain ->
-                    withActiveOutlineTarget(chain.args.getOrNull(0) as? View) {
+                    val target = chain.args.getOrNull(0) as? View
+                    withActiveOutlineTarget(target) {
                         val result = chain.proceed()
-                        if (enabled) overrideOutlineIfCapsule(chain.args.getOrNull(1) as? Outline)
+                        if (enabled) overrideOutlineIfCapsule(target, chain.args.getOrNull(1) as? Outline)
                         result
                     }
                 }
@@ -211,8 +245,13 @@ object SmoothIslandHook : BaseHook() {
         if (pluginHooksInstalled) return
         try {
             val backgroundViewClass = Class.forName(BACKGROUND_VIEW_CLASS, false, classLoader)
+            os4OfficialSmoothMode = detectOs4OfficialSmooth(classLoader)
             getDrawableMethod = backgroundViewClass.getMethod("getDrawable")
             getStokeWidthMethod = backgroundViewClass.getMethod("getStokeWidth")
+            getActualLeftMethod = backgroundViewClass.getMethod("getActualLeft")
+            getActualTopMethod = backgroundViewClass.getMethod("getActualTop")
+            getActualWidthMethod = backgroundViewClass.getMethod("getActualWidth")
+            getActualHeightMethod = backgroundViewClass.getMethod("getActualHeight")
             drawableStrokePaintField = GradientDrawable::class.java.getDeclaredField("mStrokePaint").apply {
                 isAccessible = true
             }
@@ -224,17 +263,18 @@ object SmoothIslandHook : BaseHook() {
                 if (view != null && canvas != null && drawSmoothIsland(view, canvas)) null else chain.proceed()
             }
             pluginHooksInstalled = true
-            log(module, "hooked plugin smooth island")
+            log(module, "hooked plugin smooth island; os4OfficialSmooth=$os4OfficialSmoothMode")
         } catch (_: Throwable) {
         }
     }
 
-    private fun overrideOutlineIfCapsule(outline: Outline?) {
-        if (outline == null) return
+    private fun overrideOutlineIfCapsule(target: View?, outline: Outline?): Boolean {
+        if (outline == null) return false
         val bounds = Rect()
         if (outline.getRect(bounds) && bounds.height() > 10) {
             val height = bounds.height()
             if (abs(outline.radius - (height / 2f)) <= 1.5f) {
+                if (os4OfficialSmoothMode) disableOfficialSmoothCorner(target)
                 outline.setPath(
                     createSmoothPath(
                         bounds.left.toFloat(),
@@ -244,7 +284,79 @@ object SmoothIslandHook : BaseHook() {
                         min(outline.radius, height / 2f),
                     ),
                 )
+                return true
             }
+        }
+        return false
+    }
+
+    /**
+     * HyperOS 4 enables framework smooth corners on the Bionics material View. Its
+     * curve is fixed in the renderer and wins over a custom round-rect Outline.
+     * Wrap SystemUI's provider so its geometry/RenderNode side effects stay intact,
+     * then disable only that View's official smooth flag and replace capsule outlines.
+     */
+    private class Os4SmoothOutlineProvider(
+        private val delegate: ViewOutlineProvider,
+    ) : ViewOutlineProvider() {
+        override fun getOutline(view: View, outline: Outline) {
+            delegate.getOutline(view, outline)
+            if (enabled) overrideOutlineIfCapsule(view, outline)
+        }
+    }
+
+    private fun installOs4OutlineProvider(view: View, provider: ViewOutlineProvider) {
+        installingOs4OutlineProvider.set(true)
+        try {
+            view.outlineProvider = Os4SmoothOutlineProvider(provider)
+            view.invalidateOutline()
+        } finally {
+            installingOs4OutlineProvider.remove()
+        }
+    }
+
+    private fun disableOfficialSmoothCorner(view: View?) {
+        if (view == null) return
+        if (!os4OfficialSmoothDisabledViews.add(view)) return
+        try {
+            setViewSmoothCornerEnabledMethod?.invoke(view, false)
+        } catch (_: Throwable) {
+            os4OfficialSmoothDisabledViews.remove(view)
+        }
+    }
+
+    private fun restoreOfficialSmoothCorners() {
+        val views = synchronized(os4OfficialSmoothDisabledViews) {
+            os4OfficialSmoothDisabledViews.toList().also { os4OfficialSmoothDisabledViews.clear() }
+        }
+        views.forEach { view ->
+            try {
+                setViewSmoothCornerEnabledMethod?.invoke(view, true)
+                view.invalidateOutline()
+            } catch (_: Throwable) {
+            }
+        }
+    }
+
+    private fun detectOs4OfficialSmooth(classLoader: ClassLoader): Boolean {
+        return try {
+            val styleClass = Class.forName("miui.systemui.util.MiBackgroundStyle", false, classLoader)
+            styleClass.getDeclaredMethod("isBionicsActive", android.content.Context::class.java)
+            val tokenClass = Class.forName("miui.systemui.util.BionicsToken", false, classLoader)
+            tokenClass.getDeclaredMethod("getToBionicsParams")
+            Class.forName(
+                "miui.systemui.dynamicisland.window.content.DynamicIslandBaseContentView",
+                false,
+                classLoader,
+            ).getDeclaredField("EXPANDED_GLASS_TOKEN")
+            setViewSmoothCornerEnabledMethod = View::class.java.getDeclaredMethod(
+                "setSmoothCornerEnabled",
+                Boolean::class.javaPrimitiveType!!,
+            ).apply { isAccessible = true }
+            true
+        } catch (_: Throwable) {
+            setViewSmoothCornerEnabledMethod = null
+            false
         }
     }
 
@@ -352,6 +464,25 @@ object SmoothIslandHook : BaseHook() {
     }
 
     private fun liveIslandRect(view: Any): Rect? {
+        // OS3 and OS4 both update these four values from the active container outline.
+        // Prefer them because OS4 inlines its main ViewOutlineProvider and therefore has
+        // no stable provider class name to hook. Despite the names, actualWidth/Height
+        // are the right/bottom coordinates used directly by SystemUI's onDraw().
+        if (os4OfficialSmoothMode) try {
+            val left = getActualLeftMethod?.invoke(view) as? Int
+            val top = getActualTopMethod?.invoke(view) as? Int
+            val right = getActualWidthMethod?.invoke(view) as? Int
+            val bottom = getActualHeightMethod?.invoke(view) as? Int
+            if (left != null && top != null && right != null && bottom != null &&
+                right > left && bottom > top
+            ) {
+                return Rect(left, top, right, bottom)
+            }
+        } catch (_: Throwable) {
+        }
+
+        // HyperOS 3 and early plugin builds may update their outline before actual*
+        // becomes valid. Keep the captured child-outline path as a compatibility fallback.
         val background = view as? ViewGroup ?: return null
         for (index in 0 until background.childCount) {
             val child = background.getChildAt(index)

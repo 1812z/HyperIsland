@@ -444,7 +444,7 @@
     <string name="marquee">Text Scrolling Island</string>
     <string name="marquee_summary">Whether to scroll long messages on Island</string>
     <string name="smooth_island">Smooth Island</string>
-    <string name="smooth_island_summary">Optimize Island contours using continuous curvature capsules, OS3 only</string>
+    <string name="smooth_island_summary">Optimize Island contours with adjustable continuous-curvature capsules on OS3 and OS4</string>
     <string name="charge_island">Charging Island</string>
     <string name="bluetooth_island">Bluetooth Island</string>
     <string name="face_unlock_island">Unlock Island</string>

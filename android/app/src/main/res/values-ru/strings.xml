@@ -444,7 +444,7 @@
     <string name="marquee">Бегущая строка на Острове</string>
     <string name="marquee_summary">Прокручивать ли длинные сообщения на Острове</string>
     <string name="smooth_island">Плавный Остров</string>
-    <string name="smooth_island_summary">Оптимизировать контуры острова с помощью капсулы непрерывной кривизны; только OS3</string>
+    <string name="smooth_island_summary">Настраиваемая непрерывная кривизна контуров острова для OS3 и OS4</string>
     <string name="charge_island">HyperIsland зарядки</string>
     <string name="bluetooth_island">Bluetooth HyperIsland</string>
     <string name="face_unlock_island">Остров разблокировки</string>

@@ -444,7 +444,7 @@
     <string name="marquee">Ada Metnini Kaydır</string>
     <string name="marquee_summary">Bu ayar açık olduğunda uzun metin Ada üzerinde kayarak gösterilir.</string>
     <string name="smooth_island">Pürüzsüz Ada</string>
-    <string name="smooth_island_summary">Ada\'nın dış hatlarını sürekli eğrilikli kapsülle iyileştirir; yalnızca OS3</string>
+    <string name="smooth_island_summary">Ada hatlarını OS3 ve OS4\'te ayarlanabilir sürekli eğrilikle iyileştirir</string>
     <string name="charge_island">Şarj Adası</string>
     <string name="bluetooth_island">Bluetooth Adası</string>
     <string name="face_unlock_island">Kilit Açma Adası</string>

@@ -444,7 +444,7 @@
     <string name="marquee">Island のテキストをスクロール</string>
     <string name="marquee_summary">Island で長いメッセージをスクロールします</string>
     <string name="smooth_island">スムーズ Island</string>
-    <string name="smooth_island_summary">連続曲率カプセルでアイランドの輪郭を最適化します（OS3のみ）</string>
+    <string name="smooth_island_summary">調整可能な連続曲率カプセルでアイランドの輪郭を最適化します（OS3／OS4対応）</string>
     <string name="charge_island">充電HyperIsland</string>
     <string name="bluetooth_island">Bluetooth HyperIsland</string>
     <string name="face_unlock_island">ロック解除アイランド</string>
