@@ -4,6 +4,8 @@
     <string name="screen_recorder_resolution">الدقة</string>
     <string name="screen_recorder_resolution_system">استخدام إعداد النظام</string>
     <string name="screen_recorder_sound_source">مصدر الصوت</string>
+    <string name="screen_recorder_motion_photo">صورة متحركة</string>
+    <string name="screen_recorder_motion_photo_summary">الحفظ كصورة متحركة بعد انتهاء التسجيل</string>
     <string name="screen_recorder_sound_none">بدون صوت</string>
     <string name="screen_recorder_sound_microphone">الميكروفون</string>
     <string name="screen_recorder_sound_device">صوت الجهاز</string>

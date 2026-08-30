@@ -28,6 +28,7 @@ import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.FileDescriptor
 import java.nio.ByteBuffer
 import java.lang.ref.WeakReference
 import java.lang.reflect.Method
@@ -66,6 +67,7 @@ object ScreenRecorderHook : BaseHook() {
         if (param.packageName != ScreenRecorderContract.TARGET_PACKAGE) return
         log(module, "init: screen recorder hook loaded")
         hookVideoEncoderSyncFrame(module)
+        hookMediaMuxerOutput(module)
         hookMediaMuxerLifecycle(module)
         hookOverlayWindowCreation(module)
         hookApplicationAttach(module, param.defaultClassLoader)
@@ -235,7 +237,7 @@ object ScreenRecorderHook : BaseHook() {
                     recorderDialogVisible = false
                 },
                 onOpenSettings = {},
-                onStart = { _, _ -> },
+                onStart = { _, _, _ -> },
                 onPause = {
                     ScreenRecorderControlClient.pause()
                 },
@@ -288,7 +290,7 @@ object ScreenRecorderHook : BaseHook() {
                 recorderDialogVisible = false
                 openRecorderSettings(context, settingsActivity)
             },
-            onStart = { resolution, sound ->
+            onStart = { resolution, sound, motionPhoto ->
                 recorderDialogVisible = false
                 recorderPreferences(context).edit {
                     if (resolution.isNotBlank()) {
@@ -296,6 +298,7 @@ object ScreenRecorderHook : BaseHook() {
                     }
                     putString(ScreenRecorderContract.PREF_SOUND, sound.toString())
                 }
+                MotionPhotoSession.arm(context, motionPhoto)
                 ScreenRecorderControlClient.reportStarting()
                 requestRecorderStart(context)
             },
@@ -431,6 +434,11 @@ object ScreenRecorderHook : BaseHook() {
             dialogTitle = string(R.string.screen_recorder_dialog_title, "屏幕录制"),
             resolution = string(R.string.screen_recorder_resolution, "分辨率"),
             soundSource = string(R.string.screen_recorder_sound_source, "声音来源"),
+            motionPhoto = string(R.string.screen_recorder_motion_photo, "动态照片"),
+            motionPhotoSummary = string(
+                R.string.screen_recorder_motion_photo_summary,
+                "录制完成后保存为动态照片",
+            ),
             soundNone = string(R.string.screen_recorder_sound_none, "无声音"),
             soundMicrophone = string(R.string.screen_recorder_sound_microphone, "麦克风"),
             soundDevice = string(R.string.screen_recorder_sound_device, "设备声音"),
@@ -741,6 +749,55 @@ object ScreenRecorderHook : BaseHook() {
         })
     }
 
+    private fun hookMediaMuxerOutput(module: XposedModule) {
+        runCatching {
+            MediaMuxer::class.java.getDeclaredConstructor(
+                String::class.java,
+                Integer.TYPE,
+            )
+        }.getOrNull()?.let { constructor ->
+            module.hook(constructor).intercept { chain ->
+                val result = chain.proceed()
+                val muxer = chain.thisObject as? MediaMuxer
+                if (muxer != null) {
+                    if (
+                        MotionPhotoSession.onMuxerCreated(
+                            muxer,
+                            chain.args.firstOrNull() as? String,
+                        ) == false
+                    ) {
+                        logWarn(module, "motion photo output path unavailable")
+                    }
+                }
+                result
+            }
+        }
+        runCatching {
+            MediaMuxer::class.java.getDeclaredConstructor(
+                FileDescriptor::class.java,
+                Integer.TYPE,
+            )
+        }.getOrNull()?.let { constructor ->
+            module.hook(constructor).intercept { chain ->
+                val result = chain.proceed()
+                val muxer = chain.thisObject as? MediaMuxer
+                val descriptor = chain.args.firstOrNull() as? FileDescriptor
+                if (muxer != null && descriptor != null) {
+                    if (
+                        MotionPhotoSession.onMuxerCreated(
+                            muxer,
+                            MotionPhotoSession.pathFrom(descriptor),
+                            descriptor,
+                        ) == false
+                    ) {
+                        logWarn(module, "motion photo file descriptor path unavailable")
+                    }
+                }
+                result
+            }
+        }
+    }
+
     private fun hookMediaMuxerLifecycle(module: XposedModule) {
         val addTrack = MediaMuxer::class.java.getDeclaredMethod(
             "addTrack",
@@ -761,6 +818,10 @@ object ScreenRecorderHook : BaseHook() {
             val result = chain.proceed()
             val muxer = chain.thisObject as? MediaMuxer ?: return@intercept result
             MediaMuxerPauseGate.onStarted(muxer)
+            MotionPhotoSession.onMuxerStarted(muxer) { context ->
+                requestRecorderStop(context)
+                log(module, "motion photo: 30-second recording limit reached")
+            }
             ScreenRecorderControlClient.reportStarted()
             log(module, "state: MediaMuxer started, recording confirmed")
             result
@@ -773,6 +834,23 @@ object ScreenRecorderHook : BaseHook() {
                 try {
                     chain.proceed()
                 } finally {
+                    if (methodName == "release" && muxer != null) {
+                        MotionPhotoSession.onMuxerReleased(muxer) { conversion ->
+                            when (conversion) {
+                                is MotionPhotoSession.Result.Success -> {
+                                    log(
+                                        module,
+                                        "motion photo saved: ${conversion.path}" +
+                                            if (conversion.sourceDeleted) "" else " (MP4 retained)",
+                                    )
+                                }
+                                is MotionPhotoSession.Result.Failed -> logError(
+                                    module,
+                                    "motion photo failed, MP4 retained: ${conversion.error.message}",
+                                )
+                            }
+                        }
+                    }
                     if (muxer != null && MediaMuxerPauseGate.onStopped(muxer)) {
                         ScreenRecorderControlClient.reportIdle()
                         log(module, "state: MediaMuxer $methodName, recording ended")

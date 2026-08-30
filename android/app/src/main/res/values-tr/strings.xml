@@ -4,6 +4,8 @@
     <string name="screen_recorder_resolution">Çözünürlük</string>
     <string name="screen_recorder_resolution_system">Sistem ayarını kullan</string>
     <string name="screen_recorder_sound_source">Ses kaynağı</string>
+    <string name="screen_recorder_motion_photo">Hareketli fotoğraf</string>
+    <string name="screen_recorder_motion_photo_summary">Kayıt tamamlandığında hareketli fotoğraf olarak kaydet</string>
     <string name="screen_recorder_sound_none">Ses yok</string>
     <string name="screen_recorder_sound_microphone">Mikrofon</string>
     <string name="screen_recorder_sound_device">Cihaz sesi</string>

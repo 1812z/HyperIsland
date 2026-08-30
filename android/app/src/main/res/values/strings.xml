@@ -4,6 +4,8 @@
     <string name="screen_recorder_resolution">分辨率</string>
     <string name="screen_recorder_resolution_system">跟随系统设置</string>
     <string name="screen_recorder_sound_source">声音来源</string>
+    <string name="screen_recorder_motion_photo">动态照片</string>
+    <string name="screen_recorder_motion_photo_summary">录制完成后保存为动态照片</string>
     <string name="screen_recorder_sound_none">无声音</string>
     <string name="screen_recorder_sound_microphone">麦克风</string>
     <string name="screen_recorder_sound_device">设备声音</string>
@@ -37,7 +39,7 @@
     <string name="ext_screen_recorder_icon_screen_recorder">屏幕录制</string>
     <string name="ext_screen_recorder_compatibility_title">兼容性提醒</string>
     <string name="ext_screen_recorder_compatibility_summary">该功能可能仅支持部分版本的屏幕录制。点击下载 4.16.2.6.1 版本</string>
-    <string name="module_description">澎湃OS3更多超级岛</string>
+    <string name="module_description">澎湃OS超级岛增强</string>
 
     <!-- 欢迎超级岛 -->
     <string name="island_welcome_title">欢迎使用</string>

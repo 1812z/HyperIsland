@@ -76,6 +76,7 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
+import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.ThemeController
@@ -104,6 +105,8 @@ internal data class ScreenRecorderUiText(
     val dialogTitle: String,
     val resolution: String,
     val soundSource: String,
+    val motionPhoto: String,
+    val motionPhotoSummary: String,
     val soundNone: String,
     val soundMicrophone: String,
     val soundDevice: String,
@@ -146,7 +149,7 @@ internal object ScreenRecorderDialogInjector {
         recordingSnapshot: RecorderSnapshot?,
         onCancel: () -> Unit,
         onOpenSettings: () -> Unit,
-        onStart: (resolution: String, sound: Int) -> Unit,
+        onStart: (resolution: String, sound: Int, motionPhoto: Boolean) -> Unit,
         onPause: () -> Unit,
         onResume: () -> Unit,
         onStop: () -> Unit,
@@ -195,9 +198,9 @@ internal object ScreenRecorderDialogInjector {
                             dismissHost()
                             onOpenSettings()
                         },
-                        onStart = { resolution, sound ->
+                        onStart = { resolution, sound, motionPhoto ->
                             dismissHost()
-                            onStart(resolution, sound)
+                            onStart(resolution, sound, motionPhoto)
                         },
                         onPause = onPause,
                         onResume = onResume,
@@ -333,7 +336,7 @@ private fun RecorderWindowDialog(
     recordingSnapshot: RecorderSnapshot?,
     onCancel: () -> Unit,
     onOpenSettings: () -> Unit,
-    onStart: (resolution: String, sound: Int) -> Unit,
+    onStart: (resolution: String, sound: Int, motionPhoto: Boolean) -> Unit,
     onPause: () -> Unit,
     onResume: () -> Unit,
     onStop: () -> Unit,
@@ -352,6 +355,7 @@ private fun RecorderWindowDialog(
     var soundIndex by remember(safeSounds, initialSound) {
         mutableIntStateOf(safeSounds.indexOfFirst { it.second == initialSound }.coerceAtLeast(0))
     }
+    var motionPhoto by remember { mutableStateOf(false) }
     val panelProgress = remember { Animatable(1f) }
     val animationScope = rememberCoroutineScope()
     var panelHeight by remember { mutableIntStateOf(0) }
@@ -516,6 +520,13 @@ private fun RecorderWindowDialog(
                             }
                         } else {
                             Column {
+                                SwitchPreference(
+                                    title = text.motionPhoto,
+                                    summary = text.motionPhotoSummary,
+                                    checked = motionPhoto,
+                                    insideMargin = itemInsideMargin,
+                                    onCheckedChange = { motionPhoto = it },
+                                )
                                 OverlayDropdownPreference(
                                     title = text.resolution,
                                     summary = safeResolutions[resolutionIndex].first,
@@ -558,6 +569,7 @@ private fun RecorderWindowDialog(
                                             onStart(
                                                 safeResolutions[resolutionIndex].second,
                                                 safeSounds[soundIndex].second,
+                                                motionPhoto,
                                             )
                                         }
                                     },

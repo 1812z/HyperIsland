@@ -4,6 +4,8 @@
     <string name="screen_recorder_resolution">Разрешение</string>
     <string name="screen_recorder_resolution_system">Использовать системную настройку</string>
     <string name="screen_recorder_sound_source">Источник звука</string>
+    <string name="screen_recorder_motion_photo">Живое фото</string>
+    <string name="screen_recorder_motion_photo_summary">Сохранить как живое фото после завершения записи</string>
     <string name="screen_recorder_sound_none">Без звука</string>
     <string name="screen_recorder_sound_microphone">Микрофон</string>
     <string name="screen_recorder_sound_device">Звук устройства</string>

@@ -4,6 +4,8 @@
     <string name="screen_recorder_resolution">Resolution</string>
     <string name="screen_recorder_resolution_system">Use system setting</string>
     <string name="screen_recorder_sound_source">Audio source</string>
+    <string name="screen_recorder_motion_photo">Motion photo</string>
+    <string name="screen_recorder_motion_photo_summary">Save as a motion photo when recording finishes</string>
     <string name="screen_recorder_sound_none">No audio</string>
     <string name="screen_recorder_sound_microphone">Microphone</string>
     <string name="screen_recorder_sound_device">Device audio</string>

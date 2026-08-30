@@ -4,6 +4,8 @@
     <string name="screen_recorder_resolution">解像度</string>
     <string name="screen_recorder_resolution_system">システム設定に従う</string>
     <string name="screen_recorder_sound_source">音声ソース</string>
+    <string name="screen_recorder_motion_photo">モーションフォト</string>
+    <string name="screen_recorder_motion_photo_summary">録画完了後にモーションフォトとして保存</string>
     <string name="screen_recorder_sound_none">音声なし</string>
     <string name="screen_recorder_sound_microphone">マイク</string>
     <string name="screen_recorder_sound_device">デバイス音声</string>
