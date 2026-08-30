@@ -86,7 +86,9 @@ object SettingsHomeEntryHook : BaseHook() {
         setIntField(header, "iconRes", ICON_FAKE_RES_ID)
         setObjectField(header, "intent", createLaunchIntent())
 
-        headers.add(findInsertPosition(context, headers).coerceIn(0, headers.size), header)
+        val insertPosition = findInsertPosition(context, headers).coerceIn(0, headers.size)
+        inheritAdjacentGroupId(headers, header, insertPosition)
+        headers.add(insertPosition, header)
         log(module, "inserted HyperIsland settings entry")
     }
 
@@ -138,8 +140,12 @@ object SettingsHomeEntryHook : BaseHook() {
     }
 
     private const val PREF_ICON_STYLE = "pref_settings_home_entry_icon_style"
+    private const val PREF_POSITION = "pref_settings_home_entry_position"
     private const val ICON_STYLE_DEFAULT = "default"
     private const val ICON_STYLE_OUTLINE = "outline"
+    private const val POSITION_TOP = "top"
+    private const val POSITION_MIDDLE = "middle"
+    private const val POSITION_BOTTOM = "bottom"
 
     private fun createLaunchIntent(): Intent = Intent().apply {
         setClassName(MODULE_PACKAGE, MAIN_ACTIVITY)
@@ -150,12 +156,16 @@ object SettingsHomeEntryHook : BaseHook() {
     private fun findInsertPosition(context: Context, headers: List<Any>): Int {
         val res = context.resources
         val packageName = context.packageName
-        val anchors = intArrayOf(
-            res.getIdentifier("my_device", "id", packageName),
-            res.getIdentifier("launcher_settings", "id", packageName),
-            res.getIdentifier("other_special_feature_settings", "id", packageName),
-            res.getIdentifier("app_timer", "id", packageName)
-        ).filter { it != 0 }.map { it.toLong() }.toSet()
+        val anchorNames = when (ConfigManager.getString(PREF_POSITION, POSITION_TOP)) {
+            POSITION_MIDDLE -> listOf("launcher_settings")
+            POSITION_BOTTOM -> listOf("app_timer", "other_special_feature_settings")
+            else -> listOf("my_device")
+        }
+        val anchors = anchorNames
+            .map { res.getIdentifier(it, "id", packageName) }
+            .filter { it != 0 }
+            .map { it.toLong() }
+            .toSet()
 
         headers.forEachIndexed { index, header ->
             if (readLongField(header, "id") in anchors) return index + 1
@@ -164,10 +174,23 @@ object SettingsHomeEntryHook : BaseHook() {
         return if (headers.size > 25) 25 else headers.size
     }
 
+    private fun inheritAdjacentGroupId(headers: List<Any>, header: Any, insertPosition: Int) {
+        if (headers.isEmpty()) return
+        val adjacentPosition = if (insertPosition > 0) insertPosition - 1 else 0
+        val groupId = readIntField(headers[adjacentPosition], "groupId") ?: return
+        setIntField(header, "groupId", groupId)
+    }
+
     private fun readLongField(target: Any, name: String): Long = try {
         target.javaClass.getFieldInHierarchy(name).getLong(target)
     } catch (_: Throwable) {
         Long.MIN_VALUE
+    }
+
+    private fun readIntField(target: Any, name: String): Int? = try {
+        target.javaClass.getFieldInHierarchy(name).getInt(target)
+    } catch (_: Throwable) {
+        null
     }
 
     private fun setLongField(target: Any, name: String, value: Long) {

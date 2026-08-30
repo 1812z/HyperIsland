@@ -45,6 +45,11 @@ internal fun HookExtensionPage(
     val disabledText = stringResource(R.string.ext_disabled)
 
     val settingsEntry = rememberBooleanPreference(prefs, KEY_SETTINGS_HOME_ENTRY, true)
+    val settingsEntryPosition = rememberStringPreference(
+        prefs,
+        KEY_SETTINGS_HOME_ENTRY_POSITION,
+        SETTINGS_POSITION_TOP,
+    )
     val settingsIcon = rememberStringPreference(prefs, KEY_SETTINGS_HOME_ENTRY_ICON_STYLE, MODE_DEFAULT)
     val smooth = rememberBooleanPreference(prefs, KEY_SMOOTH_ISLAND, false)
     val smoothSupported = remember { HyperOsVersionUtil.getMajorVersion() != 4 }
@@ -94,6 +99,28 @@ internal fun HookExtensionPage(
                     if (request(value, listOf("com.android.settings"))) {
                         settingsEntry.value = value
                         prefs.putBoolean(KEY_SETTINGS_HOME_ENTRY, value)
+                        restart()
+                    }
+                }
+                AnimatedVisibility(settingsEntry.value) {
+                    val values = listOf(
+                        SETTINGS_POSITION_TOP,
+                        SETTINGS_POSITION_MIDDLE,
+                        SETTINGS_POSITION_BOTTOM,
+                    )
+                    PreferenceDropdown(
+                        title = stringResource(R.string.ext_settings_entry_position),
+                        summary = null,
+                        icon = null,
+                        items = listOf(
+                            stringResource(R.string.ext_settings_entry_position_top),
+                            stringResource(R.string.ext_settings_entry_position_middle),
+                            stringResource(R.string.ext_settings_entry_position_bottom),
+                        ),
+                        selectedIndex = values.indexOf(settingsEntryPosition.value).coerceAtLeast(0),
+                    ) { index ->
+                        settingsEntryPosition.value = values[index]
+                        prefs.putString(KEY_SETTINGS_HOME_ENTRY_POSITION, values[index])
                         restart()
                     }
                 }

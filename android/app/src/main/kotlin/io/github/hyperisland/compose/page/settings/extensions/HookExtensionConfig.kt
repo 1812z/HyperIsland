@@ -2,6 +2,7 @@ package io.github.hyperisland.compose.page.settings.extensions
 
 internal const val KEY_RESUME_NOTIFICATION = "pref_resume_notification"
 internal const val KEY_SETTINGS_HOME_ENTRY = "pref_settings_home_entry"
+internal const val KEY_SETTINGS_HOME_ENTRY_POSITION = "pref_settings_home_entry_position"
 internal const val KEY_SETTINGS_HOME_ENTRY_ICON_STYLE = "pref_settings_home_entry_icon_style"
 internal const val KEY_BLUETOOTH_ISLAND = "pref_bluetooth_island"
 internal const val KEY_BLUETOOTH_SHOW_DEVICE_NAME = "pref_bluetooth_island_show_device_name"
@@ -30,6 +31,9 @@ internal const val KEY_HIDE_FACE_UNLOCK_ICON = "pref_hide_lockscreen_face_unlock
 
 internal const val MODE_DEFAULT = "default"
 internal const val MODE_OUTLINE = "outline"
+internal const val SETTINGS_POSITION_TOP = "top"
+internal const val SETTINGS_POSITION_MIDDLE = "middle"
+internal const val SETTINGS_POSITION_BOTTOM = "bottom"
 internal const val MODE_POWER = "power"
 internal const val MODE_VOLTAGE = "voltage"
 internal const val MODE_CURRENT = "current"

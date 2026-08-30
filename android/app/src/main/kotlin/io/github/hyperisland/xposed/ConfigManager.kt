@@ -352,6 +352,7 @@ object ConfigManager {
         "pref_show_welcome",
         "pref_resume_notification",
         "pref_settings_home_entry",
+        "pref_settings_home_entry_position",
         "pref_settings_home_entry_icon_style",
         "pref_bluetooth_island",
         "pref_bluetooth_island_show_device_name",
