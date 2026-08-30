@@ -802,6 +802,7 @@ Mini Window 手势
 42. OS4 的外层 stock drawable、`container/island_mask` 只能在当前 ContentView 已实际持有 Bionics 材质或实例级高斯兜底后清除；仅凭配置为 SOFT 就在 `setDrawable`、`onFinishInflate` 或 `IslandPropertyUpdater` 清层，会让少走标准背景回调的 RemoteViews、`ShowOnceBigIsland` 或替换 View 实例完全透明。
 43. `currentIslandVisible()` 只描述整个岛窗口，不能识别“窗口持续可见但具体 BIG/EXPAND View 被替换”的情况。首次可见预绘制还必须跟踪实际 concrete View 身份和祖先 alpha/visibility，在目标实例变化时重新提交材质与共享层；若 promoted/RemoteViews 宿主缺少 Bionics View API，则在同一实例走稳定态高斯兜底，禁止透明失败。
 44. `ShowOnceBigIsland`（例如充电岛）由 `currentTempShow` 的第二个 ContentView 承载，不一定出现在 controller `getView()`。其 `updateBackgroundBg()` 可能发生在真实 BIG View 尚未 attach/布局时；此时不得预先安装无采样租约的 Bionics 材质。应为该具体 View 注册一次性弱引用 pre-draw，在首次实际可见帧前原子提交材质、采样租约和共享层；状态离开、detach 或配置切换时立即取消 listener。
+45. 真实 RemoteViews/`ShowOnceBigIsland` 的 SOFT 由目标级 pre-draw 在首个实际绘制帧提交，因此 stock 外层与 OS4 container/mask 不需要再等待 `renderer committed` 才清除。该重复门禁会允许系统黑层进入动画首帧；保留 pre-draw，恢复 SOFT 写入点直接清层即可，不另建采样或 fake 状态机。
 
 ## 16. 信息来源和可信度
 

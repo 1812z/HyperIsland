@@ -624,9 +624,7 @@ object IslandBlurHook : BaseHook() {
             } else {
                 softOuterBackgrounds.contains(backgroundView)
             }
-            val rendererCommitted = SoftGlassController.hasManagedDescendant(backgroundView) ||
-                outerBlurRegistry.hasActiveVisual(backgroundView)
-            val suppressStock = softConfigured && rendererCommitted
+            val suppressStock = softConfigured
             if (!suppressStock) return@intercept chain.proceed()
             // updateDarkLightMode writes the opaque outer drawable before any post-hook can run.
             // Reject it at the owning setter so no black drawable can enter a submitted frame.

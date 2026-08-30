@@ -98,9 +98,6 @@ object IslandTransitionVisualHook : BaseHook() {
             realView = findMethod(fakeClass, "getRealView"),
             state = findMethod(fakeClass, "getState"),
         )
-        if (SoftGlassController.isBionicsRuntimeAvailable()) {
-            hookSelfBlurSource(module, classLoader)
-        }
         if (!hookedFakeClasses.add(fakeClass)) {
             hookAnimationClasses(module, classLoader, access)
             return
@@ -122,6 +119,7 @@ object IslandTransitionVisualHook : BaseHook() {
         }
         hookFakeVisibility(module, fakeClass, access)
         hookRestoreFakeBackground(module, fakeClass, access)
+        hookSelfBlurSource(module, classLoader)
         hookDeclaredRefreshAfter(module, fakeClass, "onDetachedFromWindow") { owner ->
             releaseFakeView(owner, access)
         }
@@ -222,13 +220,12 @@ object IslandTransitionVisualHook : BaseHook() {
     private fun ownsSoftGlass(view: View): Boolean {
         // OS3 uses the Gaussian fallback for the same SOFT config. Its self-blur animation is
         // stock behavior and must not be affected by the OS4 Bionics-only source interception.
+        if (!SoftGlassController.isSystemBionicsActive(view)) return false
         if (SoftGlassController.isManaged(view)) return true
-        if (!SoftGlassController.isBionicsRuntimeAvailable()) return false
         val typeName = fakeSlotTypes[view]
             ?: IslandStateResolver.forView(view)?.name
             ?: return false
-        return IslandBlurRuntime.transitionBlurController.isSoftGlass(typeName) &&
-            SoftGlassController.isSystemBionicsActive(view)
+        return IslandBlurRuntime.transitionBlurController.isSoftGlass(typeName)
     }
 
     /** Keeps fake geometry and mask ownership aligned with the system animator. */
@@ -423,9 +420,7 @@ object IslandTransitionVisualHook : BaseHook() {
             ?.let { runCatching { it.invoke(realView) as? View }.getOrNull() }
             ?: return
         val controller = IslandBlurRuntime.transitionBlurController
-        if (controller.isSoftGlass(typeName) &&
-            SoftGlassController.isSystemBionicsActive(target)
-        ) {
+        if (controller.isSoftGlass(typeName)) {
             if (!controller.isApplied(target, typeName)) {
                 controller.apply(target, typeName)
             }
@@ -433,7 +428,6 @@ object IslandTransitionVisualHook : BaseHook() {
             // The real outer drawable is exposed in the same handoff transaction. Clear it now,
             // not in a later posted refresh, so it cannot contribute one gray/dark frame.
             IslandBlurHook.clearSoftGlassOuter(realView, "fake-to-real")
-            IslandBackgroundHook.clearCommittedSoftLayers(realView, typeName)
         }
     }
 
@@ -514,7 +508,7 @@ object IslandTransitionVisualHook : BaseHook() {
                     true
                 }
                 if (target.managedVisual) target.materialRevision = currentRevision
-                if (target.managedVisual && controller.hasManagedSoftGlass(view)) {
+                if (target.managedVisual && controller.isSoftGlass(typeName)) {
                     SoftGlassController.beginRendering(view)
                 }
                 return@forEach
@@ -551,11 +545,9 @@ object IslandTransitionVisualHook : BaseHook() {
         module.hook(method).intercept { chain ->
             val owner = chain.thisObject ?: return@intercept chain.proceed()
             val typeName = activeFakeTypes[owner] ?: access.stateType(owner)
-            val softView = typeName?.let { access.viewFor(owner, it) }
-            val ownsNativeSoftGlass = typeName != null && softView != null &&
-                IslandBlurRuntime.transitionBlurController.isSoftGlass(typeName) &&
-                SoftGlassController.isSystemBionicsActive(softView)
-            val result = if (!ownsNativeSoftGlass) {
+            val result = if (typeName == null ||
+                !IslandBlurRuntime.transitionBlurController.isSoftGlass(typeName)
+            ) {
                 chain.proceed()
             } else {
                 clearPreparedFakeMask(owner, access)
@@ -597,7 +589,9 @@ object IslandTransitionVisualHook : BaseHook() {
     private fun prepareFakeSlot(fakeView: Any, access: FakeViewAccess, typeName: String) {
         val view = access.viewFor(fakeView, typeName) ?: return
         val controller = IslandBlurRuntime.transitionBlurController
-        if (!controller.isEnabled(typeName)) return
+        if (!controller.isSoftGlass(typeName) ||
+            !SoftGlassController.isSystemBionicsActive(view)
+        ) return
         val target = synchronized(targets) {
             targets.getOrPut(view) { TransitionTarget(view.background) }
         }
@@ -612,9 +606,7 @@ object IslandTransitionVisualHook : BaseHook() {
         }
         if (target.managedVisual) {
             target.materialRevision = currentRevision
-            if (controller.hasManagedSoftGlass(view)) {
-                SoftGlassController.beginRendering(view)
-            }
+            SoftGlassController.beginRendering(view)
         }
     }
 

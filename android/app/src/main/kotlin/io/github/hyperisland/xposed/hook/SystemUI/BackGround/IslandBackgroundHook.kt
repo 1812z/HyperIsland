@@ -277,10 +277,12 @@ object IslandBackgroundHook : BaseHook() {
                 // when another island disappears and BIG is re-asserted. Reject that
                 // outer drawable before it reaches DynamicIslandBackgroundView; clearing
                 // only container/fake layers cannot affect this independent draw slot.
-                if (chain.args.getOrNull(0) is Drawable && type != null && bgView != null &&
-                    isSystemSoftGlass(type) && hasCommittedSoftVisual(bgView, type)
+                if (chain.args.getOrNull(0) is Drawable && type != null &&
+                    isSystemSoftGlass(type)
                 ) {
-                    suppressedSystemDrawables[bgView] = chain.args[0] as Drawable
+                    if (bgView != null) {
+                        suppressedSystemDrawables[bgView] = chain.args[0] as Drawable
+                    }
                     return@intercept null
                 }
 
@@ -454,9 +456,7 @@ object IslandBackgroundHook : BaseHook() {
                     // OS4's real container starts with dynamic_island_background from XML.
                     // Restored islands can become visible without an IslandPropertyUpdater
                     // frame, so remove that initial host in the first state transaction.
-                    if (type != null && clearOs4InitialLayers &&
-                        shouldClearSharedMask(type) &&
-                        hasCommittedVisual(chain.thisObject, type)
+                    if (type != null && clearOs4InitialLayers && shouldClearSharedMask(type)
                     ) {
                         val contentView = chain.thisObject
                         runCatching { containerMethod?.invoke(contentView) as? View }
@@ -976,7 +976,6 @@ object IslandBackgroundHook : BaseHook() {
         // that previous SMALL/BIG/EXPAND type until the View instance is discarded.
         val type = resolvedType ?: managedContentTypes[contentView] ?: return
         if (!anyManagedOuterVisual()) return
-        if (!hasCommittedVisual(contentView, type)) return
 
         val container = runCatching { access.containerMethod.invoke(contentView) as? View }
             .getOrNull()
@@ -1076,13 +1075,6 @@ object IslandBackgroundHook : BaseHook() {
         if (SoftGlassController.hasManagedDescendant(root)) return true
         val backgroundView = findBackgroundAncestor(root) ?: return false
         return IslandBlurRuntime.outerBlurRegistry.hasActiveVisual(backgroundView)
-    }
-
-    private fun hasCommittedSoftVisual(backgroundView: View, type: IslandType): Boolean {
-        if (!isSystemSoftGlass(type)) return true
-        val contentView = (backgroundView as? ViewGroup)?.let(::findRealContentView)
-        return hasCommittedVisual(contentView, type) ||
-            IslandBlurRuntime.outerBlurRegistry.hasActiveVisual(backgroundView)
     }
 
     private fun findBackgroundAncestor(start: View): View? {
