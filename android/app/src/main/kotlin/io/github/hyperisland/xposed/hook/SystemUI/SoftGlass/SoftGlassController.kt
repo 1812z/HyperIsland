@@ -33,7 +33,10 @@ internal object SoftGlassController {
     private val renderingViews = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<View, Boolean>()),
     )
-    private val stockBackgrounds = Collections.synchronizedMap(WeakHashMap<View, Drawable?>())
+    private val stockStates = Collections.synchronizedMap(WeakHashMap<View, StockViewState>())
+    private val detachListeners = Collections.synchronizedMap(
+        WeakHashMap<View, View.OnAttachStateChangeListener>(),
+    )
     private val appliedConfigs = Collections.synchronizedMap(WeakHashMap<View, SoftGlassConfig>())
     private val appliedWindowRadii = Collections.synchronizedMap(WeakHashMap<View, Int>())
     private val retainedWindowBlurRoots = Collections.synchronizedSet(
@@ -56,6 +59,7 @@ internal object SoftGlassController {
     @Volatile private var setViewMode: Method? = null
     @Volatile private var clearBlend: Method? = null
     @Volatile private var isBionicsActiveMethod: Method? = null
+    @Volatile private var bionicsRuntimeAvailable = false
 
     fun bindRuntime(module: XposedModule, contentClass: Class<*>, compatClass: Class<*>) {
         if (systemParams == null) {
@@ -72,23 +76,32 @@ internal object SoftGlassController {
         val styleClass = runCatching {
             Class.forName("miui.systemui.util.MiBackgroundStyle", false, contentClass.classLoader)
         }.getOrNull()
-        isBionicsActiveMethod = styleClass?.let {
+        styleClass?.let {
             findMethod(it, "isBionicsActive", Context::class.java)
-        }
-        setViewMode = findMethod(
+        }?.let { isBionicsActiveMethod = it }
+        findMethod(
             compatClass,
             "setMiViewBlurModeCompat",
             View::class.java,
             Int::class.javaPrimitiveType!!,
-        )
-        clearBlend = findMethod(
+        )?.let { setViewMode = it }
+        findMethod(
             compatClass,
             "clearMiBackgroundBlendColorCompat",
             View::class.java,
+        )?.let { clearBlend = it }
+        // HyperOS versions cannot be distinguished reliably by Android SDK. These two APIs are
+        // the actual OS4 Bionics capability boundary; OS3 must remain on the Gaussian path and
+        // must not receive any of the Bionics source-writer hooks below.
+        bionicsRuntimeAvailable = systemParams != null && isBionicsActiveMethod != null
+        if (bionicsRuntimeAvailable) {
+            if (styleClass != null) hookSystemWriters(module, styleClass)
+            hookCompatWriters(module, compatClass)
+        }
+        log(
+            "$TAG runtime bound bionics=$bionicsRuntimeAvailable " +
+                "params=${systemParams?.size ?: -1}",
         )
-        if (styleClass != null) hookSystemWriters(module, styleClass)
-        hookCompatWriters(module, compatClass)
-        log("$TAG runtime bound params=${systemParams?.size ?: -1}")
     }
 
     /**
@@ -97,6 +110,7 @@ internal object SoftGlassController {
      * consistent state; no corrective post-write or private-field mutation is needed.
      */
     fun observeWindowLifecycle(module: XposedModule, windowClass: Class<*>) {
+        if (!bionicsRuntimeAvailable) return
         if (!hookedWindowClasses.add(windowClass)) return
         findMethod(
             windowClass,
@@ -185,6 +199,10 @@ internal object SoftGlassController {
             release(view)
             return@runCatching false
         }
+        if (managedViews.contains(view) && appliedConfigs[view] == config) {
+            if (view.background != null) view.background = null
+            return@runCatching true
+        }
         val setMaterial = findMethod(
             view.javaClass,
             "setMiViewMaterialType",
@@ -192,32 +210,35 @@ internal object SoftGlassController {
         ) ?: return@runCatching false
         val setGlass = findMethod(view.javaClass, "setMiGlass", FloatArray::class.java)
             ?: return@runCatching false
-
-        if (managedViews.contains(view) && appliedConfigs[view] == config) {
-            if (view.background != null) view.background = null
-            return@runCatching true
-        }
         if (!managedViews.contains(view)) {
-            stockBackgrounds[view] = view.background
+            stockStates[view] = StockViewState(
+                background = view.background,
+                outlineProvider = view.outlineProvider,
+                clipToOutline = view.clipToOutline,
+            )
+            managedViews.add(view)
             installOutline(view)
+            ensureDetachCleanup(view)
         }
         setViewMode?.invoke(null, view, 1)
         clearBlend?.invoke(null, view)
         view.background = null
         setMaterial.invoke(view, 1)
         setGlass.invoke(view, customizeParams(baseParams(), config))
-        managedViews.add(view)
         appliedConfigs[view] = config
         view.invalidate()
         true
     }.getOrElse { error ->
+        release(view)
         logWarn("$TAG apply failed: ${error.message}")
         false
     }
 
     fun isManaged(view: View): Boolean = managedViews.contains(view)
     fun isActive(view: View): Boolean = isManaged(view)
+    fun isBionicsRuntimeAvailable(): Boolean = bionicsRuntimeAvailable
     fun isSystemBionicsActive(view: View): Boolean = runCatching {
+        if (!bionicsRuntimeAvailable) return@runCatching false
         isBionicsActiveMethod?.invoke(null, view.context) as? Boolean
     }.getOrNull() == true
 
@@ -234,15 +255,13 @@ internal object SoftGlassController {
     }
 
     /** Temporarily removes only the sampler lease, retaining the prepared View material. */
-    fun pauseRendering(view: View, closeSampling: Boolean = true) {
+    fun pauseRendering(view: View) {
         if (!renderingViews.remove(view)) return
         val root = findWindowView(view) ?: return
         if (!hasRenderingView(root)) {
             restoreWindowRadius(root)
-            if (closeSampling) {
-                closeRetainedPassBlur(root)
-                closeRetainedWindowBlur(root)
-            }
+            closeRetainedPassBlur(root)
+            closeRetainedWindowBlur(root)
         }
     }
 
@@ -286,10 +305,12 @@ internal object SoftGlassController {
         if (!managedViews.remove(view)) return
         val root = findWindowView(view)
         renderingViews.remove(view)
-        val stock = stockBackgrounds.remove(view)
+        val stock = stockStates.remove(view)
         appliedConfigs.remove(view)
+        removeDetachCleanup(view)
         clearMaterial(view)
-        if (restoreBackground && view.background == null) view.background = stock
+        restoreOutline(view, stock)
+        if (restoreBackground && view.background == null) view.background = stock?.background
         if (root != null && !hasRenderingView(root)) {
             restoreWindowRadius(root)
             if (releaseSampling) {
@@ -308,8 +329,10 @@ internal object SoftGlassController {
         val root = findWindowView(view)
         managedViews.remove(view)
         renderingViews.remove(view)
-        stockBackgrounds.remove(view)
+        val stock = stockStates.remove(view)
         appliedConfigs.remove(view)
+        removeDetachCleanup(view)
+        restoreOutline(view, stock)
         if (root != null && !hasRenderingView(root)) {
             restoreWindowRadius(root)
             closeRetainedPassBlur(root)
@@ -445,6 +468,36 @@ internal object SoftGlassController {
         }
         view.clipToOutline = true
     }
+
+    private fun restoreOutline(view: View, stock: StockViewState?) {
+        stock ?: return
+        view.outlineProvider = stock.outlineProvider
+        view.clipToOutline = stock.clipToOutline
+    }
+
+    private fun ensureDetachCleanup(view: View) {
+        if (detachListeners.containsKey(view)) return
+        val listener = object : View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(view: View) = Unit
+
+            override fun onViewDetachedFromWindow(view: View) {
+                release(view, restoreBackground = false)
+            }
+        }
+        detachListeners[view] = listener
+        view.addOnAttachStateChangeListener(listener)
+    }
+
+    private fun removeDetachCleanup(view: View) {
+        val listener = detachListeners.remove(view) ?: return
+        view.removeOnAttachStateChangeListener(listener)
+    }
+
+    private data class StockViewState(
+        val background: Drawable?,
+        val outlineProvider: ViewOutlineProvider?,
+        val clipToOutline: Boolean,
+    )
 
     private fun baseParams(): FloatArray = systemParams?.clone() ?: floatArrayOf(
         0f, 2f, .5f, .8f, .15f, 2.4f, .3f, .2f, 0f, 0f, 0f,

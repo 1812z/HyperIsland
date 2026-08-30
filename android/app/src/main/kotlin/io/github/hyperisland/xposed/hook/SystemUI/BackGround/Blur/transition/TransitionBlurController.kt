@@ -43,8 +43,14 @@ internal class TransitionBlurController(
         if (material.type == MaterialType.SOFT) {
             releaseNative(view)
             val applied = SoftGlassController.apply(view, material.softGlass)
-            if (applied) ensureDetachCleanup(view)
-            return applied
+            if (applied) {
+                ensureDetachCleanup(view)
+                return true
+            }
+            // HyperOS 3 does not expose the Bionics renderer used by SOFT. Keep the material
+            // choice compatible by using the same native Gaussian transition path as the real
+            // island instead of leaving FakeView without a background for its first frame.
+            return applyNative(view, type, material.softFallback())
         }
         SoftGlassController.release(
             view,

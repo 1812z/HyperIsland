@@ -98,6 +98,9 @@ object IslandTransitionVisualHook : BaseHook() {
             realView = findMethod(fakeClass, "getRealView"),
             state = findMethod(fakeClass, "getState"),
         )
+        if (SoftGlassController.isBionicsRuntimeAvailable()) {
+            hookSelfBlurSource(module, classLoader)
+        }
         if (!hookedFakeClasses.add(fakeClass)) {
             hookAnimationClasses(module, classLoader, access)
             return
@@ -119,7 +122,6 @@ object IslandTransitionVisualHook : BaseHook() {
         }
         hookFakeVisibility(module, fakeClass, access)
         hookRestoreFakeBackground(module, fakeClass, access)
-        hookSelfBlurSource(module, classLoader)
         hookDeclaredRefreshAfter(module, fakeClass, "onDetachedFromWindow") { owner ->
             releaseFakeView(owner, access)
         }
@@ -220,12 +222,13 @@ object IslandTransitionVisualHook : BaseHook() {
     private fun ownsSoftGlass(view: View): Boolean {
         // OS3 uses the Gaussian fallback for the same SOFT config. Its self-blur animation is
         // stock behavior and must not be affected by the OS4 Bionics-only source interception.
-        if (!SoftGlassController.isSystemBionicsActive(view)) return false
         if (SoftGlassController.isManaged(view)) return true
+        if (!SoftGlassController.isBionicsRuntimeAvailable()) return false
         val typeName = fakeSlotTypes[view]
             ?: IslandStateResolver.forView(view)?.name
             ?: return false
-        return IslandBlurRuntime.transitionBlurController.isSoftGlass(typeName)
+        return IslandBlurRuntime.transitionBlurController.isSoftGlass(typeName) &&
+            SoftGlassController.isSystemBionicsActive(view)
     }
 
     /** Keeps fake geometry and mask ownership aligned with the system animator. */
@@ -420,7 +423,9 @@ object IslandTransitionVisualHook : BaseHook() {
             ?.let { runCatching { it.invoke(realView) as? View }.getOrNull() }
             ?: return
         val controller = IslandBlurRuntime.transitionBlurController
-        if (controller.isSoftGlass(typeName)) {
+        if (controller.isSoftGlass(typeName) &&
+            SoftGlassController.isSystemBionicsActive(target)
+        ) {
             if (!controller.isApplied(target, typeName)) {
                 controller.apply(target, typeName)
             }
@@ -508,7 +513,7 @@ object IslandTransitionVisualHook : BaseHook() {
                     true
                 }
                 if (target.managedVisual) target.materialRevision = currentRevision
-                if (target.managedVisual && controller.isSoftGlass(typeName)) {
+                if (target.managedVisual && controller.hasManagedSoftGlass(view)) {
                     SoftGlassController.beginRendering(view)
                 }
                 return@forEach
@@ -545,9 +550,11 @@ object IslandTransitionVisualHook : BaseHook() {
         module.hook(method).intercept { chain ->
             val owner = chain.thisObject ?: return@intercept chain.proceed()
             val typeName = activeFakeTypes[owner] ?: access.stateType(owner)
-            val result = if (typeName == null ||
-                !IslandBlurRuntime.transitionBlurController.isSoftGlass(typeName)
-            ) {
+            val softView = typeName?.let { access.viewFor(owner, it) }
+            val ownsNativeSoftGlass = typeName != null && softView != null &&
+                IslandBlurRuntime.transitionBlurController.isSoftGlass(typeName) &&
+                SoftGlassController.isSystemBionicsActive(softView)
+            val result = if (!ownsNativeSoftGlass) {
                 chain.proceed()
             } else {
                 clearPreparedFakeMask(owner, access)
@@ -589,9 +596,7 @@ object IslandTransitionVisualHook : BaseHook() {
     private fun prepareFakeSlot(fakeView: Any, access: FakeViewAccess, typeName: String) {
         val view = access.viewFor(fakeView, typeName) ?: return
         val controller = IslandBlurRuntime.transitionBlurController
-        if (!controller.isSoftGlass(typeName) ||
-            !SoftGlassController.isSystemBionicsActive(view)
-        ) return
+        if (!controller.isEnabled(typeName)) return
         val target = synchronized(targets) {
             targets.getOrPut(view) { TransitionTarget(view.background) }
         }
@@ -606,7 +611,9 @@ object IslandTransitionVisualHook : BaseHook() {
         }
         if (target.managedVisual) {
             target.materialRevision = currentRevision
-            SoftGlassController.beginRendering(view)
+            if (controller.hasManagedSoftGlass(view)) {
+                SoftGlassController.beginRendering(view)
+            }
         }
     }
 
@@ -638,11 +645,11 @@ object IslandTransitionVisualHook : BaseHook() {
             }
             if (mask != null) IslandBackgroundHook.clearManagedVisualMask(mask)
         } else {
-            if (root.background == null) root.background = target.rootBackground
+            if (root.background == null) root.background = target.rootBackground.get()
             if (container !== root && container?.background == null) {
-                container?.background = target.containerBackground
+                container?.background = target.containerBackground.get()
             }
-            if (mask?.background == null) mask?.background = target.maskBackground
+            if (mask?.background == null) mask?.background = target.maskBackground.get()
         }
     }
 
@@ -786,10 +793,14 @@ object IslandTransitionVisualHook : BaseHook() {
     }
 
     private class FakeLayerTarget(
-        val rootBackground: Drawable?,
-        val containerBackground: Drawable?,
-        val maskBackground: Drawable?,
-    )
+        rootBackground: Drawable?,
+        containerBackground: Drawable?,
+        maskBackground: Drawable?,
+    ) {
+        val rootBackground = WeakReference(rootBackground)
+        val containerBackground = WeakReference(containerBackground)
+        val maskBackground = WeakReference(maskBackground)
+    }
 
     private class TransitionTarget(stockDrawable: Drawable?) {
         val stockDrawable = WeakReference(stockDrawable)

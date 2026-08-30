@@ -16,7 +16,6 @@ import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.model.IslandTy
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.model.MaterialConfig
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.model.MaterialType
 import io.github.hyperisland.xposed.hook.SystemUI.SoftGlass.SoftGlassController
-import io.github.hyperisland.xposed.log
 import io.github.hyperisland.xposed.logError
 import io.github.hyperisland.xposed.logWarn
 import io.github.hyperisland.xposed.utils.HookUtils
@@ -129,6 +128,7 @@ object IslandBlurHook : BaseHook() {
             installStage = "runtime-bind"
             SoftGlassController.bindRuntime(module, contentClass, compatClass)
             SoftGlassController.observeWindowLifecycle(module, windowViewClass)
+            hookPreparationSources(module, classLoader)
             val updateMethod = contentClass.getDeclaredMethod(
                 "updateBackgroundBg",
                 View::class.java,
@@ -171,10 +171,11 @@ object IslandBlurHook : BaseHook() {
                 val stateTypeBeforeUpdate = islandTypeHolder.get() ?: runCatching {
                     IslandStateResolver.fromState(stateField.get(contentViewBeforeUpdate))
                 }.getOrNull() ?: lastIslandType
-                // updateExpandedView() initializes the destination material before changing the
-                // ContentView state or replacing its notification child. This is an authoritative
-                // EXPAND write, not a stale hidden-state refresh.
+                // updateExpandedView() initializes EXPAND before changing the ContentView state
+                // or replacing its notification child. Mark that structural preparation so it
+                // cannot be confused with either a stale callback or a visible EXPAND refresh.
                 val preparingDestination = preparingType != null && preparingType == typeBeforeUpdate
+                val hiddenPreparation = preparingDestination && stateTypeBeforeUpdate != typeBeforeUpdate
                 val staleBeforeUpdate = typeBeforeUpdate != null && stateTypeBeforeUpdate != null &&
                     typeBeforeUpdate != stateTypeBeforeUpdate && !preparingDestination
                 if (view != null && materialBeforeUpdate?.type != MaterialType.SOFT &&
@@ -190,9 +191,13 @@ object IslandBlurHook : BaseHook() {
                 }
                 var directSoftApplied = false
                 val result = if (view != null && materialBeforeUpdate?.type == MaterialType.SOFT) {
-                    if (staleBeforeUpdate) {
-                        // Match Gaussian ownership: a hidden non-current state owns no renderer.
-                        // It will be created by the normal destination update, not preheated.
+                    if (staleBeforeUpdate || hiddenPreparation) {
+                        // A hidden/non-current state must own neither a sampler lease nor a
+                        // Bionics RenderNode. In particular, updateExpandedView() prepares the
+                        // future EXPAND child while SMALL/BIG is still stable. Installing the
+                        // material here lets its full-size crop contaminate the compact island
+                        // even without a rendering lease. The fake-to-real handoff/onPreDraw
+                        // installs it again before EXPAND can submit its first visible frame.
                         SoftGlassController.release(view, restoreBackground = false)
                         null
                     } else {
@@ -209,7 +214,7 @@ object IslandBlurHook : BaseHook() {
                 view ?: return@intercept result
                 val contentView = chain.thisObject ?: return@intercept result
                 val type = typeBeforeUpdate
-                if (type != null && !preparingDestination) contentLastTypes[contentView] = type
+                if (type != null && !hiddenPreparation) contentLastTypes[contentView] = type
                 refreshTargets[view] = RefreshTarget(
                     contentView = WeakReference(contentView),
                     updateMethod = updateMethod,
@@ -230,19 +235,14 @@ object IslandBlurHook : BaseHook() {
                 val material = materialForType(type)
                 val staleUpdate = stateType != null && type != stateType && !preparingDestination
                 val active = if (material.type == MaterialType.SOFT) {
-                    softOuterBackgrounds.add(backgroundView)
-                    module.log(
-                        "soft update view=${view.javaClass.name} type=$type state=$stateType " +
-                            "stale=$staleUpdate " +
-                            "preparing=$preparingDestination " +
-                            "owner=${System.identityHashCode(contentView).toString(16)} " +
-                            "bg=${System.identityHashCode(backgroundView).toString(16)} " +
-                            "direct=$directSoftApplied " +
-                            "config=${material.softGlass}",
-                    )
-                    if (directSoftApplied) {
+                    if (hiddenPreparation) {
+                        // Do not mutate the currently visible SMALL/BIG outer layer for a hidden
+                        // EXPAND preparation. This callback is ownership metadata only.
+                        false
+                    } else if (directSoftApplied) {
+                        softOuterBackgrounds.add(backgroundView)
                         val realOwner = contentView.javaClass.name != FAKE_CONTENT_VIEW_CLASS
-                        if (realOwner && !preparingDestination && !staleUpdate &&
+                        if (realOwner && !hiddenPreparation && !staleUpdate &&
                             view.isShown && view.alpha > 0.1f
                         ) {
                             SoftGlassController.beginRendering(view)
@@ -260,6 +260,7 @@ object IslandBlurHook : BaseHook() {
                         false
                     } else {
                         // Unsupported Bionics devices use the exact Gaussian host pipeline.
+                        softOuterBackgrounds.add(backgroundView)
                         IslandBackgroundHook.clearManagedVisualMask(view)
                         applyOuterBlur(
                             backgroundView,
@@ -518,16 +519,6 @@ object IslandBlurHook : BaseHook() {
         runCatching { updateMethod.invoke(contentView, view, false) }
     }
 
-    private fun activateConcreteSoftGlass(
-        contentView: Any,
-        updateMethod: Method,
-        type: IslandType,
-    ) {
-        val view = IslandStateResolver.concreteView(contentView, type) ?: return
-        if (SoftGlassController.isActive(view)) return
-        runCatching { updateMethod.invoke(contentView, view, false) }
-    }
-
     /** Marks View creation methods whose background callback prepares a future logical state. */
     private fun hookPreparationSources(module: XposedModule, classLoader: ClassLoader) {
         sequenceOf(
@@ -742,14 +733,15 @@ object IslandBlurHook : BaseHook() {
                         if (concrete != null && type != null &&
                             materialForType(type).type == MaterialType.SOFT
                         ) {
-                            if (!SoftGlassController.isManaged(concrete)) {
+                            val nativeSoftReady = SoftGlassController.isManaged(concrete) ||
                                 SoftGlassController.apply(
                                     concrete,
                                     materialForType(type).softGlass,
                                 )
+                            if (nativeSoftReady) {
+                                SoftGlassController.beginRendering(concrete)
+                                clearSoftGlassOuter(contentView, "real-visible")
                             }
-                            SoftGlassController.beginRendering(concrete)
-                            clearSoftGlassOuter(contentView, "real-visible")
                             tempHideRecoveryPending = false
                         }
                     }

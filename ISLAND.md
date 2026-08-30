@@ -777,7 +777,7 @@ Mini Window 手势
 17. fake 隐藏前仍完全不透明但到达后透明再渐显时，应检查真实 `DynamicIslandBackgroundView.backgroundAlpha` 和 `alphaAnimation()`。
 18. 交接期固定真实背景 alpha 只适用于当前真实类型未开启模糊的实例；已开启模糊时必须解除该限制。
 19. OS4 柔光玻璃的 SMALL/BIG/EXPAND 均写入系统 Bionics View 材质，不能回退到模块的 `LiquidGlassDrawable`。
-20. EXPAND 的权威写入顺序是 `updateBackgroundBg(expanded_view)` 后再替换通知内容子 View；参数定制应拦截该调用中的 `EXPANDED_GLASS_TOKEN`，不要在 `setContentView*()` 后再次覆盖父 View 材质。
+20. `updateExpandedView()` 会在 SMALL/BIG 稳定期间先调用 `updateBackgroundBg(expanded_view)`，再替换通知内容；对自定义 SOFT 而言这是隐藏目标的结构准备，不是渲染授权。应阻止该次 Bionics 写入，并在 fake→真实交接或首次可见 `onPreDraw` 前安装目标材质。
 21. 原生 EXPAND token 含 `.06/.06/.06/.6` 灰色混色；模块默认必须把 11..14 通道清零，仅在用户配置混色时写入颜色与 alpha。`dynamic_island_background_island` 本身无填充色，但 fake 根容器的 `dynamic_island_background` 是纯黑色，三态 Bionics View 就绪后必须清掉该共享黑底。
 22. `DynamicIslandWindowView.updateWindowBlur()` 在 Bionics 模式使用 `setMiGlassBlurRadius(50, 500)`；该半径不属于 42 项 shader 参数。自定义值必须保持 1:10 双级比例，并在最后一个 SOFT View 释放后恢复 `50/500`。
 23. `-50..50` 柔光配置是百分比微调：非零 token 通道按 `/100` 缩放，原值为零的通道才直接写入配置值。
@@ -786,15 +786,19 @@ Mini Window 手势
 26. `dynamic_island_child_view.xml` 在 `container` 上预置了 `dynamic_island_background`。恢复已有岛时可能没有首个 `IslandPropertyUpdater` 帧，因此 OS4 必须在内容膨胀/首个 `updateDarkLightMode()` 状态事务中清理该初始共享黑底。
 27. `DynamicIslandWindowView.updateExpandedViewMaterial()` 会在 owner 仍为 BIG/Hidden 时刷新 `fake_expanded_view`；该目标必须按自身槽位识别为 EXPAND，不能回退 owner 状态，否则晚到的刷新可能重新安装系统 `EXPANDED_GLASS_TOKEN`。
 28. `finalizeAnimFinished()` 会按系统状态请求关闭 pass-window blur；模块不得事后校准或重建采样器。若仍有明确的 real/fake SOFT 渲染租约，只能在 `updatePassWindowBlur(false)` 源调用中把参数替换为 `true`，保证系统缓存、FPS 与 native flag 同步；无租约时必须放行关闭。
-29. `EXPAND state=BIG` 不代表共享外层一定应保留：若该 ContentView 的当前 BIG 和目标 EXPAND 都由 SOFT 接管，外层 drawable 必须在 EXPAND 写入的同一回调中清空；等待后续 BIG 回调会在同应用岛替换/复用时留下永久白色模糊层。
+29. `EXPAND state=BIG` 的隐藏准备回调不得改动当前 SMALL/BIG 的共享外层，也不得给 EXPAND 安装 Bionics；隐藏 EXPAND 的全尺寸 RenderNode 即使没有采样租约仍会污染同窗口 crop，形成永久白色模糊。
 30. SOFT 在稳定 SMALL/BIG 保留同一个 pass SurfaceTexture，但不读写 `lastPassWindowBlurEnabled`；隐藏材质必须释放，避免旧 crop。
 31. fake SMALL/BIG/EXPAND 是长期复用的附着 View，但模块只允许当前实际绘制槽位持有 Bionics 材质；隐藏槽位与 Gaussian 一样 release。
 32. pass-window 保活必须按包含父层 alpha/visibility 的实际绘制状态判断，不能按任意 managed View 判断；保活中的采样器必须保持 60 FPS，不能使用系统关闭态的 `-1`。
-33. `preparingTypeHolder=EXPAND` 标记的是 `updateExpandedView()` 在状态切换前发出的权威目标初始化，不能按 `state=BIG` 当作 stale 丢弃；柔光材质必须在通知内容替换前完成写入。
+33. `preparingTypeHolder=EXPAND` 标记的是 `updateExpandedView()` 在状态切换前发出的隐藏目标初始化。它不能按普通 stale 处理去覆盖当前外层，但也不能预热 Bionics；材质由后续 fake→真实交接或可见 `onPreDraw` 获取。
 34. 临时隐藏必须在 `onIslandTempHide(true)` 源事件暂停窗口全部 SOFT 租约并放行系统关闭；恢复时在真实 View 首次重新可见的 `onPreDraw` 边缘重新获取租约并清理系统写回的外层黑底。
 35. Bionics 材质所有权与采样器渲染租约必须分离：预备 View 可以先写材质，但只有实际 real/fake 槽能持有租约。仍有租约时在 `updateWindowBlur(false)` / `updatePassWindowBlur(false)` 源头把参数替换为 `true`；最后一个租约释放后完整放行系统关闭，禁止永久常驻采样器。
 36. fake 动画目标以 `FakeViewAnimator.fakeViewToSmallIsland/BigIsland/Expanded` 为权威来源；三种长期复用子槽中只允许该目标槽持有材质和采样租约，不能按子 View 的 `VISIBLE` 属性同时激活三槽。
 37. active SOFT 租约还必须保护对应 View 的 `setMiViewMaterialType(..., 0)` 与 `setMiViewBlurModeCompat(..., 0)` 源写入；租约释放后不拦截，确保默认材质、隐藏态和删除态继续执行系统清理。
+38. OS3/OS4 不得用 Android SDK 号区分；只有 `EXPANDED_GLASS_TOKEN.getToBionicsParams()` 与 `MiBackgroundStyle.isBionicsActive()` 同时存在时才安装 Bionics 窗口/材质源 Hook，否则 SOFT 的真实态和 fake 过渡态都走高斯兜底。
+39. `restoreFakeViewBackground()` 只在当前 fake 目标确实可用 Bionics 时禁止原调用；OS3 或系统关闭 Bionics 时必须先执行系统恢复，再在同一调用中安装高斯兜底，不能直接清空共享 mask。
+40. `updateExpandedView()` 的准备标记 Hook 必须实际注册，用于把隐藏 EXPAND 写入与普通 stale/真实 EXPAND 区分开，并在源头跳过隐藏 Bionics 创建。
+41. SOFT View 接管时必须保存并在 release/detach 时恢复原 `outlineProvider`、`clipToOutline` 和背景；detach listener 不得捕获 View，避免弱缓存 value 反向持有 key。
 
 ## 16. 信息来源和可信度
 
@@ -848,6 +852,8 @@ Mini Window 手势
 - 状态关闭或切换到自定义图片时立即释放当前 `OuterBlur`。
 - `onDraw()` 热路径只读取预计算的 `anyBlurEnabled` 和弱缓存，不再创建状态集合或扫描历史 View。
 - 所有反射读写都应失败降级；反射异常不能传播到 SystemUI 绘制线程。
+- Bionics source Hook 仅在运行时能力探测成功后注册；OS3 不安装窗口保活、材质清理拦截或 self-blur 改写。
+- SOFT View 在 detach 时释放材质、采样租约、原背景/Outline 快照和 listener；fake 共享层快照使用弱 Drawable 引用，避免 `WeakHashMap key -> value -> Drawable.callback -> key` 环。
 
 ### 17.2 自定义图片和 GIF
 
