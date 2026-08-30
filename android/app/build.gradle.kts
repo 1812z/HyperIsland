@@ -114,6 +114,7 @@ kotlin {
 
 dependencies {
     implementation("androidx.activity:activity-compose:1.13.0")
+    implementation("androidx.navigationevent:navigationevent-android:1.1.2")
     implementation("org.jetbrains.compose.foundation:foundation-android:1.12.0-rc01")
     implementation("top.yukonga.miuix.kmp:miuix-ui-android:0.9.4-rc01")
     implementation("top.yukonga.miuix.kmp:miuix-preference-android:0.9.4-rc01")

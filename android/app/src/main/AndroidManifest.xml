@@ -49,5 +49,10 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
+        <service
+            android:name=".screenrecorder.ScreenRecorderControlService"
+            android:exported="true"
+            android:process=":screen_recorder_control"
+            android:stopWithTask="false" />
     </application>
 </manifest>

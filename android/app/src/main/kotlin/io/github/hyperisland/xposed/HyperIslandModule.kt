@@ -33,6 +33,7 @@ import io.github.hyperisland.xposed.hook.SettingsHomeEntryHook
 import io.github.hyperisland.xposed.hook.TextShadeHook
 import io.github.hyperisland.xposed.hook.TempHiddenBehaviorHook
 import io.github.hyperisland.xposed.hook.TimerTextColorHook
+import io.github.hyperisland.xposed.hook.ScreenRecorder.ScreenRecorderHook
 import io.github.hyperisland.xposed.hook.ToastUiInterceptHook
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.UnlockAllFocusHook
 import io.github.hyperisland.xposed.hook.UnlockFocusAuthHook
@@ -113,6 +114,9 @@ class HyperIslandModule : XposedModule() {
                 if (ConfigManager.getBoolean("pref_settings_home_entry", true)) {
                     SettingsHomeEntryHook.init(this, param)
                 }
+
+            "com.miui.screenrecorder" ->
+                ScreenRecorderHook.init(this, param)
 
         }
     }

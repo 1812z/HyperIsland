@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="screen_recorder_dialog_title">屏幕录制</string>
+    <string name="screen_recorder_resolution">分辨率</string>
+    <string name="screen_recorder_resolution_system">跟随系统设置</string>
+    <string name="screen_recorder_sound_source">声音来源</string>
+    <string name="screen_recorder_sound_none">无声音</string>
+    <string name="screen_recorder_sound_microphone">麦克风</string>
+    <string name="screen_recorder_sound_device">设备声音</string>
+    <string name="screen_recorder_more_settings">更多设置</string>
+    <string name="screen_recorder_more_settings_summary">打开小米屏幕录制设置</string>
+    <string name="screen_recorder_start">开始录制</string>
     <string name="module_description">澎湃OS3更多超级岛</string>
 
     <!-- 欢迎超级岛 -->
@@ -302,6 +312,10 @@
     <string name="ext_download_manager">下载管理程序</string>
     <string name="ext_settings_entry">系统设置入口</string>
     <string name="ext_settings_entry_summary">在系统设置首页显示 HyperIsland 入口</string>
+    <string name="ext_settings_entry_position">入口位置</string>
+    <string name="ext_settings_entry_position_top">顶部</string>
+    <string name="ext_settings_entry_position_middle">中部</string>
+    <string name="ext_settings_entry_position_bottom">底部</string>
     <string name="ext_icon_style">图标样式</string>
     <string name="ext_icon_outline">镂空</string>
     <string name="ext_smoothing">平滑强度</string>
