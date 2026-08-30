@@ -155,19 +155,45 @@ internal object ScreenRecorderDialogInjector {
         onStop: () -> Unit,
     ) {
         val hostDialog = Dialog(context, android.R.style.Theme_Translucent_NoTitleBar)
+        val mainHandler = Handler(Looper.getMainLooper())
         var animatedBackHandler: (() -> Unit)? = null
+        lateinit var dismissHost: () -> Unit
         val viewTreeOwner = InjectedViewTreeOwner {
             val handler = animatedBackHandler
             if (handler != null) {
                 handler()
-            } else if (hostDialog.isShowing) {
-                hostDialog.cancel()
+            } else {
+                dismissHost()
             }
         }
         lateinit var host: ComposeView
+        var closeRequested = false
+        var resourcesReleased = false
 
-        fun dismissHost() {
-            if (hostDialog.isShowing) hostDialog.dismiss()
+        fun releaseHostResources() {
+            if (resourcesReleased) return
+            resourcesReleased = true
+            animatedBackHandler = null
+            // Miuix popup disposal may restore Window flags. Detach the Dialog callback first so
+            // that cleanup cannot call Dialog.onWindowAttributesChanged after DecorView removal.
+            hostDialog.window?.setCallback(null)
+            host.disposeComposition()
+            viewTreeOwner.destroy()
+        }
+
+        dismissHost = dismissHost@{
+            if (Looper.myLooper() != Looper.getMainLooper()) {
+                mainHandler.post { dismissHost() }
+                return@dismissHost
+            }
+            if (closeRequested) return@dismissHost
+            closeRequested = true
+            // Leave the current Compose callback before disposing its composition. Resources are
+            // released while DecorView is still attached, then the platform window is dismissed.
+            mainHandler.post {
+                releaseHostResources()
+                if (hostDialog.isShowing) hostDialog.dismiss()
+            }
         }
 
         host = ComposeView(hostDialog.context).apply {
@@ -221,11 +247,14 @@ internal object ScreenRecorderDialogInjector {
                 ViewGroup.LayoutParams.MATCH_PARENT,
             ),
         )
+        // All dismissal paths are handled by Compose/back callbacks so cleanup always precedes
+        // Dialog dismissal instead of Dialog.cancel() removing DecorView first.
+        hostDialog.setCancelable(false)
         hostDialog.setCanceledOnTouchOutside(false)
-        hostDialog.setOnCancelListener { onCancel() }
         hostDialog.setOnDismissListener {
-            viewTreeOwner.destroy()
-            host.disposeComposition()
+            // Defensive fallback for an external dismissal. Window.Callback must still be cleared
+            // before Miuix disposes effects that may update Window flags.
+            releaseHostResources()
         }
         hostDialog.window?.apply {
             setType(WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY)
