@@ -40,21 +40,21 @@ object BigIslandMinWidthHook : BaseHook() {
     }
 
     private fun registerDimensionResources(module: XposedModule) {
-        ResourceDimenHook.registerDp(
+        ResourceDimenHook.registerDpOrSystem(
             module,
             "big_island_min_width",
             KEY_MIN_WIDTH,
-            108,
+            0,
             1..500,
         )
-        ResourceDimenHook.registerDp(
+        ResourceDimenHook.registerDpOrSystem(
             module,
             "big_island_min_width_pad",
             KEY_MIN_WIDTH,
-            74,
+            0,
             1..500,
         )
-        ResourceDimenHook.registerDp(
+        ResourceDimenHook.registerDpOrSystem(
             module,
             "small_island_width",
             KEY_SMALL_WIDTH,

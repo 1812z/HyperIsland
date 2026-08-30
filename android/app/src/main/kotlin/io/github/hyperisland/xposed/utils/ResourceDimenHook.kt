@@ -9,7 +9,7 @@ import kotlin.math.roundToInt
 
 /** Replaces dimension resources by entry name in the current hooked process. */
 object ResourceDimenHook {
-    private val replacements = ConcurrentHashMap<String, (Resources) -> Float>()
+    private val replacements = ConcurrentHashMap<String, (Resources) -> Float?>()
     private val offsets = ConcurrentHashMap<String, (Resources) -> Float>()
     @Volatile private var installed = false
 
@@ -18,7 +18,30 @@ object ResourceDimenHook {
         resourceName: String,
         valuePx: (Resources) -> Float,
     ) {
-        replacements[resourceName] = valuePx
+        replacements[resourceName] = { resources -> valuePx(resources) }
+        install(module)
+    }
+
+    /** Replaces a dp resource unless the preference value means "follow system". */
+    fun registerDpOrSystem(
+        module: XposedModule,
+        resourceName: String,
+        preferenceKey: String,
+        followSystemValue: Int,
+        range: IntRange,
+    ) {
+        replacements[resourceName] = { resources ->
+            val configuredDp = ConfigManager.getInt(preferenceKey, followSystemValue)
+            if (configuredDp == followSystemValue) {
+                null
+            } else {
+                TypedValue.applyDimension(
+                    TypedValue.COMPLEX_UNIT_DIP,
+                    configuredDp.coerceIn(range).toFloat(),
+                    resources.displayMetrics,
+                )
+            }
+        }
         install(module)
     }
 
@@ -82,7 +105,11 @@ object ResourceDimenHook {
             }.getOrNull() ?: return@intercept chain.proceed()
             val replacement = replacements[resourceName]
             if (replacement != null) {
-                return@intercept convert(replacement(resources))
+                val replacementPx = replacement(resources)
+                if (replacementPx != null) {
+                    return@intercept convert(replacementPx)
+                }
+                return@intercept chain.proceed()
             }
             val offset = offsets[resourceName] ?: return@intercept chain.proceed()
             val original = chain.proceed()
