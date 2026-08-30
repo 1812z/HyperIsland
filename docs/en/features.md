@@ -189,3 +189,7 @@ Intercept HyperOS download manager notifications and display them in Super Islan
 ::: tip How to Enable
 Download Island is disabled by default. Go to the app, enable **"Show System Apps"**, and check **"Download Manager"**.
 :::
+
+## Screen Recording Island
+Supports adding the Island feature to the official screen recording plus a pause recording function. Compatible with version 4.16.2.6.1. Download link below:
+https://1848933255.share.123pan.cn/123pan/9T69vd-ej0wd?pwd=kAf1#
