@@ -6,6 +6,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -24,6 +25,7 @@ import io.github.hyperisland.compose.component.SettingsItemMargin
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.rememberBooleanPreference
 import io.github.hyperisland.compose.data.rememberStringPreference
+import io.github.hyperisland.compose.service.XposedScopeService
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
@@ -74,6 +76,12 @@ internal fun HookExtensionPage(
         KEY_SCREEN_RECORDER_IMMEDIATE_START,
         false,
     )
+    val screenRecorderIconStyle = rememberStringPreference(
+        prefs,
+        KEY_SCREEN_RECORDER_ICON_STYLE,
+        SCREEN_RECORDER_ICON_VOICE_RECORDER,
+    )
+    val screenRecorderScopeRequestPending = remember { mutableStateOf(false) }
     val warningColors = if (MiuixTheme.colorScheme.background.luminance() > 0.5f) {
         CardDefaults.defaultColors(
             color = Color(0xFFFFF3D6),
@@ -89,7 +97,7 @@ internal fun HookExtensionPage(
     fun show(message: String) { scope.launch { snackbar.showSnackbar(message) } }
     fun request(enabled: Boolean, packages: List<String>): Boolean {
         if (!enabled) return true
-        val result = HookExtensionService.requestScope(context, packages)
+        val result = XposedScopeService.requestScope(context, packages)
         if (result.isFailure) show(result.exceptionOrNull()?.message ?: scopeFailed)
         return result.isSuccess
     }
@@ -324,11 +332,48 @@ internal fun HookExtensionPage(
                     summary = stringResource(R.string.ext_screen_recorder_island_summary),
                     icon = null,
                     checked = screenRecorderIsland.value,
+                    enabled = !screenRecorderScopeRequestPending.value,
                 ) { value ->
-                    if (request(value, listOf(SCREEN_RECORDER_PACKAGE))) {
+                    if (!value) {
                         screenRecorderIsland.value = value
                         prefs.putBoolean(KEY_SCREEN_RECORDER_ISLAND, value)
                         restart()
+                    } else {
+                        screenRecorderScopeRequestPending.value = true
+                        XposedScopeService.requestScope(
+                            context = context,
+                            packages = listOf(SCREEN_RECORDER_PACKAGE),
+                        ) { result ->
+                            scope.launch {
+                                screenRecorderScopeRequestPending.value = false
+                                result.onSuccess {
+                                    screenRecorderIsland.value = true
+                                    prefs.putBoolean(KEY_SCREEN_RECORDER_ISLAND, true)
+                                    restart()
+                                }.onFailure {
+                                    show(it.message ?: scopeFailed)
+                                }
+                            }
+                        }
+                    }
+                }
+                AnimatedVisibility(screenRecorderIsland.value) {
+                    val values = listOf(
+                        SCREEN_RECORDER_ICON_VOICE_RECORDER,
+                        SCREEN_RECORDER_ICON_SCREEN_RECORDER,
+                    )
+                    PreferenceDropdown(
+                        title = stringResource(R.string.ext_screen_recorder_icon_style),
+                        summary = stringResource(R.string.ext_screen_recorder_icon_style_summary),
+                        icon = null,
+                        items = listOf(
+                            stringResource(R.string.ext_screen_recorder_icon_voice_recorder),
+                            stringResource(R.string.ext_screen_recorder_icon_screen_recorder),
+                        ),
+                        selectedIndex = values.indexOf(screenRecorderIconStyle.value).coerceAtLeast(0),
+                    ) { index ->
+                        screenRecorderIconStyle.value = values[index]
+                        prefs.putString(KEY_SCREEN_RECORDER_ICON_STYLE, values[index])
                     }
                 }
                 AnimatedVisibility(screenRecorderIsland.value) {

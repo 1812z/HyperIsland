@@ -103,20 +103,43 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
 
     fun requestScope(packages: List<String>) {
         val service = xposedService ?: throw IllegalStateException("XposedService is not ready")
+        requestScope(service, packages) {}
+    }
+
+    fun requestScope(
+        packages: List<String>,
+        onResult: (Result<List<String>>) -> Unit,
+    ) {
+        val service = xposedService
+        if (service == null) {
+            onResult(Result.failure(IllegalStateException("XposedService is not ready")))
+            return
+        }
+        requestScope(service, packages, onResult)
+    }
+
+    private fun requestScope(
+        service: XposedService,
+        packages: List<String>,
+        onResult: (Result<List<String>>) -> Unit,
+    ) {
         val currentScope = service.scope.toSet()
         val missingPackages = packages.filterNot { it in currentScope }
         if (missingPackages.isEmpty()) {
             Log.d(TAG, "scope already granted: $packages")
+            onResult(Result.success(service.scope))
             return
         }
 
         service.requestScope(missingPackages, object : XposedService.OnScopeEventListener {
             override fun onScopeRequestApproved(scope: List<String>) {
                 Log.d(TAG, "scope request approved: $scope")
+                onResult(Result.success(scope))
             }
 
             override fun onScopeRequestFailed(message: String) {
                 Log.w(TAG, "scope request failed: $message")
+                onResult(Result.failure(IllegalStateException(message)))
             }
         })
     }
@@ -299,6 +322,7 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
             "pref_resume_notification",
             "pref_screen_recorder_island",
             "pref_screen_recorder_immediate_start",
+            "pref_screen_recorder_icon_style",
             "pref_settings_home_entry",
             "pref_settings_home_entry_position",
             "pref_settings_home_entry_icon_style",

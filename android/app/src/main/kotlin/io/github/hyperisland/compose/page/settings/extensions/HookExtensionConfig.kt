@@ -3,6 +3,7 @@ package io.github.hyperisland.compose.page.settings.extensions
 internal const val KEY_RESUME_NOTIFICATION = "pref_resume_notification"
 internal const val KEY_SCREEN_RECORDER_ISLAND = "pref_screen_recorder_island"
 internal const val KEY_SCREEN_RECORDER_IMMEDIATE_START = "pref_screen_recorder_immediate_start"
+internal const val KEY_SCREEN_RECORDER_ICON_STYLE = "pref_screen_recorder_icon_style"
 internal const val KEY_SETTINGS_HOME_ENTRY = "pref_settings_home_entry"
 internal const val KEY_SETTINGS_HOME_ENTRY_POSITION = "pref_settings_home_entry_position"
 internal const val KEY_SETTINGS_HOME_ENTRY_ICON_STYLE = "pref_settings_home_entry_icon_style"
@@ -33,6 +34,8 @@ internal const val KEY_HIDE_FACE_UNLOCK_ICON = "pref_hide_lockscreen_face_unlock
 
 internal const val MODE_DEFAULT = "default"
 internal const val MODE_OUTLINE = "outline"
+internal const val SCREEN_RECORDER_ICON_VOICE_RECORDER = "voice_recorder"
+internal const val SCREEN_RECORDER_ICON_SCREEN_RECORDER = "screen_recorder"
 internal const val SETTINGS_POSITION_TOP = "top"
 internal const val SETTINGS_POSITION_MIDDLE = "middle"
 internal const val SETTINGS_POSITION_BOTTOM = "bottom"

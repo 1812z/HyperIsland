@@ -48,8 +48,10 @@ internal class OnboardingService(private val context: Context) {
     }.getOrDefault(false)
 
     fun enableEmbeddedFocusUnlock() {
-        val application = context.applicationContext as XposedPrefsSyncApp
-        application.requestScope(listOf(SYSTEM_UI_PACKAGE, XMSF_PACKAGE))
+        XposedScopeService.requestScope(
+            context,
+            listOf(SYSTEM_UI_PACKAGE, XMSF_PACKAGE),
+        ).getOrThrow()
     }
 
     private fun isModuleActive(): Boolean {

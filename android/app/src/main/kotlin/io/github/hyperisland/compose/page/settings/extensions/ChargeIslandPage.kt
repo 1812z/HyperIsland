@@ -18,6 +18,7 @@ import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.rememberBooleanPreference
 import io.github.hyperisland.compose.data.rememberLongPreference
 import io.github.hyperisland.compose.data.rememberStringPreference
+import io.github.hyperisland.compose.service.XposedScopeService
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.SnackbarHost
@@ -65,7 +66,7 @@ internal fun ChargeIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Unit)
                     icon = null,
                     checked = enabled.value,
                 ) { value ->
-                    val granted = !value || HookExtensionService.requestScope(
+                    val granted = !value || XposedScopeService.requestScope(
                         context,
                         listOf("com.android.systemui"),
                     ).onFailure { show(it.message ?: scopeFailed) }.isSuccess

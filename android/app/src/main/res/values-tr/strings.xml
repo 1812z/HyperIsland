@@ -31,6 +31,10 @@
     <string name="ext_screen_recorder_island_summary">Resmî ekran kaydı yüzen penceresini Süper Ada ile değiştirir.</string>
     <string name="ext_screen_recorder_immediate_start">Hemen kaydet</string>
     <string name="ext_screen_recorder_immediate_start_summary">Hızlı Ayarlar kutucuğuna dokununca onay penceresi göstermeden kaydı doğrudan başlatır</string>
+    <string name="ext_screen_recorder_icon_style">Simge stili</string>
+    <string name="ext_screen_recorder_icon_style_summary">Süper Ada’da gösterilecek simge stilini seçin</string>
+    <string name="ext_screen_recorder_icon_voice_recorder">Ses kaydedici</string>
+    <string name="ext_screen_recorder_icon_screen_recorder">Ekran kaydı</string>
     <string name="ext_screen_recorder_compatibility_title">Uyumluluk uyarısı</string>
     <string name="ext_screen_recorder_compatibility_summary">Bu özellik yalnızca bazı Ekran Kaydedici sürümlerini destekleyebilir. 4.16.2.6.1 sürümünü indirmek için dokunun.</string>
     <string name="module_description">HyperOS için Xiaomi HyperIsland geliştirmeleri</string>

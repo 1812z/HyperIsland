@@ -31,6 +31,10 @@
     <string name="ext_screen_recorder_island_summary">使用超级岛代替官方录屏悬浮窗</string>
     <string name="ext_screen_recorder_immediate_start">立刻录制</string>
     <string name="ext_screen_recorder_immediate_start_summary">点击通知栏磁贴后不显示询问弹窗，直接开始录制</string>
+    <string name="ext_screen_recorder_icon_style">图标样式</string>
+    <string name="ext_screen_recorder_icon_style_summary">选择超级岛显示的图标样式</string>
+    <string name="ext_screen_recorder_icon_voice_recorder">录音机</string>
+    <string name="ext_screen_recorder_icon_screen_recorder">屏幕录制</string>
     <string name="ext_screen_recorder_compatibility_title">兼容性提醒</string>
     <string name="ext_screen_recorder_compatibility_summary">该功能可能仅支持部分版本的屏幕录制。点击下载 4.16.2.6.1 版本</string>
     <string name="module_description">澎湃OS3更多超级岛</string>

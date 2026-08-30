@@ -31,6 +31,10 @@
     <string name="ext_screen_recorder_island_summary">Replace the official recorder floating window with Super Island.</string>
     <string name="ext_screen_recorder_immediate_start">Record immediately</string>
     <string name="ext_screen_recorder_immediate_start_summary">Start recording directly from the Quick Settings tile without a confirmation dialog</string>
+    <string name="ext_screen_recorder_icon_style">Icon style</string>
+    <string name="ext_screen_recorder_icon_style_summary">Choose the icon style shown on Super Island</string>
+    <string name="ext_screen_recorder_icon_voice_recorder">Voice recorder</string>
+    <string name="ext_screen_recorder_icon_screen_recorder">Screen recording</string>
     <string name="ext_screen_recorder_compatibility_title">Compatibility notice</string>
     <string name="ext_screen_recorder_compatibility_summary">This feature may only support some Screen Recorder versions. Tap to download version 4.16.2.6.1.</string>
     <string name="module_description">Xiaomi HyperIsland enhancements for HyperOS</string>

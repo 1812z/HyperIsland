@@ -6,15 +6,10 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.ContextCompat
-import io.github.hyperisland.XposedPrefsSyncApp
 
 internal data class PairedBluetoothDevice(val address: String, val name: String)
 
 internal object HookExtensionService {
-    fun requestScope(context: Context, packages: List<String>): Result<Unit> = runCatching {
-        (context.applicationContext as XposedPrefsSyncApp).requestScope(packages)
-    }
-
     fun hasBluetoothPermission(context: Context): Boolean =
         Build.VERSION.SDK_INT < 31 || ContextCompat.checkSelfPermission(
             context,

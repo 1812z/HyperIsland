@@ -31,6 +31,10 @@
     <string name="ext_screen_recorder_island_summary">公式の画面録画フローティングウィンドウをスーパーアイランドに置き換えます。</string>
     <string name="ext_screen_recorder_immediate_start">すぐに録画</string>
     <string name="ext_screen_recorder_immediate_start_summary">クイック設定タイルをタップしたときに確認ダイアログを表示せず、すぐに録画を開始します</string>
+    <string name="ext_screen_recorder_icon_style">アイコンスタイル</string>
+    <string name="ext_screen_recorder_icon_style_summary">スーパーアイランドに表示するアイコンスタイルを選択します</string>
+    <string name="ext_screen_recorder_icon_voice_recorder">ボイスレコーダー</string>
+    <string name="ext_screen_recorder_icon_screen_recorder">画面録画</string>
     <string name="ext_screen_recorder_compatibility_title">互換性に関する注意</string>
     <string name="ext_screen_recorder_compatibility_summary">この機能は一部の画面録画バージョンでのみ動作する可能性があります。タップしてバージョン 4.16.2.6.1 をダウンロードします。</string>
     <string name="module_description">Xiaomi HyperIsland 拡張機能</string>

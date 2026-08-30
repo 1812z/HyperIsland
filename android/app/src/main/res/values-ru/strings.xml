@@ -31,6 +31,10 @@
     <string name="ext_screen_recorder_island_summary">Заменяет официальное плавающее окно записи на Суперостров.</string>
     <string name="ext_screen_recorder_immediate_start">Записывать сразу</string>
     <string name="ext_screen_recorder_immediate_start_summary">Начинать запись из плитки быстрых настроек без окна подтверждения</string>
+    <string name="ext_screen_recorder_icon_style">Стиль значка</string>
+    <string name="ext_screen_recorder_icon_style_summary">Выберите стиль значка, отображаемого на Суперострове</string>
+    <string name="ext_screen_recorder_icon_voice_recorder">Диктофон</string>
+    <string name="ext_screen_recorder_icon_screen_recorder">Запись экрана</string>
     <string name="ext_screen_recorder_compatibility_title">Предупреждение о совместимости</string>
     <string name="ext_screen_recorder_compatibility_summary">Функция может поддерживать только некоторые версии приложения записи экрана. Нажмите, чтобы скачать версию 4.16.2.6.1.</string>
     <string name="module_description">Расширение Xiaomi HyperIsland для HyperOS</string>

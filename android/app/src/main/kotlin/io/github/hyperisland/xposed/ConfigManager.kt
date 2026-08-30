@@ -353,6 +353,7 @@ object ConfigManager {
         "pref_resume_notification",
         "pref_screen_recorder_island",
         "pref_screen_recorder_immediate_start",
+        "pref_screen_recorder_icon_style",
         "pref_settings_home_entry",
         "pref_settings_home_entry_position",
         "pref_settings_home_entry_icon_style",

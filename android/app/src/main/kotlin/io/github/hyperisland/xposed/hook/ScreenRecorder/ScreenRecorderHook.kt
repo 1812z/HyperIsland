@@ -42,6 +42,8 @@ object ScreenRecorderHook : BaseHook() {
     private const val RECORDING_NOTIFICATION_ID = 110
     private const val HIGHLIGHT_COLOR = "#FB382F"
     private const val PREF_IMMEDIATE_START = "pref_screen_recorder_immediate_start"
+    private const val PREF_ICON_STYLE = "pref_screen_recorder_icon_style"
+    private const val ICON_STYLE_SCREEN_RECORDER = "screen_recorder"
 
     private val hookedTileClasses = ConcurrentHashMap.newKeySet<Class<*>>()
     private val hookedRecorderServiceClasses = ConcurrentHashMap.newKeySet<Class<*>>()
@@ -974,7 +976,7 @@ object ScreenRecorderHook : BaseHook() {
             putBundle("miui.focus.pics", Bundle().apply {
                 putParcelable(
                     tickerKey,
-                    Icon.createWithResource(MODULE_PACKAGE, R.drawable.ic_focus_ticker_recorder),
+                    Icon.createWithResource(MODULE_PACKAGE, screenRecorderTickerIconResource()),
                 )
                 putParcelable(
                     "miui.focus.pic_pause",
@@ -1003,4 +1005,11 @@ object ScreenRecorderHook : BaseHook() {
             })
         }
     }
+
+    private fun screenRecorderTickerIconResource(): Int =
+        if (ConfigManager.getString(PREF_ICON_STYLE, "voice_recorder") == ICON_STYLE_SCREEN_RECORDER) {
+            R.drawable.ic_focus_ticker_screen_recorder
+        } else {
+            R.drawable.ic_focus_ticker_recorder
+        }
 }

@@ -303,6 +303,10 @@
     <string name="ext_settings_entry">系统设置入口</string>
     <string name="ext_settings_entry_summary">在系统设置首页显示 HyperIsland 入口</string>
     <string name="ext_icon_style">图标样式</string>
+    <string name="ext_screen_recorder_icon_style">图标样式</string>
+    <string name="ext_screen_recorder_icon_style_summary">选择超级岛显示的图标样式</string>
+    <string name="ext_screen_recorder_icon_voice_recorder">录音机</string>
+    <string name="ext_screen_recorder_icon_screen_recorder">屏幕录制</string>
     <string name="ext_icon_outline">镂空</string>
     <string name="ext_smoothing">平滑强度</string>
     <string name="ext_unlock_all_focus">移除焦点通知白名单</string>

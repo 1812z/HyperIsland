@@ -31,6 +31,10 @@
     <string name="ext_screen_recorder_island_summary">يستبدل النافذة العائمة الرسمية للتسجيل بالجزيرة الفائقة.</string>
     <string name="ext_screen_recorder_immediate_start">التسجيل فورًا</string>
     <string name="ext_screen_recorder_immediate_start_summary">بدء التسجيل مباشرة من لوحة الإعدادات السريعة دون عرض نافذة تأكيد</string>
+    <string name="ext_screen_recorder_icon_style">نمط الأيقونة</string>
+    <string name="ext_screen_recorder_icon_style_summary">اختر نمط الأيقونة المعروضة في الجزيرة الفائقة</string>
+    <string name="ext_screen_recorder_icon_voice_recorder">مسجل الصوت</string>
+    <string name="ext_screen_recorder_icon_screen_recorder">تسجيل الشاشة</string>
     <string name="ext_screen_recorder_compatibility_title">تنبيه التوافق</string>
     <string name="ext_screen_recorder_compatibility_summary">قد تدعم هذه الميزة بعض إصدارات مسجل الشاشة فقط. اضغط لتنزيل الإصدار 4.16.2.6.1.</string>
     <string name="module_description">تحسينات Xiaomi HyperIsland لنظام HyperOS</string>

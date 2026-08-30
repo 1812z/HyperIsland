@@ -34,6 +34,7 @@ import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.rememberBooleanPreference
 import io.github.hyperisland.compose.data.rememberLongPreference
 import io.github.hyperisland.compose.data.rememberStringPreference
+import io.github.hyperisland.compose.service.XposedScopeService
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import top.yukonga.miuix.kmp.basic.Button
@@ -106,7 +107,7 @@ internal fun BluetoothIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Un
                     icon = null,
                     checked = enabled.value,
                 ) { value ->
-                    val granted = !value || HookExtensionService.requestScope(
+                    val granted = !value || XposedScopeService.requestScope(
                         context,
                         listOf("com.android.systemui"),
                     ).onFailure { show(it.message ?: scopeFailed) }.isSuccess
