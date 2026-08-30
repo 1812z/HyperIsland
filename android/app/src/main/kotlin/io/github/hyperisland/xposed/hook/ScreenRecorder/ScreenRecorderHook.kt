@@ -10,6 +10,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.drawable.Icon
 import android.media.MediaCodec
+import android.media.MediaFormat
 import android.media.MediaMuxer
 import android.os.Build
 import android.os.Bundle
@@ -60,6 +61,7 @@ object ScreenRecorderHook : BaseHook() {
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
         if (param.packageName != ScreenRecorderContract.TARGET_PACKAGE) return
         logWarn(module, "init: screen recorder hook loaded")
+        hookVideoEncoderSyncFrame(module)
         hookMediaMuxerLifecycle(module)
         hookOverlayWindowCreation(module)
         hookApplicationAttach(module, param.defaultClassLoader)
@@ -295,7 +297,8 @@ object ScreenRecorderHook : BaseHook() {
                     }
                     putString(ScreenRecorderContract.PREF_SOUND, sound.toString())
                 }
-                ScreenRecorderControlClient.start()
+                ScreenRecorderControlClient.reportStarting()
+                requestRecorderStart(context)
                 logWarn(module, "control: immediate recorder start requested")
             },
             onPause = {},
@@ -470,6 +473,14 @@ object ScreenRecorderHook : BaseHook() {
                     return@intercept Service.START_NOT_STICKY
                 }
                 if (isRecorderControlIntent(intent)) {
+                    if (
+                        intent.getBooleanExtra(
+                            ScreenRecorderContract.EXTRA_CONFIRMED_START,
+                            false,
+                        )
+                    ) {
+                        logWarn(module, "control: confirmed start passed to Xiaomi recorder")
+                    }
                     return@intercept chain.proceed()
                 }
                 if (recorderDialogVisible) {
@@ -654,8 +665,16 @@ object ScreenRecorderHook : BaseHook() {
                 }
             }
             ScreenRecorderContract.MSG_COMMAND_RESUME -> {
-                if (MediaMuxerPauseGate.resume()) {
-                    logWarn(module, "control: MediaMuxer sample output resumed")
+                var requestedSyncFrames = 0
+                if (
+                    MediaMuxerPauseGate.resume {
+                        requestedSyncFrames = VideoEncoderSyncFrameRequester.requestSyncFrames()
+                    }
+                ) {
+                    logWarn(
+                        module,
+                        "control: MediaMuxer resumed, requested keyframes=$requestedSyncFrames",
+                    )
                 }
             }
             ScreenRecorderContract.MSG_COMMAND_STOP -> {
@@ -682,6 +701,20 @@ object ScreenRecorderHook : BaseHook() {
     }
 
     private fun hookMediaMuxerLifecycle(module: XposedModule) {
+        val addTrack = MediaMuxer::class.java.getDeclaredMethod(
+            "addTrack",
+            MediaFormat::class.java,
+        )
+        module.hook(addTrack).intercept { chain ->
+            val result = chain.proceed()
+            val trackIndex = result as? Int ?: return@intercept result
+            val muxer = chain.thisObject as? MediaMuxer ?: return@intercept trackIndex
+            val format = chain.args.firstOrNull() as? MediaFormat
+            val mime = runCatching { format?.getString(MediaFormat.KEY_MIME) }.getOrNull()
+            MediaMuxerPauseGate.onTrackAdded(muxer, trackIndex, mime)
+            trackIndex
+        }
+
         val start = MediaMuxer::class.java.getDeclaredMethod("start")
         module.hook(start).intercept { chain ->
             val result = chain.proceed()
@@ -715,11 +748,13 @@ object ScreenRecorderHook : BaseHook() {
         )
         module.hook(writeSampleData).intercept { chain ->
             val muxer = chain.thisObject as? MediaMuxer ?: return@intercept chain.proceed()
-            if (MediaMuxerPauseGate.shouldDrop(muxer)) return@intercept null
             val info = chain.args.getOrNull(2) as? MediaCodec.BufferInfo
                 ?: return@intercept chain.proceed()
             val trackIndex = chain.args.getOrNull(0) as? Int
                 ?: return@intercept chain.proceed()
+            if (MediaMuxerPauseGate.shouldDrop(muxer, trackIndex, info.flags)) {
+                return@intercept null
+            }
             val originalPresentationTime = info.presentationTimeUs
             info.presentationTimeUs = MediaMuxerPauseGate.adjustedPresentationTime(
                 muxer,
@@ -733,6 +768,57 @@ object ScreenRecorderHook : BaseHook() {
             }
         }
         logWarn(module, "init: hooked precise MediaMuxer lifecycle and pause gate")
+    }
+
+    private fun hookVideoEncoderSyncFrame(module: XposedModule) {
+        MediaCodec::class.java.declaredMethods.filter { method ->
+            method.name == "configure" &&
+                method.parameterCount == 4 &&
+                method.parameterTypes.firstOrNull() == MediaFormat::class.java &&
+                method.parameterTypes.lastOrNull() == Integer.TYPE
+        }.forEach { configure ->
+            module.hook(configure).intercept { chain ->
+                val result = chain.proceed()
+                val codec = chain.thisObject as? MediaCodec ?: return@intercept result
+                val format = chain.args.firstOrNull() as? MediaFormat
+                val flags = chain.args.lastOrNull() as? Int ?: 0
+                val mime = runCatching { format?.getString(MediaFormat.KEY_MIME) }.getOrNull()
+                if (
+                    flags and MediaCodec.CONFIGURE_FLAG_ENCODE != 0 &&
+                    mime?.startsWith("video/") == true
+                ) {
+                    VideoEncoderSyncFrameRequester.register(codec)
+                }
+                result
+            }
+        }
+
+        val start = MediaCodec::class.java.getDeclaredMethod("start")
+        module.hook(start).intercept { chain ->
+            val result = chain.proceed()
+            (chain.thisObject as? MediaCodec)?.let {
+                VideoEncoderSyncFrameRequester.setActive(it, true)
+            }
+            result
+        }
+        listOf("stop", "release").forEach { methodName ->
+            val method = MediaCodec::class.java.getDeclaredMethod(methodName)
+            module.hook(method).intercept { chain ->
+                val codec = chain.thisObject as? MediaCodec
+                try {
+                    chain.proceed()
+                } finally {
+                    if (codec != null) {
+                        if (methodName == "release") {
+                            VideoEncoderSyncFrameRequester.remove(codec)
+                        } else {
+                            VideoEncoderSyncFrameRequester.setActive(codec, false)
+                        }
+                    }
+                }
+            }
+        }
+        logWarn(module, "init: hooked video encoder keyframe control")
     }
 
     private fun recorderPreferences(context: Context) = context.getSharedPreferences(

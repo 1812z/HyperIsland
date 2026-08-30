@@ -4,6 +4,9 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.media.MediaCodec
+import android.media.MediaMuxer
+import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
@@ -15,8 +18,8 @@ import android.util.Log
 import io.github.hyperisland.screenrecorder.RecorderSnapshot
 import io.github.hyperisland.screenrecorder.ScreenRecorderContract
 import java.util.IdentityHashMap
+import java.util.WeakHashMap
 import java.util.concurrent.CopyOnWriteArraySet
-import android.media.MediaMuxer
 
 internal object ScreenRecorderControlClient {
     private const val TAG = "HyperIsland[ScreenRecorder]"
@@ -26,7 +29,6 @@ internal object ScreenRecorderControlClient {
         private set
 
     private val listeners = CopyOnWriteArraySet<(RecorderSnapshot) -> Unit>()
-    private val pendingSnapshotCallbacks = mutableListOf<(RecorderSnapshot) -> Unit>()
     private val incomingHandler = Handler(Looper.getMainLooper(), ::handleIncoming)
     private val incoming = Messenger(incomingHandler)
 
@@ -84,20 +86,9 @@ internal object ScreenRecorderControlClient {
     }
 
     fun requestSnapshot(callback: (RecorderSnapshot) -> Unit) {
-        synchronized(pendingSnapshotCallbacks) {
-            pendingSnapshotCallbacks += callback
-        }
+        callback(snapshot)
         bindIfNeeded()
         send(ScreenRecorderContract.MSG_QUERY_STATE)
-        incomingHandler.postDelayed({
-            val shouldFallback = synchronized(pendingSnapshotCallbacks) {
-                pendingSnapshotCallbacks.remove(callback)
-            }
-            if (shouldFallback) callback(snapshot)
-            if (shouldFallback) {
-                Log.w(TAG, "control: state query timeout, cached state=${snapshot.state}")
-            }
-        }, 1_200L)
     }
 
     fun observe(listener: (RecorderSnapshot) -> Unit): () -> Unit {
@@ -106,19 +97,77 @@ internal object ScreenRecorderControlClient {
         return { listeners -= listener }
     }
 
-    fun reportStarting() = send(ScreenRecorderContract.MSG_REPORT_STARTING)
+    fun reportStarting() {
+        publishSnapshot(
+            RecorderSnapshot(
+                state = ScreenRecorderContract.STATE_STARTING,
+                snapshotElapsedRealtime = SystemClock.elapsedRealtime(),
+                startedAtWallClock = System.currentTimeMillis(),
+            ),
+        )
+        send(ScreenRecorderContract.MSG_REPORT_STARTING)
+    }
 
-    fun reportStarted() = send(ScreenRecorderContract.MSG_REPORT_STARTED)
+    fun reportStarted() {
+        if (
+            snapshot.state != ScreenRecorderContract.STATE_RECORDING &&
+            snapshot.state != ScreenRecorderContract.STATE_PAUSED
+        ) {
+            publishSnapshot(
+                RecorderSnapshot(
+                    state = ScreenRecorderContract.STATE_RECORDING,
+                    snapshotElapsedRealtime = SystemClock.elapsedRealtime(),
+                    startedAtWallClock = snapshot.startedAtWallClock.takeIf { it > 0L }
+                        ?: System.currentTimeMillis(),
+                ),
+            )
+        }
+        send(ScreenRecorderContract.MSG_REPORT_STARTED)
+    }
 
-    fun reportIdle() = send(ScreenRecorderContract.MSG_REPORT_IDLE)
+    fun reportIdle() {
+        publishSnapshot(RecorderSnapshot())
+        send(ScreenRecorderContract.MSG_REPORT_IDLE)
+    }
 
-    fun pause() = send(ScreenRecorderContract.MSG_COMMAND_PAUSE)
+    fun pause() {
+        val now = SystemClock.elapsedRealtime()
+        if (snapshot.state == ScreenRecorderContract.STATE_RECORDING) {
+            publishSnapshot(
+                snapshot.copy(
+                    state = ScreenRecorderContract.STATE_PAUSED,
+                    durationMillis = snapshot.durationAt(now),
+                    snapshotElapsedRealtime = now,
+                ),
+            )
+        }
+        commandHandler?.invoke(ScreenRecorderContract.MSG_COMMAND_PAUSE)
+        send(ScreenRecorderContract.MSG_COMMAND_PAUSE)
+    }
 
-    fun resume() = send(ScreenRecorderContract.MSG_COMMAND_RESUME)
+    fun resume() {
+        val now = SystemClock.elapsedRealtime()
+        if (snapshot.state == ScreenRecorderContract.STATE_PAUSED) {
+            publishSnapshot(
+                snapshot.copy(
+                    state = ScreenRecorderContract.STATE_RECORDING,
+                    snapshotElapsedRealtime = now,
+                ),
+            )
+        }
+        commandHandler?.invoke(ScreenRecorderContract.MSG_COMMAND_RESUME)
+        send(ScreenRecorderContract.MSG_COMMAND_RESUME)
+    }
 
-    fun stop() = send(ScreenRecorderContract.MSG_COMMAND_STOP)
+    fun stop() {
+        commandHandler?.invoke(ScreenRecorderContract.MSG_COMMAND_STOP)
+        send(ScreenRecorderContract.MSG_COMMAND_STOP)
+    }
 
-    fun start() = send(ScreenRecorderContract.MSG_COMMAND_START)
+    fun start() {
+        reportStarting()
+        commandHandler?.invoke(ScreenRecorderContract.MSG_COMMAND_START)
+    }
 
     private fun bindIfNeeded() {
         val context = appContext ?: return
@@ -168,12 +217,7 @@ internal object ScreenRecorderControlClient {
         when (message.what) {
             ScreenRecorderContract.MSG_STATE_CHANGED -> {
                 val updated = ScreenRecorderContract.snapshotFrom(message.data)
-                snapshot = updated
-                listeners.forEach { it(updated) }
-                val callbacks = synchronized(pendingSnapshotCallbacks) {
-                    pendingSnapshotCallbacks.toList().also { pendingSnapshotCallbacks.clear() }
-                }
-                callbacks.forEach { it(updated) }
+                publishSnapshot(updated)
             }
             ScreenRecorderContract.MSG_COMMAND_PAUSE,
             ScreenRecorderContract.MSG_COMMAND_RESUME,
@@ -183,6 +227,11 @@ internal object ScreenRecorderControlClient {
         }
         return true
     }
+
+    private fun publishSnapshot(updated: RecorderSnapshot) {
+        snapshot = updated
+        listeners.forEach { it(updated) }
+    }
 }
 
 /** Keeps pause bookkeeping local to the process that owns the active MediaMuxer. */
@@ -191,6 +240,11 @@ internal object MediaMuxerPauseGate {
         IdentityHashMap<MediaMuxer, Boolean>(),
     )
     private val lastPresentationTimes = IdentityHashMap<MediaMuxer, MutableMap<Int, Long>>()
+    private val videoTrackIndexes = IdentityHashMap<MediaMuxer, Int>()
+    private val awaitingVideoKeyframes = java.util.Collections.newSetFromMap(
+        IdentityHashMap<MediaMuxer, Boolean>(),
+    )
+    private val syncWaitStartedMicros = IdentityHashMap<MediaMuxer, Long>()
     private var paused = false
     private var pausedAtMicros = 0L
     private var totalPausedMicros = 0L
@@ -203,9 +257,19 @@ internal object MediaMuxerPauseGate {
     }
 
     @Synchronized
+    fun onTrackAdded(muxer: MediaMuxer, trackIndex: Int, mime: String?) {
+        if (mime?.startsWith("video/") == true) {
+            videoTrackIndexes[muxer] = trackIndex
+        }
+    }
+
+    @Synchronized
     fun onStopped(muxer: MediaMuxer): Boolean {
         val removed = activeMuxers.remove(muxer)
         lastPresentationTimes.remove(muxer)
+        videoTrackIndexes.remove(muxer)
+        awaitingVideoKeyframes.remove(muxer)
+        syncWaitStartedMicros.remove(muxer)
         val sessionEnded = removed && activeMuxers.isEmpty()
         if (sessionEnded) resetTiming()
         return sessionEnded
@@ -220,16 +284,37 @@ internal object MediaMuxerPauseGate {
     }
 
     @Synchronized
-    fun resume(): Boolean {
+    fun resume(requestSyncFrames: () -> Unit): Boolean {
         if (!paused) return false
-        totalPausedMicros += (elapsedRealtimeMicros() - pausedAtMicros).coerceAtLeast(0L)
+        val now = elapsedRealtimeMicros()
+        totalPausedMicros += (now - pausedAtMicros).coerceAtLeast(0L)
         paused = false
         pausedAtMicros = 0L
+        activeMuxers.forEach { muxer ->
+            if (videoTrackIndexes.containsKey(muxer)) {
+                awaitingVideoKeyframes += muxer
+                syncWaitStartedMicros[muxer] = now
+            }
+        }
+        requestSyncFrames()
         return true
     }
 
     @Synchronized
-    fun shouldDrop(muxer: MediaMuxer): Boolean = paused && muxer in activeMuxers
+    fun shouldDrop(muxer: MediaMuxer, trackIndex: Int, flags: Int): Boolean {
+        if (paused && muxer in activeMuxers) return true
+        if (muxer !in awaitingVideoKeyframes) return false
+        val isVideoKeyframe =
+            trackIndex == videoTrackIndexes[muxer] &&
+                flags and MediaCodec.BUFFER_FLAG_KEY_FRAME != 0
+        if (!isVideoKeyframe) return true
+
+        val now = elapsedRealtimeMicros()
+        val waitStarted = syncWaitStartedMicros.remove(muxer) ?: now
+        totalPausedMicros += (now - waitStarted).coerceAtLeast(0L)
+        awaitingVideoKeyframes.remove(muxer)
+        return false
+    }
 
     @Synchronized
     fun adjustedPresentationTime(
@@ -249,6 +334,9 @@ internal object MediaMuxerPauseGate {
     fun reset() {
         activeMuxers.clear()
         lastPresentationTimes.clear()
+        videoTrackIndexes.clear()
+        awaitingVideoKeyframes.clear()
+        syncWaitStartedMicros.clear()
         resetTiming()
     }
 
@@ -256,7 +344,43 @@ internal object MediaMuxerPauseGate {
         paused = false
         pausedAtMicros = 0L
         totalPausedMicros = 0L
+        awaitingVideoKeyframes.clear()
+        syncWaitStartedMicros.clear()
     }
 
     private fun elapsedRealtimeMicros(): Long = SystemClock.elapsedRealtimeNanos() / 1_000L
+}
+
+internal object VideoEncoderSyncFrameRequester {
+    private val encoders = WeakHashMap<MediaCodec, Boolean>()
+
+    @Synchronized
+    fun register(codec: MediaCodec) {
+        encoders[codec] = false
+    }
+
+    @Synchronized
+    fun setActive(codec: MediaCodec, active: Boolean) {
+        if (encoders.containsKey(codec)) encoders[codec] = active
+    }
+
+    @Synchronized
+    fun remove(codec: MediaCodec) {
+        encoders.remove(codec)
+    }
+
+    @Synchronized
+    fun requestSyncFrames(): Int {
+        var requested = 0
+        encoders.forEach { (codec, active) ->
+            if (active) {
+                runCatching {
+                    codec.setParameters(Bundle().apply {
+                        putInt(MediaCodec.PARAMETER_KEY_REQUEST_SYNC_FRAME, 0)
+                    })
+                }.onSuccess { requested++ }
+            }
+        }
+        return requested
+    }
 }

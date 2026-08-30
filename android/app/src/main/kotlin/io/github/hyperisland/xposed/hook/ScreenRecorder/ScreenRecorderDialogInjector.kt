@@ -15,6 +15,8 @@ import android.view.WindowManager
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -319,6 +321,8 @@ private fun RecorderWindowDialog(
     var liveRecorderSnapshot by remember(recordingSnapshot) {
         mutableStateOf(recordingSnapshot)
     }
+    val outsideInteractionSource = remember { MutableInteractionSource() }
+    val panelInteractionSource = remember { MutableInteractionSource() }
     var nowElapsed by remember { mutableStateOf(SystemClock.elapsedRealtime()) }
 
     DisposableEffect(recordingSnapshot) {
@@ -378,132 +382,151 @@ private fun RecorderWindowDialog(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .navigationBarsPadding()
-                .padding(start = 12.dp, top = 10.dp, end = 12.dp, bottom = 12.dp),
-            contentAlignment = Alignment.BottomCenter,
+            modifier = Modifier.fillMaxSize(),
         ) {
-            Card(
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clickable(
+                        interactionSource = outsideInteractionSource,
+                        indication = null,
+                        onClick = { closeAfterAnimation(onCancel) },
+                    ),
+            )
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .onSizeChanged { panelHeight = it.height }
-                    .graphicsLayer {
-                        translationY = panelHeight * panelProgress.value
-                    }
-                    .alpha(1f - panelProgress.value),
-                cornerRadius = 32.dp,
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(start = 12.dp, top = 10.dp, end = 12.dp, bottom = 12.dp),
             ) {
-                Column(
-                    modifier = Modifier.padding(vertical = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onSizeChanged { panelHeight = it.height }
+                        .graphicsLayer {
+                            translationY = panelHeight * panelProgress.value
+                        }
+                        .alpha(1f - panelProgress.value)
+                        .clickable(
+                            interactionSource = panelInteractionSource,
+                            indication = null,
+                            onClick = {},
+                        ),
+                    cornerRadius = 32.dp,
                 ) {
-                    Text(
-                        text = when {
-                            recordingSnapshot == null -> "屏幕录制"
-                            liveRecorderSnapshot?.state == ScreenRecorderContract.STATE_STARTING ->
-                                "准备录制"
-                            liveRecorderSnapshot?.state == ScreenRecorderContract.STATE_PAUSED ->
-                                "已暂停"
-                            else -> "录制中"
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 6.dp),
-                        style = MiuixTheme.textStyles.headline1,
-                        fontSize = (MiuixTheme.textStyles.headline1.fontSize.value + 1f).sp,
-                        fontWeight = FontWeight.SemiBold,
-                        textAlign = TextAlign.Center,
-                    )
-                    if (recordingSnapshot != null) {
-                        val snapshot = liveRecorderSnapshot ?: recordingSnapshot
+                    Column(
+                        modifier = Modifier.padding(vertical = 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
                         Text(
-                            text = "已录制 ${formatRecorderDuration(snapshot.durationAt(nowElapsed))}",
+                            text = when {
+                                recordingSnapshot == null -> "屏幕录制"
+                                liveRecorderSnapshot?.state ==
+                                    ScreenRecorderContract.STATE_STARTING -> "准备录制"
+                                liveRecorderSnapshot?.state ==
+                                    ScreenRecorderContract.STATE_PAUSED -> "已暂停"
+                                else -> "录制中"
+                            },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 28.dp, vertical = 12.dp),
-                            style = MiuixTheme.textStyles.body1,
+                                .padding(horizontal = 20.dp, vertical = 6.dp),
+                            style = MiuixTheme.textStyles.headline1,
+                            fontSize = (MiuixTheme.textStyles.headline1.fontSize.value + 1f).sp,
+                            fontWeight = FontWeight.SemiBold,
                             textAlign = TextAlign.Center,
                         )
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            TextButton(
-                                text = when (snapshot.state) {
-                                    ScreenRecorderContract.STATE_STARTING -> "准备中"
-                                    ScreenRecorderContract.STATE_PAUSED -> "继续"
-                                    else -> "暂停"
-                                },
-                                onClick = {
-                                    when (snapshot.state) {
-                                        ScreenRecorderContract.STATE_PAUSED -> onResume()
-                                        ScreenRecorderContract.STATE_RECORDING -> onPause()
-                                    }
-                                },
-                                modifier = Modifier.weight(1f),
+                        if (recordingSnapshot != null) {
+                            val snapshot = liveRecorderSnapshot ?: recordingSnapshot
+                            Text(
+                                text =
+                                    "已录制 ${formatRecorderDuration(snapshot.durationAt(nowElapsed))}",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 28.dp, vertical = 12.dp),
+                                style = MiuixTheme.textStyles.body1,
+                                textAlign = TextAlign.Center,
                             )
-                            Button(
-                                onClick = { closeAfterAnimation(onStop) },
-                                modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.buttonColorsPrimary(),
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
-                                Text("结束")
+                                TextButton(
+                                    text = when (snapshot.state) {
+                                        ScreenRecorderContract.STATE_STARTING -> "准备中"
+                                        ScreenRecorderContract.STATE_PAUSED -> "继续"
+                                        else -> "暂停"
+                                    },
+                                    onClick = {
+                                        when (snapshot.state) {
+                                            ScreenRecorderContract.STATE_PAUSED -> onResume()
+                                            ScreenRecorderContract.STATE_RECORDING -> onPause()
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Button(
+                                    onClick = { closeAfterAnimation(onStop) },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColorsPrimary(),
+                                ) {
+                                    Text("结束")
+                                }
                             }
-                        }
-                    } else {
-                        Column {
-                            OverlayDropdownPreference(
-                                title = "分辨率",
-                                summary = safeResolutions[resolutionIndex].first,
-                                items = safeResolutions.map(Pair<String, String>::first),
-                                selectedIndex = resolutionIndex,
-                                insideMargin = itemInsideMargin,
-                                renderInRootScaffold = true,
-                                onSelectedIndexChange = { resolutionIndex = it },
-                            )
-                            OverlayDropdownPreference(
-                                title = "声音来源",
-                                summary = safeSounds[soundIndex].first,
-                                items = safeSounds.map(Pair<String, Int>::first),
-                                selectedIndex = soundIndex,
-                                insideMargin = itemInsideMargin,
-                                renderInRootScaffold = true,
-                                onSelectedIndexChange = { soundIndex = it },
-                            )
-                            ArrowPreference(
-                                title = "更多设置",
-                                summary = "打开小米录屏设置",
-                                insideMargin = itemInsideMargin,
-                                onClick = { closeAfterAnimation(onOpenSettings) },
-                            )
-                        }
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            TextButton(
-                                text = "取消",
-                                onClick = { closeAfterAnimation(onCancel) },
-                                modifier = Modifier.weight(1f),
-                            )
-                            Button(
-                                onClick = {
-                                    closeAfterAnimation {
-                                        onStart(
-                                            safeResolutions[resolutionIndex].second,
-                                            safeSounds[soundIndex].second,
-                                        )
-                                    }
-                                },
-                                modifier = Modifier.weight(1f),
-                                colors = ButtonDefaults.buttonColorsPrimary(),
+                        } else {
+                            Column {
+                                OverlayDropdownPreference(
+                                    title = "分辨率",
+                                    summary = safeResolutions[resolutionIndex].first,
+                                    items = safeResolutions.map(Pair<String, String>::first),
+                                    selectedIndex = resolutionIndex,
+                                    insideMargin = itemInsideMargin,
+                                    renderInRootScaffold = true,
+                                    onSelectedIndexChange = { resolutionIndex = it },
+                                )
+                                OverlayDropdownPreference(
+                                    title = "声音来源",
+                                    summary = safeSounds[soundIndex].first,
+                                    items = safeSounds.map(Pair<String, Int>::first),
+                                    selectedIndex = soundIndex,
+                                    insideMargin = itemInsideMargin,
+                                    renderInRootScaffold = true,
+                                    onSelectedIndexChange = { soundIndex = it },
+                                )
+                                ArrowPreference(
+                                    title = "更多设置",
+                                    summary = "打开小米录屏设置",
+                                    insideMargin = itemInsideMargin,
+                                    onClick = { closeAfterAnimation(onOpenSettings) },
+                                )
+                            }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
-                                Text("开始录制")
+                                TextButton(
+                                    text = "取消",
+                                    onClick = { closeAfterAnimation(onCancel) },
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Button(
+                                    onClick = {
+                                        closeAfterAnimation {
+                                            onStart(
+                                                safeResolutions[resolutionIndex].second,
+                                                safeSounds[soundIndex].second,
+                                            )
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColorsPrimary(),
+                                ) {
+                                    Text("开始录制")
+                                }
                             }
                         }
                     }
