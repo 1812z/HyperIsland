@@ -51,7 +51,7 @@ internal object ScreenRecorderControlClient {
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             remote = service?.let(::Messenger)
-            Log.w(TAG, "control: state service connected")
+            Log.d(TAG, "control: state service connected")
             pendingStateReport?.let { report ->
                 pendingStateReport = null
                 send(report)
