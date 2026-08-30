@@ -297,6 +297,8 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
         private val CORE_PREF_KEYS = setOf(
             "pref_show_welcome",
             "pref_resume_notification",
+            "pref_screen_recorder_island",
+            "pref_screen_recorder_immediate_start",
             "pref_settings_home_entry",
             "pref_settings_home_entry_position",
             "pref_settings_home_entry_icon_style",

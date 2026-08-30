@@ -1,13 +1,16 @@
 package io.github.hyperisland.compose.page.settings.extensions
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import io.github.hyperisland.R
@@ -21,14 +24,15 @@ import io.github.hyperisland.compose.component.SettingsItemMargin
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.rememberBooleanPreference
 import io.github.hyperisland.compose.data.rememberStringPreference
-import io.github.hyperisland.utils.HyperOsVersionUtil
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.ChevronForward
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 internal fun HookExtensionPage(
@@ -52,7 +56,6 @@ internal fun HookExtensionPage(
     )
     val settingsIcon = rememberStringPreference(prefs, KEY_SETTINGS_HOME_ENTRY_ICON_STYLE, MODE_DEFAULT)
     val smooth = rememberBooleanPreference(prefs, KEY_SMOOTH_ISLAND, false)
-    val smoothSupported = remember { HyperOsVersionUtil.getMajorVersion() != 4 }
     val smoothingState = remember(KEY_SMOOTHING) { mutableFloatStateOf(prefs.getDouble(KEY_SMOOTHING, DEFAULT_SMOOTHING).toFloat()) }
     val unlockAll = rememberBooleanPreference(prefs, KEY_UNLOCK_ALL_FOCUS, false)
     val bluetooth = rememberBooleanPreference(prefs, KEY_BLUETOOTH_ISLAND, false)
@@ -65,6 +68,23 @@ internal fun HookExtensionPage(
     }
     val unlockAuth = rememberBooleanPreference(prefs, KEY_UNLOCK_FOCUS_AUTH, false)
     val resumeNotification = rememberBooleanPreference(prefs, KEY_RESUME_NOTIFICATION, true)
+    val screenRecorderIsland = rememberBooleanPreference(prefs, KEY_SCREEN_RECORDER_ISLAND, false)
+    val screenRecorderImmediateStart = rememberBooleanPreference(
+        prefs,
+        KEY_SCREEN_RECORDER_IMMEDIATE_START,
+        false,
+    )
+    val warningColors = if (MiuixTheme.colorScheme.background.luminance() > 0.5f) {
+        CardDefaults.defaultColors(
+            color = Color(0xFFFFF3D6),
+            contentColor = Color(0xFF704D00),
+        )
+    } else {
+        CardDefaults.defaultColors(
+            color = Color(0xFF3A2D12),
+            contentColor = Color(0xFFFFD978),
+        )
+    }
 
     fun show(message: String) { scope.launch { snackbar.showSnackbar(message) } }
     fun request(enabled: Boolean, packages: List<String>): Boolean {
@@ -74,13 +94,6 @@ internal fun HookExtensionPage(
         return result.isSuccess
     }
     fun restart() = show(restartRequired)
-
-    LaunchedEffect(smoothSupported) {
-        if (!smoothSupported && smooth.value) {
-            smooth.value = false
-            prefs.putBoolean(KEY_SMOOTH_ISLAND, false)
-        }
-    }
 
     DetailPage(
         title = stringResource(R.string.hook_extension),
@@ -150,7 +163,6 @@ internal fun HookExtensionPage(
                     summary = stringResource(R.string.smooth_island_summary),
                     icon = null,
                     checked = smooth.value,
-                    enabled = smoothSupported,
                 ) { value ->
                     if (request(value, listOf("com.android.systemui"))) {
                         smooth.value = value
@@ -158,7 +170,7 @@ internal fun HookExtensionPage(
                         restart()
                     }
                 }
-                AnimatedVisibility(smooth.value && smoothSupported) {
+                AnimatedVisibility(smooth.value) {
                     PreferenceSlider(
                         title = stringResource(R.string.ext_smoothing),
                         icon = null,
@@ -305,6 +317,54 @@ internal fun HookExtensionPage(
             }
         }
         item {
+            SectionTitle(stringResource(R.string.screen_recorder_dialog_title))
+            Card(modifier = Modifier.fillMaxWidth()) {
+                PreferenceSwitch(
+                    title = stringResource(R.string.ext_screen_recorder_island),
+                    summary = stringResource(R.string.ext_screen_recorder_island_summary),
+                    icon = null,
+                    checked = screenRecorderIsland.value,
+                ) { value ->
+                    if (request(value, listOf(SCREEN_RECORDER_PACKAGE))) {
+                        screenRecorderIsland.value = value
+                        prefs.putBoolean(KEY_SCREEN_RECORDER_ISLAND, value)
+                        restart()
+                    }
+                }
+                AnimatedVisibility(screenRecorderIsland.value) {
+                    PreferenceSwitch(
+                        title = stringResource(R.string.ext_screen_recorder_immediate_start),
+                        summary = stringResource(R.string.ext_screen_recorder_immediate_start_summary),
+                        icon = null,
+                        checked = screenRecorderImmediateStart.value,
+                    ) { value ->
+                        screenRecorderImmediateStart.value = value
+                        prefs.putBoolean(KEY_SCREEN_RECORDER_IMMEDIATE_START, value)
+                    }
+                }
+            }
+        }
+        item {
+            AnimatedVisibility(screenRecorderIsland.value) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = warningColors,
+                    showIndication = true,
+                    onClick = {
+                        context.startActivity(
+                            Intent(Intent.ACTION_VIEW, Uri.parse(SCREEN_RECORDER_DOWNLOAD_URL)),
+                        )
+                    },
+                ) {
+                    BasicComponent(
+                        title = stringResource(R.string.ext_screen_recorder_compatibility_title),
+                        summary = stringResource(R.string.ext_screen_recorder_compatibility_summary),
+                        insideMargin = SettingsItemMargin,
+                    )
+                }
+            }
+        }
+        item {
             SectionTitle(stringResource(R.string.ext_download_manager))
             Card(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(
@@ -323,3 +383,7 @@ internal fun HookExtensionPage(
         }
     }
 }
+
+private const val SCREEN_RECORDER_PACKAGE = "com.miui.screenrecorder"
+private const val SCREEN_RECORDER_DOWNLOAD_URL =
+    "https://1848933255.share.123pan.cn/123pan/9T69vd-ej0wd?pwd=kAf1#"

@@ -1,5 +1,38 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
+    <string name="screen_recorder_dialog_title">画面録画</string>
+    <string name="screen_recorder_resolution">解像度</string>
+    <string name="screen_recorder_resolution_system">システム設定に従う</string>
+    <string name="screen_recorder_sound_source">音声ソース</string>
+    <string name="screen_recorder_sound_none">音声なし</string>
+    <string name="screen_recorder_sound_microphone">マイク</string>
+    <string name="screen_recorder_sound_device">デバイス音声</string>
+    <string name="screen_recorder_more_settings">その他の設定</string>
+    <string name="screen_recorder_more_settings_summary">Xiaomi画面録画の設定を開く</string>
+    <string name="screen_recorder_start">録画を開始</string>
+    <string name="screen_recorder_current_setting">現在の設定</string>
+    <string name="screen_recorder_current_setting_value">現在の設定（%1$s）</string>
+    <string name="screen_recorder_sound_device_and_microphone">デバイス音声＋マイク</string>
+    <string name="screen_recorder_preparing_title">録画の準備中</string>
+    <string name="screen_recorder_recording_title">録画中</string>
+    <string name="screen_recorder_paused_title">一時停止中</string>
+    <string name="screen_recorder_recorded_duration">録画時間 %1$s</string>
+    <string name="screen_recorder_preparing">準備中</string>
+    <string name="screen_recorder_pause">一時停止</string>
+    <string name="screen_recorder_resume">再開</string>
+    <string name="screen_recorder_stop">終了</string>
+    <string name="screen_recorder_cancel">キャンセル</string>
+    <string name="screen_recorder_notification_recording_title">画面を録画中</string>
+    <string name="screen_recorder_notification_paused_title">録画を一時停止中</string>
+    <string name="screen_recorder_notification_recording_text">録画を一時停止または終了して保存できます</string>
+    <string name="screen_recorder_notification_paused_text">タップして録画を再開</string>
+    <string name="screen_recorder_notification_stop">停止</string>
+    <string name="ext_screen_recorder_island">フローティングウィンドウ</string>
+    <string name="ext_screen_recorder_island_summary">公式の画面録画フローティングウィンドウをスーパーアイランドに置き換えます。</string>
+    <string name="ext_screen_recorder_immediate_start">すぐに録画</string>
+    <string name="ext_screen_recorder_immediate_start_summary">クイック設定タイルをタップしたときに確認ダイアログを表示せず、すぐに録画を開始します</string>
+    <string name="ext_screen_recorder_compatibility_title">互換性に関する注意</string>
+    <string name="ext_screen_recorder_compatibility_summary">この機能は一部の画面録画バージョンでのみ動作する可能性があります。タップしてバージョン 4.16.2.6.1 をダウンロードします。</string>
     <string name="module_description">Xiaomi HyperIsland 拡張機能</string>
     <!-- 欢迎超级岛 -->
     <string name="island_welcome_title">いらっしゃいませ</string>
@@ -579,6 +612,7 @@
     <string name="download_manager">ダウンロードマネージャー</string>
     <string name="xmsf">XMSF (Xiaomi サービスフレームワーク)</string>
     <string name="hook_scope_settings">システム設定</string>
+    <string name="screen_recorder">画面録画</string>
     <string name="restart_root_required">このアプリに root 権限が付与されているか確認してください</string>
     <string name="restart_failed">再起動に失敗しました: %1$s</string>
     <string name="support_development">サポート開発</string>

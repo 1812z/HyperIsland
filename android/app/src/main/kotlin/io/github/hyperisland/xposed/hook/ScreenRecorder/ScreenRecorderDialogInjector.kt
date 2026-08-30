@@ -100,9 +100,45 @@ internal object RecorderOverlayGate {
             view?.javaClass?.name == "com.android.internal.policy.DecorView"
 }
 
+internal data class ScreenRecorderUiText(
+    val dialogTitle: String,
+    val resolution: String,
+    val soundSource: String,
+    val soundNone: String,
+    val soundMicrophone: String,
+    val soundDevice: String,
+    val soundDeviceAndMicrophone: String,
+    val moreSettings: String,
+    val moreSettingsSummary: String,
+    val start: String,
+    val currentSetting: String,
+    val currentSettingValueFormat: String,
+    val preparingTitle: String,
+    val recordingTitle: String,
+    val pausedTitle: String,
+    val recordedDurationFormat: String,
+    val preparing: String,
+    val pause: String,
+    val resume: String,
+    val stop: String,
+    val cancel: String,
+    val notificationRecordingTitle: String,
+    val notificationPausedTitle: String,
+    val notificationRecordingText: String,
+    val notificationPausedText: String,
+    val notificationStop: String,
+) {
+    fun currentSettingValue(value: String): String =
+        String.format(Locale.getDefault(), currentSettingValueFormat, value)
+
+    fun recordedDuration(value: String): String =
+        String.format(Locale.getDefault(), recordedDurationFormat, value)
+}
+
 internal object ScreenRecorderDialogInjector {
     fun show(
         context: Context,
+        text: ScreenRecorderUiText,
         resolutions: List<Pair<String, String>>,
         sounds: List<Pair<String, Int>>,
         initialResolution: String,
@@ -145,6 +181,7 @@ internal object ScreenRecorderDialogInjector {
                 }
                 MiuixTheme(controller = controller) {
                     RecorderWindowDialog(
+                        text = text,
                         resolutions = resolutions,
                         sounds = sounds,
                         initialResolution = initialResolution,
@@ -288,6 +325,7 @@ private class InjectedViewTreeOwner(
 
 @Composable
 private fun RecorderWindowDialog(
+    text: ScreenRecorderUiText,
     resolutions: List<Pair<String, String>>,
     sounds: List<Pair<String, Int>>,
     initialResolution: String,
@@ -301,9 +339,9 @@ private fun RecorderWindowDialog(
     onStop: () -> Unit,
     onBackHandlerChanged: ((() -> Unit)?) -> Unit,
 ) {
-    val safeResolutions = resolutions.ifEmpty { listOf("当前设置" to initialResolution) }
+    val safeResolutions = resolutions.ifEmpty { listOf(text.currentSetting to initialResolution) }
     val safeSounds = sounds.ifEmpty {
-        listOf("无声" to 0, "麦克风" to 1, "设备声音" to 2)
+        listOf(text.soundNone to 0, text.soundMicrophone to 1, text.soundDevice to 2)
     }
     val itemInsideMargin = PaddingValues(horizontal = 28.dp, vertical = 16.dp)
     var resolutionIndex by remember(safeResolutions, initialResolution) {
@@ -421,12 +459,12 @@ private fun RecorderWindowDialog(
                     ) {
                         Text(
                             text = when {
-                                recordingSnapshot == null -> "屏幕录制"
+                                recordingSnapshot == null -> text.dialogTitle
                                 liveRecorderSnapshot?.state ==
-                                    ScreenRecorderContract.STATE_STARTING -> "准备录制"
+                                    ScreenRecorderContract.STATE_STARTING -> text.preparingTitle
                                 liveRecorderSnapshot?.state ==
-                                    ScreenRecorderContract.STATE_PAUSED -> "已暂停"
-                                else -> "录制中"
+                                    ScreenRecorderContract.STATE_PAUSED -> text.pausedTitle
+                                else -> text.recordingTitle
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -439,8 +477,9 @@ private fun RecorderWindowDialog(
                         if (recordingSnapshot != null) {
                             val snapshot = liveRecorderSnapshot ?: recordingSnapshot
                             Text(
-                                text =
-                                    "已录制 ${formatRecorderDuration(snapshot.durationAt(nowElapsed))}",
+                                text = text.recordedDuration(
+                                    formatRecorderDuration(snapshot.durationAt(nowElapsed)),
+                                ),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = 28.dp, vertical = 12.dp),
@@ -455,9 +494,9 @@ private fun RecorderWindowDialog(
                             ) {
                                 TextButton(
                                     text = when (snapshot.state) {
-                                        ScreenRecorderContract.STATE_STARTING -> "准备中"
-                                        ScreenRecorderContract.STATE_PAUSED -> "继续"
-                                        else -> "暂停"
+                                        ScreenRecorderContract.STATE_STARTING -> text.preparing
+                                        ScreenRecorderContract.STATE_PAUSED -> text.resume
+                                        else -> text.pause
                                     },
                                     onClick = {
                                         when (snapshot.state) {
@@ -472,13 +511,13 @@ private fun RecorderWindowDialog(
                                     modifier = Modifier.weight(1f),
                                     colors = ButtonDefaults.buttonColorsPrimary(),
                                 ) {
-                                    Text("结束")
+                                    Text(text.stop)
                                 }
                             }
                         } else {
                             Column {
                                 OverlayDropdownPreference(
-                                    title = "分辨率",
+                                    title = text.resolution,
                                     summary = safeResolutions[resolutionIndex].first,
                                     items = safeResolutions.map(Pair<String, String>::first),
                                     selectedIndex = resolutionIndex,
@@ -487,7 +526,7 @@ private fun RecorderWindowDialog(
                                     onSelectedIndexChange = { resolutionIndex = it },
                                 )
                                 OverlayDropdownPreference(
-                                    title = "声音来源",
+                                    title = text.soundSource,
                                     summary = safeSounds[soundIndex].first,
                                     items = safeSounds.map(Pair<String, Int>::first),
                                     selectedIndex = soundIndex,
@@ -496,8 +535,8 @@ private fun RecorderWindowDialog(
                                     onSelectedIndexChange = { soundIndex = it },
                                 )
                                 ArrowPreference(
-                                    title = "更多设置",
-                                    summary = "打开小米录屏设置",
+                                    title = text.moreSettings,
+                                    summary = text.moreSettingsSummary,
                                     insideMargin = itemInsideMargin,
                                     onClick = { closeAfterAnimation(onOpenSettings) },
                                 )
@@ -509,7 +548,7 @@ private fun RecorderWindowDialog(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
                                 TextButton(
-                                    text = "取消",
+                                    text = text.cancel,
                                     onClick = { closeAfterAnimation(onCancel) },
                                     modifier = Modifier.weight(1f),
                                 )
@@ -525,7 +564,7 @@ private fun RecorderWindowDialog(
                                     modifier = Modifier.weight(1f),
                                     colors = ButtonDefaults.buttonColorsPrimary(),
                                 ) {
-                                    Text("开始录制")
+                                    Text(text.start)
                                 }
                             }
                         }

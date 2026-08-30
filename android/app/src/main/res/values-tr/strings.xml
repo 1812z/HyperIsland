@@ -1,5 +1,38 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
+    <string name="screen_recorder_dialog_title">Ekran kaydı</string>
+    <string name="screen_recorder_resolution">Çözünürlük</string>
+    <string name="screen_recorder_resolution_system">Sistem ayarını kullan</string>
+    <string name="screen_recorder_sound_source">Ses kaynağı</string>
+    <string name="screen_recorder_sound_none">Ses yok</string>
+    <string name="screen_recorder_sound_microphone">Mikrofon</string>
+    <string name="screen_recorder_sound_device">Cihaz sesi</string>
+    <string name="screen_recorder_more_settings">Daha fazla ayar</string>
+    <string name="screen_recorder_more_settings_summary">Xiaomi Ekran Kaydedici ayarlarını aç</string>
+    <string name="screen_recorder_start">Kaydı başlat</string>
+    <string name="screen_recorder_current_setting">Geçerli ayar</string>
+    <string name="screen_recorder_current_setting_value">Geçerli ayar (%1$s)</string>
+    <string name="screen_recorder_sound_device_and_microphone">Cihaz sesi + mikrofon</string>
+    <string name="screen_recorder_preparing_title">Kayıt hazırlanıyor</string>
+    <string name="screen_recorder_recording_title">Kayıt yapılıyor</string>
+    <string name="screen_recorder_paused_title">Kayıt duraklatıldı</string>
+    <string name="screen_recorder_recorded_duration">Kaydedilen süre: %1$s</string>
+    <string name="screen_recorder_preparing">Hazırlanıyor</string>
+    <string name="screen_recorder_pause">Duraklat</string>
+    <string name="screen_recorder_resume">Devam et</string>
+    <string name="screen_recorder_stop">Bitir</string>
+    <string name="screen_recorder_cancel">İptal</string>
+    <string name="screen_recorder_notification_recording_title">Ekran kaydediliyor</string>
+    <string name="screen_recorder_notification_paused_title">Kayıt duraklatıldı</string>
+    <string name="screen_recorder_notification_recording_text">Kaydı duraklatabilir veya bitirip kaydedebilirsiniz</string>
+    <string name="screen_recorder_notification_paused_text">Kayda devam etmek için dokunun</string>
+    <string name="screen_recorder_notification_stop">Durdur</string>
+    <string name="ext_screen_recorder_island">Yüzen pencere</string>
+    <string name="ext_screen_recorder_island_summary">Resmî ekran kaydı yüzen penceresini Süper Ada ile değiştirir.</string>
+    <string name="ext_screen_recorder_immediate_start">Hemen kaydet</string>
+    <string name="ext_screen_recorder_immediate_start_summary">Hızlı Ayarlar kutucuğuna dokununca onay penceresi göstermeden kaydı doğrudan başlatır</string>
+    <string name="ext_screen_recorder_compatibility_title">Uyumluluk uyarısı</string>
+    <string name="ext_screen_recorder_compatibility_summary">Bu özellik yalnızca bazı Ekran Kaydedici sürümlerini destekleyebilir. 4.16.2.6.1 sürümünü indirmek için dokunun.</string>
     <string name="module_description">HyperOS için Xiaomi HyperIsland geliştirmeleri</string>
     <!-- 欢迎超级岛 -->
     <string name="island_welcome_title">Hoş geldin</string>
@@ -579,6 +612,7 @@
     <string name="download_manager">İndirme Yöneticisi</string>
     <string name="xmsf">XMSF (Xiaomi Hizmet Çerçevesi)</string>
     <string name="hook_scope_settings">Sistem Ayarları</string>
+    <string name="screen_recorder">Ekran Kaydedici</string>
     <string name="restart_root_required">Lütfen bu uygulamaya root izni verildiğini doğrulayın</string>
     <string name="restart_failed">Yeniden başlatma başarısız: %1$s</string>
     <string name="support_development">Geliştirmeyi destekleyin</string>

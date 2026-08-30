@@ -1,5 +1,38 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
+    <string name="screen_recorder_dialog_title">Screen recording</string>
+    <string name="screen_recorder_resolution">Resolution</string>
+    <string name="screen_recorder_resolution_system">Use system setting</string>
+    <string name="screen_recorder_sound_source">Audio source</string>
+    <string name="screen_recorder_sound_none">No audio</string>
+    <string name="screen_recorder_sound_microphone">Microphone</string>
+    <string name="screen_recorder_sound_device">Device audio</string>
+    <string name="screen_recorder_more_settings">More settings</string>
+    <string name="screen_recorder_more_settings_summary">Open Xiaomi Screen Recorder settings</string>
+    <string name="screen_recorder_start">Start recording</string>
+    <string name="screen_recorder_current_setting">Current setting</string>
+    <string name="screen_recorder_current_setting_value">Current setting (%1$s)</string>
+    <string name="screen_recorder_sound_device_and_microphone">Device audio + microphone</string>
+    <string name="screen_recorder_preparing_title">Preparing to record</string>
+    <string name="screen_recorder_recording_title">Recording</string>
+    <string name="screen_recorder_paused_title">Paused</string>
+    <string name="screen_recorder_recorded_duration">Recorded %1$s</string>
+    <string name="screen_recorder_preparing">Preparing</string>
+    <string name="screen_recorder_pause">Pause</string>
+    <string name="screen_recorder_resume">Resume</string>
+    <string name="screen_recorder_stop">Stop</string>
+    <string name="screen_recorder_cancel">Cancel</string>
+    <string name="screen_recorder_notification_recording_title">Recording screen</string>
+    <string name="screen_recorder_notification_paused_title">Recording paused</string>
+    <string name="screen_recorder_notification_recording_text">Pause or stop and save the recording</string>
+    <string name="screen_recorder_notification_paused_text">Tap to resume recording</string>
+    <string name="screen_recorder_notification_stop">Stop</string>
+    <string name="ext_screen_recorder_island">Floating window</string>
+    <string name="ext_screen_recorder_island_summary">Replace the official recorder floating window with Super Island.</string>
+    <string name="ext_screen_recorder_immediate_start">Record immediately</string>
+    <string name="ext_screen_recorder_immediate_start_summary">Start recording directly from the Quick Settings tile without a confirmation dialog</string>
+    <string name="ext_screen_recorder_compatibility_title">Compatibility notice</string>
+    <string name="ext_screen_recorder_compatibility_summary">This feature may only support some Screen Recorder versions. Tap to download version 4.16.2.6.1.</string>
     <string name="module_description">Xiaomi HyperIsland enhancements for HyperOS</string>
     <!-- 欢迎超级岛 -->
     <string name="island_welcome_title">Welcome</string>
@@ -579,6 +612,7 @@
     <string name="download_manager">Download Manager</string>
     <string name="xmsf">XMSF (Xiaomi Service Framework)</string>
     <string name="hook_scope_settings">System Settings</string>
+    <string name="screen_recorder">Screen Recorder</string>
     <string name="restart_root_required">Please check if ROOT permission has been granted to this app</string>
     <string name="restart_failed">Restart failed: %1$s</string>
     <string name="support_development">Support development</string>

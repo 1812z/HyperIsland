@@ -1,6 +1,8 @@
 package io.github.hyperisland.compose.page.settings.extensions
 
 internal const val KEY_RESUME_NOTIFICATION = "pref_resume_notification"
+internal const val KEY_SCREEN_RECORDER_ISLAND = "pref_screen_recorder_island"
+internal const val KEY_SCREEN_RECORDER_IMMEDIATE_START = "pref_screen_recorder_immediate_start"
 internal const val KEY_SETTINGS_HOME_ENTRY = "pref_settings_home_entry"
 internal const val KEY_SETTINGS_HOME_ENTRY_POSITION = "pref_settings_home_entry_position"
 internal const val KEY_SETTINGS_HOME_ENTRY_ICON_STYLE = "pref_settings_home_entry_icon_style"

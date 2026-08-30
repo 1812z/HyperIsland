@@ -10,6 +10,29 @@
     <string name="screen_recorder_more_settings">更多设置</string>
     <string name="screen_recorder_more_settings_summary">打开小米屏幕录制设置</string>
     <string name="screen_recorder_start">开始录制</string>
+    <string name="screen_recorder_current_setting">当前设置</string>
+    <string name="screen_recorder_current_setting_value">当前设置（%1$s）</string>
+    <string name="screen_recorder_sound_device_and_microphone">设备声音+麦克风</string>
+    <string name="screen_recorder_preparing_title">准备录制</string>
+    <string name="screen_recorder_recording_title">录制中</string>
+    <string name="screen_recorder_paused_title">已暂停</string>
+    <string name="screen_recorder_recorded_duration">已录制 %1$s</string>
+    <string name="screen_recorder_preparing">准备中</string>
+    <string name="screen_recorder_pause">暂停</string>
+    <string name="screen_recorder_resume">继续</string>
+    <string name="screen_recorder_stop">结束</string>
+    <string name="screen_recorder_cancel">取消</string>
+    <string name="screen_recorder_notification_recording_title">正在录制屏幕</string>
+    <string name="screen_recorder_notification_paused_title">录制已暂停</string>
+    <string name="screen_recorder_notification_recording_text">可暂停或停止并保存录制</string>
+    <string name="screen_recorder_notification_paused_text">点击继续录制</string>
+    <string name="screen_recorder_notification_stop">停止</string>
+    <string name="ext_screen_recorder_island">悬浮窗</string>
+    <string name="ext_screen_recorder_island_summary">使用超级岛代替官方录屏悬浮窗</string>
+    <string name="ext_screen_recorder_immediate_start">立刻录制</string>
+    <string name="ext_screen_recorder_immediate_start_summary">点击通知栏磁贴后不显示询问弹窗，直接开始录制</string>
+    <string name="ext_screen_recorder_compatibility_title">兼容性提醒</string>
+    <string name="ext_screen_recorder_compatibility_summary">该功能可能仅支持部分版本的屏幕录制。点击下载 4.16.2.6.1 版本</string>
     <string name="module_description">澎湃OS3更多超级岛</string>
 
     <!-- 欢迎超级岛 -->
@@ -599,6 +622,7 @@
     <string name="download_manager">下载管理器</string>
     <string name="xmsf">小米服务框架</string>
     <string name="hook_scope_settings">系统设置</string>
+    <string name="screen_recorder">屏幕录制</string>
     <string name="restart_root_required">请检查是否已给予本应用 ROOT 权限</string>
     <string name="restart_failed">重启失败：%1$s</string>
     <string name="support_development">支持开发</string>

@@ -116,7 +116,9 @@ class HyperIslandModule : XposedModule() {
                 }
 
             "com.miui.screenrecorder" ->
-                ScreenRecorderHook.init(this, param)
+                if (ConfigManager.getBoolean("pref_screen_recorder_island", false)) {
+                    ScreenRecorderHook.init(this, param)
+                }
 
         }
     }

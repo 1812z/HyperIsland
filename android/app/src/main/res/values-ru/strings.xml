@@ -1,5 +1,38 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
+    <string name="screen_recorder_dialog_title">Запись экрана</string>
+    <string name="screen_recorder_resolution">Разрешение</string>
+    <string name="screen_recorder_resolution_system">Использовать системную настройку</string>
+    <string name="screen_recorder_sound_source">Источник звука</string>
+    <string name="screen_recorder_sound_none">Без звука</string>
+    <string name="screen_recorder_sound_microphone">Микрофон</string>
+    <string name="screen_recorder_sound_device">Звук устройства</string>
+    <string name="screen_recorder_more_settings">Дополнительные настройки</string>
+    <string name="screen_recorder_more_settings_summary">Открыть настройки записи экрана Xiaomi</string>
+    <string name="screen_recorder_start">Начать запись</string>
+    <string name="screen_recorder_current_setting">Текущая настройка</string>
+    <string name="screen_recorder_current_setting_value">Текущая настройка (%1$s)</string>
+    <string name="screen_recorder_sound_device_and_microphone">Звук устройства + микрофон</string>
+    <string name="screen_recorder_preparing_title">Подготовка к записи</string>
+    <string name="screen_recorder_recording_title">Идёт запись</string>
+    <string name="screen_recorder_paused_title">Запись приостановлена</string>
+    <string name="screen_recorder_recorded_duration">Записано: %1$s</string>
+    <string name="screen_recorder_preparing">Подготовка</string>
+    <string name="screen_recorder_pause">Пауза</string>
+    <string name="screen_recorder_resume">Продолжить</string>
+    <string name="screen_recorder_stop">Завершить</string>
+    <string name="screen_recorder_cancel">Отмена</string>
+    <string name="screen_recorder_notification_recording_title">Идёт запись экрана</string>
+    <string name="screen_recorder_notification_paused_title">Запись приостановлена</string>
+    <string name="screen_recorder_notification_recording_text">Запись можно приостановить или завершить и сохранить</string>
+    <string name="screen_recorder_notification_paused_text">Нажмите, чтобы продолжить запись</string>
+    <string name="screen_recorder_notification_stop">Остановить</string>
+    <string name="ext_screen_recorder_island">Плавающее окно</string>
+    <string name="ext_screen_recorder_island_summary">Заменяет официальное плавающее окно записи на Суперостров.</string>
+    <string name="ext_screen_recorder_immediate_start">Записывать сразу</string>
+    <string name="ext_screen_recorder_immediate_start_summary">Начинать запись из плитки быстрых настроек без окна подтверждения</string>
+    <string name="ext_screen_recorder_compatibility_title">Предупреждение о совместимости</string>
+    <string name="ext_screen_recorder_compatibility_summary">Функция может поддерживать только некоторые версии приложения записи экрана. Нажмите, чтобы скачать версию 4.16.2.6.1.</string>
     <string name="module_description">Расширение Xiaomi HyperIsland для HyperOS</string>
     <!-- 欢迎超级岛 -->
     <string name="island_welcome_title">Добро пожаловать</string>
@@ -579,6 +612,7 @@
     <string name="download_manager">Менеджер загрузок</string>
     <string name="xmsf">Платформа обслуживания Xiaomi</string>
     <string name="hook_scope_settings">Системные настройки</string>
+    <string name="screen_recorder">Запись экрана</string>
     <string name="restart_root_required">Пожалуйста, проверьте, предоставлены ли этому приложению ROOT-права</string>
     <string name="restart_failed">Ошибка перезапуска: %1$s</string>
     <string name="support_development">Поддержка развития</string>

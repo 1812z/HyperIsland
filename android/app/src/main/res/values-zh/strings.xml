@@ -585,6 +585,7 @@
     <string name="download_manager">下载管理器</string>
     <string name="xmsf">小米服务框架</string>
     <string name="hook_scope_settings">系统设置</string>
+    <string name="screen_recorder">屏幕录制</string>
     <string name="restart_root_required">请检查是否已给予本应用 ROOT 权限</string>
     <string name="restart_failed">重启失败：%1$s</string>
     <string name="support_development">支持开发</string>

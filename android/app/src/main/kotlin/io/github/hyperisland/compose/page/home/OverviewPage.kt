@@ -458,9 +458,10 @@ private fun RestartScopeDialog(show: Boolean, onDismiss: () -> Unit) {
         DOWNLOADS_PACKAGE to stringResource(R.string.download_manager),
         XMSF_PACKAGE to stringResource(R.string.xmsf),
         SETTINGS_PACKAGE to stringResource(R.string.hook_scope_settings),
+        SCREEN_RECORDER_PACKAGE to stringResource(R.string.screen_recorder),
     )
     var selectedPackages by remember(show) {
-        mutableStateOf(scopeOptions.map { it.first }.toSet())
+        mutableStateOf(emptySet<String>())
     }
     var restarting by remember(show) { mutableStateOf(false) }
     var error by remember(show) { mutableStateOf<String?>(null) }
@@ -518,6 +519,9 @@ private fun RestartScopeDialog(show: Boolean, onDismiss: () -> Unit) {
                         if (DOWNLOADS_PACKAGE in selectedPackages) add("am force-stop $DOWNLOADS_PACKAGE")
                         if (XMSF_PACKAGE in selectedPackages) add("am force-stop $XMSF_PACKAGE")
                         if (SETTINGS_PACKAGE in selectedPackages) add("am force-stop $SETTINGS_PACKAGE")
+                        if (SCREEN_RECORDER_PACKAGE in selectedPackages) {
+                            add("am force-stop $SCREEN_RECORDER_PACKAGE")
+                        }
                     }
                     restarting = true
                     error = null
@@ -683,6 +687,7 @@ private const val SYSTEM_UI_PACKAGE = "com.android.systemui"
 private const val DOWNLOADS_PACKAGE = "com.android.providers.downloads"
 private const val XMSF_PACKAGE = "com.xiaomi.xmsf"
 private const val SETTINGS_PACKAGE = "com.android.settings"
+private const val SCREEN_RECORDER_PACKAGE = "com.miui.screenrecorder"
 private const val DONATION_URL = "https://hyperisland.1812z.top/donors.html"
 private const val DOCUMENTATION_URL = "https://hyperisland.1812z.top/"
 private const val MIN_SUPPORTED_API = 101

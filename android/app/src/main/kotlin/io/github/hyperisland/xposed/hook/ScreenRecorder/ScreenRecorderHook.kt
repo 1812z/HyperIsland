@@ -22,6 +22,7 @@ import androidx.core.content.edit
 import io.github.hyperisland.R
 import io.github.hyperisland.screenrecorder.RecorderSnapshot
 import io.github.hyperisland.screenrecorder.ScreenRecorderContract
+import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
@@ -40,6 +41,7 @@ object ScreenRecorderHook : BaseHook() {
     private const val RECORDER_SERVICE_ACTION = "miui.intent.screenrecorder.RECORDER_SERVICE"
     private const val RECORDING_NOTIFICATION_ID = 110
     private const val HIGHLIGHT_COLOR = "#FB382F"
+    private const val PREF_IMMEDIATE_START = "pref_screen_recorder_immediate_start"
 
     private val hookedTileClasses = ConcurrentHashMap.newKeySet<Class<*>>()
     private val hookedRecorderServiceClasses = ConcurrentHashMap.newKeySet<Class<*>>()
@@ -60,7 +62,7 @@ object ScreenRecorderHook : BaseHook() {
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
         if (param.packageName != ScreenRecorderContract.TARGET_PACKAGE) return
-        logWarn(module, "init: screen recorder hook loaded")
+        log(module, "init: screen recorder hook loaded")
         hookVideoEncoderSyncFrame(module)
         hookMediaMuxerLifecycle(module)
         hookOverlayWindowCreation(module)
@@ -90,7 +92,6 @@ object ScreenRecorderHook : BaseHook() {
             }
             result
         }
-        logWarn(module, "init: installed adaptive component discovery")
     }
 
     @Suppress("DEPRECATION")
@@ -120,7 +121,7 @@ object ScreenRecorderHook : BaseHook() {
                 hookRecordingNotification(module, serviceClass)
             }
         }
-        logWarn(
+        log(
             module,
             "init: discovered tiles=${hookedTileClasses.size} recorderServices=${hookedRecorderServiceClasses.size}",
         )
@@ -140,19 +141,25 @@ object ScreenRecorderHook : BaseHook() {
         onClick.isAccessible = true
         module.hook(onClick).intercept { chain ->
             val service = chain.thisObject as? TileService ?: return@intercept chain.proceed()
-            logWarn(module, "tile: intercepted ${service.javaClass.name}.onClick")
+            log(module, "tile: intercepted ${service.javaClass.name}.onClick")
             runCatching {
                 if (recorderDialogVisible) return@runCatching
-                val settingsActivity = resolveSettingsActivity(service)
-                    ?: error("QS_TILE_PREFERENCES activity not found")
                 recorderDialogVisible = true
                 ScreenRecorderControlClient.requestSnapshot { snapshot ->
                     runCatching {
-                        logWarn(
-                            module,
-                            "dialog: state=${snapshot.state}, showing independent recorder dialog",
-                        )
-                        showRecorderDialog(service, settingsActivity, snapshot, module)
+                        if (
+                            ConfigManager.getBoolean(PREF_IMMEDIATE_START, false) &&
+                            !snapshot.isSessionActive
+                        ) {
+                            recorderDialogVisible = false
+                            ScreenRecorderControlClient.reportStarting()
+                            requestRecorderStart(service)
+                            log(module, "control: immediate start requested from tile")
+                        } else {
+                            val settingsActivity = resolveSettingsActivity(service)
+                                ?: error("QS_TILE_PREFERENCES activity not found")
+                            showRecorderDialog(service, settingsActivity, snapshot)
+                        }
                     }.onFailure {
                         recorderDialogVisible = false
                         logError(module, "tile dialog render failed: ${it.message}")
@@ -165,7 +172,6 @@ object ScreenRecorderHook : BaseHook() {
             }
             null
         }
-        logWarn(module, "init: hooked tile ${serviceClass.name}.onClick")
     }
 
     private fun hookOverlayWindowCreation(module: XposedModule) {
@@ -196,31 +202,28 @@ object ScreenRecorderHook : BaseHook() {
                     else -> false
                 }
                 if (isRecorderOverlay && !RecorderOverlayGate.allows(view)) {
-                    logWarn(
+                    log(
                         module,
                         "float: blocked overlay view=${view?.javaClass?.name} type=$windowType",
                     )
                     null
                 } else {
-                    if (isRecorderOverlay) {
-                        logWarn(module, "dialog: allowed injected overlay host type=$windowType")
-                    }
                     chain.proceed()
                 }
             }
         }
-        logWarn(module, "init: hooked WindowManagerImpl.addView count=${addViewMethods.size}")
     }
 
     private fun showRecorderDialog(
         context: Context,
         settingsActivity: String,
         recorderSnapshot: RecorderSnapshot,
-        module: XposedModule,
     ) {
+        val text = screenRecorderUiText(context)
         if (recorderSnapshot.isSessionActive) {
             ScreenRecorderDialogInjector.show(
                 context = context,
+                text = text,
                 resolutions = emptyList(),
                 sounds = emptyList(),
                 initialResolution = "",
@@ -228,25 +231,20 @@ object ScreenRecorderHook : BaseHook() {
                 recordingSnapshot = recorderSnapshot,
                 onCancel = {
                     recorderDialogVisible = false
-                    logWarn(module, "dialog: recording status cancelled")
                 },
                 onOpenSettings = {},
                 onStart = { _, _ -> },
                 onPause = {
                     ScreenRecorderControlClient.pause()
-                    logWarn(module, "control: recorder pause requested")
                 },
                 onResume = {
                     ScreenRecorderControlClient.resume()
-                    logWarn(module, "control: recorder resume requested")
                 },
                 onStop = {
                     recorderDialogVisible = false
                     ScreenRecorderControlClient.stop()
-                    logWarn(module, "control: recorder stop requested from status dialog")
                 },
             )
-            logWarn(module, "dialog: recording status shown, state=${recorderSnapshot.state}")
             return
         }
 
@@ -255,26 +253,27 @@ object ScreenRecorderHook : BaseHook() {
             ScreenRecorderContract.PREF_RESOLUTION,
             "",
         ).orEmpty()
-        val discoveredResolutions = readRecorderResolutions(context, module)
+        val discoveredResolutions = readRecorderResolutions(context)
         val resolutions = if (
             currentResolution.isNotBlank() &&
             discoveredResolutions.none { it.second == currentResolution }
         ) {
-            listOf("当前设置（${formatResolution(currentResolution)}）" to currentResolution) +
+            listOf(text.currentSettingValue(formatResolution(currentResolution)) to currentResolution) +
                 discoveredResolutions
         } else {
             discoveredResolutions
         }
         val currentSound = prefs.getString(ScreenRecorderContract.PREF_SOUND, "0")
             ?.toIntOrNull() ?: 0
-        val discoveredSounds = readRecorderSounds(context, currentSound, module)
+        val discoveredSounds = readRecorderSounds(context, currentSound, text)
         val sounds = if (discoveredSounds.none { it.second == currentSound }) {
-            listOf("当前设置" to currentSound) + discoveredSounds
+            listOf(text.currentSetting to currentSound) + discoveredSounds
         } else {
             discoveredSounds
         }
         ScreenRecorderDialogInjector.show(
             context = context,
+            text = text,
             resolutions = resolutions,
             sounds = sounds,
             initialResolution = currentResolution,
@@ -282,12 +281,10 @@ object ScreenRecorderHook : BaseHook() {
             recordingSnapshot = null,
             onCancel = {
                 recorderDialogVisible = false
-                logWarn(module, "dialog: cancelled")
             },
             onOpenSettings = {
                 recorderDialogVisible = false
                 openRecorderSettings(context, settingsActivity)
-                logWarn(module, "dialog: opening original recorder settings")
             },
             onStart = { resolution, sound ->
                 recorderDialogVisible = false
@@ -299,15 +296,10 @@ object ScreenRecorderHook : BaseHook() {
                 }
                 ScreenRecorderControlClient.reportStarting()
                 requestRecorderStart(context)
-                logWarn(module, "control: immediate recorder start requested")
             },
             onPause = {},
             onResume = {},
             onStop = {},
-        )
-        logWarn(
-            module,
-            "dialog: independent Miuix dialog shown, resolutions=${resolutions.size} sounds=${sounds.size}",
         )
     }
 
@@ -334,7 +326,6 @@ object ScreenRecorderHook : BaseHook() {
     @Suppress("DEPRECATION")
     private fun readRecorderResolutions(
         context: Context,
-        module: XposedModule,
     ): List<Pair<String, String>> {
         val suffix = when (Build.DEVICE) {
             "cappu" -> "_c9"
@@ -359,11 +350,9 @@ object ScreenRecorderHook : BaseHook() {
         if (thresholds.size >= 3 && fullValues.size >= 3) {
             if (shortEdge > thresholds[1]) values += fullValues[1]
             if (shortEdge > thresholds[2]) values += fullValues[2]
-            logWarn(module, "dialog: recorder resolution arrays loaded options=$values")
         } else {
             if (shortEdge > 1080) values += "1920*1080"
             if (shortEdge > 720) values += "1280*720"
-            logWarn(module, "dialog: recorder resolution arrays unavailable, using display fallback")
         }
         return values.map { value -> formatResolution(value) to value }
     }
@@ -385,7 +374,7 @@ object ScreenRecorderHook : BaseHook() {
     private fun readRecorderSounds(
         context: Context,
         currentSound: Int,
-        module: XposedModule,
+        text: ScreenRecorderUiText,
     ): List<Pair<String, Int>> {
         val labels = readStringArray(context, "screenrecorder_settings_sound")
         val values = readStringArray(context, "screenrecorder_settings_sound_values")
@@ -398,21 +387,19 @@ object ScreenRecorderHook : BaseHook() {
         if (resourceOptions.isNotEmpty()) {
             val options = resourceOptions.toMutableList()
             if (supportsCombinedSound && options.none { it.second == 3 }) {
-                options += "设备声音+麦克风" to 3
+                options += text.soundDeviceAndMicrophone to 3
             }
-            logWarn(module, "dialog: recorder sound arrays loaded options=$options")
             return options
         }
 
         val fallback = mutableListOf(
-            "无声" to 0,
-            "麦克风" to 1,
-            "设备声音" to 2,
+            text.soundNone to 0,
+            text.soundMicrophone to 1,
+            text.soundDevice to 2,
         )
         if (supportsCombinedSound) {
-            fallback += "设备声音+麦克风" to 3
+            fallback += text.soundDeviceAndMicrophone to 3
         }
-        logWarn(module, "dialog: recorder sound arrays unavailable, fallback=$fallback")
         return fallback
     }
 
@@ -427,6 +414,70 @@ object ScreenRecorderHook : BaseHook() {
     }.getOrDefault(0)
 
     private fun formatResolution(value: String): String = value.replace("*", " × ")
+
+    private fun screenRecorderUiText(context: Context): ScreenRecorderUiText {
+        val moduleResources = runCatching {
+            context.createPackageContext(MODULE_PACKAGE, Context.CONTEXT_IGNORE_SECURITY).resources
+        }.getOrNull()
+        fun string(resourceId: Int, fallback: String): String =
+            runCatching { moduleResources?.getString(resourceId) }
+                .getOrNull()
+                .orEmpty()
+                .ifBlank { fallback }
+
+        return ScreenRecorderUiText(
+            dialogTitle = string(R.string.screen_recorder_dialog_title, "屏幕录制"),
+            resolution = string(R.string.screen_recorder_resolution, "分辨率"),
+            soundSource = string(R.string.screen_recorder_sound_source, "声音来源"),
+            soundNone = string(R.string.screen_recorder_sound_none, "无声音"),
+            soundMicrophone = string(R.string.screen_recorder_sound_microphone, "麦克风"),
+            soundDevice = string(R.string.screen_recorder_sound_device, "设备声音"),
+            soundDeviceAndMicrophone = string(
+                R.string.screen_recorder_sound_device_and_microphone,
+                "设备声音+麦克风",
+            ),
+            moreSettings = string(R.string.screen_recorder_more_settings, "更多设置"),
+            moreSettingsSummary = string(
+                R.string.screen_recorder_more_settings_summary,
+                "打开小米屏幕录制设置",
+            ),
+            start = string(R.string.screen_recorder_start, "开始录制"),
+            currentSetting = string(R.string.screen_recorder_current_setting, "当前设置"),
+            currentSettingValueFormat = string(
+                R.string.screen_recorder_current_setting_value,
+                "当前设置（%1\$s）",
+            ),
+            preparingTitle = string(R.string.screen_recorder_preparing_title, "准备录制"),
+            recordingTitle = string(R.string.screen_recorder_recording_title, "录制中"),
+            pausedTitle = string(R.string.screen_recorder_paused_title, "已暂停"),
+            recordedDurationFormat = string(
+                R.string.screen_recorder_recorded_duration,
+                "已录制 %1\$s",
+            ),
+            preparing = string(R.string.screen_recorder_preparing, "准备中"),
+            pause = string(R.string.screen_recorder_pause, "暂停"),
+            resume = string(R.string.screen_recorder_resume, "继续"),
+            stop = string(R.string.screen_recorder_stop, "结束"),
+            cancel = string(R.string.screen_recorder_cancel, "取消"),
+            notificationRecordingTitle = string(
+                R.string.screen_recorder_notification_recording_title,
+                "正在录制屏幕",
+            ),
+            notificationPausedTitle = string(
+                R.string.screen_recorder_notification_paused_title,
+                "录制已暂停",
+            ),
+            notificationRecordingText = string(
+                R.string.screen_recorder_notification_recording_text,
+                "可暂停或停止并保存录制",
+            ),
+            notificationPausedText = string(
+                R.string.screen_recorder_notification_paused_text,
+                "点击继续录制",
+            ),
+            notificationStop = string(R.string.screen_recorder_notification_stop, "停止"),
+        )
+    }
 
     private fun isRecorderServiceClass(serviceClass: Class<*>): Boolean {
         return serviceClass.declaredMethods.any {
@@ -450,13 +501,6 @@ object ScreenRecorderHook : BaseHook() {
                     ?: return@intercept chain.proceed()
                 val intent = chain.args.getOrNull(0) as? Intent
                     ?: return@intercept chain.proceed()
-                logWarn(
-                    module,
-                    "service: onStartCommand action=${intent.action} extras=${intent.extras?.keySet()}",
-                )
-                if (isRecorderStopIntent(intent)) {
-                    logWarn(module, "control: Xiaomi recorder stop intent observed")
-                }
                 if (intent.getBooleanExtra(ScreenRecorderContract.EXTRA_TOGGLE_PAUSE, false)) {
                     if (
                         ScreenRecorderControlClient.snapshot.state ==
@@ -473,31 +517,27 @@ object ScreenRecorderHook : BaseHook() {
                     return@intercept Service.START_NOT_STICKY
                 }
                 if (isRecorderControlIntent(intent)) {
-                    if (
-                        intent.getBooleanExtra(
-                            ScreenRecorderContract.EXTRA_CONFIRMED_START,
-                            false,
-                        )
-                    ) {
-                        logWarn(module, "control: confirmed start passed to Xiaomi recorder")
-                    }
                     return@intercept chain.proceed()
                 }
+                if (
+                    ConfigManager.getBoolean(PREF_IMMEDIATE_START, false) &&
+                    !ScreenRecorderControlClient.snapshot.isSessionActive
+                ) {
+                    ScreenRecorderControlClient.reportStarting()
+                    requestRecorderStart(service)
+                    log(module, "control: immediate start requested from recorder service")
+                    return@intercept Service.START_NOT_STICKY
+                }
                 if (recorderDialogVisible) {
-                    logWarn(module, "dialog: ignored duplicate recorder service start")
                     return@intercept Service.START_NOT_STICKY
                 }
                 runCatching {
                     val settingsActivity = resolveSettingsActivity(service)
                         ?: error("QS_TILE_PREFERENCES activity not found")
                     recorderDialogVisible = true
-                    logWarn(
-                        module,
-                        "dialog: recorder service start intercepted, showing independent window",
-                    )
                     ScreenRecorderControlClient.requestSnapshot { snapshot ->
                         runCatching {
-                            showRecorderDialog(service, settingsActivity, snapshot, module)
+                            showRecorderDialog(service, settingsActivity, snapshot)
                         }.onFailure {
                             recorderDialogVisible = false
                             logError(module, "service dialog render failed: ${it.message}")
@@ -543,13 +583,6 @@ object ScreenRecorderHook : BaseHook() {
                 result
             }
         }
-        logWarn(module, "init: hooked recorder notification service=${serviceClass.name}")
-    }
-
-    private fun isRecorderStopIntent(intent: Intent): Boolean {
-        return intent.getBooleanExtra("stop_screenrecorder", false) ||
-            intent.getBooleanExtra("stop_self", false) ||
-            intent.getBooleanExtra("is_screen_off_auto_stop", false)
     }
 
     private fun isRecorderControlIntent(intent: Intent): Boolean {
@@ -567,6 +600,7 @@ object ScreenRecorderHook : BaseHook() {
         context: Context,
         snapshot: RecorderSnapshot,
     ) {
+        val text = screenRecorderUiText(context)
         val nowWallClock = System.currentTimeMillis()
         val durationMillis = snapshot.durationAt(android.os.SystemClock.elapsedRealtime())
         val timerWhen = nowWallClock - durationMillis
@@ -599,6 +633,7 @@ object ScreenRecorderHook : BaseHook() {
                     timerWhen = timerWhen,
                     timerSystemCurrent = nowWallClock,
                     isPaused = isPaused,
+                    text = text,
                 ),
             )
         }
@@ -607,17 +642,21 @@ object ScreenRecorderHook : BaseHook() {
                 MODULE_PACKAGE,
                 if (isPaused) R.drawable.ic_focus_resume_light else R.drawable.ic_focus_pause_light,
             ),
-            if (isPaused) "继续" else "暂停",
+            if (isPaused) text.resume else text.pause,
             pauseIntent,
         ).build()
         val stopAction = Notification.Action.Builder(
             Icon.createWithResource(MODULE_PACKAGE, R.drawable.ic_focus_stop_light),
-            "停止",
+            text.notificationStop,
             stopIntent,
         ).build()
         builder
-            .setContentTitle(if (isPaused) "录制已暂停" else "正在录制屏幕")
-            .setContentText(if (isPaused) "点击继续录制" else "可暂停或停止并保存录制")
+            .setContentTitle(
+                if (isPaused) text.notificationPausedTitle else text.notificationRecordingTitle,
+            )
+            .setContentText(
+                if (isPaused) text.notificationPausedText else text.notificationRecordingText,
+            )
             .setWhen(timerWhen)
             .setShowWhen(true)
             .setUsesChronometer(!isPaused)
@@ -661,7 +700,7 @@ object ScreenRecorderHook : BaseHook() {
         when (command) {
             ScreenRecorderContract.MSG_COMMAND_PAUSE -> {
                 if (MediaMuxerPauseGate.pause()) {
-                    logWarn(module, "control: MediaMuxer sample output paused")
+                    log(module, "control: MediaMuxer sample output paused")
                 }
             }
             ScreenRecorderContract.MSG_COMMAND_RESUME -> {
@@ -671,7 +710,7 @@ object ScreenRecorderHook : BaseHook() {
                         requestedSyncFrames = VideoEncoderSyncFrameRequester.requestSyncFrames()
                     }
                 ) {
-                    logWarn(
+                    log(
                         module,
                         "control: MediaMuxer resumed, requested keyframes=$requestedSyncFrames",
                     )
@@ -680,13 +719,13 @@ object ScreenRecorderHook : BaseHook() {
             ScreenRecorderContract.MSG_COMMAND_STOP -> {
                 if (Application.getProcessName() == ScreenRecorderContract.TARGET_PACKAGE) {
                     requestRecorderStop(context)
-                    logWarn(module, "control: Xiaomi recorder stop dispatched")
+                    log(module, "control: Xiaomi recorder stop dispatched")
                 }
             }
             ScreenRecorderContract.MSG_COMMAND_START -> {
                 if (Application.getProcessName() == ScreenRecorderContract.TARGET_PACKAGE) {
                     requestRecorderStart(context)
-                    logWarn(module, "control: Xiaomi recorder start dispatched")
+                    log(module, "control: Xiaomi recorder start dispatched")
                 }
             }
         }
@@ -721,7 +760,7 @@ object ScreenRecorderHook : BaseHook() {
             val muxer = chain.thisObject as? MediaMuxer ?: return@intercept result
             MediaMuxerPauseGate.onStarted(muxer)
             ScreenRecorderControlClient.reportStarted()
-            logWarn(module, "state: MediaMuxer started, recording confirmed")
+            log(module, "state: MediaMuxer started, recording confirmed")
             result
         }
 
@@ -734,7 +773,7 @@ object ScreenRecorderHook : BaseHook() {
                 } finally {
                     if (muxer != null && MediaMuxerPauseGate.onStopped(muxer)) {
                         ScreenRecorderControlClient.reportIdle()
-                        logWarn(module, "state: MediaMuxer $methodName, recording ended")
+                        log(module, "state: MediaMuxer $methodName, recording ended")
                     }
                 }
             }
@@ -767,7 +806,6 @@ object ScreenRecorderHook : BaseHook() {
                 info.presentationTimeUs = originalPresentationTime
             }
         }
-        logWarn(module, "init: hooked precise MediaMuxer lifecycle and pause gate")
     }
 
     private fun hookVideoEncoderSyncFrame(module: XposedModule) {
@@ -818,7 +856,6 @@ object ScreenRecorderHook : BaseHook() {
                 }
             }
         }
-        logWarn(module, "init: hooked video encoder keyframe control")
     }
 
     private fun recorderPreferences(context: Context) = context.getSharedPreferences(
@@ -833,6 +870,7 @@ object ScreenRecorderHook : BaseHook() {
         timerWhen: Long,
         timerSystemCurrent: Long,
         isPaused: Boolean,
+        text: ScreenRecorderUiText,
     ): Bundle {
         val tickerKey = "miui.focus.pic_ticker"
         val pauseKey = if (isPaused) "miui.focus.pic_resume" else "miui.focus.pic_pause"
@@ -854,10 +892,16 @@ object ScreenRecorderHook : BaseHook() {
             put("enableFloat", false)
             put("business", "screen_recording")
             put("scene", "recorder")
-            put("content", if (isPaused) "录制已暂停" else "正在录制屏幕")
+            put(
+                "content",
+                if (isPaused) text.notificationPausedTitle else text.notificationRecordingTitle,
+            )
             put("notifyId", "${context.packageName}$RECORDING_NOTIFICATION_ID")
             put("islandFirstFloat", false)
-            put("ticker", if (isPaused) "录制已暂停" else "正在录制屏幕")
+            put(
+                "ticker",
+                if (isPaused) text.notificationPausedTitle else text.notificationRecordingTitle,
+            )
             put("tickerPic", tickerKey)
             put("tickerPicDark", tickerKey)
             put("param_island", JSONObject().apply {
@@ -917,10 +961,10 @@ object ScreenRecorderHook : BaseHook() {
         }
         val pauseAction = Notification.Action.Builder(
             null,
-            if (isPaused) "继续" else "暂停",
+            if (isPaused) text.resume else text.pause,
             pauseIntent,
         ).build()
-        val stopAction = Notification.Action.Builder(null, "停止", stopIntent).build()
+        val stopAction = Notification.Action.Builder(null, text.notificationStop, stopIntent).build()
         return Bundle().apply {
             putString("miui.focus.param", JSONObject().put("param_v2", param).toString())
             putBundle("miui.focus.actions", Bundle().apply {

@@ -1,5 +1,38 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
+    <string name="screen_recorder_dialog_title">تسجيل الشاشة</string>
+    <string name="screen_recorder_resolution">الدقة</string>
+    <string name="screen_recorder_resolution_system">استخدام إعداد النظام</string>
+    <string name="screen_recorder_sound_source">مصدر الصوت</string>
+    <string name="screen_recorder_sound_none">بدون صوت</string>
+    <string name="screen_recorder_sound_microphone">الميكروفون</string>
+    <string name="screen_recorder_sound_device">صوت الجهاز</string>
+    <string name="screen_recorder_more_settings">المزيد من الإعدادات</string>
+    <string name="screen_recorder_more_settings_summary">فتح إعدادات مسجل شاشة Xiaomi</string>
+    <string name="screen_recorder_start">بدء التسجيل</string>
+    <string name="screen_recorder_current_setting">الإعداد الحالي</string>
+    <string name="screen_recorder_current_setting_value">الإعداد الحالي (%1$s)</string>
+    <string name="screen_recorder_sound_device_and_microphone">صوت الجهاز + الميكروفون</string>
+    <string name="screen_recorder_preparing_title">جارٍ التحضير للتسجيل</string>
+    <string name="screen_recorder_recording_title">جارٍ التسجيل</string>
+    <string name="screen_recorder_paused_title">تم إيقاف التسجيل مؤقتًا</string>
+    <string name="screen_recorder_recorded_duration">مدة التسجيل %1$s</string>
+    <string name="screen_recorder_preparing">جارٍ التحضير</string>
+    <string name="screen_recorder_pause">إيقاف مؤقت</string>
+    <string name="screen_recorder_resume">متابعة</string>
+    <string name="screen_recorder_stop">إنهاء</string>
+    <string name="screen_recorder_cancel">إلغاء</string>
+    <string name="screen_recorder_notification_recording_title">جارٍ تسجيل الشاشة</string>
+    <string name="screen_recorder_notification_paused_title">تم إيقاف التسجيل مؤقتًا</string>
+    <string name="screen_recorder_notification_recording_text">يمكنك إيقاف التسجيل مؤقتًا أو إنهاءه وحفظه</string>
+    <string name="screen_recorder_notification_paused_text">اضغط لمتابعة التسجيل</string>
+    <string name="screen_recorder_notification_stop">إيقاف</string>
+    <string name="ext_screen_recorder_island">النافذة العائمة</string>
+    <string name="ext_screen_recorder_island_summary">يستبدل النافذة العائمة الرسمية للتسجيل بالجزيرة الفائقة.</string>
+    <string name="ext_screen_recorder_immediate_start">التسجيل فورًا</string>
+    <string name="ext_screen_recorder_immediate_start_summary">بدء التسجيل مباشرة من لوحة الإعدادات السريعة دون عرض نافذة تأكيد</string>
+    <string name="ext_screen_recorder_compatibility_title">تنبيه التوافق</string>
+    <string name="ext_screen_recorder_compatibility_summary">قد تدعم هذه الميزة بعض إصدارات مسجل الشاشة فقط. اضغط لتنزيل الإصدار 4.16.2.6.1.</string>
     <string name="module_description">تحسينات Xiaomi HyperIsland لنظام HyperOS</string>
     <!-- 欢迎超级岛 -->
     <string name="island_welcome_title">أهلاً بيك</string>
@@ -579,6 +612,7 @@
     <string name="download_manager">مدير التنزيلات</string>
     <string name="xmsf">XMSF (إطار خدمات شاومي)</string>
     <string name="hook_scope_settings">إعدادات النظام</string>
+    <string name="screen_recorder">مسجل الشاشة</string>
     <string name="restart_root_required">تأكد إن صلاحية الروت متاحة للتطبيق ده</string>
     <string name="restart_failed">فشلت إعادة التشغيل: %1$s</string>
     <string name="support_development">ادعم التطوير</string>

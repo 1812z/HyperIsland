@@ -191,5 +191,7 @@ Download Island is disabled by default. Go to the app, enable **"Show System App
 :::
 
 ## Screen Recording Island
-Supports adding the Island feature to the official screen recording plus a pause recording function. Compatible with version 4.16.2.6.1. Download link below:
-https://1848933255.share.123pan.cn/123pan/9T69vd-ej0wd?pwd=kAf1#
+
+Enable **Screen recording island** under **Settings → Hook extensions → Screen recording** to replace the official recorder floating window with Super Island and an independent Miuix dialog. Pause, resume, and stop controls are supported. Restart Screen Recorder after changing the main switch; **Record immediately** is hot-reloaded and skips the confirmation dialog when the Quick Settings tile is tapped.
+
+Compatibility may vary by app version. The currently supported version is [4.16.2.6.1](https://1848933255.share.123pan.cn/123pan/9T69vd-ej0wd?pwd=kAf1#).
