@@ -2,6 +2,10 @@ package io.github.hyperisland.xposed.hook.ScreenRecorder
 
 import android.app.Dialog
 import android.content.Context
+import android.content.ContextWrapper
+import android.content.res.AssetManager
+import android.content.res.Configuration
+import android.content.res.Resources
 import android.graphics.Color as AndroidColor
 import android.graphics.drawable.ColorDrawable
 import android.os.Handler
@@ -141,6 +145,7 @@ internal data class ScreenRecorderUiText(
 internal object ScreenRecorderDialogInjector {
     fun show(
         context: Context,
+        contentContext: Context,
         text: ScreenRecorderUiText,
         resolutions: List<Pair<String, String>>,
         sounds: List<Pair<String, Int>>,
@@ -196,7 +201,7 @@ internal object ScreenRecorderDialogInjector {
             }
         }
 
-        host = ComposeView(hostDialog.context).apply {
+        host = ComposeView(contentContext).apply {
             setViewTreeLifecycleOwner(viewTreeOwner)
             setViewTreeSavedStateRegistryOwner(viewTreeOwner)
             setViewTreeViewModelStoreOwner(viewTreeOwner)
@@ -290,6 +295,32 @@ internal object ScreenRecorderDialogInjector {
         )
         Handler(Looper.getMainLooper()).postDelayed(RecorderOverlayGate::close, 750L)
     }
+}
+
+/**
+ * Keeps window and system-service attribution on the recorder process while resolving Compose and
+ * Miuix resource IDs from the module APK. Xposed loads the module code into the target process but
+ * does not merge the module's 0x7f resource table into the target application's Resources.
+ */
+internal class InjectedResourceContext(
+    base: Context,
+    private val resourceContext: Context,
+) : ContextWrapper(base) {
+    override fun getResources(): Resources = resourceContext.resources
+
+    override fun getAssets(): AssetManager = resourceContext.assets
+
+    override fun getTheme(): Resources.Theme = resourceContext.theme
+
+    override fun setTheme(resid: Int) {
+        resourceContext.setTheme(resid)
+    }
+
+    override fun createConfigurationContext(overrideConfiguration: Configuration): Context =
+        InjectedResourceContext(
+            baseContext.createConfigurationContext(overrideConfiguration),
+            resourceContext.createConfigurationContext(overrideConfiguration),
+        )
 }
 
 private class InjectedViewTreeOwner(

@@ -223,10 +223,12 @@ object ScreenRecorderHook : BaseHook() {
         settingsActivity: String,
         recorderSnapshot: RecorderSnapshot,
     ) {
-        val text = screenRecorderUiText(context)
+        val contentContext = screenRecorderContentContext(context)
+        val text = screenRecorderUiText(contentContext)
         if (recorderSnapshot.isSessionActive) {
             ScreenRecorderDialogInjector.show(
                 context = context,
+                contentContext = contentContext,
                 text = text,
                 resolutions = emptyList(),
                 sounds = emptyList(),
@@ -277,6 +279,7 @@ object ScreenRecorderHook : BaseHook() {
         }
         ScreenRecorderDialogInjector.show(
             context = context,
+            contentContext = contentContext,
             text = text,
             resolutions = resolutions,
             sounds = sounds,
@@ -420,12 +423,17 @@ object ScreenRecorderHook : BaseHook() {
 
     private fun formatResolution(value: String): String = value.replace("*", " × ")
 
+    private fun screenRecorderContentContext(context: Context): Context {
+        val moduleContext = context.createPackageContext(
+            MODULE_PACKAGE,
+            Context.CONTEXT_IGNORE_SECURITY,
+        )
+        return InjectedResourceContext(context, moduleContext)
+    }
+
     private fun screenRecorderUiText(context: Context): ScreenRecorderUiText {
-        val moduleResources = runCatching {
-            context.createPackageContext(MODULE_PACKAGE, Context.CONTEXT_IGNORE_SECURITY).resources
-        }.getOrNull()
         fun string(resourceId: Int, fallback: String): String =
-            runCatching { moduleResources?.getString(resourceId) }
+            runCatching { context.getString(resourceId) }
                 .getOrNull()
                 .orEmpty()
                 .ifBlank { fallback }
