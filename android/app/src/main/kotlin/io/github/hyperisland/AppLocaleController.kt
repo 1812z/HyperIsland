@@ -7,7 +7,7 @@ import android.os.LocaleList
 internal object AppLocaleController {
     fun currentLanguageTag(context: Context): String {
         val locales = context.getSystemService(LocaleManager::class.java).applicationLocales
-        return locales.takeUnless { it.isEmpty }?.get(0)?.language.orEmpty()
+        return locales.takeUnless { it.isEmpty }?.get(0)?.toLanguageTag().orEmpty()
     }
 
     fun apply(context: Context, languageTag: String) {
