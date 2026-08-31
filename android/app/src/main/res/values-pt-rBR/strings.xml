@@ -18,7 +18,7 @@
     <string name="ai_custom_field_name">Nome do campo</string>
     <string name="ai_custom_field_value">Valor JSON</string>
     <string name="ai_custom_fields">Campos personalizados</string>
-    <string name="ai_custom_fields_description">Os valores devem ser JSON válidos, como false, 1, "text" ou um objeto JSON.</string>
+    <string name="ai_custom_fields_description">Os valores devem ser JSON válidos, como false, 1, \"text\" ou um objeto JSON.</string>
     <string name="ai_custom_fields_dialog">Campos de solicitação personalizados</string>
     <string name="ai_custom_fields_error">Os nomes dos campos não podem estar vazios e os valores devem ser JSON válidos</string>
     <string name="ai_custom_fields_reset">Redefinir</string>
@@ -67,7 +67,7 @@
     <string name="ai_trigger_count_summary">Acionar a IA quando o título e o corpo da notificação atingirem esse tamanho</string>
     <string name="ai_url">URL da API</string>
     <string name="ai_url_empty">Insira uma URL da API primeiro</string>
-    <string name="ai_warning">O endereço da API deve ser preenchido, incluindo /v1/chat/completions, e o modo de raciocínio não é suportado. Adicione campos para fechar você mesmo. Clique para ver o tutorial de configuração</string>
+    <string name="ai_warning">O endereço da API deve ser preenchido, incluindo /v1/chat/completions, e o modo de raciocínio não é suportado. Adicione um campo personalizado para desativar o modo de raciocínio. Clique para ver o tutorial de configuração</string>
     <string name="all_channels_active">Ativo para todos os %1$d canais</string>
     <string name="all_channels_disabled">Todos os %1$d canais (desativados)</string>
     <string name="already_latest">Já está na versão mais recente</string>
@@ -85,6 +85,7 @@
     <string name="apply">Aplicar</string>
     <string name="applying">Aplicando</string>
     <string name="arabic">Árabe</string>
+    <string name="brazilian_portuguese">Português (Brasil)</string>
     <string name="auto_disappear">Ocultar automaticamente</string>
     <string name="back">Voltar</string>
     <string name="background_deleted">Imagem de fundo excluída</string>
@@ -590,7 +591,7 @@
     <string name="material_gaussian">Desfoque Gaussiano</string>
     <string name="material_highlight_glass">Realce de Vidro</string>
     <string name="material_highlight_switch">Realces</string>
-    <string name="material_import_success">Importação bem-sucedida, %1$d configurações no total</string>
+    <string name="material_import_success">Importação bem-sucedida, 5 configurações no total</string>
     <string name="material_lighting_section">Iluminação</string>
     <string name="material_liquid_glass">Vidro Líquido</string>
     <string name="material_reflection_strength">Força de reflexão</string>
@@ -789,4 +790,57 @@
     <string name="whitelist_keywords">Palavras-chave da lista de permissões</string>
     <string name="xmsf">XMSF (Xiaomi Services Framework)</string>
     <string name="xposed_framework">Xposed Framework</string>
+
+    <string name="batch_toast_scope_apps">Aplicar a %1$d aplicativos</string>
+    <string name="batch_toast_settings">Configurações de Toast em lote</string>
+    <string name="color_mode">Modo de cor</string>
+    <string name="default_timeout_summary">Tempo limite padrão das notificações</string>
+    <string name="detecting_module_status">Detectando o status do módulo</string>
+    <string name="disabled">Desativado</string>
+    <string name="enable_in_lsposed">Ative o módulo no LSPosed</string>
+    <string name="enabled">Ativado</string>
+    <string name="enabled_apps_count">Ilha ativada para %1$d aplicativos</string>
+    <string name="island_action_cancel">Cancelar</string>
+    <string name="island_action_cancel_all">Cancelar tudo</string>
+    <string name="island_action_pause">Pausar</string>
+    <string name="island_action_pause_all">Pausar tudo</string>
+    <string name="island_action_resume">Retomar</string>
+    <string name="island_action_resume_all">Retomar tudo</string>
+    <string name="island_aod_downloading_progress">Baixando %d%%</string>
+    <string name="island_aod_paused_progress">Pausado %d%%</string>
+    <string name="island_download_complete">Download concluído</string>
+    <string name="island_download_paused">Download pausado</string>
+    <string name="island_download_waiting">Aguardando download</string>
+    <string name="island_downloading">Baixando</string>
+    <string name="island_downloading_progress">Baixando %d%%</string>
+    <string name="keep_island_disabled">Ilha permanente desativada</string>
+    <string name="keep_island_enabled">Ilha permanente ativada</string>
+    <string name="lsposed_api">API do LSPosed</string>
+    <string name="marquee_summary">Exibir textos longos com rolagem horizontal</string>
+    <string name="module_status">Status do módulo</string>
+    <string name="notes">Observações</string>
+    <string name="onboarding_android_limited">O suporte ao Android 15 é limitado</string>
+    <string name="onboarding_android_value">Android %1$d</string>
+    <string name="onboarding_failed">Falhou</string>
+    <string name="onboarding_focus_wait">Próximo (%1$d segundos)</string>
+    <string name="onboarding_missing_message">O módulo pode não funcionar corretamente</string>
+    <string name="onboarding_missing_title">Permissão necessária ausente</string>
+    <string name="onboarding_passed">Aprovado</string>
+    <string name="onboarding_protocol_value">Versão %1$d</string>
+    <string name="onboarding_status">Verificação de status</string>
+    <string name="onboarding_step">Etapa %1$d de %2$d</string>
+    <string name="onboarding_unsupported">O sistema atual não é compatível</string>
+    <string name="onboarding_welcome_subtitle">Configure sua experiência com a Ilha de forma rápida e simples</string>
+    <string name="onboarding_welcome_title">Boas-vindas ao HyperIsland</string>
+    <string name="preset_colors">Cores predefinidas</string>
+    <string name="refresh_module_status">Atualizar status do módulo</string>
+    <string name="restart_failed">Falha ao reiniciar: %1$s</string>
+    <string name="screen_recorder_resolution_system">Padrão do sistema</string>
+    <string name="system_information">Informações do sistema</string>
+    <string name="toast_enabled_apps_count">Interceptação de Toast ativada para %1$d aplicativos</string>
+
+    <plurals name="import_channels_success">
+        <item quantity="one">Importação concluída: %1$d configuração de canal restaurada</item>
+        <item quantity="other">Importação concluída: %1$d configurações de canal restauradas</item>
+    </plurals>
 </resources>
