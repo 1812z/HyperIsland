@@ -1425,14 +1425,14 @@ object KeepIslandHook : BaseHook() {
     private fun registerStatusBarTintListener() {
         if (statusBarTintListenerRegistered) return
         statusBarTintListenerRegistered = true
-        IslandTextColorHook.addStatusBarTintListener {
+        StatusBarTextColorHook.addReadableTintListener {
             val mode = ConfigManager.getString(
                 PREF_KEY_EXPAND_TEXT_COLOR_MODE,
                 EXPAND_TEXT_COLOR_WHITE,
             )
             if (mode != EXPAND_TEXT_COLOR_FOLLOW_STATUS_BAR &&
                 mode != EXPAND_TEXT_COLOR_INVERT_STATUS_BAR
-            ) return@addStatusBarTintListener
+            ) return@addReadableTintListener
             mainHandler.post {
                 val context = appContext ?: return@post
                 if (posted && isPanelFocusContent()) {
@@ -1443,7 +1443,7 @@ object KeepIslandHook : BaseHook() {
     }
 
     private fun resolveExpandPalette(): PanelPalette {
-        val statusBarTint = IslandTextColorHook.getStatusBarTint()
+        val statusBarTint = StatusBarTextColorHook.getReadableTint()
         val primary = when (ConfigManager.getString(
             PREF_KEY_EXPAND_TEXT_COLOR_MODE,
             EXPAND_TEXT_COLOR_WHITE,

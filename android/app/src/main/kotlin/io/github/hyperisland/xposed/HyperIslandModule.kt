@@ -33,6 +33,7 @@ import io.github.hyperisland.xposed.hook.SettingsHomeEntryHook
 import io.github.hyperisland.xposed.hook.TextShadeHook
 import io.github.hyperisland.xposed.hook.TempHiddenBehaviorHook
 import io.github.hyperisland.xposed.hook.TimerTextColorHook
+import io.github.hyperisland.xposed.hook.StatusBarTextColorHook
 import io.github.hyperisland.xposed.hook.ScreenRecorder.ScreenRecorderHook
 import io.github.hyperisland.xposed.hook.ToastUiInterceptHook
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.UnlockAllFocusHook
@@ -74,6 +75,7 @@ class HyperIslandModule : XposedModule() {
                 IslandBackgroundHook.init(this, param)
                 IslandBlurHook.init(this, param)
                 IslandTransitionVisualHook.init(this, param)
+                StatusBarTextColorHook.init(this, param)
                 IslandTextColorHook.init(this, param)
                 TimerTextColorHook.init(this, param)
                 FocusNotificationTextColorHook.init(this, param)

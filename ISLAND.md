@@ -877,3 +877,11 @@ Mini Window 手势
 - GIF 的 `AnimatedImageDrawable` 当前仍是单缓存实例；多个同时可见岛可能共享动画 bounds。若后续出现双岛 GIF 错位，应改为缓存源文件/解码数据并为每个 View 创建独立动画实例。
 - `IslandBackgroundHook` 仍有少量文件存在性和 `lastModified()` 检查发生在 UI 调用链。配置读取已有缓存，但后续可把文件变更检测完全移到配置更新线程。
 - SystemUI 私有字段和方法可能随 HyperOS 版本变化。关键反射成员缺失时必须回退系统原行为，不能继续清空背景。
+
+### 17.4 状态栏文字颜色源
+
+- 默认从 `DarkIconDispatcherImpl` 注册模块自己的 `DarkReceiver`，不监听全局 `TextView#setTextColor`。
+- `applyIconTint()` 仅作为 Receiver 注册失败时的字段读取兼容入口；Clock/MiuiClock 仅在 Dispatcher 类不存在时兜底。
+- 稳定小岛/大岛使用 Dispatcher 已插值的原始 ARGB，并按屏幕中心固定锚点判断 `tintAreas`。
+- 展开态、媒体、焦点和展开计时器使用岛原生 `action_update_light` 的黑白端点，不显示中间色。
+- 岛动画、通知栏和控制中心展开期间冻结颜色；关闭后等待 LightBar 恢复，再合并为一次最终刷新。

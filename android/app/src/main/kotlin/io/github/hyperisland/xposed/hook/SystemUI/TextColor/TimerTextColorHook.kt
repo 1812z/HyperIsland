@@ -35,17 +35,21 @@ object TimerTextColorHook : BaseHook() {
     @Volatile private var focusMode = MODE_DEFAULT
     @Volatile private var isRegionDark = true
 
-    private val statusBarTintListener: (Int) -> Unit = {
-        if (isStatusBarMode(islandMode) || isStatusBarMode(focusMode)) {
-            reapplyTrackedTimers()
-        }
+    private val rawStatusBarTintListener: (Int) -> Unit = {
+        if (islandMode == MODE_FOLLOW_STATUS_BAR) reapplyTrackedTimers(TimerScope.ISLAND)
+    }
+
+    private val readableStatusBarTintListener: (Int) -> Unit = {
+        if (islandMode == MODE_INVERT_STATUS_BAR) reapplyTrackedTimers(TimerScope.ISLAND)
+        if (isStatusBarMode(focusMode)) reapplyTrackedTimers(TimerScope.FOCUS)
     }
 
     override fun getTag() = TAG
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
         refreshModes()
-        IslandTextColorHook.addStatusBarTintListener(statusBarTintListener)
+        StatusBarTextColorHook.addTintListener(rawStatusBarTintListener)
+        StatusBarTextColorHook.addReadableTintListener(readableStatusBarTintListener)
         hookClasses(module, param.defaultClassLoader)
         HookUtils.hookDynamicClassLoaders(module, ClassLoader.getSystemClassLoader()) { classLoader ->
             hookClasses(module, classLoader)
@@ -415,9 +419,13 @@ object TimerTextColorHook : BaseHook() {
             MODE_BLACK -> Color.BLACK
             MODE_FOLLOW_BACKGROUND -> if (isRegionDark) Color.WHITE else Color.BLACK
             MODE_INVERT_BACKGROUND -> if (isRegionDark) Color.BLACK else Color.WHITE
-            MODE_FOLLOW_STATUS_BAR -> IslandTextColorHook.getStatusBarTint()
+            MODE_FOLLOW_STATUS_BAR -> if (scope == TimerScope.FOCUS) {
+                StatusBarTextColorHook.getReadableTint()
+            } else {
+                StatusBarTextColorHook.getTint()
+            }
             MODE_INVERT_STATUS_BAR -> {
-                val tint = IslandTextColorHook.getStatusBarTint()
+                val tint = StatusBarTextColorHook.getReadableTint()
                 if (isLightColor(tint)) Color.BLACK else Color.WHITE
             }
             else -> null

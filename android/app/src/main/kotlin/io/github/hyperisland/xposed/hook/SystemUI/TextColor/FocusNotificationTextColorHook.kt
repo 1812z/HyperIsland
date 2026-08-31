@@ -68,7 +68,7 @@ object FocusNotificationTextColorHook : BaseHook() {
     override fun getTag() = TAG
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
-        IslandTextColorHook.addStatusBarTintListener(statusBarTintListener)
+        StatusBarTextColorHook.addReadableTintListener(statusBarTintListener)
         hookClasses(module, param.defaultClassLoader)
         HookUtils.hookDynamicClassLoaders(module, ClassLoader.getSystemClassLoader()) { classLoader ->
             hookClasses(module, classLoader)
@@ -521,9 +521,9 @@ object FocusNotificationTextColorHook : BaseHook() {
     private fun resolveTextColor(mode: String): Int {
         return when (mode) {
             MODE_BLACK -> Color.BLACK
-            MODE_FOLLOW_STATUS_BAR -> IslandTextColorHook.getStatusBarTint()
+            MODE_FOLLOW_STATUS_BAR -> StatusBarTextColorHook.getReadableTint()
             MODE_INVERT_STATUS_BAR -> {
-                if (isLightColor(IslandTextColorHook.getStatusBarTint())) Color.BLACK else Color.WHITE
+                if (isLightColor(StatusBarTextColorHook.getReadableTint())) Color.BLACK else Color.WHITE
             }
             else -> Color.WHITE
         }

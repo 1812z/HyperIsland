@@ -10,7 +10,6 @@ import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.util.Collections
 import java.lang.reflect.Method
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.CopyOnWriteArrayList
 import java.util.WeakHashMap
 
 /**
@@ -38,15 +37,23 @@ object IslandTextColorHook : BaseHook() {
     private val textEffectAccessors = Collections.synchronizedMap(
         WeakHashMap<TextView, TextEffectAccessors>()
     )
-    private val statusBarTintListeners = CopyOnWriteArrayList<(Int) -> Unit>()
-
     @Volatile private var isRegionDark = true
-    @Volatile private var statusBarTint = Color.WHITE
-    @Volatile private var dispatchedStatusBarTint = Color.WHITE
+
+    private val rawStatusBarTintListener: (Int) -> Unit = {
+        val mode = ConfigManager.getString(KEY_TEXT_COLOR_MODE, MODE_DEFAULT)
+        if (mode == MODE_FOLLOW_STATUS_BAR) applyTextColorToTrackedViews()
+    }
+
+    private val readableStatusBarTintListener: (Int) -> Unit = {
+        val mode = ConfigManager.getString(KEY_TEXT_COLOR_MODE, MODE_DEFAULT)
+        if (mode == MODE_INVERT_STATUS_BAR) applyTextColorToTrackedViews()
+    }
 
     override fun getTag() = TAG
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
+        StatusBarTextColorHook.addTintListener(rawStatusBarTintListener)
+        StatusBarTextColorHook.addReadableTintListener(readableStatusBarTintListener)
         hookClasses(module, param.defaultClassLoader)
         HookUtils.hookDynamicClassLoaders(module, ClassLoader.getSystemClassLoader()) { classLoader ->
             hookClasses(module, classLoader)
@@ -55,12 +62,6 @@ object IslandTextColorHook : BaseHook() {
 
     override fun onConfigChanged() {
         applyTextColorToTrackedViews()
-    }
-
-    fun getStatusBarTint(): Int = statusBarTint
-
-    fun addStatusBarTintListener(listener: (Int) -> Unit) {
-        statusBarTintListeners.addIfAbsent(listener)
     }
 
     private fun hookClasses(module: XposedModule, classLoader: ClassLoader) {
@@ -92,8 +93,6 @@ object IslandTextColorHook : BaseHook() {
                 logError(module, "failed to hook DynamicIslandBaseContentView: ${error.message}")
             }
         }
-
-        if (hookStatusBarTextTint(module, classLoader)) hookedAny = true
 
         if (!hookedAny) hookedClassLoaders.remove(clId)
     }
@@ -143,57 +142,6 @@ object IslandTextColorHook : BaseHook() {
             }
     }
 
-    private fun hookStatusBarTextTint(module: XposedModule, classLoader: ClassLoader): Boolean {
-        var hookedAny = false
-        listOf(
-            "com.android.systemui.statusbar.policy.Clock",
-            "com.android.systemui.statusbar.views.MiuiClock",
-        ).forEach { className ->
-            runCatching {
-                val statusTextClass = classLoader.loadClass(className)
-                statusTextClass.declaredMethods
-                    .filter { method ->
-                        method.name == "onDarkChanged" ||
-                            method.name == "onAttachedToWindow"
-                    }
-                    .forEach { method ->
-                        module.hook(method).intercept { chain ->
-                            val result = chain.proceed()
-                            runCatching {
-                                val shouldUpdate = when (method.name) {
-                                    "onAttachedToWindow" -> true
-                                    "onDarkChanged" -> {
-                                        val intensity = chain.args.getOrNull(1) as? Float
-                                        intensity != null &&
-                                            (intensity <= DARK_INTENSITY_LIGHT ||
-                                                intensity >= DARK_INTENSITY_DARK)
-                                    }
-                                    else -> false
-                                }
-                                if (shouldUpdate) {
-                                    updateStatusBarTintFromTextView(chain.thisObject as? TextView)
-                                }
-                            }.onFailure { error ->
-                                logError(
-                                    module,
-                                    "failed to read status bar tint from $className#${method.name}: " +
-                                        "${error.message}",
-                                )
-                            }
-                            result
-                        }
-                        log(module, "hooked $className#${method.name}")
-                        hookedAny = true
-                    }
-            }.onFailure { error ->
-                if (error !is ClassNotFoundException) {
-                    logError(module, "failed to hook $className: ${error.message}")
-                }
-            }
-        }
-        return hookedAny
-    }
-
     private fun usesHighlightColor(args: List<*>): Boolean {
         val template = args.getOrNull(0) ?: return false
         val showHighlight = args.getOrNull(1) as? Boolean ?: false
@@ -209,8 +157,8 @@ object IslandTextColorHook : BaseHook() {
             MODE_BLACK -> Color.BLACK
             MODE_FOLLOW_BACKGROUND -> if (isRegionDark) Color.WHITE else Color.BLACK
             MODE_INVERT_BACKGROUND -> if (isRegionDark) Color.BLACK else Color.WHITE
-            MODE_FOLLOW_STATUS_BAR -> statusBarTint
-            MODE_INVERT_STATUS_BAR -> invertReadableColor(statusBarTint)
+            MODE_FOLLOW_STATUS_BAR -> StatusBarTextColorHook.getTint()
+            MODE_INVERT_STATUS_BAR -> invertReadableColor(StatusBarTextColorHook.getTint())
             else -> Color.WHITE
         }
     }
@@ -224,39 +172,6 @@ object IslandTextColorHook : BaseHook() {
         val green = Color.green(color)
         val blue = Color.blue(color)
         return (red * 299 + green * 587 + blue * 114) >= 128000
-    }
-
-    private fun updateStatusBarTintFromTextView(textView: TextView?) {
-        if (textView == null || !isStatusBarTextView(textView)) return
-        val nextTint = textView.currentTextColor
-        if (statusBarTint == nextTint) return
-        statusBarTint = nextTint
-        val readableTint = if (isLightColor(nextTint)) Color.WHITE else Color.BLACK
-        val mode = ConfigManager.getString(KEY_TEXT_COLOR_MODE, MODE_DEFAULT)
-        if (mode == MODE_FOLLOW_STATUS_BAR ||
-            (mode == MODE_INVERT_STATUS_BAR && dispatchedStatusBarTint != readableTint)
-        ) {
-            applyTextColorToTrackedViews()
-        }
-        if (dispatchedStatusBarTint != readableTint) {
-            dispatchedStatusBarTint = readableTint
-            statusBarTintListeners.forEach { listener ->
-                runCatching { listener(readableTint) }
-            }
-        }
-    }
-
-    private fun isStatusBarTextView(textView: TextView): Boolean {
-        val className = textView.javaClass.name
-        if (className in STATUS_BAR_TEXT_CLASSES) return true
-
-        var parent = textView.parent
-        repeat(5) {
-            val parentName = parent?.javaClass?.name ?: return@repeat
-            if (parentName in STATUS_BAR_TEXT_PARENT_CLASSES) return true
-            parent = parent.parent
-        }
-        return false
     }
 
     private fun applyTextColorToTrackedViews() {
@@ -321,20 +236,5 @@ object IslandTextColorHook : BaseHook() {
         val spanClass: Class<*>,
         val setAppearance: Method,
     )
-
-    private val STATUS_BAR_TEXT_CLASSES = setOf(
-        "com.android.systemui.statusbar.policy.Clock",
-        "com.android.systemui.statusbar.views.MiuiClock",
-        "com.android.systemui.statusbar.OperatorNameView",
-    )
-
-    private val STATUS_BAR_TEXT_PARENT_CLASSES = setOf(
-        "com.android.systemui.battery.BatteryMeterView",
-        "com.android.systemui.statusbar.views.MiuiBatteryMeterView",
-        "com.android.systemui.statusbar.views.NetworkSpeedView",
-    )
-
-    private const val DARK_INTENSITY_LIGHT = 0.001f
-    private const val DARK_INTENSITY_DARK = 0.999f
 
 }
