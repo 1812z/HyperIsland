@@ -84,12 +84,15 @@ internal data class AiConfigSettings(
     val triggerCharCount: Int = 10,
 )
 
-internal data class KeepIslandSettings(
-    val enabled: Boolean = false,
-    val displayTiming: String = "always",
+internal enum class KeepIslandScene(val storagePrefix: String) {
+    Default(""),
+    Charging("charging_"),
+    Locked("locked_"),
+}
+
+internal data class KeepIslandProfile(
+    val islandEnabled: Boolean = false,
     val showNotification: Boolean = false,
-    val autoHide: Boolean = true,
-    val hideLandscape: Boolean = false,
     val highlightColor: String = "",
     val leftHighlight: Boolean = false,
     val rightHighlight: Boolean = false,
@@ -103,6 +106,17 @@ internal data class KeepIslandSettings(
     val notificationContent: String = "",
     val showIslandIcon: Boolean = false,
     val customIconPath: String = "",
+)
+
+internal data class KeepIslandSettings(
+    val masterEnabled: Boolean = true,
+    val autoHide: Boolean = true,
+    val hideLandscape: Boolean = false,
+    val defaultProfile: KeepIslandProfile = KeepIslandProfile(),
+    val chargingFollowDefault: Boolean = true,
+    val chargingProfile: KeepIslandProfile = KeepIslandProfile(),
+    val lockedFollowDefault: Boolean = true,
+    val lockedProfile: KeepIslandProfile = KeepIslandProfile(),
 )
 
 /** 直接读写旧版 shared_preferences 存储格式，保证升级后配置无损。 */
@@ -555,56 +569,180 @@ class FlutterPrefsRepository(context: Context) {
         putLong("pref_ai_trigger_char_count", value.triggerCharCount.coerceIn(0, 100).toLong())
     }
 
-    internal fun keepIslandSettings(): KeepIslandSettings = KeepIslandSettings(
-        enabled = getBoolean(KEY_KEEP_ISLAND, false),
-        displayTiming = getString(KEY_KEEP_ISLAND_DISPLAY_TIMING, "always")
-            .takeIf { it == "charging" } ?: "always",
-        showNotification = getBoolean(KEY_KEEP_ISLAND_SHOW_NOTIFICATION, false),
-        autoHide = getBoolean(KEY_KEEP_ISLAND_AUTO_HIDE, true),
-        hideLandscape = getBoolean(KEY_KEEP_ISLAND_HIDE_LANDSCAPE, false),
-        highlightColor = getString(KEY_KEEP_ISLAND_HIGHLIGHT_COLOR),
-        leftHighlight = getBoolean(KEY_KEEP_ISLAND_LEFT_HIGHLIGHT, false),
-        rightHighlight = getBoolean(KEY_KEEP_ISLAND_RIGHT_HIGHLIGHT, false),
+    internal fun keepIslandSettings(): KeepIslandSettings {
+        val defaultProfile = keepIslandProfile(KeepIslandScene.Default, KeepIslandProfile())
+        return KeepIslandSettings(
+            masterEnabled = getBoolean(KEY_KEEP_ISLAND_MASTER, true),
+            autoHide = getBoolean(KEY_KEEP_ISLAND_AUTO_HIDE, true),
+            hideLandscape = getBoolean(KEY_KEEP_ISLAND_HIDE_LANDSCAPE, false),
+            defaultProfile = defaultProfile,
+            chargingFollowDefault = getBoolean(KEY_KEEP_ISLAND_CHARGING_FOLLOW_DEFAULT, true),
+            chargingProfile = keepIslandProfile(
+                KeepIslandScene.Charging,
+                defaultProfile,
+            ),
+            lockedFollowDefault = getBoolean(KEY_KEEP_ISLAND_LOCKED_FOLLOW_DEFAULT, true),
+            lockedProfile = keepIslandProfile(
+                KeepIslandScene.Locked,
+                defaultProfile,
+            ),
+        )
+    }
+
+    internal fun setKeepIslandSettings(previous: KeepIslandSettings, value: KeepIslandSettings) {
+        putBooleanIfChanged(KEY_KEEP_ISLAND_MASTER, previous.masterEnabled, value.masterEnabled)
+        putBooleanIfChanged(KEY_KEEP_ISLAND_AUTO_HIDE, previous.autoHide, value.autoHide)
+        putBooleanIfChanged(KEY_KEEP_ISLAND_HIDE_LANDSCAPE, previous.hideLandscape, value.hideLandscape)
+        putBooleanIfChanged(
+            KEY_KEEP_ISLAND_CHARGING_FOLLOW_DEFAULT,
+            previous.chargingFollowDefault,
+            value.chargingFollowDefault,
+        )
+        putBooleanIfChanged(
+            KEY_KEEP_ISLAND_LOCKED_FOLLOW_DEFAULT,
+            previous.lockedFollowDefault,
+            value.lockedFollowDefault,
+        )
+        setKeepIslandProfile(KeepIslandScene.Default, previous.defaultProfile, value.defaultProfile)
+        setKeepIslandProfile(
+            KeepIslandScene.Charging,
+            previous.chargingProfile,
+            value.chargingProfile,
+            force = previous.chargingFollowDefault && !value.chargingFollowDefault,
+        )
+        setKeepIslandProfile(
+            KeepIslandScene.Locked,
+            previous.lockedProfile,
+            value.lockedProfile,
+            force = previous.lockedFollowDefault && !value.lockedFollowDefault,
+        )
+    }
+
+    private fun keepIslandProfile(
+        scene: KeepIslandScene,
+        fallback: KeepIslandProfile,
+    ): KeepIslandProfile = KeepIslandProfile(
+        islandEnabled = getBoolean(keepIslandKey(scene, KEY_KEEP_ISLAND), fallback.islandEnabled),
+        showNotification = getBoolean(keepIslandKey(scene, KEY_KEEP_ISLAND_SHOW_NOTIFICATION), fallback.showNotification),
+        highlightColor = getString(keepIslandKey(scene, KEY_KEEP_ISLAND_HIGHLIGHT_COLOR), fallback.highlightColor),
+        leftHighlight = getBoolean(keepIslandKey(scene, KEY_KEEP_ISLAND_LEFT_HIGHLIGHT), fallback.leftHighlight),
+        rightHighlight = getBoolean(keepIslandKey(scene, KEY_KEEP_ISLAND_RIGHT_HIGHLIGHT), fallback.rightHighlight),
         leftContents = decodeStringList(
-            getString(KEY_KEEP_ISLAND_LEFT_CONTENT, ""),
-            listOf("{time.HH:mm}"),
+            getString(keepIslandKey(scene, KEY_KEEP_ISLAND_LEFT_CONTENT), ""),
+            fallback.leftContents,
         ),
         rightContents = decodeStringList(
-            getString(KEY_KEEP_ISLAND_RIGHT_CONTENT, ""),
-            listOf("{battery.level}"),
+            getString(keepIslandKey(scene, KEY_KEEP_ISLAND_RIGHT_CONTENT), ""),
+            fallback.rightContents,
         ),
-        carouselInterval = getLong(KEY_KEEP_ISLAND_CAROUSEL_INTERVAL, 5L).toInt().coerceIn(1, 6000),
-        focusNotification = getBoolean(KEY_KEEP_ISLAND_FOCUS_NOTIFICATION, false),
-        focusContentType = getString(KEY_KEEP_ISLAND_FOCUS_CONTENT_TYPE, "notification")
-            .takeIf { it in KEEP_ISLAND_CONTENT_TYPES } ?: "notification",
-        expandTextColorMode = getString(KEY_KEEP_ISLAND_EXPAND_TEXT_COLOR, "white")
-            .takeIf { it in KEEP_ISLAND_TEXT_COLORS } ?: "white",
-        notificationTitle = getString(KEY_KEEP_ISLAND_NOTIFICATION_TITLE),
-        notificationContent = getString(KEY_KEEP_ISLAND_NOTIFICATION_CONTENT),
-        showIslandIcon = getBoolean(KEY_KEEP_ISLAND_SHOW_ICON, false),
-        customIconPath = getString(KEY_KEEP_ISLAND_CUSTOM_ICON),
+        carouselInterval = getLong(
+            keepIslandKey(scene, KEY_KEEP_ISLAND_CAROUSEL_INTERVAL),
+            fallback.carouselInterval.toLong(),
+        ).toInt().coerceIn(1, 6000),
+        focusNotification = getBoolean(
+            keepIslandKey(scene, KEY_KEEP_ISLAND_FOCUS_NOTIFICATION),
+            fallback.focusNotification,
+        ),
+        focusContentType = getString(
+            keepIslandKey(scene, KEY_KEEP_ISLAND_FOCUS_CONTENT_TYPE),
+            fallback.focusContentType,
+        ).takeIf { it in KEEP_ISLAND_CONTENT_TYPES } ?: fallback.focusContentType,
+        expandTextColorMode = getString(
+            keepIslandKey(scene, KEY_KEEP_ISLAND_EXPAND_TEXT_COLOR),
+            fallback.expandTextColorMode,
+        ).takeIf { it in KEEP_ISLAND_TEXT_COLORS } ?: fallback.expandTextColorMode,
+        notificationTitle = getString(
+            keepIslandKey(scene, KEY_KEEP_ISLAND_NOTIFICATION_TITLE),
+            fallback.notificationTitle,
+        ),
+        notificationContent = getString(
+            keepIslandKey(scene, KEY_KEEP_ISLAND_NOTIFICATION_CONTENT),
+            fallback.notificationContent,
+        ),
+        showIslandIcon = getBoolean(
+            keepIslandKey(scene, KEY_KEEP_ISLAND_SHOW_ICON),
+            fallback.showIslandIcon,
+        ),
+        customIconPath = getString(keepIslandKey(scene, KEY_KEEP_ISLAND_CUSTOM_ICON)),
     )
 
-    internal fun setKeepIslandSettings(value: KeepIslandSettings) {
-        putBoolean(KEY_KEEP_ISLAND, value.enabled)
-        putString(KEY_KEEP_ISLAND_DISPLAY_TIMING, value.displayTiming)
-        putBoolean(KEY_KEEP_ISLAND_SHOW_NOTIFICATION, value.showNotification)
-        putBoolean(KEY_KEEP_ISLAND_AUTO_HIDE, value.autoHide)
-        putBoolean(KEY_KEEP_ISLAND_HIDE_LANDSCAPE, value.hideLandscape)
-        if (value.highlightColor.isBlank()) remove(KEY_KEEP_ISLAND_HIGHLIGHT_COLOR)
-        else putString(KEY_KEEP_ISLAND_HIGHLIGHT_COLOR, value.highlightColor.trim())
-        putBoolean(KEY_KEEP_ISLAND_LEFT_HIGHLIGHT, value.leftHighlight)
-        putBoolean(KEY_KEEP_ISLAND_RIGHT_HIGHLIGHT, value.rightHighlight)
-        putString(KEY_KEEP_ISLAND_LEFT_CONTENT, JSONArray(value.leftContents).toString())
-        putString(KEY_KEEP_ISLAND_RIGHT_CONTENT, JSONArray(value.rightContents).toString())
-        putLong(KEY_KEEP_ISLAND_CAROUSEL_INTERVAL, value.carouselInterval.coerceIn(1, 6000).toLong())
-        putBoolean(KEY_KEEP_ISLAND_FOCUS_NOTIFICATION, value.focusNotification)
-        putString(KEY_KEEP_ISLAND_FOCUS_CONTENT_TYPE, value.focusContentType)
-        putString(KEY_KEEP_ISLAND_EXPAND_TEXT_COLOR, value.expandTextColorMode)
-        putString(KEY_KEEP_ISLAND_NOTIFICATION_TITLE, value.notificationTitle.trim())
-        putString(KEY_KEEP_ISLAND_NOTIFICATION_CONTENT, value.notificationContent.trim())
-        putBoolean(KEY_KEEP_ISLAND_SHOW_ICON, value.showIslandIcon)
-        putString(KEY_KEEP_ISLAND_CUSTOM_ICON, value.customIconPath.trim())
+    private fun setKeepIslandProfile(
+        scene: KeepIslandScene,
+        previous: KeepIslandProfile,
+        value: KeepIslandProfile,
+        force: Boolean = false,
+    ) {
+        fun key(base: String) = keepIslandKey(scene, base)
+        putBooleanIfChanged(key(KEY_KEEP_ISLAND), previous.islandEnabled, value.islandEnabled, force)
+        putBooleanIfChanged(key(KEY_KEEP_ISLAND_SHOW_NOTIFICATION), previous.showNotification, value.showNotification, force)
+        putStringIfChanged(key(KEY_KEEP_ISLAND_HIGHLIGHT_COLOR), previous.highlightColor, value.highlightColor, force)
+        putBooleanIfChanged(key(KEY_KEEP_ISLAND_LEFT_HIGHLIGHT), previous.leftHighlight, value.leftHighlight, force)
+        putBooleanIfChanged(key(KEY_KEEP_ISLAND_RIGHT_HIGHLIGHT), previous.rightHighlight, value.rightHighlight, force)
+        putStringIfChanged(
+            key(KEY_KEEP_ISLAND_LEFT_CONTENT),
+            JSONArray(previous.leftContents).toString(),
+            JSONArray(value.leftContents).toString(),
+            force,
+        )
+        putStringIfChanged(
+            key(KEY_KEEP_ISLAND_RIGHT_CONTENT),
+            JSONArray(previous.rightContents).toString(),
+            JSONArray(value.rightContents).toString(),
+            force,
+        )
+        putLongIfChanged(
+            key(KEY_KEEP_ISLAND_CAROUSEL_INTERVAL),
+            previous.carouselInterval.toLong(),
+            value.carouselInterval.coerceIn(1, 6000).toLong(),
+            force,
+        )
+        putBooleanIfChanged(
+            key(KEY_KEEP_ISLAND_FOCUS_NOTIFICATION),
+            previous.focusNotification,
+            value.focusNotification,
+            force,
+        )
+        putStringIfChanged(key(KEY_KEEP_ISLAND_FOCUS_CONTENT_TYPE), previous.focusContentType, value.focusContentType, force)
+        putStringIfChanged(
+            key(KEY_KEEP_ISLAND_EXPAND_TEXT_COLOR),
+            previous.expandTextColorMode,
+            value.expandTextColorMode,
+            force,
+        )
+        putStringIfChanged(
+            key(KEY_KEEP_ISLAND_NOTIFICATION_TITLE),
+            previous.notificationTitle,
+            value.notificationTitle.trim(),
+            force,
+        )
+        putStringIfChanged(
+            key(KEY_KEEP_ISLAND_NOTIFICATION_CONTENT),
+            previous.notificationContent,
+            value.notificationContent.trim(),
+            force,
+        )
+        putBooleanIfChanged(key(KEY_KEEP_ISLAND_SHOW_ICON), previous.showIslandIcon, value.showIslandIcon, force)
+        putStringIfChanged(key(KEY_KEEP_ISLAND_CUSTOM_ICON), previous.customIconPath, value.customIconPath.trim(), force)
+    }
+
+    private fun keepIslandKey(scene: KeepIslandScene, base: String): String =
+        if (scene == KeepIslandScene.Default) base
+        else KEY_KEEP_ISLAND_PREFIX + scene.storagePrefix + if (base == KEY_KEEP_ISLAND) {
+            "enabled"
+        } else {
+            base.removePrefix(KEY_KEEP_ISLAND_PREFIX)
+        }
+
+    private fun putBooleanIfChanged(key: String, previous: Boolean, value: Boolean, force: Boolean = false) {
+        if (force || previous != value) putBoolean(key, value)
+    }
+
+    private fun putStringIfChanged(key: String, previous: String, value: String, force: Boolean = false) {
+        if (force || previous != value) putString(key, value)
+    }
+
+    private fun putLongIfChanged(key: String, previous: Long, value: Long, force: Boolean = false) {
+        if (force || previous != value) putLong(key, value)
     }
 
     internal fun exportChannelSettings(
@@ -742,7 +880,12 @@ class FlutterPrefsRepository(context: Context) {
         const val KEY_FOREGROUND_INDEX = "pref_scene_foreground_packages"
         const val KEY_FOREGROUND_EXCLUDED = "pref_scene_excluded_foreground_packages"
         const val KEY_KEEP_ISLAND = "pref_keep_island"
-        const val KEY_KEEP_ISLAND_DISPLAY_TIMING = "pref_keep_island_display_timing"
+        const val KEY_KEEP_ISLAND_MASTER = "pref_keep_island_master_enabled"
+        const val KEY_KEEP_ISLAND_PREFIX = "pref_keep_island_"
+        const val KEY_KEEP_ISLAND_CHARGING_FOLLOW_DEFAULT =
+            "pref_keep_island_charging_follow_default"
+        const val KEY_KEEP_ISLAND_LOCKED_FOLLOW_DEFAULT =
+            "pref_keep_island_locked_follow_default"
         const val KEY_KEEP_ISLAND_SHOW_NOTIFICATION = "pref_keep_island_show_notification"
         const val KEY_KEEP_ISLAND_AUTO_HIDE = "pref_keep_island_auto_hide"
         const val KEY_KEEP_ISLAND_HIDE_LANDSCAPE = "pref_keep_island_hide_landscape"

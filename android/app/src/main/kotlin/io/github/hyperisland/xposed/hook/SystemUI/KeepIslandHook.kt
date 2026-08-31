@@ -2,6 +2,7 @@ package io.github.hyperisland.xposed.hook
 
 import android.app.Application
 import android.app.ActivityManager
+import android.app.KeyguardManager
 import android.app.PendingIntent
 import android.os.BatteryManager
 import android.content.BroadcastReceiver
@@ -46,8 +47,13 @@ object KeepIslandHook : BaseHook() {
 
     private const val TAG = "HyperIsland[KeepIsland]"
     private const val PREF_KEY = "pref_keep_island"
+    private const val PREF_KEY_MASTER = "pref_keep_island_master_enabled"
 
-    private const val PREF_KEY_DISPLAY_TIMING = "pref_keep_island_display_timing"
+    private const val PREF_KEY_PREFIX = "pref_keep_island_"
+    private const val PREF_KEY_CHARGING_FOLLOW_DEFAULT =
+        "pref_keep_island_charging_follow_default"
+    private const val PREF_KEY_LOCKED_FOLLOW_DEFAULT =
+        "pref_keep_island_locked_follow_default"
 
     private const val PREF_KEY_SHOW_NOTIFICATION = "pref_keep_island_show_notification"
 
@@ -153,10 +159,13 @@ object KeepIslandHook : BaseHook() {
 
     private var chargingReceiverRegistered = false
 
-    private var displayTimingReceiverRegistered = false
+    private var sceneStateReceiverRegistered = false
 
     @Volatile
     private var powerConnected = false
+
+    @Volatile
+    private var keyguardLocked = false
 
     private var configurationCallbacksRegistered = false
 
@@ -171,7 +180,7 @@ object KeepIslandHook : BaseHook() {
             cachedPanelFocusContent = null
             carouselIndex = 0L
             lastCarouselAdvanceAt = System.currentTimeMillis()
-            if (ConfigManager.getString(PREF_KEY_FOCUS_CONTENT_TYPE, FOCUS_CONTENT_NOTIFICATION) !=
+            if (profileString(PREF_KEY_FOCUS_CONTENT_TYPE, FOCUS_CONTENT_NOTIFICATION) !=
                 FOCUS_CONTENT_CHARGING
             ) {
                 resetChargingSession()
@@ -209,7 +218,7 @@ object KeepIslandHook : BaseHook() {
                     registerDisplayListener(app.applicationContext)
                     registerIslandDataManager(app.applicationContext)
                     registerChargingPanelReceiver(app.applicationContext)
-                    registerDisplayTimingReceiver(app.applicationContext)
+                    registerSceneStateReceiver(app.applicationContext)
                     registerSettingsRefreshReceiver(app.applicationContext)
                     registerStatusBarTintListener()
                     mainHandler.post { evaluateKeepIsland() }
@@ -273,7 +282,7 @@ object KeepIslandHook : BaseHook() {
 
     private fun evaluateKeepIsland() {
         val ctx = appContext ?: return
-        val islandEnabled = ConfigManager.getBoolean(PREF_KEY, false)
+        val islandEnabled = profileBoolean(PREF_KEY, false)
         val autoHide = ConfigManager.getBoolean(PREF_KEY_AUTO_HIDE, true)
         if (!islandEnabled || !autoHide) {
             activeRealKeys.clear()
@@ -294,21 +303,16 @@ object KeepIslandHook : BaseHook() {
     }
 
     private fun shouldPostKeepNotification(): Boolean =
-        matchesDisplayTiming() && (
-                ConfigManager.getBoolean(PREF_KEY, false) ||
-                        ConfigManager.getBoolean(PREF_KEY_SHOW_NOTIFICATION, false)
-                )
-
-    private fun matchesDisplayTiming(): Boolean =
-        ConfigManager.getString(PREF_KEY_DISPLAY_TIMING, DISPLAY_TIMING_ALWAYS) !=
-                DISPLAY_TIMING_CHARGING || powerConnected
+        ConfigManager.getBoolean(PREF_KEY_MASTER, true) &&
+                (profileBoolean(PREF_KEY, false) ||
+                        profileBoolean(PREF_KEY_SHOW_NOTIFICATION, false))
 
     private fun focusContentActive(): Boolean =
-        ConfigManager.getBoolean(PREF_KEY_FOCUS_NOTIFICATION, false) ||
-                ConfigManager.getBoolean(PREF_KEY_SHOW_NOTIFICATION, false)
+        profileBoolean(PREF_KEY_FOCUS_NOTIFICATION, false) ||
+                profileBoolean(PREF_KEY_SHOW_NOTIFICATION, false)
 
     private fun shouldEnableIsland(context: Context): Boolean {
-        if (!ConfigManager.getBoolean(PREF_KEY, false)) return false
+        if (!profileBoolean(PREF_KEY, false)) return false
         val hideForRealNotification = ConfigManager.getBoolean(PREF_KEY_AUTO_HIDE, true) &&
                 (activeRealKeys.isNotEmpty() || restoreRunnable != null)
         if (hideForRealNotification) return false
@@ -317,21 +321,51 @@ object KeepIslandHook : BaseHook() {
         return !hideForLandscape
     }
 
+    private fun activeProfileScene(): KeepIslandProfileScene = when {
+        keyguardLocked -> if (ConfigManager.getBoolean(PREF_KEY_LOCKED_FOLLOW_DEFAULT, true)) {
+            KeepIslandProfileScene.DEFAULT
+        } else {
+            KeepIslandProfileScene.LOCKED
+        }
+        powerConnected && !ConfigManager.getBoolean(PREF_KEY_CHARGING_FOLLOW_DEFAULT, true) ->
+            KeepIslandProfileScene.CHARGING
+        else -> KeepIslandProfileScene.DEFAULT
+    }
+
+    private fun profileKey(baseKey: String): String {
+        val scene = activeProfileScene()
+        if (scene == KeepIslandProfileScene.DEFAULT) return baseKey
+        val suffix = if (baseKey == PREF_KEY) "enabled" else baseKey.removePrefix(PREF_KEY_PREFIX)
+        return PREF_KEY_PREFIX + scene.keyPrefix + suffix
+    }
+
+    private fun profileBoolean(baseKey: String, default: Boolean): Boolean =
+        ConfigManager.getBoolean(profileKey(baseKey), default)
+
+    private fun profileString(baseKey: String, default: String = ""): String =
+        ConfigManager.getString(profileKey(baseKey), default)
+
+    private fun profileInt(baseKey: String, default: Int): Int =
+        ConfigManager.getInt(profileKey(baseKey), default)
+
+    private fun profileContains(baseKey: String): Boolean =
+        ConfigManager.contains(profileKey(baseKey))
+
     private fun postKeepIsland(context: android.content.Context, restore: Boolean) {
         try {
-            val highlightColor = ConfigManager.getString(PREF_KEY_HIGHLIGHT_COLOR, "")
+            val highlightColor = profileString(PREF_KEY_HIGHLIGHT_COLOR, "")
                 .takeIf { it.isNotBlank() }
             val showLeftHighlight = highlightColor != null &&
-                    ConfigManager.getBoolean(PREF_KEY_LEFT_HIGHLIGHT, false)
+                    profileBoolean(PREF_KEY_LEFT_HIGHLIGHT, false)
             val showRightHighlight = highlightColor != null &&
-                    ConfigManager.getBoolean(PREF_KEY_RIGHT_HIGHLIGHT, false)
+                    profileBoolean(PREF_KEY_RIGHT_HIGHLIGHT, false)
             val texts: Pair<String, String> = resolveKeepIslandTexts()
-            val focusEnabled = ConfigManager.getBoolean(PREF_KEY_FOCUS_NOTIFICATION, false)
-            val showNotification = ConfigManager.getBoolean(PREF_KEY_SHOW_NOTIFICATION, false)
+            val focusEnabled = profileBoolean(PREF_KEY_FOCUS_NOTIFICATION, false)
+            val showNotification = profileBoolean(PREF_KEY_SHOW_NOTIFICATION, false)
             val focusContent = resolveFocusContent(context, focusEnabled || showNotification)
             val islandEnabled = shouldEnableIsland(context)
-            val showIslandIcon = ConfigManager.getBoolean(PREF_KEY_SHOW_ISLAND_ICON, false)
-            val customIconPath = ConfigManager.getString(PREF_KEY_CUSTOM_ICON_PATH, "")
+            val showIslandIcon = profileBoolean(PREF_KEY_SHOW_ISLAND_ICON, false)
+            val customIconPath = profileString(PREF_KEY_CUSTOM_ICON_PATH, "")
             val contentIntent = createLaunchAppIntent(context)
             val request = IslandRequest(
                 title = texts.first,
@@ -396,18 +430,18 @@ object KeepIslandHook : BaseHook() {
         if (defaultDisplayState(context) == Display.STATE_OFF) return
         val texts: Pair<String, String> = resolveKeepIslandTexts()
         try {
-            val highlightColor = ConfigManager.getString(PREF_KEY_HIGHLIGHT_COLOR, "")
+            val highlightColor = profileString(PREF_KEY_HIGHLIGHT_COLOR, "")
                 .takeIf { it.isNotBlank() }
             val showLeftHighlight = highlightColor != null &&
-                    ConfigManager.getBoolean(PREF_KEY_LEFT_HIGHLIGHT, false)
+                    profileBoolean(PREF_KEY_LEFT_HIGHLIGHT, false)
             val showRightHighlight = highlightColor != null &&
-                    ConfigManager.getBoolean(PREF_KEY_RIGHT_HIGHLIGHT, false)
-            val focusEnabled = ConfigManager.getBoolean(PREF_KEY_FOCUS_NOTIFICATION, false)
-            val showNotification = ConfigManager.getBoolean(PREF_KEY_SHOW_NOTIFICATION, false)
+                    profileBoolean(PREF_KEY_RIGHT_HIGHLIGHT, false)
+            val focusEnabled = profileBoolean(PREF_KEY_FOCUS_NOTIFICATION, false)
+            val showNotification = profileBoolean(PREF_KEY_SHOW_NOTIFICATION, false)
             val focusContent = resolveFocusContent(context, focusEnabled || showNotification)
             val islandEnabled = shouldEnableIsland(context)
-            val showIslandIcon = ConfigManager.getBoolean(PREF_KEY_SHOW_ISLAND_ICON, false)
-            val customIconPath = ConfigManager.getString(PREF_KEY_CUSTOM_ICON_PATH, "")
+            val showIslandIcon = profileBoolean(PREF_KEY_SHOW_ISLAND_ICON, false)
+            val customIconPath = profileString(PREF_KEY_CUSTOM_ICON_PATH, "")
             val contentIntent = createLaunchAppIntent(context)
             val signature = contentSignature(
                 texts,
@@ -469,7 +503,7 @@ object KeepIslandHook : BaseHook() {
     }
 
     private fun resolveKeepIslandTexts(): Pair<String, String> {
-        if (!ConfigManager.getBoolean(PREF_KEY, false)) return " " to ""
+        if (!profileBoolean(PREF_KEY, false)) return " " to ""
         val config = contentConfig()
         advanceCarouselIfNeeded(config)
         val leftExpression = config.left.getOrNull((carouselIndex % config.left.size).toInt()).orEmpty()
@@ -487,17 +521,17 @@ object KeepIslandHook : BaseHook() {
 
     private fun resolveFocusNotificationTexts(): Pair<String, String> {
         val title = renderExpressionSafely(
-            ConfigManager.getString(PREF_KEY_NOTIFICATION_TITLE, ""),
+            profileString(PREF_KEY_NOTIFICATION_TITLE, ""),
         ).ifBlank { " " }
         val content = renderExpressionSafely(
-            ConfigManager.getString(PREF_KEY_NOTIFICATION_CONTENT, ""),
+            profileString(PREF_KEY_NOTIFICATION_CONTENT, ""),
         )
         return title to content
     }
 
     private fun resolveFocusContent(context: Context, enabled: Boolean): FocusContent {
         if (!enabled) return FocusContent(" ", "", null, null, null, null, "disabled")
-        return when (ConfigManager.getString(PREF_KEY_FOCUS_CONTENT_TYPE, FOCUS_CONTENT_NOTIFICATION)) {
+        return when (profileString(PREF_KEY_FOCUS_CONTENT_TYPE, FOCUS_CONTENT_NOTIFICATION)) {
             FOCUS_CONTENT_PERFORMANCE -> resolvePerformanceFocusContent(context)
             FOCUS_CONTENT_DEVICE -> resolveDeviceFocusContent(context)
             FOCUS_CONTENT_CHARGING -> resolveChargingFocusContent(context)
@@ -598,7 +632,7 @@ object KeepIslandHook : BaseHook() {
         val memoryPercent = snapshot.memoryUsagePercent?.roundToInt()?.coerceIn(0, 100) ?: 0
         val cpuText = snapshot.cpuUsagePercent?.let { "$cpuPercent%" } ?: "--%"
         val memoryText = snapshot.memoryUsagePercent?.let { "$memoryPercent%" } ?: "--%"
-        val customIconPath = ConfigManager.getString(PREF_KEY_CUSTOM_ICON_PATH, "")
+        val customIconPath = profileString(PREF_KEY_CUSTOM_ICON_PATH, "")
         val expandPalette = resolveExpandPalette()
         val signature = listOf(
             "device",
@@ -955,7 +989,7 @@ object KeepIslandHook : BaseHook() {
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(receiverContext: Context?, intent: Intent?) {
                 if (intent?.action != ACTION_SWITCH_CHARGING_CHART) return
-                if (ConfigManager.getString(PREF_KEY_FOCUS_CONTENT_TYPE, FOCUS_CONTENT_NOTIFICATION) !=
+                if (profileString(PREF_KEY_FOCUS_CONTENT_TYPE, FOCUS_CONTENT_NOTIFICATION) !=
                     FOCUS_CONTENT_CHARGING
                 ) return
                 chargingChartMode = chargingChartMode.next()
@@ -974,24 +1008,31 @@ object KeepIslandHook : BaseHook() {
         }
     }
 
-    private fun registerDisplayTimingReceiver(context: Context) {
-        if (displayTimingReceiverRegistered) return
-        displayTimingReceiverRegistered = true
+    private fun registerSceneStateReceiver(context: Context) {
+        if (sceneStateReceiverRegistered) return
+        sceneStateReceiverRegistered = true
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(receiverContext: Context?, intent: Intent?) {
-                val nextPowerConnected = when (intent?.action) {
-                    Intent.ACTION_POWER_CONNECTED -> true
-                    Intent.ACTION_POWER_DISCONNECTED -> false
-                    Intent.ACTION_BATTERY_CHANGED ->
-                        intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0
+                val oldScene = activeProfileScene()
+                when (intent?.action) {
+                    Intent.ACTION_POWER_CONNECTED -> powerConnected = true
+                    Intent.ACTION_POWER_DISCONNECTED -> powerConnected = false
+                    Intent.ACTION_BATTERY_CHANGED -> {
+                        powerConnected = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0
+                    }
+                    Intent.ACTION_SCREEN_OFF -> keyguardLocked = true
+                    Intent.ACTION_USER_PRESENT -> keyguardLocked = false
+                    Intent.ACTION_SCREEN_ON -> keyguardLocked = isKeyguardLocked(context)
                     else -> return
                 }
-                val powerStateChanged = powerConnected != nextPowerConnected
-                powerConnected = nextPowerConnected
                 mainHandler.post {
-                    if (powerStateChanged) {
-                        if (!matchesDisplayTiming()) resetChargingSession()
-                        evaluateKeepIsland()
+                    if (oldScene != activeProfileScene()) {
+                        invalidateSceneContent()
+                        if (posted && shouldPostKeepNotification()) {
+                            postKeepIsland(context, restore = true)
+                        } else {
+                            evaluateKeepIsland()
+                        }
                     }
                     if (intent.action == Intent.ACTION_BATTERY_CHANGED &&
                         isDozeDisplayState(context, defaultDisplayState(context))
@@ -1005,6 +1046,9 @@ object KeepIslandHook : BaseHook() {
             addAction(Intent.ACTION_BATTERY_CHANGED)
             addAction(Intent.ACTION_POWER_CONNECTED)
             addAction(Intent.ACTION_POWER_DISCONNECTED)
+            addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_SCREEN_ON)
+            addAction(Intent.ACTION_USER_PRESENT)
         }
         val stickyIntent = if (android.os.Build.VERSION.SDK_INT >= 33) {
             context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
@@ -1013,7 +1057,20 @@ object KeepIslandHook : BaseHook() {
             context.registerReceiver(receiver, filter)
         }
         powerConnected = stickyIntent?.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0
+        keyguardLocked = isKeyguardLocked(context)
     }
+
+    private fun invalidateSceneContent() {
+        cachedContentConfig = null
+        cachedPanelFocusContent = null
+        carouselIndex = 0L
+        lastCarouselAdvanceAt = System.currentTimeMillis()
+        lastContentUpdateSignature = null
+        resetChargingSession()
+    }
+
+    private fun isKeyguardLocked(context: Context): Boolean =
+        context.getSystemService(KeyguardManager::class.java)?.isKeyguardLocked == true
 
     private fun registerSettingsRefreshReceiver(context: Context) {
         val receiver = object : BroadcastReceiver() {
@@ -1290,7 +1347,7 @@ object KeepIslandHook : BaseHook() {
     }
 
     private fun hasSecondTimePlaceholder(): Boolean {
-        if (!ConfigManager.getBoolean(PREF_KEY, false)) return false
+        if (!profileBoolean(PREF_KEY, false)) return false
         val config = contentConfig()
         return (config.left + config.right).any { expression ->
             SECOND_TIME_PLACEHOLDERS.any(expression::contains)
@@ -1317,31 +1374,31 @@ object KeepIslandHook : BaseHook() {
 
     private fun hasConfiguredKeepIslandContent(): Boolean {
         val config = contentConfig()
-        val hasIslandContent = ConfigManager.getBoolean(PREF_KEY, false) &&
+        val hasIslandContent = profileBoolean(PREF_KEY, false) &&
                 (config.left.any { it.isNotBlank() } || config.right.any { it.isNotBlank() })
         if (hasIslandContent) return true
         if (!focusContentActive()) return false
-        if (ConfigManager.getString(PREF_KEY_FOCUS_CONTENT_TYPE, FOCUS_CONTENT_NOTIFICATION) in
+        if (profileString(PREF_KEY_FOCUS_CONTENT_TYPE, FOCUS_CONTENT_NOTIFICATION) in
             setOf(FOCUS_CONTENT_PERFORMANCE, FOCUS_CONTENT_DEVICE, FOCUS_CONTENT_CHARGING)
         ) return true
-        return ConfigManager.getString(PREF_KEY_NOTIFICATION_TITLE, "").isNotBlank() ||
-                ConfigManager.getString(PREF_KEY_NOTIFICATION_CONTENT, "").isNotBlank()
+        return profileString(PREF_KEY_NOTIFICATION_TITLE, "").isNotBlank() ||
+                profileString(PREF_KEY_NOTIFICATION_CONTENT, "").isNotBlank()
     }
 
     private fun contentConfig(): ContentConfig {
         cachedContentConfig?.let { return it }
         return ContentConfig(
             left = decodeContentList(
-                ConfigManager.getString(PREF_KEY_LEFT_CONTENT, ""),
+                profileString(PREF_KEY_LEFT_CONTENT, ""),
                 DEFAULT_LEFT_CONTENT,
-                ConfigManager.contains(PREF_KEY_LEFT_CONTENT),
+                profileContains(PREF_KEY_LEFT_CONTENT),
             ),
             right = decodeContentList(
-                ConfigManager.getString(PREF_KEY_RIGHT_CONTENT, ""),
+                profileString(PREF_KEY_RIGHT_CONTENT, ""),
                 DEFAULT_RIGHT_CONTENT,
-                ConfigManager.contains(PREF_KEY_RIGHT_CONTENT),
+                profileContains(PREF_KEY_RIGHT_CONTENT),
             ),
-            intervalMillis = ConfigManager.getInt(PREF_KEY_CAROUSEL_INTERVAL, 5)
+            intervalMillis = profileInt(PREF_KEY_CAROUSEL_INTERVAL, 5)
                 .coerceIn(1, 6000) * 1000L,
         ).also { cachedContentConfig = it }
     }
@@ -1444,7 +1501,7 @@ object KeepIslandHook : BaseHook() {
 
     private fun resolveExpandPalette(): PanelPalette {
         val statusBarTint = StatusBarTextColorHook.getReadableTint()
-        val primary = when (ConfigManager.getString(
+        val primary = when (profileString(
             PREF_KEY_EXPAND_TEXT_COLOR_MODE,
             EXPAND_TEXT_COLOR_WHITE,
         )) {
@@ -1458,7 +1515,7 @@ object KeepIslandHook : BaseHook() {
     }
 
     private fun isPanelFocusContent(): Boolean =
-        ConfigManager.getString(PREF_KEY_FOCUS_CONTENT_TYPE, FOCUS_CONTENT_NOTIFICATION) in
+        profileString(PREF_KEY_FOCUS_CONTENT_TYPE, FOCUS_CONTENT_NOTIFICATION) in
                 setOf(FOCUS_CONTENT_PERFORMANCE, FOCUS_CONTENT_DEVICE, FOCUS_CONTENT_CHARGING)
 
     private fun isLightColor(color: Int): Boolean =
@@ -1603,6 +1660,12 @@ object KeepIslandHook : BaseHook() {
         val temperatureCelsius: Double?,
     )
 
+    private enum class KeepIslandProfileScene(val keyPrefix: String) {
+        DEFAULT(""),
+        CHARGING("charging_"),
+        LOCKED("locked_"),
+    }
+
     private enum class ChargingChartMode(
         val label: String,
         val darkColor: Int,
@@ -1648,8 +1711,6 @@ object KeepIslandHook : BaseHook() {
     private const val EXPAND_TEXT_COLOR_FOLLOW_STATUS_BAR = "follow_status_bar"
     private const val EXPAND_TEXT_COLOR_INVERT_STATUS_BAR = "invert_status_bar"
     private const val EXPAND_TEXT_COLOR_BLACK = "black"
-    private const val DISPLAY_TIMING_ALWAYS = "always"
-    private const val DISPLAY_TIMING_CHARGING = "charging"
     private const val PERFORMANCE_TREND_POINTS = 24
     private const val CHARGING_MAX_SAMPLES = 120
     private const val CHARGING_SAMPLE_INTERVAL_MS = 5000L

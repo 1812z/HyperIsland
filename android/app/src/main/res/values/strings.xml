@@ -246,6 +246,14 @@
     <string name="keep_island_display_timing">显示时机</string>
     <string name="keep_island_display_always">常驻</string>
     <string name="keep_island_display_charging">充电时</string>
+    <string name="keep_island_global_settings">全局设置</string>
+    <string name="keep_island_master_enable">常驻岛总开关</string>
+    <string name="keep_island_master_enable_summary">控制常驻通知及所有场景是否运行</string>
+    <string name="keep_island_tab_default">默认场景</string>
+    <string name="keep_island_tab_charging">充电场景</string>
+    <string name="keep_island_tab_locked">锁屏场景</string>
+    <string name="keep_island_follow_default">沿用默认场景</string>
+    <string name="keep_island_follow_default_summary">使用默认场景的全部配置</string>
     <string name="keep_island_island_config">岛配置</string>
     <string name="keep_island_focus_config">焦点通知配置</string>
     <string name="keep_island_enable">启用岛</string>

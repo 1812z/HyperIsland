@@ -50,6 +50,8 @@ import io.github.hyperisland.compose.component.keepisland.PlaceholderItem
 import io.github.hyperisland.compose.component.parseHexColor
 import io.github.hyperisland.compose.component.toArgbHex
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
+import io.github.hyperisland.compose.data.KeepIslandProfile
+import io.github.hyperisland.compose.data.KeepIslandScene
 import io.github.hyperisland.compose.data.KeepIslandSettings
 import io.github.hyperisland.compose.service.KeepIslandService
 import kotlinx.coroutines.Dispatchers
@@ -61,6 +63,7 @@ import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
+import top.yukonga.miuix.kmp.basic.TabRow
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.ChevronForward
@@ -84,16 +87,67 @@ internal fun KeepIslandPage(
     var showColor by remember { mutableStateOf(false) }
     var showPlaceholders by remember { mutableStateOf(false) }
     var iconPreview by remember { mutableStateOf<ImageBitmap?>(null) }
+    var selectedScene by remember { mutableStateOf(KeepIslandScene.Default) }
 
     fun update(next: KeepIslandSettings) {
+        val previous = settings
+        if (previous == next) return
         settings = next
-        prefs.setKeepIslandSettings(next)
+        prefs.setKeepIslandSettings(previous, next)
         KeepIslandService.refresh(context)
     }
 
-    LaunchedEffect(settings.customIconPath) {
+    fun updateProfile(transform: (KeepIslandProfile) -> KeepIslandProfile) {
+        update(
+            when (selectedScene) {
+                KeepIslandScene.Default -> settings.copy(
+                    defaultProfile = transform(settings.defaultProfile),
+                )
+                KeepIslandScene.Charging -> settings.copy(
+                    chargingProfile = transform(settings.chargingProfile),
+                )
+                KeepIslandScene.Locked -> settings.copy(
+                    lockedProfile = transform(settings.lockedProfile),
+                )
+            },
+        )
+    }
+
+    fun iconUsedByAnotherScene(path: String): Boolean {
+        if (path.isBlank()) return false
+        return listOf(
+            Triple(KeepIslandScene.Default, true, settings.defaultProfile.customIconPath),
+            Triple(
+                KeepIslandScene.Charging,
+                !settings.chargingFollowDefault,
+                settings.chargingProfile.customIconPath,
+            ),
+            Triple(
+                KeepIslandScene.Locked,
+                !settings.lockedFollowDefault,
+                settings.lockedProfile.customIconPath,
+            ),
+        ).any { (scene, active, configuredPath) ->
+            scene != selectedScene && active && configuredPath == path
+        }
+    }
+
+    val profile = when (selectedScene) {
+        KeepIslandScene.Default -> settings.defaultProfile
+        KeepIslandScene.Charging -> settings.chargingProfile
+        KeepIslandScene.Locked -> settings.lockedProfile
+    }
+    val followsAnotherScene = when (selectedScene) {
+        KeepIslandScene.Default -> false
+        KeepIslandScene.Charging -> settings.chargingFollowDefault
+        KeepIslandScene.Locked -> settings.lockedFollowDefault
+    }
+    val sceneControlsEnabled = settings.masterEnabled && !followsAnotherScene
+    val profileEnabled = sceneControlsEnabled && profile.islandEnabled
+
+    LaunchedEffect(profile.customIconPath) {
         iconPreview = withContext(Dispatchers.IO) {
-            settings.customIconPath.takeIf(String::isNotBlank)?.let { path ->
+            profile.customIconPath.takeIf(String::isNotBlank)?.let { path ->
                 runCatching { BitmapFactory.decodeFile(File(path).path)?.asImageBitmap() }.getOrNull()
             }
         }
@@ -103,16 +157,21 @@ internal fun KeepIslandPage(
         if (uri != null) {
             scope.launch {
                 val result = withContext(Dispatchers.IO) {
-                    KeepIslandService.saveIcon(context, uri, settings.customIconPath)
+                    KeepIslandService.saveIcon(context, uri, "")
                 }
-                result.onSuccess { update(settings.copy(customIconPath = it)) }
+                result.onSuccess { path ->
+                    val previousPath = profile.customIconPath
+                    updateProfile { it.copy(customIconPath = path) }
+                    if (!iconUsedByAnotherScene(previousPath)) {
+                        withContext(Dispatchers.IO) { KeepIslandService.deleteIcon(previousPath) }
+                    }
+                }
             }
         }
     }
 
-    val focusContentEnabled =
-        (settings.focusNotification && settings.enabled) || settings.showNotification
-    val timingValues = remember { listOf(TIMING_ALWAYS, TIMING_CHARGING) }
+    val focusContentEnabled = sceneControlsEnabled &&
+            ((profile.focusNotification && profile.islandEnabled) || profile.showNotification)
     val contentTypeValues = remember {
         listOf(CONTENT_NOTIFICATION, CONTENT_PERFORMANCE, CONTENT_DEVICE, CONTENT_CHARGING)
     }
@@ -137,20 +196,70 @@ internal fun KeepIslandPage(
             }
         }
         item {
-            SectionTitle(stringResource(R.string.keep_island_display_timing))
+            SectionTitle(stringResource(R.string.keep_island_global_settings))
             Card(modifier = Modifier.fillMaxWidth()) {
-                PreferenceDropdown(
-                    title = stringResource(R.string.keep_island_display_timing),
-                    summary = null,
+                PreferenceSwitch(
+                    title = stringResource(R.string.keep_island_master_enable),
+                    summary = stringResource(R.string.keep_island_master_enable_summary),
                     icon = null,
-                    items = listOf(
-                        stringResource(R.string.keep_island_display_always),
-                        stringResource(R.string.keep_island_display_charging),
-                    ),
-                    selectedIndex = timingValues.indexOf(settings.displayTiming).coerceAtLeast(0),
-                ) { update(settings.copy(displayTiming = timingValues[it])) }
+                    checked = settings.masterEnabled,
+                ) { update(settings.copy(masterEnabled = it)) }
+                PreferenceSwitch(
+                    title = stringResource(R.string.keep_island_auto_hide),
+                    summary = stringResource(R.string.keep_island_auto_hide_summary),
+                    icon = null,
+                    checked = settings.autoHide,
+                    enabled = settings.masterEnabled,
+                ) { update(settings.copy(autoHide = it)) }
+                PreferenceSwitch(
+                    title = stringResource(R.string.keep_island_hide_landscape),
+                    summary = stringResource(R.string.keep_island_hide_landscape_summary),
+                    icon = null,
+                    checked = settings.hideLandscape,
+                        enabled = settings.masterEnabled,
+                ) { update(settings.copy(hideLandscape = it)) }
             }
         }
+        item {
+            TabRow(
+                tabs = listOf(
+                    stringResource(R.string.keep_island_tab_default),
+                    stringResource(R.string.keep_island_tab_charging),
+                    stringResource(R.string.keep_island_tab_locked),
+                ),
+                selectedTabIndex = selectedScene.ordinal,
+                onTabSelected = { selectedScene = KeepIslandScene.entries[it] },
+            )
+        }
+        if (selectedScene != KeepIslandScene.Default) {
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    PreferenceSwitch(
+                        title = stringResource(R.string.keep_island_follow_default),
+                        summary = stringResource(R.string.keep_island_follow_default_summary),
+                        icon = null,
+                        checked = followsAnotherScene,
+                    enabled = settings.masterEnabled,
+                    ) { checked ->
+                        val freshSettings = if (checked) settings else prefs.keepIslandSettings()
+                        update(
+                            if (selectedScene == KeepIslandScene.Charging) {
+                                settings.copy(
+                                    chargingFollowDefault = checked,
+                                    chargingProfile = freshSettings.chargingProfile,
+                                )
+                            } else {
+                                settings.copy(
+                                    lockedFollowDefault = checked,
+                                    lockedProfile = freshSettings.lockedProfile,
+                                )
+                            },
+                        )
+                    }
+                }
+            }
+        }
+        if (!followsAnotherScene) {
         item {
             SectionTitle(stringResource(R.string.keep_island_island_config))
             Card(modifier = Modifier.fillMaxWidth()) {
@@ -158,57 +267,42 @@ internal fun KeepIslandPage(
                     title = stringResource(R.string.keep_island_enable),
                     summary = null,
                     icon = null,
-                    checked = settings.enabled,
-                ) { update(settings.copy(enabled = it)) }
-                PreferenceSwitch(
-                    title = stringResource(R.string.keep_island_auto_hide),
-                    summary = stringResource(R.string.keep_island_auto_hide_summary),
-                    icon = null,
-                    checked = settings.autoHide,
-                    enabled = settings.enabled,
-                ) { update(settings.copy(autoHide = it)) }
-                AnimatedVisibility(visible = settings.autoHide) {
-                    PreferenceSwitch(
-                        title = stringResource(R.string.keep_island_hide_landscape),
-                        summary = stringResource(R.string.keep_island_hide_landscape_summary),
-                        icon = null,
-                        checked = settings.hideLandscape,
-                        enabled = settings.enabled,
-                    ) { update(settings.copy(hideLandscape = it)) }
-                }
+                    checked = profile.islandEnabled,
+                    enabled = sceneControlsEnabled,
+                ) { checked -> updateProfile { it.copy(islandEnabled = checked) } }
                 ContentAction(
                     title = stringResource(R.string.keep_island_left_content),
-                    values = settings.leftContents,
-                    enabled = settings.enabled,
+                    values = profile.leftContents,
+                    enabled = profileEnabled,
                 ) { activeEditor = KeepIslandEditor.Left }
                 ContentAction(
                     title = stringResource(R.string.keep_island_right_content),
-                    values = settings.rightContents,
-                    enabled = settings.enabled,
+                    values = profile.rightContents,
+                    enabled = profileEnabled,
                 ) { activeEditor = KeepIslandEditor.Right }
                 SettingsAction(
                     title = stringResource(R.string.keep_island_carousel_interval),
                     summary = stringResource(R.string.keep_island_carousel_interval_summary),
                     endIcon = MiuixIcons.ChevronForward,
-                    enabled = settings.enabled,
+                    enabled = profileEnabled,
                 ) { showInterval = true }
                 ArrowPreference(
                     title = stringResource(R.string.keep_island_highlight_color),
                     summary = stringResource(R.string.keep_island_highlight_color_summary),
-                    enabled = settings.enabled,
+                    enabled = profileEnabled,
                     insideMargin = SettingsItemMargin,
                     endActions = {
-                        ColorPreview(settings.highlightColor, settings.enabled)
-                        if (settings.highlightColor.isNotBlank()) {
+                        ColorPreview(profile.highlightColor, profileEnabled)
+                        if (profile.highlightColor.isNotBlank()) {
                             IconButton(
-                                onClick = { update(settings.copy(highlightColor = "")) },
+                                onClick = { updateProfile { it.copy(highlightColor = "") } },
                                 modifier = Modifier.align(Alignment.CenterVertically),
-                                enabled = settings.enabled,
+                                enabled = profileEnabled,
                             ) {
                                 Icon(
                                     MiuixIcons.Refresh,
                                     stringResource(R.string.reset_default),
-                                    tint = if (settings.enabled) {
+                                    tint = if (profileEnabled) {
                                         MiuixTheme.colorScheme.onSurfaceVariantActions
                                     } else {
                                         MiuixTheme.colorScheme.disabledOnSecondaryVariant
@@ -219,31 +313,31 @@ internal fun KeepIslandPage(
                     },
                     onClick = { showColor = true },
                 )
-                AnimatedVisibility(visible = settings.highlightColor.isNotBlank()) {
+                AnimatedVisibility(visible = profile.highlightColor.isNotBlank()) {
                     PreferenceSwitch(
                         title = stringResource(R.string.keep_island_highlight_left),
                         summary = stringResource(R.string.keep_island_text_highlight),
                         icon = null,
-                        checked = settings.leftHighlight,
-                        enabled = settings.enabled,
-                    ) { update(settings.copy(leftHighlight = it)) }
+                        checked = profile.leftHighlight,
+                        enabled = profileEnabled,
+                    ) { checked -> updateProfile { it.copy(leftHighlight = checked) } }
                 }
-                AnimatedVisibility(visible = settings.highlightColor.isNotBlank()) {
+                AnimatedVisibility(visible = profile.highlightColor.isNotBlank()) {
                     PreferenceSwitch(
                         title = stringResource(R.string.keep_island_highlight_right),
                         summary = stringResource(R.string.keep_island_text_highlight),
                         icon = null,
-                        checked = settings.rightHighlight,
-                        enabled = settings.enabled,
-                    ) { update(settings.copy(rightHighlight = it)) }
+                        checked = profile.rightHighlight,
+                        enabled = profileEnabled,
+                    ) { checked -> updateProfile { it.copy(rightHighlight = checked) } }
                 }
                 PreferenceSwitch(
                     title = stringResource(R.string.keep_island_show_icon),
                     summary = stringResource(R.string.keep_island_show_icon_summary),
                     icon = null,
-                    checked = settings.showIslandIcon,
-                    enabled = settings.enabled,
-                ) { update(settings.copy(showIslandIcon = it)) }
+                    checked = profile.showIslandIcon,
+                    enabled = profileEnabled,
+                ) { checked -> updateProfile { it.copy(showIslandIcon = checked) } }
             }
         }
         item {
@@ -252,7 +346,7 @@ internal fun KeepIslandPage(
                 BasicComponent(
                     title = stringResource(R.string.keep_island_custom_icon),
                     summary = stringResource(
-                        if (settings.customIconPath.isBlank()) R.string.click_select_file
+                        if (profile.customIconPath.isBlank()) R.string.click_select_file
                         else R.string.keep_island_custom_icon_selected,
                     ),
                     insideMargin = SettingsItemMargin,
@@ -265,19 +359,24 @@ internal fun KeepIslandPage(
                                 contentScale = ContentScale.Crop,
                             )
                         }
-                        if (settings.customIconPath.isNotBlank()) {
+                        if (profile.customIconPath.isNotBlank()) {
                             IconButton(onClick = {
+                                val oldPath = profile.customIconPath
+                                val shared = iconUsedByAnotherScene(oldPath)
+                                updateProfile { it.copy(customIconPath = "") }
                                 scope.launch {
-                                    withContext(Dispatchers.IO) {
-                                        KeepIslandService.deleteIcon(settings.customIconPath)
+                                    if (!shared) {
+                                        withContext(Dispatchers.IO) {
+                                            KeepIslandService.deleteIcon(oldPath)
+                                        }
                                     }
-                                    update(settings.copy(customIconPath = ""))
                                 }
                             }) {
                                 Icon(MiuixIcons.Close, stringResource(R.string.delete))
                             }
                         }
                     },
+                    enabled = profileEnabled,
                     onClick = { chooseIcon.launch(arrayOf("image/*")) },
                 )
             }
@@ -289,9 +388,9 @@ internal fun KeepIslandPage(
                     title = stringResource(R.string.keep_island_clickable),
                     summary = stringResource(R.string.keep_island_clickable_summary),
                     icon = null,
-                    checked = settings.focusNotification,
-                    enabled = settings.enabled,
-                ) { update(settings.copy(focusNotification = it)) }
+                    checked = profile.focusNotification,
+                    enabled = profileEnabled,
+                ) { checked -> updateProfile { it.copy(focusNotification = checked) } }
                 PreferenceDropdown(
                     title = stringResource(R.string.keep_island_focus_content_type),
                     summary = null,
@@ -302,23 +401,23 @@ internal fun KeepIslandPage(
                         stringResource(R.string.keep_island_focus_device),
                         stringResource(R.string.keep_island_focus_charging),
                     ),
-                    selectedIndex = contentTypeValues.indexOf(settings.focusContentType).coerceAtLeast(0),
+                    selectedIndex = contentTypeValues.indexOf(profile.focusContentType).coerceAtLeast(0),
                     enabled = focusContentEnabled,
-                ) { update(settings.copy(focusContentType = contentTypeValues[it])) }
-                if (settings.focusContentType == CONTENT_NOTIFICATION) {
+                ) { index -> updateProfile { it.copy(focusContentType = contentTypeValues[index]) } }
+                if (profile.focusContentType == CONTENT_NOTIFICATION) {
                     TextAction(
                         title = stringResource(R.string.keep_island_notification_title),
-                        value = settings.notificationTitle,
+                        value = profile.notificationTitle,
                         enabled = focusContentEnabled,
                     ) { activeEditor = KeepIslandEditor.NotificationTitle }
                     TextAction(
                         title = stringResource(R.string.keep_island_notification_content),
-                        value = settings.notificationContent,
+                        value = profile.notificationContent,
                         enabled = focusContentEnabled,
                     ) { activeEditor = KeepIslandEditor.NotificationContent }
                 }
                 AnimatedVisibility(
-                    visible = settings.focusContentType != CONTENT_NOTIFICATION,
+                    visible = profile.focusContentType != CONTENT_NOTIFICATION,
                 ) {
                     PreferenceDropdown(
                         title = stringResource(R.string.keep_island_expand_text_color),
@@ -330,23 +429,23 @@ internal fun KeepIslandPage(
                             stringResource(R.string.keep_island_text_invert_status_bar),
                             stringResource(R.string.keep_island_text_black),
                         ),
-                        selectedIndex = textColorValues.indexOf(settings.expandTextColorMode).coerceAtLeast(0),
-                        enabled = settings.enabled && settings.focusNotification,
-                    ) { update(settings.copy(expandTextColorMode = textColorValues[it])) }
+                        selectedIndex = textColorValues.indexOf(profile.expandTextColorMode).coerceAtLeast(0),
+                        enabled = profileEnabled && profile.focusNotification,
+                    ) { index -> updateProfile { it.copy(expandTextColorMode = textColorValues[index]) } }
                 }
                 PreferenceSwitch(
                     title = stringResource(R.string.keep_island_show_notification),
                     summary = null,
                     icon = null,
-                    checked = settings.showNotification,
+                    checked = profile.showNotification,
+                    enabled = sceneControlsEnabled,
                 ) { enabled ->
-                    update(
-                        settings.copy(
+                    updateProfile {
+                        it.copy(
                             showNotification = enabled,
-                            focusNotification = if (enabled && settings.enabled) true
-                            else settings.focusNotification,
-                        ),
-                    )
+                            focusNotification = if (enabled && profile.islandEnabled) true else it.focusNotification,
+                        )
+                    }
                 }
             }
         }
@@ -362,50 +461,52 @@ internal fun KeepIslandPage(
                 SettingsAction(
                     title = stringResource(R.string.keep_island_placeholders),
                     endIcon = MiuixIcons.ChevronForward,
+                    enabled = profileEnabled,
                 ) { showPlaceholders = true }
             }
+        }
         }
     }
 
     KeepIslandContentListDialog(
         show = activeEditor == KeepIslandEditor.Left,
         title = stringResource(R.string.keep_island_left_content),
-        initialValues = settings.leftContents,
+        initialValues = profile.leftContents,
         onDismiss = { activeEditor = null },
-    ) { update(settings.copy(leftContents = it)); activeEditor = null }
+    ) { values -> updateProfile { it.copy(leftContents = values) }; activeEditor = null }
     KeepIslandContentListDialog(
         show = activeEditor == KeepIslandEditor.Right,
         title = stringResource(R.string.keep_island_right_content),
-        initialValues = settings.rightContents,
+        initialValues = profile.rightContents,
         onDismiss = { activeEditor = null },
-    ) { update(settings.copy(rightContents = it)); activeEditor = null }
+    ) { values -> updateProfile { it.copy(rightContents = values) }; activeEditor = null }
     KeepIslandTextDialog(
         show = activeEditor == KeepIslandEditor.NotificationTitle,
         title = stringResource(R.string.keep_island_notification_title),
-        initialValue = settings.notificationTitle,
+        initialValue = profile.notificationTitle,
         onDismiss = { activeEditor = null },
-    ) { update(settings.copy(notificationTitle = it)); activeEditor = null }
+    ) { value -> updateProfile { it.copy(notificationTitle = value) }; activeEditor = null }
     KeepIslandTextDialog(
         show = activeEditor == KeepIslandEditor.NotificationContent,
         title = stringResource(R.string.keep_island_notification_content),
-        initialValue = settings.notificationContent,
+        initialValue = profile.notificationContent,
         onDismiss = { activeEditor = null },
-    ) { update(settings.copy(notificationContent = it)); activeEditor = null }
+    ) { value -> updateProfile { it.copy(notificationContent = value) }; activeEditor = null }
     KeepIslandIntervalDialog(
         show = showInterval,
-        initialValue = settings.carouselInterval,
+        initialValue = profile.carouselInterval,
         onDismiss = { showInterval = false },
-    ) { update(settings.copy(carouselInterval = it)); showInterval = false }
+    ) { value -> updateProfile { it.copy(carouselInterval = value) }; showInterval = false }
     ColorPaletteDialog(
         show = showColor,
         title = stringResource(R.string.keep_island_highlight_color),
-        initialColor = parseHexColor(settings.highlightColor, Color.Red),
+        initialColor = parseHexColor(profile.highlightColor, Color.Red),
         onDismiss = { showColor = false },
         onDelete = {
-            update(settings.copy(highlightColor = ""))
+            updateProfile { it.copy(highlightColor = "") }
             showColor = false
         },
-    ) { update(settings.copy(highlightColor = it.toArgbHex())); showColor = false }
+    ) { color -> updateProfile { it.copy(highlightColor = color.toArgbHex()) }; showColor = false }
     KeepIslandPlaceholderSheet(
         show = showPlaceholders,
         title = stringResource(R.string.keep_island_placeholders),
@@ -571,8 +672,6 @@ private fun placeholder(labelRes: Int, value: String) = PlaceholderItem(
 
 private enum class KeepIslandEditor { Left, Right, NotificationTitle, NotificationContent }
 
-private const val TIMING_ALWAYS = "always"
-private const val TIMING_CHARGING = "charging"
 private const val CONTENT_NOTIFICATION = "notification"
 private const val CONTENT_PERFORMANCE = "performance"
 private const val CONTENT_DEVICE = "device"
