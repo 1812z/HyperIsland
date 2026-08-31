@@ -882,38 +882,31 @@ private class RefractiveScreenCapture(
                         val region = getCaptureRegion()
                             ?: return@CaptureAccess null
                         val excludeLayers = getExcludeLayers()
-                        val skipScreenshotApplied =
-                            captureClassName == "android.window.ScreenCaptureInternal" &&
-                                setSkipScreenshot(excludeLayers, true)
-                        try {
-                            val builder = constructor.newInstance()
-                            configureCaptureBuilder(
-                                builderClass,
-                                builder,
-                                excludeLayers,
-                                region,
-                                captureScale,
-                            )
-                            val args = buildMethod.invoke(builder)
-                                ?: error("CaptureArgs unavailable")
-                            val listener = createListener.invoke(null)
-                                ?: error("sync capture listener creation failed")
-                            captureMethod.invoke(service, displayId, args, listener)
-                            val buffer = findMethod(listener.javaClass, "getBuffer")?.invoke(listener)
-                                ?: error("sync capture returned no buffer")
-                            val bitmap = findMethod(buffer.javaClass, "asBitmap")
-                                ?.invoke(buffer) as? Bitmap
-                                ?: return@CaptureAccess null
-                            CapturedFrame(
-                                bitmap = bitmap,
-                                scaleX = bitmap.width.toFloat() / region.width(),
-                                scaleY = bitmap.height.toFloat() / region.height(),
-                                cropX = region.left.toFloat(),
-                                cropY = region.top.toFloat(),
-                            )
-                        } finally {
-                            if (skipScreenshotApplied) setSkipScreenshot(excludeLayers, false)
-                        }
+                        val builder = constructor.newInstance()
+                        configureCaptureBuilder(
+                            builderClass,
+                            builder,
+                            excludeLayers,
+                            region,
+                            captureScale,
+                        )
+                        val args = buildMethod.invoke(builder)
+                            ?: error("CaptureArgs unavailable")
+                        val listener = createListener.invoke(null)
+                            ?: error("sync capture listener creation failed")
+                        captureMethod.invoke(service, displayId, args, listener)
+                        val buffer = findMethod(listener.javaClass, "getBuffer")?.invoke(listener)
+                            ?: error("sync capture returned no buffer")
+                        val bitmap = findMethod(buffer.javaClass, "asBitmap")
+                            ?.invoke(buffer) as? Bitmap
+                            ?: return@CaptureAccess null
+                        CapturedFrame(
+                            bitmap = bitmap,
+                            scaleX = bitmap.width.toFloat() / region.width(),
+                            scaleY = bitmap.height.toFloat() / region.height(),
+                            cropX = region.left.toFloat(),
+                            cropY = region.top.toFloat(),
+                        )
                     },
                 )
             }
@@ -975,28 +968,23 @@ private class RefractiveScreenCapture(
                         else -> error("capture scale unsupported")
                     }
                 }
-                // Keep HyperOS 3's existing mode, but do not request Android 17's optimized
-                // full-screen-only path: it is incompatible with crop and exclusion filters.
-                if (builderClass.name.startsWith("android.window.ScreenCapture\$")) {
+                // HyperOS 3 and 4 both require capture mode 1 for crop, scaling and layer-name
+                // exclusion to take effect. OS4 Liquid Glass implementations additionally set
+                // Xiaomi's private Mi capture mode on ScreenCaptureInternal. Keeping exclusion
+                // request-local avoids toggling SurfaceControl.setSkipScreenshot(), which makes
+                // external recordings flash whenever the sampler captures a frame.
+                findMethod(
+                    builderClass,
+                    "setCaptureMode",
+                    Int::class.javaPrimitiveType!!,
+                )?.invoke(builder, 1)
+                if (builderClass.name.startsWith("android.window.ScreenCaptureInternal\$")) {
                     findMethod(
                         builderClass,
-                        "setCaptureMode",
+                        "setMiCaptureMode",
                         Int::class.javaPrimitiveType!!,
                     )?.invoke(builder, 1)
                 }
-                // Android 17 removed Xiaomi/AOSP's layer-name filter from the legacy capture
-                // builder. Exclude all surfaces tagged as screenshot UI or status bar instead;
-                // this covers OS4's multi-surface island and prevents recursive glass capture.
-                findMethod(
-                    builderClass,
-                    "setExclusionMask",
-                    Int::class.javaPrimitiveType!!,
-                )?.invoke(builder, SCREENSHOT_UI_EXCLUSION_MASK)
-                findMethod(
-                    builderClass,
-                    "setIncludeSystemOverlays",
-                    Boolean::class.javaPrimitiveType!!,
-                )?.invoke(builder, false)
                 val setLayerNames = findMethod(
                     builderClass,
                     "setExcludeOrIncludeLayerNames",
@@ -1034,55 +1022,6 @@ private class RefractiveScreenCapture(
                 "android.window.ScreenCaptureInternal",
                 "android.window.ScreenCapture",
             )
-
-            // android.gui.CompositionFilterFlag values on Android 17:
-            // FLAG_SCREENSHOT_UI = 1 << 1, FLAG_STATUS_BAR = 1 << 2.
-            private const val SCREENSHOT_UI_EXCLUSION_MASK = (1 shl 1) or (1 shl 2)
-
-            private fun setSkipScreenshot(surfaceArray: Any?, skip: Boolean): Boolean {
-                if (surfaceArray == null || !surfaceArray.javaClass.isArray) return false
-                val surfaceClass = runCatching {
-                    Class.forName("android.view.SurfaceControl")
-                }.getOrNull() ?: return false
-                val surfaces = (0 until java.lang.reflect.Array.getLength(surfaceArray))
-                    .mapNotNull { index ->
-                        java.lang.reflect.Array.get(surfaceArray, index)
-                            ?.takeIf(surfaceClass::isInstance)
-                    }
-                if (surfaces.isEmpty()) return false
-                return runCatching {
-                    val transactionClass = Class.forName(
-                        "android.view.SurfaceControl\$Transaction",
-                    )
-                    val transaction = transactionClass.getDeclaredConstructor().newInstance()
-                    try {
-                        val setSkip = findMethod(
-                            transactionClass,
-                            "setSkipScreenshot",
-                            surfaceClass,
-                            Boolean::class.javaPrimitiveType!!,
-                        ) ?: error("setSkipScreenshot unavailable")
-                        surfaces.forEach { surface -> setSkip.invoke(transaction, surface, skip) }
-                        val applySync = findMethod(
-                            transactionClass,
-                            "apply",
-                            Boolean::class.javaPrimitiveType!!,
-                        )
-                        if (applySync != null) {
-                            applySync.invoke(transaction, true)
-                        } else {
-                            findMethod(transactionClass, "apply")
-                                ?.invoke(transaction)
-                                ?: error("SurfaceControl.Transaction.apply unavailable")
-                        }
-                    } finally {
-                        findMethod(transactionClass, "close")?.invoke(transaction)
-                    }
-                    true
-                }.onFailure { error ->
-                    logError("$TAG skip-screenshot=$skip failed: ${error.message}")
-                }.getOrDefault(false)
-            }
 
             private fun findMethod(clazz: Class<*>, name: String, vararg types: Class<*>): java.lang.reflect.Method? {
                 runCatching {
