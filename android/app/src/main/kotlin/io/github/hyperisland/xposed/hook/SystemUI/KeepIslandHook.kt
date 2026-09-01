@@ -322,11 +322,8 @@ object KeepIslandHook : BaseHook() {
     }
 
     private fun activeProfileScene(): KeepIslandProfileScene = when {
-        keyguardLocked -> if (ConfigManager.getBoolean(PREF_KEY_LOCKED_FOLLOW_DEFAULT, true)) {
-            KeepIslandProfileScene.DEFAULT
-        } else {
+        keyguardLocked && !ConfigManager.getBoolean(PREF_KEY_LOCKED_FOLLOW_DEFAULT, true) ->
             KeepIslandProfileScene.LOCKED
-        }
         powerConnected && !ConfigManager.getBoolean(PREF_KEY_CHARGING_FOLLOW_DEFAULT, true) ->
             KeepIslandProfileScene.CHARGING
         else -> KeepIslandProfileScene.DEFAULT
