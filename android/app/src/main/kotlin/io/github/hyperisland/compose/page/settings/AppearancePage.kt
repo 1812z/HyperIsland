@@ -136,7 +136,7 @@ internal fun AppearancePage(
             SectionTitle(stringResource(R.string.island_dimensions))
             Card(modifier = Modifier.fillMaxWidth()) {
                 DoublePreferenceSlider(prefs, KEY_ISLAND_HEIGHT, R.string.island_height, 0.0, 100.0, 0.0)
-                DoublePreferenceSlider(prefs, KEY_ISLAND_TOP_OFFSET, R.string.vertical_position, -10.0, 50.0, 0.0)
+                DoublePreferenceSlider(prefs, KEY_ISLAND_TOP_OFFSET, R.string.vertical_position, -40.0, 50.0, 0.0)
                 LongPreferenceSlider(prefs, KEY_BIG_MAX_WIDTH, R.string.big_max_width, 0, 500, 0, 5)
                 LongPreferenceSlider(prefs, KEY_BIG_MIN_WIDTH, R.string.big_min_width, 0, 500, 0, 5)
                 LongPreferenceSlider(
