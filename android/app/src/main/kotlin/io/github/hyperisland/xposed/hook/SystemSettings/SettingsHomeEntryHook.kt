@@ -87,7 +87,9 @@ object SettingsHomeEntryHook : BaseHook() {
         setObjectField(header, "intent", createLaunchIntent())
 
         val insertPosition = findInsertPosition(context, headers).coerceIn(0, headers.size)
-        inheritAdjacentGroupId(headers, header, insertPosition)
+        if (ConfigManager.getBoolean(PREF_SAME_GROUP, true)) {
+            inheritAdjacentGroupId(headers, header, insertPosition)
+        }
         headers.add(insertPosition, header)
         log(module, "inserted HyperIsland settings entry")
     }
@@ -141,6 +143,7 @@ object SettingsHomeEntryHook : BaseHook() {
 
     private const val PREF_ICON_STYLE = "pref_settings_home_entry_icon_style"
     private const val PREF_POSITION = "pref_settings_home_entry_position"
+    private const val PREF_SAME_GROUP = "pref_settings_home_entry_same_group"
     private const val ICON_STYLE_DEFAULT = "default"
     private const val ICON_STYLE_OUTLINE = "outline"
     private const val POSITION_TOP = "top"

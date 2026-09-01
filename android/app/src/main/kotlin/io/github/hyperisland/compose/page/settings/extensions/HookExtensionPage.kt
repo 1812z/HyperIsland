@@ -56,6 +56,11 @@ internal fun HookExtensionPage(
         KEY_SETTINGS_HOME_ENTRY_POSITION,
         SETTINGS_POSITION_TOP,
     )
+    val settingsEntrySameGroup = rememberBooleanPreference(
+        prefs,
+        KEY_SETTINGS_HOME_ENTRY_SAME_GROUP,
+        true,
+    )
     val settingsIcon = rememberStringPreference(prefs, KEY_SETTINGS_HOME_ENTRY_ICON_STYLE, MODE_DEFAULT)
     val smooth = rememberBooleanPreference(prefs, KEY_SMOOTH_ISLAND, false)
     val smoothingState = remember(KEY_SMOOTHING) { mutableFloatStateOf(prefs.getDouble(KEY_SMOOTHING, DEFAULT_SMOOTHING).toFloat()) }
@@ -120,6 +125,18 @@ internal fun HookExtensionPage(
                     if (request(value, listOf("com.android.settings"))) {
                         settingsEntry.value = value
                         prefs.putBoolean(KEY_SETTINGS_HOME_ENTRY, value)
+                        restart()
+                    }
+                }
+                AnimatedVisibility(settingsEntry.value) {
+                    PreferenceSwitch(
+                        title = stringResource(R.string.ext_settings_entry_same_group),
+                        summary = stringResource(R.string.ext_settings_entry_same_group_summary),
+                        icon = null,
+                        checked = settingsEntrySameGroup.value,
+                    ) { value ->
+                        settingsEntrySameGroup.value = value
+                        prefs.putBoolean(KEY_SETTINGS_HOME_ENTRY_SAME_GROUP, value)
                         restart()
                     }
                 }

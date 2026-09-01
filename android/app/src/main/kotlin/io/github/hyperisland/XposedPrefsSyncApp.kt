@@ -325,6 +325,7 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
             "pref_screen_recorder_icon_style",
             "pref_settings_home_entry",
             "pref_settings_home_entry_position",
+            "pref_settings_home_entry_same_group",
             "pref_settings_home_entry_icon_style",
             "pref_bluetooth_island",
             "pref_bluetooth_island_show_device_name",

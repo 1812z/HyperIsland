@@ -335,6 +335,8 @@
     <string name="ext_download_manager">Download Manager</string>
     <string name="ext_settings_entry">System Settings entry</string>
     <string name="ext_settings_entry_summary">Show the HyperIsland entry on the System Settings home page</string>
+    <string name="ext_settings_entry_same_group">Use the same section</string>
+    <string name="ext_settings_entry_same_group_summary">Use the same section as the position anchor</string>
     <string name="ext_icon_style">Icon style</string>
     <string name="ext_icon_outline">No background</string>
     <string name="ext_smoothing">Smoothing Strength</string>

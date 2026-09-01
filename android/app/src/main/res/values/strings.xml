@@ -353,6 +353,8 @@
     <string name="ext_settings_entry_position_top">顶部</string>
     <string name="ext_settings_entry_position_middle">中部</string>
     <string name="ext_settings_entry_position_bottom">底部</string>
+    <string name="ext_settings_entry_same_group">归入同一栏目</string>
+    <string name="ext_settings_entry_same_group_summary">与位置锚点归入同一栏目</string>
     <string name="ext_icon_style">图标样式</string>
     <string name="ext_icon_outline">镂空</string>
     <string name="ext_smoothing">平滑强度</string>
