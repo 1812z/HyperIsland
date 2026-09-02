@@ -240,6 +240,14 @@
     <string name="keep_island_display_timing">Display timing</string>
     <string name="keep_island_display_always">Always</string>
     <string name="keep_island_display_charging">While charging</string>
+    <string name="keep_island_global_settings">Global settings</string>
+    <string name="keep_island_master_enable">Always-on island master switch</string>
+    <string name="keep_island_master_enable_summary">Controls whether the persistent notification and all scenes run</string>
+    <string name="keep_island_tab_default">Default scene</string>
+    <string name="keep_island_tab_charging">Charging scene</string>
+    <string name="keep_island_tab_locked">Lock screen scene</string>
+    <string name="keep_island_follow_default">Follow default scene</string>
+    <string name="keep_island_follow_default_summary">Use all settings from the default scene</string>
     <string name="keep_island_island_config">Island configuration</string>
     <string name="keep_island_focus_config">Focus notification configuration</string>
     <string name="keep_island_enable">Enable island</string>
@@ -335,6 +343,10 @@
     <string name="ext_download_manager">Download Manager</string>
     <string name="ext_settings_entry">System Settings entry</string>
     <string name="ext_settings_entry_summary">Show the HyperIsland entry on the System Settings home page</string>
+    <string name="ext_settings_entry_position">Entry position</string>
+    <string name="ext_settings_entry_position_top">Top</string>
+    <string name="ext_settings_entry_position_middle">Middle</string>
+    <string name="ext_settings_entry_position_bottom">Bottom</string>
     <string name="ext_settings_entry_same_group">Use the same section</string>
     <string name="ext_settings_entry_same_group_summary">Use the same section as the position anchor</string>
     <string name="ext_icon_style">Icon style</string>
@@ -846,7 +858,9 @@
     <string name="default_option">Default</string>
     <string name="batch_channel_settings">Batch channel settings</string>
     <string name="batch_channel_scope_channels">Apply to %1$d channels</string>
-    <string name="batch_channel_scope_apps">Enabled channels applied to %1$d apps</string>
+    <string name="batch_channel_scope_apps">Apply to enabled channels of %1$d apps</string>
+    <string name="batch_toast_settings">Batch Toast settings</string>
+    <string name="batch_toast_scope_apps">Apply to %1$d apps</string>
     <string name="applying">Applying</string>
     <string name="color_code">Color code (#RRGGBB or #AARRGGBB)</string>
 </resources>
