@@ -7,6 +7,7 @@ internal const val KEY_SCREEN_RECORDER_ICON_STYLE = "pref_screen_recorder_icon_s
 internal const val KEY_SETTINGS_HOME_ENTRY = "pref_settings_home_entry"
 internal const val KEY_SETTINGS_HOME_ENTRY_POSITION = "pref_settings_home_entry_position"
 internal const val KEY_SETTINGS_HOME_ENTRY_ICON_STYLE = "pref_settings_home_entry_icon_style"
+internal const val KEY_LBE_CLIPBOARD_TOAST_ISLAND = "pref_lbe_clipboard_toast_island"
 internal const val KEY_BLUETOOTH_ISLAND = "pref_bluetooth_island"
 internal const val KEY_BLUETOOTH_SHOW_DEVICE_NAME = "pref_bluetooth_island_show_device_name"
 internal const val KEY_BLUETOOTH_DURATION = "pref_bluetooth_island_display_duration_seconds"

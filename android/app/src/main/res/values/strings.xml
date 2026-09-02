@@ -111,6 +111,8 @@
     <string name="toast_forward_summary">将此应用的标准 Toast 文本转为 HyperIsland 焦点通知与超级岛代发</string>
     <string name="toast_block_original">拦截原始 Toast</string>
     <string name="toast_block_original_summary">转发后同时拦截此应用原始标准 Toast 弹窗</string>
+    <string name="ext_lbe_clipboard_toast">小米剪贴板提示上岛</string>
+    <string name="ext_lbe_clipboard_toast_summary">拦截权限管理服务的非标准剪贴板读取提示，隐藏原悬浮 View 并转为超级岛；需同时启用系统界面和权限管理服务作用域</string>
     <string name="toast_show_notification">显示为通知</string>
     <string name="toast_show_notification_summary">开启后此转发内容会在通知中心保留为可见通知</string>
     <string name="search_apps">搜索应用名或包名</string>

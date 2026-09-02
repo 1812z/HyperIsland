@@ -134,10 +134,23 @@ object ToastUiInterceptHook : BaseHook() {
         pkg: String,
         text: CharSequence?,
     ): Boolean {
-        val normalizedText = text?.toString()?.trim().orEmpty()
+        val rawText = text?.toString().orEmpty()
+        val isLbeClipboardBridge = pkg == LbeClipboardToastBridge.LBE_PACKAGE &&
+            rawText.startsWith(LbeClipboardToastBridge.MARKER)
+        val normalizedText = if (isLbeClipboardBridge) {
+            rawText.removePrefix(LbeClipboardToastBridge.MARKER).trim()
+        } else {
+            rawText.trim()
+        }
         if (pkg.isBlank() || normalizedText.isEmpty() || pkg == SELF_PKG) return false
 
-        val rule = loadRule(pkg)
+        val rule = loadRule(pkg).let { configured ->
+            if (isLbeClipboardBridge) {
+                configured.copy(forwardEnabled = true, blockOriginal = true)
+            } else {
+                configured
+            }
+        }
 
         // 过滤逻辑：拦截和转发共用，不在黑名单/不在白名单的不处理
         val hasKeywords = rule.whitelistKeywords.isNotEmpty() || rule.blacklistKeywords.isNotEmpty()

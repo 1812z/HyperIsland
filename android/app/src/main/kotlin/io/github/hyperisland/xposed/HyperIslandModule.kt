@@ -36,6 +36,7 @@ import io.github.hyperisland.xposed.hook.TimerTextColorHook
 import io.github.hyperisland.xposed.hook.StatusBarTextColorHook
 import io.github.hyperisland.xposed.hook.ScreenRecorder.ScreenRecorderHook
 import io.github.hyperisland.xposed.hook.ToastUiInterceptHook
+import io.github.hyperisland.xposed.hook.LbeClipboardToastHook
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.UnlockAllFocusHook
 import io.github.hyperisland.xposed.hook.UnlockFocusAuthHook
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
@@ -120,6 +121,11 @@ class HyperIslandModule : XposedModule() {
             "com.miui.screenrecorder" ->
                 if (ConfigManager.getBoolean("pref_screen_recorder_island", false)) {
                     ScreenRecorderHook.init(this, param)
+                }
+
+            "com.lbe.security.miui" ->
+                if (ConfigManager.getBoolean("pref_lbe_clipboard_toast_island", false)) {
+                    LbeClipboardToastHook.init(this, param)
                 }
 
         }

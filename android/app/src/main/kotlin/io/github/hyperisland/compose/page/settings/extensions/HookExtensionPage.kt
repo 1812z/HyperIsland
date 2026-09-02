@@ -57,6 +57,7 @@ internal fun HookExtensionPage(
         SETTINGS_POSITION_TOP,
     )
     val settingsIcon = rememberStringPreference(prefs, KEY_SETTINGS_HOME_ENTRY_ICON_STYLE, MODE_DEFAULT)
+    val lbeClipboardToast = rememberBooleanPreference(prefs, KEY_LBE_CLIPBOARD_TOAST_ISLAND, false)
     val smooth = rememberBooleanPreference(prefs, KEY_SMOOTH_ISLAND, false)
     val smoothingState = remember(KEY_SMOOTHING) { mutableFloatStateOf(prefs.getDouble(KEY_SMOOTHING, DEFAULT_SMOOTHING).toFloat()) }
     val unlockAll = rememberBooleanPreference(prefs, KEY_UNLOCK_ALL_FOCUS, false)
@@ -166,6 +167,22 @@ internal fun HookExtensionPage(
         item {
             SectionTitle(stringResource(R.string.ext_system_ui))
             Card(modifier = Modifier.fillMaxWidth()) {
+                PreferenceSwitch(
+                    title = stringResource(R.string.ext_lbe_clipboard_toast),
+                    summary = stringResource(R.string.ext_lbe_clipboard_toast_summary),
+                    icon = null,
+                    checked = lbeClipboardToast.value,
+                ) { value ->
+                    if (request(
+                            value,
+                            listOf("com.android.systemui", "com.lbe.security.miui"),
+                        )
+                    ) {
+                        lbeClipboardToast.value = value
+                        prefs.putBoolean(KEY_LBE_CLIPBOARD_TOAST_ISLAND, value)
+                        restart()
+                    }
+                }
                 PreferenceSwitch(
                     title = stringResource(R.string.smooth_island),
                     summary = stringResource(R.string.smooth_island_summary),

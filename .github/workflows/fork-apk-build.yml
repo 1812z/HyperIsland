@@ -1,0 +1,62 @@
+name: Fork APK Build
+
+on:
+  push:
+    branches:
+      - main
+      - 'feature/**'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fork-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build installable APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4.3.0
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4.1.0
+        with:
+          gradle-version: wrapper
+
+      - name: Build release-fast APK
+        run: |
+          chmod +x android/gradlew
+          bash android/gradlew -p android :app:assembleReleaseFast \
+            -PbuildTime="$(date -u '+%Y-%m-%d %H:%M')"
+
+      - name: Stage APK
+        shell: bash
+        run: |
+          APK_PATH="$(find build/app/outputs/apk -type f -name '*.apk' | head -n 1)"
+          test -n "$APK_PATH"
+          mkdir -p artifacts
+          cp "$APK_PATH" artifacts/HyperIsland-lbe-clipboard-toast.apk
+          sha256sum artifacts/HyperIsland-lbe-clipboard-toast.apk \
+            > artifacts/HyperIsland-lbe-clipboard-toast.apk.sha256
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4.6.0
+        with:
+          name: HyperIsland-lbe-clipboard-toast-${{ github.run_number }}
+          path: artifacts/*
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0

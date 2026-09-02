@@ -25,6 +25,7 @@
    - **Download Manager Extension**: check "Download Manager"
    - **Super Island**: check "System UI"
    - **Focus Notification Crack**: check "Xiaomi Services Framework"
+   - **Xiaomi clipboard prompt island**: check "System UI" and "Permission Manager" (`com.lbe.security.miui`)
 4. Save and tap the **restart button** in the top-right corner (or restart your phone)
 
 ![LSPosed](https://img.shields.io/badge/Framework-LSPosed-blueviolet?style=flat-square)
@@ -54,6 +55,7 @@ Download Island is disabled by default. Go to the app and enable **"Show System 
 - **Notification Super Island**: Convert any notification to Focus Notification + Super Island display
 - **Download**: Auto-detect download status and convert to Focus Notification + Super Island
 - **AI Notification Super Island**: AI simplifies left and right sides of the Super Island
+- **Xiaomi clipboard prompt island**: enable it under **Settings → Hook Extensions** to replace the permission service's custom clipboard-read prompt with a Super Island
 
 ### AI Summary Configuration
 
