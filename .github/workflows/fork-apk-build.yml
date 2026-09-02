@@ -91,6 +91,7 @@ jobs:
         uses: softprops/action-gh-release@v2.1.0
         with:
           tag_name: ${{ inputs.release_tag }}
+          target_commitish: ${{ github.sha }}
           name: HyperIsland LBE Clipboard Toast v1
           body: |
             Custom HyperIsland build based on upstream main.
