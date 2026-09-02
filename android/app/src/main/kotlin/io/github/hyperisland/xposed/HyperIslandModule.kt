@@ -1,5 +1,6 @@
 package io.github.hyperisland.xposed
 
+import android.util.Log
 import io.github.hyperisland.xposed.hook.SystemUI.BigIslandMinWidthHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandIconHook
 import io.github.hyperisland.xposed.hook.SystemUI.DynamicIslandVisibilityHook
@@ -21,6 +22,7 @@ import io.github.hyperisland.xposed.hook.SystemUI.extensions.FaceUnlockStateHook
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.LockscreenFaceUnlockUiHook
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.KeyguardUnlockStateHook
 import io.github.hyperisland.xposed.hook.MediaNotificationTextColorHook
+import io.github.hyperisland.xposed.hook.PermissionManager.ClipboardToastHook
 import io.github.hyperisland.xposed.hook.SystemUI.GenericProgressHook
 import io.github.hyperisland.xposed.hook.IslandBackgroundHook
 import io.github.hyperisland.xposed.hook.IslandDimenHook
@@ -121,6 +123,18 @@ class HyperIslandModule : XposedModule() {
                 if (ConfigManager.getBoolean("pref_screen_recorder_island", false)) {
                     ScreenRecorderHook.init(this, param)
                 }
+
+            "com.miui.securitycenter" -> {
+                val enabled = ConfigManager.getBoolean("pref_clipboard_toast_conversion", false)
+                log(
+                    Log.INFO,
+                    "HyperIsland[ClipboardToast]",
+                    "package loaded: ${param.packageName}, enabled=$enabled",
+                )
+                if (enabled) {
+                    ClipboardToastHook.init(this, param)
+                }
+            }
 
         }
     }

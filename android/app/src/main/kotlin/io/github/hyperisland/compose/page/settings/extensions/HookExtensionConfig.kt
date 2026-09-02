@@ -1,6 +1,8 @@
 package io.github.hyperisland.compose.page.settings.extensions
 
 internal const val KEY_RESUME_NOTIFICATION = "pref_resume_notification"
+internal const val KEY_CLIPBOARD_TOAST_CONVERSION = "pref_clipboard_toast_conversion"
+internal const val KEY_CLIPBOARD_OPTIMIZE_ISLAND_STYLE = "pref_clipboard_optimize_island_style"
 internal const val KEY_SCREEN_RECORDER_ISLAND = "pref_screen_recorder_island"
 internal const val KEY_SCREEN_RECORDER_IMMEDIATE_START = "pref_screen_recorder_immediate_start"
 internal const val KEY_SCREEN_RECORDER_ICON_STYLE = "pref_screen_recorder_icon_style"

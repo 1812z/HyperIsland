@@ -341,6 +341,13 @@
     <string name="ext_system_ui">System UI</string>
     <string name="ext_xmsf">XMSF (Xiaomi Service Framework)</string>
     <string name="ext_download_manager">Download Manager</string>
+    <string name="ext_permission_manager">Permission Manager Service</string>
+    <string name="ext_clipboard_toast_conversion">Clipboard prompt conversion</string>
+    <string name="ext_clipboard_toast_conversion_summary">Convert the floating prompt shown when an app reads the clipboard into an Island notification</string>
+    <string name="ext_clipboard_optimize_island_style">Optimize Island style</string>
+    <string name="clipboard_read_content">Read the clipboard</string>
+    <string name="ext_clipboard_permission_dialog_title">Island permission prompts</string>
+    <string name="ext_clipboard_permission_dialog_summary">After enabling, manually restart Security Center. The optimized Island style is enabled by default; disabling it falls back to Toast Island forwarding.</string>
     <string name="ext_settings_entry">System Settings entry</string>
     <string name="ext_settings_entry_summary">Show the HyperIsland entry on the System Settings home page</string>
     <string name="ext_settings_entry_position">Entry position</string>
@@ -636,6 +643,7 @@
     <string name="xmsf">XMSF (Xiaomi Service Framework)</string>
     <string name="hook_scope_settings">System Settings</string>
     <string name="screen_recorder">Screen Recorder</string>
+    <string name="security_center">Security Service</string>
     <string name="restart_root_required">Please check if ROOT permission has been granted to this app</string>
     <string name="restart_failed">Restart failed: %1$s</string>
     <string name="support_development">Support development</string>

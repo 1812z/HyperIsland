@@ -3,6 +3,9 @@ package io.github.hyperisland.compose.page.settings.extensions
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableFloatStateOf
@@ -14,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.DetailPage
 import io.github.hyperisland.compose.component.PreferenceDropdown
@@ -30,11 +34,16 @@ import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.BasicComponent
+import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.ChevronForward
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.window.WindowDialog
 
 @Composable
 internal fun HookExtensionPage(
@@ -87,6 +96,17 @@ internal fun HookExtensionPage(
         SCREEN_RECORDER_ICON_VOICE_RECORDER,
     )
     val screenRecorderScopeRequestPending = remember { mutableStateOf(false) }
+    val clipboardToastConversion = rememberBooleanPreference(
+        prefs,
+        KEY_CLIPBOARD_TOAST_CONVERSION,
+        false,
+    )
+    val clipboardOptimizeIslandStyle = rememberBooleanPreference(
+        prefs,
+        KEY_CLIPBOARD_OPTIMIZE_ISLAND_STYLE,
+        true,
+    )
+    val showClipboardPermissionDialog = remember { mutableStateOf(false) }
     val warningColors = if (MiuixTheme.colorScheme.background.luminance() > 0.5f) {
         CardDefaults.defaultColors(
             color = Color(0xFFFFF3D6),
@@ -427,6 +447,37 @@ internal fun HookExtensionPage(
             }
         }
         item {
+            SectionTitle(stringResource(R.string.ext_permission_manager))
+            Card(modifier = Modifier.fillMaxWidth()) {
+                PreferenceSwitch(
+                    title = stringResource(R.string.ext_clipboard_toast_conversion),
+                    summary = stringResource(R.string.ext_clipboard_toast_conversion_summary),
+                    icon = null,
+                    checked = clipboardToastConversion.value,
+                ) { value ->
+                    if (value) {
+                        showClipboardPermissionDialog.value = true
+                    } else {
+                        clipboardToastConversion.value = false
+                        prefs.putBoolean(KEY_CLIPBOARD_TOAST_CONVERSION, false)
+                        prefs.setToastEnabled(SECURITY_CENTER_PACKAGE, false)
+                        restart()
+                    }
+                }
+                AnimatedVisibility(clipboardToastConversion.value) {
+                    PreferenceSwitch(
+                        title = stringResource(R.string.ext_clipboard_optimize_island_style),
+                        summary = null,
+                        icon = null,
+                        checked = clipboardOptimizeIslandStyle.value,
+                    ) { value ->
+                        clipboardOptimizeIslandStyle.value = value
+                        prefs.putBoolean(KEY_CLIPBOARD_OPTIMIZE_ISLAND_STYLE, value)
+                    }
+                }
+            }
+        }
+        item {
             SectionTitle(stringResource(R.string.ext_download_manager))
             Card(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(
@@ -444,8 +495,46 @@ internal fun HookExtensionPage(
             }
         }
     }
+
+    WindowDialog(
+        show = showClipboardPermissionDialog.value,
+        title = stringResource(R.string.ext_clipboard_permission_dialog_title),
+        onDismissRequest = { showClipboardPermissionDialog.value = false },
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text(stringResource(R.string.ext_clipboard_permission_dialog_summary))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                TextButton(
+                    text = stringResource(R.string.cancel),
+                    onClick = { showClipboardPermissionDialog.value = false },
+                    modifier = Modifier.weight(1f),
+                )
+                Button(
+                    onClick = {
+                        if (request(
+                                true,
+                                listOf(SECURITY_CENTER_PACKAGE),
+                            )
+                        ) {
+                            clipboardToastConversion.value = true
+                            prefs.putBoolean(KEY_CLIPBOARD_TOAST_CONVERSION, true)
+                            prefs.setToastEnabled(SECURITY_CENTER_PACKAGE, true)
+                            showClipboardPermissionDialog.value = false
+                            restart()
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColorsPrimary(),
+                ) { Text(stringResource(R.string.confirm)) }
+            }
+        }
+    }
 }
 
+private const val SECURITY_CENTER_PACKAGE = "com.miui.securitycenter"
 private const val SCREEN_RECORDER_PACKAGE = "com.miui.screenrecorder"
 private const val SCREEN_RECORDER_DOWNLOAD_URL =
     "https://1848933255.share.123pan.cn/123pan/9T69vd-ej0wd?pwd=kAf1#"

@@ -347,6 +347,13 @@
     <string name="ext_system_ui">系统界面</string>
     <string name="ext_xmsf">小米服务框架</string>
     <string name="ext_download_manager">下载管理程序</string>
+    <string name="ext_permission_manager">权限管理服务</string>
+    <string name="ext_clipboard_toast_conversion">剪贴板提示转换</string>
+    <string name="ext_clipboard_toast_conversion_summary">将应用读取剪贴板的悬浮窗转换为超级岛通知</string>
+    <string name="ext_clipboard_optimize_island_style">优化超级岛样式</string>
+    <string name="clipboard_read_content">读取了剪贴板</string>
+    <string name="ext_clipboard_permission_dialog_title">权限提示上岛</string>
+    <string name="ext_clipboard_permission_dialog_summary">开启后请手动重启手机管家作用域。默认使用优化超级岛样式，关闭优化后回退为 Toast 上岛。</string>
     <string name="ext_settings_entry">系统设置入口</string>
     <string name="ext_settings_entry_summary">在系统设置首页显示 HyperIsland 入口</string>
     <string name="ext_settings_entry_position">入口位置</string>
@@ -642,6 +649,7 @@
     <string name="xmsf">小米服务框架</string>
     <string name="hook_scope_settings">系统设置</string>
     <string name="screen_recorder">屏幕录制</string>
+    <string name="security_center">安全服务</string>
     <string name="restart_root_required">请检查是否已给予本应用 ROOT 权限</string>
     <string name="restart_failed">重启失败：%1$s</string>
     <string name="support_development">支持开发</string>
