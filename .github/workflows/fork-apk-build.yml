@@ -36,7 +36,21 @@ jobs:
         with:
           gradle-version: wrapper
 
+      - name: Prepare fork signing key
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [[ -n "$KEYSTORE_BASE64" ]]; then
+            printf '%s' "$KEYSTORE_BASE64" | base64 -d > android/app/fork-release.jks
+          fi
+
       - name: Build release-fast APK
+        env:
+          KEYSTORE_PATH: fork-release.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           chmod +x android/gradlew
           bash android/gradlew -p android :app:assembleReleaseFast \
