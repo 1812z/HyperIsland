@@ -3,7 +3,6 @@ package io.github.hyperisland.xposed.hook.SystemUI.BackGround
 import android.graphics.Canvas
 import android.os.Handler
 import android.os.Looper
-import android.os.SystemClock
 import android.view.View
 import android.view.ViewTreeObserver
 import io.github.hyperisland.xposed.hook.BaseHook
@@ -39,8 +38,9 @@ object IslandBlurHook : BaseHook() {
         "miui.systemui.dynamicisland.DynamicIslandBackgroundView"
     private const val CONTENT_VIEW_CONTROLLER_CLASS =
         "miui.systemui.dynamicisland.window.content.DynamicIslandContentViewController"
-    private const val NO_CONTENT_CLEANUP_POLL_MS = 16L
-    private const val NO_CONTENT_CLEANUP_TIMEOUT_MS = 1_500L
+    private const val ANIMATION_DELEGATE_CLASS =
+        "miui.systemui.dynamicisland.anim.DynamicIslandAnimationDelegate"
+    private const val NO_CONTENT_CLEANUP_TIMEOUT_MS = 700L
     private val hookedContentClasses = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>())
     )
@@ -59,8 +59,8 @@ object IslandBlurHook : BaseHook() {
     private val controllerTargets = Collections.synchronizedMap(
         WeakHashMap<Any, WeakReference<View>>()
     )
-    private val noContentCleanupRunnables = Collections.synchronizedMap(
-        WeakHashMap<Any, Runnable>()
+    private val pendingNoContentCleanups = Collections.synchronizedMap(
+        WeakHashMap<Any, PendingNoContentCleanup>()
     )
     private val contentLastTypes = Collections.synchronizedMap(
         WeakHashMap<Any, IslandType>()
@@ -168,11 +168,13 @@ object IslandBlurHook : BaseHook() {
                 backgroundViewField,
                 outerDrawableField,
             )
+            hookAnimationCompletion(module, classLoader)
             hookTempHiddenLifecycle(module, windowViewClass)
             module.hook(updateMethod).intercept { chain ->
                 val view = chain.args.getOrNull(0) as? View
                 val contentViewBeforeUpdate = chain.thisObject
-                val typeBeforeUpdate = view?.let(IslandStateResolver::forView)
+                val viewTypeBeforeUpdate = view?.let(IslandStateResolver::forView)
+                val typeBeforeUpdate = viewTypeBeforeUpdate
                     ?: islandTypeHolder.get()
                     ?: runCatching {
                         IslandStateResolver.fromState(stateField.get(contentViewBeforeUpdate))
@@ -263,8 +265,17 @@ object IslandBlurHook : BaseHook() {
 
                 val material = materialForType(type)
                 val staleUpdate = stateType != null && type != stateType && !preparingDestination
-                val active = if (material.type == MaterialType.SOFT) {
-                    if (hiddenPreparation || deferredSoftCommit) {
+                // updateExpandedView() prepares a hidden EXPAND child while SMALL/BIG still owns
+                // this shared outer drawable. No material may replace or release that outer here.
+                val outerShapeView = if (viewTypeBeforeUpdate != null) {
+                    view
+                } else {
+                    IslandStateResolver.concreteView(contentView, type)
+                }
+                val active = if (hiddenPreparation) {
+                    false
+                } else if (material.type == MaterialType.SOFT) {
+                    if (deferredSoftCommit) {
                         // Do not mutate the currently visible SMALL/BIG outer layer for a hidden
                         // EXPAND preparation. This callback is ownership metadata only.
                         if (deferredSoftCommit && realOwner) {
@@ -296,11 +307,12 @@ object IslandBlurHook : BaseHook() {
                         false
                     } else {
                         // Unsupported Bionics devices use the exact Gaussian host pipeline.
+                        val shapeView = outerShapeView ?: return@intercept result
                         softOuterBackgrounds.add(backgroundView)
-                        IslandBackgroundHook.clearManagedVisualMask(view)
+                        IslandBackgroundHook.clearManagedVisualMask(shapeView)
                         applyOuterBlur(
                             backgroundView,
-                            view,
+                            shapeView,
                             type,
                             material.softFallback(),
                             outerDrawableField,
@@ -309,10 +321,11 @@ object IslandBlurHook : BaseHook() {
                 } else if (staleUpdate) {
                     false
                 } else if (config.isActive) {
+                    val shapeView = outerShapeView ?: return@intercept result
                     softOuterBackgrounds.remove(backgroundView)
                     applyOuterBlur(
                         backgroundView,
-                        view,
+                        shapeView,
                         type,
                         config,
                         outerDrawableField,
@@ -472,11 +485,7 @@ object IslandBlurHook : BaseHook() {
 
     private fun materialForType(type: IslandType): MaterialConfig = configStore.materialFor(type)
 
-    /**
-     * Hidden/Deleted is emitted at the start of the OS4 disappearance animation. Releasing the
-     * BlurDrawable there exposes SystemUI's stock black drawable for the remaining shrink frames.
-     * Keep the blur until the animated background has actually faded or lost its geometry.
-     */
+    /** Hidden/Deleted starts the disappearance animation; its completion hook performs release. */
     private fun scheduleNoContentCleanup(
         contentView: Any,
         stateField: java.lang.reflect.Field,
@@ -484,48 +493,68 @@ object IslandBlurHook : BaseHook() {
         outerDrawableField: java.lang.reflect.Field,
     ) {
         cancelNoContentCleanup(contentView)
-        val deadline = SystemClock.uptimeMillis() + NO_CONTENT_CLEANUP_TIMEOUT_MS
-        lateinit var cleanup: Runnable
-        cleanup = Runnable {
+        val cleanup = Runnable {
             val currentState = runCatching { stateField.get(contentView) }.getOrNull()
             if (!IslandStateResolver.isNoContent(currentState)) {
-                noContentCleanupRunnables.remove(contentView)
+                pendingNoContentCleanups.remove(contentView)
                 return@Runnable
             }
-            val backgroundView = runCatching {
-                backgroundViewField.get(contentView) as? View
-            }.getOrNull()
-            if (backgroundView == null) {
-                noContentCleanupRunnables.remove(contentView)
-                return@Runnable
-            }
-
-            val internalAlpha = runCatching {
-                findField(backgroundView.javaClass, "backgroundAlpha")?.getFloat(backgroundView)
-            }.getOrNull() ?: backgroundView.alpha
-            val stillDrawing = backgroundView.isAttachedToWindow &&
-                backgroundView.visibility == View.VISIBLE &&
-                outerBlurRegistry.hasDrawableBounds(backgroundView) &&
-                internalAlpha > 0.01f
-            if (stillDrawing && SystemClock.uptimeMillis() < deadline) {
-                mainHandler.postDelayed(cleanup, NO_CONTENT_CLEANUP_POLL_MS)
-                return@Runnable
-            }
-
-            noContentCleanupRunnables.remove(contentView)
-            deactivateOuterBlur(backgroundView, outerDrawableField, "no-content-animation-finished")
-            contentLastTypes.remove(contentView)
-            if (outerBlurRegistry.isEmpty()) {
-                lastIslandType = null
-            }
+            finishNoContentCleanup(contentView, "no-content-timeout")
         }
-        noContentCleanupRunnables[contentView] = cleanup
-        mainHandler.post(cleanup)
+        pendingNoContentCleanups[contentView] = PendingNoContentCleanup(
+            cleanup,
+            stateField,
+            backgroundViewField,
+            outerDrawableField,
+        )
+        mainHandler.postDelayed(cleanup, NO_CONTENT_CLEANUP_TIMEOUT_MS)
     }
 
     private fun cancelNoContentCleanup(contentView: Any?) {
         if (contentView == null) return
-        noContentCleanupRunnables.remove(contentView)?.let(mainHandler::removeCallbacks)
+        pendingNoContentCleanups.remove(contentView)?.let { pending ->
+            mainHandler.removeCallbacks(pending.timeout)
+        }
+    }
+
+    private fun finishNoContentCleanup(contentView: Any?, reason: String) {
+        contentView ?: return
+        val pending = pendingNoContentCleanups.remove(contentView) ?: return
+        mainHandler.removeCallbacks(pending.timeout)
+        val currentState = runCatching { pending.stateField.get(contentView) }.getOrNull()
+        if (!IslandStateResolver.isNoContent(currentState)) return
+        val backgroundView = runCatching {
+            pending.backgroundViewField.get(contentView) as? View
+        }.getOrNull() ?: return
+        deactivateOuterBlur(backgroundView, pending.outerDrawableField, reason)
+        contentLastTypes.remove(contentView)
+        if (outerBlurRegistry.isEmpty()) lastIslandType = null
+    }
+
+    /** SystemUI toggles this flag from both Folme completion and cancellation callbacks. */
+    private fun hookAnimationCompletion(module: XposedModule, classLoader: ClassLoader) {
+        val delegateClass = runCatching {
+            Class.forName(ANIMATION_DELEGATE_CLASS, false, classLoader)
+        }.getOrNull() ?: return
+        val contentViewField = findField(delegateClass, "view") ?: return
+        delegateClass.declaredMethods
+            .filter { method ->
+                method.name == "setAnimating" &&
+                    method.parameterCount == 1 &&
+                    method.parameterTypes[0] == Boolean::class.javaPrimitiveType
+            }
+            .forEach { method ->
+                module.hook(method).intercept { chain ->
+                    val result = chain.proceed()
+                    if (chain.args.getOrNull(0) == false) {
+                        val contentView = runCatching {
+                            contentViewField.get(chain.thisObject)
+                        }.getOrNull()
+                        finishNoContentCleanup(contentView, "no-content-animation-finished")
+                    }
+                    result
+                }
+            }
     }
 
     /**
@@ -867,6 +896,24 @@ object IslandBlurHook : BaseHook() {
         val currentIslandVisible = findMethod(controllerClass, "currentIslandVisible") ?: return
         val getView = findMethod(controllerClass, "getView") ?: return
         controllerClass.declaredMethods
+            .filter { method ->
+                method.name == "onViewAttached" &&
+                    method.parameterCount == 1 &&
+                    method.parameterTypes[0] == Boolean::class.javaPrimitiveType
+            }
+            .forEach { method ->
+                module.hook(method).intercept { chain ->
+                    val result = chain.proceed()
+                    if (chain.args.getOrNull(0) == false) {
+                        val contentView = runCatching { getView.invoke(chain.thisObject) }.getOrNull()
+                        finishNoContentCleanup(contentView, "no-content-detached")
+                        controllerVisibility.remove(chain.thisObject)
+                        controllerTargets.remove(chain.thisObject)
+                    }
+                    result
+                }
+            }
+        controllerClass.declaredMethods
             .filter { it.name == "onPreDraw" && it.parameterCount == 0 }
             .forEach { method ->
                 module.hook(method).intercept { chain ->
@@ -915,6 +962,29 @@ object IslandBlurHook : BaseHook() {
                         controllerTargets[controller]?.get()
                     }
                     val targetChanged = visibleConcrete != null && previousTarget !== visibleConcrete
+                    val noContent = contentView != null && pendingNoContentCleanups.containsKey(contentView)
+                    val contentAnimating = contentView?.let { owner ->
+                        runCatching {
+                            findMethod(owner.javaClass, "isAnimating")?.invoke(owner) as? Boolean
+                        }.getOrNull()
+                    } == true
+                    if (visible == false && noContent && !contentAnimating && !islandTempHidden) {
+                        // Covers direct removal where Folme never starts and has no completion
+                        // callback. Allow two frames for a deferred Folme start before release.
+                        mainHandler.postDelayed({
+                            if (!pendingNoContentCleanups.containsKey(contentView)) return@postDelayed
+                            val visibleNow = runCatching {
+                                currentIslandVisible.invoke(controller) as? Boolean
+                            }.getOrNull()
+                            val animatingNow = runCatching {
+                                findMethod(contentView.javaClass, "isAnimating")
+                                    ?.invoke(contentView) as? Boolean
+                            }.getOrNull() == true
+                            if (visibleNow == false && !animatingNow && !islandTempHidden) {
+                                finishNoContentCleanup(contentView, "no-content-not-rendered")
+                            }
+                        }, 32L)
+                    }
                     if (previouslyVisible != false && visible == false) {
                         val backgroundView = runCatching {
                             backgroundViewField.get(contentView) as? View
@@ -1105,6 +1175,13 @@ object IslandBlurHook : BaseHook() {
         val preDrawListener: ViewTreeObserver.OnPreDrawListener,
         val attachListener: View.OnAttachStateChangeListener,
         var observer: WeakReference<ViewTreeObserver>? = null,
+    )
+
+    private data class PendingNoContentCleanup(
+        val timeout: Runnable,
+        val stateField: java.lang.reflect.Field,
+        val backgroundViewField: java.lang.reflect.Field,
+        val outerDrawableField: java.lang.reflect.Field,
     )
 
 }
