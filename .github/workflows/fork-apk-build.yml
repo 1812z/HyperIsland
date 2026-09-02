@@ -7,9 +7,20 @@ on:
       - 'feature/**'
   pull_request:
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: Publish the signed APK as a GitHub Release
+        required: false
+        type: boolean
+        default: false
+      release_tag:
+        description: Release tag used when publish_release is enabled
+        required: false
+        type: string
+        default: lbe-clipboard-toast-v1
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: fork-apk-${{ github.ref }}
@@ -74,3 +85,25 @@ jobs:
           if-no-files-found: error
           retention-days: 30
           compression-level: 0
+
+      - name: Publish signed fork release
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_release
+        uses: softprops/action-gh-release@v2.1.0
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          name: HyperIsland LBE Clipboard Toast v1
+          body: |
+            Custom HyperIsland build based on upstream main.
+
+            Adds HyperOS clipboard-read prompt interception for
+            `com.lbe.security.utility.ToastUtil.initToastView(String, int)` when `type == 1`,
+            forwards it through HyperIsland's existing Toast/IslandDispatcher path, and
+            suppresses the original touch-blocking LBE view.
+
+            Enable **Settings → Hook Extensions → Xiaomi clipboard prompt island** and
+            restart both System UI and Permission Manager scopes.
+          files: |
+            artifacts/HyperIsland-lbe-clipboard-toast.apk
+            artifacts/HyperIsland-lbe-clipboard-toast.apk.sha256
+          draft: false
+          prerelease: true
