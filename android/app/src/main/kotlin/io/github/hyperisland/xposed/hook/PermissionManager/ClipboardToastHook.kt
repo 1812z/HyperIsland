@@ -131,6 +131,8 @@ object ClipboardToastHook : BaseHook() {
                 showNotification = false,
                 preserveStatusBarSmallIcon = false,
                 sourcePackage = packageName,
+                firstFloat = false,
+                enableFloat = false
             ),
         )
         //log(module, "sent clipboard island: package=$packageName, app=$appName")
