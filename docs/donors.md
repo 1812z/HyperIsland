@@ -1,4 +1,4 @@
-# 捐赠名单
+hein# 捐赠名单
 
 <script setup>
 import DonorsTable from './.vitepress/components/DonorsTable.vue'
