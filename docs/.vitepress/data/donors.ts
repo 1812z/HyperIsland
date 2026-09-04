@@ -212,7 +212,7 @@ export const donors: DonorItem[] = [
   },
   {
     name: " ",
-    amount: 8.88,
+    amount: '8.88',
     date: '2026-07-25',
     message: '❤️'
   },
@@ -221,6 +221,18 @@ export const donors: DonorItem[] = [
     amount: '10',
     date: '2026-07-26',
     message: '继续努力'
+  },
+  {
+    name: "泥梅川苦茶籽主人喵～",
+    amount: '1.00',
+    date: '2026-07-31',
+    message: ' '
+  },
+  {
+    name: "Aaaaa雨姐",
+    amount: '0.01',
+    date: '2026-08-02',
+    message: ' '
   },
   {
     name: "a",
@@ -263,6 +275,36 @@ export const donors: DonorItem[] = [
     amount: '6.66',
     date: '2026-08-25',
     message: '支持大小岛双向距离项目创作'
+  },
+  {
+    name: "冰羽绫纱",
+    amount: '50.00',
+    date: '2026-08-27',
+    message: ' '
+  },
+  {
+    name: "星月幻雪猫",
+    amount: '9.99',
+    date: '2026-08-27',
+    message: ' '
+  },
+  {
+    name: "Departure、",
+    amount: '18.80',
+    date: '2026-08-29',
+    message: ' '
+  },
+  {
+    name: "白玄",
+    amount: '6.66',
+    date: '2026-08-29',
+    message: ' '
+  },
+  {
+    name: "distance",
+    amount: '6.60',
+    date: '2026-08-29',
+    message: ' '
   },
   {
     name: "庄均睿",
