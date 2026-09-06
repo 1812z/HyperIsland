@@ -1,8 +1,10 @@
 package io.github.hyperisland.compose.service
 
+import android.app.BroadcastOptions
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import io.github.hyperisland.R
 import io.github.hyperisland.utils.getAppIcon
 import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
@@ -64,20 +66,38 @@ internal object TestNotificationService {
     private fun sendWithReset(context: Context, request: IslandRequest) {
         val appContext = context.applicationContext
         val cancelIntent = Intent(IslandDispatcher.ACTION_CANCEL).apply {
+            setPackage("com.android.systemui")
             putExtra(IslandDispatcher.EXTRA_NOTIF_ID, request.notifId)
         }
-        appContext.sendOrderedBroadcast(
-            cancelIntent,
-            IslandDispatcher.PERM,
-            object : BroadcastReceiver() {
-                override fun onReceive(receiverContext: Context?, intent: Intent?) {
-                    IslandDispatcher.sendBroadcast(appContext, request)
-                }
-            },
-            null,
-            0,
-            null,
-            null,
-        )
+        val postAfterCancel = object : BroadcastReceiver() {
+            override fun onReceive(receiverContext: Context?, intent: Intent?) {
+                IslandDispatcher.sendBroadcast(appContext, request)
+            }
+        }
+        if (Build.VERSION.SDK_INT >= 34) {
+            val options = BroadcastOptions.makeBasic()
+                .setShareIdentityEnabled(true)
+                .toBundle()
+            appContext.sendOrderedBroadcast(
+                cancelIntent,
+                null,
+                options,
+                postAfterCancel,
+                null,
+                0,
+                null,
+                null,
+            )
+        } else {
+            appContext.sendOrderedBroadcast(
+                cancelIntent,
+                IslandDispatcher.PERM,
+                postAfterCancel,
+                null,
+                0,
+                null,
+                null,
+            )
+        }
     }
 }
