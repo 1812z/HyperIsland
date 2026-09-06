@@ -18,6 +18,7 @@ import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.model.Material
 import io.github.hyperisland.xposed.hook.SystemUI.SoftGlass.SoftGlassController
 import io.github.hyperisland.xposed.logError
 import io.github.hyperisland.xposed.logWarn
+import io.github.hyperisland.xposed.log
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
@@ -344,7 +345,7 @@ object IslandBlurHook : BaseHook() {
                 }
                 result
             }
-            module.logWarn("native island blur hook installed loader=$classLoader")
+            module.log("native island blur hook installed loader=$classLoader")
         } catch (e: ClassNotFoundException) {
             // Most process/plugin loaders are irrelevant and legitimately miss the content
             // class. Once that class resolves, every later miss is a real compatibility fault.
