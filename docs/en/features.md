@@ -1,197 +1,183 @@
 # Features
 
-HyperIsland provides rich Super Island notification enhancement features for HyperOS 3, making your notification experience more modern.
+HyperIsland brings regular notifications, toasts, downloads, and screen-recording status into Super Island on HyperOS 3/4. It also lets you customize appearance, expansion behavior, and filtering rules.
 
-## App Features
+## Feature Directory
+
+| Category | Main capabilities | Best used for |
+|:---|:---|:---|
+| [Apps & Channels](#apps-channels) | Per-app enablement, toast forwarding, channel settings, batch actions | Decide which notifications may enter Super Island |
+| [Super Island Display](#super-island-display) | Templates, layouts, icons, expansion, scrolling, timeout | Control island content and interaction |
+| [Focus Notifications](#focus-notifications) | Focus panel, status bar, lock screen, glow | Control expanded system notification behavior |
+| [Appearance & Materials](#appearance-materials) | Highlight colors, backgrounds, blur, glass materials | Create a consistent visual style |
+| [Filters & Context Rules](#filters-context-rules) | Keywords, DND, fullscreen, and landscape rules | Reduce unwanted alerts and interruptions |
+| [Advanced Text Expressions](#advanced-text-expressions) | Placeholders, regex extraction, replacement | Clean up or rebuild notification text |
+| [Hook Extensions](#hook-extensions) | Download Manager and Screen Recording Island | Enhance supported system components |
+| [Focus Notification Bypass](#focus-notification-bypass) | Remove system allowlist restrictions | Enable Focus Notifications for more apps |
+
+::: tip Recommended setup order
+Select apps first, configure their templates and display styles, then add filters, appearance changes, or advanced expressions only where needed.
+:::
+
+## Apps & Channels
 
 ### App Adaptation
 
-Enable Super Island functionality for any app, with individual configuration per app.
+Enable Super Island for individual apps, search by app name or package name, and apply settings to multiple apps at once. Enabling **Show system apps** also exposes components such as Download Manager.
 
-- **Search**: Quickly search by app name or package name
-- **Individual Switch**: Control enable/disable per app independently
-- **Bulk Management**: View the number of enabled apps at a glance
+### Toast Forwarding
 
-![App Adaptation](../images/Screenshot_2026-04-05-00-00-06-698_io.github.hype.jpg){style="width: 50%;"}
+Switch to **Toast** mode at the top of App Adaptation to handle standard text toasts per app:
 
-### Toast Interception
+- Convert toast text into a Focus Notification and Super Island
+- Suppress the original toast after forwarding to avoid duplicate prompts
+- Choose whether to keep it in Notification Center or show the large-island icon
+- Apply the same rules to several apps in one batch
 
-Switch to **Toast** mode at the top of the adaptation page to intercept and handle standard text toasts per app:
-
-- **Forward Standard Toast**: convert app toast text to HyperIsland Focus Notification + Super Island
-- **Block Original Toast**: suppress the system's original toast popup after forwarding (enabled by default)
-- **Show as Notification**: keep forwarded content visible in Notification Center
-- **Show Super Island Icon**: control the left-side icon on the large island
-- **Batch Settings**: select multiple apps and apply toast rules from the top-right action
-
-::: tip Notes
-Only standard text toasts are handled; custom toast views are ignored.
+::: info Scope
+Only standard text toasts are supported. Custom toast views are not intercepted.
 :::
 
-### Notification Channel Management
+### Notification Channels
 
-For apps supporting multiple notification channels (like QQ), configure each channel separately:
+Apps such as QQ may expose multiple notification channels. Instant messages, system push notifications, and other channels can each use independent enablement, templates, styles, and filtering rules.
 
-- **Instant Messages**: Chat and messaging notifications
-- **System Push**: MiPush push notifications
+## Super Island Display
 
-![Channel Settings](../images/Screenshot_2026-04-05-00-00-04-279_io.github.hype.jpg){style="width: 50%;"}
+### Templates & Layouts
 
-Each channel can independently set templates and styles.
+| Option | Purpose |
+|:---|:---|
+| Notification Super Island | Converts a regular notification into a Focus Notification and Super Island |
+| Download | Detects the filename and progress, and exposes download actions |
+| AI Notification Super Island | Uses AI to simplify left- and right-side content |
+| New icon-text + bottom text buttons | Shows up to two bottom buttons |
+| Cover + automatic wrapping | Supports a two-line Focus Notification and bottom buttons |
+| New icon-text + right text button | Shows one text button on the right |
 
-## Super Island Customization
+### Display & Expansion
 
-### Template Selection
+- **Super Island icon**: use the app icon automatically or select a custom icon
+- **Large-island icon**: control the icon on the expanded island
+- **Initial / update expansion**: choose whether a new or updated notification expands automatically
+- **Message scrolling**: scroll long text inside the island
+- **Auto dismiss**: set when the island hides automatically
+- **Narrow font**: use the narrow island font; periods may be rendered as colons
 
-Choose the appropriate Super Island template for each app/channel:
+## Focus Notifications
 
-| Template | Description |
-|:---------|:------------|
-| Notification Super Island | Convert any notification to Focus Notification + Super Island |
-| Download | Auto-detect download status and convert to Super Island |
-| AI Notification Super Island | AI simplifies left and right sides |
+- **Focus icon**: use the app icon or a custom icon
+- **Focus Notification**: disabling it keeps Super Island but restores the source notification to normal style
+- **Status-bar icon**: control the notification icon in the status bar
+- **Lock-screen restore**: use a regular notification on the lock screen for system privacy behavior
+- **Outer glow**: show a dynamic glow around the Focus Notification
 
-### Style Selection
-
-| Style | Description |
-|:------|:------------|
-| New Icon-Text Component + Bottom Text Buttons | Bottom text buttons, supports up to 2 buttons |
-| Cover Component + Auto Wrap | Supports 2-line Focus Notification display with bottom text buttons |
-| New Icon-Text Component + Right Text Button | Right text button, supports only 1 button |
-
-## Island Customization
-
-- **Island Icon**: Auto or custom icon selection
-- **Large Island Icon**: Toggle large island icon display
-- **Initial Expand**: Whether Super Island auto-expands to Focus Notification on first display
-- **Update Expand**: Whether Super Island auto-expands to Focus Notification on notification update
-- **Message Scroll**: Toggle text scrolling within the island
-- **Auto Dismiss**: Set seconds before Super Island auto-hides
-- **Highlight Color**: Custom highlight color (supports HEX values)
-- **Dynamic Highlight Color Extraction**: Dynamically extract the highlight color from the Super Island icon.
-- **Text Highlight**: Choose left or right text to display with highlight color
-- **Narrow Font**: When enabled, switch the Dynamic Island to the narrow font (this will cause “.” to be converted to “:”)
-
-### Filter Rules Page
-
-In **Settings > Filter Rules**, you can control notification behavior for special states **per foreground app**.
-
-In **Settings > Other > Filter Rules**, you can control notification behavior for special states **globally by system scenario**.
-
-The `1 Do Not Disturb`, `2 Fullscreen`, and `3 Landscape` tabs at the top indicate the rule matching order. The system checks rules from left to right, and once it hits the first available rule, that rule is applied directly without continuing to match later rules.
-
-Each rule can choose a handling mode on the right:
-
-- **Default**: No extra handling when matched; continue using the default behavior
-- **Fallback to Normal Notification**: Do not use Super Island when matched; restore the notification to a normal notification
-- **Disable Expansion**: Only show the small island when matched; do not auto-expand to Focus Notification
-- **Auto Expand Notification**: Auto-expand to Focus Notification when matched
-
-Recommended usage:
-
-- Avoid large-island interruptions during fullscreen games or videos: set **When Fullscreen** to **Disable Expansion** or **Fallback to Normal Notification**
-- Keep only small-island prompts in landscape apps: set **When Landscape** to **Disable Expansion**
-- Keep notifications as quiet as possible after enabling system Do Not Disturb: set **When Do Not Disturb** to **Fallback to Normal Notification** or **Disable Expansion**
-
-::: tip Notes
-The fullscreen rule has priority over the landscape rule. If an app is both fullscreen and landscape, the fullscreen rule is used first.
+::: warning Note
+When Focus Notification is disabled, System UI sends Super Island on the app's behalf. The default **Intercept heads-up notification** option suppresses the original heads-up prompt after a notification reaches the island, while its Notification Center entry remains available.
 :::
 
-## Focus Notification Customization
+## Appearance & Materials
 
-- **Focus Icon**: Choose icon in the Focus Notification panel
-  - Auto: Use app's default icon
-  - Custom: Manually select icon
-- **Focus Notification**: Control Focus Notification display mode
-  - Default (On): Normal Focus Notification display
-  - Off: Restore notification to normal style, only show Super Island
-- **Status Bar Icon**: Toggle status bar icon display
-- **Lock Screen Restore**: Restore normal notification style on lock screen to use system's built-in privacy management
-- **Outer Ring Glow Effect**: When enabled, a dynamic glow effect appears around focus notifications
+### Colors & Backgrounds
 
-### Expression Customization (Advanced)
+- Set a custom HEX highlight color
+- Extract the highlight color dynamically from the island icon
+- Apply the highlight color to the left or right text
+- Set separate backgrounds for the small island, large island, and Focus Notification
+- Adjust background opacity and blur
 
-In **Advanced Focus Customization** and **Advanced Island Customization**, you can use expressions to rebuild display text.
+### Island Materials
 
-- Placeholder format: `${variable}`
-- Function format: `${function(arg1, arg2, ...)}`
-- Expression length limit is about 320 characters; keep it concise
+The small island, large island, and expanded state can independently use Default, Gaussian Blur, Highlight Glass, Liquid Glass, or Soft Glass. The smaller states may follow the large island or use their own lighting, refraction, background, blending, and highlight parameters.
 
-**Common placeholders**
+- On HyperOS 4, Soft Glass uses the native Bionics material interface
+- On HyperOS 3, Soft Glass falls back to Highlight Glass
+- Custom backgrounds and glass materials are mutually exclusive
+- HDR highlights, Liquid Glass sampling, and gyroscope lighting are global settings
 
-- `${title}`: current title
-- `${subtitle}`: current subtitle/content
-- `${subtitle_or_title}`: fallback to title when subtitle is empty
-- `${raw_title}` / `${raw_subtitle}`: original notification title/content
-- `${pkg}`: app package name
-- `${channel_id}`: notification channel ID
-- `${progress_text}%`: progress value (0-100, useful for download templates)
+## Filters & Context Rules
 
-**Built-in functions**
+### Keyword Filtering
 
-- `trim(text)`: remove leading/trailing whitespace
-- `regex(text, pattern, group)`: regex extraction; `group` defaults to 0
-- `replace(text, pattern, replacement)`: regex replacement
+| Mode | Behavior |
+|:---|:---|
+| Blacklist | A notification does not enter Super Island when it matches any blacklist keyword |
+| Whitelist | A notification enters only when it matches the whitelist and does not match the blacklist |
 
-**Examples**
+The blacklist wins when both lists match.
 
-- Remove group-chat prefix and keep message body only:
-  - `${replace(subtitle_or_title, "^\[\d+条]\s*[^:：]+[:：]\s*", "")}`
-- Extract order ID (for example `id12345`):
-  - `${regex(subtitle, "(id\d+)", 1)}`
-- Trim surrounding whitespace:
-  - `${trim(subtitle_or_title)}`
-- Combine app + channel:
-  - `${pkg} · ${channel_id}`
-- Show download progress:
-  - `${progress_text}%`
+### DND, Fullscreen & Landscape
 
-**Troubleshooting**
+Use **Settings → Filter rules** for per-foreground-app behavior, and **Settings → Other → Filter rules** for global defaults. Rules are checked in the order **Do Not Disturb → Fullscreen → Landscape**, stopping at the first applicable rule.
 
-- If an expression is invalid, output falls back to empty or original text; first check paired parentheses and quotes
-- Start with plain placeholders (like `${title}`), then add functions step by step
+| Action | Result after a match |
+|:---|:---|
+| Default | Apply no additional handling |
+| Fall back to regular notification | Skip Super Island and restore a normal notification |
+| Disable expansion | Keep the small island without automatically expanding |
+| Auto-expand notification | Automatically expand the Focus Notification |
 
-::: warning
-When Focus Notification is disabled, the Super Island is sent by **System UI** on behalf of the app, which may have compatibility issues.
+::: tip Common setups
+For fullscreen games or videos, use **Disable expansion** or **Fall back to regular notification**. To keep only the small island in landscape, use **Disable expansion**. Fullscreen takes priority when both fullscreen and landscape match.
 :::
 
-## Notification Filtering Rules
-Used to control whether notifications appear on the island.
-Supports blacklist mode and whitelist mode.
+## Advanced Text Expressions
 
-- **Blacklist Mode:** Notifications containing keywords will not be displayed as a super island.
-- **Whitelist Mode:** Only notifications matching a whitelist keyword and no blacklist keyword will appear as a Super Island. If both match, the blacklist takes priority.
+**Advanced Focus customization** and **Advanced Island customization** can rebuild displayed text with expressions up to approximately 320 characters.
+
+### Common Variables
+
+| Variable | Content |
+|:---|:---|
+| `${title}` | Current title |
+| `${subtitle}` | Current subtitle or body |
+| `${subtitle_or_title}` | Title when the subtitle is empty |
+| `${raw_title}` / `${raw_subtitle}` | Original notification title and body |
+| `${pkg}` | App package name |
+| `${channel_id}` | Notification channel ID |
+| `${progress_text}%` | Progress from 0–100 |
+
+### Built-in Functions
+
+| Function | Purpose |
+|:---|:---|
+| `trim(text)` | Remove leading and trailing whitespace |
+| `regex(text, pattern, group)` | Extract a regex match; `group` defaults to 0 |
+| `replace(text, pattern, replacement)` | Replace text with a regular expression |
+
+Common examples:
+
+```text
+${trim(subtitle_or_title)}
+${regex(subtitle, "(id\d+)", 1)}
+${pkg} · ${channel_id}
+${progress_text}%
+```
+
+If an expression fails, test a single variable such as `${title}` first, then add functions gradually and check that parentheses and quotes are paired.
+
+## Hook Extensions
+
+### Download Manager
+
+Intercept HyperOS Download Manager notifications to show the filename and progress in Super Island, with **Pause, Resume, and Cancel** actions. A resume notification can also appear after pausing.
+
+Download Island is disabled by default. Enable **Show system apps**, select **Download Manager** in App Adaptation, then enable its Hook extension.
+
+### Screen Recording Island
+
+Enable it under **Settings → Hook extensions → Screen recording** to replace the official recording overlay with Super Island and a standalone Miuix dialog. Pause, resume, and stop actions are supported.
+
+- **Motion photo**: applies to the next recording only and runs for up to 30 seconds; the source MP4 is deleted after successful packaging and retained on failure
+- **Record immediately**: skips the confirmation dialog when the Quick Settings tile is tapped and supports hot reload
+- Restart the Screen Recorder app after changing the main island switch
+
+System component versions must match the OS. If compatibility issues occur, download the System UI and Screen Recorder resources from [Resource Downloads](/en/downloads#system-software).
 
 ## Focus Notification Bypass
 
-::: danger Built-in Bypass
-The app includes a built-in whitelist bypass. It doesn't support safe mode and may cause System UI to crash infinitely. Make sure you can recover your device before enabling.
+HyperCeiler or the built-in bypass can remove the Focus Notification allowlist restriction and enable more apps to display Focus Notifications.
+
+::: danger Before enabling
+The built-in bypass does not support safe mode. Configuration or compatibility problems may cause repeated System UI crashes, so enable it only if you can recover the device.
 :::
-
-Through HyperCeiler or built-in bypass, you can:
-- Remove Focus Notification whitelist restrictions
-- Unlock Focus Notification whitelist verification
-- Enable any app's notifications to display as Focus Notifications
-
-## Custom Background
-- Support setting Small Island/Large Island/Focus notification backgrounds
-- Support customizing transparency/blur
-
-## Download Manager Extension
-
-Intercept HyperOS download manager notifications and display them in Super Island style with filename and progress.
-
-::: tip Core Features
-- Support **Pause**, **Resume**, **Cancel** operations
-- After pausing, a resume download notification is shown (requires Download Manager Hook enabled)
-:::
-
-::: tip How to Enable
-Download Island is disabled by default. Go to the app, enable **"Show System Apps"**, and check **"Download Manager"**.
-:::
-
-## Screen Recording Island
-
-Enable **Screen recording island** under **Settings → Hook extensions → Screen recording** to replace the official recorder floating window with Super Island and an independent Miuix dialog. Pause, resume, and stop controls are supported. You can enable **Motion photo** for the next recording; motion-photo recording stops automatically after 30 seconds, the result is written to the original recording directory, the MP4 is removed after successful packaging, and retained if packaging fails. Restart Screen Recorder after changing the main switch; **Record immediately** is hot-reloaded and skips the confirmation dialog when the Quick Settings tile is tapped.
-
-Compatibility may vary by app version. The currently supported version is [4.16.2.6.1](https://1848933255.share.123pan.cn/123pan/9T69vd-ej0wd?pwd=kAf1#).
