@@ -629,6 +629,7 @@
     <string name="support_development_summary">開発者に寄付してサポートを示してください</string>
     <string name="documentation">チュートリアル</string>
     <string name="documentation_summary">クリックして使用方法のチュートリアルとよ​​くある質問を表示します</string>
+    <string name="related_resources_summary">モジュールおよび HyperOS システムソフトウェアリソースをダウンロード</string>
     <string name="system_information">システム情報</string>
     <string name="system_version">システムバージョン</string>
     <string name="app_version">アプリケーションのバージョン</string>

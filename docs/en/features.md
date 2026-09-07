@@ -160,7 +160,7 @@ If an expression fails, test a single variable such as `${title}` first, then ad
 
 ### Download Manager
 
-Intercept HyperOS Download Manager notifications to show the filename and progress in Super Island, with **Pause, Resume, and Cancel** actions. A resume notification can also appear after pausing.
+Intercept HyperOS Download Manager notifications to show the filename and progress in Super Island, with **Pause, Resume, and Cancel** actions. The resume notification remains visible while paused, is replaced by the running notification after resuming, and is fully removed when the task is canceled or deleted. **Show task icon** is enabled by default and prefers the task icon when one is available.
 
 Download Island is disabled by default. Enable **Show system apps**, select **Download Manager** in App Adaptation, then enable its Hook extension.
 

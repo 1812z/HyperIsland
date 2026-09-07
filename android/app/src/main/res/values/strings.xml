@@ -379,7 +379,9 @@
     <string name="ext_unlock_auth">Remove focus notification signature verification</string>
     <string name="ext_unlock_auth_summary">Allow all apps to send focus notifications to watch/bracelet, bypassing signature check (requires hooking XMSF)</string>
     <string name="ext_resume_notification">Keep notification after download pause</string>
-    <string name="ext_resume_notification_summary">Show a focus notification to resume download, but state synchronization issues may occur</string>
+    <string name="ext_resume_notification_summary">Keep a persistent notification after pausing; it is removed when the task is resumed, canceled, or deleted</string>
+    <string name="ext_download_show_task_icon">Show task icon</string>
+    <string name="ext_download_show_task_icon_summary">Use the task icon in download notifications when one is available; enabled by default</string>
     <string name="ext_scope_failed">Scope request failed. Make sure the module is enabled in LSPosed</string>
     <string name="ext_bluetooth_settings">Bluetooth Island Settings</string>
     <string name="ext_bluetooth_enable">Enable Bluetooth Island</string>
@@ -653,7 +655,7 @@
     <string name="documentation">Tutorial</string>
     <string name="documentation_summary">Click to view usage tutorials and FAQs</string>
     <string name="related_resources">Related resources</string>
-    <string name="related_resources_summary">Download the module and HyperOS 3/4 system software resources</string>
+    <string name="related_resources_summary">Download the module and HyperOS system software resources</string>
     <string name="system_information">System information</string>
     <string name="system_version">System version</string>
     <string name="app_version">Application version</string>

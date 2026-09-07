@@ -220,6 +220,7 @@
     <string name="dnd_behavior">Durante o Não Perturbe (DND)</string>
     <string name="documentation">Tutorial</string>
     <string name="documentation_summary">Clique para ver tutoriais de uso e perguntas frequentes (FAQ)</string>
+    <string name="related_resources_summary">Baixar o módulo e os recursos de software do sistema HyperOS</string>
     <string name="download_manager">Gerenciador de downloads</string>
     <string name="dp_decimal_value">%1$.1f dp</string>
     <string name="dp_value">%1$d dp</string>

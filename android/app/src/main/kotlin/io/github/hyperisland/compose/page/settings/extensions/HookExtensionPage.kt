@@ -83,6 +83,11 @@ internal fun HookExtensionPage(
     }
     val unlockAuth = rememberBooleanPreference(prefs, KEY_UNLOCK_FOCUS_AUTH, false)
     val resumeNotification = rememberBooleanPreference(prefs, KEY_RESUME_NOTIFICATION, true)
+    val downloadShowTaskIcon = rememberBooleanPreference(
+        prefs,
+        KEY_DOWNLOAD_SHOW_TASK_ICON,
+        true,
+    )
     val screenRecorderIsland = rememberBooleanPreference(prefs, KEY_SCREEN_RECORDER_ISLAND, false)
     val screenRecorderImmediateStart = rememberBooleanPreference(
         prefs,
@@ -488,6 +493,18 @@ internal fun HookExtensionPage(
                     if (request(value, listOf("com.android.providers.downloads", "com.xiaomi.android.app.downloadmanager"))) {
                         resumeNotification.value = value
                         prefs.putBoolean(KEY_RESUME_NOTIFICATION, value)
+                        restart()
+                    }
+                }
+                PreferenceSwitch(
+                    title = stringResource(R.string.ext_download_show_task_icon),
+                    summary = stringResource(R.string.ext_download_show_task_icon_summary),
+                    icon = null,
+                    checked = downloadShowTaskIcon.value,
+                ) { value ->
+                    if (request(value, listOf("com.android.providers.downloads", "com.xiaomi.android.app.downloadmanager"))) {
+                        downloadShowTaskIcon.value = value
+                        prefs.putBoolean(KEY_DOWNLOAD_SHOW_TASK_ICON, value)
                         restart()
                     }
                 }

@@ -629,6 +629,7 @@
     <string name="support_development_summary">Сделайте пожертвование разработчикам, чтобы выразить свою поддержку</string>
     <string name="documentation">Учебное пособие</string>
     <string name="documentation_summary">Нажмите, чтобы просмотреть руководства по использованию и часто задаваемые вопросы</string>
+    <string name="related_resources_summary">Скачать модуль и ресурсы системного программного обеспечения HyperOS</string>
     <string name="system_information">Информация о системе</string>
     <string name="system_version">Версия системы</string>
     <string name="app_version">Версия приложения</string>

@@ -1,6 +1,7 @@
 package io.github.hyperisland.xposed.hook
 
 import android.app.Notification
+import android.graphics.Bitmap
 import android.graphics.drawable.Icon
 import android.os.Bundle
 import io.github.hyperisland.xposed.utils.HookUtils
@@ -57,7 +58,10 @@ object DownloadHook : BaseHook() {
                 InProcessController.hookMiuiDownloadManager(module, classLoader)
             }
 
-                hookDownloadManagerService(module, classLoader)
+            hookDownloadNotificationHelper(module, classLoader)
+            hookDownloadNotifierCancelAll(module, classLoader)
+            hookDownloadUseCaseDelete(module, classLoader)
+            hookDownloadManagerService(module, classLoader)
         } catch (e: Throwable) {
             logError(module, "Error hooking $pkg: ${e.message}")
         }
@@ -93,6 +97,7 @@ object DownloadHook : BaseHook() {
     private fun handleNotification(notif: Notification, module: XposedModule, classLoader: ClassLoader, pkg: String, id: Int, tag: String?) {
         try {
             val extras = extrasField?.get(notif) as? Bundle ?: return
+            if (extras.getBoolean(InProcessController.EXTRA_PAUSED_OVERLAY, false)) return
             val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: ""
             val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
             val channelId = notif.channelId ?: ""
@@ -101,13 +106,14 @@ object DownloadHook : BaseHook() {
 
             val appName = pkg.substringAfterLast(".").replaceFirstChar { it.uppercase() }
             val fileName = extractFileName(title, text, extras)
-            val downloadId = extractDownloadId(extras).takeIf { it > 0 }
+            val extractedDownloadId = extractDownloadId(extras).takeIf { it > 0 }
                 ?: extractIdFromTag(tag).takeIf { it > 0 }
-                ?: id.toLong()
+            val downloadId = extractedDownloadId ?: id.toLong()
             val progress = extractProgress(title, text, extras)
             val combined = title + text
             val isComplete  = progress >= 100
-            val isMultiFile = Regex("""\d+个文件""").containsMatchIn(combined)
+            val isMultiFile = extras.getBoolean("extra_download_is_multi_file", false) ||
+                Regex("""\d+个文件""").containsMatchIn(combined)
             val isWaiting   = !isComplete &&
                               (combined.contains("等待") || combined.contains("准备中") ||
                                combined.contains("queued", ignoreCase = true) || combined.contains("pending", ignoreCase = true))
@@ -117,6 +123,8 @@ object DownloadHook : BaseHook() {
 
             val context = HookUtils.getContext(classLoader) ?: return
             InProcessController.ensureRegistered(context, module)
+            val taskIcon = InProcessController.resolveTaskIcon(extras)
+            InProcessController.applyTaskIcon(extras, taskIcon)
 
             // 按钮：每次通知都设置，避免因去重跳过导致闪烁
             val primaryIntent = when {
@@ -169,7 +177,9 @@ object DownloadHook : BaseHook() {
                     channelId = notif.channelId ?: "download",
                     fileName = fileName, progress = progress,
                     downloadId = downloadId, isMultiFile = isMultiFile,
-                    packageName = pkg
+                    packageName = pkg,
+                    taskIcon = taskIcon,
+                    downloadIdReliable = extractedDownloadId != null,
                 )
                 notifSnapshots[snapshotKey] = snapshot
                 InProcessController.lastDownloadSnapshot = snapshot
@@ -181,6 +191,161 @@ object DownloadHook : BaseHook() {
     }
 
     // ─── DownloadManager Hook ─────────────────────────────────────────────────
+
+    /** Capture the real task thumbnail before Xiaomi's NotificationHelper posts the notification. */
+    private fun hookDownloadNotificationHelper(module: XposedModule, classLoader: ClassLoader) {
+        try {
+            val clazz = classLoader.loadClass("com.android.providers.downloads.util.NotificationHelper")
+            clazz.declaredMethods
+                .filter { it.name == "notify" && it.parameterTypes.size == 3 }
+                .forEach { method ->
+                    module.hook(method).intercept { chain ->
+                        var replacementIconUrl: String? = null
+                        try {
+                            val context = HookUtils.getContext(classLoader)
+                            if (context != null) {
+                                InProcessController.ensureRegistered(context, module)
+                                val currentIconUrl = chain.args[2] as? String
+                                if (InProcessController.isTaskIconEnabled() && currentIconUrl.isNullOrBlank()) {
+                                    val ownerPackage = chain.args[1] as? String
+                                    replacementIconUrl = InProcessController.resolveTaskThumbnailUrl(
+                                        context,
+                                        ownerPackage,
+                                    )
+                                }
+                                val effectiveIconUrl = currentIconUrl?.takeIf(String::isNotBlank)
+                                    ?: replacementIconUrl
+                                val item = chain.args[0]
+                                val builder = item?.javaClass?.getDeclaredField("mBuilder")?.let { field ->
+                                    field.isAccessible = true
+                                    field.get(item) as? Notification.Builder
+                                }
+                                builder?.extras?.putBoolean(
+                                    InProcessController.EXTRA_HAS_TASK_ICON,
+                                    !effectiveIconUrl.isNullOrBlank(),
+                                )
+                            }
+                        } catch (e: Throwable) {
+                            logError(module, "NotificationHelper thumbnail hook error: ${e.message}")
+                        }
+                        if (replacementIconUrl != null) {
+                            val args = chain.args.toTypedArray()
+                            args[2] = replacementIconUrl
+                            chain.proceed(args)
+                        } else {
+                            chain.proceed()
+                        }
+                    }
+                }
+            clazz.declaredMethods
+                .filter { it.name == "updateNotification" }
+                .forEach { method ->
+                    module.hook(method).intercept { chain ->
+                        try {
+                            val bitmap = chain.args.firstOrNull { it is Bitmap } as? Bitmap
+                            val item = chain.args.firstOrNull { arg ->
+                                arg?.javaClass?.declaredFields?.any { it.name == "mBuilder" } == true
+                            }
+                            val builder = item?.javaClass?.getDeclaredField("mBuilder")?.let { field ->
+                                field.isAccessible = true
+                                field.get(item) as? Notification.Builder
+                            }
+                            val context = HookUtils.getContext(classLoader)
+                            if (bitmap != null && builder != null && context != null &&
+                                builder.extras.getBoolean(
+                                    InProcessController.EXTRA_HAS_TASK_ICON,
+                                    false,
+                                )
+                            ) {
+                                InProcessController.ensureRegistered(context, module)
+                                InProcessController.applyTaskIcon(
+                                    builder.extras,
+                                    Icon.createWithBitmap(bitmap),
+                                )
+                            }
+                        } catch (e: Throwable) {
+                            logError(module, "NotificationHelper icon hook error: ${e.message}")
+                        }
+                        chain.proceed()
+                    }
+                }
+            log(module, "Hooked NotificationHelper.updateNotification")
+        } catch (_: ClassNotFoundException) {
+        } catch (e: Throwable) {
+            logError(module, "NotificationHelper hook error: ${e.message}")
+        }
+    }
+
+    /** Download Manager UI marks or removes rows here when the user deletes a task. */
+    private fun hookDownloadUseCaseDelete(module: XposedModule, classLoader: ClassLoader) {
+        val candidates = listOf(
+            "com.android.providers.downloads.ui.domain.DownloadUseCase",
+            "com.android.providers.downloads.p000ui.domain.DownloadUseCase",
+        )
+        for (className in candidates) {
+            try {
+                val clazz = classLoader.loadClass(className)
+                val methods = clazz.declaredMethods.filter { it.name == "delete" }
+                if (methods.isEmpty()) continue
+                methods.forEach { method ->
+                    module.hook(method).intercept { chain ->
+                        val context = chain.args.firstOrNull { it is android.content.Context }
+                            as? android.content.Context
+                        val task = chain.args.firstOrNull { arg ->
+                            arg?.javaClass?.declaredFields?.any { it.name == "downloadId" } == true
+                        }
+                        val downloadId = try {
+                            task?.javaClass?.getDeclaredField("downloadId")?.let { field ->
+                                field.isAccessible = true
+                                (field.get(task) as? Number)?.toLong() ?: -1L
+                            } ?: -1L
+                        } catch (_: Throwable) {
+                            -1L
+                        }
+                        val title = try {
+                            task?.javaClass?.getDeclaredField("title")?.let { field ->
+                                field.isAccessible = true
+                                field.get(task) as? String
+                            }
+                        } catch (_: Throwable) {
+                            null
+                        }
+                        chain.proceed().also {
+                            if (context != null && downloadId > 0) {
+                                InProcessController.ensureRegistered(context, module)
+                                InProcessController.onDownloadDeleted(context, downloadId, title)
+                            }
+                        }
+                    }
+                }
+                log(module, "Hooked $className.delete")
+                break
+            } catch (_: ClassNotFoundException) {
+            } catch (e: Throwable) {
+                logError(module, "DownloadUseCase delete hook error ($className): ${e.message}")
+            }
+        }
+    }
+
+    /** DownloadService.onCreate calls this and otherwise clears our paused overlay too. */
+    private fun hookDownloadNotifierCancelAll(module: XposedModule, classLoader: ClassLoader) {
+        try {
+            val clazz = classLoader.loadClass("com.android.providers.downloads.service.DownloadNotifier")
+            val method = clazz.getDeclaredMethod("cancelAll")
+            module.hook(method).intercept { chain ->
+                chain.proceed().also {
+                    HookUtils.getContext(classLoader)?.let { context ->
+                        InProcessController.ensureRegistered(context, module)
+                        InProcessController.restorePausedOverlayAfterNotificationClear(context)
+                    }
+                }
+            }
+            log(module, "Hooked DownloadNotifier.cancelAll")
+        } catch (_: ClassNotFoundException) {
+        } catch (e: Throwable) {
+            logError(module, "DownloadNotifier.cancelAll hook error: ${e.message}")
+        }
+    }
 
     private fun hookDownloadManagerService(module: XposedModule, classLoader: ClassLoader) {
         val candidates = listOf(

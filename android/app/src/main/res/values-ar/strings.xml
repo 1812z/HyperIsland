@@ -223,6 +223,7 @@
     <string name="dnd_behavior">وقت عدم الإزعاج</string>
     <string name="documentation">الوثائق</string>
     <string name="documentation_summary">اضغط لعرض أدلة الاستخدام والأسئلة الشائعة.</string>
+    <string name="related_resources_summary">تنزيل الوحدة وموارد برامج نظام HyperOS</string>
     <string name="download_manager">مدير التنزيلات</string>
     <string name="dp_decimal_value">%1$.1f dp</string>
     <string name="dp_value">%1$d dp</string>

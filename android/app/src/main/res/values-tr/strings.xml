@@ -629,6 +629,7 @@
     <string name="support_development_summary">Desteğinizi göstermek için geliştiricilere bağış yapın</string>
     <string name="documentation">öğretici</string>
     <string name="documentation_summary">Kullanım eğitimlerini ve SSS\'leri görüntülemek için tıklayın</string>
+    <string name="related_resources_summary">Modülü ve HyperOS sistem yazılımı kaynaklarını indirin</string>
     <string name="system_information">Sistem bilgisi</string>
     <string name="system_version">Sistem sürümü</string>
     <string name="app_version">Uygulama sürümü</string>

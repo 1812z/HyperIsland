@@ -385,7 +385,9 @@
     <string name="ext_unlock_auth">移除焦点通知签名验证</string>
     <string name="ext_unlock_auth_summary">XMSF（小米服务框架）去除校验</string>
     <string name="ext_resume_notification">下载管理器暂停后保留焦点通知</string>
-    <string name="ext_resume_notification_summary">显示一条通知，点击以继续下载，可能导致状态不同步</string>
+    <string name="ext_resume_notification_summary">暂停下载后持续显示通知，恢复、取消或删除任务后自动清除</string>
+    <string name="ext_download_show_task_icon">显示任务图标</string>
+    <string name="ext_download_show_task_icon_summary">默认开启，下载任务包含图标时在通知上显示</string>
     <string name="ext_scope_failed">作用域申请失败，请确认模块已在 LSPosed 中启用</string>
     <string name="ext_bluetooth_settings">蓝牙超级岛设置</string>
     <string name="ext_bluetooth_enable">启用蓝牙超级岛</string>
@@ -659,7 +661,7 @@
     <string name="documentation">使用教程</string>
     <string name="documentation_summary">点击查看使用教程及常见问题</string>
     <string name="related_resources">相关资源</string>
-    <string name="related_resources_summary">下载模块及澎湃 OS3/4 系统软件资源</string>
+    <string name="related_resources_summary">下载模块及澎湃系统软件资源</string>
     <string name="system_information">系统信息</string>
     <string name="system_version">系统版本</string>
     <string name="app_version">应用版本</string>
