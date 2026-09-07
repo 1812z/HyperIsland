@@ -183,6 +183,8 @@
     <string name="update_float">更新時にフロート表示</string>
     <string name="update_float_summary">Island の更新時にフロート通知を展開します</string>
     <string name="focus_notification_summary">通知をフォーカス通知に置き換えます (無効で元の通知が表示されます)</string>
+    <string name="suppress_heads_up_notification">フローティング通知をブロック</string>
+    <string name="suppress_heads_up_notification_summary">スーパーアイランドに表示されるアプリのフローティング通知を自動的にブロックします</string>
     <string name="restore_lockscreen">ロック画面の通知を復元する</string>
     <string name="restore_lockscreen_summary">ロック画面でのフォーカス通知処理をスキップし、元のプライバシーに適切な動作を保持します</string>
     <string name="auto_disappear">自動で無視</string>

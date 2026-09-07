@@ -359,6 +359,8 @@
     <string name="liquid_glass_navigation_bar_summary">استبدال الشريط السفلي العائم بتأثير الزجاج السائل</string>
     <string name="focus_notification">إشعار مركّز</string>
     <string name="focus_notification_summary">استبدل الإشعار بإشعار مركّز (يظهر الإشعار الأصلي عند التعطيل).</string>
+    <string name="suppress_heads_up_notification">حظر الإشعارات العائمة</string>
+    <string name="suppress_heads_up_notification_summary">حظر الإشعارات العائمة تلقائيًا للتطبيقات المعروضة في الجزيرة الفائقة</string>
     <string name="focus_outer_glow">تأثير حلقة الضوء الخارجية لإشعار المركّز</string>
     <string name="focus_text_color">لون نص إشعار المركّز</string>
     <string name="follow_background">اتبع خلفية الجزيرة</string>

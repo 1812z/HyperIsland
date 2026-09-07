@@ -183,6 +183,8 @@
     <string name="update_float">Güncellemede Yeniden Genişlet</string>
     <string name="update_float_summary">Bu ayar açık olduğunda bildirim güncellendiğinde Ada yeniden genişler.</string>
     <string name="focus_notification_summary">Bu ayar açık olduğunda normal bildirim yerine odak bildirimi gösterilir. Kapalıysa normal bildirim gösterilir.</string>
+    <string name="suppress_heads_up_notification">Yüzen bildirimleri engelle</string>
+    <string name="suppress_heads_up_notification_summary">Süper Ada’da gösterilen uygulamaların yüzen bildirimlerini otomatik olarak engeller</string>
     <string name="restore_lockscreen">Kilit Ekranı Bildirimini Geri Yükle</string>
     <string name="restore_lockscreen_summary">Kilit ekranında odak bildirimi işlemini atlayın, özgün gizlilik davranışını koruyun</string>
     <string name="auto_disappear">Otomatik Kapanma</string>

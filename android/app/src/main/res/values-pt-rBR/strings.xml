@@ -351,6 +351,8 @@
     <string name="floating_navigation_bar_summary">Utilizar uma barra inferior flutuante</string>
     <string name="focus_notification">Notificação de foco</string>
     <string name="focus_notification_summary">Substitui a notificação original pela notificação de foco (mostra a original quando desativado)</string>
+    <string name="suppress_heads_up_notification">Bloquear notificações flutuantes</string>
+    <string name="suppress_heads_up_notification_summary">Bloqueia automaticamente as notificações flutuantes dos apps exibidos na Super Ilha</string>
     <string name="focus_outer_glow">Efeito de anel luminoso na notificação de foco</string>
     <string name="focus_text_color">Cor do texto da notificação de foco</string>
     <string name="follow_background">Seguir a cor de fundo da Ilha</string>

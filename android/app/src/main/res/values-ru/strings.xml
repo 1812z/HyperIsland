@@ -183,6 +183,8 @@
     <string name="update_float">Обновление всплытия</string>
     <string name="update_float_summary">Разворачивать ли уведомление при обновлении Острова</string>
     <string name="focus_notification_summary">Заменять обычное уведомление фокус-уведомлением (если выключено, показывать исходное уведомление)</string>
+    <string name="suppress_heads_up_notification">Блокировать всплывающие уведомления</string>
+    <string name="suppress_heads_up_notification_summary">Автоматически блокировать всплывающие уведомления от приложений, отображаемых на Суперострове</string>
     <string name="restore_lockscreen">Восстановить уведомление на экране блокировки</string>
     <string name="restore_lockscreen_summary">Пропускать обработку фокус-уведомлений на экране блокировки, сохраняя исходные настройки конфиденциальности</string>
     <string name="auto_disappear">Автоматическое скрытие</string>
