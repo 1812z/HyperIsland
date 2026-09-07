@@ -396,7 +396,6 @@
     <string name="glow_base_color">اللون الأساسي</string>
     <string name="glow_range">نطاق التوهج</string>
     <string name="glow_section">%1$s · تأثير الإضاءة الخارجية</string>
-    <string name="group_number_copied">رقم المجموعة تم نسخ للحافظة</string>
     <string name="hide_behavior">سلوك الإخفاء</string>
     <string name="hide_behavior_bouncer">فتح الشاشة</string>
     <string name="hide_behavior_bouncer_summary">أخف الجزيرة وقت ظهور تحدي فتح القفل</string>
@@ -693,8 +692,6 @@
     <string name="predictive_back_distance_summary">اضبط أقصى مسافة انتقال للصفحة في إيماءة العودة</string>
     <string name="preserve_small_icon">أيقونة شريط الحالة</string>
     <string name="preserve_small_icon_summary">هل تفضل أيقونة شريط الحالة ظاهرة بالإجبار عند يظهر إشعار المركّز</string>
-    <string name="qq_group">مجموعة QQ</string>
-    <string name="qq_group_summary">1045114341</string>
     <string name="reference_projects">المشاريع المرجعية</string>
     <string name="references">المراجع</string>
     <string name="references_description">أثناء تطوير HyperIsland، تم الاستعانة بجزء أو كل المشاريع دي. شكراً للمشاريع دي على دعمها.</string>

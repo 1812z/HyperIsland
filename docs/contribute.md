@@ -48,7 +48,6 @@ HyperIsland 使用 Kotlin 开发，主要技术栈：
 
 ## 社区
 
-- QQ 群：**1045114341**
 - GitHub Issues：[点击前往](https://github.com/1812z/HyperIsland/issues)
 
 ## 许可证

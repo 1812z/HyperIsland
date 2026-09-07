@@ -8,7 +8,6 @@
 ::::
 
 ::: tip 资源获取&讨论解答
-- QQ群：**1045114341**
 - Telegram：<https://t.me/HyperIsland_Module>
 :::
 

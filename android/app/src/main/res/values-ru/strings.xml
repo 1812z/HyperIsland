@@ -544,7 +544,6 @@
     <string name="github">GitHub</string>
     <string name="changelog">Журнал изменений</string>
     <string name="telegram">Телеграмма</string>
-    <string name="qq_group">Группа QQ</string>
     <string name="references">Источники</string>
     <string name="references_description">При разработке HyperIsland частично или полностью использовались материалы следующих проектов. Благодарим эти проекты за поддержку.</string>
     <string name="reference_projects">Справочные элементы</string>
@@ -603,8 +602,6 @@
     <string name="brazilian_portuguese">Português (Brasil)</string>
     <string name="github_summary">1812z/HyperIsland</string>
     <string name="telegram_summary">HyperIsland_Модуль</string>
-    <string name="qq_group_summary">1045114341</string>
-    <string name="group_number_copied">Номер группы скопирован в буфер обмена</string>
     <string name="enabled">Включено</string>
     <string name="disabled">Выключено</string>
     <string name="lsposed_api">LSPosed API</string>

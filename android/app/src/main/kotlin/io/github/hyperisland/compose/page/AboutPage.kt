@@ -1,7 +1,5 @@
 package io.github.hyperisland.compose.page
 
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -79,7 +77,6 @@ import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.blur.textureBlur
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Backup
-import top.yukonga.miuix.kmp.icon.extended.Copy
 import top.yukonga.miuix.kmp.icon.extended.Info
 import top.yukonga.miuix.kmp.icon.extended.Link
 import top.yukonga.miuix.kmp.icon.extended.Messages
@@ -95,7 +92,6 @@ internal fun AboutPage(
     isActive: Boolean,
     isCheckingUpdate: Boolean,
     onCheckUpdate: () -> Unit,
-    onShowMessage: (String) -> Unit,
     onOpenBackupRestore: () -> Unit,
     onOpenReferences: () -> Unit,
 ) {
@@ -135,7 +131,6 @@ internal fun AboutPage(
     }
     val logoAlpha = 1f - logoProgress
     val logoScale = 1f - logoProgress * 0.1f
-    val copiedMessage = stringResource(R.string.group_number_copied)
     val animationTime = rememberAboutAnimationTime(isActive)
     val darkMode = isSystemInDarkTheme()
     val gradientColors = animatedGradientColors(animationTime, darkMode)
@@ -200,17 +195,6 @@ internal fun AboutPage(
                         endIconSize = 26.dp,
                     ) {
                         context.openUrl(TELEGRAM_URL)
-                    }
-                    SettingsAction(
-                        title = stringResource(R.string.qq_group),
-                        icon = MiuixIcons.Messages,
-                        summary = stringResource(R.string.qq_group_summary),
-                        endIcon = MiuixIcons.Copy,
-                        endIconSize = 26.dp,
-                    ) {
-                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        clipboard.setPrimaryClip(ClipData.newPlainText(QQ_CLIP_LABEL, QQ_GROUP_NUMBER))
-                        onShowMessage(copiedMessage)
                     }
                 }
             }
@@ -646,8 +630,6 @@ private const val GITHUB_URL = "https://github.com/1812z/HyperIsland"
 private const val CHANGELOG_URL = "https://hyperisland.1812z.top/CHANGELOG.html"
 private const val DEVELOPER_GITHUB_URL = "https://github.com/1812z"
 private const val TELEGRAM_URL = "https://t.me/HyperIsland_Module"
-private const val QQ_GROUP_NUMBER = "1045114341"
-private const val QQ_CLIP_LABEL = "QQ"
 private const val BACKGROUND_SPEED = 0.12f
 private const val COLOR_INTERPOLATION_SECONDS = 12f
 private const val HERO_HEIGHT_FRACTION = 0.60f

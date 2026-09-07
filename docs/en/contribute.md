@@ -48,7 +48,6 @@ See [Build Guide](/en/build) for details.
 
 ## Community
 
-- QQ Group: **1045114341**
 - GitHub Issues: [Visit](https://github.com/1812z/HyperIsland/issues)
 
 ## License

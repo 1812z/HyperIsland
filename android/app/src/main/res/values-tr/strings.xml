@@ -544,7 +544,6 @@
     <string name="github">GitHub</string>
     <string name="changelog">Günlüğü değiştir</string>
     <string name="telegram">Telgraf</string>
-    <string name="qq_group">QQ Topluluk Grubu</string>
     <string name="references">Referanslar</string>
     <string name="references_description">HyperIsland geliştirilirken aşağıdaki projelerin bir kısmından veya tamamından yararlanılmıştır. Destekleri için bu projelere teşekkür ederiz.</string>
     <string name="reference_projects">Referans öğeleri</string>
@@ -603,8 +602,6 @@
     <string name="brazilian_portuguese">Português (Brasil)</string>
     <string name="github_summary">1812z/HyperIsland</string>
     <string name="telegram_summary">HyperIsland_Modül</string>
-    <string name="qq_group_summary">1045114341</string>
-    <string name="group_number_copied">Grup numarası panoya kopyalandı</string>
     <string name="enabled">Etkin</string>
     <string name="disabled">Kapalı</string>
     <string name="lsposed_api">LSPosed API</string>

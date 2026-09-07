@@ -583,9 +583,6 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                     isActive = pagerState.currentPage == page,
                                     isCheckingUpdate = isCheckingUpdate,
                                     onCheckUpdate = { requestUpdateCheck(showUpToDate = true) },
-                                    onShowMessage = { message ->
-                                        scope.launch { rootSnackbarState.showSnackbar(message) }
-                                    },
                                     onOpenBackupRestore = {
                                         batchChannelTarget = null
                                         batchToastPackages = null

@@ -544,7 +544,6 @@
     <string name="github">GitHub</string>
     <string name="changelog">変更ログ</string>
     <string name="telegram">電報</string>
-    <string name="qq_group">QQ グループ</string>
     <string name="references">参照プロジェクト</string>
     <string name="references_description">HyperIsland の開発では、以下のプロジェクトの一部または全部を参照・利用しています。これらのプロジェクトのご支援に感謝します。</string>
     <string name="reference_projects">参考項目</string>
@@ -603,8 +602,6 @@
     <string name="brazilian_portuguese">Português (Brasil)</string>
     <string name="github_summary">1812z/HyperIsland</string>
     <string name="telegram_summary">HyperIsland_モジュール</string>
-    <string name="qq_group_summary">1045114341</string>
-    <string name="group_number_copied">グループ番号をクリップボードにコピーしました</string>
     <string name="enabled">有効</string>
     <string name="disabled">無効</string>
     <string name="lsposed_api">LSPosed API</string>

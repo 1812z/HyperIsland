@@ -8,7 +8,6 @@
 :::
 
 ::: tip Resources & Discussion
-- QQ Group: **1045114341**
 - Telegram: <https://t.me/HyperIsland_Module>
 :::
 

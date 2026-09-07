@@ -388,7 +388,6 @@
     <string name="glow_base_color">Cor base</string>
     <string name="glow_range">Alcance do brilho</string>
     <string name="glow_section">%1$s · Efeito de anel luminoso</string>
-    <string name="group_number_copied">Número do grupo copiado para a área de transferência</string>
     <string name="hide_behavior">Comportamento de ocultação</string>
     <string name="hide_behavior_bouncer">Tela de desbloqueio</string>
     <string name="hide_behavior_bouncer_summary">Ocultar a Ilha enquanto a tela de PIN/Senha estiver visível</string>
@@ -682,8 +681,6 @@
     <string name="predictive_back_distance_summary">Ajustar a distância máxima de deslocamento da página no gesto de voltar</string>
     <string name="preserve_small_icon">Ícone da barra de status</string>
     <string name="preserve_small_icon_summary">Forçar a manutenção do ícone na barra de status quando a notificação de foco for exibida</string>
-    <string name="qq_group">Grupo QQ</string>
-    <string name="qq_group_summary">1045114341</string>
     <string name="reference_projects">Projetos de referência</string>
     <string name="references">Referências</string>
     <string name="references_description">Durante o desenvolvimento do HyperIsland, partes ou a totalidade dos projetos a seguir foram referenciados ou usados. Agradecemos a esses projetos pelo apoio.</string>
