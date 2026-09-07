@@ -17,6 +17,7 @@ import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.hyperisland.xposed.hook.IslandOuterGlowHook
 import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
+import io.github.hyperisland.xposed.islanddispatch.definition.IslandDispatchContract
 import io.github.hyperisland.xposed.template.core.TemplateRegistry
 import io.github.hyperisland.xposed.template.core.models.NotifData
 import io.github.hyperisland.xposed.utils.SceneBehavior
@@ -262,6 +263,12 @@ object GenericProgressHook : BaseHook() {
             val isHyperIslandProxy =
                 pkg == "com.android.systemui" &&
                     extras.getString(EXTRA_OWNER) == OWNER_MARKER
+
+            // Notification 对象可能被应用复用；每次处理源通知时先清除旧的代发标记，
+            // 仅由本轮确实成功的代发路径重新写入。
+            if (!isHyperIslandProxy) {
+                extras.remove(IslandDispatchContract.EXTRA_SUPPRESS_SOURCE_HEADS_UP)
+            }
 
             if (pkg == "com.android.systemui" &&
                 isDispatcherChannel &&

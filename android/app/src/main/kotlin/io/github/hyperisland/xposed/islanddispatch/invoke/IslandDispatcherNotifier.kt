@@ -36,8 +36,8 @@ internal object IslandDispatcherNotifier {
     private val channelLock = Any()
     @Volatile private var channelReady = false
 
-    fun post(context: Context, request: IslandRequest) {
-        try {
+    fun post(context: Context, request: IslandRequest): Boolean {
+        return try {
             val sceneDecision = SceneBehavior.resolve(
                 context = context,
                 surface = SceneBehavior.Surface.DISPATCHER,
@@ -48,10 +48,10 @@ internal object IslandDispatcherNotifier {
                 IslandDispatchState.module?.log(
                     "${IslandDispatchContract.TAG}: skip dispatcher post by scene rule",
                 )
-                return
+                return false
             }
 
-            val nm = context.getSystemService(NotificationManager::class.java) ?: return
+            val nm = context.getSystemService(NotificationManager::class.java) ?: return false
             ensureChannels(context)
             val channelId = if (request.notificationSilent) {
                 IslandDispatchContract.SILENT_CHANNEL_ID
@@ -61,7 +61,7 @@ internal object IslandDispatcherNotifier {
 
             request.notificationExtras?.let { extras ->
                 postNotificationWithExtras(context, nm, request, extras, channelId)
-                return
+                return true
             }
 
             val appIcon = resolveIcon(request.icon, context)
@@ -275,8 +275,10 @@ internal object IslandDispatcherNotifier {
             request.sourcePackage?.let { pkg ->
                 MarqueeHook.markDirectProxyPosted(pkg, request.sourceChannelId ?: "toast")
             }
+            true
         } catch (e: Exception) {
             IslandDispatchState.module?.logError("${IslandDispatchContract.TAG}: post error: ${e.message}")
+            false
         }
     }
 

@@ -183,6 +183,8 @@
     <string name="update_float">Update float</string>
     <string name="update_float_summary">Whether to expand notification when Island updates</string>
     <string name="focus_notification_summary">Replace notification with focus notification (shows original notification when disabled)</string>
+    <string name="suppress_heads_up_notification">Block floating notifications</string>
+    <string name="suppress_heads_up_notification_summary">Automatically block floating notifications from apps shown on Super Island</string>
     <string name="restore_lockscreen">Restore Lockscreen Notification</string>
     <string name="restore_lockscreen_summary">Skip focus notification processing on lockscreen, keep original privacy behavior</string>
     <string name="auto_disappear">Auto dismiss</string>

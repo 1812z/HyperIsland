@@ -35,9 +35,8 @@ object IslandDispatcher {
         }
     }
 
-    fun post(context: Context, request: IslandRequest) {
+    fun post(context: Context, request: IslandRequest): Boolean =
         IslandDispatcherNotifier.post(context, request)
-    }
 
     fun sendBroadcast(context: Context, request: IslandRequest) {
         IslandDispatcherBroadcaster.send(context, request)

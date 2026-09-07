@@ -7,6 +7,7 @@ import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
 import io.github.hyperisland.xposed.log
 import io.github.hyperisland.xposed.logError
 import io.github.hyperisland.xposed.islanddispatch.IslandRequest
+import io.github.hyperisland.xposed.islanddispatch.definition.IslandDispatchContract
 import io.github.hyperisland.xposed.template.core.contracts.IslandTemplate
 import io.github.hyperisland.xposed.template.core.customization.FocusCustomizationEngine
 import io.github.hyperisland.xposed.template.core.models.NotifData
@@ -37,7 +38,12 @@ object NotificationIslandNotification : IslandTemplate {
 
     override fun inject(context: Context, extras: Bundle, data: NotifData) {
         if (data.focusNotif == "off") {
-            injectViaDispatcher(context, data)
+            if (injectViaDispatcher(context, data) && data.islandEnabled) {
+                extras.putBoolean(
+                    IslandDispatchContract.EXTRA_SUPPRESS_SOURCE_HEADS_UP,
+                    true,
+                )
+            }
             return
         }
         try {
@@ -51,8 +57,8 @@ object NotificationIslandNotification : IslandTemplate {
 
     // ── Dispatcher 路径（focusNotif == "off"）────────────────────────────────
 
-    private fun injectViaDispatcher(context: Context, data: NotifData) {
-        try {
+    private fun injectViaDispatcher(context: Context, data: NotifData): Boolean {
+        return try {
             val fallbackIcon = Icon.createWithResource(context, android.R.drawable.ic_dialog_info)
             val displayIcon = when (data.iconMode) {
                 "notif_small" -> data.notifIcon ?: fallbackIcon
@@ -69,7 +75,7 @@ object NotificationIslandNotification : IslandTemplate {
 
             IslandDispatcher.post(
                 context,
-            IslandRequest(
+                IslandRequest(
                     title            = islandText.first,
                     content          = islandText.second,
                     icon             = displayIcon,
@@ -103,6 +109,7 @@ object NotificationIslandNotification : IslandTemplate {
             //ConfigManager.module()?.log("$TAG: dispatcher island — ${data.title} | iconMode=${data.iconMode} | timeout=${data.islandTimeout}")
         } catch (e: Exception) {
             logError("$TAG: dispatcher island error: ${e.message}")
+            false
         }
     }
 

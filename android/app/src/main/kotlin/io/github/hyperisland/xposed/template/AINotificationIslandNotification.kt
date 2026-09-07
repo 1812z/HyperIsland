@@ -16,6 +16,7 @@ import io.github.hyperisland.xposed.log
 import io.github.hyperisland.xposed.logError
 import io.github.hyperisland.xposed.logWarn
 import io.github.hyperisland.xposed.islanddispatch.IslandRequest
+import io.github.hyperisland.xposed.islanddispatch.definition.IslandDispatchContract
 import io.github.hyperisland.xposed.template.core.contracts.IslandTemplate
 import io.github.hyperisland.xposed.template.core.contracts.TemplatePlaceholder
 import io.github.hyperisland.xposed.template.core.customization.FocusCustomizationEngine
@@ -73,7 +74,12 @@ object AINotificationIslandNotification : IslandTemplate {
         )
 
         if (data.focusNotif == "off") {
-            injectViaDispatcher(context, data, leftText, rightText)
+            if (injectViaDispatcher(context, data, leftText, rightText) && data.islandEnabled) {
+                extras.putBoolean(
+                    IslandDispatchContract.EXTRA_SUPPRESS_SOURCE_HEADS_UP,
+                    true,
+                )
+            }
             return
         }
         try {
@@ -310,8 +316,8 @@ $userPrompt
         data: NotifData,
         leftText: String,
         rightText: String,
-    ) {
-        try {
+    ): Boolean {
+        return try {
             val fallbackIcon = Icon.createWithResource(context, android.R.drawable.ic_dialog_info)
             val displayIcon  = resolveIcon(data, data.iconMode, fallbackIcon)
             val islandText = FocusCustomizationEngine.resolveIslandText(
@@ -359,6 +365,7 @@ $userPrompt
             )
         } catch (e: Exception) {
             logError("$TAG: dispatcher error: ${e.message}")
+            false
         }
     }
 

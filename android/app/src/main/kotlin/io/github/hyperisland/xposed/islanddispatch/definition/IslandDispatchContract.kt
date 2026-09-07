@@ -6,6 +6,8 @@ object IslandDispatchContract {
     const val ACTION_CONFIG_REFRESH = "io.github.hyperisland.ACTION_CONFIG_REFRESH"
     const val ACTION_CONFIG_CHANGED = "io.github.hyperisland.ACTION_CONFIG_CHANGED"
     const val EXTRA_NOTIF_ID = "notif_id"
+    const val EXTRA_SUPPRESS_SOURCE_HEADS_UP =
+        "hyperisland.suppress_source_heads_up"
 
     const val PERM = "io.github.hyperisland.SEND_ISLAND"
     const val NOTIF_ID = 0x48594944

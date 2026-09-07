@@ -103,6 +103,13 @@ internal fun DefaultConfigPage(
                     insideMargin = DEFAULT_ITEM_MARGIN,
                 )
                 SwitchPreference(
+                    checked = settings.suppressHeadsUp,
+                    onCheckedChange = { update(settings.copy(suppressHeadsUp = it)) },
+                    title = stringResource(R.string.suppress_heads_up_notification),
+                    summary = stringResource(R.string.suppress_heads_up_notification_summary),
+                    insideMargin = DEFAULT_ITEM_MARGIN,
+                )
+                SwitchPreference(
                     checked = settings.restoreLockscreen,
                     onCheckedChange = { update(settings.copy(restoreLockscreen = it)) },
                     title = stringResource(R.string.restore_lockscreen),

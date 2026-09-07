@@ -35,6 +35,7 @@ internal data class DefaultConfigSettings(
     val timeout: Int = 5,
     val dynamicHighlightColor: Boolean = false,
     val focusNotification: Boolean = true,
+    val suppressHeadsUp: Boolean = true,
     val restoreLockscreen: Boolean = false,
     val showIslandIcon: Boolean = true,
     val preserveSmallIcon: Boolean = false,
@@ -438,6 +439,7 @@ class FlutterPrefsRepository(context: Context) {
         timeout = getLong("pref_default_timeout", 5L).toInt().coerceAtLeast(1),
         dynamicHighlightColor = getBoolean("pref_default_dynamic_highlight_color", false),
         focusNotification = getBoolean("pref_default_focus_notif", true),
+        suppressHeadsUp = getBoolean("pref_default_suppress_heads_up", true),
         restoreLockscreen = getBoolean("pref_default_restore_lockscreen", false),
         showIslandIcon = getBoolean("pref_default_show_island_icon", true),
         preserveSmallIcon = getBoolean("pref_default_preserve_small_icon", false),
@@ -458,6 +460,7 @@ class FlutterPrefsRepository(context: Context) {
         putLong("pref_default_timeout", value.timeout.coerceAtLeast(1).toLong())
         putBoolean("pref_default_dynamic_highlight_color", value.dynamicHighlightColor)
         putBoolean("pref_default_focus_notif", value.focusNotification)
+        putBoolean("pref_default_suppress_heads_up", value.suppressHeadsUp)
         putBoolean("pref_default_restore_lockscreen", value.restoreLockscreen)
         putBoolean("pref_default_show_island_icon", value.showIslandIcon)
         putBoolean("pref_default_preserve_small_icon", value.preserveSmallIcon)

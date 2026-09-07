@@ -189,6 +189,8 @@
     <string name="update_float">更新展开</string>
     <string name="update_float_summary">超级岛更新后是否展开通知</string>
     <string name="focus_notification_summary">替换通知为焦点通知（关闭后显示原始通知）</string>
+    <string name="suppress_heads_up_notification">拦截悬浮通知</string>
+    <string name="suppress_heads_up_notification_summary">开启后自动拦截上岛应用的悬浮通知</string>
     <string name="restore_lockscreen">锁屏通知复原</string>
     <string name="restore_lockscreen_summary">锁屏时跳过焦点通知处理，保持原始通知隐私行为</string>
     <string name="auto_disappear">自动消失</string>
