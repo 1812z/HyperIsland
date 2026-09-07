@@ -22,8 +22,11 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -56,7 +59,6 @@ import io.github.hyperisland.compose.component.SettingsAction
 import io.github.hyperisland.compose.component.SettingsItemMargin
 import io.github.hyperisland.compose.component.keepisland.KeepIslandContentListDialog
 import io.github.hyperisland.compose.component.keepisland.KeepIslandIntervalDialog
-import io.github.hyperisland.compose.component.keepisland.KeepIslandPlaceholderSheet
 import io.github.hyperisland.compose.component.keepisland.KeepIslandTextDialog
 import io.github.hyperisland.compose.component.keepisland.PlaceholderGroup
 import io.github.hyperisland.compose.component.keepisland.PlaceholderItem
@@ -73,6 +75,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.SnackbarHost
@@ -85,6 +88,7 @@ import top.yukonga.miuix.kmp.icon.extended.Close
 import top.yukonga.miuix.kmp.icon.extended.Refresh
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.utils.PressFeedbackType
 import io.github.hyperisland.compose.component.LAYER_ENTER_DURATION
 import io.github.hyperisland.compose.component.LAYER_EXIT_DURATION
 import java.io.File
@@ -101,7 +105,6 @@ internal fun KeepIslandPage(
     var activeEditor by remember { mutableStateOf<KeepIslandEditor?>(null) }
     var showInterval by remember { mutableStateOf(false) }
     var showColor by remember { mutableStateOf(false) }
-    var showPlaceholders by remember { mutableStateOf(false) }
     var selectedScene by remember { mutableStateOf(KeepIslandScene.Default) }
 
     fun update(next: KeepIslandSettings) {
@@ -267,12 +270,38 @@ internal fun KeepIslandPage(
                     onEditNotificationContent = { activeEditor = KeepIslandEditor.NotificationContent },
                     onShowInterval = { showInterval = true },
                     onShowColor = { showColor = true },
-                    onShowPlaceholders = { showPlaceholders = true },
                     onChooseIcon = { chooseIcon.launch(arrayOf("image/*")) },
                     onIconUsedByAnotherScene = ::iconUsedByAnotherScene,
                     scope = scope,
                     snackbarState = snackbarState,
                 )
+            }
+        }
+        item {
+            SectionTitle(stringResource(R.string.keep_island_placeholders))
+            Text(
+                text = stringResource(R.string.keep_island_placeholders_summary),
+                modifier = Modifier.padding(horizontal = 18.dp),
+                fontSize = MiuixTheme.textStyles.body2.fontSize,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+            )
+        }
+        placeholderGroups.forEach { group ->
+            item {
+                PlaceholderGroupCard(group) { placeholder ->
+                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                    clipboard.setPrimaryClip(
+                        ClipData.newPlainText(placeholder.label, placeholder.value),
+                    )
+                    scope.launch {
+                        snackbarState.showSnackbar(
+                            context.getString(
+                                R.string.keep_island_placeholder_copied,
+                                placeholder.label,
+                            ),
+                        )
+                    }
+                }
             }
         }
     }
@@ -316,21 +345,6 @@ internal fun KeepIslandPage(
             showColor = false
         },
     ) { color -> updateProfile { it.copy(highlightColor = color.toArgbHex()) }; showColor = false }
-    KeepIslandPlaceholderSheet(
-        show = showPlaceholders,
-        title = stringResource(R.string.keep_island_placeholders),
-        groups = placeholderGroups,
-        onDismiss = { showPlaceholders = false },
-    ) { placeholder ->
-        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        clipboard.setPrimaryClip(ClipData.newPlainText(placeholder.label, placeholder.value))
-        showPlaceholders = false
-        scope.launch {
-            snackbarState.showSnackbar(
-                context.getString(R.string.keep_island_placeholder_copied, placeholder.label),
-            )
-        }
-    }
 }
 
 @Composable
@@ -345,7 +359,6 @@ private fun KeepIslandSceneContent(
     onEditNotificationContent: () -> Unit,
     onShowInterval: () -> Unit,
     onShowColor: () -> Unit,
-    onShowPlaceholders: () -> Unit,
     onChooseIcon: () -> Unit,
     onIconUsedByAnotherScene: (String) -> Boolean,
     scope: CoroutineScope,
@@ -436,77 +449,97 @@ private fun KeepIslandSceneContent(
                     checked = profile.islandEnabled,
                     enabled = sceneControlsEnabled,
                 ) { checked -> updateProfile { it.copy(islandEnabled = checked) } }
-                ContentAction(
-                    title = stringResource(R.string.keep_island_left_content),
-                    values = profile.leftContents,
-                    enabled = profileEnabled,
-                    onClick = onEditLeft,
-                )
-                ContentAction(
-                    title = stringResource(R.string.keep_island_right_content),
-                    values = profile.rightContents,
-                    enabled = profileEnabled,
-                    onClick = onEditRight,
-                )
-                SettingsAction(
-                    title = stringResource(R.string.keep_island_carousel_interval),
-                    summary = stringResource(R.string.keep_island_carousel_interval_summary),
-                    endIcon = MiuixIcons.ChevronForward,
-                    enabled = profileEnabled,
-                    onClick = onShowInterval,
-                )
-                ArrowPreference(
-                    title = stringResource(R.string.keep_island_highlight_color),
-                    summary = stringResource(R.string.keep_island_highlight_color_summary),
-                    enabled = profileEnabled,
-                    insideMargin = SettingsItemMargin,
-                    endActions = {
-                        ColorPreview(profile.highlightColor, profileEnabled)
-                        if (profile.highlightColor.isNotBlank()) {
-                            IconButton(
-                                onClick = { updateProfile { it.copy(highlightColor = "") } },
-                                modifier = Modifier.align(Alignment.CenterVertically),
+                AnimatedVisibility(
+                    visible = profile.islandEnabled,
+                    enter = expandVertically(
+                        animationSpec = tween(LAYER_ENTER_DURATION, easing = FastOutSlowInEasing),
+                        expandFrom = Alignment.Top,
+                    ) + slideInVertically(
+                        animationSpec = tween(LAYER_ENTER_DURATION, easing = FastOutSlowInEasing),
+                        initialOffsetY = { -it / 4 },
+                    ) + fadeIn(tween(LAYER_ENTER_DURATION / 2)),
+                    exit = shrinkVertically(
+                        animationSpec = tween(LAYER_EXIT_DURATION, easing = FastOutSlowInEasing),
+                        shrinkTowards = Alignment.Top,
+                    ) + slideOutVertically(
+                        animationSpec = tween(LAYER_EXIT_DURATION, easing = FastOutSlowInEasing),
+                        targetOffsetY = { -it / 4 },
+                    ) + fadeOut(tween(LAYER_EXIT_DURATION / 2)),
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        ContentAction(
+                            title = stringResource(R.string.keep_island_left_content),
+                            values = profile.leftContents,
+                            enabled = profileEnabled,
+                            onClick = onEditLeft,
+                        )
+                        ContentAction(
+                            title = stringResource(R.string.keep_island_right_content),
+                            values = profile.rightContents,
+                            enabled = profileEnabled,
+                            onClick = onEditRight,
+                        )
+                        SettingsAction(
+                            title = stringResource(R.string.keep_island_carousel_interval),
+                            summary = stringResource(R.string.keep_island_carousel_interval_summary),
+                            endIcon = MiuixIcons.ChevronForward,
+                            enabled = profileEnabled,
+                            onClick = onShowInterval,
+                        )
+                        ArrowPreference(
+                            title = stringResource(R.string.keep_island_highlight_color),
+                            summary = stringResource(R.string.keep_island_highlight_color_summary),
+                            enabled = profileEnabled,
+                            insideMargin = SettingsItemMargin,
+                            endActions = {
+                                ColorPreview(profile.highlightColor, profileEnabled)
+                                if (profile.highlightColor.isNotBlank()) {
+                                    IconButton(
+                                        onClick = { updateProfile { it.copy(highlightColor = "") } },
+                                        modifier = Modifier.align(Alignment.CenterVertically),
+                                        enabled = profileEnabled,
+                                    ) {
+                                        Icon(
+                                            MiuixIcons.Refresh,
+                                            stringResource(R.string.reset_default),
+                                            tint = if (profileEnabled) {
+                                                MiuixTheme.colorScheme.onSurfaceVariantActions
+                                            } else {
+                                                MiuixTheme.colorScheme.disabledOnSecondaryVariant
+                                            },
+                                        )
+                                    }
+                                }
+                            },
+                            onClick = onShowColor,
+                        )
+                        AnimatedVisibility(visible = profile.highlightColor.isNotBlank()) {
+                            PreferenceSwitch(
+                                title = stringResource(R.string.keep_island_highlight_left),
+                                summary = stringResource(R.string.keep_island_text_highlight),
+                                icon = null,
+                                checked = profile.leftHighlight,
                                 enabled = profileEnabled,
-                            ) {
-                                Icon(
-                                    MiuixIcons.Refresh,
-                                    stringResource(R.string.reset_default),
-                                    tint = if (profileEnabled) {
-                                        MiuixTheme.colorScheme.onSurfaceVariantActions
-                                    } else {
-                                        MiuixTheme.colorScheme.disabledOnSecondaryVariant
-                                    },
-                                )
-                            }
+                            ) { checked -> updateProfile { it.copy(leftHighlight = checked) } }
                         }
-                    },
-                    onClick = onShowColor,
-                )
-                AnimatedVisibility(visible = profile.highlightColor.isNotBlank()) {
-                    PreferenceSwitch(
-                        title = stringResource(R.string.keep_island_highlight_left),
-                        summary = stringResource(R.string.keep_island_text_highlight),
-                        icon = null,
-                        checked = profile.leftHighlight,
-                        enabled = profileEnabled,
-                    ) { checked -> updateProfile { it.copy(leftHighlight = checked) } }
+                        AnimatedVisibility(visible = profile.highlightColor.isNotBlank()) {
+                            PreferenceSwitch(
+                                title = stringResource(R.string.keep_island_highlight_right),
+                                summary = stringResource(R.string.keep_island_text_highlight),
+                                icon = null,
+                                checked = profile.rightHighlight,
+                                enabled = profileEnabled,
+                            ) { checked -> updateProfile { it.copy(rightHighlight = checked) } }
+                        }
+                        PreferenceSwitch(
+                            title = stringResource(R.string.keep_island_show_icon),
+                            summary = stringResource(R.string.keep_island_show_icon_summary),
+                            icon = null,
+                            checked = profile.showIslandIcon,
+                            enabled = profileEnabled,
+                        ) { checked -> updateProfile { it.copy(showIslandIcon = checked) } }
+                    }
                 }
-                AnimatedVisibility(visible = profile.highlightColor.isNotBlank()) {
-                    PreferenceSwitch(
-                        title = stringResource(R.string.keep_island_highlight_right),
-                        summary = stringResource(R.string.keep_island_text_highlight),
-                        icon = null,
-                        checked = profile.rightHighlight,
-                        enabled = profileEnabled,
-                    ) { checked -> updateProfile { it.copy(rightHighlight = checked) } }
-                }
-                PreferenceSwitch(
-                    title = stringResource(R.string.keep_island_show_icon),
-                    summary = stringResource(R.string.keep_island_show_icon_summary),
-                    icon = null,
-                    checked = profile.showIslandIcon,
-                    enabled = profileEnabled,
-                ) { checked -> updateProfile { it.copy(showIslandIcon = checked) } }
             }
             SectionTitle(stringResource(R.string.keep_island_custom_icon))
             Card(modifier = Modifier.fillMaxWidth()) {
@@ -543,7 +576,6 @@ private fun KeepIslandSceneContent(
                             }
                         }
                     },
-                    enabled = profileEnabled,
                     onClick = onChooseIcon,
                 )
             }
@@ -619,20 +651,50 @@ private fun KeepIslandSceneContent(
                     }
                 }
             }
-            SectionTitle(stringResource(R.string.keep_island_placeholders))
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = stringResource(R.string.keep_island_placeholders_summary),
-                    modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
-                    fontSize = MiuixTheme.textStyles.body2.fontSize,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                )
-                SettingsAction(
-                    title = stringResource(R.string.keep_island_placeholders),
-                    endIcon = MiuixIcons.ChevronForward,
-                    enabled = profileEnabled,
-                    onClick = onShowPlaceholders,
-                )
+        }
+    }
+}
+
+@Composable
+private fun PlaceholderGroupCard(
+    group: PlaceholderGroup,
+    onCopy: (PlaceholderItem) -> Unit,
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        insideMargin = PaddingValues(14.dp),
+    ) {
+        Text(
+            text = group.title,
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+            fontSize = MiuixTheme.textStyles.subtitle.fontSize,
+        )
+        FlowRow(
+            modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            group.items.forEach { placeholder ->
+                Card(
+                    cornerRadius = 10.dp,
+                    insideMargin = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                    colors = CardDefaults.defaultColors(
+                        color = MiuixTheme.colorScheme.surface,
+                        contentColor = MiuixTheme.colorScheme.onSurface,
+                    ),
+                    pressFeedbackType = PressFeedbackType.Sink,
+                    onClick = { onCopy(placeholder) },
+                ) {
+                    Text(
+                        text = placeholder.label,
+                        fontSize = MiuixTheme.textStyles.body2.fontSize,
+                    )
+                    Text(
+                        text = placeholder.value.removeSurrounding("{", "}"),
+                        fontSize = MiuixTheme.textStyles.footnote1.fontSize,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    )
+                }
             }
         }
     }
