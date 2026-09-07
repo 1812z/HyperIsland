@@ -32,7 +32,6 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
@@ -66,13 +65,9 @@ import io.github.hyperisland.compose.component.LocalRootBottomBarPadding
 import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.component.SettingsAction
 import io.github.hyperisland.compose.component.SettingsActionWithArrow
-import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
-import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.SnackbarHost
-import top.yukonga.miuix.kmp.basic.SnackbarHostState
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.blur.BlendColorEntry
 import top.yukonga.miuix.kmp.blur.BlurBlendMode
@@ -100,6 +95,7 @@ internal fun AboutPage(
     isActive: Boolean,
     isCheckingUpdate: Boolean,
     onCheckUpdate: () -> Unit,
+    onShowMessage: (String) -> Unit,
     onOpenBackupRestore: () -> Unit,
     onOpenReferences: () -> Unit,
 ) {
@@ -139,8 +135,6 @@ internal fun AboutPage(
     }
     val logoAlpha = 1f - logoProgress
     val logoScale = 1f - logoProgress * 0.1f
-    val snackbarState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
     val copiedMessage = stringResource(R.string.group_number_copied)
     val animationTime = rememberAboutAnimationTime(isActive)
     val darkMode = isSystemInDarkTheme()
@@ -155,144 +149,140 @@ internal fun AboutPage(
         null
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarState) },
-    ) { padding ->
-        Box(modifier = Modifier.fillMaxSize()) {
-                AnimatedAboutBackground(
-                    animationTime = animationTime,
-                    colors = gradientColors,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(heroHeight + 180.dp)
-                        .alpha(backgroundAlpha)
-                        .graphicsLayer {
-                            compositingStrategy = CompositingStrategy.Offscreen
-                            translationY = -listState.firstVisibleItemScrollOffset * 0.12f
-                        }
-                        .then(
-                            if (logoBackdrop != null) {
-                                Modifier.layerBackdrop(logoBackdrop)
-                            } else {
-                                Modifier
-                            },
-                        ),
-                )
-                LazyColumn(
-                    state = listState,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .overScrollVertical(),
-                    contentPadding = PaddingValues(
-                        start = 16.dp,
-                        top = 0.dp,
-                        end = 16.dp,
-                        bottom = padding.calculateBottomPadding() + 28.dp + LocalRootBottomBarPadding.current,
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    item {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Spacer(Modifier.height(heroHeight + DEVELOPER_TOP_GAP))
-                            SectionTitle(stringResource(R.string.about_developer))
-                            DeveloperCard()
-                        }
+    Box(modifier = Modifier.fillMaxSize()) {
+        AnimatedAboutBackground(
+            animationTime = animationTime,
+            colors = gradientColors,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(heroHeight + 180.dp)
+                .alpha(backgroundAlpha)
+                .graphicsLayer {
+                    compositingStrategy = CompositingStrategy.Offscreen
+                    translationY = -listState.firstVisibleItemScrollOffset * 0.12f
+                }
+                .then(
+                    if (logoBackdrop != null) {
+                        Modifier.layerBackdrop(logoBackdrop)
+                    } else {
+                        Modifier
+                    },
+                ),
+        )
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .overScrollVertical(),
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                top = 0.dp,
+                end = 16.dp,
+                bottom = 28.dp + LocalRootBottomBarPadding.current,
+            ),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            item {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Spacer(Modifier.height(heroHeight + DEVELOPER_TOP_GAP))
+                    SectionTitle(stringResource(R.string.about_developer))
+                    DeveloperCard()
+                }
+            }
+            item {
+                SectionTitle(stringResource(R.string.about_discussion))
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    SettingsAction(
+                        title = stringResource(R.string.telegram),
+                        icon = MiuixIcons.Messages,
+                        summary = stringResource(R.string.telegram_summary),
+                        endIcon = MiuixIcons.Link,
+                        endIconSize = 26.dp,
+                    ) {
+                        context.openUrl(TELEGRAM_URL)
                     }
-                    item {
-                        SectionTitle(stringResource(R.string.about_discussion))
-                        Card(modifier = Modifier.fillMaxWidth()) {
-                            SettingsAction(
-                                title = stringResource(R.string.telegram),
-                                icon = MiuixIcons.Messages,
-                                summary = stringResource(R.string.telegram_summary),
-                                endIcon = MiuixIcons.Link,
-                                endIconSize = 26.dp,
-                            ) {
-                                context.openUrl(TELEGRAM_URL)
-                            }
-                            SettingsAction(
-                                title = stringResource(R.string.qq_group),
-                                icon = MiuixIcons.Messages,
-                                summary = stringResource(R.string.qq_group_summary),
-                                endIcon = MiuixIcons.Copy,
-                                endIconSize = 26.dp,
-                            ) {
-                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                clipboard.setPrimaryClip(ClipData.newPlainText(QQ_CLIP_LABEL, QQ_GROUP_NUMBER))
-                                scope.launch { snackbarState.showSnackbar(copiedMessage) }
-                            }
-                        }
-                    }
-                    item {
-                        SectionTitle(stringResource(R.string.about_module))
-                        Card(modifier = Modifier.fillMaxWidth()) {
-                            SettingsActionWithArrow(
-                                title = stringResource(R.string.backup_restore),
-                                icon = MiuixIcons.Backup,
-                            ) {
-                                onOpenBackupRestore()
-                            }
-                            SettingsAction(
-                                title = stringResource(R.string.check_update_action),
-                                icon = MiuixIcons.Update,
-                                endContent = if (isCheckingUpdate) {
-                                    {
-                                        Box(
-                                            modifier = Modifier.padding(end = 8.dp).size(26.dp),
-                                            contentAlignment = Alignment.Center,
-                                        ) {
-                                            CircularProgressIndicator(size = 20.dp)
-                                        }
-                                    }
-                                } else {
-                                    null
-                                },
-                                enabled = !isCheckingUpdate,
-                                onClick = onCheckUpdate,
-                            )
-                        }
-                    }
-                    item {
-                        SectionTitle(stringResource(R.string.about_project))
-                        Card(modifier = Modifier.fillMaxWidth()) {
-                            SettingsAction(
-                                title = stringResource(R.string.github),
-                                icon = MiuixIcons.Info,
-                                summary = stringResource(R.string.github_summary),
-                                endIcon = MiuixIcons.Link,
-                                endIconSize = 26.dp,
-                            ) {
-                                context.openUrl(GITHUB_URL)
-                            }
-                            SettingsAction(
-                                title = stringResource(R.string.changelog),
-                                icon = MiuixIcons.Info,
-                                endIcon = MiuixIcons.Link,
-                                endIconSize = 26.dp,
-                            ) {
-                                context.openUrl(CHANGELOG_URL)
-                            }
-                            SettingsActionWithArrow(
-                                title = stringResource(R.string.references),
-                                icon = MiuixIcons.Info,
-                                onClick = onOpenReferences,
-                            )
-                        }
+                    SettingsAction(
+                        title = stringResource(R.string.qq_group),
+                        icon = MiuixIcons.Messages,
+                        summary = stringResource(R.string.qq_group_summary),
+                        endIcon = MiuixIcons.Copy,
+                        endIconSize = 26.dp,
+                    ) {
+                        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                        clipboard.setPrimaryClip(ClipData.newPlainText(QQ_CLIP_LABEL, QQ_GROUP_NUMBER))
+                        onShowMessage(copiedMessage)
                     }
                 }
-                AboutHero(
-                    animationTime = animationTime,
-                    gradientColors = gradientColors,
-                    backdrop = logoBackdrop,
-                    darkMode = darkMode,
-                    logoAlpha = logoAlpha,
-                    logoScale = logoScale,
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .height(heroHeight)
-                        .padding(horizontal = 16.dp),
-                )
+            }
+            item {
+                SectionTitle(stringResource(R.string.about_module))
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    SettingsActionWithArrow(
+                        title = stringResource(R.string.backup_restore),
+                        icon = MiuixIcons.Backup,
+                    ) {
+                        onOpenBackupRestore()
+                    }
+                    SettingsAction(
+                        title = stringResource(R.string.check_update_action),
+                        icon = MiuixIcons.Update,
+                        endContent = if (isCheckingUpdate) {
+                            {
+                                Box(
+                                    modifier = Modifier.padding(end = 8.dp).size(26.dp),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    CircularProgressIndicator(size = 20.dp)
+                                }
+                            }
+                        } else {
+                            null
+                        },
+                        enabled = !isCheckingUpdate,
+                        onClick = onCheckUpdate,
+                    )
+                }
+            }
+            item {
+                SectionTitle(stringResource(R.string.about_project))
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    SettingsAction(
+                        title = stringResource(R.string.github),
+                        icon = MiuixIcons.Info,
+                        summary = stringResource(R.string.github_summary),
+                        endIcon = MiuixIcons.Link,
+                        endIconSize = 26.dp,
+                    ) {
+                        context.openUrl(GITHUB_URL)
+                    }
+                    SettingsAction(
+                        title = stringResource(R.string.changelog),
+                        icon = MiuixIcons.Info,
+                        endIcon = MiuixIcons.Link,
+                        endIconSize = 26.dp,
+                    ) {
+                        context.openUrl(CHANGELOG_URL)
+                    }
+                    SettingsActionWithArrow(
+                        title = stringResource(R.string.references),
+                        icon = MiuixIcons.Info,
+                        onClick = onOpenReferences,
+                    )
+                }
+            }
         }
+        AboutHero(
+            animationTime = animationTime,
+            gradientColors = gradientColors,
+            backdrop = logoBackdrop,
+            darkMode = darkMode,
+            logoAlpha = logoAlpha,
+            logoScale = logoScale,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .height(heroHeight)
+                .padding(horizontal = 16.dp),
+        )
     }
 }
 

@@ -196,6 +196,13 @@ internal fun OverviewPage(
                     endIconSize = 26.dp,
                     onClick = { context.openUrl(DOCUMENTATION_URL) },
                 )
+                SettingsAction(
+                    title = stringResource(R.string.related_resources),
+                    summary = stringResource(R.string.related_resources_summary),
+                    endIcon = MiuixIcons.Link,
+                    endIconSize = 26.dp,
+                    onClick = { context.openUrl(RESOURCES_URL) },
+                )
             }
         }
     }
@@ -693,6 +700,7 @@ private const val SCREEN_RECORDER_PACKAGE = "com.miui.screenrecorder"
 private const val SECURITY_CENTER = "com.miui.securitycenter"
 private const val DONATION_URL = "https://hyperisland.1812z.top/donors.html"
 private const val DOCUMENTATION_URL = "https://hyperisland.1812z.top/"
+private const val RESOURCES_URL = "https://hyperisland.1812z.top/downloads.html"
 private const val MIN_SUPPORTED_API = 101
 private const val REQUIRED_FOCUS_PROTOCOL = 3
 private const val ANDROID_15_SDK = 35

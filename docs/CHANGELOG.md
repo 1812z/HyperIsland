@@ -1,8 +1,12 @@
-<!-- @format -->
+# 更新日志
 
-# CHANGELOG
+<script setup>
+import ReleaseHistory from './.vitepress/components/ReleaseHistory.vue'
+</script>
 
----
+<ReleaseHistory />
+
+<div class="changelog-source" hidden>
 
 # V3.0.3 (2026-9-3)
 ## 功能
@@ -828,3 +832,5 @@ Full Changelog: [Initial Release](https://github.com/SpacJoy/HyperIsland/release
 - **获取应用包信息**：能够读取应用包的详细信息。
 - **HTTP 客户端用于网络请求**：集成网络请求能力。
 - **使用路径提供程序进行文件管理**：文件管理和访问。
+
+</div>

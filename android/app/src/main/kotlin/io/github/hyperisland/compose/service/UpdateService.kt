@@ -35,7 +35,7 @@ internal object UpdateService {
             }
             AppUpdate(
                 version = remoteVersion,
-                releaseUrl = release.optString("html_url").ifBlank { RELEASES_URL },
+                releaseUrl = MODULE_DOWNLOAD_URL,
                 changelog = release.optString("body"),
             )
         } finally {
@@ -63,6 +63,7 @@ internal object UpdateService {
 
 private const val LATEST_RELEASE_API =
     "https://api.github.com/repos/1812z/HyperIsland/releases/latest"
-private const val RELEASES_URL = "https://github.com/1812z/HyperIsland/releases"
+private const val MODULE_DOWNLOAD_URL =
+    "https://hyperisland.1812z.top/downloads.html#module-download"
 private const val NETWORK_TIMEOUT_MILLIS = 10_000
 private const val VERSION_PART_COUNT = 3

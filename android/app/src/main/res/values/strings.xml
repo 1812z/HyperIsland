@@ -654,6 +654,8 @@
     <string name="support_development_summary">Donate to the developers to show your support</string>
     <string name="documentation">Tutorial</string>
     <string name="documentation_summary">Click to view usage tutorials and FAQs</string>
+    <string name="related_resources">Related resources</string>
+    <string name="related_resources_summary">Download the module and HyperOS 3/4 system software resources</string>
     <string name="system_information">System information</string>
     <string name="system_version">System version</string>
     <string name="app_version">Application version</string>

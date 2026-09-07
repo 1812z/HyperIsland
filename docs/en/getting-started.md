@@ -14,7 +14,7 @@
 
 ## Step 1: Install the Module
 
-1. Download the latest APK from [GitHub Releases](https://github.com/1812z/HyperIsland/releases)
+1. Go to [Resource Downloads](/en/downloads#module-download) for the latest APK
 2. Install the APK on your device
 
 ## Step 2: Activate the Module in LSPosed

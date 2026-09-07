@@ -660,6 +660,8 @@
     <string name="support_development_summary">向开发者捐赠以表示支持</string>
     <string name="documentation">使用教程</string>
     <string name="documentation_summary">点击查看使用教程及常见问题</string>
+    <string name="related_resources">相关资源</string>
+    <string name="related_resources_summary">下载模块及澎湃 OS3/4 系统软件资源</string>
     <string name="system_information">系统信息</string>
     <string name="system_version">系统版本</string>
     <string name="app_version">应用版本</string>

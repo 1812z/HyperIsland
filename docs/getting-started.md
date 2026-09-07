@@ -14,7 +14,7 @@
 
 ## 第一步：安装模块
 
-1. 从 [GitHub Releases](https://github.com/1812z/HyperIsland/releases) 下载最新版本的 APK
+1. 前往 [资源下载](/downloads#module-download) 下载最新版本的 APK
 2. 安装 APK 到你的设备
 
 ## 第二步：在 LSPosed 中激活模块

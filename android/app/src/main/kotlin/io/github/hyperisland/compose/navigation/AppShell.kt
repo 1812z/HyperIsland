@@ -139,7 +139,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     var appsSelectedMode by remember { mutableIntStateOf(0) }
     val homeOverviewState = rememberHomeOverviewState(prefs)
     val scope = rememberCoroutineScope()
-    val updateSnackbarState = remember { SnackbarHostState() }
+    val rootSnackbarState = remember { SnackbarHostState() }
     val alreadyLatestMessage = stringResource(R.string.already_latest)
     var updateDialogState by remember { mutableStateOf<UpdateDialogState?>(null) }
     var isCheckingUpdate by remember { mutableStateOf(false) }
@@ -203,7 +203,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                 isCheckingUpdate = false
             }
             if (showAlreadyLatest) {
-                updateSnackbarState.showSnackbar(alreadyLatestMessage)
+                rootSnackbarState.showSnackbar(alreadyLatestMessage)
             }
         }
     }
@@ -449,7 +449,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                         scaleY = scaleX
                         translationX = -size.width * depth * BACKGROUND_PARALLAX
                     },
-                snackbarHost = { SnackbarHost(updateSnackbarState) },
+                snackbarHost = { SnackbarHost(rootSnackbarState) },
                 bottomBar = {
                     AnimatedVisibility(
                         visible = !detailShown &&
@@ -583,6 +583,9 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                     isActive = pagerState.currentPage == page,
                                     isCheckingUpdate = isCheckingUpdate,
                                     onCheckUpdate = { requestUpdateCheck(showUpToDate = true) },
+                                    onShowMessage = { message ->
+                                        scope.launch { rootSnackbarState.showSnackbar(message) }
+                                    },
                                     onOpenBackupRestore = {
                                         batchChannelTarget = null
                                         batchToastPackages = null

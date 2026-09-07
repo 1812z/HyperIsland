@@ -537,4 +537,4 @@ internal fun HookExtensionPage(
 private const val SECURITY_CENTER_PACKAGE = "com.miui.securitycenter"
 private const val SCREEN_RECORDER_PACKAGE = "com.miui.screenrecorder"
 private const val SCREEN_RECORDER_DOWNLOAD_URL =
-    "https://1848933255.share.123pan.cn/123pan/9T69vd-ej0wd?pwd=kAf1#"
+    "https://hyperisland.1812z.top/downloads.html#system-software"
