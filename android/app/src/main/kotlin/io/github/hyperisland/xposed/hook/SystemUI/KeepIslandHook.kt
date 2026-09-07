@@ -493,7 +493,7 @@ object KeepIslandHook : BaseHook() {
             lastContentUpdateAt = now
             lastContentUpdateSignature = signature
             keepIslandContentCustomized = texts.first != " " || texts.second.isNotEmpty()
-            cachedModule?.let { log(it, "keep island content updated left=${texts.first} right=${texts.second}") }
+            //cachedModule?.let { log(it, "keep island content updated left=${texts.first} right=${texts.second}") }
         } catch (e: Exception) {
             cachedModule?.let { logError(it, "keep island update failed: ${e.message}") }
         }
