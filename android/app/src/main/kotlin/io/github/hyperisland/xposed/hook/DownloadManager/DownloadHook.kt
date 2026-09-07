@@ -9,6 +9,9 @@ import io.github.hyperisland.xposed.InProcessController
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import io.github.libxposed.api.XposedModule
 import java.lang.reflect.Field
+import java.util.LinkedHashMap
+import java.util.WeakHashMap
+import java.util.concurrent.atomic.AtomicLong
 import java.util.regex.Pattern
 
 /**
@@ -24,6 +27,10 @@ object DownloadHook : BaseHook() {
 
     private val processedNotifications = mutableMapOf<String, NotificationInfo>()
     private val downloadIdMap = mutableMapOf<Long, String>()
+    private val iconGenerationCounter = AtomicLong()
+    private val iconGenerationLock = Any()
+    private val iconGenerationByItem = WeakHashMap<Any, Pair<String, Long>>()
+    private val latestIconGenerationByKey = LinkedHashMap<String, Long>()
 
     data class NotificationInfo(
         var lastProgress: Int,
@@ -33,6 +40,66 @@ object DownloadHook : BaseHook() {
     )
 
     val notifSnapshots = mutableMapOf<String, InProcessController.DownloadNotifSnapshot>()
+
+    /**
+     * Xiaomi loads URL icons asynchronously while reusing the same notification tag/id. Record a
+     * generation for every item (including icon-less items) so an older callback cannot overwrite
+     * a newer task's notification with its bitmap.
+     */
+    private fun trackIconGeneration(item: Any?) {
+        if (item == null) return
+        try {
+            val itemClass = item.javaClass
+            val tag = itemClass.getDeclaredField("mNotificationTag").let { field ->
+                field.isAccessible = true
+                field.get(item) as? String
+            }
+            val id = itemClass.getDeclaredField("mNotificationId").let { field ->
+                field.isAccessible = true
+                (field.get(item) as? Number)?.toInt()
+            } ?: return
+            val key = "${tag ?: "<null>"}:$id"
+            val generation = iconGenerationCounter.incrementAndGet()
+            synchronized(iconGenerationLock) {
+                iconGenerationByItem[item] = key to generation
+                latestIconGenerationByKey[key] = generation
+                trimIconGenerationsLocked()
+            }
+        } catch (_: Throwable) {}
+    }
+
+    private fun invalidateIconGeneration(tag: String?, id: Int) {
+        val key = "${tag ?: "<null>"}:$id"
+        synchronized(iconGenerationLock) {
+            latestIconGenerationByKey[key] = iconGenerationCounter.incrementAndGet()
+            trimIconGenerationsLocked()
+        }
+    }
+
+    private fun invalidateAllIconGenerations() {
+        synchronized(iconGenerationLock) {
+            latestIconGenerationByKey.keys.toList().forEach { key ->
+                latestIconGenerationByKey[key] = iconGenerationCounter.incrementAndGet()
+            }
+        }
+    }
+
+    private fun trimIconGenerationsLocked() {
+        while (latestIconGenerationByKey.size > 128) {
+            val eldest = latestIconGenerationByKey.entries.iterator()
+            if (!eldest.hasNext()) return
+            eldest.next()
+            eldest.remove()
+        }
+    }
+
+    private fun isLatestIconGeneration(item: Any?): Boolean {
+        if (item == null) return true
+        synchronized(iconGenerationLock) {
+            val (key, generation) = iconGenerationByItem[item] ?: return true
+            return latestIconGenerationByKey[key] == generation
+        }
+    }
 
     init {
         try {
@@ -53,6 +120,8 @@ object DownloadHook : BaseHook() {
             val nmClass = classLoader.loadClass("android.app.NotificationManager")
             hookNotifyMethod(module, nmClass, classLoader, pkg, hasTag = true)
             hookNotifyMethod(module, nmClass, classLoader, pkg, hasTag = false)
+            hookCancelMethod(module, nmClass, hasTag = true)
+            hookCancelMethod(module, nmClass, hasTag = false)
 
             if (pkg == "com.xiaomi.android.app.downloadmanager") {
                 InProcessController.hookMiuiDownloadManager(module, classLoader)
@@ -104,8 +173,11 @@ object DownloadHook : BaseHook() {
             log(module, "[RAW/Notify] ch=$channelId | title=$title | text=$text")
             if (!isDownloadNotification(title, text, extras) && channelId.isEmpty()) return
 
+            val context = HookUtils.getContext(classLoader) ?: return
             val appName = pkg.substringAfterLast(".").replaceFirstChar { it.uppercase() }
-            val fileName = extractFileName(title, text, extras)
+            val fileName = extractFileName(title, text, extras).ifBlank {
+                InProcessController.downloadFallbackLabel(context).toString()
+            }
             val extractedDownloadId = extractDownloadId(extras).takeIf { it > 0 }
                 ?: extractIdFromTag(tag).takeIf { it > 0 }
             val downloadId = extractedDownloadId ?: id.toLong()
@@ -121,10 +193,11 @@ object DownloadHook : BaseHook() {
                               (combined.contains("暂停") || combined.contains("已暂停") ||
                                 combined.contains("paused", ignoreCase = true))
 
-            val context = HookUtils.getContext(classLoader) ?: return
             InProcessController.ensureRegistered(context, module)
             val taskIcon = InProcessController.resolveTaskIcon(extras)
-            InProcessController.applyTaskIcon(extras, taskIcon)
+            if (extras.containsKey(InProcessController.EXTRA_HAS_TASK_ICON)) {
+                InProcessController.applyTaskIcon(extras, taskIcon)
+            }
 
             // 按钮：每次通知都设置，避免因去重跳过导致闪烁
             val primaryIntent = when {
@@ -134,13 +207,12 @@ object DownloadHook : BaseHook() {
                 else                   -> InProcessController.pauseIntent(context, downloadId)
             }
             val cancelIntent   = if (isMultiFile) InProcessController.cancelAllIntent(context) else InProcessController.cancelIntent(context, downloadId)
-            val primaryLabel   = when {
-                isPaused && isMultiFile -> "全部继续"
-                isPaused               -> "继续"
-                isMultiFile            -> "全部暂停"
-                else                   -> "暂停"
+            val primaryLabel = if (isPaused) {
+                InProcessController.resumeActionLabel(context)
+            } else {
+                InProcessController.pauseActionLabel(context)
             }
-            val cancelLabel = if (isMultiFile) "全部取消" else "取消"
+            val cancelLabel = InProcessController.cancelActionLabel(context)
             notif.actions = when {
                 isComplete || isWaiting -> emptyArray()
                 else -> arrayOf(
@@ -200,35 +272,61 @@ object DownloadHook : BaseHook() {
                 .filter { it.name == "notify" && it.parameterTypes.size == 3 }
                 .forEach { method ->
                     module.hook(method).intercept { chain ->
+                        val item = chain.args[0]
+                        trackIconGeneration(item)
                         var replacementIconUrl: String? = null
+                        var shouldOverrideIconUrl = false
                         try {
                             val context = HookUtils.getContext(classLoader)
                             if (context != null) {
                                 InProcessController.ensureRegistered(context, module)
                                 val currentIconUrl = chain.args[2] as? String
-                                if (InProcessController.isTaskIconEnabled() && currentIconUrl.isNullOrBlank()) {
-                                    val ownerPackage = chain.args[1] as? String
-                                    replacementIconUrl = InProcessController.resolveTaskThumbnailUrl(
-                                        context,
-                                        ownerPackage,
-                                    )
-                                }
-                                val effectiveIconUrl = currentIconUrl?.takeIf(String::isNotBlank)
-                                    ?: replacementIconUrl
-                                val item = chain.args[0]
+                                val ownerPackage = chain.args[1] as? String
                                 val builder = item?.javaClass?.getDeclaredField("mBuilder")?.let { field ->
                                     field.isAccessible = true
                                     field.get(item) as? Notification.Builder
                                 }
-                                builder?.extras?.putBoolean(
-                                    InProcessController.EXTRA_HAS_TASK_ICON,
-                                    !effectiveIconUrl.isNullOrBlank(),
-                                )
+                                val activeDownloadCount = InProcessController.activeDownloadCount(context)
+                                val isSingleActiveTask = activeDownloadCount == 1
+                                val hasMultipleActiveTasks = (activeDownloadCount ?: 0) > 1
+                                if (InProcessController.isTaskIconEnabled() &&
+                                    isSingleActiveTask && currentIconUrl.isNullOrBlank()
+                                ) {
+                                    replacementIconUrl = InProcessController.resolveTaskThumbnailUrl(
+                                        context,
+                                        ownerPackage,
+                                    )
+                                    shouldOverrideIconUrl = replacementIconUrl != null
+                                } else if (hasMultipleActiveTasks) {
+                                    // The native notifier already aggregates these rows. Clear only
+                                    // its task URL so NotificationHelper falls back to the package
+                                    // icon without changing the aggregate notification itself.
+                                    replacementIconUrl = null
+                                    shouldOverrideIconUrl = true
+                                }
+                                val effectiveIconUrl = if (hasMultipleActiveTasks) {
+                                    null
+                                } else {
+                                    currentIconUrl?.takeIf(String::isNotBlank) ?: replacementIconUrl
+                                }
+                                val shouldUseTaskIcon = isSingleActiveTask &&
+                                    InProcessController.isTaskIconEnabled() &&
+                                    !effectiveIconUrl.isNullOrBlank()
+                                if (shouldUseTaskIcon) {
+                                    builder?.extras?.putBoolean(
+                                        InProcessController.EXTRA_HAS_TASK_ICON,
+                                        true,
+                                    )
+                                } else {
+                                    builder?.extras?.remove(
+                                        InProcessController.EXTRA_HAS_TASK_ICON,
+                                    )
+                                }
                             }
                         } catch (e: Throwable) {
                             logError(module, "NotificationHelper thumbnail hook error: ${e.message}")
                         }
-                        if (replacementIconUrl != null) {
+                        if (shouldOverrideIconUrl) {
                             val args = chain.args.toTypedArray()
                             args[2] = replacementIconUrl
                             chain.proceed(args)
@@ -241,17 +339,23 @@ object DownloadHook : BaseHook() {
                 .filter { it.name == "updateNotification" }
                 .forEach { method ->
                     module.hook(method).intercept { chain ->
+                        var shouldProceed = true
                         try {
                             val bitmap = chain.args.firstOrNull { it is Bitmap } as? Bitmap
                             val item = chain.args.firstOrNull { arg ->
                                 arg?.javaClass?.declaredFields?.any { it.name == "mBuilder" } == true
+                            }
+                            if (!isLatestIconGeneration(item)) {
+                                shouldProceed = false
+                                log(module, "Ignored stale Download Manager icon callback")
                             }
                             val builder = item?.javaClass?.getDeclaredField("mBuilder")?.let { field ->
                                 field.isAccessible = true
                                 field.get(item) as? Notification.Builder
                             }
                             val context = HookUtils.getContext(classLoader)
-                            if (bitmap != null && builder != null && context != null &&
+                            if (shouldProceed && bitmap != null && builder != null && context != null &&
+                                InProcessController.activeDownloadCount(context) == 1 &&
                                 builder.extras.getBoolean(
                                     InProcessController.EXTRA_HAS_TASK_ICON,
                                     false,
@@ -266,13 +370,35 @@ object DownloadHook : BaseHook() {
                         } catch (e: Throwable) {
                             logError(module, "NotificationHelper icon hook error: ${e.message}")
                         }
-                        chain.proceed()
+                        if (shouldProceed) chain.proceed() else null
                     }
                 }
             log(module, "Hooked NotificationHelper.updateNotification")
         } catch (_: ClassNotFoundException) {
         } catch (e: Throwable) {
             logError(module, "NotificationHelper hook error: ${e.message}")
+        }
+    }
+
+    private fun hookCancelMethod(module: XposedModule, nmClass: Class<*>, hasTag: Boolean) {
+        try {
+            val method = if (hasTag) {
+                nmClass.getDeclaredMethod(
+                    "cancel",
+                    String::class.java,
+                    Int::class.javaPrimitiveType,
+                )
+            } else {
+                nmClass.getDeclaredMethod("cancel", Int::class.javaPrimitiveType)
+            }
+            module.hook(method).intercept { chain ->
+                val tag = if (hasTag) chain.args[0] as? String else null
+                val id = (if (hasTag) chain.args[1] else chain.args[0]) as Int
+                invalidateIconGeneration(tag, id)
+                chain.proceed()
+            }
+        } catch (e: Throwable) {
+            logError(module, "cancel hook failed: ${e.message}")
         }
     }
 
@@ -333,6 +459,7 @@ object DownloadHook : BaseHook() {
             val clazz = classLoader.loadClass("com.android.providers.downloads.service.DownloadNotifier")
             val method = clazz.getDeclaredMethod("cancelAll")
             module.hook(method).intercept { chain ->
+                invalidateAllIconGenerations()
                 chain.proceed().also {
                     HookUtils.getContext(classLoader)?.let { context ->
                         InProcessController.ensureRegistered(context, module)
@@ -448,7 +575,7 @@ object DownloadHook : BaseHook() {
         extractFileNameFromText(text).takeIf { it.isNotEmpty() }?.let { return it }
         val extraText = extras.getString("android.title") ?: extras.getString("android.text")
         if (extraText != null) extractFileNameFromText(extraText).takeIf { it.isNotEmpty() }?.let { return it }
-        return "下载文件"
+        return ""
     }
 
     private fun extractFileNameFromText(text: String): String {

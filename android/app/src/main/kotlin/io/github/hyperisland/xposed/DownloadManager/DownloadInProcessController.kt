@@ -73,6 +73,65 @@ object InProcessController {
     @Volatile var lastDownloadSnapshot: DownloadNotifSnapshot? = null
     private const val PAUSED_OVERLAY_ID = 0x48594F01
 
+    private fun packageStringId(context: Context, name: String): Int =
+        context.resources.getIdentifier(name, "string", context.packageName)
+
+    private fun downloadManagerText(
+        context: Context,
+        resourceNames: List<String>,
+        fallbackResource: Int,
+    ): CharSequence {
+        for (name in resourceNames) {
+            val id = packageStringId(context, name)
+            if (id != 0) {
+                runCatching { context.getText(id) }.getOrNull()?.let { return it }
+            }
+            val androidId = context.resources.getIdentifier(name, "string", "android")
+            if (androidId != 0) {
+                runCatching { context.getText(androidId) }.getOrNull()?.let { return it }
+            }
+        }
+        return context.getText(fallbackResource)
+    }
+
+    fun pauseActionLabel(context: Context): CharSequence = downloadManagerText(
+        context,
+        listOf("pause", "pause_download", "download_pause", "download_status_paused", "paused_by_app"),
+        android.R.string.ok,
+    )
+
+    fun resumeActionLabel(context: Context): CharSequence = downloadManagerText(
+        context,
+        listOf("resume", "download_status_continue", "resume_download", "continue_download"),
+        android.R.string.ok,
+    )
+
+    fun cancelActionLabel(context: Context): CharSequence = downloadManagerText(
+        context,
+        listOf("cancel", "dialog_button_cancel"),
+        android.R.string.cancel,
+    )
+
+    fun pausedStateLabel(context: Context): CharSequence = downloadManagerText(
+        context,
+        listOf("download_status_paused", "paused_by_app"),
+        android.R.string.ok,
+    )
+
+    fun downloadFallbackLabel(context: Context): CharSequence =
+        context.applicationInfo.loadLabel(context.packageManager)
+
+    private fun aggregateDownloadLabel(context: Context, count: Int): String {
+        val id = packageStringId(context, "notif_title_file_size")
+        if (id != 0) {
+            runCatching { context.getString(id, count) }
+                .getOrNull()
+                ?.takeIf(String::isNotBlank)
+                ?.let { return it }
+        }
+        return downloadFallbackLabel(context).toString()
+    }
+
     private fun loadSettings() {
         resumeNotificationEnabled = ConfigManager.getBoolean("pref_resume_notification", true)
         showTaskIconEnabled = ConfigManager.getBoolean("pref_download_show_task_icon", true)
@@ -163,6 +222,12 @@ object InProcessController {
     }
 
     private fun reconcilePausedOverlay(context: Context) {
+        if (queryHasActiveDownload(context) == true) {
+            lastDownloadSnapshot = null
+            cancelPausedOverlay(context)
+            module?.log("$TAG: removed paused overlay because an active download exists")
+            return
+        }
         val snapshot = lastDownloadSnapshot ?: return
         val state = queryDownloadState(context, snapshot.downloadId)
         val shouldRemove = when {
@@ -221,6 +286,25 @@ object InProcessController {
         return if (queried) false else null
     }
 
+    private fun queryHasActiveDownload(context: Context): Boolean? {
+        var queried = false
+        for (uri in listOf(DOWNLOADS_URI_ALL, DOWNLOADS_URI)) {
+            try {
+                context.contentResolver.query(
+                    uri,
+                    arrayOf("_id"),
+                    "status IN (?, ?) AND (deleted IS NULL OR deleted != 1)",
+                    arrayOf(STATUS_PENDING.toString(), STATUS_RUNNING.toString()),
+                    null,
+                )?.use { cursor ->
+                    queried = true
+                    if (cursor.moveToFirst()) return true
+                }
+            } catch (_: Exception) {}
+        }
+        return if (queried) false else null
+    }
+
     /**
      * Rebuild the minimum notification state from DownloadProvider. This is needed when the
      * provider process is recreated: DownloadService.onCreate clears notifications before an
@@ -254,8 +338,12 @@ object InProcessController {
                     } else {
                         -1
                     }
-                    val title = cursor.getString(1)?.takeIf(String::isNotBlank)
-                        ?: if (count > 1) "$count 个文件" else "下载任务"
+                    val title = if (count > 1) {
+                        aggregateDownloadLabel(context, count)
+                    } else {
+                        cursor.getString(1)?.takeIf(String::isNotBlank)
+                            ?: downloadFallbackLabel(context).toString()
+                    }
                     return DownloadNotifSnapshot(
                         notifId = PAUSED_OVERLAY_ID,
                         notifTag = null,
@@ -283,46 +371,59 @@ object InProcessController {
 
     fun isTaskIconEnabled(): Boolean = showTaskIconEnabled
 
-    fun resolveTaskThumbnailUrl(context: Context, ownerPackage: String?): String? {
-        if (!showTaskIconEnabled) return null
-        val selections = buildList {
-            if (!ownerPackage.isNullOrBlank()) {
-                add(
-                    "notificationpackage = ? AND status IN (?, ?, ?) AND " +
-                        "(deleted IS NULL OR deleted != 1)" to
-                        arrayOf(
-                            ownerPackage,
-                            STATUS_PENDING.toString(),
-                            STATUS_RUNNING.toString(),
-                            STATUS_PAUSED_BY_APP.toString(),
-                        )
-                )
-            }
-            add(
-                "status IN (?, ?, ?) AND (deleted IS NULL OR deleted != 1)" to
-                    arrayOf(
-                        STATUS_PENDING.toString(),
-                        STATUS_RUNNING.toString(),
-                        STATUS_PAUSED_BY_APP.toString(),
-                    )
-            )
-        }
+    /**
+     * Count only downloads that currently participate in the active aggregate notification.
+     * Completed, canceled, deleted and manually paused rows in the task list are intentionally
+     * excluded.
+     */
+    fun activeDownloadCount(context: Context): Int? {
+        val selection = "status IN (?, ?) AND (deleted IS NULL OR deleted != 1)"
+        val args = arrayOf(
+            STATUS_PENDING.toString(),
+            STATUS_RUNNING.toString(),
+        )
+        var queried = false
         for (uri in listOf(DOWNLOADS_URI_ALL, DOWNLOADS_URI)) {
-            for ((selection, args) in selections) {
-                try {
-                    context.contentResolver.query(
-                        uri,
-                        arrayOf("download_task_thumbnail"),
-                        selection,
-                        args,
-                        "lastmod DESC",
-                    )?.use { cursor ->
-                        while (cursor.moveToNext()) {
-                            cursor.getString(0)?.takeIf(String::isNotBlank)?.let { return it }
-                        }
-                    }
-                } catch (_: Exception) {}
-            }
+            try {
+                context.contentResolver.query(
+                    uri,
+                    arrayOf("_id"),
+                    selection,
+                    args,
+                    null,
+                )?.use { cursor ->
+                    queried = true
+                    return cursor.count
+                }
+            } catch (_: Exception) {}
+        }
+        return if (queried) 0 else null
+    }
+
+    fun resolveTaskThumbnailUrl(context: Context, ownerPackage: String?): String? {
+        if (!showTaskIconEnabled || ownerPackage.isNullOrBlank()) return null
+        val selection = "notificationpackage = ? AND status IN (?, ?) AND " +
+            "(deleted IS NULL OR deleted != 1)"
+        val args = arrayOf(
+            ownerPackage,
+            STATUS_PENDING.toString(),
+            STATUS_RUNNING.toString(),
+        )
+        for (uri in listOf(DOWNLOADS_URI_ALL, DOWNLOADS_URI)) {
+            try {
+                context.contentResolver.query(
+                    uri,
+                    arrayOf("download_task_thumbnail"),
+                    selection,
+                    args,
+                    null,
+                )?.use { cursor ->
+                    // Package-only matching is safe only when it identifies exactly one row.
+                    // Never fall back to another package or to the most recently updated task.
+                    if (cursor.count != 1 || !cursor.moveToFirst()) return@use
+                    return cursor.getString(0)?.takeIf(String::isNotBlank)
+                }
+            } catch (_: Exception) {}
         }
         return null
     }
@@ -587,6 +688,13 @@ object InProcessController {
         pausedSnapshot: DownloadNotifSnapshot?,
     ) {
         if (!resumeNotificationEnabled) return
+        // Xiaomi posts its own aggregate notification for active tasks. Keeping our paused
+        // overlay at the same time produces a stale second notification after one item resumes.
+        if (queryHasActiveDownload(context) == true) {
+            lastDownloadSnapshot = null
+            cancelPausedOverlay(context)
+            return
+        }
         val snap = pausedSnapshot ?: lastDownloadSnapshot ?: return
         if (lastDownloadSnapshot == null || !isSnapshotStillPaused(context, snap)) return
         val overlaySnap = snap.copy(
@@ -605,7 +713,10 @@ object InProcessController {
         for (delay in longArrayOf(300L, 1_200L)) {
             mainHandler.postDelayed(
                 {
-                    val resolved = snapshot ?: lastDownloadSnapshot ?: queryPausedSnapshot(context)
+                    // Prefer the provider row after pausing. Notification id/tag are group
+                    // identifiers in Xiaomi's implementation and are not necessarily download ids.
+                    val rebuilt = queryPausedSnapshot(context)
+                    val resolved = rebuilt ?: snapshot ?: lastDownloadSnapshot
                     if (resolved != null) {
                         lastDownloadSnapshot = resolved
                         postPausedOverlay(context, isAll, resolved)
@@ -642,6 +753,7 @@ object InProcessController {
 
     private fun repostAsPaused(context: Context, snapshot: DownloadNotifSnapshot) {
         try {
+            val pausedTitle = pausedStateLabel(context)
             val extras = Bundle().apply {
                 if (snapshot.downloadIdReliable) putLong("extra_download_id", snapshot.downloadId)
                 putBoolean("extra_download_is_multi_file", snapshot.isMultiFile)
@@ -656,7 +768,7 @@ object InProcessController {
                     snapshot.progress.coerceIn(0, 100),
                     snapshot.progress !in 0..100,
                 )
-                .setContentTitle(if (snapshot.isMultiFile) "${snapshot.fileName} 已暂停" else "已暂停")
+                .setContentTitle(pausedTitle)
                 .setContentText(snapshot.fileName)
                 .setOngoing(true)
                 .setAutoCancel(false)
@@ -664,8 +776,8 @@ object InProcessController {
 
             val resumeIntent = if (snapshot.isMultiFile) resumeAllIntent(context) else resumeIntent(context, snapshot.downloadId)
             val cancelIntent = if (snapshot.isMultiFile) cancelAllIntent(context) else cancelIntent(context, snapshot.downloadId)
-            val resumeLabel = if (snapshot.isMultiFile) "全部恢复" else "恢复"
-            val cancelLabel = if (snapshot.isMultiFile) "全部取消" else "取消"
+            val resumeLabel = resumeActionLabel(context)
+            val cancelLabel = cancelActionLabel(context)
 
             notif.actions = arrayOf(
                 Notification.Action.Builder(
