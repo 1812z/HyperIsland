@@ -458,11 +458,27 @@ setVisibility(INVISIBLE) 后 fake root 才消失
 
 ### 7.5 SoftGlass 生命周期
 
-SoftGlass 使用与 Gaussian 相同的 View 资源生命周期，但 renderer 仍是系统 Bionics 接口：当前真实/fake 槽位进入绘制时调用 `setMiViewMaterialType(1)` 和 `setMiGlass(params)`，槽位隐藏或 detach 时完整释放，不预热或保留隐藏三态。
+SoftGlass 的 renderer 是系统 Bionics，但真实态和动画态不是同一个 View 生命周期。`DynamicIslandWindowView` 分别创建 `DynamicIslandContentView`（稳定真实内容）与 `DynamicIslandContentFakeView`（过渡动画内容），再由 `handleInitState(real, fake, params)` 建立关联。两者继承同一基类并可复用 `updateBackgroundBg(View, promoted)` 入口，只代表“材质写入 API 相同”，不代表 View 实例、创建时机、可见性或释放时机统一。
 
-稳定 SMALL/BIG 的原生 Bionics 同时需要 root background blur 和 pass SurfaceTexture。存在模块 SOFT View 时，系统的 `updateWindowBlur(false)` 保持为 `true`，`updatePassWindowBlur(false)` 不向下执行，避免 `clearTextureView/detachFromView`；稳定态 pass FPS 降回默认，动画开始恢复 60。最后一个 SOFT View 释放后再按系统方法关闭两者。不得改写 `lastPassWindowBlurEnabled` 或直接 false→true 重建纹理；隐藏状态必须 release，保证连续纹理只跟踪当前材质 crop。模糊强度通过系统 `setMiGlassBlurRadius(small, big)` 调节并保持 1:10 双级比例，释放后恢复系统 `50/500`。
+已由 JADX 确认的关键顺序：
 
-SOFT 的参数仅替换目标 View 的 Bionics shader 参数；外层黑色 Drawable 和 fake 共享遮罩仍按 Gaussian 的“当前渲染槽位是否已拥有视觉”规则清理，不能依靠事后 post 修复。
+1. 真实 View 与 fake View 分别 inflate/build；fake 内部的 SMALL/BIG/EXPAND 是长期复用的三个槽位。
+2. 动画目的槽由 `FakeViewAnimator.fakeViewToSmallIsland/BigIsland/Expanded` 决定；不能仅用 fake 子 View 的 `VISIBLE` 判断，因为非目标槽可能仍保持可见属性。
+3. `updateBackgroundBg()` 只有在 `getBackgroundMaterialOpened(context)=true` 且目标已有 parent 时才进入 Bionics 分支，并同步执行 `setMiViewBlurModeCompat(1)`、`setMiViewMaterialType(1)`、`setMiGlass(params)`、`background=null`。目标尚未 attach 时调用该入口会走非材质分支，并在手机上写入黑色 `dynamic_island_background`。
+4. `updateExpandedView()` 会在 ContentView 仍处于 BIG/SMALL 时预先准备隐藏 EXPAND；这次调用是结构初始化，不等于 EXPAND 已取得渲染所有权。
+5. 稳定态切换和 fake 动画结束是两套交接；只修改真实岛会漏掉动画，只修改 fake 又会在交接后恢复系统稳定态背景。
+
+Bionics 目标之外还有互相独立的背景写入者：
+
+- `DynamicIslandBackgroundView.drawable`：系统外层岛轮廓/背景。
+- `container` 与 `island_mask`：真实 ContentView 的共享层。OS4 `IslandPropertyUpdater.updateContainer()` 会逐帧写回黑色 Drawable；Expanded Bionics 还缓存 `bionicsExpandedBackground` 并随动画修改 alpha。
+- fake root、`fake_container`、`fake_mask`：fake 三态共享层；`restoreFakeViewBackground()` 在 Bionics active 时会给 fake root 和 container 写黑色 Drawable。
+- 真实与 fake 子槽的 self blur：分别由 `IslandPropertyUpdater` 和 `FakeViewAnimator` 调用 `setMiSelfBlurCompat()` 更新。
+- 复用 View 上遗留的 Classic blend colors：Bionics 分支不会主动调用 `clearMiBackgroundBlendColorCompat()`；它可能与材质叠加，但不能把所有黑底都归因于这一项。
+
+结论：不能把 SoftGlass 简化成“创建时提前 setMiGlass，然后统一清空所有黑层”。实机验证表明，提前给 detached/隐藏目标安装材质、在首次可见前统一清共享层、或只补清 Classic blend colors，仍可能导致动画与稳定态持续黑底，说明系统的 container alpha、fake mask、self blur、采样窗口和真实/fake 交接必须作为一个时序整体处理。当前没有经过实机验证的统一提前创建方案；文档不得把这些尝试写成已解决方案。
+
+稳定 SMALL/BIG 的原生 Bionics 同时依赖 root background blur 与 pass SurfaceTexture。`updateWindowBlur(false)`、`updatePassWindowBlur(false)`、`finalizeAnimFinished()` 属于系统采样生命周期；在没有确认当前真实/fake 槽确实提交可见 Bionics 帧前，不应长期拦截关闭或重建纹理。模糊强度由 `setMiGlassBlurRadius(small, big)` 控制，系统默认是 `50/500`。
 
 ## 8. 圆角
 
@@ -801,9 +817,12 @@ Mini Window 手势
 41. SOFT View 接管时必须保存并在 release/detach 时恢复原 `outlineProvider`、`clipToOutline` 和背景；detach listener 不得捕获 View，避免弱缓存 value 反向持有 key。
 42. OS4 的外层 stock drawable、`container/island_mask` 只能在当前 ContentView 已实际持有 Bionics 材质或实例级高斯兜底后清除；仅凭配置为 SOFT 就在 `setDrawable`、`onFinishInflate` 或 `IslandPropertyUpdater` 清层，会让少走标准背景回调的 RemoteViews、`ShowOnceBigIsland` 或替换 View 实例完全透明。
 43. `currentIslandVisible()` 只描述整个岛窗口，不能识别“窗口持续可见但具体 BIG/EXPAND View 被替换”的情况。首次可见预绘制还必须跟踪实际 concrete View 身份和祖先 alpha/visibility，在目标实例变化时重新提交材质与共享层；若 promoted/RemoteViews 宿主缺少 Bionics View API，则在同一实例走稳定态高斯兜底，禁止透明失败。
-44. `ShowOnceBigIsland`（例如充电岛）由 `currentTempShow` 的第二个 ContentView 承载，不一定出现在 controller `getView()`。其 `updateBackgroundBg()` 可能发生在真实 BIG View 尚未 attach/布局时；此时不得预先安装无采样租约的 Bionics 材质。应为该具体 View 注册一次性弱引用 pre-draw，在首次实际可见帧前原子提交材质、采样租约和共享层；状态离开、detach 或配置切换时立即取消 listener。
-45. 真实 RemoteViews/`ShowOnceBigIsland` 的 SOFT 由目标级 pre-draw 在首个实际绘制帧提交，因此 stock 外层与 OS4 container/mask 不需要再等待 `renderer committed` 才清除。该重复门禁会允许系统黑层进入动画首帧；保留 pre-draw，恢复 SOFT 写入点直接清层即可，不另建采样或 fake 状态机。
+44. `ShowOnceBigIsland`（例如充电岛）由 `currentTempShow` 的第二个 ContentView 承载，不一定出现在 controller `getView()`。其 `updateBackgroundBg()` 可能发生在真实 BIG View 尚未 attach/布局时；由于系统方法在 `parent == null` 时会直接写黑底，不能把这次回调视为已成功创建 Bionics。任何目标级 pre-draw 方案都必须同时验证采样窗口、共享层和 fake→真实交接，不能只以 `setMiGlass()` 调用成功作为 renderer committed。
+45. 首次可见 pre-draw 不是天然的原子交接点。实机已否定“提前安装材质，pre-draw 只清外层/container/mask”这一充分性假设：即使柔光 shader 存在，`IslandPropertyUpdater` 的 container 黑底、fake 共享 mask、self blur 或采样状态仍可让动画和稳定态保持黑色。
 46. OS4 Bionics 岛 View 使用 framework `setSmoothCornerEnabled(true)` 的固定系统曲线；自定义连续曲率不能只替换 `Outline.setRoundRect()`。SmoothIsland 需保留原 OutlineProvider 的几何与 RenderNode 副作用，仅对胶囊轮廓关闭目标 View 的官方平滑角并写入自定义 Path；OS4 能力以 `EXPANDED_GLASS_TOKEN`、`BionicsToken.getToBionicsParams()` 与 `MiBackgroundStyle.isBionicsActive()` 联合探测，OS3 继续走原路径。
+47. 真实态与 fake 态只统一了 `DynamicIslandBaseContentView.updateBackgroundBg()` 材质入口，没有统一 View 生命周期。实现层必须分别跟踪真实具体槽、fake 动画目的槽以及两者的 handoff。
+48. OS4 黑底至少有三条明确来源：`updateBackgroundBg()` 的非 Bionics/无 parent 分支、`IslandPropertyUpdater.updateContainer()` 的逐帧 container 写入、`DynamicIslandContentFakeView.restoreFakeViewBackground()` 的 fake root/container 写入。排查时必须逐层确认，不能用一次 `background=null` 推断黑底已清完。
+49. Bionics 分支不会清理 Classic blend colors；进入柔光前清理遗留 blend 是必要的复用卫生，但实机已证明它不是本次持续黑底的充分修复。
 
 ## 16. 信息来源和可信度
 
