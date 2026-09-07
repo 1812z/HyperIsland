@@ -402,6 +402,7 @@
     <string name="ext_charge_settings">Charging Island Settings</string>
     <string name="ext_charge_enable">Enable Charging Island Hook</string>
     <string name="ext_charge_enable_summary">Restart after switching SystemUI to take effect</string>
+    <string name="ext_charge_block">Block Charging Island</string>
     <string name="ext_charge_left_mode">Left Behavior</string>
     <string name="ext_charge_right_mode">Right Behavior</string>
     <string name="ext_duration">Duration</string>

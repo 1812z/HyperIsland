@@ -408,6 +408,7 @@
     <string name="ext_charge_settings">充电超级岛设置</string>
     <string name="ext_charge_enable">启用充电超级岛 Hook</string>
     <string name="ext_charge_enable_summary">开关后重启 SystemUI 生效</string>
+    <string name="ext_charge_block">阻止充电岛</string>
     <string name="ext_charge_left_mode">左侧行为</string>
     <string name="ext_charge_right_mode">右侧行为</string>
     <string name="ext_duration">持续时间</string>

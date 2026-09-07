@@ -1,6 +1,7 @@
 package io.github.hyperisland.compose.page.settings.extensions
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
@@ -10,7 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import io.github.hyperisland.R
-import io.github.hyperisland.compose.component.DetailPage
 import io.github.hyperisland.compose.component.PreferenceDropdown
 import io.github.hyperisland.compose.component.PreferenceSwitch
 import io.github.hyperisland.compose.component.SectionTitle
@@ -33,6 +33,7 @@ internal fun ChargeIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Unit)
     val scopeFailed = stringResource(R.string.ext_scope_failed)
     val restartRequired = stringResource(R.string.restart_scope_app)
     val enabled = rememberBooleanPreference(prefs, KEY_CHARGE_ISLAND, false)
+    val blocked = rememberBooleanPreference(prefs, KEY_CHARGE_BLOCKED, false)
     val leftMode = rememberStringPreference(prefs, KEY_CHARGE_LEFT_MODE, MODE_DEFAULT)
     val rightMode = rememberStringPreference(prefs, KEY_CHARGE_RIGHT_MODE, MODE_DEFAULT)
     val durationMode = rememberStringPreference(prefs, KEY_CHARGE_DURATION_MODE, MODE_DEFAULT)
@@ -52,7 +53,7 @@ internal fun ChargeIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Unit)
 
     fun show(message: String) { scope.launch { snackbar.showSnackbar(message) } }
 
-    DetailPage(
+    HookExtensionScaffold(
         title = stringResource(R.string.ext_charge_settings),
         onBack = onBack,
         snackbarHost = { SnackbarHost(snackbar) },
@@ -76,57 +77,71 @@ internal fun ChargeIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Unit)
                         show(restartRequired)
                     }
                 }
-                PreferenceDropdown(
-                    title = stringResource(R.string.ext_charge_left_mode),
-                    summary = null,
-                    icon = null,
-                    items = modeLabels,
-                    selectedIndex = modeValues.indexOf(leftMode.value).coerceAtLeast(0),
-                ) { index -> leftMode.value = modeValues[index]; prefs.putString(KEY_CHARGE_LEFT_MODE, modeValues[index]) }
-                PreferenceDropdown(
-                    title = stringResource(R.string.ext_charge_right_mode),
-                    summary = null,
-                    icon = null,
-                    items = modeLabels,
-                    selectedIndex = modeValues.indexOf(rightMode.value).coerceAtLeast(0),
-                ) { index -> rightMode.value = modeValues[index]; prefs.putString(KEY_CHARGE_RIGHT_MODE, modeValues[index]) }
-                PreferenceDropdown(
-                    title = stringResource(R.string.ext_duration),
-                    summary = null,
-                    icon = null,
-                    items = listOf(
-                        stringResource(R.string.default_option),
-                        stringResource(R.string.ext_custom),
-                        stringResource(R.string.ext_persistent),
-                    ),
-                    selectedIndex = durationValues.indexOf(durationMode.value).coerceAtLeast(0),
-                ) { index ->
-                    durationMode.value = durationValues[index]
-                    prefs.putString(KEY_CHARGE_DURATION_MODE, durationValues[index])
-                }
-                AnimatedVisibility(durationMode.value == DURATION_CUSTOM) {
-                    TextField(
-                        value = durationDraft.value,
-                        onValueChange = { input ->
-                            val digits = input.filter(Char::isDigit).take(5)
-                            durationDraft.value = digits
-                            digits.toLongOrNull()?.coerceIn(1L, 86400L)?.let { value ->
-                                durationSeconds.value = value
-                                prefs.putLong(KEY_CHARGE_DURATION_SECONDS, value)
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        label = stringResource(R.string.ext_custom_duration),
-                        useLabelAsPlaceholder = true,
-                        singleLine = true,
-                    )
-                }
                 PreferenceSwitch(
-                    title = stringResource(R.string.ext_outer_glow),
-                    summary = stringResource(R.string.ext_charge_glow_summary),
+                    title = stringResource(R.string.ext_charge_block),
+                    summary = null,
                     icon = null,
-                    checked = outerGlow.value,
-                ) { value -> outerGlow.value = value; prefs.putBoolean(KEY_CHARGE_OUTER_GLOW, value) }
+                    checked = blocked.value,
+                ) { value ->
+                    blocked.value = value
+                    prefs.putBoolean(KEY_CHARGE_BLOCKED, value)
+                    show(restartRequired)
+                }
+                AnimatedVisibility(visible = !blocked.value) {
+                    Column {
+                        PreferenceDropdown(
+                            title = stringResource(R.string.ext_charge_left_mode),
+                            summary = null,
+                            icon = null,
+                            items = modeLabels,
+                            selectedIndex = modeValues.indexOf(leftMode.value).coerceAtLeast(0),
+                        ) { index -> leftMode.value = modeValues[index]; prefs.putString(KEY_CHARGE_LEFT_MODE, modeValues[index]) }
+                        PreferenceDropdown(
+                            title = stringResource(R.string.ext_charge_right_mode),
+                            summary = null,
+                            icon = null,
+                            items = modeLabels,
+                            selectedIndex = modeValues.indexOf(rightMode.value).coerceAtLeast(0),
+                        ) { index -> rightMode.value = modeValues[index]; prefs.putString(KEY_CHARGE_RIGHT_MODE, modeValues[index]) }
+                        PreferenceDropdown(
+                            title = stringResource(R.string.ext_duration),
+                            summary = null,
+                            icon = null,
+                            items = listOf(
+                                stringResource(R.string.default_option),
+                                stringResource(R.string.ext_custom),
+                                stringResource(R.string.ext_persistent),
+                            ),
+                            selectedIndex = durationValues.indexOf(durationMode.value).coerceAtLeast(0),
+                        ) { index ->
+                            durationMode.value = durationValues[index]
+                            prefs.putString(KEY_CHARGE_DURATION_MODE, durationValues[index])
+                        }
+                        AnimatedVisibility(durationMode.value == DURATION_CUSTOM) {
+                            TextField(
+                                value = durationDraft.value,
+                                onValueChange = { input ->
+                                    val digits = input.filter(Char::isDigit).take(5)
+                                    durationDraft.value = digits
+                                    digits.toLongOrNull()?.coerceIn(1L, 86400L)?.let { value ->
+                                        durationSeconds.value = value
+                                        prefs.putLong(KEY_CHARGE_DURATION_SECONDS, value)
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                label = stringResource(R.string.ext_custom_duration),
+                                useLabelAsPlaceholder = true,
+                                singleLine = true,
+                            )
+                        }
+                        PreferenceSwitch(
+                            title = stringResource(R.string.ext_outer_glow),
+                            summary = stringResource(R.string.ext_charge_glow_summary),
+                            icon = null,
+                            checked = outerGlow.value,
+                        ) { value -> outerGlow.value = value; prefs.putBoolean(KEY_CHARGE_OUTER_GLOW, value) }
+                    }
+                }
             }
         }
     }

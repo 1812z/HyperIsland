@@ -352,6 +352,7 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
             "pref_unlock_all_focus",
             "pref_unlock_focus_auth",
             "pref_charge_island",
+            "pref_charge_island_blocked",
             "pref_charge_island_left_mode",
             "pref_charge_island_right_mode",
             "pref_charge_island_duration_mode",

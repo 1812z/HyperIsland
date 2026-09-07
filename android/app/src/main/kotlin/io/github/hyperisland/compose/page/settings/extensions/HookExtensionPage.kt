@@ -19,7 +19,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
-import io.github.hyperisland.compose.component.DetailPage
 import io.github.hyperisland.compose.component.PreferenceDropdown
 import io.github.hyperisland.compose.component.PreferenceSlider
 import io.github.hyperisland.compose.component.PreferenceSwitch
@@ -128,7 +127,7 @@ internal fun HookExtensionPage(
     }
     fun restart() = show(restartRequired)
 
-    DetailPage(
+    HookExtensionScaffold(
         title = stringResource(R.string.hook_extension),
         onBack = onBack,
         snackbarHost = { SnackbarHost(snackbar) },

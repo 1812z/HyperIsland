@@ -8,7 +8,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import io.github.hyperisland.R
-import io.github.hyperisland.compose.component.DetailPage
 import io.github.hyperisland.compose.component.PreferenceDropdown
 import io.github.hyperisland.compose.component.PreferenceSwitch
 import io.github.hyperisland.compose.component.SectionTitle
@@ -36,7 +35,7 @@ internal fun FaceUnlockIslandPage(prefs: FlutterPrefsRepository, onBack: () -> U
 
     fun show(message: String) { scope.launch { snackbar.showSnackbar(message) } }
 
-    DetailPage(
+    HookExtensionScaffold(
         title = stringResource(R.string.ext_face_settings),
         onBack = onBack,
         snackbarHost = { SnackbarHost(snackbar) },

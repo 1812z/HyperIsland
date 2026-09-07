@@ -23,6 +23,7 @@ object ChargeIslandHook : BaseHook() {
 
     private const val TAG = "HyperIsland[ChargeIsland]"
     private const val PREF_ENABLED = "pref_charge_island"
+    private const val PREF_BLOCKED = "pref_charge_island_blocked"
     private const val PREF_LEFT_MODE = "pref_charge_island_left_mode"
     private const val PREF_RIGHT_MODE = "pref_charge_island_right_mode"
     private const val PREF_DURATION_MODE = "pref_charge_island_duration_mode"
@@ -217,6 +218,9 @@ object ChargeIslandHook : BaseHook() {
             module.hook(method).intercept { chain ->
                 val bundle = chain.args.getOrNull(0) as? Bundle
                 if (ConfigManager.getBoolean(PREF_ENABLED, false) && bundle?.getString("notifyId") == "charge") {
+                    if (ConfigManager.getBoolean(PREF_BLOCKED, false)) {
+                        return@intercept null
+                    }
                     applyChargeDuration(bundle)
                 }
                 chain.proceed()
