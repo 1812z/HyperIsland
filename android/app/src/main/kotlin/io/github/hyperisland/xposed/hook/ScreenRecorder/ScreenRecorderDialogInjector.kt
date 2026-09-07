@@ -23,6 +23,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -31,6 +32,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -483,9 +487,10 @@ private fun RecorderWindowDialog(
         containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
     ) {
-        Box(
+        BoxWithConstraints(
             modifier = Modifier.fillMaxSize(),
         ) {
+            val isLandscape = maxWidth > maxHeight
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -497,6 +502,7 @@ private fun RecorderWindowDialog(
             )
             Box(
                 modifier = Modifier
+                    .widthIn(max = 480.dp)
                     .fillMaxWidth()
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
@@ -518,7 +524,9 @@ private fun RecorderWindowDialog(
                     cornerRadius = 32.dp,
                 ) {
                     Column(
-                        modifier = Modifier.padding(vertical = 16.dp),
+                        modifier = Modifier
+                            .verticalScroll(rememberScrollState())
+                            .padding(vertical = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(14.dp),
                     ) {
                         Text(
@@ -587,15 +595,17 @@ private fun RecorderWindowDialog(
                                     insideMargin = itemInsideMargin,
                                     onCheckedChange = { motionPhoto = it },
                                 )
-                                OverlayDropdownPreference(
-                                    title = text.resolution,
-                                    summary = safeResolutions[resolutionIndex].first,
-                                    items = safeResolutions.map(Pair<String, String>::first),
-                                    selectedIndex = resolutionIndex,
-                                    insideMargin = itemInsideMargin,
-                                    renderInRootScaffold = true,
-                                    onSelectedIndexChange = { resolutionIndex = it },
-                                )
+                                if (!isLandscape) {
+                                    OverlayDropdownPreference(
+                                        title = text.resolution,
+                                        summary = safeResolutions[resolutionIndex].first,
+                                        items = safeResolutions.map(Pair<String, String>::first),
+                                        selectedIndex = resolutionIndex,
+                                        insideMargin = itemInsideMargin,
+                                        renderInRootScaffold = true,
+                                        onSelectedIndexChange = { resolutionIndex = it },
+                                    )
+                                }
                                 OverlayDropdownPreference(
                                     title = text.soundSource,
                                     summary = safeSounds[soundIndex].first,
@@ -605,12 +615,14 @@ private fun RecorderWindowDialog(
                                     renderInRootScaffold = true,
                                     onSelectedIndexChange = { soundIndex = it },
                                 )
-                                ArrowPreference(
-                                    title = text.moreSettings,
-                                    summary = text.moreSettingsSummary,
-                                    insideMargin = itemInsideMargin,
-                                    onClick = { closeAfterAnimation(onOpenSettings) },
-                                )
+                                if (!isLandscape) {
+                                    ArrowPreference(
+                                        title = text.moreSettings,
+                                        summary = text.moreSettingsSummary,
+                                        insideMargin = itemInsideMargin,
+                                        onClick = { closeAfterAnimation(onOpenSettings) },
+                                    )
+                                }
                             }
                             Row(
                                 modifier = Modifier
