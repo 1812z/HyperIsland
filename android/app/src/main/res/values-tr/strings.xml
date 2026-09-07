@@ -614,6 +614,8 @@
     <string name="clear_previous_notification_summary">Göndermeden önce mevcut ada bildirimini iptal et</string>
     <string name="enable_float_summary">Bildirim alındığında odak bildirimi olarak otomatik genişlet</string>
     <string name="cancel">İptal</string>
+    <string name="slider_input_value">Değer</string>
+    <string name="slider_input_range">%1$s ile %2$s arasında bir değer girin</string>
     <string name="confirm">Onayla</string>
     <string name="restart_scope">Etki Alanını Yeniden Başlat</string>
     <string name="restart_scope_summary">Kök aracılığıyla yeniden başlatmak için kapsamlı uygulamayı seçin.</string>

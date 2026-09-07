@@ -614,6 +614,8 @@
     <string name="clear_previous_notification_summary">送信前に既存の Island 通知をキャンセル</string>
     <string name="enable_float_summary">通知を受信時にフォーカス通知として自動展開</string>
     <string name="cancel">キャンセル</string>
+    <string name="slider_input_value">数値</string>
+    <string name="slider_input_range">%1$s～%2$s の範囲で入力してください</string>
     <string name="confirm">確認</string>
     <string name="restart_scope">スコープを再起動</string>
     <string name="restart_scope_summary">root 経由で再起動するスコープ指定されたアプリを選択します。</string>

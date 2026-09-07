@@ -174,9 +174,14 @@ private fun SamplingSlider(
     onValueChange: (Float) -> Unit,
     onReset: () -> Unit,
 ) {
+    var showInputDialog by remember { mutableStateOf(false) }
+
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { showInputDialog = true }
+                .padding(vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(text = title, modifier = Modifier.weight(1f))
@@ -195,6 +200,18 @@ private fun SamplingSlider(
             modifier = Modifier.fillMaxWidth(),
         )
     }
+    SliderValueInputDialog(
+        show = showInputDialog,
+        title = title,
+        value = value,
+        valueRange = range,
+        steps = steps,
+        onDismiss = { showInputDialog = false },
+        onSave = {
+            onValueChange(it)
+            showInputDialog = false
+        },
+    )
 }
 
 private const val DEFAULT_SAMPLING_FPS = 20

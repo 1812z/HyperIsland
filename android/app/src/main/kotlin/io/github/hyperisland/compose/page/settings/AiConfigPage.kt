@@ -26,8 +26,8 @@ import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.AiCustomFieldsDialog
 import io.github.hyperisland.compose.component.AiModelPickerDialog
 import io.github.hyperisland.compose.component.DetailPage
+import io.github.hyperisland.compose.component.PreferenceSlider
 import io.github.hyperisland.compose.component.SectionTitle
-import io.github.hyperisland.compose.component.SliderResetAction
 import io.github.hyperisland.compose.data.AiConfigSettings
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.service.AiConfigService
@@ -51,7 +51,6 @@ import top.yukonga.miuix.kmp.icon.extended.Hide
 import top.yukonga.miuix.kmp.icon.extended.Search
 import top.yukonga.miuix.kmp.icon.extended.Show
 import top.yukonga.miuix.kmp.preference.ArrowPreference
-import top.yukonga.miuix.kmp.preference.SliderPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import kotlin.math.roundToInt
@@ -310,36 +309,33 @@ internal fun AiConfigPage(
                     summary = stringResource(R.string.ai_prompt_in_user_summary),
                     insideMargin = ITEM_MARGIN,
                 )
-                SliderPreference(
+                PreferenceSlider(
                     value = draft.timeout.toFloat(),
                     onValueChange = {
                         draft = draft.copy(timeout = it.roundToInt().coerceIn(3, 15))
                     },
                     title = stringResource(R.string.ai_timeout),
+                    icon = null,
+                    valueText = stringResource(R.string.ai_timeout_value, draft.timeout),
                     valueRange = 3f..15f,
                     steps = 11,
-                    endActions = {
-                        SliderResetAction(
-                            valueText = stringResource(R.string.ai_timeout_value, draft.timeout),
-                            visible = draft.timeout != defaults.timeout,
-                            onClick = {
-                                persistImmediate { it.copy(timeout = defaults.timeout) }
-                            },
-                        )
+                    resetVisible = draft.timeout != defaults.timeout,
+                    onReset = {
+                        persistImmediate { it.copy(timeout = defaults.timeout) }
                     },
-                    insideMargin = ITEM_MARGIN,
                     onValueChangeFinished = {
                         val value = draft.timeout
                         persistImmediate { it.copy(timeout = value) }
                     },
                 )
-                SliderPreference(
+                PreferenceSlider(
                     value = draft.triggerCharCount.toFloat(),
                     onValueChange = {
                         val value = ((it / 5f).roundToInt() * 5).coerceIn(0, 100)
                         draft = draft.copy(triggerCharCount = value)
                     },
                     title = stringResource(R.string.ai_trigger_count),
+                    icon = null,
                     summary = stringResource(
                         if (draft.triggerCharCount == 0) {
                             R.string.ai_trigger_always
@@ -349,22 +345,17 @@ internal fun AiConfigPage(
                     ),
                     valueRange = 0f..100f,
                     steps = 19,
-                    endActions = {
-                        SliderResetAction(
-                            valueText = draft.triggerCharCount.toString(),
-                            visible = draft.triggerCharCount != defaults.triggerCharCount,
-                            onClick = {
-                                persistImmediate { it.copy(triggerCharCount = defaults.triggerCharCount) }
-                            },
-                        )
+                    valueText = draft.triggerCharCount.toString(),
+                    resetVisible = draft.triggerCharCount != defaults.triggerCharCount,
+                    onReset = {
+                        persistImmediate { it.copy(triggerCharCount = defaults.triggerCharCount) }
                     },
-                    insideMargin = ITEM_MARGIN,
                     onValueChangeFinished = {
                         val value = draft.triggerCharCount
                         persistImmediate { it.copy(triggerCharCount = value) }
                     },
                 )
-                SliderPreference(
+                PreferenceSlider(
                     value = draft.temperature.toFloat(),
                     onValueChange = {
                         draft = draft.copy(
@@ -372,43 +363,35 @@ internal fun AiConfigPage(
                         )
                     },
                     title = stringResource(R.string.ai_temperature),
+                    icon = null,
                     summary = stringResource(R.string.ai_temperature_summary),
                     valueRange = 0f..1f,
                     steps = 9,
-                    endActions = {
-                        SliderResetAction(
-                            valueText = "%.1f".format(draft.temperature),
-                            visible = draft.temperature != defaults.temperature,
-                            onClick = {
-                                persistImmediate { it.copy(temperature = defaults.temperature) }
-                            },
-                        )
+                    valueText = "%.1f".format(draft.temperature),
+                    resetVisible = draft.temperature != defaults.temperature,
+                    onReset = {
+                        persistImmediate { it.copy(temperature = defaults.temperature) }
                     },
-                    insideMargin = ITEM_MARGIN,
                     onValueChangeFinished = {
                         val value = draft.temperature
                         persistImmediate { it.copy(temperature = value) }
                     },
                 )
-                SliderPreference(
+                PreferenceSlider(
                     value = draft.maxTokens.toFloat(),
                     onValueChange = {
                         draft = draft.copy(maxTokens = it.roundToInt().coerceIn(20, 100))
                     },
                     title = stringResource(R.string.ai_max_tokens),
+                    icon = null,
                     summary = stringResource(R.string.ai_max_tokens_summary),
                     valueRange = 20f..100f,
                     steps = 79,
-                    endActions = {
-                        SliderResetAction(
-                            valueText = draft.maxTokens.toString(),
-                            visible = draft.maxTokens != defaults.maxTokens,
-                            onClick = {
-                                persistImmediate { it.copy(maxTokens = defaults.maxTokens) }
-                            },
-                        )
+                    valueText = draft.maxTokens.toString(),
+                    resetVisible = draft.maxTokens != defaults.maxTokens,
+                    onReset = {
+                        persistImmediate { it.copy(maxTokens = defaults.maxTokens) }
                     },
-                    insideMargin = ITEM_MARGIN,
                     onValueChangeFinished = {
                         val value = draft.maxTokens
                         persistImmediate { it.copy(maxTokens = value) }

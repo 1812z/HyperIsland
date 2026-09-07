@@ -614,6 +614,8 @@
     <string name="clear_previous_notification_summary">Отменить существующее уведомление острова перед отправкой</string>
     <string name="enable_float_summary">Автоматически разворачивать как уведомление в фокусе при получении</string>
     <string name="cancel">Отмена</string>
+    <string name="slider_input_value">Значение</string>
+    <string name="slider_input_range">Введите значение от %1$s до %2$s</string>
     <string name="confirm">Подтвердить</string>
     <string name="restart_scope">Перезапустить область</string>
     <string name="restart_scope_summary">Выберите приложение с заданной областью для перезапуска через root.</string>

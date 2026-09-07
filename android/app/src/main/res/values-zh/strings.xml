@@ -643,6 +643,8 @@
     <string name="clear_previous_notification_summary">发送前先取消已有的超级岛通知</string>
     <string name="enable_float_summary">收到通知后自动展开为焦点通知</string>
     <string name="cancel">取消</string>
+    <string name="slider_input_value">数值</string>
+    <string name="slider_input_range">请输入 %1$s 到 %2$s 之间的数值</string>
     <string name="confirm">确认</string>
     <string name="restart_scope">重启作用域</string>
     <string name="restart_scope_summary">选择要通过 root 重启的作用域应用。</string>

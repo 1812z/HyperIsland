@@ -637,6 +637,8 @@
     <string name="clear_previous_notification_summary">Cancel existing island notification before sending</string>
     <string name="enable_float_summary">Automatically expand as focus notification when received</string>
     <string name="cancel">Cancel</string>
+    <string name="slider_input_value">Value</string>
+    <string name="slider_input_range">Enter a value from %1$s to %2$s</string>
     <string name="confirm">Confirm</string>
     <string name="restart_scope">Restart Scope</string>
     <string name="restart_scope_summary">Select the scoped app to restart via root.</string>
