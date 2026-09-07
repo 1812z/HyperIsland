@@ -782,6 +782,8 @@
     <string name="onboarding_focus_wait">次へ (%1$d 秒)</string>
     <string name="onboarding_focus_notification">フォーカス通知</string>
     <string name="onboarding_normal_notification">通常通知</string>
+    <string name="onboarding_focus_notification_warning">• 通知が占めるスペースが増えます\n• 複数の通知をまとめて表示できません\n• クイック返信機能を使用できません</string>
+    <string name="onboarding_normal_notification_warning">• スーパーアイランドのプルダウン小ウィンドウがちらつくことがあります\n• フォーカス通知のカスタマイズを使用できません</string>
     <string name="onboarding_lsposed_failed">LSPosed アクティベーションが検出されませんでした</string>
     <string name="onboarding_root_failed">root権限が付与されていません</string>
     <string name="onboarding_app_list_failed">アプリリストの権限が付与されていません</string>

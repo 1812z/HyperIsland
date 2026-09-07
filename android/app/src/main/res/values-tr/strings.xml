@@ -782,6 +782,8 @@
     <string name="onboarding_focus_wait">Sonraki (%1$d saniye)</string>
     <string name="onboarding_focus_notification">Odak bildirimi</string>
     <string name="onboarding_normal_notification">Normal bildirim</string>
+    <string name="onboarding_focus_notification_warning">• Bildirimler daha fazla yer kaplar\n• Birden fazla bildirim gruplanamaz\n• Hızlı yanıt özelliği kullanılamaz</string>
+    <string name="onboarding_normal_notification_warning">• Süper Ada aşağı çekilirken küçük pencere titreyebilir\n• Odak bildirimi özelleştirmesi kullanılamaz</string>
     <string name="onboarding_lsposed_failed">LSPosed aktivasyonu algılanmadı</string>
     <string name="onboarding_root_failed">Kök izni verilmedi</string>
     <string name="onboarding_app_list_failed">Uygulama listesi izni verilmedi</string>

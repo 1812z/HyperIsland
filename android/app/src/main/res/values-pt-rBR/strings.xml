@@ -661,6 +661,8 @@
     <string name="onboarding_lsposed_failed">Módulo não ativado no LSPosed</string>
     <string name="onboarding_next">Próximo</string>
     <string name="onboarding_normal_notification">Notificação normal</string>
+    <string name="onboarding_focus_notification_warning">• As notificações ocuparão mais espaço\n• Não será possível agrupar várias notificações\n• As respostas rápidas não estarão disponíveis</string>
+    <string name="onboarding_normal_notification_warning">• A janela flutuante da Super Ilha pode piscar ao deslizar para baixo\n• A personalização das notificações de foco não estará disponível</string>
     <string name="onboarding_previous">Anterior</string>
     <string name="onboarding_protocol">Versão do protocolo do sistema</string>
     <string name="onboarding_protocol_failed">A versão do protocolo não atende aos requisitos (versão atual é %1$d)</string>

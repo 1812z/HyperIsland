@@ -807,6 +807,8 @@
     <string name="onboarding_focus_wait">Next (%1$d seconds)</string>
     <string name="onboarding_focus_notification">Focus notification</string>
     <string name="onboarding_normal_notification">Normal notification</string>
+    <string name="onboarding_focus_notification_warning">• Notifications take up more space\n• Multiple notifications cannot be grouped\n• Quick replies are unavailable</string>
+    <string name="onboarding_normal_notification_warning">• The Super Island pull-down window may flicker\n• Focus notification customization is unavailable</string>
     <string name="onboarding_lsposed_failed">LSPosed activation not detected</string>
     <string name="onboarding_root_failed">Root permission not granted</string>
     <string name="onboarding_app_list_failed">App list permission not granted</string>

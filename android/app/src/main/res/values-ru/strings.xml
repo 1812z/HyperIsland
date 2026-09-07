@@ -782,6 +782,8 @@
     <string name="onboarding_focus_wait">Далее (%1$d секунд)</string>
     <string name="onboarding_focus_notification">Фокус-уведомление</string>
     <string name="onboarding_normal_notification">Обычное уведомление</string>
+    <string name="onboarding_focus_notification_warning">• Уведомления будут занимать больше места\n• Несколько уведомлений нельзя будет объединить\n• Быстрые ответы будут недоступны</string>
+    <string name="onboarding_normal_notification_warning">• Выпадающее мини-окно Суперострова может мерцать\n• Настройка фокус-уведомлений будет недоступна</string>
     <string name="onboarding_lsposed_failed">Активация LSPosed не обнаружена</string>
     <string name="onboarding_root_failed">Root-права не предоставлены</string>
     <string name="onboarding_app_list_failed">Разрешение на список приложений не предоставлено</string>

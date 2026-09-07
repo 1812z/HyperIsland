@@ -813,6 +813,8 @@
     <string name="onboarding_focus_wait">下一步 (%1$d秒)</string>
     <string name="onboarding_focus_notification">焦点通知</string>
     <string name="onboarding_normal_notification">普通通知</string>
+    <string name="onboarding_focus_notification_warning">• 通知占用空间会增加\n• 多条通知无法聚合显示\n• 无法实现快捷回复功能</string>
+    <string name="onboarding_normal_notification_warning">• 超级岛下拉小窗会闪烁\n• 无法使用焦点通知自定义</string>
     <string name="onboarding_lsposed_failed">未检测到 LSPosed 激活状态</string>
     <string name="onboarding_root_failed">未授予 Root 权限</string>
     <string name="onboarding_app_list_failed">未授予应用列表权限</string>

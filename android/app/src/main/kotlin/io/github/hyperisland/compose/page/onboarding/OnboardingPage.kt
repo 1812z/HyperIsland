@@ -7,6 +7,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -38,7 +39,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -52,11 +55,13 @@ import io.github.hyperisland.R
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.service.OnboardingService
 import io.github.hyperisland.compose.service.OnboardingStatus
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -103,6 +108,7 @@ internal fun OnboardingPage(
     var unlockAllFocus by remember { mutableStateOf(prefs.getBoolean(KEY_UNLOCK_ALL_FOCUS, false)) }
     var unlockFocusAuth by remember { mutableStateOf(prefs.getBoolean(KEY_UNLOCK_FOCUS_AUTH, false)) }
     var enablingUnlock by remember { mutableStateOf(false) }
+    var notificationStyleWaitSeconds by remember { mutableStateOf(0) }
 
     fun checkEnvironment(onResult: ((OnboardingStatus) -> Unit)? = null) {
         if (checking) return
@@ -131,6 +137,15 @@ internal fun OnboardingPage(
 
     LaunchedEffect(Unit) { checkEnvironment() }
     LaunchedEffect(pagerState.currentPage) {
+        notificationStyleWaitSeconds = if (pagerState.currentPage == NOTIFICATION_STYLE_STEP) {
+            NOTIFICATION_STYLE_WAIT_SECONDS
+        } else {
+            0
+        }
+        while (notificationStyleWaitSeconds > 0) {
+            delay(1_000)
+            notificationStyleWaitSeconds--
+        }
         if (pagerState.currentPage == ENVIRONMENT_STEP &&
             service.supportsMiuiAppListPermission() &&
             !service.hasAppListPermission()
@@ -221,7 +236,8 @@ internal fun OnboardingPage(
                 }
                 OnboardingControls(
                     currentPage = pagerState.currentPage,
-                    nextEnabled = !checking,
+                    nextEnabled = !checking && notificationStyleWaitSeconds == 0,
+                    nextWaitSeconds = notificationStyleWaitSeconds,
                     onPrevious = { goToPage(pagerState.currentPage - 1) },
                     onNext = {
                         when (pagerState.currentPage) {
@@ -546,6 +562,18 @@ private fun NotificationStylePanel(
     defaultFocusNotification: Boolean,
     onChanged: (Boolean) -> Unit,
 ) {
+    val isLightTheme = MiuixTheme.colorScheme.background.luminance() > 0.5f
+    val warningColors = if (isLightTheme) {
+        CardDefaults.defaultColors(
+            color = Color(0xFFFFF3D6),
+            contentColor = Color(0xFF704D00),
+        )
+    } else {
+        CardDefaults.defaultColors(
+            color = Color(0xFF3A2D12),
+            contentColor = Color(0xFFFFD978),
+        )
+    }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         NotificationStyleCard(
             title = stringResource(R.string.onboarding_focus_notification),
@@ -559,6 +587,22 @@ private fun NotificationStylePanel(
             selected = !defaultFocusNotification,
             onClick = { onChanged(false) },
         )
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = warningColors,
+        ) {
+            Text(
+                text = stringResource(
+                    if (defaultFocusNotification) {
+                        R.string.onboarding_focus_notification_warning
+                    } else {
+                        R.string.onboarding_normal_notification_warning
+                    },
+                ),
+                modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+                style = MiuixTheme.textStyles.body2,
+            )
+        }
     }
 }
 
@@ -570,6 +614,7 @@ private fun NotificationStyleCard(
     onClick: () -> Unit,
 ) {
     val context = LocalContext.current
+    val previewShape = RoundedCornerShape(16.dp)
     val preview = remember(assetPath) {
         runCatching {
             context.assets.open(assetPath).use(BitmapFactory::decodeStream).asImageBitmap()
@@ -590,7 +635,12 @@ private fun NotificationStyleCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(start = 12.dp, end = 12.dp, bottom = 12.dp)
-                    .clip(RoundedCornerShape(16.dp))
+                    .border(
+                        width = 1.dp,
+                        color = MiuixTheme.colorScheme.dividerLine,
+                        shape = previewShape,
+                    )
+                    .clip(previewShape)
                     .aspectRatio(it.width.toFloat() / it.height.toFloat()),
             )
         }
@@ -601,6 +651,7 @@ private fun NotificationStyleCard(
 private fun OnboardingControls(
     currentPage: Int,
     nextEnabled: Boolean,
+    nextWaitSeconds: Int,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
 ) {
@@ -624,10 +675,14 @@ private fun OnboardingControls(
             colors = ButtonDefaults.buttonColorsPrimary(),
         ) {
             Text(
-                stringResource(
-                    if (currentPage == STEP_COUNT - 1) R.string.onboarding_done
-                    else R.string.onboarding_next,
-                ),
+                if (nextWaitSeconds > 0) {
+                    stringResource(R.string.onboarding_focus_wait, nextWaitSeconds)
+                } else {
+                    stringResource(
+                        if (currentPage == STEP_COUNT - 1) R.string.onboarding_done
+                        else R.string.onboarding_next,
+                    )
+                },
             )
         }
     }
@@ -739,6 +794,7 @@ private const val STEP_COUNT = 5
 private const val ENVIRONMENT_STEP = 1
 private const val FOCUS_UNLOCK_STEP = 2
 private const val NOTIFICATION_STYLE_STEP = 3
+private const val NOTIFICATION_STYLE_WAIT_SECONDS = 3
 private const val KEY_ONBOARDING_COMPLETED = "pref_onboarding_completed"
 private const val KEY_DEFAULT_FOCUS_NOTIFICATION = "pref_default_focus_notif"
 private const val KEY_UNLOCK_ALL_FOCUS = "pref_unlock_all_focus"

@@ -672,6 +672,8 @@
     <string name="onboarding_lsposed_failed">تفعيل LSPosed مش متأكد منه</string>
     <string name="onboarding_next">التالي</string>
     <string name="onboarding_normal_notification">إشعار عادي</string>
+    <string name="onboarding_focus_notification_warning">• ستشغل الإشعارات مساحة أكبر\n• لا يمكن تجميع إشعارات متعددة\n• لن تتوفر ميزة الرد السريع</string>
+    <string name="onboarding_normal_notification_warning">• قد تومض نافذة الجزيرة الفائقة الصغيرة عند السحب لأسفل\n• لن يتوفر تخصيص إشعارات التركيز</string>
     <string name="onboarding_previous">السابق</string>
     <string name="onboarding_protocol">إصدار بروتوكول النظام</string>
     <string name="onboarding_protocol_failed">إصدار بروتوكول النظام مش مطابق للمطلوب، الإصدار الحالي %1$d</string>
