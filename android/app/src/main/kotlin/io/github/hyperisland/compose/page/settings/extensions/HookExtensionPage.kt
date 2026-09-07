@@ -74,6 +74,7 @@ internal fun HookExtensionPage(
     val smoothingState = remember(KEY_SMOOTHING) { mutableFloatStateOf(prefs.getDouble(KEY_SMOOTHING, DEFAULT_SMOOTHING).toFloat()) }
     val unlockAll = rememberBooleanPreference(prefs, KEY_UNLOCK_ALL_FOCUS, false)
     val bluetooth = rememberBooleanPreference(prefs, KEY_BLUETOOTH_ISLAND, false)
+    val heartRate = rememberBooleanPreference(prefs, KEY_HEART_RATE_ISLAND, false)
     val charge = rememberBooleanPreference(prefs, KEY_CHARGE_ISLAND, false)
     val faceUnlock = rememberBooleanPreference(prefs, KEY_FACE_UNLOCK_ISLAND, false)
     val hideFaceIcon = rememberBooleanPreference(prefs, KEY_HIDE_FACE_UNLOCK_ICON, false)
@@ -264,6 +265,18 @@ internal fun HookExtensionPage(
                     ),
                     endIcon = MiuixIcons.ChevronForward,
                 ) { onOpenDetail(HookExtensionDetail.Bluetooth) }
+            }
+        }
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                SettingsAction(
+                    title = stringResource(R.string.heart_rate_island),
+                    summary = stringResource(
+                        R.string.ext_heart_rate_summary,
+                        if (heartRate.value) enabledText else disabledText,
+                    ),
+                    endIcon = MiuixIcons.ChevronForward,
+                ) { onOpenDetail(HookExtensionDetail.HeartRate) }
             }
         }
         item {

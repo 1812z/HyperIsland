@@ -18,6 +18,11 @@ internal const val KEY_BLUETOOTH_OUTER_GLOW = "pref_bluetooth_island_outer_glow"
 internal const val KEY_BLUETOOTH_OUTER_GLOW_COLOR = "pref_bluetooth_island_outer_glow_color"
 internal const val KEY_BLUETOOTH_WHITELIST_ENABLED = "pref_bluetooth_island_whitelist_enabled"
 internal const val KEY_BLUETOOTH_WHITELIST_ADDRESSES = "pref_bluetooth_island_whitelist_addresses"
+internal const val KEY_HEART_RATE_ISLAND = "pref_heart_rate_island"
+internal const val KEY_HEART_RATE_READ_MODE = "pref_heart_rate_island_read_mode"
+internal const val KEY_HEART_RATE_DEVICE_ADDRESS = "pref_heart_rate_island_device_address"
+internal const val KEY_HEART_RATE_DEVICE_NAME = "pref_heart_rate_island_device_name"
+internal const val KEY_HEART_RATE_SHOW_UNIT = "pref_heart_rate_island_show_unit"
 internal const val KEY_SMOOTH_ISLAND = "pref_smooth_island"
 internal const val KEY_SMOOTHING = "pref_smooth_island_smoothing"
 internal const val KEY_SMALL_ICON_ADJUSTMENT = "pref_small_island_icon_adjustment"
@@ -52,10 +57,11 @@ internal const val MODE_TEMPERATURE = "temperature"
 internal const val DURATION_CUSTOM = "custom"
 internal const val DURATION_PERSISTENT = "persistent"
 internal const val ANIMATION_LOCK = "lock"
+internal const val HEART_RATE_READ_MODE_BROADCAST = "heart_rate_broadcast"
 
 internal const val DEFAULT_SMOOTHING = 0.8
 internal const val DEFAULT_ICON_OPACITY = 0.5
 internal const val DEFAULT_BLUETOOTH_DURATION = 2L
 internal const val DEFAULT_CHARGE_DURATION = 10L
 
-internal enum class HookExtensionDetail { Bluetooth, Charge, FaceUnlock }
+internal enum class HookExtensionDetail { Bluetooth, HeartRate, Charge, FaceUnlock }

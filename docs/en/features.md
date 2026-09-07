@@ -12,7 +12,7 @@ HyperIsland brings regular notifications, toasts, downloads, and screen-recordin
 | [Appearance & Materials](#appearance-materials) | Highlight colors, backgrounds, blur, glass materials | Create a consistent visual style |
 | [Filters & Context Rules](#filters-context-rules) | Keywords, DND, fullscreen, and landscape rules | Reduce unwanted alerts and interruptions |
 | [Advanced Text Expressions](#advanced-text-expressions) | Placeholders, regex extraction, replacement | Clean up or rebuild notification text |
-| [Hook Extensions](#hook-extensions) | Download Manager and Screen Recording Island | Enhance supported system components |
+| [Hook Extensions](#hook-extensions) | Download Manager, Screen Recording Island, and Heart Rate Island | Enhance supported system components and Bluetooth devices |
 | [Focus Notification Bypass](#focus-notification-bypass) | Remove system allowlist restrictions | Enable Focus Notifications for more apps |
 
 ::: tip Recommended setup order
@@ -158,9 +158,13 @@ If an expression fails, test a single variable such as `${title}` first, then ad
 
 ## Hook Extensions
 
+### Heart Rate Island
+
+Enable **Heart rate broadcast** on the wearable first. Then open **Settings → Hook extensions → Heart Rate Island**, choose **Heart rate broadcast**, and scan for a nearby endpoint advertising the standard BLE Heart Rate Service. Do not select the wearable's ordinary paired endpoint, which may expose only notification, call, or HID services. System UI connects to the scanned endpoint and updates the island from measurement events at most once per second. On disconnect, the island is cleared and the system Bluetooth stack waits for the device to reappear before reconnecting, avoiding fixed-interval polling.
+
 ### Download Manager
 
-Intercept HyperOS Download Manager notifications to show the filename and progress in Super Island, with **Pause, Resume, and Cancel** actions. The resume notification remains visible while paused, is replaced by the running notification after resuming, and is fully removed when the task is canceled or deleted. **Show task icon** is enabled by default and prefers the task icon when one is available.
+Intercept HyperOS Download Manager notifications to show the filename and progress in Super Island, with **Pause, Resume, and Cancel** actions. The resume notification remains only while all visible tasks are paused. Once any task resumes, the running notification replaces the paused summary so a stale second notification is not retained. Canceled or deleted tasks are fully removed. **Show task icon** is enabled by default and applies only when exactly one download is active. Multiple active downloads keep the system's single aggregate notification without a task icon. Completed, canceled, deleted, and manually paused rows in the task list are not counted as active downloads.
 
 Download Island is disabled by default. Enable **Show system apps**, select **Download Manager** in App Adaptation, then enable its Hook extension.
 

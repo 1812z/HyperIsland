@@ -95,6 +95,7 @@ import io.github.hyperisland.compose.page.settings.ThemeSettingsPage
 import io.github.hyperisland.compose.page.settings.extensions.BluetoothIslandPage
 import io.github.hyperisland.compose.page.settings.extensions.ChargeIslandPage
 import io.github.hyperisland.compose.page.settings.extensions.FaceUnlockIslandPage
+import io.github.hyperisland.compose.page.settings.extensions.HeartRateIslandPage
 import io.github.hyperisland.compose.page.settings.extensions.HookExtensionDetail
 import io.github.hyperisland.compose.page.settings.extensions.HookExtensionPage
 import io.github.hyperisland.compose.service.UpdateService
@@ -757,6 +758,10 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                 ) {
                     when (extensionDetail) {
                         HookExtensionDetail.Bluetooth -> BluetoothIslandPage(
+                            prefs = prefs,
+                            onBack = { extensionDetail = null },
+                        )
+                        HookExtensionDetail.HeartRate -> HeartRateIslandPage(
                             prefs = prefs,
                             onBack = { extensionDetail = null },
                         )
