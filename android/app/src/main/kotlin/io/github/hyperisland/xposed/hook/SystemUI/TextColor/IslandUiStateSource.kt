@@ -2,7 +2,7 @@ package io.github.hyperisland.xposed.hook
 
 import android.graphics.Color
 import android.os.Bundle
-import android.util.Log
+import io.github.hyperisland.xposed.logError
 import io.github.libxposed.api.XposedModule
 import java.lang.reflect.Method
 import java.util.Collections
@@ -69,7 +69,7 @@ internal object IslandUiStateSource {
                 }
             }.onFailure { error ->
                 if (error !is ClassNotFoundException) {
-                    log(module, "discovery hook failed: ${error.message}", Log.ERROR)
+                    module.logError("$TAG: discovery hook failed: ${error.message}")
                 }
             }
         }
@@ -85,10 +85,10 @@ internal object IslandUiStateSource {
                 (chain.args.firstOrNull() as? Bundle)?.let(::handleIslandAction)
                 chain.proceed()
             }
-            log(module, "hooked ${method.declaringClass.name}#handleDynamicIsland")
+            // log(module, "hooked ${method.declaringClass.name}#handleDynamicIsland")
         }.onFailure { error ->
             hookedContentMethods.remove(method)
-            log(module, "content hook failed: ${error.message}", Log.ERROR)
+            module.logError("$TAG: content hook failed: ${error.message}")
         }
     }
 
@@ -164,7 +164,7 @@ internal object IslandUiStateSource {
             }
         }.onFailure { error ->
             if (error !is ClassNotFoundException) {
-                log(module, "animation hook failed: ${error.message}", Log.ERROR)
+                module.logError("$TAG: animation hook failed: ${error.message}")
             }
         }
     }
@@ -188,17 +188,13 @@ internal object IslandUiStateSource {
                 }
         }.onFailure { error ->
             if (error !is ClassNotFoundException) {
-                log(module, "panel fallback failed: ${error.message}", Log.ERROR)
+                module.logError("$TAG: panel fallback failed: ${error.message}")
             }
         }
     }
 
     private fun notifyStateChanged() {
         stateListeners.forEach { listener -> runCatching(listener) }
-    }
-
-    private fun log(module: XposedModule, message: String, priority: Int = Log.DEBUG) {
-        module.log(priority, "HyperIsland[IslandUiState]", message)
     }
 
     private val CONTENT_DISCOVERY_CLASSES = arrayOf(
@@ -212,6 +208,7 @@ internal object IslandUiStateSource {
         "miui.systemui.dynamicisland.event.DynamicIslandEventCoordinator"
     private const val ISLAND_WINDOW_VIEW_CONTROLLER_CLASS =
         "miui.systemui.dynamicisland.window.DynamicIslandWindowViewController"
+    private const val TAG = "HyperIsland[IslandUiState]"
 
     private const val ACTION_KEY = "action_key"
     private const val ACTION_UPDATE_LIGHT = "action_update_light"
