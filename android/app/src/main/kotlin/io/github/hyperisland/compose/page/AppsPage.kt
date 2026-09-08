@@ -106,6 +106,26 @@ internal fun AppsPage(
     var selectionMode by remember { mutableStateOf(false) }
     var selectedPackages by remember { mutableStateOf(emptySet<String>()) }
     var configRevision by remember { mutableIntStateOf(0) }
+    // Keep enabled-first ordering stable while switches are changed; refresh replaces these snapshots.
+    var notificationSortEnabledPackages by remember {
+        mutableStateOf(prefs.enabledPackages())
+    }
+    var toastSortEnabledPackages by remember {
+        mutableStateOf(
+            allApps.asSequence()
+                .filter { prefs.isToastEnabled(it.packageName) }
+                .map { it.packageName }
+                .toSet(),
+        )
+    }
+
+    fun updateSortSnapshots(apps: List<InstalledApp>) {
+        notificationSortEnabledPackages = prefs.enabledPackages()
+        toastSortEnabledPackages = apps.asSequence()
+            .filter { prefs.isToastEnabled(it.packageName) }
+            .map { it.packageName }
+            .toSet()
+    }
 
     fun loadApps(forceRefresh: Boolean) {
         scope.launch {
@@ -114,7 +134,10 @@ internal fun AppsPage(
                 val loadedApps = withContext(Dispatchers.IO) {
                     runCatching { appsRepository.load(forceRefresh) }.getOrNull()
                 }
-                if (loadedApps != null) allApps = loadedApps
+                if (loadedApps != null) {
+                    allApps = loadedApps
+                    updateSortSnapshots(loadedApps)
+                }
             } finally {
                 initialLoading = false
                 refreshing = false
@@ -151,6 +174,11 @@ internal fun AppsPage(
         allApps.asSequence().filter { prefs.isToastEnabled(it.packageName) }.map { it.packageName }.toSet()
     }
     val activeEnabledPackages = if (selectedMode == 0) enabledPackages else toastEnabledPackages
+    val sortEnabledPackages = if (selectedMode == 0) {
+        notificationSortEnabledPackages
+    } else {
+        toastSortEnabledPackages
+    }
     val filteredApps = remember(
         allApps,
         query,
@@ -160,6 +188,7 @@ internal fun AppsPage(
         showSystemApps,
         selectedMode,
         configRevision,
+        sortEnabledPackages,
     ) {
         val normalizedQuery = query.trim().lowercase()
         allApps.asSequence()
@@ -173,7 +202,7 @@ internal fun AppsPage(
                     it.packageName.lowercase().contains(normalizedQuery)
             }
             .sortedWith(compareByDescending<InstalledApp> {
-                it.packageName in activeEnabledPackages
+                it.packageName in sortEnabledPackages
             }.thenBy { it.appName.lowercase() })
             .toList()
     }
