@@ -493,8 +493,9 @@ object FocusNotificationTextColorHook : BaseHook() {
         }
 
         val text = textView.text as? Spanned
+        val classLoader = textView.javaClass.classLoader ?: return
         val spanClass = runCatching {
-            textView.javaClass.classLoader.loadClass(
+            classLoader.loadClass(
                 "miuix.colorful.texteffect.TimerTextEffectSpan"
             )
         }.getOrNull()

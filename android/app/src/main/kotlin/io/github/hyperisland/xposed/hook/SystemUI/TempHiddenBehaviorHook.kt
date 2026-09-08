@@ -107,7 +107,7 @@ object TempHiddenBehaviorHook : BaseHook() {
             .filter { it.name == methodName && it.parameterCount == 1 && it.parameterTypes[0] == Boolean::class.javaPrimitiveType }
             .forEach { method ->
                 module.hook(method).intercept { chain ->
-                    if (invokingWithFilteredArgs.get()) return@intercept chain.proceed()
+                    if (invokingWithFilteredArgs.get() == true) return@intercept chain.proceed()
                     val original = chain.args.getOrNull(0)
                     val blocked = original == true && !behavior.enabled()
                     log(
@@ -133,7 +133,7 @@ object TempHiddenBehaviorHook : BaseHook() {
             .filter { it.name == "statusBarAppearance" && it.parameterCount == 1 && it.parameterTypes[0] == Boolean::class.javaPrimitiveType }
             .forEach { method ->
                 module.hook(method).intercept { chain ->
-                    if (invokingWithFilteredArgs.get()) return@intercept chain.proceed()
+                    if (invokingWithFilteredArgs.get() == true) return@intercept chain.proceed()
                     val original = chain.args.getOrNull(0) as? Boolean
                     val fullscreenEnabled = HideBehavior.FULLSCREEN.enabled()
                     val landscapeDisable = ConfigManager.getBoolean(
@@ -168,7 +168,7 @@ object TempHiddenBehaviorHook : BaseHook() {
             }
             .forEach { method ->
                 module.hook(method).intercept { chain ->
-                    if (invokingWithFilteredArgs.get()) return@intercept chain.proceed()
+                    if (invokingWithFilteredArgs.get() == true) return@intercept chain.proceed()
                     val expandHeight = chain.args.getOrNull(0) as? Float
                     val expandThresh = chain.args.getOrNull(1) as? Float
                     val blocked = expandHeight != null && expandHeight > 0f && !HideBehavior.NOTIFICATION_CENTER.enabled()
@@ -192,7 +192,7 @@ object TempHiddenBehaviorHook : BaseHook() {
             .filter { it.name == "commandQueueDisable" && it.parameterCount == 1 && it.parameterTypes[0] == Int::class.javaPrimitiveType }
             .forEach { method ->
                 module.hook(method).intercept { chain ->
-                    if (invokingWithFilteredArgs.get()) return@intercept chain.proceed()
+                    if (invokingWithFilteredArgs.get() == true) return@intercept chain.proceed()
                     val original = chain.args.getOrNull(0) as? Int
                     val notificationIconsDisabled = original != null && (original and 0x200000) != 0
                     val blocked = notificationIconsDisabled && !HideBehavior.NOTIFICATION_CENTER.enabled()

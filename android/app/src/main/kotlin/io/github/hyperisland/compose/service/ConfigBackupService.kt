@@ -42,10 +42,11 @@ internal object ConfigBackupService {
             if (!key.startsWith("pref_") || !validPackageConfig(key, settings.opt(key))) {
                 throw InvalidConfigException()
             }
-            when (val value = settings.opt(key)) {
-                is Boolean, is String, is Number -> values[key] = value
-                JSONObject.NULL -> Unit
-                else -> throw InvalidConfigException()
+            val value = settings.opt(key)
+            if (value is Boolean || value is String || value is Number) {
+                values[key] = value
+            } else if (value != null && value !== JSONObject.NULL) {
+                throw InvalidConfigException()
             }
         }
         root.optString("appVersion").trim().takeIf(String::isNotEmpty)?.let { appVersion ->

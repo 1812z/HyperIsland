@@ -177,7 +177,7 @@ object KeyguardUnlockStateHook : BaseHook() {
         }
         method.isAccessible = true
         module.hook(method).intercept { chain ->
-            val context = HookUtils.getContext(clazz.classLoader)
+            val context = clazz.classLoader?.let(HookUtils::getContext)
             if (before) context?.let { callback(it, chain.args) }
             val result = chain.proceed()
             if (!before) context?.let { callback(it, chain.args) }

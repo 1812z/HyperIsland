@@ -556,8 +556,9 @@ object MediaNotificationTextColorHook : BaseHook() {
         }
 
         val text = textView.text as? Spanned
+        val classLoader = textView.javaClass.classLoader ?: return
         val spanClass = runCatching {
-            textView.javaClass.classLoader.loadClass("miuix.colorful.texteffect.TimerTextEffectSpan")
+            classLoader.loadClass("miuix.colorful.texteffect.TimerTextEffectSpan")
         }.getOrNull()
         val appearanceMethod = spanClass?.methods?.firstOrNull { method ->
             method.name == "setOldTextAppearance" && method.parameterTypes.size == 2

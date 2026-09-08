@@ -219,8 +219,9 @@ object IslandTextColorHook : BaseHook() {
         textView.javaClass.methods.firstOrNull { method ->
             method.name == "updateTextWithNewAppearance" && method.parameterTypes.size == 2
         } ?: return null
+        val classLoader = textView.javaClass.classLoader ?: return null
         val spanClass = runCatching {
-            textView.javaClass.classLoader.loadClass(
+            classLoader.loadClass(
                 "miuix.colorful.texteffect.TimerTextEffectSpan"
             )
         }.getOrNull() ?: return null

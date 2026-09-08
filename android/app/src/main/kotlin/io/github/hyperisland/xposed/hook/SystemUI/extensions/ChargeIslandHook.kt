@@ -300,7 +300,7 @@ object ChargeIslandHook : BaseHook() {
         if (newGlowEffect == glowEffect) return model
         val currentLeft = accessors.getLeft.invoke(model)
         val currentRight = accessors.getRight.invoke(model)
-        return accessors.copy.invoke(model, currentLeft, currentRight, newGlowEffect)
+        return accessors.copy.invoke(model, *arrayOf(currentLeft, currentRight, newGlowEffect)) ?: model
     }
 
     private fun copySideText(model: Any, left: Boolean, pattern: Regex, replacement: String): Any {
@@ -327,10 +327,12 @@ object ChargeIslandHook : BaseHook() {
         val glowEffect = accessors.getGlowEffect.invoke(model)
         return accessors.copy.invoke(
             model,
-            if (left) newSide else currentLeft,
-            if (left) currentRight else newSide,
-            glowEffect,
-        )
+            *arrayOf(
+                if (left) newSide else currentLeft,
+                if (left) currentRight else newSide,
+                glowEffect,
+            ),
+        ) ?: model
     }
 
     private fun updateChargeViews(module: XposedModule? = null) {

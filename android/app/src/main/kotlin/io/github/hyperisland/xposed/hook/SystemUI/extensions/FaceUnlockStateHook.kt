@@ -369,13 +369,13 @@ object FaceUnlockStateHook : BaseHook() {
 
     private fun dispatch(
         module: XposedModule,
-        classLoader: ClassLoader,
+        classLoader: ClassLoader?,
         state: FaceUnlockFocusController.FaceState,
         source: String,
         runningStopped: Boolean = false,
         authenticationActivity: Boolean = false,
     ) {
-        val context: Context = HookUtils.getContext(classLoader) ?: return
+        val context: Context = classLoader?.let(HookUtils::getContext) ?: return
         log(module, "face state=$state source=$source")
         if (authenticationActivity) {
             FaceUnlockFocusController.onFaceAuthenticationActivity(context)
