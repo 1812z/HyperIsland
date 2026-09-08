@@ -190,6 +190,18 @@ internal fun IslandMaterialPage(
                                 }
                             },
                         )
+                        TabRow(
+                            tabs = listOf(
+                                stringResource(R.string.material_big_tab),
+                                stringResource(R.string.material_small_tab),
+                                stringResource(R.string.material_expand_tab),
+                            ),
+                            selectedTabIndex = pagerState.currentPage,
+                            onTabSelected = { page ->
+                                scope.launch { pagerState.animateScrollToPage(page) }
+                            },
+                            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+                        )
                     }
                 }
             },
@@ -207,8 +219,6 @@ internal fun IslandMaterialPage(
                         hyperOsMajor = hyperOsMajor,
                         topPadding = padding.calculateTopPadding(),
                         scrollBehavior = scrollBehavior,
-                        selectedTabIndex = pagerState.currentPage,
-                        onTabSelected = { scope.launch { pagerState.animateScrollToPage(it) } },
                         onFollowChange = { setFollow(state, it) },
                         onConfigChange = { save(state, it) },
                         onPickColor = { colorState = state },
@@ -285,8 +295,6 @@ private fun MaterialStateContent(
     hyperOsMajor: Int,
     topPadding: androidx.compose.ui.unit.Dp,
     scrollBehavior: top.yukonga.miuix.kmp.basic.ScrollBehavior,
-    selectedTabIndex: Int,
-    onTabSelected: (Int) -> Unit,
     onFollowChange: (Boolean) -> Unit,
     onConfigChange: (IslandMaterialConfig) -> Unit,
     onPickColor: () -> Unit,
@@ -316,17 +324,6 @@ private fun MaterialStateContent(
                     )
                 }
             }
-        }
-        item {
-            TabRow(
-                tabs = listOf(
-                    stringResource(R.string.material_big_tab),
-                    stringResource(R.string.material_small_tab),
-                    stringResource(R.string.material_expand_tab),
-                ),
-                selectedTabIndex = selectedTabIndex,
-                onTabSelected = onTabSelected,
-            )
         }
         item {
             SectionTitle(stringResource(R.string.material_type))
