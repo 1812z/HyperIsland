@@ -1,5 +1,12 @@
 <?xml version='1.0' encoding='utf-8' ?>
 <resources>
+    <string name="privacy_consent_title">Política de privacidade</string>
+    <string name="privacy_consent_message">Para oferecer um serviço melhor, você precisa ler e concordar com a %1$s antes de continuar usando o HyperIsland.</string>
+    <string name="privacy_policy_name">Política de Privacidade</string>
+    <string name="privacy_consent_decline">Sair</string>
+    <string name="privacy_consent_accept">Concordar e continuar</string>
+    <string name="onboarding_privacy_title">Termos e declarações</string>
+    <string name="onboarding_privacy_agreement">Li atentamente e concordo com os termos acima</string>
     <string name="about">Sobre</string>
     <string name="about_developer">Desenvolvedor</string>
     <string name="about_discussion">Discussão</string>

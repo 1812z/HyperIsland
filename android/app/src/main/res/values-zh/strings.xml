@@ -1,5 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="privacy_consent_title">隐私政策</string>
+    <string name="privacy_consent_message">为了给您提供更好的服务，您需要阅读并同意 %1$s 才可继续使用 HyperIsland</string>
+    <string name="privacy_policy_name">《隐私政策》</string>
+    <string name="privacy_consent_decline">退出</string>
+    <string name="privacy_consent_accept">同意并继续</string>
+    <string name="onboarding_privacy_title">协议与声明</string>
+    <string name="onboarding_privacy_agreement">我已仔细阅读并同意上述条款</string>
     <string name="screen_recorder_dialog_title">屏幕录制</string>
     <string name="screen_recorder_resolution">分辨率</string>
     <string name="screen_recorder_resolution_system">跟随系统设置</string>

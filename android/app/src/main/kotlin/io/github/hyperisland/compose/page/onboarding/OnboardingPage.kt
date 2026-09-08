@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
@@ -47,14 +48,18 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.PrivacyPolicyMessage
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.service.OnboardingService
 import io.github.hyperisland.compose.service.OnboardingStatus
+import io.github.hyperisland.compose.service.PrivacyConsentStore
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.BasicComponent
@@ -62,6 +67,7 @@ import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
+import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -86,6 +92,7 @@ private enum class OnboardingDialog { Environment, FocusUnlock }
 internal fun OnboardingPage(
     prefs: FlutterPrefsRepository,
     showCloseButton: Boolean,
+    onPrivacyAccepted: () -> Unit = {},
     onFinished: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -109,6 +116,9 @@ internal fun OnboardingPage(
     var unlockFocusAuth by remember { mutableStateOf(prefs.getBoolean(KEY_UNLOCK_FOCUS_AUTH, false)) }
     var enablingUnlock by remember { mutableStateOf(false) }
     var notificationStyleWaitSeconds by remember { mutableStateOf(0) }
+    var privacyTermsChecked by remember {
+        mutableStateOf(PrivacyConsentStore.isAccepted(context))
+    }
 
     fun checkEnvironment(onResult: ((OnboardingStatus) -> Unit)? = null) {
         if (checking) return
@@ -135,7 +145,6 @@ internal fun OnboardingPage(
         ActivityResultContracts.RequestPermission(),
     ) { checkEnvironment() }
 
-    LaunchedEffect(Unit) { checkEnvironment() }
     LaunchedEffect(pagerState.currentPage) {
         notificationStyleWaitSeconds = if (pagerState.currentPage == NOTIFICATION_STYLE_STEP) {
             NOTIFICATION_STYLE_WAIT_SECONDS
@@ -151,6 +160,8 @@ internal fun OnboardingPage(
             !service.hasAppListPermission()
         ) {
             permissionLauncher.launch(OnboardingService.APP_LIST_PERMISSION)
+        } else if (pagerState.currentPage == ENVIRONMENT_STEP) {
+            checkEnvironment()
         }
     }
 
@@ -200,6 +211,22 @@ internal fun OnboardingPage(
                         unlockAllFocus = unlockAllFocus,
                         unlockFocusAuth = unlockFocusAuth,
                         enablingUnlock = enablingUnlock,
+                        privacyTermsChecked = privacyTermsChecked,
+                        onPrivacyTermsCheckedChange = { privacyTermsChecked = it },
+                        onOpenPrivacyPolicy = {
+                            val language = context.resources.configuration.locales.get(0).language
+                            val path = if (language.equals("zh", ignoreCase = true)) {
+                                "privacy"
+                            } else {
+                                "en/privacy"
+                            }
+                            context.startActivity(
+                                Intent(
+                                    Intent.ACTION_VIEW,
+                                    Uri.parse("https://hyperisland.1812z.top/$path"),
+                                ),
+                            )
+                        },
                         onFocusNotificationChanged = { defaultFocusNotification = it },
                         onOpenTutorial = {
                             focusActionTaken = true
@@ -236,12 +263,20 @@ internal fun OnboardingPage(
                 }
                 OnboardingControls(
                     currentPage = pagerState.currentPage,
-                    nextEnabled = !checking && notificationStyleWaitSeconds == 0,
+                    nextEnabled = !checking &&
+                        notificationStyleWaitSeconds == 0 &&
+                        (pagerState.currentPage != PRIVACY_STEP || privacyTermsChecked),
                     nextWaitSeconds = notificationStyleWaitSeconds,
                     onPrevious = { goToPage(pagerState.currentPage - 1) },
                     onNext = {
                         when (pagerState.currentPage) {
                             STEP_COUNT - 1 -> finish()
+                            PRIVACY_STEP -> {
+                                if (privacyTermsChecked && PrivacyConsentStore.accept(context)) {
+                                    onPrivacyAccepted()
+                                    goToPage(ENVIRONMENT_STEP)
+                                }
+                            }
                             ENVIRONMENT_STEP -> checkEnvironment { result ->
                                 if (result.requirementsMet) goToPage(FOCUS_UNLOCK_STEP)
                                 else activeDialog = OnboardingDialog.Environment
@@ -321,6 +356,9 @@ private fun OnboardingStepPage(
     unlockAllFocus: Boolean,
     unlockFocusAuth: Boolean,
     enablingUnlock: Boolean,
+    privacyTermsChecked: Boolean,
+    onPrivacyTermsCheckedChange: (Boolean) -> Unit,
+    onOpenPrivacyPolicy: () -> Unit,
     onFocusNotificationChanged: (Boolean) -> Unit,
     onOpenTutorial: () -> Unit,
     onEnableEmbedded: () -> Unit,
@@ -340,6 +378,11 @@ private fun OnboardingStepPage(
         StepHeading(step)
         Spacer(Modifier.height(22.dp))
         when (page) {
+            PRIVACY_STEP -> PrivacyPanel(
+                checked = privacyTermsChecked,
+                onCheckedChange = onPrivacyTermsCheckedChange,
+                onOpenPrivacyPolicy = onOpenPrivacyPolicy,
+            )
             ENVIRONMENT_STEP -> EnvironmentPanel(checking, status)
             FOCUS_UNLOCK_STEP -> FocusUnlockPanel(
                 unlockAllFocus = unlockAllFocus,
@@ -354,6 +397,43 @@ private fun OnboardingStepPage(
             )
         }
         Spacer(Modifier.height(20.dp))
+    }
+}
+
+@Composable
+private fun PrivacyPanel(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    onOpenPrivacyPolicy: () -> Unit,
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        PrivacyPolicyMessage(
+            onViewPolicy = onOpenPrivacyPolicy,
+            modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
+        )
+    }
+    Spacer(Modifier.height(12.dp))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(
+                role = Role.Checkbox,
+                onClick = { onCheckedChange(!checked) },
+            )
+            .padding(horizontal = 8.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Checkbox(
+            state = if (checked) ToggleableState.On else ToggleableState.Off,
+            onClick = { onCheckedChange(!checked) },
+        )
+        Spacer(Modifier.width(12.dp))
+        Text(
+            text = stringResource(R.string.onboarding_privacy_agreement),
+            style = MiuixTheme.textStyles.body1,
+            color = MiuixTheme.colorScheme.onSurface,
+        )
     }
 }
 
@@ -767,16 +847,21 @@ private fun DialogBody(
 private fun onboardingStep(page: Int): OnboardingStep = when (page) {
     0 -> OnboardingStep(R.string.onboarding_app_name, null, null)
     1 -> OnboardingStep(
+        R.string.onboarding_privacy_title,
+        null,
+        MiuixIcons.Lock,
+    )
+    2 -> OnboardingStep(
         R.string.onboarding_environment_title,
         R.string.onboarding_environment_subtitle,
         MiuixIcons.Settings,
     )
-    2 -> OnboardingStep(
+    3 -> OnboardingStep(
         R.string.onboarding_focus_title,
         R.string.onboarding_focus_subtitle,
         MiuixIcons.Lock,
     )
-    3 -> OnboardingStep(
+    4 -> OnboardingStep(
         R.string.onboarding_style_title,
         R.string.onboarding_style_subtitle,
         MiuixIcons.Help,
@@ -790,10 +875,11 @@ private fun onboardingStep(page: Int): OnboardingStep = when (page) {
 
 private data class OnboardingStep(val title: Int, val subtitle: Int?, val icon: ImageVector?)
 
-private const val STEP_COUNT = 5
-private const val ENVIRONMENT_STEP = 1
-private const val FOCUS_UNLOCK_STEP = 2
-private const val NOTIFICATION_STYLE_STEP = 3
+private const val STEP_COUNT = 6
+private const val PRIVACY_STEP = 1
+private const val ENVIRONMENT_STEP = 2
+private const val FOCUS_UNLOCK_STEP = 3
+private const val NOTIFICATION_STYLE_STEP = 4
 private const val NOTIFICATION_STYLE_WAIT_SECONDS = 3
 private const val KEY_ONBOARDING_COMPLETED = "pref_onboarding_completed"
 private const val KEY_DEFAULT_FOCUS_NOTIFICATION = "pref_default_focus_notif"

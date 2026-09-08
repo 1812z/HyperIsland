@@ -1,5 +1,12 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
+    <string name="privacy_consent_title">Политика конфиденциальности</string>
+    <string name="privacy_consent_message">Чтобы предоставить вам лучший сервис, перед продолжением использования HyperIsland необходимо прочитать и принять %1$s.</string>
+    <string name="privacy_policy_name">«Политику конфиденциальности»</string>
+    <string name="privacy_consent_decline">Выйти</string>
+    <string name="privacy_consent_accept">Принять и продолжить</string>
+    <string name="onboarding_privacy_title">Соглашения и заявления</string>
+    <string name="onboarding_privacy_agreement">Я внимательно прочитал(а) и принимаю условия выше</string>
     <string name="screen_recorder_dialog_title">Запись экрана</string>
     <string name="screen_recorder_resolution">Разрешение</string>
     <string name="screen_recorder_resolution_system">Использовать системную настройку</string>

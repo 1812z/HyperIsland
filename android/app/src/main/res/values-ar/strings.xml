@@ -1,5 +1,12 @@
 <?xml version='1.0' encoding='utf-8' ?>
 <resources>
+    <string name="privacy_consent_title">سياسة الخصوصية</string>
+    <string name="privacy_consent_message">لتقديم خدمة أفضل لك، يجب عليك قراءة %1$s والموافقة عليها قبل متابعة استخدام HyperIsland.</string>
+    <string name="privacy_policy_name">«سياسة الخصوصية»</string>
+    <string name="privacy_consent_decline">خروج</string>
+    <string name="privacy_consent_accept">الموافقة والمتابعة</string>
+    <string name="onboarding_privacy_title">الاتفاقيات والإقرارات</string>
+    <string name="onboarding_privacy_agreement">لقد قرأت الشروط المذكورة أعلاه بعناية وأوافق عليها</string>
     <string name="about">عن التطبيق</string>
     <string name="about_developer">المطور</string>
     <string name="about_discussion">نقاش</string>

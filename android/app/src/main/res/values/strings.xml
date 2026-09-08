@@ -1,5 +1,12 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
+    <string name="privacy_consent_title">Privacy policy</string>
+    <string name="privacy_consent_message">To provide you with better service, you must read and agree to %1$s before continuing to use HyperIsland.</string>
+    <string name="privacy_policy_name">Privacy Policy</string>
+    <string name="privacy_consent_decline">Exit</string>
+    <string name="privacy_consent_accept">Agree and continue</string>
+    <string name="onboarding_privacy_title">Terms and declarations</string>
+    <string name="onboarding_privacy_agreement">I have carefully read and agree to the terms above</string>
     <string name="screen_recorder_dialog_title">Screen recording</string>
     <string name="screen_recorder_resolution">Resolution</string>
     <string name="screen_recorder_resolution_system">Use system setting</string>

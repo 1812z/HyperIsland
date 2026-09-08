@@ -1,5 +1,12 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
+    <string name="privacy_consent_title">プライバシーポリシー</string>
+    <string name="privacy_consent_message">より良いサービスを提供するため、HyperIsland を引き続きご利用いただくには、%1$sをお読みいただき、同意していただく必要があります。</string>
+    <string name="privacy_policy_name">「プライバシーポリシー」</string>
+    <string name="privacy_consent_decline">終了</string>
+    <string name="privacy_consent_accept">同意して続行</string>
+    <string name="onboarding_privacy_title">規約と声明</string>
+    <string name="onboarding_privacy_agreement">上記の規約をよく読み、同意します</string>
     <string name="screen_recorder_dialog_title">画面録画</string>
     <string name="screen_recorder_resolution">解像度</string>
     <string name="screen_recorder_resolution_system">システム設定に従う</string>

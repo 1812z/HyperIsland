@@ -1,5 +1,12 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
+    <string name="privacy_consent_title">Gizlilik Politikası</string>
+    <string name="privacy_consent_message">Size daha iyi hizmet sunabilmek için HyperIsland kullanımına devam etmeden önce %1$s belgesini okuyup kabul etmeniz gerekir.</string>
+    <string name="privacy_policy_name">Gizlilik Politikası</string>
+    <string name="privacy_consent_decline">Çıkış</string>
+    <string name="privacy_consent_accept">Kabul et ve devam et</string>
+    <string name="onboarding_privacy_title">Sözleşme ve beyanlar</string>
+    <string name="onboarding_privacy_agreement">Yukarıdaki koşulları dikkatle okudum ve kabul ediyorum</string>
     <string name="screen_recorder_dialog_title">Ekran kaydı</string>
     <string name="screen_recorder_resolution">Çözünürlük</string>
     <string name="screen_recorder_resolution_system">Sistem ayarını kullan</string>
