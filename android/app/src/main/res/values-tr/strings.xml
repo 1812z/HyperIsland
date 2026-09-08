@@ -357,10 +357,8 @@
     <string name="ext_hide_face_icon">Yüz Kilidi Simgesini Devre Dışı Bırak</string>
     <string name="ext_hide_face_icon_summary">Yüz kilidi işlevini etkilemeden kilit ekranındaki yüz tanıma grafiğini gizle</string>
     <string name="ext_small_icon">Küçük ada simgesi ayarı</string>
-    <string name="ext_small_icon_toggle">Küçük ada simgesini aç/kapat</string>
-    <string name="ext_small_icon_toggle_summary">Ada simgesi görünümünü özelleştirin</string>
-    <string name="ext_small_icon_enabled">Etkin · Opaklık %1$d%%</string>
-    <string name="ext_small_icon_disabled">Devre dışı · Kapsam yeniden başlatıldıktan sonra Hook kaydedilmez</string>
+    <string name="ext_small_icon_enabled">Etkin · Ada simgesi davranışını ayarla</string>
+    <string name="ext_small_icon_disabled">Devre dışı · Ada simgesi davranışını ayarla</string>
     <string name="ext_opacity">Opaklık</string>
     <string name="ext_unlock_auth">Odak Bildirimi İmza Doğrulamasını Kaldır</string>
     <string name="ext_unlock_auth_summary">İmza doğrulamasını atlayarak tüm uygulamaların saat/bilekliğe odak bildirimi göndermesine izin verir (XMSF hook gerekir).</string>
@@ -461,7 +459,7 @@
     <string name="marquee">Ada Metnini Kaydır</string>
     <string name="marquee_summary">Bu ayar açık olduğunda uzun metin Ada üzerinde kayarak gösterilir.</string>
     <string name="smooth_island">Pürüzsüz Ada</string>
-    <string name="smooth_island_summary">Ada hatlarını OS3 ve OS4\'te ayarlanabilir sürekli eğrilikle iyileştirir</string>
+    <string name="smooth_island_summary">Ada hatlarını ayarlanabilir sürekli eğrilikli kapsüllerle optimize eder</string>
     <string name="charge_island">Şarj Adası</string>
     <string name="bluetooth_island">Bluetooth Adası</string>
     <string name="face_unlock_island">Kilit Açma Adası</string>

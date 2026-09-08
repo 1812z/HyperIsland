@@ -118,6 +118,13 @@
     <string name="show_system_apps">Show system apps</string>
     <string name="hide_system_apps">Hide system apps</string>
     <string name="refresh_list">Refresh list</string>
+    <string name="filter_apps">Filter</string>
+    <string name="filter_enabled_apps">Enabled</string>
+    <string name="filter_disabled_apps">Disabled</string>
+    <string name="filter_user_apps">User apps</string>
+    <string name="filter_system_apps">System apps</string>
+    <string name="filter_configured_apps">Configured</string>
+    <string name="filter_unconfigured_apps">Not configured</string>
     <string name="enable_all">Enable all</string>
     <string name="disable_all">Disable all</string>
     <string name="list_actions">List operations</string>
@@ -379,10 +386,8 @@
     <string name="ext_hide_face_icon">Disable Face Unlock Icon</string>
     <string name="ext_hide_face_icon_summary">Hide the face recognition graphic on the lock screen without affecting face unlock</string>
     <string name="ext_small_icon">Small island icon adjustment</string>
-    <string name="ext_small_icon_toggle">Small island icon</string>
-    <string name="ext_small_icon_toggle_summary">Customize island icon display</string>
-    <string name="ext_small_icon_enabled">Enabled · Opacity %1$d%%</string>
-    <string name="ext_small_icon_disabled">Disabled · No hook is registered after restarting the scope</string>
+    <string name="ext_small_icon_enabled">Enabled · Adjust island icon behavior</string>
+    <string name="ext_small_icon_disabled">Disabled · Adjust island icon behavior</string>
     <string name="ext_opacity">Opacity</string>
     <string name="ext_unlock_auth">Remove focus notification signature verification</string>
     <string name="ext_unlock_auth_summary">Allow all apps to send focus notifications to watch/bracelet, bypassing signature check (requires hooking XMSF)</string>
@@ -502,7 +507,7 @@
     <string name="marquee">Text Scrolling Island</string>
     <string name="marquee_summary">Whether to scroll long messages on Island</string>
     <string name="smooth_island">Smooth Island</string>
-    <string name="smooth_island_summary">Optimize Island contours with adjustable continuous-curvature capsules on OS3 and OS4</string>
+    <string name="smooth_island_summary">Optimize Island contours with adjustable continuous-curvature capsules</string>
     <string name="charge_island">Charging Island</string>
     <string name="bluetooth_island">Bluetooth Island</string>
     <string name="heart_rate_island">Heart Rate Island</string>

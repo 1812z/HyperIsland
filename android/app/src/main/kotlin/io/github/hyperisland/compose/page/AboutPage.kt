@@ -66,6 +66,7 @@ import io.github.hyperisland.compose.component.SettingsActionWithArrow
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.blur.BlendColorEntry
 import top.yukonga.miuix.kmp.blur.BlurBlendMode
@@ -79,8 +80,9 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Backup
 import top.yukonga.miuix.kmp.icon.extended.Info
 import top.yukonga.miuix.kmp.icon.extended.Link
-import top.yukonga.miuix.kmp.icon.extended.Messages
+import top.yukonga.miuix.kmp.icon.extended.Community
 import top.yukonga.miuix.kmp.icon.extended.Update
+import top.yukonga.miuix.kmp.icon.basic.ArrowRight
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import kotlin.math.cos
@@ -189,7 +191,7 @@ internal fun AboutPage(
                 Card(modifier = Modifier.fillMaxWidth()) {
                     SettingsAction(
                         title = stringResource(R.string.telegram),
-                        icon = MiuixIcons.Messages,
+                        icon = MiuixIcons.Community,
                         summary = stringResource(R.string.telegram_summary),
                         endIcon = MiuixIcons.Link,
                         endIconSize = 26.dp,
@@ -418,10 +420,11 @@ private fun DeveloperCard(modifier: Modifier = Modifier) {
                 )
             }
             Spacer(Modifier.weight(1f))
-            Text(
-                text = "›",
-                fontSize = 32.sp,
-                color = MiuixTheme.colorScheme.onSurfaceVariantActions,
+            Icon(
+                imageVector = MiuixIcons.Basic.ArrowRight,
+                contentDescription = null,
+                modifier = Modifier.size(width = 10.dp, height = 16.dp),
+                tint = MiuixTheme.colorScheme.onSurfaceVariantActions,
             )
         }
     }

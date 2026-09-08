@@ -17,7 +17,7 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Blocklist
 import top.yukonga.miuix.kmp.icon.extended.Hide
 import top.yukonga.miuix.kmp.icon.extended.Image
-import top.yukonga.miuix.kmp.icon.extended.Messages
+import top.yukonga.miuix.kmp.icon.extended.Community
 import top.yukonga.miuix.kmp.icon.extended.More
 import top.yukonga.miuix.kmp.icon.extended.Pin
 import top.yukonga.miuix.kmp.icon.extended.Settings
@@ -59,7 +59,7 @@ internal fun SettingsPage(
                 SettingsActionWithArrow(stringResource(R.string.appearance), MiuixIcons.Image) {
                     onOpenDetail(SettingsDetail.Appearance)
                 }
-                SettingsActionWithArrow(stringResource(R.string.ai_summary), MiuixIcons.Messages) {
+                SettingsActionWithArrow(stringResource(R.string.ai_summary), MiuixIcons.Community) {
                     onOpenDetail(SettingsDetail.AiConfig)
                 }
                 SettingsActionWithArrow(stringResource(R.string.filter_rules), MiuixIcons.Blocklist) {

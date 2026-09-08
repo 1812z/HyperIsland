@@ -3,6 +3,7 @@ package io.github.hyperisland.compose.page.settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -72,10 +73,8 @@ import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
-import top.yukonga.miuix.kmp.icon.extended.Filter
 import top.yukonga.miuix.kmp.icon.extended.More
-import top.yukonga.miuix.kmp.icon.extended.Refresh
-import top.yukonga.miuix.kmp.menu.OverlayIconDropdownMenu
+import top.yukonga.miuix.kmp.menu.OverlayIconCascadingDropdownMenu
 import top.yukonga.miuix.kmp.popup.WindowDropdownPopup
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -95,6 +94,8 @@ internal fun FilterRulesPage(
     var query by remember { mutableStateOf("") }
     var searchExpanded by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableIntStateOf(0) }
+    var showConfiguredApps by remember { mutableStateOf(true) }
+    var showUnconfiguredApps by remember { mutableStateOf(true) }
     var showSystemApps by remember { mutableStateOf(false) }
     var revision by remember { mutableIntStateOf(0) }
 
@@ -127,13 +128,22 @@ internal fun FilterRulesPage(
 
     val configured = remember(revision) { prefs.configuredForegroundPackages() }
     val excluded = remember(revision) { prefs.foregroundExcludedPackages() }
-    val filteredApps = remember(apps, query, showSystemApps, selectedTab, revision) {
+    val filteredApps = remember(
+        apps,
+        query,
+        showConfiguredApps,
+        showUnconfiguredApps,
+        showSystemApps,
+        selectedTab,
+        revision,
+    ) {
         val normalized = query.trim().lowercase()
         apps.asSequence()
             .filter { app ->
                 val isConfigured = if (selectedTab == 0) app.packageName in configured
                 else app.packageName in excluded
-                showSystemApps || !app.isSystem || isConfigured
+                (isConfigured && showConfiguredApps || !isConfigured && showUnconfiguredApps) &&
+                    (showSystemApps || !app.isSystem)
             }
             .filter {
                 normalized.isEmpty() || it.appName.lowercase().contains(normalized) ||
@@ -147,30 +157,41 @@ internal fun FilterRulesPage(
             .toList()
     }
 
-    val menuEntry = DropdownEntry(
-        items = listOf(
-            DropdownItem(
-                text = stringResource(
-                    if (showSystemApps) R.string.hide_system_apps
-                    else R.string.show_system_apps,
+    val menuEntries = listOf(
+        DropdownEntry(
+            items = listOf(
+                DropdownItem(
+                    text = stringResource(R.string.restore_default),
+                    onClick = {
+                        val count = prefs.resetForegroundRules()
+                        revision++
+                        scope.launch { snackbarState.showSnackbar(resetResult.format(count)) }
+                    },
                 ),
-                selected = showSystemApps,
-                onClick = { showSystemApps = !showSystemApps },
-                icon = { modifier -> Icon(MiuixIcons.Filter, null, modifier) },
             ),
-            DropdownItem(
-                text = stringResource(R.string.refresh_list),
-                onClick = { loadApps(true) },
-                icon = { modifier -> Icon(MiuixIcons.Refresh, null, modifier) },
-            ),
-            DropdownItem(
-                text = stringResource(R.string.restore_default),
-                onClick = {
-                    val count = prefs.resetForegroundRules()
-                    revision++
-                    scope.launch { snackbarState.showSnackbar(resetResult.format(count)) }
-                },
-                icon = { modifier -> Icon(MiuixIcons.Refresh, null, modifier) },
+        ),
+        DropdownEntry(
+            items = listOf(
+                DropdownItem(
+                    text = stringResource(R.string.filter_apps),
+                    children = listOf(
+                        DropdownItem(
+                            text = stringResource(R.string.filter_configured_apps),
+                            selected = showConfiguredApps,
+                            onClick = { showConfiguredApps = !showConfiguredApps },
+                        ),
+                        DropdownItem(
+                            text = stringResource(R.string.filter_unconfigured_apps),
+                            selected = showUnconfiguredApps,
+                            onClick = { showUnconfiguredApps = !showUnconfiguredApps },
+                        ),
+                        DropdownItem(
+                            text = stringResource(R.string.filter_system_apps),
+                            selected = showSystemApps,
+                            onClick = { showSystemApps = !showSystemApps },
+                        ),
+                    ),
+                ),
             ),
         ),
     )
@@ -190,7 +211,10 @@ internal fun FilterRulesPage(
                             }
                         },
                         actions = {
-                            OverlayIconDropdownMenu(entry = menuEntry) {
+                            OverlayIconCascadingDropdownMenu(
+                                entries = menuEntries,
+                                collapseOnSelection = false,
+                            ) {
                                 Icon(MiuixIcons.More, stringResource(R.string.list_actions))
                             }
                         },
@@ -252,9 +276,18 @@ internal fun FilterRulesPage(
                                 onExpandedChange = { searchExpanded = it },
                                 expanded = searchExpanded,
                                 outsideEndAction = {
-                                    TextButton(
+                                    Text(
+                                        modifier = Modifier
+                                            .padding(start = 12.dp)
+                                            .padding(end = 12.dp)
+                                            .clickable(
+                                                interactionSource = null,
+                                                indication = null
+                                            ) {
+                                                searchExpanded = false
+                                            },
                                         text = stringResource(R.string.cancel),
-                                        onClick = { searchExpanded = false },
+                                        color = MiuixTheme.colorScheme.primary
                                     )
                                 },
                             ) {}

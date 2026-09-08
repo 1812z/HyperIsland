@@ -357,10 +357,8 @@
     <string name="ext_hide_face_icon">Отключить значок разблокировки лицом</string>
     <string name="ext_hide_face_icon_summary">Скрыть графику распознавания лица на экране блокировки, не отключая разблокировку лицом</string>
     <string name="ext_small_icon">Настройка значка малого Острова</string>
-    <string name="ext_small_icon_toggle">Переключатель значка малого Острова</string>
-    <string name="ext_small_icon_toggle_summary">Настройка отображения значков острова</string>
-    <string name="ext_small_icon_enabled">Включено · Непрозрачность %1$d%%</string>
-    <string name="ext_small_icon_disabled">Отключено · После перезапуска области перехват не регистрируется</string>
+    <string name="ext_small_icon_enabled">Включено · Настройка поведения значка Острова</string>
+    <string name="ext_small_icon_disabled">Отключено · Настройка поведения значка Острова</string>
     <string name="ext_opacity">Непрозрачность</string>
     <string name="ext_unlock_auth">Удалить проверку подписи фокус-уведомлений</string>
     <string name="ext_unlock_auth_summary">Разрешить всем приложениям отправлять фокус-уведомления на часы или браслет в обход проверки подписи (требуется перехват XMSF)</string>
@@ -461,7 +459,7 @@
     <string name="marquee">Бегущая строка на Острове</string>
     <string name="marquee_summary">Прокручивать ли длинные сообщения на Острове</string>
     <string name="smooth_island">Плавный Остров</string>
-    <string name="smooth_island_summary">Настраиваемая непрерывная кривизна контуров острова для OS3 и OS4</string>
+    <string name="smooth_island_summary">Оптимизация контуров острова с помощью капсул с настраиваемой непрерывной кривизной</string>
     <string name="charge_island">HyperIsland зарядки</string>
     <string name="bluetooth_island">Bluetooth HyperIsland</string>
     <string name="face_unlock_island">Остров разблокировки</string>

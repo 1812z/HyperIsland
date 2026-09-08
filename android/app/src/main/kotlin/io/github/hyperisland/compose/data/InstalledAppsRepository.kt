@@ -40,6 +40,10 @@ internal class InstalledAppsRepository(private val context: Context) {
         appCache
     }
 
+    fun cachedIcon(packageName: String): ImageBitmap? = synchronized(iconCache) {
+        iconCache[packageName]
+    }
+
     fun loadIcon(packageName: String): ImageBitmap? = synchronized(iconCache) {
         if (iconCache.containsKey(packageName)) return@synchronized iconCache[packageName]
         val bitmap = runCatching {

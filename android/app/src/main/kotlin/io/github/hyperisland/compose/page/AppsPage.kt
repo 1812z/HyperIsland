@@ -2,10 +2,15 @@ package io.github.hyperisland.compose.page
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.state.ToggleableState
@@ -44,6 +50,7 @@ import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.InstalledApp
 import io.github.hyperisland.compose.data.InstalledAppsRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.BasicComponent
@@ -53,6 +60,7 @@ import top.yukonga.miuix.kmp.basic.DropdownEntry
 import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
 import top.yukonga.miuix.kmp.basic.InputField
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.PullToRefresh
@@ -61,17 +69,13 @@ import top.yukonga.miuix.kmp.basic.SearchBar
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.TabRow
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.ChevronForward
-import top.yukonga.miuix.kmp.icon.extended.Blocklist
 import top.yukonga.miuix.kmp.icon.extended.Close
-import top.yukonga.miuix.kmp.icon.extended.Filter
 import top.yukonga.miuix.kmp.icon.extended.More
-import top.yukonga.miuix.kmp.icon.extended.Refresh
 import top.yukonga.miuix.kmp.icon.extended.SelectAll
-import top.yukonga.miuix.kmp.icon.extended.Settings
+import top.yukonga.miuix.kmp.menu.OverlayIconCascadingDropdownMenu
 import top.yukonga.miuix.kmp.menu.OverlayIconDropdownMenu
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -91,9 +95,13 @@ internal fun AppsPage(
     val scrollBehavior = MiuixScrollBehavior()
     var allApps by remember { mutableStateOf(appsRepository.cachedApps()) }
     var initialLoading by remember { mutableStateOf(allApps.isEmpty()) }
+    var showInitialLoadingIndicator by remember { mutableStateOf(false) }
     var refreshing by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     var searchExpanded by remember { mutableStateOf(false) }
+    var showEnabledApps by remember { mutableStateOf(true) }
+    var showDisabledApps by remember { mutableStateOf(true) }
+    var showUserApps by remember { mutableStateOf(true) }
     var showSystemApps by remember { mutableStateOf(false) }
     var selectionMode by remember { mutableStateOf(false) }
     var selectedPackages by remember { mutableStateOf(emptySet<String>()) }
@@ -123,6 +131,14 @@ internal fun AppsPage(
             else loadApps(forceRefresh = false)
         }
     }
+    LaunchedEffect(initialLoading) {
+        if (!initialLoading) {
+            showInitialLoadingIndicator = false
+            return@LaunchedEffect
+        }
+        delay(INITIAL_LOADING_INDICATOR_DELAY_MILLIS)
+        showInitialLoadingIndicator = true
+    }
     DisposableEffect(prefs) {
         val removeListener = prefs.addChangeListener { key ->
             if (key == "pref_generic_whitelist" || key.startsWith("pref_app_config_")) configRevision++
@@ -135,10 +151,23 @@ internal fun AppsPage(
         allApps.asSequence().filter { prefs.isToastEnabled(it.packageName) }.map { it.packageName }.toSet()
     }
     val activeEnabledPackages = if (selectedMode == 0) enabledPackages else toastEnabledPackages
-    val filteredApps = remember(allApps, query, showSystemApps, selectedMode, configRevision) {
+    val filteredApps = remember(
+        allApps,
+        query,
+        showEnabledApps,
+        showDisabledApps,
+        showUserApps,
+        showSystemApps,
+        selectedMode,
+        configRevision,
+    ) {
         val normalizedQuery = query.trim().lowercase()
         allApps.asSequence()
-            .filter { showSystemApps || !it.isSystem || it.packageName in activeEnabledPackages }
+            .filter { app ->
+                val isEnabled = app.packageName in activeEnabledPackages
+                (isEnabled && showEnabledApps || !isEnabled && showDisabledApps) &&
+                    (app.isSystem && showSystemApps || !app.isSystem && showUserApps)
+            }
             .filter {
                 normalizedQuery.isEmpty() || it.appName.lowercase().contains(normalizedQuery) ||
                     it.packageName.lowercase().contains(normalizedQuery)
@@ -161,72 +190,97 @@ internal fun AppsPage(
         leaveSelectionMode()
     }
 
-    val normalMenuEntry = DropdownEntry(
-        items = listOf(
-            DropdownItem(
-                text = stringResource(R.string.show_system_apps),
-                selected = showSystemApps,
-                onClick = { showSystemApps = !showSystemApps },
-                icon = { modifier -> Icon(MiuixIcons.Filter, null, modifier = modifier) },
+    val normalMenuEntries = listOf(
+        DropdownEntry(
+            items = listOf(
+                DropdownItem(
+                    text = stringResource(R.string.enable_all),
+                    onClick = {
+                        val packages = filteredApps.map { it.packageName }
+                        if (selectedMode == 0) prefs.setAppsEnabled(packages, true)
+                        else prefs.setToastEnabled(packages, true)
+                    },
+                ),
+                DropdownItem(
+                    text = stringResource(R.string.disable_all),
+                    onClick = {
+                        val packages = filteredApps.map { it.packageName }
+                        if (selectedMode == 0) prefs.setAppsEnabled(packages, false)
+                        else prefs.setToastEnabled(packages, false)
+                    },
+                ),
             ),
-            DropdownItem(
-                text = stringResource(R.string.refresh_list),
-                onClick = { loadApps(forceRefresh = true) },
-                icon = { modifier -> Icon(MiuixIcons.Refresh, null, modifier = modifier) },
-            ),
-            DropdownItem(
-                text = stringResource(R.string.enable_all),
-                onClick = {
-                    val packages = filteredApps.map { it.packageName }
-                    if (selectedMode == 0) prefs.setAppsEnabled(packages, true)
-                    else prefs.setToastEnabled(packages, true)
-                },
-                icon = { modifier -> Icon(MiuixIcons.SelectAll, null, modifier = modifier) },
-            ),
-            DropdownItem(
-                text = stringResource(R.string.disable_all),
-                onClick = {
-                    val packages = filteredApps.map { it.packageName }
-                    if (selectedMode == 0) prefs.setAppsEnabled(packages, false)
-                    else prefs.setToastEnabled(packages, false)
-                },
-                icon = { modifier -> Icon(MiuixIcons.Blocklist, null, modifier = modifier) },
+        ),
+        DropdownEntry(
+            items = listOf(
+                DropdownItem(
+                    text = stringResource(R.string.filter_apps),
+                    children = listOf(
+                        DropdownItem(
+                            text = stringResource(R.string.filter_enabled_apps),
+                            selected = showEnabledApps,
+                            onClick = { showEnabledApps = !showEnabledApps },
+                        ),
+                        DropdownItem(
+                            text = stringResource(R.string.filter_disabled_apps),
+                            selected = showDisabledApps,
+                            onClick = { showDisabledApps = !showDisabledApps },
+                        ),
+                        DropdownItem(
+                            text = stringResource(R.string.filter_user_apps),
+                            selected = showUserApps,
+                            onClick = { showUserApps = !showUserApps },
+                        ),
+                        DropdownItem(
+                            text = stringResource(R.string.filter_system_apps),
+                            selected = showSystemApps,
+                            onClick = { showSystemApps = !showSystemApps },
+                        ),
+                    ),
+                ),
             ),
         ),
     )
-    val selectionMenuEntry = DropdownEntry(
-        items = listOf(
-            DropdownItem(
-                text = stringResource(R.string.select_enabled_apps),
-                onClick = { selectedPackages = filteredApps.map { it.packageName }.filter { it in activeEnabledPackages }.toSet() },
-                icon = { modifier -> Icon(MiuixIcons.SelectAll, null, modifier = modifier) },
-            ),
-            DropdownItem(
-                text = stringResource(
-                    if (selectedMode == 0) R.string.batch_channel_settings else R.string.batch_toast_settings,
+    val selectionMenuEntries = listOf(
+        DropdownEntry(
+            items = listOf(
+                DropdownItem(
+                    text = stringResource(R.string.select_enabled_apps),
+                    onClick = {
+                        selectedPackages = filteredApps
+                            .map { it.packageName }
+                            .filter { it in activeEnabledPackages }
+                            .toSet()
+                    },
                 ),
-                enabled = selectedPackages.isNotEmpty(),
-                onClick = {
-                    if (selectedMode == 0) {
-                        onOpenBatchChannelSettings(selectedPackages)
-                    } else {
-                        onOpenBatchToastSettings(selectedPackages)
-                    }
-                    leaveSelectionMode()
-                },
-                icon = { modifier -> Icon(MiuixIcons.Settings, null, modifier = modifier) },
             ),
-            DropdownItem(
-                text = stringResource(R.string.batch_enable),
-                enabled = selectedPackages.isNotEmpty(),
-                onClick = { setSelectedEnabled(true) },
-                icon = { modifier -> Icon(MiuixIcons.SelectAll, null, modifier = modifier) },
-            ),
-            DropdownItem(
-                text = stringResource(R.string.batch_disable),
-                enabled = selectedPackages.isNotEmpty(),
-                onClick = { setSelectedEnabled(false) },
-                icon = { modifier -> Icon(MiuixIcons.Blocklist, null, modifier = modifier) },
+        ),
+        DropdownEntry(
+            items = listOf(
+                DropdownItem(
+                    text = stringResource(
+                        if (selectedMode == 0) R.string.batch_channel_settings else R.string.batch_toast_settings,
+                    ),
+                    enabled = selectedPackages.isNotEmpty(),
+                    onClick = {
+                        if (selectedMode == 0) {
+                            onOpenBatchChannelSettings(selectedPackages)
+                        } else {
+                            onOpenBatchToastSettings(selectedPackages)
+                        }
+                        leaveSelectionMode()
+                    },
+                ),
+                DropdownItem(
+                    text = stringResource(R.string.batch_enable),
+                    enabled = selectedPackages.isNotEmpty(),
+                    onClick = { setSelectedEnabled(true) },
+                ),
+                DropdownItem(
+                    text = stringResource(R.string.batch_disable),
+                    enabled = selectedPackages.isNotEmpty(),
+                    onClick = { setSelectedEnabled(false) },
+                ),
             ),
         ),
     )
@@ -285,10 +339,17 @@ internal fun AppsPage(
                             Icon(MiuixIcons.SelectAll, stringResource(R.string.multi_select))
                         }
                     }
-                    OverlayIconDropdownMenu(
-                        entry = if (selectionMode) selectionMenuEntry else normalMenuEntry,
-                    ) {
-                        Icon(MiuixIcons.More, stringResource(R.string.list_actions))
+                    if (selectionMode) {
+                        OverlayIconDropdownMenu(entries = selectionMenuEntries) {
+                            Icon(MiuixIcons.More, stringResource(R.string.list_actions))
+                        }
+                    } else {
+                        OverlayIconCascadingDropdownMenu(
+                            entries = normalMenuEntries,
+                            collapseOnSelection = false,
+                        ) {
+                            Icon(MiuixIcons.More, stringResource(R.string.list_actions))
+                        }
                     }
                 },
             )
@@ -304,7 +365,8 @@ internal fun AppsPage(
             modifier = Modifier.fillMaxSize(),
             refreshTexts = listOf("", "", "", ""),
         ) {
-            LazyColumn(
+            Box(modifier = Modifier.fillMaxSize()) {
+                LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
                     start = 12.dp,
@@ -329,9 +391,18 @@ internal fun AppsPage(
                         onExpandedChange = { searchExpanded = it },
                         expanded = searchExpanded,
                         outsideEndAction = {
-                            TextButton(
+                            Text(
+                                modifier = Modifier
+                                    .padding(start = 12.dp)
+                                    .padding(end = 12.dp)
+                                    .clickable(
+                                        interactionSource = null,
+                                        indication = null
+                                    ) {
+                                        searchExpanded = false
+                                    },
                                 text = stringResource(R.string.cancel),
-                                onClick = { searchExpanded = false },
+                                color = MiuixTheme.colorScheme.primary
                             )
                         },
                     ) {}
@@ -370,8 +441,15 @@ internal fun AppsPage(
                         } else {
                             app.packageName in toastEnabledPackages
                         }
-                        val icon by produceState<ImageBitmap?>(null, app.packageName) {
-                            value = withContext(Dispatchers.IO) { appsRepository.loadIcon(app.packageName) }
+                        val icon by produceState<ImageBitmap?>(
+                            appsRepository.cachedIcon(app.packageName),
+                            app.packageName,
+                        ) {
+                            if (value == null) {
+                                value = withContext(Dispatchers.IO) {
+                                    appsRepository.loadIcon(app.packageName)
+                                }
+                            }
                         }
                         AppRow(
                             app = app,
@@ -406,9 +484,18 @@ internal fun AppsPage(
                     }
                 }
             }
+                AnimatedVisibility(
+                    visible = showInitialLoadingIndicator,
+                    modifier = Modifier.align(Alignment.Center),
+                    enter = fadeIn(tween(LOADING_ANIMATION_DURATION_MILLIS)),
+                    exit = fadeOut(tween(LOADING_ANIMATION_DURATION_MILLIS)),
+                ) {
+                    InfiniteProgressIndicator()
                 }
             }
-        }
+            }
+                }
+            }
     }
 }
 
@@ -425,13 +512,24 @@ private fun AppRow(
 ) {
     Card(modifier = Modifier.fillMaxWidth(), onLongPress = onLongPress) {
         BasicComponent(
-            startAction = icon?.let { bitmap ->
-                {
-                    Image(
-                        bitmap = bitmap,
-                        contentDescription = null,
-                        modifier = Modifier.padding(end = 14.dp).size(42.dp),
+            startAction = {
+                Box(
+                    modifier = Modifier.padding(end = 14.dp).size(42.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    val currentIcon = icon
+                    val iconAlpha by animateFloatAsState(
+                        targetValue = if (currentIcon == null) 0f else 1f,
+                        animationSpec = tween(APP_ICON_FADE_DURATION_MILLIS),
+                        label = "appIconAlpha",
                     )
+                    if (currentIcon != null) {
+                        Image(
+                            bitmap = currentIcon,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize().graphicsLayer { alpha = iconAlpha },
+                        )
+                    }
                 }
             },
             endActions = {
@@ -474,3 +572,6 @@ private fun AppRow(
 }
 
 private const val APP_LIST_PERMISSION = "com.android.permission.GET_INSTALLED_APPS"
+private const val INITIAL_LOADING_INDICATOR_DELAY_MILLIS = 300L
+private const val LOADING_ANIMATION_DURATION_MILLIS = 180
+private const val APP_ICON_FADE_DURATION_MILLIS = 120

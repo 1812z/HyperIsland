@@ -325,10 +325,8 @@
     <string name="ext_show_device_name">أظهر اسم الجهاز</string>
     <string name="ext_show_device_name_summary">عند الاتصال، أظهر اسم الجهاز على الايمن الأول، ثم أظهر حالة الاتصال</string>
     <string name="ext_small_icon">تعديل أيقونة الجزيرة الصغير</string>
-    <string name="ext_small_icon_disabled">معطّل · لا توجد هوك متسجل بعد إعادة تشغيل النطاق</string>
-    <string name="ext_small_icon_enabled">مفعّل · الشفافية %1$d%%</string>
-    <string name="ext_small_icon_toggle">أيقونة الجزيرة الصغير</string>
-    <string name="ext_small_icon_toggle_summary">خصص عرض أيقونة الجزيرة</string>
+    <string name="ext_small_icon_disabled">معطّل · ضبط سلوك أيقونة الجزيرة</string>
+    <string name="ext_small_icon_enabled">مفعّل · ضبط سلوك أيقونة الجزيرة</string>
     <string name="ext_smoothing">قوة التنعيم</string>
     <string name="ext_system_settings">إعدادات النظام</string>
     <string name="ext_system_ui">واجهة النظام</string>
@@ -774,7 +772,7 @@
     <string name="small_island_width">عرض الجزيرة الصغير</string>
     <string name="small_only">تعطيل التوسيع</string>
     <string name="smooth_island">أيلاند ناعم</string>
-    <string name="smooth_island_summary">حسّن حواف الجزيرة بانحناء مستمر قابل للتعديل على OS3 وOS4</string>
+    <string name="smooth_island_summary">حسّن حواف الجزيرة بكبسولات ذات انحناء مستمر قابل للتعديل</string>
     <string name="software_version">إصدار البرنامج: %1$s</string>
     <string name="state_empty">فارغ</string>
     <string name="state_off">إيقاف</string>

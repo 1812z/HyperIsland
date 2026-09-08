@@ -70,10 +70,7 @@ import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.icon.extended.ChevronForward
-import top.yukonga.miuix.kmp.icon.extended.Copy
-import top.yukonga.miuix.kmp.icon.extended.Import
 import top.yukonga.miuix.kmp.icon.extended.More
-import top.yukonga.miuix.kmp.icon.extended.Reset
 import top.yukonga.miuix.kmp.menu.OverlayIconDropdownMenu
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
@@ -130,7 +127,6 @@ internal fun IslandMaterialPage(
             DropdownItem(
                 text = stringResource(R.string.restore_default),
                 onClick = { resetDialog = true },
-                icon = { modifier -> Icon(MiuixIcons.Reset, null, modifier) },
             ),
             DropdownItem(
                 text = stringResource(R.string.export_to_clipboard),
@@ -143,7 +139,6 @@ internal fun IslandMaterialPage(
                     )
                     showMessage(copied)
                 },
-                icon = { modifier -> Icon(MiuixIcons.Copy, null, modifier) },
             ),
             DropdownItem(
                 text = stringResource(R.string.import_from_clipboard),
@@ -162,7 +157,6 @@ internal fun IslandMaterialPage(
                             }
                     }
                 },
-                icon = { modifier -> Icon(MiuixIcons.Import, null, modifier) },
             ),
         ),
     )

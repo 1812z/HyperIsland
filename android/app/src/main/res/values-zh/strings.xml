@@ -124,6 +124,13 @@
     <string name="show_system_apps">显示系统应用</string>
     <string name="hide_system_apps">隐藏系统应用</string>
     <string name="refresh_list">刷新列表</string>
+    <string name="filter_apps">筛选</string>
+    <string name="filter_enabled_apps">已启用</string>
+    <string name="filter_disabled_apps">未启用</string>
+    <string name="filter_user_apps">用户应用</string>
+    <string name="filter_system_apps">系统应用</string>
+    <string name="filter_configured_apps">已配置</string>
+    <string name="filter_unconfigured_apps">未配置</string>
     <string name="enable_all">一键开启全部</string>
     <string name="disable_all">一键关闭全部</string>
     <string name="list_actions">列表操作</string>
@@ -385,10 +392,8 @@
     <string name="ext_hide_face_icon">禁用人脸解锁图标</string>
     <string name="ext_hide_face_icon_summary">隐藏锁屏界面的人脸识别图案，不影响人脸解锁功能</string>
     <string name="ext_small_icon">小岛图标调节</string>
-    <string name="ext_small_icon_toggle">开关小岛图标</string>
-    <string name="ext_small_icon_toggle_summary">自定义小岛图标显示</string>
-    <string name="ext_small_icon_enabled">已开启 · 不透明度 %1$d%%</string>
-    <string name="ext_small_icon_disabled">已关闭 · 重启作用域后完全不注册 Hook</string>
+    <string name="ext_small_icon_enabled">已开启 · 调节小岛图标行为</string>
+    <string name="ext_small_icon_disabled">已关闭 · 调节小岛图标行为</string>
     <string name="ext_opacity">不透明度</string>
     <string name="ext_unlock_auth">移除焦点通知签名验证</string>
     <string name="ext_unlock_auth_summary">XMSF（小米服务框架）去除校验</string>
@@ -508,7 +513,7 @@
     <string name="marquee">消息滚动</string>
     <string name="marquee_summary">超级岛消息过长是否滚动显示</string>
     <string name="smooth_island">平滑超级岛</string>
-    <string name="smooth_island_summary">使用可调连续曲率胶囊优化超级岛轮廓，支持 OS3/OS4</string>
+    <string name="smooth_island_summary">使用可调连续曲率胶囊优化超级岛轮廓</string>
     <string name="charge_island">充电超级岛</string>
     <string name="bluetooth_island">蓝牙超级岛</string>
     <string name="heart_rate_island">心率岛</string>

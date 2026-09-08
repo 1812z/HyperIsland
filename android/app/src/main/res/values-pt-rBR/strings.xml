@@ -319,10 +319,8 @@
     <string name="ext_show_device_name">Mostrar nome do dispositivo</string>
     <string name="ext_show_device_name_summary">Ao conectar, mostra o nome do dispositivo à direita primeiro e, em seguida, o status da conexão</string>
     <string name="ext_small_icon">Ajuste do ícone da Ilha Pequena</string>
-    <string name="ext_small_icon_disabled">Desativado · Nenhum hook registrado após reiniciar o escopo</string>
-    <string name="ext_small_icon_enabled">Ativado · Opacidade %1$d%%</string>
-    <string name="ext_small_icon_toggle">Ícone da Ilha Pequena</string>
-    <string name="ext_small_icon_toggle_summary">Personalize a exibição do ícone da Ilha</string>
+    <string name="ext_small_icon_disabled">Desativado · Ajustar o comportamento do ícone da Ilha</string>
+    <string name="ext_small_icon_enabled">Ativado · Ajustar o comportamento do ícone da Ilha</string>
     <string name="ext_smoothing">Força de suavização</string>
     <string name="ext_system_settings">Configurações do sistema</string>
     <string name="ext_system_ui">System UI</string>
@@ -760,7 +758,7 @@
     <string name="small_island_width">Largura da Ilha Pequena</string>
     <string name="small_only">Desativar expansão</string>
     <string name="smooth_island">Ilha Suave</string>
-    <string name="smooth_island_summary">Otimizar os contornos da Ilha com curvatura ajustável (estilo pílula) no OS3 e OS4</string>
+    <string name="smooth_island_summary">Otimizar os contornos da Ilha com cápsulas de curvatura contínua ajustável</string>
     <string name="software_version">Versão do software: %1$s</string>
     <string name="support_development">Apoiar o desenvolvimento</string>
     <string name="support_development_summary">Faça uma doação aos desenvolvedores para mostrar seu apoio</string>

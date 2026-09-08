@@ -26,7 +26,7 @@ import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
-import top.yukonga.miuix.kmp.icon.extended.ChevronForward
+import top.yukonga.miuix.kmp.icon.basic.ArrowRight
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 
@@ -186,9 +186,7 @@ internal fun SettingsAction(
                 Icon(
                     imageVector = endIcon,
                     contentDescription = null,
-                    modifier = Modifier
-                        .padding(end = 8.dp)
-                        .size(endIconSize),
+                    modifier = Modifier.size(endIconSize),
                     tint = if (enabled) {
                         MiuixTheme.colorScheme.onSurfaceVariantActions
                     } else {
@@ -216,8 +214,9 @@ internal fun SettingsActionWithArrow(
         startAction = { SettingsIcon(icon) },
         endActions = {
             Icon(
-                imageVector = MiuixIcons.ChevronForward,
+                imageVector = MiuixIcons.Basic.ArrowRight,
                 contentDescription = null,
+                modifier = Modifier.size(width = 10.dp, height = 16.dp),
                 tint = MiuixTheme.colorScheme.onSurfaceVariantActions,
             )
         },

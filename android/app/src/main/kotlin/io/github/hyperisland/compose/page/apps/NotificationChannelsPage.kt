@@ -63,11 +63,7 @@ import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
-import top.yukonga.miuix.kmp.icon.extended.Copy
 import top.yukonga.miuix.kmp.icon.extended.More
-import top.yukonga.miuix.kmp.icon.extended.Paste
-import top.yukonga.miuix.kmp.icon.extended.Refresh
-import top.yukonga.miuix.kmp.icon.extended.SelectAll
 import top.yukonga.miuix.kmp.icon.extended.Settings
 import top.yukonga.miuix.kmp.menu.OverlayIconDropdownMenu
 import top.yukonga.miuix.kmp.preference.ArrowPreference
@@ -211,15 +207,9 @@ internal fun NotificationChannelsPage(
     val menuEntry = DropdownEntry(
         items = listOf(
             DropdownItem(
-                text = stringResource(R.string.refresh_list),
-                onClick = ::refresh,
-                icon = { modifier -> Icon(MiuixIcons.Refresh, null, modifier) },
-            ),
-            DropdownItem(
                 text = stringResource(R.string.enable_all_channels),
                 enabled = channels.isNotEmpty(),
                 onClick = ::setAllChannelsEnabled,
-                icon = { modifier -> Icon(MiuixIcons.SelectAll, null, modifier) },
             ),
             DropdownItem(
                 text = stringResource(R.string.batch_channel_settings),
@@ -230,19 +220,16 @@ internal fun NotificationChannelsPage(
                         else enabledChannelIds,
                     )
                 },
-                icon = { modifier -> Icon(MiuixIcons.Settings, null, modifier) },
             ),
             DropdownItem(
                 text = stringResource(R.string.export_channels),
                 enabled = channels.isNotEmpty(),
                 onClick = ::exportChannels,
-                icon = { modifier -> Icon(MiuixIcons.Copy, null, modifier) },
             ),
             DropdownItem(
                 text = stringResource(R.string.import_channels),
                 enabled = channels.isNotEmpty(),
                 onClick = ::importChannels,
-                icon = { modifier -> Icon(MiuixIcons.Paste, null, modifier) },
             ),
         ),
     )

@@ -321,18 +321,13 @@ internal fun HookExtensionPage(
         }
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
-                BasicComponent(
+                PreferenceSwitch(
                     title = stringResource(R.string.ext_small_icon),
                     summary = if (iconAdjustment.value) {
-                        stringResource(R.string.ext_small_icon_enabled, (iconOpacityState.floatValue * 100).toInt())
+                        stringResource(R.string.ext_small_icon_enabled)
                     } else {
                         stringResource(R.string.ext_small_icon_disabled)
                     },
-                    insideMargin = SettingsItemMargin,
-                )
-                PreferenceSwitch(
-                    title = stringResource(R.string.ext_small_icon_toggle),
-                    summary = stringResource(R.string.ext_small_icon_toggle_summary),
                     icon = null,
                     checked = iconAdjustment.value,
                 ) { value ->
