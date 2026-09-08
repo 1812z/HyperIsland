@@ -21,6 +21,7 @@ import top.yukonga.miuix.kmp.icon.extended.Messages
 import top.yukonga.miuix.kmp.icon.extended.More
 import top.yukonga.miuix.kmp.icon.extended.Pin
 import top.yukonga.miuix.kmp.icon.extended.Settings
+import top.yukonga.miuix.kmp.icon.extended.GridView
 import top.yukonga.miuix.kmp.icon.extended.Theme
 import top.yukonga.miuix.kmp.icon.extended.Translate
 import top.yukonga.miuix.kmp.icon.extended.Tune
@@ -89,7 +90,7 @@ internal fun SettingsPage(
         item {
             SectionTitle(stringResource(R.string.hook_extension))
             Card(modifier = Modifier.fillMaxWidth()) {
-                SettingsActionWithArrow(stringResource(R.string.hook_extension), MiuixIcons.Settings) {
+                SettingsActionWithArrow(stringResource(R.string.hook_extension), MiuixIcons.GridView) {
                     onOpenDetail(SettingsDetail.HookExtension)
                 }
             }

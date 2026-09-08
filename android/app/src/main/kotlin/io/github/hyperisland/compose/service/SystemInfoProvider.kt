@@ -4,7 +4,7 @@ import android.content.Context
 import android.os.Build
 import android.provider.Settings
 import io.github.hyperisland.BuildConfig
-import java.util.concurrent.TimeUnit
+import io.github.hyperisland.utils.SystemPropertyReader
 
 internal data class HomeSystemInfo(
     val systemVersion: String,
@@ -17,11 +17,11 @@ internal data class HomeSystemInfo(
 
 internal object SystemInfoProvider {
     fun load(context: Context): HomeSystemInfo = HomeSystemInfo(
-        systemVersion = getProperty("ro.build.version.incremental")
+        systemVersion = SystemPropertyReader.get("ro.build.version.incremental")
             .ifBlank { Build.VERSION.INCREMENTAL.orEmpty() },
         appVersion = BuildConfig.VERSION_NAME,
         appVersionCode = BuildConfig.VERSION_CODE,
-        deviceModel = getProperty("ro.product.marketname")
+        deviceModel = SystemPropertyReader.get("ro.product.marketname")
             .ifBlank { Build.MODEL.orEmpty() },
         focusProtocolVersion = Settings.System.getInt(
             context.contentResolver,
@@ -30,15 +30,4 @@ internal object SystemInfoProvider {
         ),
         androidSdkVersion = Build.VERSION.SDK_INT,
     )
-
-    private fun getProperty(key: String): String = runCatching {
-        val process = ProcessBuilder("/system/bin/getprop", key)
-            .redirectErrorStream(true)
-            .start()
-        if (!process.waitFor(1, TimeUnit.SECONDS)) {
-            process.destroy()
-            return@runCatching ""
-        }
-        process.inputStream.bufferedReader().use { it.readText().trim() }
-    }.getOrDefault("")
 }

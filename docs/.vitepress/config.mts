@@ -93,6 +93,7 @@ export default defineConfig({
     'en/features.md': 'en/features.md',
     'en/build.md': 'en/build.md',
     'en/contribute.md': 'en/contribute.md',
+    'en/privacy.md': 'en/privacy.md',
     'en/donors.md': 'en/donors.md',
     'en/downloads.md': 'en/downloads.md',
     'en/CHANGELOG.md': 'en/CHANGELOG.md',
@@ -149,6 +150,7 @@ function nav(lang: string) {
         items: [
           { text: '构建指南', link: '/build' },
           { text: '贡献指南', link: '/contribute' },
+          { text: '隐私说明', link: '/privacy' },
           { text: '捐赠名单', link: '/donors' }
         ]
       }
@@ -163,6 +165,7 @@ function nav(lang: string) {
       items: [
         { text: 'Build Guide', link: '/en/build' },
         { text: 'Contributing', link: '/en/contribute' },
+        { text: 'Privacy', link: '/en/privacy' },
         { text: 'Donors', link: '/en/donors' }
       ]
     }
@@ -186,6 +189,7 @@ function sidebar(lang: string) {
         items: [
           { text: '构建指南', link: '/build' },
           { text: '贡献指南', link: '/contribute' },
+          { text: '隐私说明', link: '/privacy' },
           { text: '捐赠名单', link: '/donors' }
         ]
       }
@@ -206,6 +210,7 @@ function sidebar(lang: string) {
       items: [
         { text: 'Build Guide', link: '/en/build' },
         { text: 'Contributing', link: '/en/contribute' },
+        { text: 'Privacy', link: '/en/privacy' },
         { text: 'Donors', link: '/en/donors' }
       ]
     }

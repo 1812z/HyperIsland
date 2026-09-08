@@ -12,10 +12,10 @@ object HyperOsVersionUtil {
 
     @JvmStatic
     fun getMajorVersion(): Int {
-        val versionName = getSystemProperty("ro.mi.os.version.name")
+        val versionName = SystemPropertyReader.get("ro.mi.os.version.name")
         parseMajorVersion(versionName)?.let { return it }
 
-        val versionCode = getSystemProperty("ro.mi.os.version.code")
+        val versionCode = SystemPropertyReader.get("ro.mi.os.version.code")
         return versionCode.toIntOrNull()?.takeIf { it in supportedMajorVersions } ?: 0
     }
 
@@ -25,17 +25,5 @@ object HyperOsVersionUtil {
             ?.getOrNull(1)
             ?.toIntOrNull()
             ?.takeIf { it in supportedMajorVersions }
-    }
-
-    private fun getSystemProperty(key: String): String {
-        return runCatching {
-            val systemProperties = Class.forName("android.os.SystemProperties")
-            val get = systemProperties.getMethod(
-                "get",
-                String::class.java,
-                String::class.java,
-            )
-            (get.invoke(null, key, "") as? String).orEmpty().trim()
-        }.getOrDefault("")
     }
 }

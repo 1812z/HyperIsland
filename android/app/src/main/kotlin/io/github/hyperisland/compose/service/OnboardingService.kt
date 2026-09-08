@@ -5,7 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Settings
 import androidx.core.content.ContextCompat
-import io.github.hyperisland.XposedPrefsSyncApp
+import io.github.hyperisland.utils.DevelopmentEnvironmentInfoProvider
 import io.github.hyperisland.utils.RootShell
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -25,7 +25,7 @@ internal data class OnboardingStatus(
 internal class OnboardingService(private val context: Context) {
     suspend fun checkStatus(): OnboardingStatus = withContext(Dispatchers.IO) {
         OnboardingStatus(
-            lsposedActive = isModuleActive(),
+            lsposedActive = DevelopmentEnvironmentInfoProvider.isModuleActive(context),
             rootGranted = runCatching { RootShell.run("id").exitCode == 0 }.getOrDefault(false),
             appListGranted = hasAppListPermission(),
             protocolVersion = Settings.System.getInt(
@@ -52,22 +52,6 @@ internal class OnboardingService(private val context: Context) {
             context,
             listOf(SYSTEM_UI_PACKAGE, XMSF_PACKAGE),
         ).getOrThrow()
-    }
-
-    private fun isModuleActive(): Boolean {
-        if (!XposedPrefsSyncApp.awaitReady()) return false
-        if (!isFrameworkVersionSupported(XposedPrefsSyncApp.getFrameworkVersion())) return false
-        return runCatching {
-            SYSTEM_UI_PACKAGE in
-                (context.applicationContext as XposedPrefsSyncApp).getCurrentScope()
-        }.getOrDefault(false)
-    }
-
-    private fun isFrameworkVersionSupported(version: String): Boolean {
-        val parts = version.split('.', '-', '_')
-        val major = parts.getOrNull(0)?.toIntOrNull() ?: return false
-        val minor = parts.getOrNull(1)?.toIntOrNull() ?: 0
-        return major > 2 || major == 2 && minor >= 0
     }
 
     companion object {

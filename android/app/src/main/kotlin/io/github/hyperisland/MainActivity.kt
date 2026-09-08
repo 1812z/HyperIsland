@@ -15,6 +15,7 @@ import androidx.compose.runtime.setValue
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.navigation.HyperIslandApp
 import io.github.hyperisland.compose.page.onboarding.OnboardingPage
+import io.github.hyperisland.compose.service.AnalyticsService
 import io.github.hyperisland.compose.service.TestNotificationService
 import io.github.hyperisland.compose.theme.HyperIslandTheme
 
@@ -23,6 +24,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val prefs = FlutterPrefsRepository(this)
+        val isNewUser = !prefs.getBoolean("pref_onboarding_completed", false)
         window.clearFlags(
             WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS or
                 WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION,
@@ -64,7 +66,9 @@ class MainActivity : ComponentActivity() {
         }
 
         Thread {
-            if (XposedPrefsSyncApp.awaitReady() && prefs.getBoolean("pref_show_welcome", true)) {
+            val xposedReady = XposedPrefsSyncApp.awaitReady()
+            AnalyticsService.trackEnvironmentSnapshot(applicationContext, isNewUser)
+            if (xposedReady && prefs.getBoolean("pref_show_welcome", true)) {
                 TestNotificationService.sendWelcome(applicationContext)
             }
         }.start()
