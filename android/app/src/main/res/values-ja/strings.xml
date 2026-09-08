@@ -648,6 +648,16 @@
     <string name="background_deleted">背景画像を削除しました</string>
     <string name="background_operation_failed">背景画像の操作に失敗しました</string>
     <string name="background_material_conflict">ガラス素材と背景を同時に使用することはできません</string>
+    <string name="appearance_size">サイズ</string>
+    <string name="appearance_size_summary">アイランドの高さ、位置、幅、間隔</string>
+    <string name="appearance_background">背景</string>
+    <string name="appearance_background_summary">背景画像とガラス効果</string>
+    <string name="appearance_text">テキスト</string>
+    <string name="appearance_text_summary">文字サイズと色の動作</string>
+    <string name="appearance_icon">アイコン</string>
+    <string name="appearance_icon_summary">アイコンのサイズ、角丸、余白</string>
+    <string name="appearance_outline">アウトライン</string>
+    <string name="appearance_outline_summary">アウトライン制御と光彩効果</string>
     <string name="island_dimensions">アイランドサイズ設定</string>
     <string name="island_height">島の高さ</string>
     <string name="vertical_position">垂直位置</string>

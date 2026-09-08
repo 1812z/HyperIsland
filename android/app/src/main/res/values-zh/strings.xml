@@ -706,6 +706,16 @@
     <string name="background_deleted">背景图片已删除</string>
     <string name="background_operation_failed">背景图片操作失败</string>
     <string name="background_material_conflict">玻璃材质与背景不能同时使用</string>
+    <string name="appearance_size">尺寸</string>
+    <string name="appearance_size_summary">岛高度、位置、宽度与间距</string>
+    <string name="appearance_background">背景</string>
+    <string name="appearance_background_summary">背景设置与玻璃效果</string>
+    <string name="appearance_text">文字</string>
+    <string name="appearance_text_summary">文字大小与颜色行为</string>
+    <string name="appearance_icon">图标</string>
+    <string name="appearance_icon_summary">图标大小、圆角与边距</string>
+    <string name="appearance_outline">轮廓</string>
+    <string name="appearance_outline_summary">轮廓控制与光效设置</string>
     <string name="island_dimensions">岛尺寸设置</string>
     <string name="island_height">岛高度</string>
     <string name="vertical_position">垂直位置</string>

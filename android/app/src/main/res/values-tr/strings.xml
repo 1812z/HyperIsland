@@ -648,6 +648,16 @@
     <string name="background_deleted">Arka plan görseli silindi</string>
     <string name="background_operation_failed">Arka plan resmi işlemi başarısız oldu</string>
     <string name="background_material_conflict">Cam malzeme ve arka plan aynı anda kullanılamaz</string>
+    <string name="appearance_size">Boyut</string>
+    <string name="appearance_size_summary">Ada yüksekliği, konumu, genişliği ve aralıkları</string>
+    <string name="appearance_background">Arka plan</string>
+    <string name="appearance_background_summary">Arka plan görselleri ve cam efektleri</string>
+    <string name="appearance_text">Metin</string>
+    <string name="appearance_text_summary">Metin boyutu ve renk davranışı</string>
+    <string name="appearance_icon">Simgeler</string>
+    <string name="appearance_icon_summary">Simge boyutu, köşeleri ve dolgusu</string>
+    <string name="appearance_outline">Ana hat</string>
+    <string name="appearance_outline_summary">Ana hat kontrolleri ve ışık efektleri</string>
     <string name="island_dimensions">Ada Boyutları</string>
     <string name="island_height">Ada Yüksekliği</string>
     <string name="vertical_position">Dikey Konum</string>

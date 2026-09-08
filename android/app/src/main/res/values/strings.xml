@@ -700,6 +700,16 @@
     <string name="background_deleted">Background image deleted</string>
     <string name="background_operation_failed">Background image operation failed</string>
     <string name="background_material_conflict">Glass material and background cannot be used at the same time</string>
+    <string name="appearance_size">Size</string>
+    <string name="appearance_size_summary">Island height, position, width, and spacing</string>
+    <string name="appearance_background">Background</string>
+    <string name="appearance_background_summary">Background images and glass effects</string>
+    <string name="appearance_text">Text</string>
+    <string name="appearance_text_summary">Text size and color behavior</string>
+    <string name="appearance_icon">Icons</string>
+    <string name="appearance_icon_summary">Icon size, corners, and padding</string>
+    <string name="appearance_outline">Outline</string>
+    <string name="appearance_outline_summary">Outline controls and lighting effects</string>
     <string name="island_dimensions">Island Dimensions</string>
     <string name="island_height">Island Height</string>
     <string name="vertical_position">Vertical Position</string>

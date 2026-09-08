@@ -446,6 +446,16 @@
     <string name="invert_status_bar">Inverter cores da barra de status</string>
     <string name="island">Ilha</string>
     <string name="island_background">Fundo da Ilha</string>
+    <string name="appearance_size">Tamanho</string>
+    <string name="appearance_size_summary">Altura, posição, largura e espaçamento da Ilha</string>
+    <string name="appearance_background">Plano de fundo</string>
+    <string name="appearance_background_summary">Imagens de plano de fundo e efeitos de vidro</string>
+    <string name="appearance_text">Texto</string>
+    <string name="appearance_text_summary">Tamanho do texto e comportamento das cores</string>
+    <string name="appearance_icon">Ícones</string>
+    <string name="appearance_icon_summary">Tamanho, cantos e espaçamento dos ícones</string>
+    <string name="appearance_outline">Contorno</string>
+    <string name="appearance_outline_summary">Controles de contorno e efeitos de iluminação</string>
     <string name="island_dimensions">Dimensões da Ilha</string>
     <string name="island_height">Altura da Ilha</string>
     <string name="island_icon">Ícone da Ilha Grande</string>

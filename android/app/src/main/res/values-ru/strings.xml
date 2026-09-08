@@ -648,6 +648,16 @@
     <string name="background_deleted">Фоновое изображение удалено</string>
     <string name="background_operation_failed">Не удалось выполнить операцию фонового изображения.</string>
     <string name="background_material_conflict">Материал стекла и фон нельзя использовать одновременно.</string>
+    <string name="appearance_size">Размер</string>
+    <string name="appearance_size_summary">Высота, положение, ширина и отступы острова</string>
+    <string name="appearance_background">Фон</string>
+    <string name="appearance_background_summary">Фоновые изображения и эффекты стекла</string>
+    <string name="appearance_text">Текст</string>
+    <string name="appearance_text_summary">Размер текста и управление цветом</string>
+    <string name="appearance_icon">Значки</string>
+    <string name="appearance_icon_summary">Размер значков, скругление и отступы</string>
+    <string name="appearance_outline">Контур</string>
+    <string name="appearance_outline_summary">Управление контуром и световые эффекты</string>
     <string name="island_dimensions">Размеры Острова</string>
     <string name="island_height">Высота Острова</string>
     <string name="vertical_position">Вертикальное положение</string>

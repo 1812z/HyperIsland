@@ -81,7 +81,7 @@ import io.github.hyperisland.compose.page.onboarding.OnboardingPage
 import io.github.hyperisland.compose.page.SettingsDetail
 import io.github.hyperisland.compose.page.SettingsPage
 import io.github.hyperisland.compose.page.settings.HideBehaviorPage
-import io.github.hyperisland.compose.page.settings.AppearancePage
+import io.github.hyperisland.compose.page.settings.appearance.AppearancePage
 import io.github.hyperisland.compose.page.settings.IslandMaterialPage
 import io.github.hyperisland.compose.page.settings.DefaultConfigPage
 import io.github.hyperisland.compose.page.settings.AiConfigPage
@@ -692,6 +692,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                             when (visibleDetail) {
                                 SettingsDetail.Appearance -> AppearancePage(
                                     prefs = prefs,
+                                    materialVisible = materialShown,
                                     onOpenMaterial = {
                                         mediaShown = false
                                         materialShown = true

@@ -456,6 +456,16 @@
     <string name="invert_status_bar">عكس شريط الحالة</string>
     <string name="island">الجزيرة</string>
     <string name="island_background">خلفية الجزيرة</string>
+    <string name="appearance_size">الحجم</string>
+    <string name="appearance_size_summary">ارتفاع الجزيرة وموضعها وعرضها والتباعد</string>
+    <string name="appearance_background">الخلفية</string>
+    <string name="appearance_background_summary">صور الخلفية وتأثيرات الزجاج</string>
+    <string name="appearance_text">النص</string>
+    <string name="appearance_text_summary">حجم النص وسلوك الألوان</string>
+    <string name="appearance_icon">الأيقونات</string>
+    <string name="appearance_icon_summary">حجم الأيقونة والزوايا والحشو</string>
+    <string name="appearance_outline">الحدود</string>
+    <string name="appearance_outline_summary">عناصر التحكم في الحدود وتأثيرات الإضاءة</string>
     <string name="island_dimensions">أبعاد الجزيرة</string>
     <string name="island_height">ارتفاع الجزيرة</string>
     <string name="island_icon">أيقونة الجزيرة الكبيرة</string>
