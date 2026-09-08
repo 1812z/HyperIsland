@@ -687,6 +687,7 @@
     <string name="dp_decimal_value">%1$.1fdp</string>
     <string name="island_text">Ada metni</string>
     <string name="island_text_size">Ada metin boyutu</string>
+    <string name="island_text_area_height">Metin alanı yüksekliği</string>
     <string name="island_text_color">Ada metni rengi</string>
     <string name="focus_text_color">Bildirim metni rengine odaklan</string>
     <string name="media_text_color">Medya bildirim metni rengi</string>

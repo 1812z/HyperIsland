@@ -14,6 +14,7 @@ internal fun AppearanceTextPage(prefs: FlutterPrefsRepository, onBack: () -> Uni
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 LongPreferenceSlider(prefs, KEY_TEXT_SCALE, R.string.island_text_size, 10, 200, 100, unit = SliderUnit.Percent)
+                LongPreferenceSlider(prefs, KEY_TEXT_AREA_HEIGHT, R.string.island_text_area_height, 0, 100, 0)
                 TextColorPreference(prefs, KEY_TEXT_COLOR, R.string.island_text_color, includeBackground = true)
                 TextColorPreference(prefs, KEY_FOCUS_TEXT_COLOR, R.string.focus_text_color, includeBackground = false)
                 TextColorPreference(prefs, KEY_MEDIA_TEXT_COLOR, R.string.media_text_color, includeBackground = false)

@@ -739,6 +739,7 @@
     <string name="dp_decimal_value">%1$.1f dp</string>
     <string name="island_text">Island Text</string>
     <string name="island_text_size">Island Text Size</string>
+    <string name="island_text_area_height">Text Area Height</string>
     <string name="island_text_color">Island Text Color</string>
     <string name="focus_text_color">Focus Notification Text Color</string>
     <string name="media_text_color">Media Notification Text Color</string>
