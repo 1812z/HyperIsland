@@ -41,6 +41,7 @@ internal const val KEY_FACE_UNLOCK_FIRST_FLOAT = "pref_face_unlock_island_first_
 internal const val KEY_FACE_UNLOCK_ANIMATION = "pref_face_unlock_island_animation_style"
 internal const val KEY_FACE_UNLOCK_KEEP = "pref_face_unlock_island_keep_until_keyguard_hidden"
 internal const val KEY_HIDE_FACE_UNLOCK_ICON = "pref_hide_lockscreen_face_unlock_icon"
+internal const val KEY_LOCKSCREEN_DEVICE_CENTER = "pref_lockscreen_device_center"
 
 internal const val MODE_DEFAULT = "default"
 internal const val MODE_OUTLINE = "outline"

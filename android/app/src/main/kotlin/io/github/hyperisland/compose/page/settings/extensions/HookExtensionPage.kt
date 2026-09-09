@@ -78,6 +78,11 @@ internal fun HookExtensionPage(
     val charge = rememberBooleanPreference(prefs, KEY_CHARGE_ISLAND, false)
     val faceUnlock = rememberBooleanPreference(prefs, KEY_FACE_UNLOCK_ISLAND, false)
     val hideFaceIcon = rememberBooleanPreference(prefs, KEY_HIDE_FACE_UNLOCK_ICON, false)
+    val lockscreenDeviceCenter = rememberBooleanPreference(
+        prefs,
+        KEY_LOCKSCREEN_DEVICE_CENTER,
+        false,
+    )
     val iconAdjustment = rememberBooleanPreference(prefs, KEY_SMALL_ICON_ADJUSTMENT, false)
     val iconOpacityState = remember(KEY_SMALL_ICON_OPACITY) {
         mutableFloatStateOf(prefs.getDouble(KEY_SMALL_ICON_OPACITY, DEFAULT_ICON_OPACITY).toFloat())
@@ -236,6 +241,22 @@ internal fun HookExtensionPage(
                         onValueChange = { smoothingState.floatValue = it },
                         onValueChangeFinished = { prefs.putDouble(KEY_SMOOTHING, smoothingState.floatValue.toDouble()) },
                     )
+                }
+            }
+        }
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                PreferenceSwitch(
+                    title = stringResource(R.string.ext_lockscreen_device_center),
+                    summary = stringResource(R.string.ext_lockscreen_device_center_summary),
+                    icon = null,
+                    checked = lockscreenDeviceCenter.value,
+                ) { value ->
+                    if (request(value, listOf("com.android.systemui", "com.milink.service"))) {
+                        lockscreenDeviceCenter.value = value
+                        prefs.putBoolean(KEY_LOCKSCREEN_DEVICE_CENTER, value)
+                        restart()
+                    }
                 }
             }
         }
