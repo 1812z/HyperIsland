@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.app.Activity
 import android.content.BroadcastReceiver
 import android.content.ComponentName
@@ -8,8 +10,12 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.net.Uri
 import android.os.Bundle
+import android.view.MotionEvent
 import android.view.View
+import android.view.VelocityTracker
+import android.view.ViewConfiguration
 import android.view.WindowManager
+import android.view.animation.PathInterpolator
 import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
@@ -18,6 +24,7 @@ import java.lang.reflect.Method
 import java.lang.ref.WeakReference
 import java.util.Collections
 import java.util.WeakHashMap
+import kotlin.math.abs
 
 /**
  * Reuses Xiaomi's lock-screen magazine remote animation for MiLink's device center.
@@ -38,6 +45,13 @@ object LockscreenDeviceCenterHook : BaseHook() {
     private const val EXTRA_LOCKSCREEN_LAUNCH =
         "io.github.hyperisland.extra.LOCKSCREEN_DEVICE_CENTER"
 
+    private const val GESTURE_UNDECIDED = 0
+    private const val GESTURE_PASSTHROUGH = 1
+    private const val GESTURE_DISMISSING = 2
+    private const val HORIZONTAL_DIRECTION_RATIO = 1.35f
+    private const val DISMISS_DISTANCE_RATIO = 0.28f
+    private const val DISMISS_MIN_VELOCITY_DP = 900f
+
     private const val MOVE_LEFT_CONTROLLER =
         "com.android.keyguard.negative.KeyguardMoveLeftController"
     private const val MAGAZINE_CONTROLLER =
@@ -52,6 +66,15 @@ object LockscreenDeviceCenterHook : BaseHook() {
 
     private val screenOffReceivers =
         Collections.synchronizedMap(WeakHashMap<Activity, BroadcastReceiver>())
+    private val swipeStates =
+        Collections.synchronizedMap(WeakHashMap<Activity, FullscreenSwipeState>())
+
+    private class FullscreenSwipeState {
+        var mode = GESTURE_UNDECIDED
+        var downX = 0f
+        var downY = 0f
+        var tracker: VelocityTracker? = null
+    }
 
     override fun getTag() = TAG
 
@@ -156,6 +179,8 @@ object LockscreenDeviceCenterHook : BaseHook() {
         }
 
         hookRetainedFinish(module, activityClass)
+        hookFullscreenSwipeToDismiss(module, activityClass)
+        hookSwipeVisualReset(module, activityClass)
         hookNewIntent(module, activityClass)
         hookActivityCleanup(module, activityClass)
 
@@ -188,6 +213,211 @@ object LockscreenDeviceCenterHook : BaseHook() {
         }
     }
 
+    /**
+     * Children receive touch normally until the movement direction is clear. A vertical gesture
+     * remains entirely with the device list; a leftward horizontal gesture cancels the child and
+     * moves the complete DecorView, which also owns MiLink's blur material.
+     */
+    private fun hookFullscreenSwipeToDismiss(
+        module: XposedModule,
+        activityClass: Class<*>,
+    ) {
+        val dispatchTouchEvent = Activity::class.java.getDeclaredMethod(
+            "dispatchTouchEvent",
+            MotionEvent::class.java,
+        ).apply { isAccessible = true }
+        module.hook(dispatchTouchEvent).intercept { chain ->
+            val activity = chain.thisObject as? Activity
+            val event = chain.args.getOrNull(0) as? MotionEvent
+            if (
+                activity == null ||
+                event == null ||
+                !activityClass.isInstance(activity) ||
+                !activity.isLockscreenLaunch()
+            ) {
+                return@intercept chain.proceed()
+            }
+            handleFullscreenSwipe(
+                activity = activity,
+                event = event,
+                proceed = { chain.proceed() },
+                replaceEvent = { replacement -> chain.args[0] = replacement },
+            )
+        }
+    }
+
+    private fun handleFullscreenSwipe(
+        activity: Activity,
+        event: MotionEvent,
+        proceed: () -> Any?,
+        replaceEvent: (MotionEvent) -> Unit,
+    ): Any? {
+        val root = activity.window.decorView
+        val state = swipeStates.getOrPut(activity) { FullscreenSwipeState() }
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                root.animate().setListener(null)
+                root.animate().cancel()
+                root.translationX = 0f
+                state.tracker?.recycle()
+                state.tracker = VelocityTracker.obtain().also { it.addMovement(event) }
+                state.mode = GESTURE_UNDECIDED
+                state.downX = event.rawX
+                state.downY = event.rawY
+                return proceed()
+            }
+
+            MotionEvent.ACTION_MOVE -> {
+                state.tracker?.addMovement(event)
+                val dx = event.rawX - state.downX
+                val dy = event.rawY - state.downY
+                if (state.mode == GESTURE_UNDECIDED) {
+                    val absX = abs(dx)
+                    val absY = abs(dy)
+                    val touchSlop = ViewConfiguration.get(activity).scaledTouchSlop.toFloat()
+                    when {
+                        absY > touchSlop && absY > absX -> {
+                            state.mode = GESTURE_PASSTHROUGH
+                        }
+
+                        dx > touchSlop -> {
+                            state.mode = GESTURE_PASSTHROUGH
+                        }
+
+                        dx < -touchSlop && absX > absY * HORIZONTAL_DIRECTION_RATIO -> {
+                            state.mode = GESTURE_DISMISSING
+                            val cancelEvent = MotionEvent.obtain(event).apply {
+                                action = MotionEvent.ACTION_CANCEL
+                            }
+                            try {
+                                replaceEvent(cancelEvent)
+                                proceed()
+                            } finally {
+                                replaceEvent(event)
+                                cancelEvent.recycle()
+                            }
+                        }
+                    }
+                }
+                if (state.mode == GESTURE_DISMISSING) {
+                    root.translationX = dx.coerceIn(-root.width.toFloat(), 0f)
+                    return true
+                }
+                return proceed()
+            }
+
+            MotionEvent.ACTION_UP -> {
+                state.tracker?.addMovement(event)
+                if (state.mode == GESTURE_DISMISSING) {
+                    state.tracker?.computeCurrentVelocity(1000)
+                    val xVelocity = state.tracker?.xVelocity ?: 0f
+                    val velocityThreshold =
+                        DISMISS_MIN_VELOCITY_DP * activity.resources.displayMetrics.density
+                    val shouldDismiss =
+                        -root.translationX >= root.width * DISMISS_DISTANCE_RATIO ||
+                            xVelocity <= -velocityThreshold
+                    recycleSwipeTracker(state)
+                    if (shouldDismiss) {
+                        animatePageToBackground(activity, root, xVelocity)
+                    } else {
+                        animatePageBack(activity, root)
+                    }
+                    return true
+                }
+                recycleSwipeState(activity, state)
+                return proceed()
+            }
+
+            MotionEvent.ACTION_CANCEL -> {
+                if (state.mode == GESTURE_DISMISSING) {
+                    recycleSwipeTracker(state)
+                    animatePageBack(activity, root)
+                    return true
+                }
+                recycleSwipeState(activity, state)
+                return proceed()
+            }
+        }
+        return if (state.mode == GESTURE_DISMISSING) true else proceed()
+    }
+
+    private fun animatePageBack(activity: Activity, root: View) {
+        root.animate()
+            .translationX(0f)
+            .setDuration(220L)
+            .setInterpolator(PathInterpolator(0.2f, 0f, 0f, 1f))
+            .setListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    root.animate().setListener(null)
+                    swipeStates.remove(activity)
+                }
+            })
+            .start()
+    }
+
+    private fun animatePageToBackground(activity: Activity, root: View, xVelocity: Float) {
+        val width = root.width.coerceAtLeast(1)
+        val remaining = (width + root.translationX).coerceAtLeast(0f)
+        val velocityDuration = if (xVelocity < -1f) {
+            (remaining / -xVelocity * 1000f).toLong()
+        } else {
+            220L
+        }
+        root.animate()
+            .translationX(-width.toFloat())
+            .setDuration(velocityDuration.coerceIn(120L, 260L))
+            .setInterpolator(PathInterpolator(0.2f, 0f, 0f, 1f))
+            .setListener(object : AnimatorListenerAdapter() {
+                private var cancelled = false
+
+                override fun onAnimationCancel(animation: Animator) {
+                    cancelled = true
+                }
+
+                override fun onAnimationEnd(animation: Animator) {
+                    root.animate().setListener(null)
+                    swipeStates.remove(activity)
+                    if (!cancelled && !activity.isDestroyed) {
+                        if (!activity.moveTaskToBack(true)) {
+                            root.translationX = 0f
+                            activity.finish()
+                        }
+                    }
+                }
+            })
+            .start()
+    }
+
+    private fun recycleSwipeState(activity: Activity, state: FullscreenSwipeState) {
+        recycleSwipeTracker(state)
+        swipeStates.remove(activity)
+    }
+
+    private fun recycleSwipeTracker(state: FullscreenSwipeState) {
+        state.tracker?.recycle()
+        state.tracker = null
+    }
+
+    private fun hookSwipeVisualReset(module: XposedModule, activityClass: Class<*>) {
+        val onStart = findMethodInHierarchy(activityClass, "onStart", 0) ?: return
+        module.hook(onStart).intercept { chain ->
+            val activity = chain.thisObject as? Activity
+            if (activity != null && activityClass.isInstance(activity)) {
+                resetSwipeVisual(activity)
+            }
+            chain.proceed()
+        }
+    }
+
+    private fun resetSwipeVisual(activity: Activity) {
+        activity.window.decorView.let { root ->
+            root.animate().setListener(null)
+            root.animate().cancel()
+            root.translationX = 0f
+        }
+        swipeStates.remove(activity)?.let(::recycleSwipeTracker)
+    }
+
     private fun registerScreenOffReceiver(activity: Activity) {
         if (screenOffReceivers.containsKey(activity)) return
         val activityRef = WeakReference(activity)
@@ -199,6 +429,7 @@ object LockscreenDeviceCenterHook : BaseHook() {
                     target != null &&
                     !target.isDestroyed
                 ) {
+                    resetSwipeVisual(target)
                     if (!target.moveTaskToBack(true)) {
                         target.finishAndRemoveTask()
                     }
@@ -219,6 +450,7 @@ object LockscreenDeviceCenterHook : BaseHook() {
             val activity = chain.thisObject as? Activity
             val newIntent = chain.args.getOrNull(0) as? Intent
             if (activity != null && activityClass.isInstance(activity) && newIntent != null) {
+                resetSwipeVisual(activity)
                 activity.intent = newIntent
             }
             val result = chain.proceed()
@@ -243,6 +475,7 @@ object LockscreenDeviceCenterHook : BaseHook() {
         module.hook(onDestroy).intercept { chain ->
             val activity = chain.thisObject as? Activity
             if (activity != null && activityClass.isInstance(activity)) {
+                resetSwipeVisual(activity)
                 screenOffReceivers.remove(activity)?.let { receiver ->
                     runCatching { activity.unregisterReceiver(receiver) }
                 }
