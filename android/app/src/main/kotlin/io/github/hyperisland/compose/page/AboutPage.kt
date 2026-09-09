@@ -254,6 +254,14 @@ internal fun AboutPage(
                         icon = MiuixIcons.Info,
                         onClick = onOpenReferences,
                     )
+                    SettingsAction(
+                        title = stringResource(R.string.privacy_consent_title),
+                        icon = MiuixIcons.Info,
+                        endIcon = MiuixIcons.Link,
+                        endIconSize = 26.dp,
+                    ) {
+                        context.openPrivacyPolicy()
+                    }
                 }
             }
         }
@@ -629,10 +637,17 @@ private fun Context.openUrl(url: String) {
     startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
 }
 
+private fun Context.openPrivacyPolicy() {
+    val language = resources.configuration.locales.get(0).language
+    val path = if (language.equals("zh", ignoreCase = true)) "privacy" else "en/privacy"
+    openUrl("$PRIVACY_POLICY_BASE_URL/$path")
+}
+
 private const val GITHUB_URL = "https://github.com/1812z/HyperIsland"
 private const val CHANGELOG_URL = "https://hyperisland.1812z.top/CHANGELOG.html"
 private const val DEVELOPER_GITHUB_URL = "https://github.com/1812z"
 private const val TELEGRAM_URL = "https://t.me/HyperIsland_Module"
+private const val PRIVACY_POLICY_BASE_URL = "https://hyperisland.1812z.top"
 private const val BACKGROUND_SPEED = 0.12f
 private const val COLOR_INTERPOLATION_SECONDS = 12f
 private const val HERO_HEIGHT_FRACTION = 0.60f
