@@ -10,7 +10,7 @@ import io.github.hyperisland.xposed.hook.SystemUI.IslandOutlineHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandTextSizeHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandTransitionVisualHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandSwipeActionHook
-import io.github.hyperisland.xposed.hook.SystemUI.LockscreenDeviceCenterHook
+import io.github.hyperisland.xposed.hook.SystemUI.LockscreenNegativePageHook
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.SmallIslandIconHook
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.SmoothIslandHook
 import io.github.hyperisland.xposed.hook.ActiveIslandDismissHook
@@ -68,7 +68,7 @@ class HyperIslandModule : XposedModule() {
                     LockscreenFaceUnlockUiHook.init(this, param)
                 }
                 if (ConfigManager.getBoolean("pref_lockscreen_device_center", false)) {
-                    LockscreenDeviceCenterHook.init(this, param)
+                    LockscreenNegativePageHook.init(this, param)
                 }
                 IslandDispatcherHook.init(this, param)
                 GenericProgressHook.init(this, param)
@@ -148,7 +148,7 @@ class HyperIslandModule : XposedModule() {
 
             "com.milink.service" ->
                 if (ConfigManager.getBoolean("pref_lockscreen_device_center", false)) {
-                    LockscreenDeviceCenterHook.init(this, param)
+                    LockscreenNegativePageHook.init(this, param)
                 }
 
         }

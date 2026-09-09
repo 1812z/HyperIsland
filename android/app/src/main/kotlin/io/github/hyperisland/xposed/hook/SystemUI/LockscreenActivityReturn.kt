@@ -28,11 +28,11 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 /** Drives Xiaomi's actual unocclude leash, leaving keyguard visibility and hierarchy to the OS. */
-internal object LockscreenDeviceCenterReturn {
+internal object LockscreenActivityReturn {
     private const val TAG = "HyperIsland[DeviceCenterReturn]"
     private const val EXTRA = "io.github.hyperisland.extra.RETURN_CONTROLLER"
     private const val DESCRIPTOR = "io.github.hyperisland.DeviceCenterReturn"
-    private const val PACKAGE = "com.milink.service"
+    private lateinit var targetPackage: String
     private val main by lazy { Handler(Looper.getMainLooper()) }
     private var moduleRef: WeakReference<XposedModule>? = null
     private var helperRef: WeakReference<Any>? = null
@@ -63,7 +63,8 @@ internal object LockscreenDeviceCenterReturn {
         endpoint?.let { binder -> intent.putExtras(Bundle().apply { putBinder(EXTRA, binder) }) }
     }
 
-    fun install(module: XposedModule, loader: ClassLoader, helperClass: Class<*>) {
+    fun install(module: XposedModule, loader: ClassLoader, helperClass: Class<*>, packageName: String) {
+        targetPackage = packageName
         moduleRef = WeakReference(module)
         runCatching {
             positionMethod = method(helperClass, "setLeashPositionOnRtFrameCallback", 2)
@@ -191,7 +192,7 @@ internal object LockscreenDeviceCenterReturn {
 
     private fun registerMonitor(loader: ClassLoader, helper: Any) {
         val context = field(helper.javaClass, "mContext")?.get(helper) as? Context ?: return
-        allowedUid = context.packageManager.getApplicationInfo(PACKAGE, 0).uid
+        allowedUid = context.packageManager.getApplicationInfo(targetPackage, 0).uid
         val clazz = loader.loadClass("com.miui.keyguard.biometrics.fod.MiuiGestureMonitor")
         val monitor = method(clazz, "getInstance", 1).invoke(null, context) ?: return
         val register = method(clazz, "registerPointerEventListener", 1)
