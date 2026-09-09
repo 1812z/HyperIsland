@@ -138,6 +138,8 @@ object LockscreenDeviceCenterHook : BaseHook() {
      * path intact and suppress only that positive-distance scrim update. SystemUI also translates
      * its original magazine page alongside the remote leash; that page owns another dark blur
      * background, so hide the page and its low-end left_view_bg fallback in the same frame.
+     * setTranslation makes the page visible even when the distance is unchanged and consequently
+     * skips updateKeyguardInfoBlurRatio. Clean up that path as well, including zero/reset frames.
      */
     private fun hookSystemScrimSuppression(
         module: XposedModule,
@@ -148,17 +150,41 @@ object LockscreenDeviceCenterHook : BaseHook() {
             val blurMethod = findMethod(moveHelperClass, "updateKeyguardInfoBlurRatio", 1)
             val leftViewField = findField(moveHelperClass, "mLeftView")
             val leftViewBgField = findField(moveHelperClass, "mLeftViewBg")
+            fun hideMagazineLayers(helper: Any?) {
+                if (helper == null) return
+                runCatching {
+                    (leftViewField?.get(helper) as? View)?.apply {
+                        // This is the unused magazine View, not the remote MiLink leash or the
+                        // keyguard root. Alpha also protects against a later VISIBLE-only write.
+                        alpha = 0f
+                        visibility = View.INVISIBLE
+                    }
+                    (leftViewBgField?.get(helper) as? View)?.apply {
+                        alpha = 0f
+                        visibility = View.INVISIBLE
+                    }
+                }.onFailure { error ->
+                    logError(module, "failed to hide magazine layers: ${error.message}")
+                }
+            }
+            module.hook(findMethod(moveHelperClass, "setTranslation", 5)).intercept { chain ->
+                hideMagazineLayers(chain.thisObject)
+                try {
+                    chain.proceed()
+                } finally {
+                    // Also runs when stock code skips the blur update, takes an early return,
+                    // or starts its reset animator. Geometry and animation state stay stock.
+                    hideMagazineLayers(chain.thisObject)
+                }
+            }
             module.hook(blurMethod).intercept { chain ->
                 val translation = (chain.args.getOrNull(0) as? Number)?.toFloat() ?: 0f
-                if (translation <= 0f) {
-                    return@intercept chain.proceed()
+                try {
+                    // Preserve the stock front-scrim cleanup at zero and outside right-swipe.
+                    if (translation <= 0f) chain.proceed() else null
+                } finally {
+                    hideMagazineLayers(chain.thisObject)
                 }
-                (leftViewField?.get(chain.thisObject) as? View)?.visibility = View.INVISIBLE
-                (leftViewBgField?.get(chain.thisObject) as? View)?.apply {
-                    alpha = 0f
-                    visibility = View.INVISIBLE
-                }
-                null
             }
         }.onFailure { error ->
             logError(module, "failed to suppress SystemUI magazine scrim: ${error.message}")
