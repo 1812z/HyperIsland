@@ -356,6 +356,7 @@
     <string name="ext_face_summary">%1$s · Добавляет остров разблокировки на экран блокировки</string>
     <string name="ext_hide_face_icon">Отключить значок разблокировки лицом</string>
     <string name="ext_hide_face_icon_summary">Скрыть графику распознавания лица на экране блокировки, не отключая разблокировку лицом</string>
+    <string name="ext_lockscreen_device_center_summary">Заменяет крайнюю левую страницу экрана блокировки на интегрированный центр устройств. Элементы управления устройствами видны до разблокировки. Проверено только на OS4</string>
     <string name="ext_small_icon">Настройка значка малого Острова</string>
     <string name="ext_small_icon_enabled">Включено · Настройка поведения значка Острова</string>
     <string name="ext_small_icon_disabled">Отключено · Настройка поведения значка Острова</string>

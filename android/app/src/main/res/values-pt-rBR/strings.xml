@@ -289,6 +289,7 @@
     <string name="ext_face_summary">%1$s · Adiciona uma Ilha de status de desbloqueio à tela de bloqueio</string>
     <string name="ext_hide_face_icon">Ocultar ícone de Desbloqueio Facial</string>
     <string name="ext_hide_face_icon_summary">Oculta o gráfico de reconhecimento facial na tela de bloqueio sem desativar o Desbloqueio Facial</string>
+    <string name="ext_lockscreen_device_center_summary">Substitui a página à esquerda da tela de bloqueio pela Central de dispositivos integrada. Os controles dos dispositivos ficam visíveis antes do desbloqueio. Testado apenas no OS4</string>
     <string name="ext_icon_outline">Sem plano de fundo</string>
     <string name="ext_icon_style">Estilo do ícone</string>
     <string name="ext_lock">Bloquear</string>

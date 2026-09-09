@@ -292,6 +292,7 @@
     <string name="ext_face_summary">%1$s · يضيف أيلاند حالة الفتح على شاشة القفل</string>
     <string name="ext_hide_face_icon">إخفاء أيقونة فتح القفل بالوجه</string>
     <string name="ext_hide_face_icon_summary">أخفِ رسم التعرّف على الوجه في شاشة القفل دون التأثير في فتح القفل بالوجه.</string>
+    <string name="ext_lockscreen_device_center_summary">يستبدل الصفحة الموجودة إلى يسار شاشة القفل بمركز الأجهزة المتكامل. تظهر عناصر التحكم بالأجهزة قبل إلغاء القفل. تم اختباره على OS4 فقط</string>
     <string name="ext_icon_outline">دون خلفية</string>
     <string name="ext_icon_style">نمط الأيقونة</string>
     <string name="ext_lock">قفل</string>

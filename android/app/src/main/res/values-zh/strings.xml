@@ -392,7 +392,7 @@
     <string name="ext_hide_face_icon">禁用人脸解锁图标</string>
     <string name="ext_hide_face_icon_summary">隐藏锁屏界面的人脸识别图案，不影响人脸解锁功能</string>
     <string name="ext_lockscreen_device_center">锁屏负一屏设备中心</string>
-    <string name="ext_lockscreen_device_center_summary">将锁屏负一屏替换为融合设备中心，并随右滑手势逐渐显示；解锁前可能看到设备控制内容</string>
+    <string name="ext_lockscreen_device_center_summary">将锁屏负一屏替换为融合设备中心，解锁前看到设备控制内容，仅在 OS4 上测试通过</string>
     <string name="ext_small_icon">小岛图标调节</string>
     <string name="ext_small_icon_enabled">已开启 · 调节小岛图标行为</string>
     <string name="ext_small_icon_disabled">已关闭 · 调节小岛图标行为</string>

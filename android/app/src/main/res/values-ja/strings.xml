@@ -356,6 +356,7 @@
     <string name="ext_face_summary">%1$s · ロック画面にロック解除状態のアイランドを追加します</string>
     <string name="ext_hide_face_icon">顔認証アイコンを無効化</string>
     <string name="ext_hide_face_icon_summary">顔認証機能に影響を与えず、ロック画面の顔認証表示を非表示にします</string>
+    <string name="ext_lockscreen_device_center_summary">ロック画面のマイナスワン画面をデバイス連携センターに置き換えます。ロック解除前でもデバイス操作の内容が表示されます。OS4 でのみ動作確認済みです</string>
     <string name="ext_small_icon">スモール Island アイコン調整</string>
     <string name="ext_small_icon_enabled">有効 · Island アイコンの動作を調整</string>
     <string name="ext_small_icon_disabled">無効 · Island アイコンの動作を調整</string>

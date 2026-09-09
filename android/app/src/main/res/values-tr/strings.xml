@@ -356,6 +356,7 @@
     <string name="ext_face_summary">%1$s · Kilit ekranına kilit açma durumu süper adası ekler</string>
     <string name="ext_hide_face_icon">Yüz Kilidi Simgesini Devre Dışı Bırak</string>
     <string name="ext_hide_face_icon_summary">Yüz kilidi işlevini etkilemeden kilit ekranındaki yüz tanıma grafiğini gizle</string>
+    <string name="ext_lockscreen_device_center_summary">Kilit ekranının eksi bir sayfasını entegre cihaz merkeziyle değiştirir. Cihaz denetimleri kilit açılmadan önce görünür. Yalnızca OS4 üzerinde test edilmiştir</string>
     <string name="ext_small_icon">Küçük ada simgesi ayarı</string>
     <string name="ext_small_icon_enabled">Etkin · Ada simgesi davranışını ayarla</string>
     <string name="ext_small_icon_disabled">Devre dışı · Ada simgesi davranışını ayarla</string>

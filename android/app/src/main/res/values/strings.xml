@@ -386,7 +386,7 @@
     <string name="ext_hide_face_icon">Disable Face Unlock Icon</string>
     <string name="ext_hide_face_icon_summary">Hide the face recognition graphic on the lock screen without affecting face unlock</string>
     <string name="ext_lockscreen_device_center">Lock screen device center</string>
-    <string name="ext_lockscreen_device_center_summary">Replace the lock screen negative-one page with the MiLink device center and reveal it progressively with the swipe gesture. Device controls may be visible before unlocking</string>
+    <string name="ext_lockscreen_device_center_summary">Replace the lock screen negative-one page with the integrated device center. Device controls are visible before unlocking. Tested only on OS4</string>
     <string name="ext_small_icon">Small island icon adjustment</string>
     <string name="ext_small_icon_enabled">Enabled · Adjust island icon behavior</string>
     <string name="ext_small_icon_disabled">Disabled · Adjust island icon behavior</string>
