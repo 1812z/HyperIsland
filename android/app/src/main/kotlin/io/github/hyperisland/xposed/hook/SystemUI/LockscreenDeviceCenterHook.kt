@@ -1,7 +1,5 @@
 package io.github.hyperisland.xposed.hook.SystemUI
 
-import android.animation.Animator
-import android.animation.AnimatorListenerAdapter
 import android.app.Activity
 import android.content.BroadcastReceiver
 import android.content.ComponentName
@@ -9,13 +7,19 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.net.Uri
+import android.graphics.Rect
+import android.os.Binder
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.os.Parcel
+import android.os.IBinder
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import android.view.VelocityTracker
 import android.view.ViewConfiguration
 import android.view.WindowManager
-import android.view.animation.PathInterpolator
 import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
@@ -44,10 +48,10 @@ object LockscreenDeviceCenterHook : BaseHook() {
     private const val DEVICE_CENTER_URI = "milink://com.milink.service/circulate_world"
     private const val EXTRA_LOCKSCREEN_LAUNCH =
         "io.github.hyperisland.extra.LOCKSCREEN_DEVICE_CENTER"
-
     private const val GESTURE_UNDECIDED = 0
     private const val GESTURE_PASSTHROUGH = 1
     private const val GESTURE_DISMISSING = 2
+    private const val GESTURE_REMOTE = 3
     private const val HORIZONTAL_DIRECTION_RATIO = 1.35f
     private const val DISMISS_DISTANCE_RATIO = 0.28f
     private const val DISMISS_MIN_VELOCITY_DP = 900f
@@ -60,7 +64,6 @@ object LockscreenDeviceCenterHook : BaseHook() {
         "com.android.keyguard.magazine.KeyguardMagazineHelper"
     private const val KEYGUARD_MOVE_HELPER =
         "com.android.keyguard.panel.KeyguardMoveHelper"
-
     @Volatile private var systemUiHooked = false
     @Volatile private var deviceCenterHooked = false
 
@@ -74,6 +77,7 @@ object LockscreenDeviceCenterHook : BaseHook() {
         var downX = 0f
         var downY = 0f
         var tracker: VelocityTracker? = null
+        var pendingLongClick: WeakReference<View>? = null
     }
 
     override fun getTag() = TAG
@@ -91,6 +95,7 @@ object LockscreenDeviceCenterHook : BaseHook() {
         val moveController = classLoader.loadClass(MOVE_LEFT_CONTROLLER)
         val magazineController = classLoader.loadClass(MAGAZINE_CONTROLLER)
         val magazineHelper = classLoader.loadClass(MAGAZINE_HELPER)
+        LockscreenDeviceCenterReturn.install(module, classLoader, magazineHelper)
 
         hookBooleanResult(module, moveController, "supportMoveToRight")
         hookBooleanResult(module, moveController, "isLeftViewLaunchActivity")
@@ -105,6 +110,7 @@ object LockscreenDeviceCenterHook : BaseHook() {
                     putExtra("from", "keyguard")
                     putExtra("entry_source", "swipe")
                     putExtra(EXTRA_LOCKSCREEN_LAUNCH, true)
+                    LockscreenDeviceCenterReturn.attachController(this)
                 }
             }
         }
@@ -112,6 +118,7 @@ object LockscreenDeviceCenterHook : BaseHook() {
         findMethod(magazineHelper, "checkIsMagazineRemoteAnimation", 1).let { method ->
             module.hook(method).intercept { chain ->
                 if (remoteTargetPackage(chain.args.getOrNull(0)) == MILINK_PACKAGE) {
+                    LockscreenDeviceCenterReturn.onRemoteTarget(chain.args[0]!!)
                     true
                 } else {
                     chain.proceed()
@@ -120,7 +127,6 @@ object LockscreenDeviceCenterHook : BaseHook() {
         }
 
         hookSystemScrimSuppression(module, classLoader)
-
         systemUiHooked = true
         log(module, "SystemUI negative-one page redirected to $DEVICE_CENTER_ACTIVITY")
     }
@@ -180,6 +186,7 @@ object LockscreenDeviceCenterHook : BaseHook() {
 
         hookRetainedFinish(module, activityClass)
         hookFullscreenSwipeToDismiss(module, activityClass)
+        hookLockscreenLongPressSuppression(module, activityClass)
         hookSwipeVisualReset(module, activityClass)
         hookNewIntent(module, activityClass)
         hookActivityCleanup(module, activityClass)
@@ -216,7 +223,7 @@ object LockscreenDeviceCenterHook : BaseHook() {
     /**
      * Children receive touch normally until the movement direction is clear. A vertical gesture
      * remains entirely with the device list; a leftward horizontal gesture cancels the child and
-     * moves the complete DecorView, which also owns MiLink's blur material.
+     * hands the stream to SystemUI, which moves the actual unocclude animation leash.
      */
     private fun hookFullscreenSwipeToDismiss(
         module: XposedModule,
@@ -241,24 +248,68 @@ object LockscreenDeviceCenterHook : BaseHook() {
                 activity = activity,
                 event = event,
                 proceed = { chain.proceed() },
-                replaceEvent = { replacement -> chain.args[0] = replacement },
             )
         }
     }
+
+    /**
+     * A child can fire its long-click before a slow drag reaches the horizontal touch slop. Defer
+     * that callback until an undecided gesture is released; discard it when horizontal dismissal
+     * or vertical pass-through wins, because ACTION_CANCEL cannot undo an action already run.
+     */
+    private fun hookLockscreenLongPressSuppression(
+        module: XposedModule,
+        activityClass: Class<*>,
+    ) {
+        View::class.java.declaredMethods
+            .filter { method ->
+                method.name == "performLongClick" &&
+                    method.returnType == Boolean::class.javaPrimitiveType
+            }
+            .forEach { method ->
+                method.isAccessible = true
+                module.hook(method).intercept { chain ->
+                    val view = chain.thisObject as? View
+                    val state = view?.let { findDeferredLongPressState(it, activityClass) }
+                    if (view != null && state != null) {
+                        state.pendingLongClick = WeakReference(view)
+                        true
+                    } else {
+                        chain.proceed()
+                    }
+                }
+            }
+    }
+
+    private fun findDeferredLongPressState(
+        view: View,
+        activityClass: Class<*>,
+    ): FullscreenSwipeState? =
+        synchronized(swipeStates) {
+            swipeStates.entries.firstOrNull { (activity, state) ->
+                activityClass.isInstance(activity) &&
+                    activity.isLockscreenLaunch() &&
+                    state.mode != GESTURE_PASSTHROUGH &&
+                    view.rootView === activity.window.decorView
+            }?.value
+        }
 
     private fun handleFullscreenSwipe(
         activity: Activity,
         event: MotionEvent,
         proceed: () -> Any?,
-        replaceEvent: (MotionEvent) -> Unit,
     ): Any? {
         val root = activity.window.decorView
         val state = swipeStates.getOrPut(activity) { FullscreenSwipeState() }
+        if (state.mode == GESTURE_REMOTE && event.actionMasked != MotionEvent.ACTION_DOWN) {
+            return true
+        }
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 root.animate().setListener(null)
                 root.animate().cancel()
                 root.translationX = 0f
+
                 state.tracker?.recycle()
                 state.tracker = VelocityTracker.obtain().also { it.addMovement(event) }
                 state.mode = GESTURE_UNDECIDED
@@ -278,10 +329,12 @@ object LockscreenDeviceCenterHook : BaseHook() {
                     when {
                         absY > touchSlop && absY > absX -> {
                             state.mode = GESTURE_PASSTHROUGH
+                            state.pendingLongClick = null
                         }
 
                         dx > touchSlop -> {
                             state.mode = GESTURE_PASSTHROUGH
+                            state.pendingLongClick = null
                         }
 
                         dx < -touchSlop && absX > absY * HORIZONTAL_DIRECTION_RATIO -> {
@@ -290,17 +343,28 @@ object LockscreenDeviceCenterHook : BaseHook() {
                                 action = MotionEvent.ACTION_CANCEL
                             }
                             try {
-                                replaceEvent(cancelEvent)
-                                proceed()
+                                activity.window.superDispatchTouchEvent(cancelEvent)
                             } finally {
-                                replaceEvent(event)
                                 cancelEvent.recycle()
+                            }
+                            state.pendingLongClick = null
+                            clearPressedState(root)
+                            if (LockscreenDeviceCenterReturn.begin(activity, event, state.downX)) {
+                                state.mode = GESTURE_REMOTE
+                                recycleSwipeTracker(state)
+                                if (!activity.moveTaskToBack(true)) {
+                                    LockscreenDeviceCenterReturn.abort(activity)
+                                    state.mode = GESTURE_PASSTHROUGH
+                                }
+                                return true
                             }
                         }
                     }
                 }
                 if (state.mode == GESTURE_DISMISSING) {
-                    root.translationX = dx.coerceIn(-root.width.toFloat(), 0f)
+                    // Controller unavailable: preserve the official return animation instead
+                    // of exposing an occluded wallpaper-only window by translating DecorView.
+
                     return true
                 }
                 return proceed()
@@ -314,24 +378,27 @@ object LockscreenDeviceCenterHook : BaseHook() {
                     val velocityThreshold =
                         DISMISS_MIN_VELOCITY_DP * activity.resources.displayMetrics.density
                     val shouldDismiss =
-                        -root.translationX >= root.width * DISMISS_DISTANCE_RATIO ||
+                        state.downX - event.rawX >= root.width * DISMISS_DISTANCE_RATIO ||
                             xVelocity <= -velocityThreshold
                     recycleSwipeTracker(state)
-                    if (shouldDismiss) {
-                        animatePageToBackground(activity, root, xVelocity)
-                    } else {
-                        animatePageBack(activity, root)
-                    }
+                    recycleSwipeState(activity, state)
+                    if (shouldDismiss) activity.moveTaskToBack(true)
                     return true
                 }
+                val deferredLongClick = if (state.mode == GESTURE_UNDECIDED) {
+                    state.pendingLongClick?.get()
+                } else {
+                    null
+                }
                 recycleSwipeState(activity, state)
+                deferredLongClick?.performLongClick()
                 return proceed()
             }
 
             MotionEvent.ACTION_CANCEL -> {
                 if (state.mode == GESTURE_DISMISSING) {
                     recycleSwipeTracker(state)
-                    animatePageBack(activity, root)
+                    recycleSwipeState(activity, state)
                     return true
                 }
                 recycleSwipeState(activity, state)
@@ -341,61 +408,25 @@ object LockscreenDeviceCenterHook : BaseHook() {
         return if (state.mode == GESTURE_DISMISSING) true else proceed()
     }
 
-    private fun animatePageBack(activity: Activity, root: View) {
-        root.animate()
-            .translationX(0f)
-            .setDuration(220L)
-            .setInterpolator(PathInterpolator(0.2f, 0f, 0f, 1f))
-            .setListener(object : AnimatorListenerAdapter() {
-                override fun onAnimationEnd(animation: Animator) {
-                    root.animate().setListener(null)
-                    swipeStates.remove(activity)
-                }
-            })
-            .start()
-    }
-
-    private fun animatePageToBackground(activity: Activity, root: View, xVelocity: Float) {
-        val width = root.width.coerceAtLeast(1)
-        val remaining = (width + root.translationX).coerceAtLeast(0f)
-        val velocityDuration = if (xVelocity < -1f) {
-            (remaining / -xVelocity * 1000f).toLong()
-        } else {
-            220L
-        }
-        root.animate()
-            .translationX(-width.toFloat())
-            .setDuration(velocityDuration.coerceIn(120L, 260L))
-            .setInterpolator(PathInterpolator(0.2f, 0f, 0f, 1f))
-            .setListener(object : AnimatorListenerAdapter() {
-                private var cancelled = false
-
-                override fun onAnimationCancel(animation: Animator) {
-                    cancelled = true
-                }
-
-                override fun onAnimationEnd(animation: Animator) {
-                    root.animate().setListener(null)
-                    swipeStates.remove(activity)
-                    if (!cancelled && !activity.isDestroyed) {
-                        if (!activity.moveTaskToBack(true)) {
-                            root.translationX = 0f
-                            activity.finish()
-                        }
-                    }
-                }
-            })
-            .start()
-    }
-
     private fun recycleSwipeState(activity: Activity, state: FullscreenSwipeState) {
         recycleSwipeTracker(state)
+        state.pendingLongClick = null
         swipeStates.remove(activity)
     }
 
     private fun recycleSwipeTracker(state: FullscreenSwipeState) {
         state.tracker?.recycle()
         state.tracker = null
+    }
+
+    private fun clearPressedState(view: View) {
+        view.cancelLongPress()
+        view.isPressed = false
+        if (view is ViewGroup) {
+            for (index in 0 until view.childCount) {
+                clearPressedState(view.getChildAt(index))
+            }
+        }
     }
 
     private fun hookSwipeVisualReset(module: XposedModule, activityClass: Class<*>) {
@@ -412,6 +443,7 @@ object LockscreenDeviceCenterHook : BaseHook() {
     private fun resetSwipeVisual(activity: Activity) {
         activity.window.decorView.let { root ->
             root.animate().setListener(null)
+            root.animate().setUpdateListener(null)
             root.animate().cancel()
             root.translationX = 0f
         }
