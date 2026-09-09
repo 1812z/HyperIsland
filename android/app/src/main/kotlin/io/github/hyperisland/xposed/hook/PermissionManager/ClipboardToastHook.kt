@@ -15,7 +15,6 @@ import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
 import io.github.hyperisland.xposed.islanddispatch.definition.IslandRequest
-import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.util.concurrent.ConcurrentHashMap
@@ -26,7 +25,12 @@ object ClipboardToastHook : BaseHook() {
     private const val MODULE_PACKAGE = "io.github.hyperisland"
     private const val TYPE_ACCESS_CLIP_NOTIFICATION = 1
     private const val KEY_OPTIMIZE_ISLAND_STYLE = "pref_clipboard_optimize_island_style"
-    private const val TOAST_UTIL_CLASS = "com.hyperos.security.utility.ToastUtil"
+    private val TOAST_UTIL_CLASSES = arrayOf(
+        // Newer Security Center builds.
+        "com.hyperos.security.utility.ToastUtil",
+        // HyperOS 3 Permission Manager / LBE builds.
+        "com.lbe.security.utility.ToastUtil",
+    )
 
     private val hookedToastUtilClasses = ConcurrentHashMap.newKeySet<Class<*>>()
 
@@ -34,15 +38,25 @@ object ClipboardToastHook : BaseHook() {
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
         module.log(Log.INFO, TAG, "initializing in ${param.packageName}")
-        hookSecurityCenterToast(module, param.defaultClassLoader)
-        hookApplicationAttach(module)
-        HookUtils.hookDynamicClassLoaders(
-            module,
-            ClassLoader.getSystemClassLoader(),
-        ) { classLoader ->
-            hookSecurityCenterToast(module, classLoader)
+        installHook(module, "ToastUtil") {
+            hookSecurityCenterToast(module, param.defaultClassLoader)
         }
-        hookWindowAddView(module, param.defaultClassLoader)
+        installHook(module, "Application.attach") {
+            hookApplicationAttach(module)
+        }
+        installHook(module, "WindowManager.addView fallback") {
+            hookWindowAddView(module, param.defaultClassLoader)
+        }
+    }
+
+    private inline fun installHook(
+        module: XposedModule,
+        name: String,
+        block: () -> Unit,
+    ) {
+        runCatching(block).onFailure {
+            module.log(Log.ERROR, TAG, "$name hook failed: ${it.message}")
+        }
     }
 
     private fun hookApplicationAttach(module: XposedModule) {
@@ -59,9 +73,15 @@ object ClipboardToastHook : BaseHook() {
     }
 
     private fun hookSecurityCenterToast(module: XposedModule, classLoader: ClassLoader) {
-        val clazz = runCatching {
-            Class.forName(TOAST_UTIL_CLASS, false, classLoader)
-        }.getOrNull() ?: return
+        TOAST_UTIL_CLASSES.forEach { className ->
+            val clazz = runCatching {
+                Class.forName(className, false, classLoader)
+            }.getOrNull() ?: return@forEach
+            hookToastUtilClass(module, clazz)
+        }
+    }
+
+    private fun hookToastUtilClass(module: XposedModule, clazz: Class<*>) {
         if (!hookedToastUtilClasses.add(clazz)) return
         val methods = clazz.declaredMethods.filter { method ->
             method.name == "showToast" &&
@@ -69,19 +89,26 @@ object ClipboardToastHook : BaseHook() {
                 method.parameterTypes[0] == String::class.java &&
                 method.parameterTypes[1] == Int::class.javaPrimitiveType
         }
-        val contextField = runCatching {
-            clazz.getDeclaredField("mContext").apply { isAccessible = true }
-        }.getOrElse {
+        val contextField = clazz.declaredFields.firstOrNull { field ->
+            field.name == "mContext" && Context::class.java.isAssignableFrom(field.type)
+        } ?: clazz.declaredFields.firstOrNull { field ->
+            Context::class.java.isAssignableFrom(field.type)
+        } ?: run {
             hookedToastUtilClasses.remove(clazz)
-            module.log(Log.WARN, TAG, "ToastUtil context unavailable: ${it.message}")
+            module.log(Log.WARN, TAG, "${clazz.name} context field unavailable")
             return
         }
+        contextField.isAccessible = true
         if (methods.isEmpty()) {
             hookedToastUtilClasses.remove(clazz)
             module.log(Log.WARN, TAG, "ToastUtil showToast method unavailable")
             return
         }
-        //module.log(Log.INFO, TAG, "ToastUtil showToast candidates=${methods.size}")
+        module.log(
+            Log.INFO,
+            TAG,
+            "hooking ${clazz.name}.showToast candidates=${methods.size}",
+        )
         methods.forEach { method ->
             method.isAccessible = true
             module.hook(method).intercept { chain ->
@@ -96,7 +123,8 @@ object ClipboardToastHook : BaseHook() {
 
                 val owner = chain.thisObject ?: return@intercept chain.proceed()
                 val context = runCatching { contextField.get(owner) as? Context }
-                    .getOrNull() ?: return@intercept chain.proceed()
+                    .getOrNull()
+                    ?: return@intercept chain.proceed()
                 if (!sendClipboardIsland(module, context, packageName)) {
                     return@intercept chain.proceed()
                 }
