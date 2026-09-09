@@ -264,6 +264,12 @@ internal object LockscreenDeviceCenterReturn {
         field(it.javaClass, "mContext")?.get(it) as? Context
     }
 
+    internal fun interactivePosition(leash: Any?): Float? {
+        val current = session ?: return null
+        val target = current.target?.get() ?: return null
+        return if (field(target.javaClass, "leash")?.get(target) === leash) current.x else null
+    }
+
     private fun applyPosition(current: Session) {
         if (session !== current) return
         runCatching {
