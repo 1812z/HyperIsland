@@ -32,7 +32,9 @@ import java.io.FileDescriptor
 import java.nio.ByteBuffer
 import java.lang.ref.WeakReference
 import java.lang.reflect.Method
+import java.lang.reflect.Modifier
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.atomic.AtomicBoolean
 
 object ScreenRecorderHook : BaseHook() {
     private const val TAG = "HyperIsland[ScreenRecorder]"
@@ -48,6 +50,9 @@ object ScreenRecorderHook : BaseHook() {
 
     private val hookedTileClasses = ConcurrentHashMap.newKeySet<Class<*>>()
     private val hookedRecorderServiceClasses = ConcurrentHashMap.newKeySet<Class<*>>()
+    private val hookedRecorderValidationMethods = ConcurrentHashMap.newKeySet<Method>()
+
+    private val bypassNextLowBatteryWarning = AtomicBoolean(false)
 
     @Volatile
     private var recorderDialogVisible = false
@@ -510,6 +515,7 @@ object ScreenRecorderHook : BaseHook() {
         serviceClass: Class<*>,
     ) {
         if (!hookedRecorderServiceClasses.add(serviceClass)) return
+        hookLowBatteryWarningBypass(module, serviceClass)
         serviceClass.declaredMethods.firstOrNull {
             it.name == "onStartCommand" && it.parameterCount == 3
         }?.let { onStartCommand ->
@@ -535,6 +541,14 @@ object ScreenRecorderHook : BaseHook() {
                     return@intercept Service.START_NOT_STICKY
                 }
                 if (isRecorderControlIntent(intent)) {
+                    if (
+                        intent.getBooleanExtra(
+                            ScreenRecorderContract.EXTRA_CONFIRMED_START,
+                            false,
+                        )
+                    ) {
+                        bypassNextLowBatteryWarning.set(true)
+                    }
                     return@intercept chain.proceed()
                 }
                 if (
@@ -600,6 +614,65 @@ object ScreenRecorderHook : BaseHook() {
                 recordingNotificationContext = null
                 result
             }
+        }
+    }
+
+    /**
+     * Xiaomi's recorder controller treats the first argument of its `(boolean, int) -> boolean`
+     * validation method as "charging". The low-battery confirmation is skipped while charging,
+     * but the hard minimum battery and storage checks still run. Our dialog already provides the
+     * user's confirmation, so only replace that argument for the next confirmed module start.
+     *
+     * The controller class and method names are obfuscated, therefore discover the public
+     * validation method from the recorder service's non-framework field types.
+     */
+    private fun hookLowBatteryWarningBypass(
+        module: XposedModule,
+        serviceClass: Class<*>,
+    ) {
+        val validationMethods = serviceClass.declaredFields
+            .asSequence()
+            .map { it.type }
+            .filterNot { type ->
+                type.isPrimitive ||
+                    type.name.startsWith("android.") ||
+                    type.name.startsWith("java.") ||
+                    type.name.startsWith("kotlin.")
+            }
+            .flatMap { type -> type.declaredMethods.asSequence() }
+            .filter { method ->
+                Modifier.isPublic(method.modifiers) &&
+                    method.returnType == java.lang.Boolean.TYPE &&
+                    method.parameterTypes.contentEquals(
+                        arrayOf(java.lang.Boolean.TYPE, Integer.TYPE),
+                    )
+            }
+            .distinct()
+            .toList()
+
+        validationMethods.forEach { method ->
+            if (!hookedRecorderValidationMethods.add(method)) return@forEach
+            method.isAccessible = true
+            module.hook(method).intercept { chain ->
+                if (bypassNextLowBatteryWarning.compareAndSet(true, false)) {
+                    chain.args[0] = true
+                    log(
+                        module,
+                        "control: bypassed Xiaomi low-battery confirmation in " +
+                            "${method.declaringClass.name}.${method.name}",
+                    )
+                }
+                chain.proceed()
+            }
+            log(
+                module,
+                "init: hooked recorder validation " +
+                    "${method.declaringClass.name}.${method.name}(boolean, int)",
+            )
+        }
+
+        if (validationMethods.isEmpty()) {
+            logWarn(module, "init: recorder low-battery validation method not found")
         }
     }
 
