@@ -44,11 +44,12 @@ object LockscreenDeviceCenterHook : BaseHook() {
         "com.android.keyguard.magazine.LockScreenMagazineController"
     private const val MAGAZINE_HELPER =
         "com.android.keyguard.magazine.KeyguardMagazineHelper"
+    private const val KEYGUARD_MOVE_HELPER =
+        "com.android.keyguard.panel.KeyguardMoveHelper"
 
     @Volatile private var systemUiHooked = false
     @Volatile private var deviceCenterHooked = false
 
-    private val targetDecorViews = Collections.synchronizedMap(WeakHashMap<View, Boolean>())
     private val screenOffReceivers =
         Collections.synchronizedMap(WeakHashMap<Activity, BroadcastReceiver>())
 
@@ -95,15 +96,50 @@ object LockscreenDeviceCenterHook : BaseHook() {
             }
         }
 
+        hookSystemScrimSuppression(module, classLoader)
+
         systemUiHooked = true
         log(module, "SystemUI negative-one page redirected to $DEVICE_CENTER_ACTIVITY")
+    }
+
+    /**
+     * The magazine gesture normally darkens and blurs SystemUI's front scrim while revealing the
+     * remote Activity. MiLink already draws its own full-page blur, so applying both produces a
+     * delayed black layer under its translucent window. Keep KeyguardMoveHelper's translation
+     * path intact and suppress only that positive-distance scrim update. SystemUI also translates
+     * its original magazine page alongside the remote leash; that page owns another dark blur
+     * background, so hide the page and its low-end left_view_bg fallback in the same frame.
+     */
+    private fun hookSystemScrimSuppression(
+        module: XposedModule,
+        classLoader: ClassLoader,
+    ) {
+        runCatching {
+            val moveHelperClass = classLoader.loadClass(KEYGUARD_MOVE_HELPER)
+            val blurMethod = findMethod(moveHelperClass, "updateKeyguardInfoBlurRatio", 1)
+            val leftViewField = findField(moveHelperClass, "mLeftView")
+            val leftViewBgField = findField(moveHelperClass, "mLeftViewBg")
+            module.hook(blurMethod).intercept { chain ->
+                val translation = (chain.args.getOrNull(0) as? Number)?.toFloat() ?: 0f
+                if (translation <= 0f) {
+                    return@intercept chain.proceed()
+                }
+                (leftViewField?.get(chain.thisObject) as? View)?.visibility = View.INVISIBLE
+                (leftViewBgField?.get(chain.thisObject) as? View)?.apply {
+                    alpha = 0f
+                    visibility = View.INVISIBLE
+                }
+                null
+            }
+        }.onFailure { error ->
+            logError(module, "failed to suppress SystemUI magazine scrim: ${error.message}")
+        }
     }
 
     private fun hookDeviceCenter(module: XposedModule, classLoader: ClassLoader) {
         if (deviceCenterHooked) return
 
         val activityClass = classLoader.loadClass(DEVICE_CENTER_ACTIVITY)
-        hookBlurRatioControllers(module, classLoader)
         val onCreate = activityClass.getDeclaredMethod("onCreate", Bundle::class.java).apply {
             isAccessible = true
         }
@@ -114,16 +150,12 @@ object LockscreenDeviceCenterHook : BaseHook() {
             }
             val result = chain.proceed()
             if (activity?.isLockscreenLaunch() == true) {
-                prepareDeviceCenterFrame(activity)
                 registerScreenOffReceiver(activity)
             }
             result
         }
 
-        hookWindowSanitizer(module, activityClass, "onStart", 0)
-        hookWindowSanitizer(module, activityClass, "onResume", 0)
-        hookWindowSanitizer(module, activityClass, "onWindowFocusChanged", 1)
-        hookImmediateFinish(module, activityClass)
+        hookRetainedFinish(module, activityClass)
         hookNewIntent(module, activityClass)
         hookActivityCleanup(module, activityClass)
 
@@ -131,33 +163,13 @@ object LockscreenDeviceCenterHook : BaseHook() {
         log(module, "$DEVICE_CENTER_ACTIVITY allowed to occlude keyguard")
     }
 
-    private fun hookWindowSanitizer(
-        module: XposedModule,
-        activityClass: Class<*>,
-        methodName: String,
-        parameterCount: Int,
-    ) {
-        val method = findMethodInHierarchy(activityClass, methodName, parameterCount) ?: return
-        module.hook(method).intercept { chain ->
-            val activity = chain.thisObject as? Activity
-            if (activity != null && activityClass.isInstance(activity) && activity.isLockscreenLaunch()) {
-                prepareDeviceCenterFrame(activity)
-            }
-            val result = chain.proceed()
-            if (activity != null && activityClass.isInstance(activity) && activity.isLockscreenLaunch()) {
-                prepareDeviceCenterFrame(activity)
-            }
-            result
-        }
-    }
-
     /**
-     * MiLink's Activity base class overrides finish() to fade its blur layer first and only calls
-     * the framework finish up to two seconds later. Bypass that override for this Activity only;
-     * finishing the dedicated task immediately starts Keyguard's unocclude remote transition,
-     * whose closing leash is then moved left by SystemUI's stock spring animation.
+     * MiLink's Activity base class overrides finish() to fade its blur layer first and destroys the
+     * Activity afterwards. Keep the lock-screen instance alive instead: moving its singleTask to
+     * the back starts Keyguard's unocclude transition while retaining the view hierarchy and list
+     * position for the next swipe.
      */
-    private fun hookImmediateFinish(module: XposedModule, activityClass: Class<*>) {
+    private fun hookRetainedFinish(module: XposedModule, activityClass: Class<*>) {
         val finishMethod = findOverrideInSuperclasses(activityClass, "finish", 0) ?: return
         module.hook(finishMethod).intercept { chain ->
             val activity = chain.thisObject as? Activity
@@ -168,78 +180,12 @@ object LockscreenDeviceCenterHook : BaseHook() {
             ) {
                 return@intercept chain.proceed()
             }
-            prepareDeviceCenterFrame(activity)
-            activity.finishAndRemoveTask()
+            sanitizeDeviceCenterWindow(activity)
+            if (!activity.moveTaskToBack(true)) {
+                return@intercept chain.proceed()
+            }
             null
         }
-    }
-
-    private fun prepareDeviceCenterFrame(activity: Activity) {
-        sanitizeDeviceCenterWindow(activity)
-        activity.window.decorView.let { decor ->
-            targetDecorViews[decor] = true
-            decor.animate().cancel()
-            decor.alpha = 1f
-        }
-        val contentId = activity.resources.getIdentifier(
-            "activity_content_view",
-            "id",
-            MILINK_PACKAGE,
-        )
-        if (contentId != 0) {
-            activity.findViewById<android.view.View>(contentId)?.let { content ->
-                content.animate().cancel()
-                content.alpha = 1f
-            }
-        }
-    }
-
-    /**
-     * MiLink keeps this callback name with @Keep. Discover its owner through BlurUtils' declared
-     * classes, then pin only the marked Activity's decor blur at the fully-rendered ratio. This
-     * preserves the stock material without its independent time-based fade.
-     */
-    private fun hookBlurRatioControllers(module: XposedModule, classLoader: ClassLoader) {
-        val blurUtils = runCatching {
-            classLoader.loadClass("com.miui.circulate.world.utils.BlurUtils")
-        }.getOrNull() ?: return
-        val controllerClasses = buildList {
-            blurUtils.declaredClasses.forEach { nested ->
-                add(nested)
-                nested.superclass?.let { add(it) }
-            }
-        }.distinct()
-        controllerClasses.flatMap { it.declaredMethods.asIterable() }
-            .filter {
-                it.name == "setBlurRatio" &&
-                    it.parameterCount == 1 &&
-                    it.parameterTypes[0] == Float::class.javaPrimitiveType
-            }
-            .distinctBy { "${it.declaringClass.name}#${it.name}" }
-            .forEach { method ->
-                method.isAccessible = true
-                module.hook(method).intercept { chain ->
-                    val decor = findViewField(chain.thisObject)
-                    if (decor != null && targetDecorViews.containsKey(decor)) {
-                        chain.args[0] = 1f
-                    }
-                    chain.proceed()
-                }
-            }
-    }
-
-    private fun findViewField(instance: Any?): View? {
-        if (instance == null) return null
-        var current: Class<*>? = instance.javaClass
-        while (current != null) {
-            current.declaredFields.firstOrNull { View::class.java.isAssignableFrom(it.type) }
-                ?.let { field ->
-                    field.isAccessible = true
-                    return field.get(instance) as? View
-                }
-            current = current.superclass
-        }
-        return null
     }
 
     private fun registerScreenOffReceiver(activity: Activity) {
@@ -253,7 +199,9 @@ object LockscreenDeviceCenterHook : BaseHook() {
                     target != null &&
                     !target.isDestroyed
                 ) {
-                    target.finishAndRemoveTask()
+                    if (!target.moveTaskToBack(true)) {
+                        target.finishAndRemoveTask()
+                    }
                 }
             }
         }
@@ -268,14 +216,17 @@ object LockscreenDeviceCenterHook : BaseHook() {
     private fun hookNewIntent(module: XposedModule, activityClass: Class<*>) {
         val onNewIntent = findMethodInHierarchy(activityClass, "onNewIntent", 1) ?: return
         module.hook(onNewIntent).intercept { chain ->
-            val result = chain.proceed()
             val activity = chain.thisObject as? Activity
+            val newIntent = chain.args.getOrNull(0) as? Intent
+            if (activity != null && activityClass.isInstance(activity) && newIntent != null) {
+                activity.intent = newIntent
+            }
+            val result = chain.proceed()
             if (activity != null && activityClass.isInstance(activity)) {
-                if (activity.isLockscreenLaunch()) {
-                    prepareDeviceCenterFrame(activity)
+                if (newIntent.isLockscreenLaunch()) {
+                    sanitizeDeviceCenterWindow(activity)
                     registerScreenOffReceiver(activity)
                 } else {
-                    targetDecorViews.remove(activity.window.decorView)
                     screenOffReceivers.remove(activity)?.let { receiver ->
                         runCatching { activity.unregisterReceiver(receiver) }
                     }
@@ -292,7 +243,6 @@ object LockscreenDeviceCenterHook : BaseHook() {
         module.hook(onDestroy).intercept { chain ->
             val activity = chain.thisObject as? Activity
             if (activity != null && activityClass.isInstance(activity)) {
-                targetDecorViews.remove(activity.window.decorView)
                 screenOffReceivers.remove(activity)?.let { receiver ->
                     runCatching { activity.unregisterReceiver(receiver) }
                 }
@@ -304,16 +254,14 @@ object LockscreenDeviceCenterHook : BaseHook() {
     @Suppress("DEPRECATION")
     private fun sanitizeDeviceCenterWindow(activity: Activity) {
         activity.setShowWhenLocked(true)
-        activity.window.apply {
-            addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED)
-            attributes = attributes.apply {
-                windowAnimations = 0
-            }
-        }
+        activity.window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED)
     }
 
     private fun Activity.isLockscreenLaunch(): Boolean =
-        intent?.getBooleanExtra(EXTRA_LOCKSCREEN_LAUNCH, false) == true
+        intent.isLockscreenLaunch()
+
+    private fun Intent?.isLockscreenLaunch(): Boolean =
+        this?.getBooleanExtra(EXTRA_LOCKSCREEN_LAUNCH, false) == true
 
     private fun hookBooleanResult(module: XposedModule, clazz: Class<*>, name: String) {
         module.hook(findMethod(clazz, name, 0)).intercept { true }
