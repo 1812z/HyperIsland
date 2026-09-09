@@ -8,6 +8,16 @@ import ReleaseHistory from './.vitepress/components/ReleaseHistory.vue'
 
 <div class="changelog-source" hidden>
 
+# V3.1.1-Beta3 (2026-9-9)
+## 功能
+- 支持调节岛文字区域高度
+- 新增负一屏显示融合设备中心
+
+## 优化 & 修复
+- 修复低电量下屏幕录制异常
+- 优化剪贴板上岛
+
+
 # V3.1.0 (2026-9-8)
 ## 功能
 - 支持自动拦截悬浮通知
