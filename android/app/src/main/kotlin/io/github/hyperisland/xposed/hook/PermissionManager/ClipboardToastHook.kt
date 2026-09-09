@@ -37,52 +37,75 @@ object ClipboardToastHook : BaseHook() {
     override fun getTag() = TAG
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
-        module.log(Log.INFO, TAG, "initializing in ${param.packageName}")
-        installHook(module, "ToastUtil") {
+        val processName = runCatching { Application.getProcessName() }
+            .getOrNull()
+            .orEmpty()
+        if (!isUiProcess(param.packageName, processName)) {
+            safeLog(
+                module,
+                Log.INFO,
+                "skip non-UI process: package=${param.packageName}, process=$processName",
+            )
+            return
+        }
+
+        safeLog(
+            module,
+            Log.INFO,
+            "initializing in package=${param.packageName}, process=$processName",
+        )
+        val toastHooked = installHook(module, "ToastUtil") {
             hookSecurityCenterToast(module, param.defaultClassLoader)
         }
-        installHook(module, "Application.attach") {
-            hookApplicationAttach(module)
-        }
-        installHook(module, "WindowManager.addView fallback") {
-            hookWindowAddView(module, param.defaultClassLoader)
+        if (toastHooked != true) {
+            installHook(module, "WindowManager.addView fallback") {
+                hookWindowAddView(module, param.defaultClassLoader)
+                true
+            }
         }
     }
 
-    private inline fun installHook(
+    private fun isUiProcess(packageName: String, processName: String): Boolean {
+        if (processName.isEmpty()) return true
+        return processName == packageName || processName == "$packageName:ui"
+    }
+
+    private inline fun <T> installHook(
         module: XposedModule,
         name: String,
-        block: () -> Unit,
-    ) {
-        runCatching(block).onFailure {
-            module.log(Log.ERROR, TAG, "$name hook failed: ${it.message}")
+        block: () -> T,
+    ): T? = try {
+        block()
+    } catch (t: Throwable) {
+        safeLog(
+            module,
+            Log.ERROR,
+            "$name hook failed: ${Log.getStackTraceString(t)}",
+        )
+        null
+    }
+
+    private fun safeLog(module: XposedModule, priority: Int, message: String) {
+        try {
+            module.log(priority, TAG, message)
+        } catch (_: Throwable) {
+            // A diagnostic failure must never abort package initialization.
         }
     }
 
-    private fun hookApplicationAttach(module: XposedModule) {
-        val method = Application::class.java.getDeclaredMethod(
-            "attach",
-            Context::class.java,
-        ).apply { isAccessible = true }
-        module.hook(method).intercept { chain ->
-            val result = chain.proceed()
-            val context = chain.args.firstOrNull() as? Context ?: return@intercept result
-            hookSecurityCenterToast(module, context.classLoader)
-            result
-        }
-    }
-
-    private fun hookSecurityCenterToast(module: XposedModule, classLoader: ClassLoader) {
+    private fun hookSecurityCenterToast(module: XposedModule, classLoader: ClassLoader): Boolean {
+        var hooked = false
         TOAST_UTIL_CLASSES.forEach { className ->
             val clazz = runCatching {
                 Class.forName(className, false, classLoader)
             }.getOrNull() ?: return@forEach
-            hookToastUtilClass(module, clazz)
+            hooked = hookToastUtilClass(module, clazz) || hooked
         }
+        return hooked
     }
 
-    private fun hookToastUtilClass(module: XposedModule, clazz: Class<*>) {
-        if (!hookedToastUtilClasses.add(clazz)) return
+    private fun hookToastUtilClass(module: XposedModule, clazz: Class<*>): Boolean {
+        if (!hookedToastUtilClasses.add(clazz)) return true
         val methods = clazz.declaredMethods.filter { method ->
             method.name == "showToast" &&
                 method.parameterTypes.size == 2 &&
@@ -96,13 +119,13 @@ object ClipboardToastHook : BaseHook() {
         } ?: run {
             hookedToastUtilClasses.remove(clazz)
             module.log(Log.WARN, TAG, "${clazz.name} context field unavailable")
-            return
+            return false
         }
         contextField.isAccessible = true
         if (methods.isEmpty()) {
             hookedToastUtilClasses.remove(clazz)
             module.log(Log.WARN, TAG, "ToastUtil showToast method unavailable")
-            return
+            return false
         }
         module.log(
             Log.INFO,
@@ -131,6 +154,7 @@ object ClipboardToastHook : BaseHook() {
                 null
             }
         }
+        return true
     }
 
     private fun sendClipboardIsland(
