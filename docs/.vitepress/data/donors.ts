@@ -317,5 +317,41 @@ export const donors: DonorItem[] = [
     amount: '8.3',
     date: '2026-08-30',
     message: '麻烦看下 issue #131，感谢'
+  },
+  {
+    name: "匿名",
+    amount: '6.66',
+    date: '2026-08-31',
+    message: '模块做的很好，支持一下！顺便催更😍'
+  },
+  {
+    name: "HH",
+    amount: '3.33',
+    date: '2026-09-01',
+    message: '谢谢分享'
+  },
+  {
+    name: "Geissorhizaಣ",
+    amount: '8.88',
+    date: '2026-09-04',
+    message: '谢谢佬'
+  },
+  {
+    name: "Geissorhizaಣ",
+    amount: '8.88',
+    date: '2026-09-04',
+    message: '谢谢佬'
+  },
+  {
+    name: "Aoyer",
+    amount: '66',
+    date: '2026-09-08',
+    message: '感谢老大深夜给我解决问题'
+  },
+  {
+    name: "B1N00",
+    amount: '8.88',
+    date: '2026-09-09',
+    message: '酷安大火'
   }
 ]
