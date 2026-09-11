@@ -107,7 +107,9 @@ class HyperIslandModule : XposedModule() {
                 DynamicIslandVisibilityHook.init(this, param)
                 IslandSwipeActionHook.init(this, param)
                 KeepIslandHook.init(this, param)
-                WifiTileDisconnectHook.init(this, param)
+                if (ConfigManager.getBoolean("pref_wifi_tile_disconnect_only", false)) {
+                    WifiTileDisconnectHook.init(this, param)
+                }
                 if (ConfigManager.getBoolean("pref_bluetooth_island", false)) {
                     BluetoothIslandHook.init(this, param)
                 }

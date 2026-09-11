@@ -6,6 +6,8 @@ import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
+import android.os.Handler
+import android.os.Looper
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.util.Collections
@@ -36,7 +38,6 @@ object WifiTileDisconnectHook : BaseHook() {
         "com.android.systemui.qs.tiles.MiuiWifiTile",
         "com.android.systemui.p055qs.tiles.MiuiWifiTile",
     )
-
     private const val STATE_INACTIVE = 1
     /** 参考 MiuiBluetoothTile.handleUpdateState：restricted 用 activeBgColor=3 渲染灰底。 */
     private const val ACTIVE_BG_COLOR_RESTRICTED = 3
@@ -46,6 +47,7 @@ object WifiTileDisconnectHook : BaseHook() {
 
     @Volatile private var hooked = false
     @Volatile private var contextField: Field? = null
+    @Volatile private var networkControllerField: Field? = null
     @Volatile private var maybeLoadIconMethod: Method? = null
     @Volatile private var tileLabelMethod: Method? = null
     @Volatile private var restrictStateClass: Class<*>? = null
@@ -57,7 +59,11 @@ object WifiTileDisconnectHook : BaseHook() {
     @Volatile private var softDisabled = false
     /** 是否已经观察到链路真正断开；用于精准识别“用户手动重连”，不依赖任何时长判断。 */
     @Volatile private var sawDisconnected = false
+    /** Wi-Fi 被外部关闭时，保留断开会话中的网络，待射频恢复后自动连接。 */
+    @Volatile private var pendingRadioRestore = false
+    @Volatile private var restoreScheduled = false
     private val disabledNetIds = Collections.synchronizedSet(mutableSetOf<Int>())
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     override fun getTag() = TAG
 
@@ -73,11 +79,8 @@ object WifiTileDisconnectHook : BaseHook() {
             return
         }
 
-        restrictStateClass = runCatching {
-            classLoader.loadClass("com.android.systemui.plugins.qs.QSTile\$RestrictState")
-        }.getOrNull()
-
         contextField = findField(tileClass, "mContext")
+        networkControllerField = findField(tileClass, "networkController")
         maybeLoadIconMethod = runCatching {
             tileClass.getMethod("maybeLoadResourceIcon", Int::class.javaPrimitiveType)
         }.getOrNull()
@@ -101,7 +104,16 @@ object WifiTileDisconnectHook : BaseHook() {
             return
         }
 
+        // Derive RestrictState from the state type used by this SystemUI build instead
+        // of hard-coding an obfuscated plugin package name.
+        restrictStateClass = findRestrictStateClass(classLoader, updateMethod.parameterTypes[0])
+
         restrictStateCtor = restrictStateClass?.declaredConstructors?.firstOrNull()
+            ?.apply { isAccessible = true }
+
+        if (restrictStateClass == null || restrictStateCtor == null) {
+            logWarn(module, "RestrictState unavailable for ${updateMethod.parameterTypes[0].name}")
+        }
 
         if (restrictStateClass != null) {
             module.hook(newStateMethod).intercept { chain ->
@@ -130,7 +142,7 @@ object WifiTileDisconnectHook : BaseHook() {
         }
 
         hooked = true
-        log(module, "hooked ${tileClass.name} (wifi disconnect-only, restrictState=${restrictStateClass != null})")
+        logWarn(module, "hooked ${tileClass.name} (wifi disconnect-only, restrictState=${restrictStateClass != null})")
     }
 
     /**
@@ -145,19 +157,21 @@ object WifiTileDisconnectHook : BaseHook() {
             .getSystemService(Context.WIFI_SERVICE) as? WifiManager ?: return false
 
         val radioOn = runCatching { wifiManager.isWifiEnabled }.getOrDefault(false)
-        log(module, "click: pref=$prefEnabled radioOn=$radioOn softDisabled=$softDisabled")
+        logWarn(module, "click: pref=$prefEnabled radioOn=$radioOn softDisabled=$softDisabled")
 
         if (!prefEnabled) return false
 
-        // 射频已完全关闭：不依赖原生 !value（关闭后状态可能尚未刷新），直接开启射频并恢复网络。
+        // 射频已完全关闭：通过 SystemUI 的 NetworkController 开启，不能直接调用
+        // WifiManager.setWifiEnabled。后者绕过了 SystemUI 的异步控制链，在设置中关闭
+        // Wi-Fi 后可能返回失败且磁贴不会收到正确的状态更新。
         if (!radioOn) {
             val ids = synchronized(disabledNetIds) { disabledNetIds.toList() }
-            disabledNetIds.clear()
+            pendingRadioRestore = ids.isNotEmpty()
             softDisabled = false
             sawDisconnected = false
-            ids.forEach { netId -> runCatching { wifiManager.enableNetwork(netId, true) } }
-            runCatching { wifiManager.setWifiEnabled(true) }
-            log(module, "wifi radio re-enabled from off state, networks=${ids.size}")
+            val enabled = enableWifiThroughSystemUi(tile, wifiManager)
+            logWarn(module, "wifi radio re-enabled from off state: requested=$enabled networks=${ids.size}")
+            scheduleRadioRestore(ctx, module)
             refreshTile(module, tile)
             return true
         }
@@ -166,6 +180,7 @@ object WifiTileDisconnectHook : BaseHook() {
         if (!softDisabled) {
             softDisabled = true
             sawDisconnected = false
+            pendingRadioRestore = false
             startSoftDisconnect(wifiManager)
             log(module, "wifi soft-disconnect: disabled=${disabledNetIds.size} networks")
         } else {
@@ -180,6 +195,7 @@ object WifiTileDisconnectHook : BaseHook() {
 
     private fun startSoftDisconnect(wifiManager: WifiManager) {
         disabledNetIds.clear()
+        pendingRadioRestore = false
 
         runCatching { wifiManager.configuredNetworks }.getOrNull()?.forEach { config ->
             val netId = config.networkId
@@ -220,10 +236,13 @@ object WifiTileDisconnectHook : BaseHook() {
         }
     }
 
-    private fun resetSession() {
+    private fun resetSession(clearNetworks: Boolean = true) {
         softDisabled = false
         sawDisconnected = false
-        disabledNetIds.clear()
+        if (clearNetworks) {
+            pendingRadioRestore = false
+            disabledNetIds.clear()
+        }
     }
 
     /**
@@ -243,8 +262,11 @@ object WifiTileDisconnectHook : BaseHook() {
         val radioOn = wifiManager == null ||
             runCatching { wifiManager.isWifiEnabled }.getOrDefault(true)
         if (!radioOn) {
-            // 射频被系统/用户关闭，结束会话
-            resetSession()
+            // 射频被系统/用户关闭时只结束灰色显示，保留网络 ID，待射频恢复后重连。
+            if (disabledNetIds.isNotEmpty()) pendingRadioRestore = true
+            resetSession(clearNetworks = false)
+        } else if (pendingRadioRestore) {
+            scheduleRadioRestore(ctx, null)
         }
 
         // 精准识别用户手动重连：先真实观察到断开，之后又观察到连接，则视为用户操作，退出“仅断开”。
@@ -300,6 +322,85 @@ object WifiTileDisconnectHook : BaseHook() {
 
     private fun tileContext(tile: Any): Context? =
         runCatching { contextField?.get(tile) as? Context }.getOrNull()
+
+    private fun scheduleRadioRestore(ctx: Context, module: XposedModule?) {
+        if (!pendingRadioRestore || restoreScheduled) return
+        restoreScheduled = true
+        val appContext = ctx.applicationContext
+        mainHandler.postDelayed(object : Runnable {
+            private var attempts = 0
+
+            override fun run() {
+                val wifiManager = appContext
+                    .getSystemService(Context.WIFI_SERVICE) as? WifiManager
+                if (wifiManager == null) {
+                    restoreScheduled = false
+                    return
+                }
+                if (!runCatching { wifiManager.isWifiEnabled }.getOrDefault(false)) {
+                    if (++attempts < 10) {
+                        mainHandler.postDelayed(this, 500L)
+                    } else {
+                        restoreScheduled = false
+                    }
+                    return
+                }
+
+                val ids = synchronized(disabledNetIds) { disabledNetIds.toList() }
+                ids.forEach { netId ->
+                    runCatching { wifiManager.enableNetwork(netId, true) }
+                }
+                runCatching { wifiManager.reconnect() }
+
+                val connected = runCatching {
+                    (wifiManager.connectionInfo?.networkId ?: -1) >= 0
+                }.getOrDefault(false)
+                if (!connected && ++attempts < 10) {
+                    // Wi-Fi being enabled does not mean the supplicant is ready yet.
+                    mainHandler.postDelayed(this, 1000L)
+                    return
+                }
+
+                if (connected) {
+                    disabledNetIds.clear()
+                    pendingRadioRestore = false
+                }
+                restoreScheduled = false
+                module?.let {
+                    logWarn(
+                        it,
+                        "wifi radio restored, reconnect ${if (connected) "succeeded" else "timed out"}: " +
+                            "networks=${ids.size}",
+                    )
+                }
+            }
+        }, 500L)
+    }
+
+    private fun findRestrictStateClass(classLoader: ClassLoader, stateClass: Class<*>): Class<*>? {
+        val stateName = stateClass.name
+        val stateSuffix = "\$State"
+        if (!stateName.endsWith(stateSuffix)) return null
+        return runCatching {
+            classLoader.loadClass(stateName.removeSuffix(stateSuffix) + "\$RestrictState")
+        }.getOrNull()
+    }
+
+    /** Use the same controller as the native tile so state and async callbacks stay in sync. */
+    private fun enableWifiThroughSystemUi(tile: Any, wifiManager: WifiManager): Boolean {
+        val controller = runCatching { networkControllerField?.get(tile) }.getOrNull()
+        if (controller != null) {
+            val method = runCatching {
+                controller.javaClass.getMethod("setWifiEnabled", Boolean::class.javaPrimitiveType)
+            }.getOrNull()
+            if (method != null && runCatching { method.invoke(controller, true) }.isSuccess) {
+                return true
+            }
+        }
+
+        // Compatibility fallback for a SystemUI variant without the exposed controller field.
+        return runCatching { wifiManager.setWifiEnabled(true) }.getOrDefault(false)
+    }
 
     private fun readBoolean(target: Any, name: String): Boolean =
         runCatching { fieldOf(target.javaClass, name)?.getBoolean(target) ?: false }
