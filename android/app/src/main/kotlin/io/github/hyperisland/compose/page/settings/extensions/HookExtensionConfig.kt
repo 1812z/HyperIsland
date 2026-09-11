@@ -66,4 +66,25 @@ internal const val DEFAULT_ICON_OPACITY = 0.5
 internal const val DEFAULT_BLUETOOTH_DURATION = 2L
 internal const val DEFAULT_CHARGE_DURATION = 10L
 
-internal enum class HookExtensionDetail { Bluetooth, HeartRate, Charge, FaceUnlock }
+internal const val PKG_SYSTEM_UI = "com.android.systemui"
+internal const val PKG_SETTINGS = "com.android.settings"
+internal const val PKG_SECURITY_CENTER = "com.miui.securitycenter"
+internal const val PKG_XMSF = "com.xiaomi.xmsf"
+internal const val PKG_SCREEN_RECORDER = "com.miui.screenrecorder"
+internal val PKG_DOWNLOAD_MANAGER = listOf(
+    "com.xiaomi.android.app.downloadmanager",
+    "com.android.providers.downloads",
+)
+
+internal enum class HookExtensionDetail {
+    SystemUi,
+    SystemSettings,
+    SecurityCenter,
+    Xmsf,
+    ScreenRecorder,
+    DownloadManager,
+    Bluetooth,
+    HeartRate,
+    Charge,
+    FaceUnlock,
+}

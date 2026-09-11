@@ -361,6 +361,7 @@
     <string name="hook_extension">Hook拓展</string>
     <string name="ext_system_settings">系统设置</string>
     <string name="ext_system_ui">系统界面</string>
+    <string name="ext_island_features">超级岛功能</string>
     <string name="ext_xmsf">小米服务框架</string>
     <string name="ext_download_manager">下载管理程序</string>
     <string name="ext_permission_manager">权限管理服务</string>

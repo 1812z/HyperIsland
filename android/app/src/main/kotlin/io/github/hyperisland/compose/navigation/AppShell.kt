@@ -94,10 +94,16 @@ import io.github.hyperisland.compose.page.settings.ReferencesPage
 import io.github.hyperisland.compose.page.settings.ThemeSettingsPage
 import io.github.hyperisland.compose.page.settings.extensions.BluetoothIslandPage
 import io.github.hyperisland.compose.page.settings.extensions.ChargeIslandPage
+import io.github.hyperisland.compose.page.settings.extensions.DownloadManagerHookPage
 import io.github.hyperisland.compose.page.settings.extensions.FaceUnlockIslandPage
 import io.github.hyperisland.compose.page.settings.extensions.HeartRateIslandPage
 import io.github.hyperisland.compose.page.settings.extensions.HookExtensionDetail
 import io.github.hyperisland.compose.page.settings.extensions.HookExtensionPage
+import io.github.hyperisland.compose.page.settings.extensions.ScreenRecorderHookPage
+import io.github.hyperisland.compose.page.settings.extensions.SecurityCenterHookPage
+import io.github.hyperisland.compose.page.settings.extensions.SystemSettingsHookPage
+import io.github.hyperisland.compose.page.settings.extensions.SystemUiHookPage
+import io.github.hyperisland.compose.page.settings.extensions.XmsfHookPage
 import io.github.hyperisland.compose.service.UpdateService
 import io.github.hyperisland.compose.theme.PREF_BLUR_BARS
 import io.github.hyperisland.compose.theme.PREF_FLOATING_NAVIGATION_BAR
@@ -758,21 +764,46 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                     },
                 ) {
                     when (extensionDetail) {
-                        HookExtensionDetail.Bluetooth -> BluetoothIslandPage(
+                        HookExtensionDetail.SystemUi -> SystemUiHookPage(
+                            prefs = prefs,
+                            onOpenDetail = { extensionDetail = it },
+                            onBack = { extensionDetail = null },
+                        )
+                        HookExtensionDetail.SystemSettings -> SystemSettingsHookPage(
                             prefs = prefs,
                             onBack = { extensionDetail = null },
+                        )
+                        HookExtensionDetail.SecurityCenter -> SecurityCenterHookPage(
+                            prefs = prefs,
+                            onBack = { extensionDetail = null },
+                        )
+                        HookExtensionDetail.Xmsf -> XmsfHookPage(
+                            prefs = prefs,
+                            onBack = { extensionDetail = null },
+                        )
+                        HookExtensionDetail.ScreenRecorder -> ScreenRecorderHookPage(
+                            prefs = prefs,
+                            onBack = { extensionDetail = null },
+                        )
+                        HookExtensionDetail.DownloadManager -> DownloadManagerHookPage(
+                            prefs = prefs,
+                            onBack = { extensionDetail = null },
+                        )
+                        HookExtensionDetail.Bluetooth -> BluetoothIslandPage(
+                            prefs = prefs,
+                            onBack = { extensionDetail = HookExtensionDetail.SystemUi },
                         )
                         HookExtensionDetail.HeartRate -> HeartRateIslandPage(
                             prefs = prefs,
-                            onBack = { extensionDetail = null },
+                            onBack = { extensionDetail = HookExtensionDetail.SystemUi },
                         )
                         HookExtensionDetail.Charge -> ChargeIslandPage(
                             prefs = prefs,
-                            onBack = { extensionDetail = null },
+                            onBack = { extensionDetail = HookExtensionDetail.SystemUi },
                         )
                         HookExtensionDetail.FaceUnlock -> FaceUnlockIslandPage(
                             prefs = prefs,
-                            onBack = { extensionDetail = null },
+                            onBack = { extensionDetail = HookExtensionDetail.SystemUi },
                         )
                         null -> if (batchChannelTarget != null && visibleChannelApp != null) {
                             BatchChannelSettingsPage(

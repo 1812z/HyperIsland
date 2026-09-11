@@ -355,6 +355,7 @@
     <string name="hook_extension">Hook Extension</string>
     <string name="ext_system_settings">System Settings</string>
     <string name="ext_system_ui">System UI</string>
+    <string name="ext_island_features">Island features</string>
     <string name="ext_xmsf">XMSF (Xiaomi Service Framework)</string>
     <string name="ext_download_manager">Download Manager</string>
     <string name="ext_permission_manager">Permission Manager Service</string>
