@@ -67,14 +67,20 @@ internal const val DEFAULT_BLUETOOTH_DURATION = 2L
 internal const val DEFAULT_CHARGE_DURATION = 10L
 
 internal const val PKG_SYSTEM_UI = "com.android.systemui"
+internal const val PKG_MILINK = "com.milink.service"
 internal const val PKG_SETTINGS = "com.android.settings"
 internal const val PKG_SECURITY_CENTER = "com.miui.securitycenter"
 internal const val PKG_XMSF = "com.xiaomi.xmsf"
 internal const val PKG_SCREEN_RECORDER = "com.miui.screenrecorder"
-internal val PKG_DOWNLOAD_MANAGER = listOf(
-    "com.xiaomi.android.app.downloadmanager",
-    "com.android.providers.downloads",
-)
+internal const val PKG_DOWNLOAD_MANAGER = "com.android.providers.downloads"
+
+internal val RESTART_SCOPE_SYSTEM_UI = setOf(PKG_SYSTEM_UI, PKG_MILINK)
+internal val RESTART_SCOPE_ISLAND = setOf(PKG_SYSTEM_UI)
+internal val RESTART_SCOPE_SETTINGS = setOf(PKG_SETTINGS)
+internal val RESTART_SCOPE_SECURITY_CENTER = setOf(PKG_SECURITY_CENTER)
+internal val RESTART_SCOPE_XMSF = setOf(PKG_XMSF)
+internal val RESTART_SCOPE_SCREEN_RECORDER = setOf(PKG_SCREEN_RECORDER)
+internal val RESTART_SCOPE_DOWNLOAD_MANAGER = setOf(PKG_DOWNLOAD_MANAGER)
 
 internal enum class HookExtensionDetail {
     SystemUi,

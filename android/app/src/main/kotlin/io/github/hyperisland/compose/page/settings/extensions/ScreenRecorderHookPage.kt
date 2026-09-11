@@ -65,6 +65,7 @@ internal fun ScreenRecorderHookPage(prefs: FlutterPrefsRepository, onBack: () ->
         title = stringResource(R.string.screen_recorder_dialog_title),
         onBack = onBack,
         snackbarHost = { SnackbarHost(actions.snackbar) },
+        restartPackages = RESTART_SCOPE_SCREEN_RECORDER,
     ) {
         item {
             SectionTitle(stringResource(R.string.config))

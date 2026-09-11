@@ -52,6 +52,7 @@ internal fun SystemUiHookPage(
         title = stringResource(R.string.ext_system_ui),
         onBack = onBack,
         snackbarHost = { SnackbarHost(actions.snackbar) },
+        restartPackages = RESTART_SCOPE_SYSTEM_UI,
     ) {
         item {
             SectionTitle(stringResource(R.string.config))

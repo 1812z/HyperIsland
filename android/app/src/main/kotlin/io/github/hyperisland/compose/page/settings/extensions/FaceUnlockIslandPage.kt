@@ -39,6 +39,7 @@ internal fun FaceUnlockIslandPage(prefs: FlutterPrefsRepository, onBack: () -> U
         title = stringResource(R.string.ext_face_settings),
         onBack = onBack,
         snackbarHost = { SnackbarHost(snackbar) },
+        restartPackages = RESTART_SCOPE_ISLAND,
     ) {
         item {
             SectionTitle(stringResource(R.string.config))

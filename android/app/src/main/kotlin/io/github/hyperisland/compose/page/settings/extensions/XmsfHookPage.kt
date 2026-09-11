@@ -23,6 +23,7 @@ internal fun XmsfHookPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) {
         title = stringResource(R.string.ext_xmsf),
         onBack = onBack,
         snackbarHost = { SnackbarHost(actions.snackbar) },
+        restartPackages = RESTART_SCOPE_XMSF,
     ) {
         item {
             SectionTitle(stringResource(R.string.config))

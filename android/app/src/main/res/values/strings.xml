@@ -679,6 +679,7 @@
     <string name="restart_scope">Restart Scope</string>
     <string name="restart_scope_summary">Select the scoped app to restart via root.</string>
     <string name="system_ui">System UI</string>
+    <string name="milink_service">Xiaomi Link</string>
     <string name="download_manager">Download Manager</string>
     <string name="xmsf">XMSF (Xiaomi Service Framework)</string>
     <string name="hook_scope_settings">System Settings</string>

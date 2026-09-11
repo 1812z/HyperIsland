@@ -38,6 +38,7 @@ internal fun SystemSettingsHookPage(prefs: FlutterPrefsRepository, onBack: () ->
         title = stringResource(R.string.ext_system_settings),
         onBack = onBack,
         snackbarHost = { SnackbarHost(actions.snackbar) },
+        restartPackages = RESTART_SCOPE_SETTINGS,
     ) {
         item {
             SectionTitle(stringResource(R.string.config))

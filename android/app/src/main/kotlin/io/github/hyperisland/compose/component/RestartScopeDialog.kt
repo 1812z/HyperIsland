@@ -1,5 +1,6 @@
 package io.github.hyperisland.compose.component
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -33,18 +34,74 @@ import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.window.WindowDialog
 
+internal data class RestartScopeTarget(
+    val packageName: String,
+    @StringRes val label: Int,
+    val command: String,
+)
+
+internal val RestartScopeTargets = listOf(
+    RestartScopeTarget(
+        packageName = "com.android.systemui",
+        label = R.string.system_ui,
+        command = "killall com.android.systemui",
+    ),
+    RestartScopeTarget(
+        packageName = "com.milink.service",
+        label = R.string.milink_service,
+        command = "am force-stop com.milink.service",
+    ),
+    RestartScopeTarget(
+        packageName = "com.android.settings",
+        label = R.string.hook_scope_settings,
+        command = "am force-stop com.android.settings",
+    ),
+    RestartScopeTarget(
+        packageName = "com.xiaomi.xmsf",
+        label = R.string.xmsf,
+        command = "am force-stop com.xiaomi.xmsf",
+    ),
+    RestartScopeTarget(
+        packageName = "com.android.providers.downloads",
+        label = R.string.download_manager,
+        command = "am force-stop com.android.providers.downloads",
+    ),
+    RestartScopeTarget(
+        packageName = "com.miui.screenrecorder",
+        label = R.string.screen_recorder,
+        command = "am force-stop com.miui.screenrecorder",
+    ),
+    RestartScopeTarget(
+        packageName = "com.miui.securitycenter",
+        label = R.string.security_center,
+        command = "am force-stop com.miui.securitycenter",
+    ),
+)
+
+/**
+ * 重启作用域弹窗。
+ *
+ * @param allowedPackages null 表示显示全部作用域（主页面）；非 null 时仅显示列表内作用域。
+ * @param preselectedPackages 进入页面时默认勾选的作用域，会与 [allowedPackages] 求交集。
+ */
 @Composable
-internal fun RestartScopeDialog(show: Boolean, onDismiss: () -> Unit) {
+internal fun RestartScopeDialog(
+    show: Boolean,
+    onDismiss: () -> Unit,
+    allowedPackages: Set<String>? = null,
+    preselectedPackages: Set<String> = emptySet(),
+) {
     val scope = rememberCoroutineScope()
-    val scopeOptions = listOf(
-        SYSTEM_UI_PACKAGE to stringResource(R.string.system_ui),
-        DOWNLOADS_PACKAGE to stringResource(R.string.download_manager),
-        XMSF_PACKAGE to stringResource(R.string.xmsf),
-        SETTINGS_PACKAGE to stringResource(R.string.hook_scope_settings),
-        SCREEN_RECORDER_PACKAGE to stringResource(R.string.screen_recorder),
-        SECURITY_CENTER_PACKAGE to stringResource(R.string.security_center),
-    )
-    var selectedPackages by remember(show) { mutableStateOf(emptySet<String>()) }
+    val targets = remember(allowedPackages) {
+        if (allowedPackages == null) {
+            RestartScopeTargets
+        } else {
+            RestartScopeTargets.filter { it.packageName in allowedPackages }
+        }
+    }
+    var selectedPackages by remember(show, targets) {
+        mutableStateOf(preselectedPackages.intersect(targets.map { it.packageName }.toSet()))
+    }
     var restarting by remember(show) { mutableStateOf(false) }
     var error by remember(show) { mutableStateOf<String?>(null) }
     val rootRequired = stringResource(R.string.restart_root_required)
@@ -59,17 +116,17 @@ internal fun RestartScopeDialog(show: Boolean, onDismiss: () -> Unit) {
             modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            scopeOptions.forEach { (packageName, label) ->
-                val checked = packageName in selectedPackages
+            targets.forEach { target ->
+                val checked = target.packageName in selectedPackages
                 RestartScopeRow(
-                    label = label,
+                    label = stringResource(target.label),
                     checked = checked,
                     enabled = !restarting,
                     onClick = {
                         selectedPackages = if (checked) {
-                            selectedPackages - packageName
+                            selectedPackages - target.packageName
                         } else {
-                            selectedPackages + packageName
+                            selectedPackages + target.packageName
                         }
                     },
                 )
@@ -96,18 +153,9 @@ internal fun RestartScopeDialog(show: Boolean, onDismiss: () -> Unit) {
                 text = stringResource(R.string.confirm),
                 enabled = !restarting && selectedPackages.isNotEmpty(),
                 onClick = {
-                    val commands = buildList {
-                        if (SYSTEM_UI_PACKAGE in selectedPackages) add("killall $SYSTEM_UI_PACKAGE")
-                        if (DOWNLOADS_PACKAGE in selectedPackages) add("am force-stop $DOWNLOADS_PACKAGE")
-                        if (XMSF_PACKAGE in selectedPackages) add("am force-stop $XMSF_PACKAGE")
-                        if (SETTINGS_PACKAGE in selectedPackages) add("am force-stop $SETTINGS_PACKAGE")
-                        if (SCREEN_RECORDER_PACKAGE in selectedPackages) {
-                            add("am force-stop $SCREEN_RECORDER_PACKAGE")
-                        }
-                        if (SECURITY_CENTER_PACKAGE in selectedPackages) {
-                            add("am force-stop $SECURITY_CENTER_PACKAGE")
-                        }
-                    }
+                    val commands = targets
+                        .filter { it.packageName in selectedPackages }
+                        .map { it.command }
                     restarting = true
                     error = null
                     scope.launch {
@@ -154,10 +202,4 @@ private fun RestartScopeRow(
     }
 }
 
-private const val SYSTEM_UI_PACKAGE = "com.android.systemui"
-private const val DOWNLOADS_PACKAGE = "com.android.providers.downloads"
-private const val XMSF_PACKAGE = "com.xiaomi.xmsf"
-private const val SETTINGS_PACKAGE = "com.android.settings"
-private const val SCREEN_RECORDER_PACKAGE = "com.miui.screenrecorder"
-private const val SECURITY_CENTER_PACKAGE = "com.miui.securitycenter"
 private val RestartErrorColor = Color(0xFFFF5A52)

@@ -88,7 +88,7 @@ internal fun HookExtensionPage(
             ),
             HookAppEntry(
                 detail = HookExtensionDetail.DownloadManager,
-                packages = PKG_DOWNLOAD_MANAGER,
+                packages = listOf(PKG_DOWNLOAD_MANAGER),
                 title = R.string.ext_download_manager,
                 fallbackIcon = MiuixIcons.Download,
             ),

@@ -124,6 +124,7 @@ internal fun HeartRateIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Un
         title = stringResource(R.string.ext_heart_rate_settings),
         onBack = onBack,
         snackbarHost = { SnackbarHost(snackbar) },
+        restartPackages = RESTART_SCOPE_ISLAND,
     ) {
         item {
             SectionTitle(stringResource(R.string.config))

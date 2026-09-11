@@ -18,6 +18,7 @@ internal fun HookExtensionScaffold(
     title: String,
     onBack: () -> Unit,
     snackbarHost: @Composable () -> Unit = {},
+    restartPackages: Set<String>? = null,
     content: LazyListScope.() -> Unit,
 ) {
     var showRestartDialog by remember { mutableStateOf(false) }
@@ -35,5 +36,7 @@ internal fun HookExtensionScaffold(
     RestartScopeDialog(
         show = showRestartDialog,
         onDismiss = { showRestartDialog = false },
+        allowedPackages = restartPackages,
+        preselectedPackages = restartPackages.orEmpty(),
     )
 }

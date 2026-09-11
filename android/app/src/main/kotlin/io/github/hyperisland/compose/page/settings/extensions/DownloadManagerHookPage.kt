@@ -24,6 +24,7 @@ internal fun DownloadManagerHookPage(prefs: FlutterPrefsRepository, onBack: () -
         title = stringResource(R.string.ext_download_manager),
         onBack = onBack,
         snackbarHost = { SnackbarHost(actions.snackbar) },
+        restartPackages = RESTART_SCOPE_DOWNLOAD_MANAGER,
     ) {
         item {
             SectionTitle(stringResource(R.string.config))
@@ -34,7 +35,7 @@ internal fun DownloadManagerHookPage(prefs: FlutterPrefsRepository, onBack: () -
                     icon = null,
                     checked = resumeNotification.value,
                 ) { value ->
-                    if (actions.request(value, PKG_DOWNLOAD_MANAGER, scopeFailed)) {
+                    if (actions.request(value, listOf(PKG_DOWNLOAD_MANAGER), scopeFailed)) {
                         resumeNotification.value = value
                         prefs.putBoolean(KEY_RESUME_NOTIFICATION, value)
                         actions.show(restartRequired)
@@ -46,7 +47,7 @@ internal fun DownloadManagerHookPage(prefs: FlutterPrefsRepository, onBack: () -
                     icon = null,
                     checked = downloadShowTaskIcon.value,
                 ) { value ->
-                    if (actions.request(value, PKG_DOWNLOAD_MANAGER, scopeFailed)) {
+                    if (actions.request(value, listOf(PKG_DOWNLOAD_MANAGER), scopeFailed)) {
                         downloadShowTaskIcon.value = value
                         prefs.putBoolean(KEY_DOWNLOAD_SHOW_TASK_ICON, value)
                         actions.show(restartRequired)

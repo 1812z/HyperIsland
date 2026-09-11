@@ -57,6 +57,7 @@ internal fun ChargeIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Unit)
         title = stringResource(R.string.ext_charge_settings),
         onBack = onBack,
         snackbarHost = { SnackbarHost(snackbar) },
+        restartPackages = RESTART_SCOPE_ISLAND,
     ) {
         item {
             SectionTitle(stringResource(R.string.config))

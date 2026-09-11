@@ -45,6 +45,7 @@ internal fun SecurityCenterHookPage(prefs: FlutterPrefsRepository, onBack: () ->
         title = stringResource(R.string.ext_permission_manager),
         onBack = onBack,
         snackbarHost = { SnackbarHost(actions.snackbar) },
+        restartPackages = RESTART_SCOPE_SECURITY_CENTER,
     ) {
         item {
             SectionTitle(stringResource(R.string.config))

@@ -685,6 +685,7 @@
     <string name="restart_scope">重启作用域</string>
     <string name="restart_scope_summary">选择要通过 root 重启的作用域应用。</string>
     <string name="system_ui">系统界面</string>
+    <string name="milink_service">小米互联</string>
     <string name="download_manager">下载管理器</string>
     <string name="xmsf">小米服务框架</string>
     <string name="hook_scope_settings">系统设置</string>
