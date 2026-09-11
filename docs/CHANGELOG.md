@@ -8,6 +8,17 @@ import ReleaseHistory from './.vitepress/components/ReleaseHistory.vue'
 
 <div class="changelog-source" hidden>
 
+
+# V3.1.1-Beta5 (2026-9-12)
+## 功能
+- 新增临时关闭 WiFi 功能
+
+## 优化 & 修复
+- 修复低电量下屏幕录制异常
+- 优化 Hook 拓展页面
+- 更新翻译
+
+
 # V3.1.1-Beta3 (2026-9-9)
 ## 功能
 - 支持调节岛文字区域高度
