@@ -517,6 +517,19 @@ object ScreenRecorderHook : BaseHook() {
         if (!hookedRecorderServiceClasses.add(serviceClass)) return
         hookLowBatteryWarningBypass(module, serviceClass)
         serviceClass.declaredMethods.firstOrNull {
+            it.name == "onCreate" && it.parameterCount == 0
+        }?.let { onCreate ->
+            onCreate.isAccessible = true
+            module.hook(onCreate).intercept { chain ->
+                val result = chain.proceed()
+                val service = chain.thisObject as? Service
+                if (service != null) {
+                    hookRuntimeRecorderValidation(module, serviceClass, service)
+                }
+                result
+            }
+        }
+        serviceClass.declaredMethods.firstOrNull {
             it.name == "onStartCommand" && it.parameterCount == 3
         }?.let { onStartCommand ->
             onStartCommand.isAccessible = true
@@ -630,9 +643,45 @@ object ScreenRecorderHook : BaseHook() {
         module: XposedModule,
         serviceClass: Class<*>,
     ) {
-        val validationMethods = serviceClass.declaredFields
+        hookRecorderValidationMethods(
+            module = module,
+            types = serviceClass.declaredFields
+                .asSequence()
+                .map { it.type }
+                .toList(),
+            source = "declared fields",
+        )
+    }
+
+    private fun hookRuntimeRecorderValidation(
+        module: XposedModule,
+        serviceClass: Class<*>,
+        service: Service,
+    ) {
+        val runtimeTypes = serviceClass.declaredFields
             .asSequence()
-            .map { it.type }
+            .mapNotNull { field ->
+                runCatching {
+                    field.isAccessible = true
+                    field.get(service)?.javaClass
+                }.getOrNull()
+            }
+            .distinct()
+            .toList()
+        hookRecorderValidationMethods(
+            module = module,
+            types = runtimeTypes,
+            source = "runtime fields",
+        )
+    }
+
+    private fun hookRecorderValidationMethods(
+        module: XposedModule,
+        types: List<Class<*>>,
+        source: String,
+    ) {
+        val validationMethods = types
+            .asSequence()
             .filterNot { type ->
                 type.isPrimitive ||
                     type.name.startsWith("android.") ||
@@ -655,14 +704,17 @@ object ScreenRecorderHook : BaseHook() {
             method.isAccessible = true
             module.hook(method).intercept { chain ->
                 if (bypassNextLowBatteryWarning.compareAndSet(true, false)) {
-                    chain.args[0] = true
+                    val replacementArgs = chain.args.toTypedArray()
+                    replacementArgs[0] = true
                     log(
                         module,
                         "control: bypassed Xiaomi low-battery confirmation in " +
                             "${method.declaringClass.name}.${method.name}",
                     )
+                    chain.proceed(replacementArgs)
+                } else {
+                    chain.proceed()
                 }
-                chain.proceed()
             }
             log(
                 module,
@@ -672,7 +724,7 @@ object ScreenRecorderHook : BaseHook() {
         }
 
         if (validationMethods.isEmpty()) {
-            logWarn(module, "init: recorder low-battery validation method not found")
+            logWarn(module, "init: recorder low-battery validation method not found in $source")
         }
     }
 
