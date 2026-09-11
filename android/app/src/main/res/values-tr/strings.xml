@@ -391,6 +391,8 @@
     <string name="ext_small_icon_enabled">Etkin · Simge davranışını ayarla</string>
     <string name="ext_small_icon_disabled">Devre dışı · Simge davranışını ayarla</string>
     <string name="ext_opacity">Opaklık</string>
+    <string name="ext_wifi_tile_disconnect">WiFi kutucuğu yalnızca bağlantıyı kes</string>
+    <string name="ext_wifi_tile_disconnect_summary">WiFi kutucuğuna dokunmak WiFi\'ı kapatmadan yalnızca bağlantıyı keser ve otomatik yeniden bağlanmaz; kutucuk gri olur. Tekrar dokunmak otomatik bağlanmayı geri yükler</string>
     <string name="ext_unlock_auth">Odak imza doğrulamasını kaldır</string>
     <string name="ext_unlock_auth_summary">İmza denetimini atlar; tüm uygulamalar saat/bilekliğe bildirim gönderebilir (XMSF hook’u gerekir)</string>
     <string name="ext_resume_notification">Duraklatmada bildirimi koru</string>

@@ -361,6 +361,8 @@
     <string name="ext_small_icon_enabled">有効 · Island アイコンの動作を調整</string>
     <string name="ext_small_icon_disabled">無効 · Island アイコンの動作を調整</string>
     <string name="ext_opacity">不透明度</string>
+    <string name="ext_wifi_tile_disconnect">WiFi タイルを切断のみに</string>
+    <string name="ext_wifi_tile_disconnect_summary">WiFi タイルをタップすると WiFi をオフにせず切断のみを行い、自動再接続もされません。タイルはグレー表示になり、再度タップすると自動接続を復元します</string>
     <string name="ext_unlock_auth">フォーカス通知の署名検証を削除</string>
     <string name="ext_unlock_auth_summary">署名検証のバイパスとすべてのアプリでフォーカス通知を時計/ブレスレットに送信可能な状態にします (XMSF のフックが必要です)</string>
     <string name="ext_resume_notification">ダウンロードの一時停止後も通知を保持する</string>

@@ -27,6 +27,7 @@ import io.github.hyperisland.xposed.hook.MediaNotificationTextColorHook
 import io.github.hyperisland.xposed.hook.PermissionManager.ClipboardToastHook
 import io.github.hyperisland.xposed.hook.SystemUI.GenericProgressHook
 import io.github.hyperisland.xposed.hook.SystemUI.ProxySourceHeadsUpSuppressHook
+import io.github.hyperisland.xposed.hook.SystemUI.WifiTileDisconnectHook
 import io.github.hyperisland.xposed.hook.IslandBackgroundHook
 import io.github.hyperisland.xposed.hook.IslandDimenHook
 import io.github.hyperisland.xposed.hook.IslandDispatcherHook
@@ -106,6 +107,7 @@ class HyperIslandModule : XposedModule() {
                 DynamicIslandVisibilityHook.init(this, param)
                 IslandSwipeActionHook.init(this, param)
                 KeepIslandHook.init(this, param)
+                WifiTileDisconnectHook.init(this, param)
                 if (ConfigManager.getBoolean("pref_bluetooth_island", false)) {
                     BluetoothIslandHook.init(this, param)
                 }

@@ -361,6 +361,8 @@
     <string name="ext_small_icon_enabled">Включено · Настройка поведения значка Острова</string>
     <string name="ext_small_icon_disabled">Отключено · Настройка поведения значка Острова</string>
     <string name="ext_opacity">Непрозрачность</string>
+    <string name="ext_wifi_tile_disconnect">Плитка Wi-Fi: только отключение</string>
+    <string name="ext_wifi_tile_disconnect_summary">Нажатие на плитку Wi-Fi только разрывает соединение, не выключая Wi-Fi и не переподключаясь автоматически; плитка становится серой. Повторное нажатие восстанавливает автоподключение</string>
     <string name="ext_unlock_auth">Удалить проверку подписи фокус-уведомлений</string>
     <string name="ext_unlock_auth_summary">Разрешить всем приложениям отправлять фокус-уведомления на часы или браслет в обход проверки подписи (требуется перехват XMSF)</string>
     <string name="ext_resume_notification">Сохранять уведомление после паузы загрузки</string>

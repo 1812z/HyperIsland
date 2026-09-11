@@ -391,6 +391,8 @@
     <string name="ext_small_icon_enabled">Enabled · Adjust island icon behavior</string>
     <string name="ext_small_icon_disabled">Disabled · Adjust island icon behavior</string>
     <string name="ext_opacity">Opacity</string>
+    <string name="ext_wifi_tile_disconnect">WiFi tile disconnect only</string>
+    <string name="ext_wifi_tile_disconnect_summary">Tap the WiFi tile to disconnect without turning off WiFi or auto-reconnecting; the tile turns grey. Tap again to restore auto-connect</string>
     <string name="ext_unlock_auth">Remove focus notification signature verification</string>
     <string name="ext_unlock_auth_summary">Allow all apps to send focus notifications to watch/bracelet, bypassing signature check (requires hooking XMSF)</string>
     <string name="ext_resume_notification">Keep notification after download pause</string>

@@ -397,6 +397,8 @@
     <string name="ext_small_icon_enabled">已开启 · 调节小岛图标行为</string>
     <string name="ext_small_icon_disabled">已关闭 · 调节小岛图标行为</string>
     <string name="ext_opacity">不透明度</string>
+    <string name="ext_wifi_tile_disconnect">WiFi 磁贴仅断开</string>
+    <string name="ext_wifi_tile_disconnect_summary">点击 WiFi 磁贴仅断开连接，不关闭 WiFi、不会自动重连，磁贴变为灰色；再次点击恢复自动连接</string>
     <string name="ext_unlock_auth">移除焦点通知签名验证</string>
     <string name="ext_unlock_auth_summary">XMSF（小米服务框架）去除校验</string>
     <string name="ext_resume_notification">下载管理器暂停后保留焦点通知</string>

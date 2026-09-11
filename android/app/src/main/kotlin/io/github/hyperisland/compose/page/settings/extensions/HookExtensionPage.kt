@@ -87,6 +87,7 @@ internal fun HookExtensionPage(
     val iconOpacityState = remember(KEY_SMALL_ICON_OPACITY) {
         mutableFloatStateOf(prefs.getDouble(KEY_SMALL_ICON_OPACITY, DEFAULT_ICON_OPACITY).toFloat())
     }
+    val wifiTileDisconnect = rememberBooleanPreference(prefs, KEY_WIFI_TILE_DISCONNECT, false)
     val unlockAuth = rememberBooleanPreference(prefs, KEY_UNLOCK_FOCUS_AUTH, false)
     val resumeNotification = rememberBooleanPreference(prefs, KEY_RESUME_NOTIFICATION, true)
     val downloadShowTaskIcon = rememberBooleanPreference(
@@ -374,6 +375,22 @@ internal fun HookExtensionPage(
                         onValueChange = { iconOpacityState.floatValue = it },
                         onValueChangeFinished = { prefs.putDouble(KEY_SMALL_ICON_OPACITY, iconOpacityState.floatValue.toDouble()) },
                     )
+                }
+            }
+        }
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                PreferenceSwitch(
+                    title = stringResource(R.string.ext_wifi_tile_disconnect),
+                    summary = stringResource(R.string.ext_wifi_tile_disconnect_summary),
+                    icon = null,
+                    checked = wifiTileDisconnect.value,
+                ) { value ->
+                    if (request(value, listOf("com.android.systemui"))) {
+                        wifiTileDisconnect.value = value
+                        prefs.putBoolean(KEY_WIFI_TILE_DISCONNECT, value)
+                        restart()
+                    }
                 }
             }
         }
