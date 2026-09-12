@@ -100,6 +100,7 @@ import io.github.hyperisland.compose.page.settings.extensions.ScreenRecorderHook
 import io.github.hyperisland.compose.page.settings.extensions.SecurityCenterHookPage
 import io.github.hyperisland.compose.page.settings.extensions.SystemSettingsHookPage
 import io.github.hyperisland.compose.page.settings.extensions.SystemUiHookPage
+import io.github.hyperisland.compose.page.settings.extensions.SystemUiExtensionDetail
 import io.github.hyperisland.compose.page.settings.extensions.XmsfHookPage
 import io.github.hyperisland.compose.service.UpdateService
 import io.github.hyperisland.compose.theme.PREF_BLUR_BARS
@@ -168,21 +169,31 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     var batchChannelTarget by remember { mutableStateOf<BatchChannelTarget?>(null) }
     var batchToastPackages by remember { mutableStateOf<Set<String>?>(null) }
     var materialShown by remember { mutableStateOf(false) }
-    var extensionSubDetail by remember { mutableStateOf<HookExtensionDetail?>(null) }
+    var extensionDetail by remember { mutableStateOf<HookExtensionDetail?>(null) }
+    var extensionSubDetail by remember { mutableStateOf<SystemUiExtensionDetail?>(null) }
+    // Keep the last route composed until AnimatedVisibility finishes its exit transition.
+    var renderedExtensionSubDetail by remember { mutableStateOf<SystemUiExtensionDetail?>(null) }
     val nestedDetailShown = mediaShown || materialShown || visibleChannelEditor != null ||
         (visibleChannelApp != null && batchChannelTarget != null) || extensionDetail != null
+    val extensionSubDetailShown = extensionSubDetail != null
     var detailPredictiveBackActive by remember { mutableStateOf(false) }
     var mediaPredictiveBackActive by remember { mutableStateOf(false) }
+    var extensionPredictiveBackActive by remember { mutableStateOf(false) }
     var detailPredictiveCommitting by remember { mutableStateOf(false) }
     var mediaPredictiveCommitting by remember { mutableStateOf(false) }
+    var extensionPredictiveCommitting by remember { mutableStateOf(false) }
     val predictiveProgress = remember { Animatable(0f) }
     val mediaPredictiveProgress = remember { Animatable(0f) }
+    val extensionPredictiveProgress = remember { Animatable(0f) }
     val detailBackdropIntensity = remember { Animatable(0f) }
     val mediaBackdropIntensity = remember { Animatable(0f) }
+    val extensionBackdropIntensity = remember { Animatable(0f) }
     val rootLayerDepth = remember { Animatable(0f) }
     val detailLayerDepth = remember { Animatable(0f) }
+    val extensionLayerDepth = remember { Animatable(0f) }
     val detailPredictiveMotion = remember { PredictiveBackMotionTracker() }
     val mediaPredictiveMotion = remember { PredictiveBackMotionTracker() }
+    val extensionPredictiveMotion = remember { PredictiveBackMotionTracker() }
     val bottomBarProgress = remember { Animatable(0f) }
 
     @Composable
@@ -327,6 +338,27 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
         }
     }
 
+    LaunchedEffect(extensionSubDetailShown, extensionPredictiveBackActive) {
+        if (!extensionPredictiveBackActive) {
+            val target = if (extensionSubDetailShown) 1f else 0f
+            val duration = if (extensionSubDetailShown) LAYER_ENTER_DURATION else LAYER_EXIT_DURATION
+            coroutineScope {
+                launch {
+                    extensionBackdropIntensity.animateTo(
+                        target,
+                        tween(duration, easing = FastOutSlowInEasing),
+                    )
+                }
+                launch {
+                    extensionLayerDepth.animateTo(
+                        target,
+                        tween(duration, easing = FastOutSlowInEasing),
+                    )
+                }
+            }
+        }
+    }
+
     suspend fun finishDetailPredictiveBack() {
         detailPredictiveCommitting = true
         val targetProgress = predictiveExitProgress(predictiveBackMaxTranslation.value)
@@ -402,11 +434,47 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
         visibleChannelEditor = null
         if (visibleChannelApp != null) batchChannelTarget = null
         extensionDetail = null
+        extensionSubDetail = null
         delay(PREDICTIVE_DISMISS_DURATION.toLong())
         mediaPredictiveProgress.snapTo(0f)
         mediaPredictiveMotion.reset()
         mediaPredictiveBackActive = false
         mediaPredictiveCommitting = false
+    }
+
+    suspend fun finishExtensionPredictiveBack() {
+        extensionPredictiveCommitting = true
+        val targetProgress = predictiveExitProgress(predictiveBackMaxTranslation.value)
+        val duration = predictiveSettleDuration(
+            progress = extensionPredictiveProgress.value,
+            maxTranslationPercent = predictiveBackMaxTranslation.value,
+        )
+        val settleEasing = predictiveSettleEasing(
+            releaseVelocity = extensionPredictiveMotion.releaseVelocity(),
+            currentProgress = extensionPredictiveProgress.value,
+            targetProgress = targetProgress,
+            durationMillis = duration,
+        )
+        coroutineScope {
+            launch {
+                extensionPredictiveProgress.animateTo(
+                    targetProgress,
+                    tween(duration, easing = settleEasing),
+                )
+            }
+            launch {
+                extensionBackdropIntensity.animateTo(0f, tween(duration, easing = settleEasing))
+            }
+            launch {
+                extensionLayerDepth.animateTo(0f, tween(duration, easing = settleEasing))
+            }
+        }
+        extensionSubDetail = null
+        delay(PREDICTIVE_DISMISS_DURATION.toLong())
+        extensionPredictiveProgress.snapTo(0f)
+        extensionPredictiveMotion.reset()
+        extensionPredictiveBackActive = false
+        extensionPredictiveCommitting = false
     }
 
     PredictiveBackHandler(enabled = detailShown && !nestedDetailShown) { events ->
@@ -452,7 +520,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
         }
     }
 
-    PredictiveBackHandler(enabled = nestedDetailShown) { events ->
+    PredictiveBackHandler(enabled = nestedDetailShown && !extensionSubDetailShown) { events ->
         try {
             events.collect { event ->
                 if (!mediaPredictiveBackActive) {
@@ -495,12 +563,59 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
         }
     }
 
+    PredictiveBackHandler(enabled = extensionSubDetailShown) { events ->
+        try {
+            events.collect { event ->
+                if (!extensionPredictiveBackActive) {
+                    extensionPredictiveMotion.reset(event.progress)
+                } else {
+                    extensionPredictiveMotion.update(event.progress)
+                }
+                extensionPredictiveBackActive = true
+                extensionPredictiveProgress.snapTo(event.progress)
+                val smoothProgress = smootherStep(event.progress)
+                extensionBackdropIntensity.snapTo(predictiveEffectIntensity(smoothProgress))
+                extensionLayerDepth.snapTo(1f - smoothProgress)
+            }
+            finishExtensionPredictiveBack()
+        } catch (_: CancellationException) {
+            if (!extensionPredictiveCommitting) {
+                coroutineScope {
+                    launch {
+                        extensionPredictiveProgress.animateTo(
+                            0f,
+                            tween(PREDICTIVE_CANCEL_DURATION, easing = FastOutSlowInEasing),
+                        )
+                    }
+                    launch {
+                        extensionBackdropIntensity.animateTo(
+                            1f,
+                            tween(PREDICTIVE_CANCEL_DURATION, easing = FastOutSlowInEasing),
+                        )
+                    }
+                    launch {
+                        extensionLayerDepth.animateTo(
+                            1f,
+                            tween(PREDICTIVE_CANCEL_DURATION, easing = FastOutSlowInEasing),
+                        )
+                    }
+                }
+                extensionPredictiveMotion.reset()
+                extensionPredictiveBackActive = false
+            }
+        }
+    }
+
     BackHandler(enabled = detailPredictiveBackActive && detailPredictiveCommitting) {
         scope.launch { finishDetailPredictiveBack() }
     }
 
     BackHandler(enabled = mediaPredictiveBackActive && mediaPredictiveCommitting) {
         scope.launch { finishNestedPredictiveBack() }
+    }
+
+    BackHandler(enabled = extensionPredictiveBackActive && extensionPredictiveCommitting) {
+        scope.launch { finishExtensionPredictiveBack() }
     }
 
     BarBlurHost(
@@ -595,6 +710,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                         visibleChannelApp = null
                                         visibleToastApp = null
                                         extensionDetail = null
+                                        extensionSubDetail = null
                                         visibleDetail = it
                                         detailShown = true
                                     },
@@ -736,7 +852,10 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                 SettingsDetail.KeepIsland -> KeepIslandPage(prefs, ::closeDetail)
                                 SettingsDetail.HookExtension -> HookExtensionPage(
                                     prefs = prefs,
-                                    onOpenDetail = { extensionDetail = it },
+                                    onOpenDetail = {
+                                        extensionSubDetail = null
+                                        extensionDetail = it
+                                    },
                                     onBack = ::closeDetail,
                                 )
                                 SettingsDetail.Onboarding -> OnboardingPage(
@@ -756,95 +875,117 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                     modifier = Modifier.fillMaxSize(),
                 )
 
-                AnimatedVisibility(
-                    visible = nestedDetailShown,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer {
-                            val progress = mediaPredictiveProgress.value.coerceAtLeast(0f)
-                            translationX = size.width * progress *
-                                predictiveTranslationFraction(predictiveBackMaxTranslation.value)
-                        },
-                    enter = slideInHorizontally(
-                        tween(LAYER_ENTER_DURATION, easing = FastOutSlowInEasing),
-                    ) { it },
-                    exit = if (mediaPredictiveBackActive) {
-                        ExitTransition.None
-                    } else {
-                        slideOutHorizontally(
-                            tween(LAYER_EXIT_DURATION, easing = FastOutSlowInEasing),
-                        ) { it }
-                    },
+                BarBlurHost(
+                    enabled = blurBars.value,
+                    captureForEffects = extensionSubDetailShown ||
+                        extensionPredictiveBackActive ||
+                        extensionBackdropIntensity.value > EFFECT_VISIBILITY_THRESHOLD,
                 ) {
-                    when (extensionDetail) {
-                        HookExtensionDetail.SystemUi -> SystemUiHookPage(
-                            prefs = prefs,
-                            onOpenDetail = { extensionDetail = it },
-                            onBack = { extensionDetail = null },
-                        )
-                        HookExtensionDetail.SystemSettings -> SystemSettingsHookPage(
-                            prefs = prefs,
-                            onBack = { extensionDetail = null },
-                        )
-                        HookExtensionDetail.SecurityCenter -> SecurityCenterHookPage(
-                            prefs = prefs,
-                            onBack = { extensionDetail = null },
-                        )
-                        HookExtensionDetail.Xmsf -> XmsfHookPage(
-                            prefs = prefs,
-                            onBack = { extensionDetail = null },
-                        )
-                        HookExtensionDetail.ScreenRecorder -> ScreenRecorderHookPage(
-                            prefs = prefs,
-                            onBack = { extensionDetail = null },
-                        )
-                        HookExtensionDetail.DownloadManager -> DownloadManagerHookPage(
-                            prefs = prefs,
-                            onBack = { extensionDetail = null },
-                        )
-                        HookExtensionDetail.Bluetooth -> BluetoothIslandPage(
-                            prefs = prefs,
-                            onBack = { extensionDetail = HookExtensionDetail.SystemUi },
-                        )
-                        HookExtensionDetail.HeartRate -> HeartRateIslandPage(
-                            prefs = prefs,
-                            onBack = { extensionDetail = HookExtensionDetail.SystemUi },
-                        )
-                        HookExtensionDetail.Charge -> ChargeIslandPage(
-                            prefs = prefs,
-                            onBack = { extensionDetail = HookExtensionDetail.SystemUi },
-                        )
-                        HookExtensionDetail.FaceUnlock -> FaceUnlockIslandPage(
-                            prefs = prefs,
-                            onBack = { extensionDetail = HookExtensionDetail.SystemUi },
-                        )
-                        null -> if (batchChannelTarget != null && visibleChannelApp != null) {
-                            BatchChannelSettingsPage(
-                                target = batchChannelTarget!!,
-                                prefs = prefs,
-                                onBack = { batchChannelTarget = null },
-                            )
-                        } else if (visibleChannelEditor != null && visibleChannelApp != null) {
-                            ChannelEditorPage(
-                                appPackage = visibleChannelApp!!.packageName,
-                                channel = visibleChannelEditor!!,
-                                prefs = prefs,
-                                onBack = { visibleChannelEditor = null },
-                            )
-                        } else if (materialShown) {
-                            IslandMaterialPage(
-                                prefs = prefs,
-                                onBack = { materialShown = false },
-                            )
-                        } else {
-                            visibleChannelApp?.let { app ->
-                                MediaNotificationPage(
-                                    app = app,
+                    BarBackdropContent(modifier = Modifier.fillMaxSize()) {
+                        AnimatedVisibility(
+                            visible = nestedDetailShown,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer {
+                                    val progress = mediaPredictiveProgress.value.coerceAtLeast(0f)
+                                    val depth = extensionLayerDepth.value.coerceIn(0f, 1f)
+                                    translationX = -size.width * depth * BACKGROUND_PARALLAX +
+                                        size.width * progress *
+                                        predictiveTranslationFraction(predictiveBackMaxTranslation.value)
+                                    scaleX = 1f - depth * BACKGROUND_SCALE_REDUCTION
+                                    scaleY = scaleX
+                                },
+                            enter = slideInHorizontally(
+                                tween(LAYER_ENTER_DURATION, easing = FastOutSlowInEasing),
+                            ) { it },
+                            exit = if (mediaPredictiveBackActive) {
+                                ExitTransition.None
+                            } else {
+                                slideOutHorizontally(
+                                    tween(LAYER_EXIT_DURATION, easing = FastOutSlowInEasing),
+                                ) { it }
+                            },
+                        ) {
+                            when (extensionDetail) {
+                                HookExtensionDetail.SystemUi -> SystemUiHookPage(
                                     prefs = prefs,
-                                    onBack = { mediaShown = false },
+                                    onOpenDetail = {
+                                        renderedExtensionSubDetail = it
+                                        extensionSubDetail = it
+                                    },
+                                    onBack = {
+                                        extensionSubDetail = null
+                                        extensionDetail = null
+                                    },
                                 )
+                                HookExtensionDetail.SystemSettings -> SystemSettingsHookPage(
+                                    prefs = prefs,
+                                    onBack = { extensionDetail = null },
+                                )
+                                HookExtensionDetail.SecurityCenter -> SecurityCenterHookPage(
+                                    prefs = prefs,
+                                    onBack = { extensionDetail = null },
+                                )
+                                HookExtensionDetail.Xmsf -> XmsfHookPage(
+                                    prefs = prefs,
+                                    onBack = { extensionDetail = null },
+                                )
+                                HookExtensionDetail.ScreenRecorder -> ScreenRecorderHookPage(
+                                    prefs = prefs,
+                                    onBack = { extensionDetail = null },
+                                )
+                                HookExtensionDetail.DownloadManager -> DownloadManagerHookPage(
+                                    prefs = prefs,
+                                    onBack = { extensionDetail = null },
+                                )
+                                null -> if (batchChannelTarget != null && visibleChannelApp != null) {
+                                    BatchChannelSettingsPage(
+                                        target = batchChannelTarget!!,
+                                        prefs = prefs,
+                                        onBack = { batchChannelTarget = null },
+                                    )
+                                } else if (visibleChannelEditor != null && visibleChannelApp != null) {
+                                    ChannelEditorPage(
+                                        appPackage = visibleChannelApp!!.packageName,
+                                        channel = visibleChannelEditor!!,
+                                        prefs = prefs,
+                                        onBack = { visibleChannelEditor = null },
+                                    )
+                                } else if (materialShown) {
+                                    IslandMaterialPage(
+                                        prefs = prefs,
+                                        onBack = { materialShown = false },
+                                    )
+                                } else {
+                                    visibleChannelApp?.let { app ->
+                                        MediaNotificationPage(
+                                            app = app,
+                                            prefs = prefs,
+                                            onBack = { mediaShown = false },
+                                        )
+                                    }
+                                }
                             }
                         }
+                    }
+
+                    PredictiveBackBackdrop(
+                        intensity = extensionBackdropIntensity.value,
+                        visible = extensionBackdropIntensity.value > EFFECT_VISIBILITY_THRESHOLD,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+
+                    ExtensionSubDetailLayer(
+                        visible = extensionSubDetailShown,
+                        predictiveBackActive = extensionPredictiveBackActive,
+                        predictiveProgress = extensionPredictiveProgress.value,
+                        maxTranslationPercent = predictiveBackMaxTranslation.value,
+                    ) {
+                        ExtensionSubDetailPage(
+                            detail = renderedExtensionSubDetail,
+                            prefs = prefs,
+                            onBack = { extensionSubDetail = null },
+                        )
                     }
                 }
             }
@@ -874,6 +1015,52 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
             }
         },
     )
+}
+
+@Composable
+private fun ExtensionSubDetailPage(
+    detail: SystemUiExtensionDetail?,
+    prefs: FlutterPrefsRepository,
+    onBack: () -> Unit,
+) {
+    when (detail) {
+        SystemUiExtensionDetail.Bluetooth -> BluetoothIslandPage(prefs, onBack)
+        SystemUiExtensionDetail.HeartRate -> HeartRateIslandPage(prefs, onBack)
+        SystemUiExtensionDetail.Charge -> ChargeIslandPage(prefs, onBack)
+        SystemUiExtensionDetail.FaceUnlock -> FaceUnlockIslandPage(prefs, onBack)
+        null -> Unit
+    }
+}
+
+@Composable
+private fun ExtensionSubDetailLayer(
+    visible: Boolean,
+    predictiveBackActive: Boolean,
+    predictiveProgress: Float,
+    maxTranslationPercent: Long,
+    content: @Composable () -> Unit,
+) {
+    AnimatedVisibility(
+        visible = visible,
+        modifier = Modifier
+            .fillMaxSize()
+            .graphicsLayer {
+                translationX = size.width * predictiveProgress.coerceAtLeast(0f) *
+                    predictiveTranslationFraction(maxTranslationPercent)
+            },
+        enter = slideInHorizontally(
+            tween(LAYER_ENTER_DURATION, easing = FastOutSlowInEasing),
+        ) { it },
+        exit = if (predictiveBackActive) {
+            ExitTransition.None
+        } else {
+            slideOutHorizontally(
+                tween(LAYER_EXIT_DURATION, easing = FastOutSlowInEasing),
+            ) { it }
+        },
+    ) {
+        content()
+    }
 }
 
 private const val PREF_CHECK_UPDATE_ON_LAUNCH = "pref_check_update_on_launch"

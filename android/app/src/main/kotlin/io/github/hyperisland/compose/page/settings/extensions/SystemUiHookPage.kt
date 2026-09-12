@@ -22,7 +22,7 @@ import top.yukonga.miuix.kmp.icon.extended.ChevronForward
 @Composable
 internal fun SystemUiHookPage(
     prefs: FlutterPrefsRepository,
-    onOpenDetail: (HookExtensionDetail) -> Unit,
+    onOpenDetail: (SystemUiExtensionDetail) -> Unit,
     onBack: () -> Unit,
 ) {
     val actions = rememberHookScopeActions()
@@ -188,7 +188,7 @@ internal fun SystemUiHookPage(
                         if (bluetooth.value) enabledText else disabledText,
                     ),
                     endIcon = MiuixIcons.ChevronForward,
-                ) { onOpenDetail(HookExtensionDetail.Bluetooth) }
+                ) { onOpenDetail(SystemUiExtensionDetail.Bluetooth) }
                 SettingsAction(
                     title = stringResource(R.string.heart_rate_island),
                     summary = stringResource(
@@ -196,7 +196,7 @@ internal fun SystemUiHookPage(
                         if (heartRate.value) enabledText else disabledText,
                     ),
                     endIcon = MiuixIcons.ChevronForward,
-                ) { onOpenDetail(HookExtensionDetail.HeartRate) }
+                ) { onOpenDetail(SystemUiExtensionDetail.HeartRate) }
                 SettingsAction(
                     title = stringResource(R.string.charge_island),
                     summary = stringResource(
@@ -204,7 +204,7 @@ internal fun SystemUiHookPage(
                         if (charge.value) enabledText else disabledText,
                     ),
                     endIcon = MiuixIcons.ChevronForward,
-                ) { onOpenDetail(HookExtensionDetail.Charge) }
+                ) { onOpenDetail(SystemUiExtensionDetail.Charge) }
                 SettingsAction(
                     title = stringResource(R.string.face_unlock_island),
                     summary = stringResource(
@@ -212,7 +212,7 @@ internal fun SystemUiHookPage(
                         if (faceUnlock.value) enabledText else disabledText,
                     ),
                     endIcon = MiuixIcons.ChevronForward,
-                ) { onOpenDetail(HookExtensionDetail.FaceUnlock) }
+                ) { onOpenDetail(SystemUiExtensionDetail.FaceUnlock) }
             }
         }
     }

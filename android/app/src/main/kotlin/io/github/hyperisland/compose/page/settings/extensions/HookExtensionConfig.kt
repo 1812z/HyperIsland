@@ -89,6 +89,9 @@ internal enum class HookExtensionDetail {
     Xmsf,
     ScreenRecorder,
     DownloadManager,
+}
+
+internal enum class SystemUiExtensionDetail {
     Bluetooth,
     HeartRate,
     Charge,
