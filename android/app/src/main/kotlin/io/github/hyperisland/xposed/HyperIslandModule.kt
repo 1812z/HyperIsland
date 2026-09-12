@@ -121,8 +121,7 @@ class HyperIslandModule : XposedModule() {
                 }
             }
 
-            "com.android.providers.downloads",
-            "com.xiaomi.android.app.downloadmanager" ->
+            "com.android.providers.downloads" ->
                 DownloadHook.init(this, param)
 
             "com.xiaomi.xmsf" ->
@@ -140,11 +139,6 @@ class HyperIslandModule : XposedModule() {
 
             "com.miui.securitycenter" -> {
                 val enabled = ConfigManager.getBoolean("pref_clipboard_toast_conversion", false)
-                log(
-                    Log.INFO,
-                    "HyperIsland[ClipboardToast]",
-                    "package loaded: ${param.packageName}, enabled=$enabled",
-                )
                 if (enabled) {
                     ClipboardToastHook.init(this, param)
                 }
