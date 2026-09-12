@@ -12,10 +12,12 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -52,6 +54,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.hyperisland.R
@@ -195,100 +198,113 @@ internal fun OnboardingPage(
                     showCloseButton = showCloseButton,
                     onClose = ::finish,
                 )
-                HorizontalPager(
-                    state = pagerState,
+                BoxWithConstraints(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f),
-                    userScrollEnabled = false,
-                    beyondViewportPageCount = 0,
-                ) { page ->
-                    OnboardingStepPage(
-                        page = page,
-                        checking = checking,
-                        status = status,
-                        defaultFocusNotification = defaultFocusNotification,
-                        unlockAllFocus = unlockAllFocus,
-                        unlockFocusAuth = unlockFocusAuth,
-                        enablingUnlock = enablingUnlock,
-                        privacyTermsChecked = privacyTermsChecked,
-                        onPrivacyTermsCheckedChange = { privacyTermsChecked = it },
-                        onOpenPrivacyPolicy = {
-                            val language = context.resources.configuration.locales.get(0).language
-                            val path = if (language.equals("zh", ignoreCase = true)) {
-                                "privacy"
-                            } else {
-                                "en/privacy"
-                            }
-                            context.startActivity(
-                                Intent(
-                                    Intent.ACTION_VIEW,
-                                    Uri.parse("https://hyperisland.1812z.top/$path"),
-                                ),
-                            )
-                        },
-                        onFocusNotificationChanged = { defaultFocusNotification = it },
-                        onOpenTutorial = {
-                            focusActionTaken = true
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(FOCUS_TUTORIAL_URL)))
-                        },
-                        onEnableEmbedded = {
-                            if (!enablingUnlock) {
-                                focusActionTaken = true
-                                enablingUnlock = true
-                                scope.launch {
-                                    runCatching {
-                                        service.enableEmbeddedFocusUnlock()
-                                        prefs.putBoolean(KEY_UNLOCK_ALL_FOCUS, true)
-                                        prefs.putBoolean(KEY_UNLOCK_FOCUS_AUTH, true)
-                                        unlockAllFocus = true
-                                        unlockFocusAuth = true
-                                    }.onSuccess {
-                                        snackbarState.showSnackbar(
-                                            context.getString(R.string.onboarding_focus_success),
-                                        )
-                                    }.onFailure {
-                                        snackbarState.showSnackbar(
-                                            context.getString(
-                                                R.string.onboarding_focus_failed,
-                                                it.message ?: it.javaClass.simpleName,
-                                            ),
-                                        )
+                ) {
+                    val contentMaxWidth = if (maxWidth >= 600.dp) maxWidth * 0.60f else maxWidth
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        HorizontalPager(
+                            state = pagerState,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            userScrollEnabled = false,
+                            beyondViewportPageCount = 0,
+                        ) { page ->
+                            OnboardingStepPage(
+                                page = page,
+                                contentMaxWidth = contentMaxWidth,
+                                checking = checking,
+                                status = status,
+                                defaultFocusNotification = defaultFocusNotification,
+                                unlockAllFocus = unlockAllFocus,
+                                unlockFocusAuth = unlockFocusAuth,
+                                enablingUnlock = enablingUnlock,
+                                privacyTermsChecked = privacyTermsChecked,
+                                onPrivacyTermsCheckedChange = { privacyTermsChecked = it },
+                                onOpenPrivacyPolicy = {
+                                    val language = context.resources.configuration.locales.get(0).language
+                                    val path = if (language.equals("zh", ignoreCase = true)) {
+                                        "privacy"
+                                    } else {
+                                        "en/privacy"
                                     }
-                                    enablingUnlock = false
+                                    context.startActivity(
+                                        Intent(
+                                            Intent.ACTION_VIEW,
+                                            Uri.parse("https://hyperisland.1812z.top/$path"),
+                                        ),
+                                    )
+                                },
+                                onFocusNotificationChanged = { defaultFocusNotification = it },
+                                onOpenTutorial = {
+                                    focusActionTaken = true
+                                    context.startActivity(
+                                        Intent(Intent.ACTION_VIEW, Uri.parse(FOCUS_TUTORIAL_URL)),
+                                    )
+                                },
+                                onEnableEmbedded = {
+                                    if (!enablingUnlock) {
+                                        focusActionTaken = true
+                                        enablingUnlock = true
+                                        scope.launch {
+                                            runCatching {
+                                                service.enableEmbeddedFocusUnlock()
+                                                prefs.putBoolean(KEY_UNLOCK_ALL_FOCUS, true)
+                                                prefs.putBoolean(KEY_UNLOCK_FOCUS_AUTH, true)
+                                                unlockAllFocus = true
+                                                unlockFocusAuth = true
+                                            }.onSuccess {
+                                                snackbarState.showSnackbar(
+                                                    context.getString(R.string.onboarding_focus_success),
+                                                )
+                                            }.onFailure {
+                                                snackbarState.showSnackbar(
+                                                    context.getString(
+                                                        R.string.onboarding_focus_failed,
+                                                        it.message ?: it.javaClass.simpleName,
+                                                    ),
+                                                )
+                                            }
+                                            enablingUnlock = false
+                                        }
+                                    }
                                 }
-                            }
+                            )
                         }
-                    )
+                        OnboardingControls(
+                            currentPage = pagerState.currentPage,
+                            contentMaxWidth = contentMaxWidth,
+                            nextEnabled = !checking &&
+                                notificationStyleWaitSeconds == 0 &&
+                                (pagerState.currentPage != PRIVACY_STEP || privacyTermsChecked),
+                            nextWaitSeconds = notificationStyleWaitSeconds,
+                            onPrevious = { goToPage(pagerState.currentPage - 1) },
+                            onNext = {
+                                when (pagerState.currentPage) {
+                                    STEP_COUNT - 1 -> finish()
+                                    PRIVACY_STEP -> {
+                                        if (privacyTermsChecked && PrivacyConsentStore.accept(context)) {
+                                            onPrivacyAccepted()
+                                            goToPage(ENVIRONMENT_STEP)
+                                        }
+                                    }
+                                    ENVIRONMENT_STEP -> checkEnvironment { result ->
+                                        if (result.requirementsMet) goToPage(FOCUS_UNLOCK_STEP)
+                                        else activeDialog = OnboardingDialog.Environment
+                                    }
+                                    FOCUS_UNLOCK_STEP -> {
+                                        if (focusActionTaken) goToPage(NOTIFICATION_STYLE_STEP)
+                                        else activeDialog = OnboardingDialog.FocusUnlock
+                                    }
+                                    else -> goToPage(pagerState.currentPage + 1)
+                                }
+                            },
+                        )
+                    }
                 }
-                OnboardingControls(
-                    currentPage = pagerState.currentPage,
-                    nextEnabled = !checking &&
-                        notificationStyleWaitSeconds == 0 &&
-                        (pagerState.currentPage != PRIVACY_STEP || privacyTermsChecked),
-                    nextWaitSeconds = notificationStyleWaitSeconds,
-                    onPrevious = { goToPage(pagerState.currentPage - 1) },
-                    onNext = {
-                        when (pagerState.currentPage) {
-                            STEP_COUNT - 1 -> finish()
-                            PRIVACY_STEP -> {
-                                if (privacyTermsChecked && PrivacyConsentStore.accept(context)) {
-                                    onPrivacyAccepted()
-                                    goToPage(ENVIRONMENT_STEP)
-                                }
-                            }
-                            ENVIRONMENT_STEP -> checkEnvironment { result ->
-                                if (result.requirementsMet) goToPage(FOCUS_UNLOCK_STEP)
-                                else activeDialog = OnboardingDialog.Environment
-                            }
-                            FOCUS_UNLOCK_STEP -> {
-                                if (focusActionTaken) goToPage(NOTIFICATION_STYLE_STEP)
-                                else activeDialog = OnboardingDialog.FocusUnlock
-                            }
-                            else -> goToPage(pagerState.currentPage + 1)
-                        }
-                    },
-                )
             }
         }
     }
@@ -350,6 +366,7 @@ private fun OnboardingHeader(
 @Composable
 private fun OnboardingStepPage(
     page: Int,
+    contentMaxWidth: Dp,
     checking: Boolean,
     status: OnboardingStatus?,
     defaultFocusNotification: Boolean,
@@ -363,40 +380,47 @@ private fun OnboardingStepPage(
     onOpenTutorial: () -> Unit,
     onEnableEmbedded: () -> Unit,
 ) {
-    if (page == 0 || page == STEP_COUNT - 1) {
-        CenteredStep(page)
-        return
-    }
-    val step = onboardingStep(page)
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 18.dp, vertical = 12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.TopCenter,
     ) {
-        StepHeading(step)
-        Spacer(Modifier.height(22.dp))
-        when (page) {
-            PRIVACY_STEP -> PrivacyPanel(
-                checked = privacyTermsChecked,
-                onCheckedChange = onPrivacyTermsCheckedChange,
-                onOpenPrivacyPolicy = onOpenPrivacyPolicy,
-            )
-            ENVIRONMENT_STEP -> EnvironmentPanel(checking, status)
-            FOCUS_UNLOCK_STEP -> FocusUnlockPanel(
-                unlockAllFocus = unlockAllFocus,
-                unlockFocusAuth = unlockFocusAuth,
-                enabling = enablingUnlock,
-                onOpenTutorial = onOpenTutorial,
-                onEnableEmbedded = onEnableEmbedded,
-            )
-            NOTIFICATION_STYLE_STEP -> NotificationStylePanel(
-                defaultFocusNotification = defaultFocusNotification,
-                onChanged = onFocusNotificationChanged,
-            )
+        Column(modifier = Modifier.fillMaxHeight().width(contentMaxWidth)) {
+            if (page == 0 || page == STEP_COUNT - 1) {
+                CenteredStep(page)
+                return@Column
+            }
+            val step = onboardingStep(page)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 18.dp, vertical = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                StepHeading(step)
+                Spacer(Modifier.height(22.dp))
+                when (page) {
+                    PRIVACY_STEP -> PrivacyPanel(
+                        checked = privacyTermsChecked,
+                        onCheckedChange = onPrivacyTermsCheckedChange,
+                        onOpenPrivacyPolicy = onOpenPrivacyPolicy,
+                    )
+                    ENVIRONMENT_STEP -> EnvironmentPanel(checking, status)
+                    FOCUS_UNLOCK_STEP -> FocusUnlockPanel(
+                        unlockAllFocus = unlockAllFocus,
+                        unlockFocusAuth = unlockFocusAuth,
+                        enabling = enablingUnlock,
+                        onOpenTutorial = onOpenTutorial,
+                        onEnableEmbedded = onEnableEmbedded,
+                    )
+                    NOTIFICATION_STYLE_STEP -> NotificationStylePanel(
+                        defaultFocusNotification = defaultFocusNotification,
+                        onChanged = onFocusNotificationChanged,
+                    )
+                }
+                Spacer(Modifier.height(20.dp))
+            }
         }
-        Spacer(Modifier.height(20.dp))
     }
 }
 
@@ -708,21 +732,28 @@ private fun NotificationStyleCard(
             },
         )
         preview?.let {
-            Image(
-                bitmap = it,
-                contentDescription = title,
-                contentScale = ContentScale.Fit,
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 12.dp, end = 12.dp, bottom = 12.dp)
-                    .border(
-                        width = 1.dp,
-                        color = MiuixTheme.colorScheme.dividerLine,
-                        shape = previewShape,
-                    )
-                    .clip(previewShape)
-                    .aspectRatio(it.width.toFloat() / it.height.toFloat()),
-            )
+                    .padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Image(
+                    bitmap = it,
+                    contentDescription = title,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .widthIn(max = 420.dp)
+                        .fillMaxWidth()
+                        .border(
+                            width = 1.dp,
+                            color = MiuixTheme.colorScheme.dividerLine,
+                            shape = previewShape,
+                        )
+                        .clip(previewShape)
+                        .aspectRatio(it.width.toFloat() / it.height.toFloat()),
+                )
+            }
         }
     }
 }
@@ -730,40 +761,46 @@ private fun NotificationStyleCard(
 @Composable
 private fun OnboardingControls(
     currentPage: Int,
+    contentMaxWidth: Dp,
     nextEnabled: Boolean,
     nextWaitSeconds: Int,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 18.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    Box(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = Alignment.TopCenter,
     ) {
-        Button(
-            onClick = onPrevious,
-            enabled = currentPage > 0,
-            modifier = Modifier.weight(1f),
+        Row(
+            modifier = Modifier
+                .width(contentMaxWidth)
+                .padding(horizontal = 24.dp, vertical = 18.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(stringResource(R.string.onboarding_previous))
-        }
-        Button(
-            onClick = onNext,
-            enabled = nextEnabled,
-            modifier = Modifier.weight(1f),
-            colors = ButtonDefaults.buttonColorsPrimary(),
-        ) {
-            Text(
-                if (nextWaitSeconds > 0) {
-                    stringResource(R.string.onboarding_focus_wait, nextWaitSeconds)
-                } else {
-                    stringResource(
-                        if (currentPage == STEP_COUNT - 1) R.string.onboarding_done
-                        else R.string.onboarding_next,
-                    )
-                },
-            )
+            Button(
+                onClick = onPrevious,
+                enabled = currentPage > 0,
+                modifier = Modifier.weight(1f),
+            ) {
+                Text(stringResource(R.string.onboarding_previous))
+            }
+            Button(
+                onClick = onNext,
+                enabled = nextEnabled,
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColorsPrimary(),
+            ) {
+                Text(
+                    if (nextWaitSeconds > 0) {
+                        stringResource(R.string.onboarding_focus_wait, nextWaitSeconds)
+                    } else {
+                        stringResource(
+                            if (currentPage == STEP_COUNT - 1) R.string.onboarding_done
+                            else R.string.onboarding_next,
+                        )
+                    },
+                )
+            }
         }
     }
 }
