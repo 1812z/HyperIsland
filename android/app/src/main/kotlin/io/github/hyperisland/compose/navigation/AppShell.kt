@@ -2,15 +2,9 @@ package io.github.hyperisland.compose.navigation
 
 import android.content.Intent
 import android.net.Uri
-import androidx.activity.compose.BackHandler
-import androidx.activity.compose.PredictiveBackHandler
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Box
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.fillMaxSize
@@ -41,24 +35,16 @@ import io.github.hyperisland.compose.component.BlurredBar
 import io.github.hyperisland.compose.component.LocalRootBottomBarPadding
 import io.github.hyperisland.compose.component.LiquidGlassNavigationBar
 import io.github.hyperisland.compose.component.LiquidGlassNavigationItem
-import io.github.hyperisland.compose.component.PredictiveBackBackdrop
-import io.github.hyperisland.compose.component.PredictiveBackMotionTracker
-import io.github.hyperisland.compose.component.BACKGROUND_PARALLAX
-import io.github.hyperisland.compose.component.BACKGROUND_SCALE_REDUCTION
-import io.github.hyperisland.compose.component.EFFECT_VISIBILITY_THRESHOLD
-import io.github.hyperisland.compose.component.LAYER_ENTER_DURATION
 import io.github.hyperisland.compose.component.LAYER_EXIT_DURATION
-import io.github.hyperisland.compose.component.PREDICTIVE_CANCEL_DURATION
-import io.github.hyperisland.compose.component.PREDICTIVE_DISMISS_DURATION
-import io.github.hyperisland.compose.component.predictiveEffectIntensity
-import io.github.hyperisland.compose.component.predictiveExitProgress
-import io.github.hyperisland.compose.component.predictiveSettleEasing
-import io.github.hyperisland.compose.component.predictiveSettleDuration
-import io.github.hyperisland.compose.component.predictiveTranslationFraction
-import io.github.hyperisland.compose.component.smootherStep
+import io.github.hyperisland.compose.component.PredictiveNavigationBackHandler
+import io.github.hyperisland.compose.component.PredictiveNavigationBackdrop
+import io.github.hyperisland.compose.component.PredictiveNavigationLayer
 import io.github.hyperisland.compose.component.UpdateDialogHost
 import io.github.hyperisland.compose.component.UpdateDialogState
 import io.github.hyperisland.compose.component.barBlurBackground
+import io.github.hyperisland.compose.component.predictiveNavigationBackground
+import io.github.hyperisland.compose.component.rememberPredictiveNavigationLayerState
+import io.github.hyperisland.compose.component.requiresBackdropCapture
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.InstalledApp
 import io.github.hyperisland.compose.data.channel.BatchChannelTarget
@@ -109,9 +95,6 @@ import io.github.hyperisland.compose.theme.PREF_LIQUID_GLASS_NAVIGATION_BAR
 import io.github.hyperisland.compose.theme.DEFAULT_PREDICTIVE_BACK_TRANSLATION_PERCENT
 import io.github.hyperisland.compose.theme.PREF_PREDICTIVE_BACK_MAX_TRANSLATION
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.FloatingNavigationBar
 import top.yukonga.miuix.kmp.basic.FloatingNavigationBarItem
@@ -176,24 +159,9 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     val nestedDetailShown = mediaShown || materialShown || visibleChannelEditor != null ||
         (visibleChannelApp != null && batchChannelTarget != null) || extensionDetail != null
     val extensionSubDetailShown = extensionSubDetail != null
-    var detailPredictiveBackActive by remember { mutableStateOf(false) }
-    var mediaPredictiveBackActive by remember { mutableStateOf(false) }
-    var extensionPredictiveBackActive by remember { mutableStateOf(false) }
-    var detailPredictiveCommitting by remember { mutableStateOf(false) }
-    var mediaPredictiveCommitting by remember { mutableStateOf(false) }
-    var extensionPredictiveCommitting by remember { mutableStateOf(false) }
-    val predictiveProgress = remember { Animatable(0f) }
-    val mediaPredictiveProgress = remember { Animatable(0f) }
-    val extensionPredictiveProgress = remember { Animatable(0f) }
-    val detailBackdropIntensity = remember { Animatable(0f) }
-    val mediaBackdropIntensity = remember { Animatable(0f) }
-    val extensionBackdropIntensity = remember { Animatable(0f) }
-    val rootLayerDepth = remember { Animatable(0f) }
-    val detailLayerDepth = remember { Animatable(0f) }
-    val extensionLayerDepth = remember { Animatable(0f) }
-    val detailPredictiveMotion = remember { PredictiveBackMotionTracker() }
-    val mediaPredictiveMotion = remember { PredictiveBackMotionTracker() }
-    val extensionPredictiveMotion = remember { PredictiveBackMotionTracker() }
+    val detailNavigationState = rememberPredictiveNavigationLayerState()
+    val nestedNavigationState = rememberPredictiveNavigationLayerState()
+    val extensionNavigationState = rememberPredictiveNavigationLayerState()
     val bottomBarProgress = remember { Animatable(0f) }
 
     @Composable
@@ -287,354 +255,69 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
         batchToastPackages = null
     }
 
-    LaunchedEffect(detailShown, detailPredictiveBackActive) {
-        if (!detailPredictiveBackActive) {
-            val target = if (detailShown) 1f else 0f
-            val duration = if (detailShown) LAYER_ENTER_DURATION else LAYER_EXIT_DURATION
-            coroutineScope {
-                launch {
-                    detailBackdropIntensity.animateTo(
-                        target,
-                        tween(duration, easing = FastOutSlowInEasing),
-                    )
-                }
-                launch {
-                    rootLayerDepth.animateTo(
-                        target,
-                        tween(duration, easing = FastOutSlowInEasing),
-                    )
-                }
-                launch {
-                    bottomBarProgress.animateTo(
-                        target,
-                        tween(
-                            if (detailShown) BOTTOM_BAR_ENTER_DURATION else duration,
-                            easing = FastOutSlowInEasing,
-                        ),
-                    )
-                }
-            }
+    LaunchedEffect(detailShown, detailNavigationState.isBackActive) {
+        if (!detailNavigationState.isBackActive) {
+            bottomBarProgress.animateTo(
+                if (detailShown) 1f else 0f,
+                tween(
+                    if (detailShown) BOTTOM_BAR_ENTER_DURATION else LAYER_EXIT_DURATION,
+                    easing = FastOutSlowInEasing,
+                ),
+            )
         }
     }
 
-    LaunchedEffect(nestedDetailShown, mediaPredictiveBackActive) {
-        if (!mediaPredictiveBackActive) {
-            val target = if (nestedDetailShown) 1f else 0f
-            val duration = if (nestedDetailShown) LAYER_ENTER_DURATION else LAYER_EXIT_DURATION
-            coroutineScope {
-                launch {
-                    mediaBackdropIntensity.animateTo(
-                        target,
-                        tween(duration, easing = FastOutSlowInEasing),
-                    )
-                }
-                launch {
-                    detailLayerDepth.animateTo(
-                        target,
-                        tween(duration, easing = FastOutSlowInEasing),
-                    )
-                }
-            }
-        }
-    }
+    PredictiveNavigationBackHandler(
+        visible = detailShown,
+        enabled = detailShown && !nestedDetailShown,
+        state = detailNavigationState,
+        maxTranslationPercent = predictiveBackMaxTranslation.value,
+        onDismiss = {
+            detailShown = false
+            batchChannelTarget = null
+            batchToastPackages = null
+        },
+        additionalCommitAnimation = { _, _ ->
+            bottomBarProgress.animateTo(
+                0f,
+                tween(LAYER_EXIT_DURATION, easing = FastOutSlowInEasing),
+            )
+        },
+    )
 
-    LaunchedEffect(extensionSubDetailShown, extensionPredictiveBackActive) {
-        if (!extensionPredictiveBackActive) {
-            val target = if (extensionSubDetailShown) 1f else 0f
-            val duration = if (extensionSubDetailShown) LAYER_ENTER_DURATION else LAYER_EXIT_DURATION
-            coroutineScope {
-                launch {
-                    extensionBackdropIntensity.animateTo(
-                        target,
-                        tween(duration, easing = FastOutSlowInEasing),
-                    )
-                }
-                launch {
-                    extensionLayerDepth.animateTo(
-                        target,
-                        tween(duration, easing = FastOutSlowInEasing),
-                    )
-                }
-            }
-        }
-    }
+    PredictiveNavigationBackHandler(
+        visible = nestedDetailShown,
+        enabled = nestedDetailShown && !extensionSubDetailShown,
+        state = nestedNavigationState,
+        maxTranslationPercent = predictiveBackMaxTranslation.value,
+        onDismiss = {
+            mediaShown = false
+            materialShown = false
+            visibleChannelEditor = null
+            if (visibleChannelApp != null) batchChannelTarget = null
+            extensionDetail = null
+            extensionSubDetail = null
+        },
+    )
 
-    suspend fun finishDetailPredictiveBack() {
-        detailPredictiveCommitting = true
-        val targetProgress = predictiveExitProgress(predictiveBackMaxTranslation.value)
-        val duration = predictiveSettleDuration(
-            progress = predictiveProgress.value,
-            maxTranslationPercent = predictiveBackMaxTranslation.value,
-        )
-        val settleEasing = predictiveSettleEasing(
-            releaseVelocity = detailPredictiveMotion.releaseVelocity(),
-            currentProgress = predictiveProgress.value,
-            targetProgress = targetProgress,
-            durationMillis = duration,
-        )
-        coroutineScope {
-            launch {
-                predictiveProgress.animateTo(
-                    targetProgress,
-                    tween(duration, easing = settleEasing),
-                )
-            }
-            launch {
-                detailBackdropIntensity.animateTo(0f, tween(duration, easing = settleEasing))
-            }
-            launch {
-                rootLayerDepth.animateTo(0f, tween(duration, easing = settleEasing))
-            }
-            launch {
-                bottomBarProgress.animateTo(
-                    0f,
-                    tween(LAYER_EXIT_DURATION, easing = FastOutSlowInEasing),
-                )
-            }
-        }
-        detailShown = false
-        batchChannelTarget = null
-        batchToastPackages = null
-        delay(PREDICTIVE_DISMISS_DURATION.toLong())
-        predictiveProgress.snapTo(0f)
-        detailPredictiveMotion.reset()
-        detailPredictiveBackActive = false
-        detailPredictiveCommitting = false
-    }
-
-    suspend fun finishNestedPredictiveBack() {
-        mediaPredictiveCommitting = true
-        val targetProgress = predictiveExitProgress(predictiveBackMaxTranslation.value)
-        val duration = predictiveSettleDuration(
-            progress = mediaPredictiveProgress.value,
-            maxTranslationPercent = predictiveBackMaxTranslation.value,
-        )
-        val settleEasing = predictiveSettleEasing(
-            releaseVelocity = mediaPredictiveMotion.releaseVelocity(),
-            currentProgress = mediaPredictiveProgress.value,
-            targetProgress = targetProgress,
-            durationMillis = duration,
-        )
-        coroutineScope {
-            launch {
-                mediaPredictiveProgress.animateTo(
-                    targetProgress,
-                    tween(duration, easing = settleEasing),
-                )
-            }
-            launch {
-                mediaBackdropIntensity.animateTo(0f, tween(duration, easing = settleEasing))
-            }
-            launch {
-                detailLayerDepth.animateTo(0f, tween(duration, easing = settleEasing))
-            }
-        }
-        mediaShown = false
-        materialShown = false
-        visibleChannelEditor = null
-        if (visibleChannelApp != null) batchChannelTarget = null
-        extensionDetail = null
-        extensionSubDetail = null
-        delay(PREDICTIVE_DISMISS_DURATION.toLong())
-        mediaPredictiveProgress.snapTo(0f)
-        mediaPredictiveMotion.reset()
-        mediaPredictiveBackActive = false
-        mediaPredictiveCommitting = false
-    }
-
-    suspend fun finishExtensionPredictiveBack() {
-        extensionPredictiveCommitting = true
-        val targetProgress = predictiveExitProgress(predictiveBackMaxTranslation.value)
-        val duration = predictiveSettleDuration(
-            progress = extensionPredictiveProgress.value,
-            maxTranslationPercent = predictiveBackMaxTranslation.value,
-        )
-        val settleEasing = predictiveSettleEasing(
-            releaseVelocity = extensionPredictiveMotion.releaseVelocity(),
-            currentProgress = extensionPredictiveProgress.value,
-            targetProgress = targetProgress,
-            durationMillis = duration,
-        )
-        coroutineScope {
-            launch {
-                extensionPredictiveProgress.animateTo(
-                    targetProgress,
-                    tween(duration, easing = settleEasing),
-                )
-            }
-            launch {
-                extensionBackdropIntensity.animateTo(0f, tween(duration, easing = settleEasing))
-            }
-            launch {
-                extensionLayerDepth.animateTo(0f, tween(duration, easing = settleEasing))
-            }
-        }
-        extensionSubDetail = null
-        delay(PREDICTIVE_DISMISS_DURATION.toLong())
-        extensionPredictiveProgress.snapTo(0f)
-        extensionPredictiveMotion.reset()
-        extensionPredictiveBackActive = false
-        extensionPredictiveCommitting = false
-    }
-
-    PredictiveBackHandler(enabled = detailShown && !nestedDetailShown) { events ->
-        try {
-            events.collect { event ->
-                if (!detailPredictiveBackActive) {
-                    detailPredictiveMotion.reset(event.progress)
-                } else {
-                    detailPredictiveMotion.update(event.progress)
-                }
-                detailPredictiveBackActive = true
-                predictiveProgress.snapTo(event.progress)
-                val smoothProgress = smootherStep(event.progress)
-                detailBackdropIntensity.snapTo(predictiveEffectIntensity(smoothProgress))
-                rootLayerDepth.snapTo(1f - smoothProgress)
-            }
-            finishDetailPredictiveBack()
-        } catch (_: CancellationException) {
-            if (!detailPredictiveCommitting) {
-                coroutineScope {
-                    launch {
-                        predictiveProgress.animateTo(
-                            0f,
-                            tween(PREDICTIVE_CANCEL_DURATION, easing = FastOutSlowInEasing),
-                        )
-                    }
-                    launch {
-                        detailBackdropIntensity.animateTo(
-                            1f,
-                            tween(PREDICTIVE_CANCEL_DURATION, easing = FastOutSlowInEasing),
-                        )
-                    }
-                    launch {
-                        rootLayerDepth.animateTo(
-                            1f,
-                            tween(PREDICTIVE_CANCEL_DURATION, easing = FastOutSlowInEasing),
-                        )
-                    }
-                }
-                detailPredictiveMotion.reset()
-                detailPredictiveBackActive = false
-            }
-        }
-    }
-
-    PredictiveBackHandler(enabled = nestedDetailShown && !extensionSubDetailShown) { events ->
-        try {
-            events.collect { event ->
-                if (!mediaPredictiveBackActive) {
-                    mediaPredictiveMotion.reset(event.progress)
-                } else {
-                    mediaPredictiveMotion.update(event.progress)
-                }
-                mediaPredictiveBackActive = true
-                mediaPredictiveProgress.snapTo(event.progress)
-                val smoothProgress = smootherStep(event.progress)
-                mediaBackdropIntensity.snapTo(predictiveEffectIntensity(smoothProgress))
-                detailLayerDepth.snapTo(1f - smoothProgress)
-            }
-            finishNestedPredictiveBack()
-        } catch (_: CancellationException) {
-            if (!mediaPredictiveCommitting) {
-                coroutineScope {
-                    launch {
-                        mediaPredictiveProgress.animateTo(
-                            0f,
-                            tween(PREDICTIVE_CANCEL_DURATION, easing = FastOutSlowInEasing),
-                        )
-                    }
-                    launch {
-                        mediaBackdropIntensity.animateTo(
-                            1f,
-                            tween(PREDICTIVE_CANCEL_DURATION, easing = FastOutSlowInEasing),
-                        )
-                    }
-                    launch {
-                        detailLayerDepth.animateTo(
-                            1f,
-                            tween(PREDICTIVE_CANCEL_DURATION, easing = FastOutSlowInEasing),
-                        )
-                    }
-                }
-                mediaPredictiveMotion.reset()
-                mediaPredictiveBackActive = false
-            }
-        }
-    }
-
-    PredictiveBackHandler(enabled = extensionSubDetailShown) { events ->
-        try {
-            events.collect { event ->
-                if (!extensionPredictiveBackActive) {
-                    extensionPredictiveMotion.reset(event.progress)
-                } else {
-                    extensionPredictiveMotion.update(event.progress)
-                }
-                extensionPredictiveBackActive = true
-                extensionPredictiveProgress.snapTo(event.progress)
-                val smoothProgress = smootherStep(event.progress)
-                extensionBackdropIntensity.snapTo(predictiveEffectIntensity(smoothProgress))
-                extensionLayerDepth.snapTo(1f - smoothProgress)
-            }
-            finishExtensionPredictiveBack()
-        } catch (_: CancellationException) {
-            if (!extensionPredictiveCommitting) {
-                coroutineScope {
-                    launch {
-                        extensionPredictiveProgress.animateTo(
-                            0f,
-                            tween(PREDICTIVE_CANCEL_DURATION, easing = FastOutSlowInEasing),
-                        )
-                    }
-                    launch {
-                        extensionBackdropIntensity.animateTo(
-                            1f,
-                            tween(PREDICTIVE_CANCEL_DURATION, easing = FastOutSlowInEasing),
-                        )
-                    }
-                    launch {
-                        extensionLayerDepth.animateTo(
-                            1f,
-                            tween(PREDICTIVE_CANCEL_DURATION, easing = FastOutSlowInEasing),
-                        )
-                    }
-                }
-                extensionPredictiveMotion.reset()
-                extensionPredictiveBackActive = false
-            }
-        }
-    }
-
-    BackHandler(enabled = detailPredictiveBackActive && detailPredictiveCommitting) {
-        scope.launch { finishDetailPredictiveBack() }
-    }
-
-    BackHandler(enabled = mediaPredictiveBackActive && mediaPredictiveCommitting) {
-        scope.launch { finishNestedPredictiveBack() }
-    }
-
-    BackHandler(enabled = extensionPredictiveBackActive && extensionPredictiveCommitting) {
-        scope.launch { finishExtensionPredictiveBack() }
-    }
+    PredictiveNavigationBackHandler(
+        visible = extensionSubDetailShown,
+        enabled = extensionSubDetailShown,
+        state = extensionNavigationState,
+        maxTranslationPercent = predictiveBackMaxTranslation.value,
+        onDismiss = { extensionSubDetail = null },
+    )
 
     BarBlurHost(
         enabled = blurBars.value,
         liquidGlassEnabled = floatingNavigationBar.value && liquidGlassNavigationBar.value,
-        captureForEffects = detailShown ||
-            detailPredictiveBackActive ||
-            detailBackdropIntensity.value > EFFECT_VISIBILITY_THRESHOLD,
+        captureForEffects = detailNavigationState.requiresBackdropCapture(detailShown),
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Scaffold(
                 modifier = Modifier
                     .fillMaxSize()
-                    .graphicsLayer {
-                        val depth = rootLayerDepth.value.coerceIn(0f, 1f)
-                        scaleX = 1f - depth * BACKGROUND_SCALE_REDUCTION
-                        scaleY = scaleX
-                        translationX = -size.width * depth * BACKGROUND_PARALLAX
-                    },
+                    .predictiveNavigationBackground(detailNavigationState),
                 snackbarHost = { SnackbarHost(rootSnackbarState) },
                 bottomBar = {
                     // Keep the Scaffold slot measured so page content keeps the bottom-bar padding.
@@ -742,42 +425,23 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                 }
             }
 
-            PredictiveBackBackdrop(
-                intensity = detailBackdropIntensity.value,
-                visible = detailBackdropIntensity.value > EFFECT_VISIBILITY_THRESHOLD,
+            PredictiveNavigationBackdrop(
+                state = detailNavigationState,
                 modifier = Modifier.fillMaxSize(),
             )
 
             BarBlurHost(
                 enabled = blurBars.value,
-                captureForEffects = nestedDetailShown ||
-                    mediaPredictiveBackActive ||
-                    mediaBackdropIntensity.value > EFFECT_VISIBILITY_THRESHOLD,
+                captureForEffects = nestedNavigationState.requiresBackdropCapture(
+                    nestedDetailShown,
+                ),
             ) {
                 BarBackdropContent(modifier = Modifier.fillMaxSize()) {
-                    AnimatedVisibility(
+                    PredictiveNavigationLayer(
                         visible = detailShown,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .graphicsLayer {
-                                val progress = predictiveProgress.value.coerceAtLeast(0f)
-                                val depth = detailLayerDepth.value.coerceIn(0f, 1f)
-                                translationX = -size.width * depth * BACKGROUND_PARALLAX +
-                                    size.width * progress *
-                                    predictiveTranslationFraction(predictiveBackMaxTranslation.value)
-                                scaleX = 1f - depth * BACKGROUND_SCALE_REDUCTION
-                                scaleY = scaleX
-                            },
-                        enter = slideInHorizontally(
-                            tween(LAYER_ENTER_DURATION, easing = FastOutSlowInEasing),
-                        ) { it },
-                        exit = if (detailPredictiveBackActive) {
-                            ExitTransition.None
-                        } else {
-                            slideOutHorizontally(
-                                tween(LAYER_EXIT_DURATION, easing = FastOutSlowInEasing),
-                            ) { it }
-                        },
+                        state = detailNavigationState,
+                        backgroundState = nestedNavigationState,
+                        maxTranslationPercent = predictiveBackMaxTranslation.value,
                     ) {
                         val channelApp = visibleChannelApp
                         if (channelApp != null) {
@@ -869,42 +533,23 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                     }
                 }
 
-                PredictiveBackBackdrop(
-                    intensity = mediaBackdropIntensity.value,
-                    visible = mediaBackdropIntensity.value > EFFECT_VISIBILITY_THRESHOLD,
+                PredictiveNavigationBackdrop(
+                    state = nestedNavigationState,
                     modifier = Modifier.fillMaxSize(),
                 )
 
                 BarBlurHost(
                     enabled = blurBars.value,
-                    captureForEffects = extensionSubDetailShown ||
-                        extensionPredictiveBackActive ||
-                        extensionBackdropIntensity.value > EFFECT_VISIBILITY_THRESHOLD,
+                    captureForEffects = extensionNavigationState.requiresBackdropCapture(
+                        extensionSubDetailShown,
+                    ),
                 ) {
                     BarBackdropContent(modifier = Modifier.fillMaxSize()) {
-                        AnimatedVisibility(
+                        PredictiveNavigationLayer(
                             visible = nestedDetailShown,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .graphicsLayer {
-                                    val progress = mediaPredictiveProgress.value.coerceAtLeast(0f)
-                                    val depth = extensionLayerDepth.value.coerceIn(0f, 1f)
-                                    translationX = -size.width * depth * BACKGROUND_PARALLAX +
-                                        size.width * progress *
-                                        predictiveTranslationFraction(predictiveBackMaxTranslation.value)
-                                    scaleX = 1f - depth * BACKGROUND_SCALE_REDUCTION
-                                    scaleY = scaleX
-                                },
-                            enter = slideInHorizontally(
-                                tween(LAYER_ENTER_DURATION, easing = FastOutSlowInEasing),
-                            ) { it },
-                            exit = if (mediaPredictiveBackActive) {
-                                ExitTransition.None
-                            } else {
-                                slideOutHorizontally(
-                                    tween(LAYER_EXIT_DURATION, easing = FastOutSlowInEasing),
-                                ) { it }
-                            },
+                            state = nestedNavigationState,
+                            backgroundState = extensionNavigationState,
+                            maxTranslationPercent = predictiveBackMaxTranslation.value,
                         ) {
                             when (extensionDetail) {
                                 HookExtensionDetail.SystemUi -> SystemUiHookPage(
@@ -969,16 +614,14 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                         }
                     }
 
-                    PredictiveBackBackdrop(
-                        intensity = extensionBackdropIntensity.value,
-                        visible = extensionBackdropIntensity.value > EFFECT_VISIBILITY_THRESHOLD,
+                    PredictiveNavigationBackdrop(
+                        state = extensionNavigationState,
                         modifier = Modifier.fillMaxSize(),
                     )
 
-                    ExtensionSubDetailLayer(
+                    PredictiveNavigationLayer(
                         visible = extensionSubDetailShown,
-                        predictiveBackActive = extensionPredictiveBackActive,
-                        predictiveProgress = extensionPredictiveProgress.value,
+                        state = extensionNavigationState,
                         maxTranslationPercent = predictiveBackMaxTranslation.value,
                     ) {
                         ExtensionSubDetailPage(
@@ -1029,37 +672,6 @@ private fun ExtensionSubDetailPage(
         SystemUiExtensionDetail.Charge -> ChargeIslandPage(prefs, onBack)
         SystemUiExtensionDetail.FaceUnlock -> FaceUnlockIslandPage(prefs, onBack)
         null -> Unit
-    }
-}
-
-@Composable
-private fun ExtensionSubDetailLayer(
-    visible: Boolean,
-    predictiveBackActive: Boolean,
-    predictiveProgress: Float,
-    maxTranslationPercent: Long,
-    content: @Composable () -> Unit,
-) {
-    AnimatedVisibility(
-        visible = visible,
-        modifier = Modifier
-            .fillMaxSize()
-            .graphicsLayer {
-                translationX = size.width * predictiveProgress.coerceAtLeast(0f) *
-                    predictiveTranslationFraction(maxTranslationPercent)
-            },
-        enter = slideInHorizontally(
-            tween(LAYER_ENTER_DURATION, easing = FastOutSlowInEasing),
-        ) { it },
-        exit = if (predictiveBackActive) {
-            ExitTransition.None
-        } else {
-            slideOutHorizontally(
-                tween(LAYER_EXIT_DURATION, easing = FastOutSlowInEasing),
-            ) { it }
-        },
-    ) {
-        content()
     }
 }
 
