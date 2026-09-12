@@ -9,12 +9,8 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.fillMaxSize
@@ -31,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -171,7 +168,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     var batchChannelTarget by remember { mutableStateOf<BatchChannelTarget?>(null) }
     var batchToastPackages by remember { mutableStateOf<Set<String>?>(null) }
     var materialShown by remember { mutableStateOf(false) }
-    var extensionDetail by remember { mutableStateOf<HookExtensionDetail?>(null) }
+    var extensionSubDetail by remember { mutableStateOf<HookExtensionDetail?>(null) }
     val nestedDetailShown = mediaShown || materialShown || visibleChannelEditor != null ||
         (visibleChannelApp != null && batchChannelTarget != null) || extensionDetail != null
     var detailPredictiveBackActive by remember { mutableStateOf(false) }
@@ -186,6 +183,58 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     val detailLayerDepth = remember { Animatable(0f) }
     val detailPredictiveMotion = remember { PredictiveBackMotionTracker() }
     val mediaPredictiveMotion = remember { PredictiveBackMotionTracker() }
+    val bottomBarProgress = remember { Animatable(0f) }
+
+    @Composable
+    fun RootBottomBar() {
+        if (floatingNavigationBar.value) {
+            if (liquidGlassNavigationBar.value) {
+                LiquidGlassNavigationBar(
+                    selectedTabIndex = { pagerState.currentPage },
+                    onTabSelected = { index ->
+                        if (pagerState.currentPage != index) {
+                            scope.launch { pagerState.animateScrollToPage(index) }
+                        }
+                    },
+                    items = destinations.map { destination ->
+                        LiquidGlassNavigationItem(
+                            icon = destination.icon,
+                            label = stringResource(destination.title),
+                        )
+                    },
+                )
+            } else {
+                FloatingNavigationBar(
+                    modifier = Modifier.barBlurBackground(
+                        RoundedCornerShape(FloatingToolbarDefaults.CornerRadius),
+                    ),
+                    color = Color.Transparent,
+                ) {
+                    destinations.forEachIndexed { index, destination ->
+                        FloatingNavigationBarItem(
+                            selected = pagerState.currentPage == index,
+                            onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
+                            icon = destination.icon,
+                            label = stringResource(destination.title),
+                        )
+                    }
+                }
+            }
+        } else {
+            BlurredBar {
+                NavigationBar(color = Color.Transparent) {
+                    destinations.forEachIndexed { index, destination ->
+                        NavigationBarItem(
+                            selected = pagerState.currentPage == index,
+                            onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
+                            icon = destination.icon,
+                            label = stringResource(destination.title),
+                        )
+                    }
+                }
+            }
+        }
+    }
 
     fun requestUpdateCheck(showUpToDate: Boolean) {
         if (isCheckingUpdate) return
@@ -244,6 +293,15 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                         tween(duration, easing = FastOutSlowInEasing),
                     )
                 }
+                launch {
+                    bottomBarProgress.animateTo(
+                        target,
+                        tween(
+                            if (detailShown) BOTTOM_BAR_ENTER_DURATION else duration,
+                            easing = FastOutSlowInEasing,
+                        ),
+                    )
+                }
             }
         }
     }
@@ -294,6 +352,12 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
             }
             launch {
                 rootLayerDepth.animateTo(0f, tween(duration, easing = settleEasing))
+            }
+            launch {
+                bottomBarProgress.animateTo(
+                    0f,
+                    tween(LAYER_EXIT_DURATION, easing = FastOutSlowInEasing),
+                )
             }
         }
         detailShown = false
@@ -458,60 +522,9 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                     },
                 snackbarHost = { SnackbarHost(rootSnackbarState) },
                 bottomBar = {
-                    AnimatedVisibility(
-                        visible = !detailShown &&
-                            !detailPredictiveBackActive &&
-                            rootLayerDepth.value < EFFECT_VISIBILITY_THRESHOLD,
-                        enter = slideInVertically(tween(260)) { it } + fadeIn(tween(180)),
-                        exit = slideOutVertically(tween(200)) { it } + fadeOut(tween(140)),
-                    ) {
-                        if (floatingNavigationBar.value) {
-                            if (liquidGlassNavigationBar.value) {
-                                LiquidGlassNavigationBar(
-                                    selectedTabIndex = { pagerState.currentPage },
-                                    onTabSelected = { index ->
-                                        if (pagerState.currentPage != index) {
-                                            scope.launch { pagerState.animateScrollToPage(index) }
-                                        }
-                                    },
-                                    items = destinations.map { destination ->
-                                        LiquidGlassNavigationItem(
-                                            icon = destination.icon,
-                                            label = stringResource(destination.title),
-                                        )
-                                    },
-                                )
-                            } else {
-                                FloatingNavigationBar(
-                                    modifier = Modifier.barBlurBackground(
-                                        RoundedCornerShape(FloatingToolbarDefaults.CornerRadius),
-                                    ),
-                                    color = Color.Transparent,
-                                ) {
-                                    destinations.forEachIndexed { index, destination ->
-                                        FloatingNavigationBarItem(
-                                            selected = pagerState.currentPage == index,
-                                            onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
-                                            icon = destination.icon,
-                                            label = stringResource(destination.title),
-                                        )
-                                    }
-                                }
-                            }
-                        } else {
-                            BlurredBar {
-                                NavigationBar(color = Color.Transparent) {
-                                    destinations.forEachIndexed { index, destination ->
-                                        NavigationBarItem(
-                                            selected = pagerState.currentPage == index,
-                                            onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
-                                            icon = destination.icon,
-                                            label = stringResource(destination.title),
-                                        )
-                                    }
-                                }
-                            }
-                        }
+                    // Keep the Scaffold slot measured so page content keeps the bottom-bar padding.
+                    Box(modifier = Modifier.graphicsLayer { alpha = 0f }) {
+                        RootBottomBar()
                     }
                 },
             ) { padding ->
@@ -835,6 +848,17 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                     }
                 }
             }
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .graphicsLayer {
+                        translationY = size.height * bottomBarProgress.value
+                        alpha = 1f - bottomBarProgress.value
+                    },
+            ) {
+                RootBottomBar()
+            }
         }
     }
 
@@ -853,3 +877,4 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
 }
 
 private const val PREF_CHECK_UPDATE_ON_LAUNCH = "pref_check_update_on_launch"
+private const val BOTTOM_BAR_ENTER_DURATION = 300
