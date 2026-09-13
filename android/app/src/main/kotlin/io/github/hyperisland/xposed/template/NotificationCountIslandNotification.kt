@@ -75,7 +75,7 @@ object NotificationCountIslandNotification : IslandTemplate {
             islandEnabled = data.islandEnabled,
             bypassSceneBehavior = false,
         ))
-        log("count-trace template post pkg=${data.pkg} count=$count posted=$posted notifId=${IslandDispatcher.NOTIF_ID} updatable=false")
+        log("count-trace template post pkg=${data.pkg} count=$count timeout=${data.islandTimeout} ongoing=${data.isOngoing} posted=$posted notifId=${IslandDispatcher.NOTIF_ID} updatable=false")
     }
 
     /** Gray circular badge used by the right island area; the text remains the expanded content. */

@@ -242,6 +242,17 @@ internal object IslandDispatcherNotifier {
                         )
                     }
                 notif.extras.putString("miui.focus.param", jsonParam)
+                if (request.rightIcon != null) {
+                    val timeout = runCatching {
+                        org.json.JSONObject(jsonParam)
+                            .optJSONObject("param_v2")
+                            ?.optJSONObject("param_island")
+                            ?.opt("islandTimeout")
+                    }.getOrNull()
+                    IslandDispatchState.module?.log(
+                        "count-trace dispatcher timeout=${request.timeoutSecs} jsonIslandTimeout=$timeout islandEnabled=${request.islandEnabled}",
+                    )
+                }
             }
             request.sourcePackage?.let { notif.extras.putString("hyperisland_source_pkg", it) }
             request.sourceChannelId?.let {
