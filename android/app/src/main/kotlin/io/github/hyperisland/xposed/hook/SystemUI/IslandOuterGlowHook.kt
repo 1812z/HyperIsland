@@ -1001,7 +1001,11 @@ object IslandOuterGlowHook : BaseHook() {
         val state = invokeNoArg(stateObj ?: return GLOW_MODE_AUTO, "getState") ?: return GLOW_MODE_AUTO
         return when {
             state.javaClass.simpleName == "Expanded" -> GLOW_MODE_EXPAND
-            state.javaClass.simpleName == "BigIsland" -> GLOW_MODE_STATUS
+            // ShowOnceBigIsland is a stable, status-sized island without an
+            // expanded state. Treat it like BigIsland so the global "force"
+            // matching path can apply the island glow as well.
+            state.javaClass.simpleName == "BigIsland" ||
+                    state.javaClass.simpleName == "ShowOnceBigIsland" -> GLOW_MODE_STATUS
             else -> GLOW_MODE_AUTO
         }
     }
