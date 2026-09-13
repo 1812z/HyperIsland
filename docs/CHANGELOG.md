@@ -9,6 +9,18 @@ import ReleaseHistory from './.vitepress/components/ReleaseHistory.vue'
 <div class="changelog-source" hidden>
 
 
+# V3.1.2 (2026-9-13)
+## 功能
+- 新增通知计数岛（显示通知数量及更新次数）
+
+## 优化 & 修复
+- 优化平板 UI 显示效果
+- 优化部分 Hook
+- 优化底栏效果
+- 外圈光效支持特殊岛（勿扰/静音等）
+- 修复滚动超时异常常驻
+
+
 # V3.1.1-Beta5 (2026-9-12)
 ## 功能
 - 新增临时关闭 WiFi 功能

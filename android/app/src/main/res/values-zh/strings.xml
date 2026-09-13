@@ -877,7 +877,7 @@
     <string name="channel_renderer">样式</string>
     <string name="template_progress">下载</string>
     <string name="template_notification">通知超级岛</string>
-    <string name="template_notification_count">通知条数岛</string>
+    <string name="template_notification_count">通知计数岛</string>
     <string name="template_ai_notification">AI 通知超级岛</string>
     <string name="renderer_image_text_buttons">新图文组件 + 底部文本按钮</string>
     <string name="renderer_image_text_wrap">封面组件 + 自动换行</string>
