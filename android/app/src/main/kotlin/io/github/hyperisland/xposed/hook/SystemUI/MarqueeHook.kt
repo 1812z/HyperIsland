@@ -174,6 +174,15 @@ object MarqueeHook : BaseHook() {
             originalTimeoutSecs,
         )
         traverseInternal(bigIslandView, enabled)
+        // 覆盖超时只对确实存在滚动文本的岛生效。图标/空文本岛没有循环回调，
+        // 清理自动隐藏会话后交给 SystemUI 的普通 island timeout。
+        if (enabled && autoHideLoops > 0) {
+            val session = islandAutoHideSessions[bigIslandView]
+            if (session != null && session.scrollingViews.isEmpty()) {
+                session.fallbackRunnable?.let(bigIslandView::removeCallbacks)
+                islandAutoHideSessions.remove(bigIslandView)
+            }
+        }
     }
 
     private fun configureAutoHideSession(
