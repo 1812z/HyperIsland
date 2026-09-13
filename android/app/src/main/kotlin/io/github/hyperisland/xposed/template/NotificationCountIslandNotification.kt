@@ -83,8 +83,10 @@ object NotificationCountIslandNotification : IslandTemplate {
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         val center = size / 2f
-        val radius = size * 0.46f
-        val circle = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(110, 110, 110) }
+        val radius = size * 0.48f
+        val circle = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.argb(220, 110, 110, 110)
+        }
         canvas.drawCircle(center, center, radius, circle)
         val label = count.coerceAtLeast(0).let { if (it > 99) "99+" else it.toString() }
         val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
