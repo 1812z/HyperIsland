@@ -470,6 +470,7 @@ object GenericProgressHook : BaseHook() {
             }
             val overrideMarqueeTimeout = template != NotificationCountIslandNotification.TEMPLATE_ID &&
                 marqueeEnabled && !isOngoing &&
+                (title.isNotBlank() || subtitle.isNotBlank()) &&
                 marqueeAutoHide in setOf("1_override", "2_override")
             val islandTimeout = if (overrideMarqueeTimeout) {
                 Int.MAX_VALUE
