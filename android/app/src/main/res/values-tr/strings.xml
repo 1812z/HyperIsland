@@ -146,7 +146,6 @@
     <string name="all_channels_active">Tüm %1$d kanal için geçerli</string>
     <string name="selected_channels">%1$d / %2$d kanal seçildi</string>
     <string name="all_channels_disabled">Tüm %1$d kanal (devre dışı)</string>
-    <string name="app_disabled_banner">Uygulama devre dışı; kanal ayarları etkisiz</string>
     <string name="channel_importance">Önem: %1$s · %2$s</string>
     <string name="channel_settings">Kanal ayarları</string>
     <string name="media_notification">Medya bildirimi</string>

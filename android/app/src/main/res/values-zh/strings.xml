@@ -152,7 +152,6 @@
     <string name="all_channels_active">对全部 %1$d 个渠道生效</string>
     <string name="selected_channels">已选 %1$d / %2$d 个渠道</string>
     <string name="all_channels_disabled">全部 %1$d 个渠道（已停用）</string>
-    <string name="app_disabled_banner">应用总开关已关闭，以下渠道设置均不生效</string>
     <string name="channel_importance">重要性：%1$s  ·  %2$s</string>
     <string name="channel_settings">渠道设置</string>
     <string name="media_notification">媒体通知</string>

@@ -87,7 +87,6 @@
     <string name="aod_text">نص الشاشة الدائمة</string>
     <string name="aod_text_summary">أظهر نص الإشعار على شاشة العرض الدائم عند التفعيل.</string>
     <string name="app_adaptation">توافق التطبيقات</string>
-    <string name="app_disabled_banner">التطبيق متعطّل، فاعدادات القنوات دي ليس لها تأثير</string>
     <string name="app_version">إصدار التطبيق</string>
     <string name="appearance">المظهر</string>
     <string name="apply">تطبيق</string>

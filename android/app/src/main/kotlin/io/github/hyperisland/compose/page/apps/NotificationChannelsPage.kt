@@ -288,16 +288,6 @@ internal fun NotificationChannelsPage(
                 ),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                if (!appEnabled) {
-                    item {
-                        Card {
-                            BasicComponent(
-                                title = stringResource(R.string.app_disabled_banner),
-                                insideMargin = CHANNEL_ITEM_MARGIN,
-                            )
-                        }
-                    }
-                }
                 item {
                     Column {
                         SectionTitle(stringResource(R.string.media_notification))

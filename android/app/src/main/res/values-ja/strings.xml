@@ -139,7 +139,6 @@
     <string name="all_channels_active">全 %1$d 個のチャンネルですべて有効</string>
     <string name="selected_channels">%1$d / %2$d 個のチャンネルを選択済み</string>
     <string name="all_channels_disabled">すべての %1$d 個のチャンネル (無効化済み)</string>
-    <string name="app_disabled_banner">アプリが無効化されているため、以下のチャンネル設定は無効です</string>
     <string name="channel_importance">重要度: %1$s  ·  %2$s</string>
     <string name="channel_settings">チャンネルの設定</string>
     <string name="media_notification">メディア通知</string>

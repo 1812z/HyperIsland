@@ -139,7 +139,6 @@
     <string name="all_channels_active">Активно для всех %1$d каналов</string>
     <string name="selected_channels">%1$d / %2$d каналов выбрано</string>
     <string name="all_channels_disabled">Все %1$d каналов (отключено)</string>
-    <string name="app_disabled_banner">Приложение отключено, следующие настройки каналов не действуют</string>
     <string name="channel_importance">Важность: %1$s  ·  %2$s</string>
     <string name="channel_settings">Настройки канала</string>
     <string name="media_notification">Медиа-уведомление</string>

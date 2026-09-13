@@ -86,7 +86,6 @@
     <string name="aod_text">Substituição de texto no AOD</string>
     <string name="aod_text_summary">Mostrar texto da notificação no AOD quando ativado</string>
     <string name="app_adaptation">Adaptação de aplicativos</string>
-    <string name="app_disabled_banner">O aplicativo está desativado, as seguintes configurações de canal não terão efeito</string>
     <string name="app_version">Versão do aplicativo</string>
     <string name="appearance">Aparência</string>
     <string name="apply">Aplicar</string>
