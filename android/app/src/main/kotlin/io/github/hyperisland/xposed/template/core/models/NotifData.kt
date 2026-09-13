@@ -70,4 +70,6 @@ data class NotifData(
     val aodCustomizationJson: String? = null,
     /** 是否启用超级岛（false 时从 focus param 中移除 param_island 字段）。 */
     val islandEnabled: Boolean = true,
+    /** 当前通知条数岛统计范围内的活动通知数。普通模板固定为 1。 */
+    val notificationCount: Int = 1,
 )

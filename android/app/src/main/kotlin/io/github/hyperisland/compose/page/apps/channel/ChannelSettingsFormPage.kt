@@ -52,6 +52,7 @@ import io.github.hyperisland.compose.data.channel.RENDERER_IMAGE_TEXT_RIGHT_BUTT
 import io.github.hyperisland.compose.data.channel.RENDERER_IMAGE_TEXT_WRAP
 import io.github.hyperisland.compose.data.channel.TEMPLATE_AI_NOTIFICATION
 import io.github.hyperisland.compose.data.channel.TEMPLATE_NOTIFICATION
+import io.github.hyperisland.compose.data.channel.TEMPLATE_NOTIFICATION_COUNT
 import io.github.hyperisland.compose.data.channel.TEMPLATE_PROGRESS
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
@@ -150,12 +151,13 @@ internal fun ChannelSettingsFormPage(
                 FormDropdown(
                     title = stringResource(R.string.channel_template),
                     value = state.template,
-                    values = optionalValues(isBatch, TEMPLATE_PROGRESS, TEMPLATE_NOTIFICATION, TEMPLATE_AI_NOTIFICATION),
+                    values = optionalValues(isBatch, TEMPLATE_PROGRESS, TEMPLATE_NOTIFICATION, TEMPLATE_NOTIFICATION_COUNT, TEMPLATE_AI_NOTIFICATION),
                     labels = optionalLabels(
                         isBatch,
                         noChange,
                         stringResource(R.string.template_progress),
                         stringResource(R.string.template_notification),
+                        stringResource(R.string.template_notification_count),
                         stringResource(R.string.template_ai_notification),
                     ),
                 ) { onStateChange(state.copy(template = it)) }

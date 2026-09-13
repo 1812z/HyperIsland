@@ -20,6 +20,7 @@ import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
 import io.github.hyperisland.xposed.islanddispatch.definition.IslandDispatchContract
 import io.github.hyperisland.xposed.template.core.TemplateRegistry
 import io.github.hyperisland.xposed.template.core.models.NotifData
+import io.github.hyperisland.xposed.templates.NotificationCountIslandNotification
 import io.github.hyperisland.xposed.utils.SceneBehavior
 import io.github.hyperisland.xposed.templates.NotificationIslandNotification
 import io.github.hyperisland.xposed.utils.HookUtils
@@ -144,6 +145,7 @@ object GenericProgressHook : BaseHook() {
         cachedChannelSettings.clear()
         lastProgressCache.clear()
         trackedForCancel.clear()
+        NotificationCountTracker.clear()
         cachedMediaEnabled.clear()
     }
 
@@ -176,6 +178,22 @@ object GenericProgressHook : BaseHook() {
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
         val classLoader = param.defaultClassLoader
+
+        // 连接/重连后从系统快照重建计数，避免 SystemUI 重启后遗漏旧通知。
+        runCatching {
+            val listener = classLoader.loadClass("android.service.notification.NotificationListenerService")
+            val connected = listener.getDeclaredMethod("onListenerConnected")
+            module.hook(connected).intercept { chain ->
+                val result = chain.proceed()
+                runCatching {
+                    val active = listener.getMethod("getActiveNotifications").invoke(chain.thisObject) as? Array<*>
+                    active.orEmpty().filterIsInstance<StatusBarNotification>().forEach { activeSbn ->
+                        NotificationCountTracker.observe(activeSbn, loadChannelTemplate(activeSbn.packageName, activeSbn.notification?.channelId.orEmpty()))
+                    }
+                }
+                result
+            }
+        }.onFailure { logError(module, "notification count snapshot hook failed: ${it.message}") }
 
         hookMediaNotificationFilter(module, classLoader)
         HookUtils.hookDynamicClassLoaders(module, ClassLoader.getSystemClassLoader()) { pluginClassLoader ->
@@ -246,12 +264,22 @@ object GenericProgressHook : BaseHook() {
     ) {
         sbn ?: return
         IslandOuterGlowHook.removeMediaGlowRequest(sbn.packageName, sbn.key)
-        val proxyId = trackedForCancel.remove(sbn.key) ?: return
         val context = HookUtils.getContext(classLoader) ?: return
+        val removed = NotificationCountTracker.remove(sbn.key)
+        if (removed != null) {
+            val scope = NotificationCountTracker.Scope(removed.packageName, removed.notification?.channelId.orEmpty())
+            val remaining = NotificationCountTracker.count(scope)
+            val representative = NotificationCountTracker.representative(scope)
+            if (remaining > 0 && representative != null) handleSbn(representative, module, classLoader, true)
+            else if (remaining == 0) IslandDispatcher.cancel(context, IslandDispatcher.NOTIF_ID)
+            trackedForCancel.remove(sbn.key)
+            return
+        }
+        val proxyId = trackedForCancel.remove(sbn.key) ?: return
         IslandDispatcher.cancel(context, proxyId)
     }
 
-    private fun handleSbn(sbn: StatusBarNotification, module: XposedModule, classLoader: ClassLoader) {
+    private fun handleSbn(sbn: StatusBarNotification, module: XposedModule, classLoader: ClassLoader, forceRefresh: Boolean = false) {
         try {
             val pkg = sbn.packageName ?: return
             val notif = sbn.notification ?: return
@@ -268,6 +296,7 @@ object GenericProgressHook : BaseHook() {
             // 仅由本轮确实成功的代发路径重新写入。
             if (!isHyperIslandProxy) {
                 extras.remove(IslandDispatchContract.EXTRA_SUPPRESS_SOURCE_HEADS_UP)
+                NotificationCountTracker.observe(sbn, loadChannelTemplate(pkg, channelId))
             }
 
             if (pkg == "com.android.systemui" &&
@@ -316,7 +345,7 @@ object GenericProgressHook : BaseHook() {
                 return
             }
 
-            if (extras.containsKey("miui.focus.param")) return
+            if (extras.containsKey("miui.focus.param") && !forceRefresh) return
 
             extras.putString("hyperisland_source_pkg", sourcePkg)
             extras.putString("hyperisland_channel_id", sourceChannelId)
@@ -358,6 +387,9 @@ object GenericProgressHook : BaseHook() {
             val actions: List<Notification.Action> = resolveNotificationActions(context, pkg, notif)
 
             val template = loadChannelTemplate(pkg, channelId)
+            val notificationCount = if (template == NotificationCountIslandNotification.TEMPLATE_ID) {
+                NotificationCountTracker.count(NotificationCountTracker.Scope(pkg, channelId)).coerceAtLeast(1)
+            } else 1
 
             val appIconRaw = context.packageManager.getAppIcon(pkg)
             val largeIcon  = extractLargeIcon(extras)
@@ -600,6 +632,7 @@ object GenericProgressHook : BaseHook() {
                     aodText = aodText,
                     aodCustomizationJson = aodCustomizationJson,
                     islandEnabled = islandEnabled,
+                    notificationCount = notificationCount,
                 ),
             )
 

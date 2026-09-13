@@ -145,6 +145,7 @@ internal enum class ChannelCustomizationTarget {
 
 internal const val TEMPLATE_PROGRESS = "generic_progress"
 internal const val TEMPLATE_NOTIFICATION = "notification_island"
+internal const val TEMPLATE_NOTIFICATION_COUNT = "notification_count_island"
 internal const val TEMPLATE_AI_NOTIFICATION = "ai_notification_island"
 
 internal const val RENDERER_IMAGE_TEXT_BUTTONS = "image_text_with_buttons_4"
