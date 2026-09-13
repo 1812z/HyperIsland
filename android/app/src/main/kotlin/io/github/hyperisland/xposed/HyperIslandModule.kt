@@ -1,6 +1,5 @@
 package io.github.hyperisland.xposed
 
-import android.util.Log
 import io.github.hyperisland.xposed.hook.SystemUI.BigIslandMinWidthHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandIconHook
 import io.github.hyperisland.xposed.hook.SystemUI.DynamicIslandVisibilityHook
@@ -42,7 +41,6 @@ import io.github.hyperisland.xposed.hook.TimerTextColorHook
 import io.github.hyperisland.xposed.hook.StatusBarTextColorHook
 import io.github.hyperisland.xposed.hook.ScreenRecorder.ScreenRecorderHook
 import io.github.hyperisland.xposed.hook.ToastUiInterceptHook
-import io.github.hyperisland.xposed.hook.PickupPageRecognitionHook
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.UnlockAllFocusHook
 import io.github.hyperisland.xposed.hook.UnlockFocusAuthHook
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
@@ -137,10 +135,6 @@ class HyperIslandModule : XposedModule() {
                 if (ConfigManager.getBoolean("pref_screen_recorder_island", false)) {
                     ScreenRecorderHook.init(this, param)
                 }
-
-            "com.mxbc.mxsa", "com.sankuai.meituan", "me.ele",
-            "com.taobao.taobao", "com.luckincoffee", "com.yumchina.yumchina" ->
-                PickupPageRecognitionHook.init(this, param)
 
             "com.miui.securitycenter" -> {
                 val enabled = ConfigManager.getBoolean("pref_clipboard_toast_conversion", false)
