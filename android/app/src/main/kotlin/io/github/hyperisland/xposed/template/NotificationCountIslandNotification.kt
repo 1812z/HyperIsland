@@ -19,6 +19,7 @@ import io.github.hyperisland.xposed.log
 import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
 import io.github.hyperisland.xposed.islanddispatch.definition.IslandRequest
 import io.github.hyperisland.xposed.islanddispatch.definition.IslandDispatchContract
+import io.github.hyperisland.xposed.hook.SystemUI.NotificationCountTracker
 import java.util.concurrent.ConcurrentHashMap
 
 /** 展开内容沿用原通知，收起的大岛只显示图标和活动通知数。 */
@@ -31,18 +32,22 @@ object NotificationCountIslandNotification : IslandTemplate {
     override val defaultIslandRightExpr = "${'$'}{notification_count}"
     private val lastPostedSignature = ConcurrentHashMap<String, String>()
 
-    fun reset(pkg: String) { lastPostedSignature.remove(pkg) }
+    fun reset(scope: NotificationCountTracker.Scope) { lastPostedSignature.remove(scopeKey(scope)) }
     fun resetAll() { lastPostedSignature.clear() }
+
+    private fun scopeKey(scope: NotificationCountTracker.Scope) = "${scope.pkg}\u0000${scope.channelId}"
 
     override fun islandExpressionVars(data: NotifData, vm: IslandViewModel) =
         mapOf("notification_count" to data.notificationCount.coerceAtLeast(0).toString())
 
     override fun inject(context: Context, extras: Bundle, data: NotifData) {
         extras.putBoolean(IslandDispatchContract.EXTRA_SUPPRESS_SOURCE_HEADS_UP, true)
+        val scope = NotificationCountTracker.Scope(data.pkg, data.channelId)
+        val notificationId = NotificationCountTracker.notificationId(scope)
         val count = data.notificationCount.coerceAtLeast(0)
         val signature = "$count|${data.notificationKey.orEmpty()}|${data.title}|${data.subtitle}"
-        if (lastPostedSignature.put(data.pkg, signature) == signature) {
-            log("count-trace template skip pkg=${data.pkg} count=$count (unchanged)")
+        if (lastPostedSignature.put(scopeKey(scope), signature) == signature) {
+            log("count-trace template skip pkg=${data.pkg} channel=${data.channelId} count=$count (unchanged)")
             return
         }
         val fallback = Icon.createWithResource(context, android.R.drawable.ic_dialog_info)
@@ -54,6 +59,7 @@ object NotificationCountIslandNotification : IslandTemplate {
             content = count.toString(),
             icon = icon,
             rightIcon = countIcon,
+            notifId = notificationId,
             timeoutSecs = data.islandTimeout,
             firstFloat = data.firstFloat == "on",
             enableFloat = data.enableFloatMode == "on",
@@ -75,7 +81,7 @@ object NotificationCountIslandNotification : IslandTemplate {
             islandEnabled = data.islandEnabled,
             bypassSceneBehavior = false,
         ))
-        log("count-trace template post pkg=${data.pkg} count=$count timeout=${data.islandTimeout} ongoing=${data.isOngoing} posted=$posted notifId=${IslandDispatcher.NOTIF_ID} updatable=false")
+        log("count-trace template post pkg=${data.pkg} channel=${data.channelId} count=$count timeout=${data.islandTimeout} ongoing=${data.isOngoing} posted=$posted notifId=$notificationId updatable=false")
     }
 
     /** Gray circular badge used by the right island area; the text remains the expanded content. */

@@ -186,7 +186,6 @@ object GenericProgressHook : BaseHook() {
             module.hook(connected).intercept { chain ->
                 val result = chain.proceed()
                 runCatching {
-                    NotificationCountTracker.clear()
                     val active = listener.getMethod("getActiveNotifications").invoke(chain.thisObject) as? Array<*>
                     NotificationCountTracker.reconcile(active) { activeSbn ->
                         loadChannelTemplate(activeSbn.packageName, activeSbn.notification?.channelId.orEmpty())
@@ -214,7 +213,7 @@ object GenericProgressHook : BaseHook() {
             val posted = listenerClass.getDeclaredMethod("onNotificationPosted", StatusBarNotification::class.java, rankingMap)
             module.hook(posted).intercept { chain ->
                 (chain.args.firstOrNull() as? StatusBarNotification)?.let { sbn ->
-                    NotificationCountTracker.observe(sbn, loadChannelTemplate(sbn.packageName, sbn.notification?.channelId.orEmpty()))
+                    NotificationCountTracker.posted(sbn, loadChannelTemplate(sbn.packageName, sbn.notification?.channelId.orEmpty()))
                 }
                 val result = chain.proceed()
                 (chain.args.firstOrNull() as? StatusBarNotification)?.let { sbn ->
@@ -262,13 +261,13 @@ object GenericProgressHook : BaseHook() {
         IslandOuterGlowHook.removeMediaGlowRequest(sbn.packageName, sbn.key)
         val removed = NotificationCountTracker.remove(sbn.key)
         if (removed != null) {
-            val scope = NotificationCountTracker.Scope(removed.packageName)
+            val scope = removed.scope
             val remaining = NotificationCountTracker.count(scope)
             val representative = NotificationCountTracker.representative(scope)
             if (remaining > 0 && representative != null) handleSbn(representative, module, classLoader, true)
             else if (remaining == 0) {
-                NotificationCountIslandNotification.reset(removed.packageName)
-                IslandDispatcher.cancel(context, IslandDispatcher.NOTIF_ID)
+                NotificationCountIslandNotification.reset(scope)
+                IslandDispatcher.cancel(context, NotificationCountTracker.notificationId(scope))
             }
             trackedForCancel.remove(sbn.key)
             return
@@ -392,12 +391,12 @@ object GenericProgressHook : BaseHook() {
             if (template == NotificationCountIslandNotification.TEMPLATE_ID) {
                 extras.remove(EXTRA_OWNER)
             }
-            NotificationCountTracker.observe(sbn, template)
+            NotificationCountTracker.ensureTracked(sbn, template)
             val notificationCount = if (template == NotificationCountIslandNotification.TEMPLATE_ID) {
-                NotificationCountTracker.count(NotificationCountTracker.Scope(pkg)).coerceAtLeast(1)
+                NotificationCountTracker.count(NotificationCountTracker.Scope(pkg, channelId)).coerceAtLeast(1)
             } else 1
             if (ConfigManager.isDebugLogEnabled()) {
-                log(module, "count-trace source pkg=$pkg key=${sbn.key} template=$template count=$notificationCount tracked=${NotificationCountTracker.count(NotificationCountTracker.Scope(pkg))}")
+                log(module, "count-trace source pkg=$pkg channel=$channelId key=${sbn.key} template=$template count=$notificationCount")
             }
 
             val appIconRaw = context.packageManager.getAppIcon(pkg)

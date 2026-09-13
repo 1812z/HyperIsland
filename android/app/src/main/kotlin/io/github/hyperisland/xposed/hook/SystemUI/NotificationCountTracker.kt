@@ -1,68 +1,74 @@
 package io.github.hyperisland.xposed.hook.SystemUI
 
-import android.service.notification.StatusBarNotification
 import android.app.Notification
+import android.service.notification.StatusBarNotification
 import io.github.hyperisland.xposed.templates.NotificationCountIslandNotification
 import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
-import java.util.concurrent.ConcurrentHashMap
 
+/** Counts source notification posts and updates separately for each channel. */
 object NotificationCountTracker {
-    /** 按原始软件包汇总，避免同一软件不同渠道各自从 1 计数。 */
-    data class Scope(val pkg: String)
-    private data class Entry(val scope: Scope, val sbn: StatusBarNotification)
-    private val entries = ConcurrentHashMap<String, Entry>()
-    private val enabledChannels = ConcurrentHashMap.newKeySet<String>()
-    private fun channelKey(sbn: StatusBarNotification) =
-        "${sbn.packageName}\u0000${sbn.notification?.channelId.orEmpty()}"
-    private fun isProxy(sbn: StatusBarNotification): Boolean {
+    data class Scope(val pkg: String, val channelId: String)
+    data class Entry(val scope: Scope, val sbn: StatusBarNotification, val posts: Int, val order: Long)
+    private val entries = HashMap<String, Entry>()
+    private val notificationIds = HashMap<Scope, Int>()
+    private val assignedIds = HashMap<Int, Scope>()
+    private var nextOrder = 0L
+
+    fun scopeOf(sbn: StatusBarNotification) = Scope(sbn.packageName, sbn.notification?.channelId.orEmpty())
+
+    private fun isTrackable(sbn: StatusBarNotification): Boolean {
         val n = sbn.notification ?: return false
-        val extras = n.extras
-        return extras?.getString("hyperisland.owner") == "io.github.hyperisland" ||
-            n.channelId == IslandDispatcher.CHANNEL_ID ||
-            n.channelId == IslandDispatcher.SILENT_CHANNEL_ID
+        return n.extras?.getString("hyperisland.owner") != "io.github.hyperisland" &&
+            n.channelId != IslandDispatcher.CHANNEL_ID &&
+            n.channelId != IslandDispatcher.SILENT_CHANNEL_ID &&
+            n.flags and Notification.FLAG_GROUP_SUMMARY == 0
     }
-    private fun isGroupSummary(sbn: StatusBarNotification): Boolean =
-        (sbn.notification?.flags ?: 0) and Notification.FLAG_GROUP_SUMMARY != 0
-    fun observe(sbn: StatusBarNotification, templateId: String) {
-        if (isProxy(sbn) || isGroupSummary(sbn)) {
+
+    /** Only the concrete listener's posted callback increments an existing key. */
+    @Synchronized fun posted(sbn: StatusBarNotification, templateId: String) {
+        if (!isTrackable(sbn) || templateId != NotificationCountIslandNotification.TEMPLATE_ID) {
             entries.remove(sbn.key)
             return
         }
-        if (templateId == NotificationCountIslandNotification.TEMPLATE_ID) {
-            enabledChannels += channelKey(sbn)
-        } else {
-            enabledChannels.remove(channelKey(sbn))
-            entries.entries.removeIf { it.value.sbn.packageName == sbn.packageName &&
-                it.value.sbn.notification?.channelId.orEmpty() == sbn.notification?.channelId.orEmpty() }
-        }
-        if (enabledChannels.contains(channelKey(sbn))) {
-            entries[sbn.key] = Entry(Scope(sbn.packageName), sbn)
-        } else {
-            entries.remove(sbn.key)
+        val scope = scopeOf(sbn)
+        val previous = entries[sbn.key]?.takeIf { it.scope == scope }
+        entries[sbn.key] = Entry(scope, sbn, (previous?.posts ?: 0) + 1, ++nextOrder)
+    }
+
+    /** Bean generation may repeat; it must never create or increment a count. */
+    @Synchronized fun ensureTracked(sbn: StatusBarNotification, templateId: String) {
+        // Counting is driven exclusively by onNotificationPosted. This method is
+        // intentionally a no-op to avoid counting generateInnerNotifBean twice.
+    }
+
+    @Synchronized fun remove(key: String): Entry? = entries.remove(key)
+    @Synchronized fun count(scope: Scope): Int = entries.values.sumOf { if (it.scope == scope) it.posts else 0 }
+    @Synchronized fun representative(scope: Scope): StatusBarNotification? = entries.values.asSequence()
+        .filter { it.scope == scope }.maxByOrNull { it.order }?.sbn
+    @Synchronized fun clear() { entries.clear(); nextOrder = 0L }
+
+    /** A snapshot can restore active keys, but cannot recover updates before a SystemUI restart. */
+    @Synchronized
+    fun reconcile(active: Array<*>?, templateResolver: (StatusBarNotification) -> String) {
+        val previous = HashMap(entries)
+        entries.clear()
+        active.orEmpty().filterIsInstance<StatusBarNotification>().forEach { sbn ->
+            if (!isTrackable(sbn) || templateResolver(sbn) != NotificationCountIslandNotification.TEMPLATE_ID) return@forEach
+            val scope = scopeOf(sbn)
+            val old = previous[sbn.key]?.takeIf { it.scope == scope }
+            entries[sbn.key] = Entry(scope, sbn, old?.posts ?: 1, old?.order ?: ++nextOrder)
         }
     }
-    fun remove(key: String): StatusBarNotification? = entries.remove(key)?.sbn
-    fun count(scope: Scope): Int = entries.values.count { it.scope == scope }
-    fun representative(scope: Scope): StatusBarNotification? = entries.values.asSequence()
-        .filter { it.scope == scope }.maxByOrNull { it.sbn.postTime }?.sbn
-    fun clear() { entries.clear(); enabledChannels.clear() }
-    fun isEmpty(): Boolean = entries.isEmpty()
-    fun counts(): Map<Scope, Int> = entries.values.groupingBy { it.scope }.eachCount()
 
-    fun reconcile(active: Array<*>?, templateResolver: (StatusBarNotification) -> String) {
-        val notifications = active.orEmpty().filterIsInstance<StatusBarNotification>()
-            .filterNot { isProxy(it) || isGroupSummary(it) }
-        val channels = notifications.filter { templateResolver(it) == NotificationCountIslandNotification.TEMPLATE_ID }
-            .map(::channelKey).toSet()
-        enabledChannels.clear()
-        enabledChannels.addAll(channels)
-        val fresh = ConcurrentHashMap<String, Entry>()
-        notifications.forEach { sbn ->
-            if (enabledChannels.contains(channelKey(sbn))) {
-                fresh[sbn.key] = Entry(Scope(sbn.packageName), sbn)
-            }
+    /** Stable independent dispatcher ID per channel; resolve rare hash collisions in process. */
+    @Synchronized fun notificationId(scope: Scope): Int {
+        notificationIds[scope]?.let { return it }
+        var id = 0x60000000 or (scope.hashCode() and 0x0fffffff)
+        while (assignedIds[id] != null && assignedIds[id] != scope) {
+            id = 0x60000000 or ((id + 1) and 0x0fffffff)
         }
-        entries.clear()
-        entries.putAll(fresh)
+        notificationIds[scope] = id
+        assignedIds[id] = scope
+        return id
     }
 }
