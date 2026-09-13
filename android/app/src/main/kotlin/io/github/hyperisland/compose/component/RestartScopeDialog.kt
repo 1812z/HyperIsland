@@ -3,12 +3,14 @@ package io.github.hyperisland.compose.component
 import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -112,11 +114,14 @@ internal fun RestartScopeDialog(
         summary = stringResource(R.string.restart_scope_summary),
         onDismissRequest = { if (!restarting) onDismiss() },
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 300.dp)
+                .padding(bottom = 12.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            targets.forEach { target ->
+            items(targets, key = { it.packageName }) { target ->
                 val checked = target.packageName in selectedPackages
                 RestartScopeRow(
                     label = stringResource(target.label),
