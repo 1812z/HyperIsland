@@ -233,28 +233,30 @@ internal fun ChannelSettingsFormPage(
                         TriField(stringResource(R.string.update_float), state.enableFloat, triValues, triLabels(defaults.enableFloat)) {
                             onStateChange(state.copy(enableFloat = it))
                         }
-                        TriField(stringResource(R.string.marquee_channel), state.marquee, triValues, triLabels(defaults.marquee)) {
-                            onStateChange(state.copy(marquee = it))
-                        }
-                        FormDropdown(
-                            title = stringResource(R.string.marquee_auto_hide),
-                            value = state.marqueeAutoHide,
-                            values = optionalValues(isBatch, OPTION_DEFAULT, OPTION_OFF, "1", "2", "1_override", "2_override"),
-                            labels = optionalLabels(
-                                isBatch,
-                                noChange,
-                                if (isBatch) default else stringResource(
-                                    R.string.default_with_value,
-                                    marqueeAutoHideLabel(defaults.marqueeAutoHide),
+                        if (state.template != TEMPLATE_NOTIFICATION_COUNT) {
+                            TriField(stringResource(R.string.marquee_channel), state.marquee, triValues, triLabels(defaults.marquee)) {
+                                onStateChange(state.copy(marquee = it))
+                            }
+                            FormDropdown(
+                                title = stringResource(R.string.marquee_auto_hide),
+                                value = state.marqueeAutoHide,
+                                values = optionalValues(isBatch, OPTION_DEFAULT, OPTION_OFF, "1", "2", "1_override", "2_override"),
+                                labels = optionalLabels(
+                                    isBatch,
+                                    noChange,
+                                    if (isBatch) default else stringResource(
+                                        R.string.default_with_value,
+                                        marqueeAutoHideLabel(defaults.marqueeAutoHide),
+                                    ),
+                                    off,
+                                    stringResource(R.string.marquee_once),
+                                    stringResource(R.string.marquee_twice),
+                                    stringResource(R.string.marquee_once_override),
+                                    stringResource(R.string.marquee_twice_override),
                                 ),
-                                off,
-                                stringResource(R.string.marquee_once),
-                                stringResource(R.string.marquee_twice),
-                                stringResource(R.string.marquee_once_override),
-                                stringResource(R.string.marquee_twice_override),
-                            ),
-                            enabled = marqueeEnabled,
-                        ) { onStateChange(state.copy(marqueeAutoHide = it)) }
+                                enabled = marqueeEnabled,
+                            ) { onStateChange(state.copy(marqueeAutoHide = it)) }
+                        }
                         ArrowPreference(
                             title = stringResource(R.string.auto_disappear),
                             summary = timeoutSummary(state.timeout, defaults.timeout, isBatch, noChange),

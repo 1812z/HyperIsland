@@ -38,6 +38,8 @@ data class IslandRequest(
     val aodCustomizationJson: String? = null,
     val clearBeforePost: Boolean = false,
     val islandOnly: Boolean = false,
+    /** 通知内容更新时复用现有超级岛，不创建新的岛事件。 */
+    val updatable: Boolean = false,
     val islandEnabled: Boolean = true,
     val focusTitle: String? = null,
     val focusContent: String? = null,
@@ -85,6 +87,7 @@ data class IslandRequest(
         if (actions.isNotEmpty()) putParcelableArray(KEY_ACTIONS, actions.toTypedArray())
         putBoolean(KEY_CLEAR_BEFORE_POST, clearBeforePost)
         putBoolean(KEY_ISLAND_ONLY, islandOnly)
+        putBoolean(KEY_UPDATABLE, updatable)
         putBoolean(KEY_ISLAND_ENABLED, islandEnabled)
         putString(KEY_FOCUS_TITLE, focusTitle)
         putString(KEY_FOCUS_CONTENT, focusContent)
@@ -132,6 +135,7 @@ data class IslandRequest(
         private const val KEY_AOD_CUSTOM = "aodCustomizationJson"
         private const val KEY_CLEAR_BEFORE_POST = "clearBeforePost"
         private const val KEY_ISLAND_ONLY = "islandOnly"
+        private const val KEY_UPDATABLE = "updatable"
         private const val KEY_ISLAND_ENABLED = "islandEnabled"
         private const val KEY_FOCUS_TITLE = "focusTitle"
         private const val KEY_FOCUS_CONTENT = "focusContent"
@@ -179,6 +183,7 @@ data class IslandRequest(
             aodCustomizationJson = b.getString(KEY_AOD_CUSTOM),
             clearBeforePost = b.getBoolean(KEY_CLEAR_BEFORE_POST, false),
             islandOnly = b.getBoolean(KEY_ISLAND_ONLY, false),
+            updatable = b.getBoolean(KEY_UPDATABLE, false),
             islandEnabled = b.getBoolean(KEY_ISLAND_ENABLED, true),
             focusTitle = b.getString(KEY_FOCUS_TITLE),
             focusContent = b.getString(KEY_FOCUS_CONTENT),

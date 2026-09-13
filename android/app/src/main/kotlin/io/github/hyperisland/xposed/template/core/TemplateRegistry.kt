@@ -11,7 +11,6 @@ import io.github.hyperisland.xposed.templates.AINotificationIslandNotification
 import io.github.hyperisland.xposed.templates.GenericDownloadIslandNotification
 import io.github.hyperisland.xposed.templates.NotificationIslandNotification
 import io.github.hyperisland.xposed.templates.NotificationCountIslandNotification
-import io.github.hyperisland.xposed.templates.NotificationCountIslandNotification
 /**
  * 模板注册表。
  *
@@ -27,7 +26,6 @@ object TemplateRegistry {
     private val registry: Map<String, IslandTemplate> = listOf<IslandTemplate>(
         GenericDownloadIslandNotification,
         NotificationIslandNotification,
-        NotificationCountIslandNotification,
         NotificationCountIslandNotification,
         AINotificationIslandNotification,
     ).associateBy { it.id }

@@ -186,14 +186,50 @@ object GenericProgressHook : BaseHook() {
             module.hook(connected).intercept { chain ->
                 val result = chain.proceed()
                 runCatching {
+                    NotificationCountTracker.clear()
                     val active = listener.getMethod("getActiveNotifications").invoke(chain.thisObject) as? Array<*>
-                    active.orEmpty().filterIsInstance<StatusBarNotification>().forEach { activeSbn ->
-                        NotificationCountTracker.observe(activeSbn, loadChannelTemplate(activeSbn.packageName, activeSbn.notification?.channelId.orEmpty()))
+                    NotificationCountTracker.reconcile(active) { activeSbn ->
+                        loadChannelTemplate(activeSbn.packageName, activeSbn.notification?.channelId.orEmpty())
                     }
                 }
                 result
             }
         }.onFailure { logError(module, "notification count snapshot hook failed: ${it.message}") }
+
+        // SystemUI 实际使用的监听器覆写了基类方法，必须 Hook 具体实现类。
+        runCatching {
+            val rankingMap = classLoader.loadClass("android.service.notification.NotificationListenerService\$RankingMap")
+            val listenerClass = classLoader.loadClass("com.android.systemui.statusbar.notification.MiuiNotificationListener")
+            val connected = listenerClass.getDeclaredMethod("onListenerConnected")
+            module.hook(connected).intercept { chain ->
+                val result = chain.proceed()
+                runCatching {
+                    val active = listenerClass.getMethod("getActiveNotifications").invoke(chain.thisObject) as? Array<*>
+                    NotificationCountTracker.reconcile(active) { activeSbn ->
+                        loadChannelTemplate(activeSbn.packageName, activeSbn.notification?.channelId.orEmpty())
+                    }
+                }
+                result
+            }
+            val posted = listenerClass.getDeclaredMethod("onNotificationPosted", StatusBarNotification::class.java, rankingMap)
+            module.hook(posted).intercept { chain ->
+                (chain.args.firstOrNull() as? StatusBarNotification)?.let { sbn ->
+                    NotificationCountTracker.observe(sbn, loadChannelTemplate(sbn.packageName, sbn.notification?.channelId.orEmpty()))
+                }
+                val result = chain.proceed()
+                (chain.args.firstOrNull() as? StatusBarNotification)?.let { sbn ->
+                    if (ConfigManager.isDebugLogEnabled()) log(module, "count-trace concrete posted key=${sbn.key}")
+                }
+                result
+            }
+            val removed = listenerClass.getDeclaredMethod("onNotificationRemoved", StatusBarNotification::class.java, rankingMap, Int::class.javaPrimitiveType!!)
+            module.hook(removed).intercept { chain ->
+                val result = chain.proceed()
+                handleNotificationRemoved(chain.args[0] as? StatusBarNotification, module, classLoader)
+                result
+            }
+            log(module, "hooked MiuiNotificationListener notification lifecycle")
+        }.onFailure { logError(module, "MiuiNotificationListener lifecycle hook failed: ${it.message}") }
 
         hookMediaNotificationFilter(module, classLoader)
         HookUtils.hookDynamicClassLoaders(module, ClassLoader.getSystemClassLoader()) { pluginClassLoader ->
@@ -213,71 +249,34 @@ object GenericProgressHook : BaseHook() {
         } catch (e: Throwable) {
             logError(module, "hook failed: ${e.message}")
         }
-
-        // Hook onNotificationRemoved (after) — 优先 3 参数版本
-        var cancelHooked = false
-        try {
-            val rankingMapClass = classLoader.loadClass(
-                "android.service.notification.NotificationListenerService\$RankingMap"
-            )
-            val removeMethod = findMethod(
-                classLoader.loadClass("android.service.notification.NotificationListenerService"),
-                "onNotificationRemoved",
-                StatusBarNotification::class.java,
-                rankingMapClass,
-                Int::class.javaPrimitiveType!!
-            )
-            module.hook(removeMethod).intercept { chain ->
-                val result = chain.proceed()
-                    handleNotificationRemoved(chain.args[0] as? StatusBarNotification, module, classLoader)
-                    result
-                }
-                cancelHooked = true
-                log(module, "hooked onNotificationRemoved(sbn, rankingMap, reason)")
-            } catch (e: Throwable) {
-                logError(module, "onNotificationRemoved 3-param hook failed: ${e.message}")
-            }
-
-        if (!cancelHooked) {
-            try {
-                val removeMethod = findMethod(
-                    classLoader.loadClass("android.service.notification.NotificationListenerService"),
-                    "onNotificationRemoved",
-                    StatusBarNotification::class.java
-                )
-                module.hook(removeMethod).intercept { chain ->
-                    val result = chain.proceed()
-                    handleNotificationRemoved(chain.args[0] as? StatusBarNotification, module, classLoader)
-                    result
-                }
-                log(module, "hooked onNotificationRemoved(sbn)")
-            } catch (e: Throwable) {
-                logError(module, "onNotificationRemoved 1-param hook failed: ${e.message}")
-        }
     }
-}
 
     private fun handleNotificationRemoved(
         sbn: StatusBarNotification?,
         module: XposedModule,
         classLoader: ClassLoader
     ) {
-        sbn ?: return
-        IslandOuterGlowHook.removeMediaGlowRequest(sbn.packageName, sbn.key)
         val context = HookUtils.getContext(classLoader) ?: return
+        sbn ?: return
+        if (ConfigManager.isDebugLogEnabled()) log(module, "count-trace removed key=${sbn.key}")
+        IslandOuterGlowHook.removeMediaGlowRequest(sbn.packageName, sbn.key)
         val removed = NotificationCountTracker.remove(sbn.key)
         if (removed != null) {
-            val scope = NotificationCountTracker.Scope(removed.packageName, removed.notification?.channelId.orEmpty())
+            val scope = NotificationCountTracker.Scope(removed.packageName)
             val remaining = NotificationCountTracker.count(scope)
             val representative = NotificationCountTracker.representative(scope)
             if (remaining > 0 && representative != null) handleSbn(representative, module, classLoader, true)
-            else if (remaining == 0) IslandDispatcher.cancel(context, IslandDispatcher.NOTIF_ID)
+            else if (remaining == 0) {
+                NotificationCountIslandNotification.reset(removed.packageName)
+                IslandDispatcher.cancel(context, IslandDispatcher.NOTIF_ID)
+            }
             trackedForCancel.remove(sbn.key)
             return
         }
         val proxyId = trackedForCancel.remove(sbn.key) ?: return
         IslandDispatcher.cancel(context, proxyId)
     }
+
 
     private fun handleSbn(sbn: StatusBarNotification, module: XposedModule, classLoader: ClassLoader, forceRefresh: Boolean = false) {
         try {
@@ -289,14 +288,16 @@ object GenericProgressHook : BaseHook() {
                 channelId == IslandDispatcher.CHANNEL_ID ||
                     channelId == IslandDispatcher.SILENT_CHANNEL_ID
             val isHyperIslandProxy =
-                pkg == "com.android.systemui" &&
-                    extras.getString(EXTRA_OWNER) == OWNER_MARKER
+                extras.getString(EXTRA_OWNER) == OWNER_MARKER ||
+                    (isDispatcherChannel && pkg == "com.android.systemui")
+            if (ConfigManager.isDebugLogEnabled()) {
+                log(module, "count-trace enter pkg=$pkg key=${sbn.key} channel=$channelId proxy=$isHyperIslandProxy dispatcher=$isDispatcherChannel")
+            }
 
             // Notification 对象可能被应用复用；每次处理源通知时先清除旧的代发标记，
             // 仅由本轮确实成功的代发路径重新写入。
             if (!isHyperIslandProxy) {
                 extras.remove(IslandDispatchContract.EXTRA_SUPPRESS_SOURCE_HEADS_UP)
-                NotificationCountTracker.observe(sbn, loadChannelTemplate(pkg, channelId))
             }
 
             if (pkg == "com.android.systemui" &&
@@ -387,9 +388,17 @@ object GenericProgressHook : BaseHook() {
             val actions: List<Notification.Action> = resolveNotificationActions(context, pkg, notif)
 
             val template = loadChannelTemplate(pkg, channelId)
+            // 数量岛只独立代发，原始通知不能带代理 owner 标记，否则会被计数器误过滤。
+            if (template == NotificationCountIslandNotification.TEMPLATE_ID) {
+                extras.remove(EXTRA_OWNER)
+            }
+            NotificationCountTracker.observe(sbn, template)
             val notificationCount = if (template == NotificationCountIslandNotification.TEMPLATE_ID) {
-                NotificationCountTracker.count(NotificationCountTracker.Scope(pkg, channelId)).coerceAtLeast(1)
+                NotificationCountTracker.count(NotificationCountTracker.Scope(pkg)).coerceAtLeast(1)
             } else 1
+            if (ConfigManager.isDebugLogEnabled()) {
+                log(module, "count-trace source pkg=$pkg key=${sbn.key} template=$template count=$notificationCount tracked=${NotificationCountTracker.count(NotificationCountTracker.Scope(pkg))}")
+            }
 
             val appIconRaw = context.packageManager.getAppIcon(pkg)
             val largeIcon  = extractLargeIcon(extras)
@@ -633,6 +642,7 @@ object GenericProgressHook : BaseHook() {
                     aodCustomizationJson = aodCustomizationJson,
                     islandEnabled = islandEnabled,
                     notificationCount = notificationCount,
+                    notificationKey = sbn.key,
                 ),
             )
 

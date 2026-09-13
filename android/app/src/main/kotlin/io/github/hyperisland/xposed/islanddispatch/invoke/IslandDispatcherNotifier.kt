@@ -227,7 +227,8 @@ internal object IslandDispatcherNotifier {
                             aodTitle = request.aodTitle ?: request.content.ifEmpty { request.title },
                             aodPicKey = aodIconKey,
                             islandEnabled = request.islandEnabled,
-                            updatable = request.notifId == KEEP_ISLAND_NOTIF_ID && !request.clearBeforePost,
+                            updatable = request.updatable ||
+                                (request.notifId == KEEP_ISLAND_NOTIF_ID && !request.clearBeforePost),
                         )
                     }
                 notif.extras.putString("miui.focus.param", jsonParam)
@@ -271,6 +272,9 @@ internal object IslandDispatcherNotifier {
                 nm.cancel(request.notifId)
             }
             nm.notify(request.notifId, notif)
+            IslandDispatchState.module?.log(
+                "count-trace nm.notify id=${request.notifId} updatable=${request.updatable} islandOnly=${request.islandOnly} title=${request.title} content=${request.content}",
+            )
             IslandDispatchState.postedIds.add(request.notifId)
             request.sourcePackage?.let { pkg ->
                 MarqueeHook.markDirectProxyPosted(pkg, request.sourceChannelId ?: "toast")

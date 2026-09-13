@@ -72,4 +72,6 @@ data class NotifData(
     val islandEnabled: Boolean = true,
     /** 当前通知条数岛统计范围内的活动通知数。普通模板固定为 1。 */
     val notificationCount: Int = 1,
+    /** 原始通知唯一 key，用于数量不变时仍能更新焦点内容。 */
+    val notificationKey: String? = null,
 )

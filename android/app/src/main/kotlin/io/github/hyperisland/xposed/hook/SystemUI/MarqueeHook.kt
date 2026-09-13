@@ -498,12 +498,18 @@ object MarqueeHook : BaseHook() {
                                 ConfigManager.getString(marqueeKey, "default")
                             }
                             val defaultMarquee = ConfigManager.getBoolean("pref_default_marquee", false)
+                            val countTemplate = !isToastSource && ConfigManager.getString(
+                                "pref_channel_template_${pkgName}_${channelId}",
+                                "notification_island",
+                            ) == "notification_count_island"
                             val enabled = when (marqueeRaw) {
                                 "on" -> true
                                 "off" -> false
                                 else -> defaultMarquee
                             }
-                            val effectiveAutoHide = if (isToastSource) {
+                            val effectiveAutoHide = if (countTemplate) {
+                                "off"
+                            } else if (isToastSource) {
                                 val autoHideRaw = ConfigManager.getString(
                                     "pref_toast_marquee_auto_hide_$pkgName",
                                     "default"
