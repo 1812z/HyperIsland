@@ -29,6 +29,10 @@ object MarqueeHook : BaseHook() {
 
     override fun getTag() = TAG
 
+    private fun trace(message: String) {
+        if (ConfigManager.isDebugLogEnabled()) log("marquee-trace $message")
+    }
+
     override fun onConfigChanged() {
         cachedSpeed = null
         hookedClassLoaders.clear()
@@ -169,12 +173,14 @@ object MarqueeHook : BaseHook() {
         // 仅存在于展开视图中的文本）时，不能创建覆盖会话，否则会把普通
         // island timeout 接管成一个永不完成的滚动任务。
         val hasScrollableText = enabled && hasMarqueeText(bigIslandView)
+        trace("apply enabled=$enabled loops=$autoHideLoops override=$overrideTimeout text=$hasScrollableText island=${System.identityHashCode(bigIslandView)}")
         if (enabled && autoHideLoops > 0 && !hasScrollableText) {
             islandMarqueeState[bigIslandView] = false
             islandAutoHideSessions.remove(bigIslandView)?.fallbackRunnable?.let {
                 bigIslandView.removeCallbacks(it)
             }
             traverseInternal(bigIslandView, false)
+            trace("skip override: no scrollable text island=${System.identityHashCode(bigIslandView)}")
             return
         }
         //log("Marquee ${if (enabled) "enabled" else "disabled"} for island view")
@@ -193,6 +199,7 @@ object MarqueeHook : BaseHook() {
             if (session != null && session.scrollingViews.isEmpty()) {
                 session.fallbackRunnable?.let(bigIslandView::removeCallbacks)
                 islandAutoHideSessions.remove(bigIslandView)
+                trace("clear empty session island=${System.identityHashCode(bigIslandView)}")
             }
         }
     }
@@ -234,6 +241,7 @@ object MarqueeHook : BaseHook() {
             timeoutMs = originalTimeoutSecs.coerceAtLeast(1) * 1000L,
         )
         islandAutoHideSessions[island] = session
+        trace("create session island=${System.identityHashCode(island)} loops=$targetLoops override=$overrideTimeout timeout=${session.timeoutMs}")
         scheduleFallbackIfNeeded(island, session)
     }
 
@@ -241,6 +249,7 @@ object MarqueeHook : BaseHook() {
         val island = findBigIslandView(textView) ?: return
         val session = islandAutoHideSessions[island] ?: return
         session.scrollingViews[textView] = 0
+        trace("register view=${System.identityHashCode(textView)} island=${System.identityHashCode(island)}")
         session.fallbackRunnable?.let(island::removeCallbacks)
         session.fallbackRunnable = null
     }
@@ -250,6 +259,7 @@ object MarqueeHook : BaseHook() {
         if (island != null) {
             val session = islandAutoHideSessions[island]
             if (session != null && session.scrollingViews.remove(textView) != null) {
+                trace("unregister view=${System.identityHashCode(textView)} island=${System.identityHashCode(island)}")
                 scheduleFallbackIfNeeded(island, session)
             }
             return
@@ -258,6 +268,7 @@ object MarqueeHook : BaseHook() {
         // 从所有会话中清理，避免 override timeout 永远等待一个已移除的 TextView。
         islandAutoHideSessions.forEach { (candidateIsland, session) ->
             if (session.scrollingViews.remove(textView) != null) {
+                trace("unregister detached view=${System.identityHashCode(textView)} island=${System.identityHashCode(candidateIsland)}")
                 scheduleFallbackIfNeeded(candidateIsland, session)
             }
         }
@@ -275,6 +286,7 @@ object MarqueeHook : BaseHook() {
             completedLoops >= session.targetLoops
         }
         if (shouldDismiss) {
+            trace("loop dismiss island=${System.identityHashCode(island)} loops=$completedLoops")
             dismissIsland(island, session)
         }
     }
@@ -285,6 +297,7 @@ object MarqueeHook : BaseHook() {
         val elapsed = SystemClock.elapsedRealtime() - session.startedAtMs
         val runnable = Runnable {
             session.fallbackRunnable = null
+            trace("fallback fire island=${System.identityHashCode(island)} views=${session.scrollingViews.size}")
             if (session.scrollingViews.isEmpty()) dismissIsland(island, session)
         }
         session.fallbackRunnable = runnable
