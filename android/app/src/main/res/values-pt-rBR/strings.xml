@@ -783,7 +783,7 @@
     <string name="telegram_summary">HyperIsland_Module</string>
     <string name="template_ai_notification">Notificação de IA HyperIsland</string>
     <string name="template_notification">Notificação HyperIsland</string>
-    <string name="template_notification_count">Contagem de notificações HyperIsland</string>
+    <string name="template_notification_count">Ilha do contador de notificações</string>
     <string name="template_progress">Download</string>
     <string name="theme">Tema</string>
     <string name="theme_color">Cor do tema</string>

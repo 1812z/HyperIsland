@@ -871,7 +871,7 @@
     <string name="channel_renderer">Style</string>
     <string name="template_progress">Download</string>
     <string name="template_notification">Notification HyperIsland</string>
-    <string name="template_notification_count">Notification count HyperIsland</string>
+    <string name="template_notification_count">Notification Counter Island</string>
     <string name="template_ai_notification">AI notification HyperIsland</string>
     <string name="renderer_image_text_buttons">Image+Text+Bottom Text Buttons</string>
     <string name="renderer_image_text_wrap">Cover Info+Auto Wrap</string>

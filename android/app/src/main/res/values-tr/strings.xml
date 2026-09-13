@@ -869,7 +869,7 @@
     <string name="channel_renderer">Stil</string>
     <string name="template_progress">İndirme</string>
     <string name="template_notification">Bildirim HyperIsland</string>
-    <string name="template_notification_count">Bildirim sayısı HyperIsland</string>
+    <string name="template_notification_count">Bildirim sayacı adası</string>
     <string name="template_ai_notification">AI bildirim HyperIsland</string>
     <string name="renderer_image_text_buttons">Görsel + Metin + Alt Düğmeler</string>
     <string name="renderer_image_text_wrap">Kapak Bilgisi + Satır Kaydırma</string>
