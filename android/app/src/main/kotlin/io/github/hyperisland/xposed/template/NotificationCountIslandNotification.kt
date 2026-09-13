@@ -58,6 +58,8 @@ object NotificationCountIslandNotification : IslandTemplate {
             firstFloat = data.firstFloat == "on",
             enableFloat = data.enableFloatMode == "on",
             showNotification = false,
+            contentIntent = data.contentIntent,
+            isOngoing = data.isOngoing,
             preserveStatusBarSmallIcon = false,
             highlightColor = data.highlightColor,
             showRightHighlightColor = data.showRightHighlightColor,

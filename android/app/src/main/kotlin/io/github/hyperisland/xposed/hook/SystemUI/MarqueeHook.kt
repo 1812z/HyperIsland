@@ -502,10 +502,16 @@ object MarqueeHook : BaseHook() {
                                 "pref_channel_template_${pkgName}_${channelId}",
                                 "notification_island",
                             ) == "notification_count_island"
-                            val enabled = when (marqueeRaw) {
-                                "on" -> true
-                                "off" -> false
-                                else -> defaultMarquee
+                            // 数量岛使用固定数字图标，不参与跑马灯；否则默认跑马灯的
+                            // auto-hide 会接管岛的生命周期，导致代发岛无法按正常超时消失。
+                            val enabled = if (countTemplate) {
+                                false
+                            } else {
+                                when (marqueeRaw) {
+                                    "on" -> true
+                                    "off" -> false
+                                    else -> defaultMarquee
+                                }
                             }
                             val effectiveAutoHide = if (countTemplate) {
                                 "off"
