@@ -165,6 +165,18 @@ object MarqueeHook : BaseHook() {
         overrideTimeout: Boolean = false,
         originalTimeoutSecs: Int = 5,
     ) {
+        // 覆盖超时依赖滚动文本的循环回调。没有实际文本（纯图标、空文本或
+        // 仅存在于展开视图中的文本）时，不能创建覆盖会话，否则会把普通
+        // island timeout 接管成一个永不完成的滚动任务。
+        val hasScrollableText = enabled && hasMarqueeText(bigIslandView)
+        if (enabled && autoHideLoops > 0 && !hasScrollableText) {
+            islandMarqueeState[bigIslandView] = false
+            islandAutoHideSessions.remove(bigIslandView)?.fallbackRunnable?.let {
+                bigIslandView.removeCallbacks(it)
+            }
+            traverseInternal(bigIslandView, false)
+            return
+        }
         //log("Marquee ${if (enabled) "enabled" else "disabled"} for island view")
         islandMarqueeState[bigIslandView] = enabled
         configureAutoHideSession(
@@ -183,6 +195,18 @@ object MarqueeHook : BaseHook() {
                 islandAutoHideSessions.remove(bigIslandView)
             }
         }
+    }
+
+    private fun hasMarqueeText(view: View): Boolean {
+        if (view is TextView) {
+            return !isInExpandedView(view) && normalizeText(view.text?.toString().orEmpty()).isNotEmpty()
+        }
+        if (view is ViewGroup) {
+            for (i in 0 until view.childCount) {
+                if (hasMarqueeText(view.getChildAt(i))) return true
+            }
+        }
+        return false
     }
 
     private fun configureAutoHideSession(
