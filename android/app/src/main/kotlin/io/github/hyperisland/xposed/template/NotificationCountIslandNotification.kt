@@ -71,11 +71,11 @@ object NotificationCountIslandNotification : IslandTemplate {
             islandOnly = false,
             focusTitle = data.title,
             focusContent = data.subtitle.ifEmpty { data.title },
-            updatable = true,
+            updatable = false,
             islandEnabled = data.islandEnabled,
             bypassSceneBehavior = false,
         ))
-        log("count-trace template post pkg=${data.pkg} count=$count posted=$posted notifId=${IslandDispatcher.NOTIF_ID} updatable=true")
+        log("count-trace template post pkg=${data.pkg} count=$count posted=$posted notifId=${IslandDispatcher.NOTIF_ID} updatable=false")
     }
 
     /** Gray circular badge used by the right island area; the text remains the expanded content. */
@@ -85,7 +85,7 @@ object NotificationCountIslandNotification : IslandTemplate {
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         val center = size / 2f
-        val radius = size * 0.48f
+        val radius = size * 0.49f
         val circle = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.argb(220, 110, 110, 110)
         }
