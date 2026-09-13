@@ -154,6 +154,13 @@ ${pkg} · ${channel_id}
 ${progress_text}%
 ```
 
+QQ notification title examples:
+
+```text
+${replace(title, "\\(\d+条新消息\\)", "")}
+${replace(title, "^\\(\d+条新消息)\s\*[^:：]+[:：]\s\*", "")}
+```
+
 If an expression fails, test a single variable such as `${title}` first, then add functions gradually and check that parentheses and quotes are paired.
 
 ## Hook Extensions
