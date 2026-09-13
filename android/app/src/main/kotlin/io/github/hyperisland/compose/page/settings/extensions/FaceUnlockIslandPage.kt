@@ -31,7 +31,7 @@ internal fun FaceUnlockIslandPage(prefs: FlutterPrefsRepository, onBack: () -> U
     val firstFloat = rememberBooleanPreference(prefs, KEY_FACE_UNLOCK_FIRST_FLOAT, true)
     val animation = rememberStringPreference(prefs, KEY_FACE_UNLOCK_ANIMATION, MODE_DEFAULT)
     val keep = rememberBooleanPreference(prefs, KEY_FACE_UNLOCK_KEEP, false)
-    val animationValues = listOf(MODE_DEFAULT, ANIMATION_LOCK)
+    val animationValues = listOf(MODE_DEFAULT, ANIMATION_LOCK, ANIMATION_LOCK_2)
 
     fun show(message: String) { scope.launch { snackbar.showSnackbar(message) } }
 
@@ -71,7 +71,11 @@ internal fun FaceUnlockIslandPage(prefs: FlutterPrefsRepository, onBack: () -> U
                     title = stringResource(R.string.ext_animation_style),
                     summary = stringResource(R.string.ext_animation_style_summary),
                     icon = null,
-                    items = listOf(stringResource(R.string.default_option), stringResource(R.string.ext_lock)),
+                    items = listOf(
+                        stringResource(R.string.default_option),
+                        stringResource(R.string.ext_lock),
+                        stringResource(R.string.ext_lock_2),
+                    ),
                     selectedIndex = animationValues.indexOf(animation.value).coerceAtLeast(0),
                     enabled = enabled.value,
                 ) { index ->

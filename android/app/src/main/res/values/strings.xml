@@ -457,8 +457,9 @@
     <string name="ext_face_first_float">Auto Expand Island</string>
     <string name="ext_face_first_float_summary">Expand as focus notification</string>
     <string name="ext_animation_style">Animation Style</string>
-    <string name="ext_animation_style_summary">Lock style shows a closed lock while locked, then rotates the shackle right when any unlock method succeeds</string>
-    <string name="ext_lock">Lock</string>
+    <string name="ext_animation_style_summary">Lock styles show a closed lock while locked, then open it to the right when any unlock method succeeds</string>
+    <string name="ext_lock">Lock 1</string>
+    <string name="ext_lock_2">Lock 2</string>
     <string name="ext_face_keep">Keep Island After Face Unlock</string>
     <string name="ext_face_keep_summary">Keep showing it on the lock screen after face recognition succeeds, then hide it when the desktop appears. Other unlock methods are unaffected</string>
     <string name="backup_restore">Backup &amp; Restore</string>

@@ -408,7 +408,8 @@
     <string name="ext_face_first_float_summary">Разворачивать как уведомление в фокусе</string>
     <string name="ext_animation_style">Стиль анимации</string>
     <string name="ext_animation_style_summary">Стиль замка показывает закрытый замок, а после успешной разблокировки любым способом поворачивает дужку вправо</string>
-    <string name="ext_lock">Замок</string>
+    <string name="ext_lock">Замок 1</string>
+    <string name="ext_lock_2">Замок 2</string>
     <string name="ext_face_keep">Сохранять остров после разблокировки лицом</string>
     <string name="ext_face_keep_summary">Оставлять остров на экране блокировки после распознавания лица и скрывать при переходе на рабочий стол. Другие способы разблокировки не затрагиваются</string>
     <string name="backup_restore">Резервное копирование и восстановление</string>

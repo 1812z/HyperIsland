@@ -292,7 +292,8 @@
     <string name="ext_lockscreen_device_center_summary">Substitui a página à esquerda da tela de bloqueio pela Central de dispositivos integrada. Os controles dos dispositivos ficam visíveis antes do desbloqueio. Testado apenas no OS4</string>
     <string name="ext_icon_outline">Sem plano de fundo</string>
     <string name="ext_icon_style">Estilo do ícone</string>
-    <string name="ext_lock">Bloquear</string>
+    <string name="ext_lock">Bloquear 1</string>
+    <string name="ext_lock_2">Bloquear 2</string>
     <string name="ext_manage_devices">Gerenciar lista de permissões (Whitelist)</string>
     <string name="ext_no_paired_devices">Nenhum dispositivo emparelhado. Emparelhe um dispositivo primeiro nas configurações de Bluetooth do sistema.</string>
     <string name="ext_opacity">Opacidade</string>

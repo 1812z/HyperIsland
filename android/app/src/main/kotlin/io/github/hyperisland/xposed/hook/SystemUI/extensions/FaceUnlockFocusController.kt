@@ -43,6 +43,7 @@ object FaceUnlockFocusController {
     private const val PREF_KEEP_UNTIL_KEYGUARD_HIDDEN =
         "pref_face_unlock_island_keep_until_keyguard_hidden"
     private const val ANIMATION_STYLE_LOCK = "lock"
+    private const val ANIMATION_STYLE_LOCK_2 = "lock_2"
     private const val LOCK_PICTURE_KEY_PREFIX = "miui.focus.pic_hyperisland_unlock_lock"
     private const val LOCK_FRAME_DELAY_MS = 70L
     private const val LOCK_FRAME_COUNT = 8
@@ -719,8 +720,13 @@ object FaceUnlockFocusController {
         }
     }
 
-    private fun getLockFrame(progress: Float): Bitmap =
-        lockFrameCache.getOrPut(progress.toBits()) { drawLockFrame(progress) }
+    private fun getLockFrame(progress: Float): Bitmap {
+        val style = ConfigManager.getString(PREF_ANIMATION_STYLE, "default")
+        val cacheKey = 31 * style.hashCode() + progress.toBits()
+        return lockFrameCache.getOrPut(cacheKey) {
+            if (style == ANIMATION_STYLE_LOCK_2) drawLockFrame2(progress) else drawLockFrame(progress)
+        }
+    }
 
     private fun drawLockFrame(progress: Float): Bitmap {
         val size = 192
@@ -758,8 +764,44 @@ object FaceUnlockFocusController {
         return bitmap
     }
 
+    private fun drawLockFrame2(progress: Float): Bitmap {
+        val size = 192
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            style = Paint.Style.FILL
+        }
+
+        // Project a real spatial rotation around the right hinge onto the front view.
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 13f
+        paint.strokeCap = Paint.Cap.ROUND
+        paint.strokeJoin = Paint.Join.ROUND
+        val angle = Math.toRadians((150f * progress).toDouble())
+        val horizontalScale = kotlin.math.cos(angle).toFloat()
+        fun projectX(x: Float): Float = 128f + (x - 128f) * horizontalScale
+        val shackle = Path().apply {
+            moveTo(projectX(64f), 91f)
+            lineTo(projectX(64f), 67f)
+            cubicTo(
+                projectX(64f), 39f,
+                projectX(128f), 39f,
+                projectX(128f), 67f,
+            )
+            lineTo(projectX(128f), 91f)
+        }
+        canvas.drawPath(shackle, paint)
+
+        paint.style = Paint.Style.FILL
+        canvas.drawRoundRect(RectF(48f, 86f, 144f, 164f), 24f, 24f, paint)
+
+        return bitmap
+    }
+
     private fun usesLockAnimation(): Boolean =
-        ConfigManager.getString(PREF_ANIMATION_STYLE, "default") == ANIMATION_STYLE_LOCK
+        ConfigManager.getString(PREF_ANIMATION_STYLE, "default") in
+            setOf(ANIMATION_STYLE_LOCK, ANIMATION_STYLE_LOCK_2)
 
     private fun shouldKeepFaceSuccessUntilKeyguardHidden(): Boolean =
         faceUnlockSucceeded &&

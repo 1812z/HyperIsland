@@ -457,7 +457,8 @@
     <string name="ext_face_first_float_summary">Odak bildirimi olarak genişletir</string>
     <string name="ext_animation_style">Animasyon stili</string>
     <string name="ext_animation_style_summary">Kilit stili: kilitliyken kapalı kilit gösterir, açılınca kelepçeyi sağa döndürür</string>
-    <string name="ext_lock">Kilit</string>
+    <string name="ext_lock">Kilit 1</string>
+    <string name="ext_lock_2">Kilit 2</string>
     <string name="ext_face_keep">Yüz kilidinden sonra koru</string>
     <string name="ext_face_keep_summary">Yüz tanıma sonrası kilit ekranında kalır, masaüstü görününce gizlenir. Diğer yöntemler etkilenmez</string>
     <string name="backup_restore">Yedekleme ve Geri Yükleme</string>

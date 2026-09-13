@@ -295,7 +295,8 @@
     <string name="ext_lockscreen_device_center_summary">يستبدل الصفحة الموجودة إلى يسار شاشة القفل بمركز الأجهزة المتكامل. تظهر عناصر التحكم بالأجهزة قبل إلغاء القفل. تم اختباره على OS4 فقط</string>
     <string name="ext_icon_outline">دون خلفية</string>
     <string name="ext_icon_style">نمط الأيقونة</string>
-    <string name="ext_lock">قفل</string>
+    <string name="ext_lock">قفل 1</string>
+    <string name="ext_lock_2">قفل 2</string>
     <string name="ext_manage_devices">إدارة القائمة البيضاء</string>
     <string name="ext_no_paired_devices">لا توجد أجهزة مقترنة. اقترن جهاز في إعدادات بلوتوث النظام الأول</string>
     <string name="ext_opacity">الشفافية</string>

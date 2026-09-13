@@ -463,8 +463,9 @@
     <string name="ext_face_first_float">自动展开超级岛</string>
     <string name="ext_face_first_float_summary">展开为焦点通知</string>
     <string name="ext_animation_style">动画样式</string>
-    <string name="ext_animation_style_summary">锁头样式会在锁定时显示锁头，并在任意方式解锁成功后播放右转开锁动画</string>
-    <string name="ext_lock">锁头</string>
+    <string name="ext_animation_style_summary">锁头样式会在锁定时显示锁头，并在任意方式解锁成功后播放向右开锁动画</string>
+    <string name="ext_lock">锁头 1</string>
+    <string name="ext_lock_2">锁头 2</string>
     <string name="ext_face_keep">人脸解锁后保留岛</string>
     <string name="ext_face_keep_summary">人脸识别成功后仍在锁屏界面显示，进入桌面时隐藏；其他解锁方式不受影响</string>
     <string name="backup_restore">备份与恢复</string>

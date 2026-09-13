@@ -59,6 +59,7 @@ internal const val MODE_TEMPERATURE = "temperature"
 internal const val DURATION_CUSTOM = "custom"
 internal const val DURATION_PERSISTENT = "persistent"
 internal const val ANIMATION_LOCK = "lock"
+internal const val ANIMATION_LOCK_2 = "lock_2"
 internal const val HEART_RATE_READ_MODE_BROADCAST = "heart_rate_broadcast"
 
 internal const val DEFAULT_SMOOTHING = 0.8

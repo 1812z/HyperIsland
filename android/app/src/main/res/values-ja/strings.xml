@@ -408,7 +408,8 @@
     <string name="ext_face_first_float_summary">フォーカス通知として展開します</string>
     <string name="ext_animation_style">アニメーションスタイル</string>
     <string name="ext_animation_style_summary">ロックスタイルではロック中に錠前を表示し、いずれかの方法で解除に成功するとシャックルが右に回転します</string>
-    <string name="ext_lock">錠前</string>
+    <string name="ext_lock">錠前 1</string>
+    <string name="ext_lock_2">錠前 2</string>
     <string name="ext_face_keep">顔認証後もアイランドを保持</string>
     <string name="ext_face_keep_summary">顔認証成功後もロック画面に表示し、ホーム画面に入ると非表示にします。他の解除方法には影響しません</string>
     <string name="backup_restore">バックアップと復元</string>
