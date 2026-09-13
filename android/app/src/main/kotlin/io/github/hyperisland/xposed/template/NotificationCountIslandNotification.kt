@@ -3,6 +3,11 @@ package io.github.hyperisland.xposed.templates
 import android.content.Context
 import android.os.Bundle
 import android.graphics.drawable.Icon
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Color
+import android.graphics.Typeface
 import io.github.hyperisland.xposed.template.core.contracts.IslandTemplate
 import io.github.hyperisland.xposed.template.core.models.IslandViewModel
 import io.github.hyperisland.xposed.template.core.models.NotifData
@@ -42,11 +47,13 @@ object NotificationCountIslandNotification : IslandTemplate {
         }
         val fallback = Icon.createWithResource(context, android.R.drawable.ic_dialog_info)
         val icon = (data.largeIcon ?: data.notifIcon ?: data.appIconRaw ?: fallback).toRounded(context)
+        val countIcon = createCountIcon(context, count)
         // 数量岛必须独立代发；不修改原始通知 extras，展开时原通知内容保持不变。
         val posted = IslandDispatcher.post(context, IslandRequest(
             title = "",
             content = count.toString(),
             icon = icon,
+            rightIcon = countIcon,
             timeoutSecs = data.islandTimeout,
             firstFloat = data.firstFloat == "on",
             enableFloat = data.enableFloatMode == "on",
@@ -67,5 +74,31 @@ object NotificationCountIslandNotification : IslandTemplate {
             bypassSceneBehavior = false,
         ))
         log("count-trace template post pkg=${data.pkg} count=$count posted=$posted notifId=${IslandDispatcher.NOTIF_ID} updatable=true")
+    }
+
+    /** Gray circular badge used by the right island area; the text remains the expanded content. */
+    private fun createCountIcon(context: Context, count: Int): Icon {
+        val density = context.resources.displayMetrics.density
+        val size = (40f * density).toInt().coerceAtLeast(40)
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val center = size / 2f
+        val radius = size * 0.46f
+        val circle = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(110, 110, 110) }
+        canvas.drawCircle(center, center, radius, circle)
+        val label = count.coerceAtLeast(0).let { if (it > 99) "99+" else it.toString() }
+        val text = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            textAlign = Paint.Align.CENTER
+            typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            textSize = when {
+                label.length >= 3 -> size * 0.27f
+                label.length == 2 -> size * 0.34f
+                else -> size * 0.44f
+            }
+        }
+        val baseline = center - (text.ascent() + text.descent()) / 2f
+        canvas.drawText(label, center, baseline, text)
+        return Icon.createWithBitmap(bitmap)
     }
 }

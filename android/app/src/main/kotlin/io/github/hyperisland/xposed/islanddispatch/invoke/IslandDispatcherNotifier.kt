@@ -74,6 +74,9 @@ internal object IslandDispatcherNotifier {
             )
 
             islandBuilder.addPicture(HyperPicture("key_island_icon", appIcon))
+            request.rightIcon?.let {
+                islandBuilder.addPicture(HyperPicture("key_right_island_icon", it))
+            }
             if (!request.islandOnly) {
                 islandBuilder.addPicture(HyperPicture("key_focus_icon", appIcon))
                 islandBuilder.setIconTextInfo(
@@ -117,16 +120,22 @@ internal object IslandDispatcherNotifier {
                         ),
                     )
                 }
+                val bigIslandRight = request.rightIcon?.let {
+                    ImageTextInfoRight(
+                        type = 1,
+                        picInfo = PicInfo(type = 1, pic = "key_right_island_icon"),
+                    )
+                } ?: ImageTextInfoRight(
+                    type = 2,
+                    textInfo = TextInfo(
+                        title = request.content,
+                        narrowFont = request.showRightNarrowFont,
+                        showHighlightColor = request.showRightHighlightColor,
+                    ),
+                )
                 islandBuilder.setBigIslandInfo(
                     left = bigIslandLeft,
-                    right = ImageTextInfoRight(
-                        type = 2,
-                        textInfo = TextInfo(
-                            title = request.content,
-                            narrowFont = request.showRightNarrowFont,
-                            showHighlightColor = request.showRightHighlightColor,
-                        ),
-                    ),
+                    right = bigIslandRight,
                 )
             }
 

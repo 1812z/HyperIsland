@@ -11,6 +11,8 @@ data class IslandRequest(
     val title: String,
     val content: String,
     val icon: Icon? = null,
+    /** Optional icon rendered in the right side of the expanded island. */
+    val rightIcon: Icon? = null,
     val notifId: Int = IslandDispatchContract.NOTIF_ID,
     val timeoutSecs: Int = 5,
     val firstFloat: Boolean = true,
@@ -59,6 +61,7 @@ data class IslandRequest(
         putString(KEY_TITLE, title)
         putString(KEY_CONTENT, content)
         putParcelable(KEY_ICON, icon)
+        putParcelable(KEY_RIGHT_ICON, rightIcon)
         putParcelable(KEY_AOD_ICON, aodIcon)
         putInt(KEY_NOTIF_ID, notifId)
         putInt(KEY_TIMEOUT, timeoutSecs)
@@ -107,6 +110,7 @@ data class IslandRequest(
         private const val KEY_TITLE = "title"
         private const val KEY_CONTENT = "content"
         private const val KEY_ICON = "icon"
+        private const val KEY_RIGHT_ICON = "rightIcon"
         private const val KEY_AOD_ICON = "aodIcon"
         private const val KEY_NOTIF_ID = "notifId"
         private const val KEY_TIMEOUT = "timeoutSecs"
@@ -155,6 +159,7 @@ data class IslandRequest(
             title = b.getString(KEY_TITLE, ""),
             content = b.getString(KEY_CONTENT, ""),
             icon = iconFromBundle(b),
+            rightIcon = iconFromBundle(b, KEY_RIGHT_ICON),
             aodIcon = iconFromBundle(b, KEY_AOD_ICON),
             notifId = b.getInt(KEY_NOTIF_ID, IslandDispatchContract.NOTIF_ID),
             timeoutSecs = b.getInt(KEY_TIMEOUT, 5),
