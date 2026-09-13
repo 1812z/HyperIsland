@@ -246,10 +246,20 @@ object MarqueeHook : BaseHook() {
     }
 
     private fun unregisterScrollingView(textView: TextView) {
-        val island = findBigIslandView(textView) ?: return
-        val session = islandAutoHideSessions[island] ?: return
-        if (session.scrollingViews.remove(textView) != null) {
-            scheduleFallbackIfNeeded(island, session)
+        val island = findBigIslandView(textView)
+        if (island != null) {
+            val session = islandAutoHideSessions[island]
+            if (session != null && session.scrollingViews.remove(textView) != null) {
+                scheduleFallbackIfNeeded(island, session)
+            }
+            return
+        }
+        // View detached 后已经没有父链，无法通过 findBigIslandView 找到原岛。
+        // 从所有会话中清理，避免 override timeout 永远等待一个已移除的 TextView。
+        islandAutoHideSessions.forEach { (candidateIsland, session) ->
+            if (session.scrollingViews.remove(textView) != null) {
+                scheduleFallbackIfNeeded(candidateIsland, session)
+            }
         }
     }
 
