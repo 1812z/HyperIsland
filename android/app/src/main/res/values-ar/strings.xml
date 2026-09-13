@@ -802,6 +802,7 @@
     <string name="telegram_summary">HyperIsland_Module</string>
     <string name="template_ai_notification">إشعار HyperIsland بالذكاء الصناعي</string>
     <string name="template_notification">إشعار HyperIsland</string>
+    <string name="template_notification_count">HyperIsland لعدد الإشعارات</string>
     <string name="template_percent">%1$d بالمئة.</string>
     <string name="template_progress">تنزيل</string>
     <string name="theme">المظهر</string>

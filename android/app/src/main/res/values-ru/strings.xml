@@ -816,6 +816,7 @@
     <string name="channel_renderer">Стиль</string>
     <string name="template_progress">Загрузка</string>
     <string name="template_notification">HyperIsland для уведомлений</string>
+    <string name="template_notification_count">HyperIsland для подсчёта уведомлений</string>
     <string name="template_ai_notification">HyperIsland для ИИ-уведомлений</string>
     <string name="renderer_image_text_buttons">Изображение+Текст+Текстовые кнопки внизу</string>
     <string name="renderer_image_text_wrap">Инфо об обложке+Автоперенос</string>

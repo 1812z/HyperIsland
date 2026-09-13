@@ -816,6 +816,7 @@
     <string name="channel_renderer">スタイル</string>
     <string name="template_progress">ダウンロード</string>
     <string name="template_notification">通知HyperIsland</string>
+    <string name="template_notification_count">通知数HyperIsland</string>
     <string name="template_ai_notification">AI通知HyperIsland</string>
     <string name="renderer_image_text_buttons">画像 + テキスト + 下部テキストボタン</string>
     <string name="renderer_image_text_wrap">カバー情報 + 自動で折りたたみ</string>
