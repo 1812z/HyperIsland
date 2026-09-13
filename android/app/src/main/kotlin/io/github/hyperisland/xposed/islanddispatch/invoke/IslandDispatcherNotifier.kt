@@ -122,7 +122,8 @@ internal object IslandDispatcherNotifier {
                 }
                 val bigIslandRight = request.rightIcon?.let {
                     ImageTextInfoRight(
-                        type = 1,
+                        // SystemUI's right-side image-only module is type 3.
+                        type = 3,
                         picInfo = PicInfo(type = 1, pic = "key_right_island_icon"),
                     )
                 } ?: ImageTextInfoRight(
