@@ -401,6 +401,7 @@ object ConfigManager {
         "pref_face_unlock_island_animation_style",
         "pref_face_unlock_island_keep_until_keyguard_hidden",
         "pref_hide_lockscreen_face_unlock_icon",
+        "pref_lockscreen_negative_page_mode",
         "pref_default_first_float",
         "pref_default_enable_float",
         "pref_default_show_island_icon",

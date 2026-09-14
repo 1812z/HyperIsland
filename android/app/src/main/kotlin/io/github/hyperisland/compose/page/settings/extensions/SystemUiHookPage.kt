@@ -10,10 +10,12 @@ import androidx.compose.ui.res.stringResource
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.PreferenceSlider
 import io.github.hyperisland.compose.component.PreferenceSwitch
+import io.github.hyperisland.compose.component.PreferenceDropdown
 import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.component.SettingsAction
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.rememberBooleanPreference
+import io.github.hyperisland.compose.data.rememberStringPreference
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -36,6 +38,11 @@ internal fun SystemUiHookPage(
         mutableFloatStateOf(prefs.getDouble(KEY_SMOOTHING, DEFAULT_SMOOTHING).toFloat())
     }
     val lockscreenDeviceCenter = rememberBooleanPreference(prefs, KEY_LOCKSCREEN_DEVICE_CENTER, false)
+    val lockscreenPageMode = rememberStringPreference(
+        prefs,
+        KEY_LOCKSCREEN_NEGATIVE_PAGE_MODE,
+        LOCKSCREEN_PAGE_MODE_DEVICE_CENTER,
+    )
     val unlockAll = rememberBooleanPreference(prefs, KEY_UNLOCK_ALL_FOCUS, false)
     val bluetooth = rememberBooleanPreference(prefs, KEY_BLUETOOTH_ISLAND, false)
     val heartRate = rememberBooleanPreference(prefs, KEY_HEART_RATE_ISLAND, false)
@@ -102,6 +109,27 @@ internal fun SystemUiHookPage(
                     ) {
                         lockscreenDeviceCenter.value = value
                         prefs.putBoolean(KEY_LOCKSCREEN_DEVICE_CENTER, value)
+                        actions.show(restartRequired)
+                    }
+                }
+                AnimatedVisibility(lockscreenDeviceCenter.value) {
+                    PreferenceDropdown(
+                        title = stringResource(R.string.ext_lockscreen_negative_page_mode),
+                        summary = stringResource(R.string.ext_lockscreen_negative_page_mode_summary),
+                        icon = null,
+                        items = listOf(
+                            stringResource(R.string.ext_lockscreen_page_device_center),
+                            stringResource(R.string.ext_lockscreen_page_widgets),
+                        ),
+                        selectedIndex = if (lockscreenPageMode.value == LOCKSCREEN_PAGE_MODE_WIDGETS) 1 else 0,
+                    ) { index ->
+                        val mode = if (index == 1) {
+                            LOCKSCREEN_PAGE_MODE_WIDGETS
+                        } else {
+                            LOCKSCREEN_PAGE_MODE_DEVICE_CENTER
+                        }
+                        lockscreenPageMode.value = mode
+                        prefs.putString(KEY_LOCKSCREEN_NEGATIVE_PAGE_MODE, mode)
                         actions.show(restartRequired)
                     }
                 }

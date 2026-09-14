@@ -9,11 +9,26 @@ object LockscreenNegativePageHook : BaseHook() {
     override fun getTag() = "HyperIsland[LockscreenNegativePage]"
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
-        val page = LockscreenDeviceCenterHook.page
         when (param.packageName) {
-            "com.android.systemui" ->
-                LockscreenActivityPageHook.install(module, param.defaultClassLoader, page)
-            page.packageName -> LockscreenDeviceCenterHook.init(module, param)
+            "com.android.systemui" -> {
+                if (LockscreenWidgetPageHook.isWidgetMode()) {
+                    // Widget mode replaces the page content in-process and reuses the local
+                    // translation path. The device-center hooks must not run: they hide the very
+                    // container the widget page lives in.
+                    LockscreenWidgetPageHook.install(module, param.defaultClassLoader)
+                } else {
+                    LockscreenActivityPageHook.install(
+                        module,
+                        param.defaultClassLoader,
+                        LockscreenDeviceCenterHook.page,
+                    )
+                }
+            }
+            LockscreenDeviceCenterHook.page.packageName -> {
+                if (!LockscreenWidgetPageHook.isWidgetMode()) {
+                    LockscreenDeviceCenterHook.init(module, param)
+                }
+            }
         }
     }
 }
