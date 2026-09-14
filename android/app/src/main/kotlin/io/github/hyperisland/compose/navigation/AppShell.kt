@@ -313,28 +313,31 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
         liquidGlassEnabled = floatingNavigationBar.value && liquidGlassNavigationBar.value,
         captureForEffects = detailNavigationState.requiresBackdropCapture(detailShown),
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            Scaffold(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .predictiveNavigationBackground(detailNavigationState),
-                snackbarHost = { SnackbarHost(rootSnackbarState) },
-                bottomBar = {
-                    // Keep the Scaffold slot measured so page content keeps the bottom-bar padding.
-                    Box(modifier = Modifier.graphicsLayer { alpha = 0f }) {
-                        RootBottomBar()
-                    }
-                },
-            ) { padding ->
-                BarBackdropContent(modifier = Modifier.fillMaxSize()) {
-                    CompositionLocalProvider(
-                        LocalRootBottomBarPadding provides padding.calculateBottomPadding(),
-                    ) {
-                        HorizontalPager(
-                            state = pagerState,
-                            modifier = Modifier.fillMaxSize(),
-                            beyondViewportPageCount = 1,
-                        ) { page ->
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            snackbarHost = { SnackbarHost(rootSnackbarState) },
+            bottomBar = {
+                // Reserve bottom-bar space while the independently animated bar stays above detail layers.
+                Box(modifier = Modifier.graphicsLayer { alpha = 0f }) {
+                    RootBottomBar()
+                }
+            },
+        ) { padding ->
+            Box(modifier = Modifier.fillMaxSize()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .predictiveNavigationBackground(detailNavigationState),
+                ) {
+                    BarBackdropContent(modifier = Modifier.fillMaxSize()) {
+                        CompositionLocalProvider(
+                            LocalRootBottomBarPadding provides padding.calculateBottomPadding(),
+                        ) {
+                            HorizontalPager(
+                                state = pagerState,
+                                modifier = Modifier.fillMaxSize(),
+                                beyondViewportPageCount = 1,
+                            ) { page ->
                             when (page) {
                                 0 -> OverviewPage(
                                     state = homeOverviewState,
@@ -420,22 +423,22 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                     },
                                 )
                             }
+                            }
                         }
                     }
                 }
-            }
 
-            PredictiveNavigationBackdrop(
-                state = detailNavigationState,
-                modifier = Modifier.fillMaxSize(),
-            )
+                PredictiveNavigationBackdrop(
+                    state = detailNavigationState,
+                    modifier = Modifier.fillMaxSize(),
+                )
 
-            BarBlurHost(
+                BarBlurHost(
                 enabled = blurBars.value,
                 captureForEffects = nestedNavigationState.requiresBackdropCapture(
                     nestedDetailShown,
                 ),
-            ) {
+                ) {
                 BarBackdropContent(modifier = Modifier.fillMaxSize()) {
                     PredictiveNavigationLayer(
                         visible = detailShown,
@@ -631,17 +634,18 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                         )
                     }
                 }
-            }
+                }
 
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .graphicsLayer {
-                        translationY = size.height * bottomBarProgress.value
-                        alpha = 1f - bottomBarProgress.value
-                    },
-            ) {
-                RootBottomBar()
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .graphicsLayer {
+                            translationY = size.height * bottomBarProgress.value
+                            alpha = 1f - bottomBarProgress.value
+                        },
+                ) {
+                    RootBottomBar()
+                }
             }
         }
     }
