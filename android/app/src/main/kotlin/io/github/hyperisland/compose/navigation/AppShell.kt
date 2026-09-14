@@ -6,8 +6,11 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Spacer
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -26,6 +29,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.stringResource
 import io.github.hyperisland.BuildConfig
 import io.github.hyperisland.R
@@ -163,6 +168,8 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     val nestedNavigationState = rememberPredictiveNavigationLayerState()
     val extensionNavigationState = rememberPredictiveNavigationLayerState()
     val bottomBarProgress = remember { Animatable(0f) }
+    var bottomBarHeightPx by remember { mutableIntStateOf(0) }
+    val density = LocalDensity.current
 
     @Composable
     fun RootBottomBar() {
@@ -317,10 +324,12 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
             modifier = Modifier.fillMaxSize(),
             snackbarHost = { SnackbarHost(rootSnackbarState) },
             bottomBar = {
-                // Reserve bottom-bar space while the independently animated bar stays above detail layers.
-                Box(modifier = Modifier.graphicsLayer { alpha = 0f }) {
-                    RootBottomBar()
-                }
+                // Reserve space without composing a transparent, clickable second navigation bar.
+                Spacer(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(with(density) { bottomBarHeightPx.toDp() }),
+                )
             },
         ) { padding ->
             Box(modifier = Modifier.fillMaxSize()) {
@@ -639,6 +648,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
+                        .onSizeChanged { bottomBarHeightPx = it.height }
                         .graphicsLayer {
                             translationY = size.height * bottomBarProgress.value
                             alpha = 1f - bottomBarProgress.value
