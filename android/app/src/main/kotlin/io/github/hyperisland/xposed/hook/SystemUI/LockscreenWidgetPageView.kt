@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI
 
+import android.animation.ArgbEvaluator
+import android.animation.ValueAnimator
 import android.appwidget.AppWidgetHost
 import android.appwidget.AppWidgetHostView
 import android.appwidget.AppWidgetManager
@@ -8,8 +10,14 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.res.Configuration
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.LinearGradient
+import android.graphics.Paint
+import android.graphics.RectF
+import android.graphics.Shader
 import android.graphics.Typeface
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
@@ -34,6 +42,8 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.view.inputmethod.InputMethodManager
+import java.lang.reflect.Method
+import java.util.ArrayList
 import kotlin.math.roundToInt
 
 /**
@@ -56,6 +66,8 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
     private val scroll: ScrollView
     private val emptyHint: TextView
     private val addButton: TextView
+    private var deleteZone: TextView? = null
+    private var deleteZoneDanger = false
     private var picker: View? = null
     private var listening = false
     private var pickerProviders: List<AppWidgetProviderInfo> = emptyList()
@@ -63,7 +75,6 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
     private var pickerList: LinearLayout? = null
     private var pickerSearch: EditText? = null
     private var pickerQuery = ""
-    private var pickerBatch = 0
     private var pickerPackage: String? = null
     private val pickerAppRows = ArrayList<View>()
     private var imeWindowState: Pair<Int, Int>? = null
@@ -172,6 +183,24 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         root.addView(header)
         root.addView(scroll, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
         addView(root, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+        deleteZone = TextView(context).apply {
+            text = "×"
+            setTextColor(Color.WHITE)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 30f)
+            gravity = Gravity.CENTER
+            alpha = 0f
+            scaleX = 0.72f
+            scaleY = 0.72f
+            visibility = INVISIBLE
+            elevation = dp(12f).toFloat()
+            background = circle(Color.argb(220, 90, 90, 96))
+            contentDescription = "拖到这里删除小组件"
+        }.also { zone ->
+            addView(zone, LayoutParams(dp(64f), dp(64f)).apply {
+                gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+                bottomMargin = dp(30f)
+            })
+        }
     }
 
     override fun onAttachedToWindow() {
@@ -190,6 +219,7 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
         restoreDragClipping()
+        hideDeleteZone(immediate = true)
         if (!listening) return
         listening = false
         runCatching { widgetHost.stopListening() }
@@ -401,6 +431,9 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         cell.removeView(cell.hostView)
         cell.hostView = replacement
         cell.addView(replacement, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+        cell.materialView.visibility = INVISIBLE
+        cell.updateFallbackBackground(replacement)
+        WidgetMaterialEffect.apply(replacement)
         replacement.requestLayout()
         replacement.invalidate()
     }
@@ -484,6 +517,9 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         hostView.clipToOutline = true
         hostView.outlineProvider = roundedOutline(dp(22f).toFloat())
         cell.addView(hostView, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+        cell.materialView.visibility = INVISIBLE
+        cell.updateFallbackBackground(hostView)
+        WidgetMaterialEffect.apply(hostView)
         cell.applyCardBackground()
         cell.spanX = metrics.spanX
         cell.spanY = metrics.spanY
@@ -668,7 +704,7 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         val overlay = buildPickerOverlay(providers)
         picker = overlay
         addView(overlay, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
-        schedulePickerRows()
+        renderPickerRows()
         pickerSearch?.let { search ->
             search.requestFocus()
             search.postDelayed({
@@ -703,7 +739,6 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
     }
 
     private fun dismissPicker() {
-        mainHandler.removeCallbacksAndMessages(PICKER_TOKEN)
         picker?.let(::removeView)
         picker = null
         pickerProviders = emptyList()
@@ -711,7 +746,6 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         pickerList = null
         pickerSearch = null
         pickerQuery = ""
-        pickerBatch = 0
         pickerPackage = null
         pickerAppRows.clear()
     }
@@ -737,36 +771,49 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         val header = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(22f), dp(20f), dp(22f), dp(10f))
+            setPadding(dp(16f), dp(20f), dp(16f), dp(10f))
+        }
+        val backButton = TextView(context).apply {
+            text = "‹"
+            contentDescription = "返回"
+            setTextColor(primaryTextColor())
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 28f)
+            gravity = Gravity.CENTER
+            background = circle(Color.argb(46, 255, 255, 255))
+            layoutParams = LinearLayout.LayoutParams(dp(40f), dp(40f)).apply {
+                marginEnd = dp(12f)
+            }
+            setOnClickListener {
+                if (pickerPackage == null) {
+                    dismissPicker()
+                } else {
+                    pickerPackage = null
+                    pickerQuery = ""
+                    pickerSearch?.setText("")
+                    renderPickerRows()
+                    (picker?.findViewWithTag<View>("picker-title") as? TextView)?.text = PICKER_TITLE
+                }
+            }
         }
         val title = TextView(context).apply {
-            text = if (pickerPackage == null) PICKER_TITLE else pickerPackageLabel(pickerPackage!!)
+            text = PICKER_TITLE
             tag = "picker-title"
             setTextColor(primaryTextColor())
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         }
-        lateinit var closeButton: TextView
-        closeButton = TextView(context).apply {
-            text = if (pickerPackage == null) "×" else "‹"
+        val closeButton = TextView(context).apply {
+            text = "×"
+            contentDescription = "退出添加小组件"
             setTextColor(primaryTextColor())
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
             gravity = Gravity.CENTER
             background = circle(Color.argb(46, 255, 255, 255))
             layoutParams = LinearLayout.LayoutParams(dp(36f), dp(36f))
-            setOnClickListener {
-                if (pickerPackage == null) dismissPicker()
-                else {
-                    pickerPackage = null
-                    title.text = PICKER_TITLE
-                    closeButton.text = "×"
-                    pickerQuery = ""
-                    pickerSearch?.setText("")
-                    renderPickerRows()
-                }
-            }
+            setOnClickListener { dismissPicker() }
         }
+        header.addView(backButton)
         header.addView(title)
         header.addView(closeButton)
         container.addView(header)
@@ -776,7 +823,6 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         pickerProviders = providers
         pickerRows.clear()
         pickerAppRows.clear()
-        pickerBatch = 0
         val search = EditText(context).apply {
             hint = PICKER_SEARCH_HINT
             setTextColor(primaryTextColor())
@@ -798,17 +844,6 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         }
         pickerSearch = search
         container.addView(search)
-        if (providers.isEmpty()) {
-            list.addView(
-                TextView(context).apply {
-                    text = PICKER_EMPTY
-                    setTextColor(secondaryTextColor())
-                    setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
-                    gravity = Gravity.CENTER
-                    setPadding(dp(24f), dp(60f), dp(24f), dp(60f))
-                },
-            )
-        }
         search.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -834,38 +869,12 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         return overlay
     }
 
-    private fun schedulePickerRows() {
-        if (pickerBatch >= pickerProviders.size || pickerList == null) return
-        if (pickerPackage == null) {
-            renderPickerRows()
-            return
-        }
-        val start = pickerBatch
-        val end = (start + PICKER_BATCH_SIZE).coerceAtMost(pickerProviders.size)
-        pickerBatch = end
-        mainHandler.postAtTime({
-            if (picker == null) return@postAtTime
-            val list = pickerList ?: return@postAtTime
-            for (index in start until end) {
-                val info = pickerProviders[index]
-                val row = buildPickerRow(info).apply {
-                    visibility = if (matchesPickerQuery(info, pickerQuery)) VISIBLE else GONE
-                }
-                pickerRows += info to row
-                list.addView(row)
-            }
-            schedulePickerRows()
-        }, PICKER_TOKEN, SystemClock.uptimeMillis() + 16L)
-    }
-
     /** Rebuilds the sheet body when switching between application and widget pages. */
     private fun renderPickerRows() {
-        mainHandler.removeCallbacksAndMessages(PICKER_TOKEN)
         val list = pickerList ?: return
         list.removeAllViews()
         pickerRows.clear()
         pickerAppRows.clear()
-        pickerBatch = 0
         if (pickerPackage == null) {
             pickerProviders.groupBy { it.provider?.packageName.orEmpty() }
                 .toSortedMap()
@@ -884,6 +893,7 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
             }
             if (providers.isEmpty()) list.addView(pickerEmptyView())
         }
+        filterPickerRows(pickerQuery)
     }
 
     private fun pickerEmptyView(): View = TextView(context).apply {
@@ -911,9 +921,8 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
                 pickerPackage = packageName
                 pickerSearch?.setText("")
                 renderPickerRows()
-                (picker?.findViewWithTag<View>("picker-title"))?.let { titleView ->
-                    (titleView as? TextView)?.text = pickerPackageLabel(packageName)
-                }
+                (picker?.findViewWithTag<View>("picker-title") as? TextView)?.text =
+                    pickerPackageLabel(packageName)
             }
         }
         val icon = ImageView(context).apply {
@@ -976,14 +985,17 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
 
     private fun buildPickerRow(info: AppWidgetProviderInfo): View {
         val row = LinearLayout(context).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(18f), dp(10f), dp(18f), dp(10f))
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(18f), dp(12f), dp(18f), dp(12f))
             isClickable = true
             setOnClickListener {
                 dismissPicker()
                 addWidget(info)
             }
+        }
+        val heading = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
         }
         val icon = ImageView(context).apply {
             layoutParams = LinearLayout.LayoutParams(dp(36f), dp(36f)).apply { marginEnd = dp(14f) }
@@ -1006,19 +1018,61 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
             })
         }
-        row.addView(icon)
-        row.addView(labels)
-        row.addView(TextView(context).apply {
+        heading.addView(icon)
+        heading.addView(labels)
+        heading.addView(TextView(context).apply {
             text = "›"
             setTextColor(secondaryTextColor())
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 28f)
             gravity = Gravity.CENTER
         })
-        runCatching {
+        row.addView(heading)
+
+        val preview = runCatching {
             info.loadPreviewImage(context, resources.displayMetrics.densityDpi)
-        }.getOrNull()?.let { preview ->
-            icon.setImageDrawable(preview)
+        }.getOrNull()
+        val previewHeight = if (preview != null && preview.intrinsicWidth > 0 &&
+            preview.intrinsicHeight > 0
+        ) {
+            (resources.displayMetrics.widthPixels.toFloat() *
+                preview.intrinsicHeight / preview.intrinsicWidth)
+                .roundToInt().coerceIn(dp(120f), dp(220f))
+        } else {
+            dp(136f)
         }
+        val previewCard = FrameLayout(context).apply {
+            background = roundedBackground(
+                if (isDarkMode()) Color.argb(34, 255, 255, 255)
+                else Color.argb(23, 0, 0, 0),
+                dp(18f).toFloat(),
+            )
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                previewHeight,
+            ).apply { topMargin = dp(12f) }
+            setPadding(dp(12f), dp(12f), dp(12f), dp(12f))
+        }
+        if (preview != null) {
+            previewCard.addView(ImageView(context).apply {
+                setImageDrawable(preview)
+                scaleType = ImageView.ScaleType.FIT_CENTER
+                contentDescription = "小组件预览"
+            }, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT,
+            ))
+        } else {
+            previewCard.addView(TextView(context).apply {
+                text = "此小组件未提供预览"
+                setTextColor(secondaryTextColor())
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                gravity = Gravity.CENTER
+            }, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT,
+            ))
+        }
+        row.addView(previewCard)
         return row
     }
 
@@ -1071,8 +1125,57 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         setColor(color)
     }
 
+    private fun showDeleteZone() {
+        val zone = deleteZone ?: return
+        zone.animate().cancel()
+        zone.visibility = VISIBLE
+        zone.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(180L)
+            .setInterpolator(android.view.animation.DecelerateInterpolator(1.5f)).start()
+    }
+
+    private fun hideDeleteZone(immediate: Boolean = false) {
+        val zone = deleteZone ?: return
+        deleteZoneDanger = false
+        zone.animate().cancel()
+        if (immediate) {
+            zone.alpha = 0f
+            zone.scaleX = 0.72f
+            zone.scaleY = 0.72f
+            zone.visibility = INVISIBLE
+        } else {
+            zone.animate().alpha(0f).scaleX(0.72f).scaleY(0.72f).setDuration(160L)
+                .withEndAction { zone.visibility = INVISIBLE }.start()
+        }
+    }
+
+    private fun isOverDeleteZone(rawX: Float, rawY: Float): Boolean {
+        val zone = deleteZone ?: return false
+        if (zone.visibility != VISIBLE || zone.alpha < 0.5f) return false
+        val location = IntArray(2).also(zone::getLocationOnScreen)
+        return rawX >= location[0] && rawX <= location[0] + zone.width &&
+            rawY >= location[1] && rawY <= location[1] + zone.height
+    }
+
+    private fun updateDeleteZone(rawX: Float, rawY: Float) {
+        val over = isOverDeleteZone(rawX, rawY)
+        if (over == deleteZoneDanger) return
+        deleteZoneDanger = over
+        val zone = deleteZone ?: return
+        val from = if (over) Color.argb(220, 90, 90, 96) else Color.rgb(90, 90, 96)
+        val to = if (over) Color.rgb(220, 55, 58) else Color.argb(220, 90, 90, 96)
+        val drawable = zone.background as? GradientDrawable ?: return
+        ValueAnimator.ofObject(ArgbEvaluator(), from, to).apply {
+            duration = 180L
+            addUpdateListener { drawable.setColor(it.animatedValue as Int) }
+            start()
+        }
+        zone.animate().scaleX(if (over) 1.14f else 1f).scaleY(if (over) 1.14f else 1f)
+            .setDuration(160L).start()
+    }
+
     private inner class WidgetCell(val appWidgetId: Int) : FrameLayout(context) {
         lateinit var hostView: AppWidgetHostView
+        val materialView = View(context)
         var spanX: Int = 1
         var spanY: Int = 1
         private var dragOriginX = 0f
@@ -1087,6 +1190,7 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         private var downX = 0f
         private var downY = 0f
         private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
+        private val materialBackground = WidgetMaterialBackground { isDarkMode() }
         private val longPressRunnable = Runnable {
             if (!isAttachedToWindow || longPressTriggered || horizontalGesture || gestureCancelled ||
                 kotlin.math.hypot(lastRawX - downX, lastRawY - downY) > touchSlop
@@ -1103,21 +1207,42 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         }
 
         init {
+            addView(materialView, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
             applyCardBackground()
             isClickable = true
         }
 
         fun applyCardBackground() {
-            // Disabled temporarily for comparison: provider background only, without an extra
-            // module card surface that can produce a visible double background.
             background = null
+            if (materialView.background !== materialBackground) {
+                materialView.background = materialBackground
+            }
+            materialView.clipToOutline = true
+            materialView.outlineProvider = roundedOutline(dp(22f).toFloat())
             clipToOutline = true
             outlineProvider = roundedOutline(dp(22f).toFloat())
+            materialBackground.invalidateSelf()
+        }
+
+        fun updateFallbackBackground(hostView: AppWidgetHostView) {
+            // A system-material widget owns its own translucent surface. Keeping the local
+            // fallback underneath it makes HyperOS blur that fallback again and darkens it.
+            val frame = hostView.findViewById<View>(android.R.id.widget_frame)
+            val hasProviderSurface = frame?.background != null || hostView.background != null
+            if (hasProviderSurface) materialView.visibility = INVISIBLE
         }
 
         override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
             super.onLayout(changed, left, top, right, bottom)
             applyCardBackground()
+        }
+
+        override fun onAttachedToWindow() {
+            super.onAttachedToWindow()
+        }
+
+        override fun onDetachedFromWindow() {
+            super.onDetachedFromWindow()
         }
 
         override fun onInterceptTouchEvent(ev: MotionEvent): Boolean = false
@@ -1179,11 +1304,15 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
                     movedAfterLongPress = true
                     translationX = ev.rawX - dragOriginX
                     translationY = ev.rawY - dragOriginY
-                    reorderByDrag(this, ev.rawX, ev.rawY)
+                    updateDeleteZone(ev.rawX, ev.rawY)
+                    if (!deleteZoneDanger) reorderByDrag(this, ev.rawX, ev.rawY)
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     removeCallbacks(longPressRunnable)
-                    if (dragging) finishDrag(ev.actionMasked == MotionEvent.ACTION_UP)
+                    if (dragging) {
+                        val delete = ev.actionMasked == MotionEvent.ACTION_UP && deleteZoneDanger
+                        finishDrag(ev.actionMasked == MotionEvent.ACTION_UP, delete)
+                    }
                     longPressTriggered = false
                     dragging = false
                     movedAfterLongPress = false
@@ -1199,6 +1328,7 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
             allowDragOutsideViewport(this)
             pendingOrder = cells.toMutableList()
             pendingDragIndex = cells.indexOf(this)
+            showDeleteZone()
             translationZ = dp(16f).toFloat()
             animate().cancel()
             animate()
@@ -1209,8 +1339,27 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
                 .start()
         }
 
-        private fun finishDrag(commit: Boolean) {
+        private fun finishDrag(commit: Boolean, delete: Boolean = false) {
             widgetDragActive = false
+            if (delete) {
+                hideDeleteZone()
+                animate().cancel()
+                animate().alpha(0f).scaleX(0.72f).scaleY(0.72f)
+                    .setDuration(180L)
+                    .setInterpolator(android.view.animation.DecelerateInterpolator(1.4f))
+                    .withEndAction {
+                        alpha = 1f
+                        scaleX = 1f
+                        scaleY = 1f
+                        removeCell(this)
+                    }
+                    .start()
+                pendingOrder = null
+                pendingDragIndex = -1
+                restoreDragClipping()
+                return
+            }
+            hideDeleteZone()
             val order = pendingOrder
             val targetSlot = if (commit && order != null) computeGridSlots(order)[this] else null
             if (!commit) {
@@ -1275,8 +1424,6 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         private const val PICKER_TITLE = "添加小组件"
         private const val PICKER_SEARCH_HINT = "搜索小组件"
         private const val PICKER_EMPTY = "没有可添加的小组件"
-        private const val PICKER_TOKEN = "widget-picker"
-        private const val PICKER_BATCH_SIZE = 8
         private val DARK_PICKER_BACKGROUND = Color.argb(250, 12, 12, 16)
         private val LIGHT_PICKER_BACKGROUND = Color.argb(250, 248, 248, 250)
     }
@@ -1287,4 +1434,112 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         val spanX: Int,
         val spanY: Int,
     )
+}
+
+/** Best-effort bridge to HyperOS' widget blur and bloom APIs. */
+private object WidgetMaterialEffect {
+    private const val BLUR_RADIUS = 110
+    private const val BLUR_MODE = 1
+    private const val VIEW_BLUR_MODE = 1
+
+    // Same 12-value GlassBloom profile used by Personal Assistant for its widget scene.
+    private val bloomProfile = floatArrayOf(
+        36f, 2.2f, -0.4f, 0.6f, -0.8f, 1.6f, 0.8f, 1.4f,
+        0f, 1f, 0f, 0f,
+    )
+
+    private var methodsResolved = false
+    private var setPassWindowBlurEnabled: Method? = null
+    private var setMiBackgroundBlurMode: Method? = null
+    private var setMiBackgroundBlurRadius: Method? = null
+    private var setMiViewBlurMode: Method? = null
+    private var setGlassBloom: Method? = null
+    private var setMiViewMaterialType: Method? = null
+
+    @Synchronized
+    private fun resolveMethods() {
+        if (methodsResolved) return
+        methodsResolved = true
+        val viewClass = View::class.java
+        setPassWindowBlurEnabled = find(viewClass, "setPassWindowBlurEnabled", Boolean::class.javaPrimitiveType!!)
+        setMiBackgroundBlurMode = find(viewClass, "setMiBackgroundBlurMode", Int::class.javaPrimitiveType!!)
+        setMiBackgroundBlurRadius = find(viewClass, "setMiBackgroundBlurRadius", Int::class.javaPrimitiveType!!)
+        setMiViewBlurMode = find(viewClass, "setMiViewBlurMode", Int::class.javaPrimitiveType!!)
+        setGlassBloom = find(viewClass, "setGlassBloom", FloatArray::class.java)
+        setMiViewMaterialType = find(viewClass, "setMiViewMaterialType", Int::class.javaPrimitiveType!!)
+    }
+
+    fun apply(view: View?) {
+        if (view == null) return
+        resolveMethods()
+        invoke(setPassWindowBlurEnabled, view, true)
+        invoke(setMiBackgroundBlurMode, view, BLUR_MODE)
+        invoke(setMiBackgroundBlurRadius, view, BLUR_RADIUS)
+        invoke(setMiViewBlurMode, view, VIEW_BLUR_MODE)
+        invoke(setGlassBloom, view, bloomProfile)
+    }
+
+    fun clear(view: View?) {
+        if (view == null) return
+        resolveMethods()
+        invoke(setGlassBloom, view, FloatArray(12))
+        invoke(setMiViewBlurMode, view, 0)
+        invoke(setMiBackgroundBlurMode, view, 0)
+        invoke(setPassWindowBlurEnabled, view, false)
+    }
+
+    private fun find(clazz: Class<*>, name: String, vararg parameters: Class<*>): Method? =
+        runCatching {
+            clazz.getDeclaredMethod(name, *parameters).apply { isAccessible = true }
+        }.getOrNull()
+
+    private fun invoke(method: Method?, receiver: View, vararg args: Any?) {
+        if (method == null) return
+        runCatching { method.invoke(receiver, *args) }
+            .onFailure { /* Unsupported vendor API: leave the other material layers active. */ }
+    }
+}
+
+/** Opaque-enough fallback surface for providers that do not render HyperOS glass. */
+private class WidgetMaterialBackground(
+    private val darkMode: () -> Boolean,
+) : Drawable() {
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val rect = RectF()
+
+    override fun draw(canvas: Canvas) {
+        rect.set(bounds)
+        val radius = (bounds.height() * 0.12f).coerceAtLeast(18f)
+
+        paint.shader = null
+        paint.color = if (darkMode()) Color.rgb(26, 26, 26) else Color.rgb(245, 245, 245)
+        paint.style = Paint.Style.FILL
+        canvas.drawRoundRect(rect, radius, radius, paint)
+
+        if (darkMode()) {
+            paint.shader = LinearGradient(
+                0f,
+                bounds.top.toFloat(),
+                0f,
+                bounds.top + bounds.height() * 0.45f,
+                Color.argb(26, 255, 255, 255),
+                Color.TRANSPARENT,
+                Shader.TileMode.CLAMP,
+            )
+            canvas.drawRoundRect(rect, radius, radius, paint)
+            paint.shader = null
+        }
+    }
+
+    override fun setAlpha(alpha: Int) {
+        paint.alpha = alpha
+        invalidateSelf()
+    }
+
+    override fun setColorFilter(colorFilter: android.graphics.ColorFilter?) {
+        paint.colorFilter = colorFilter
+        invalidateSelf()
+    }
+
+    override fun getOpacity(): Int = android.graphics.PixelFormat.TRANSLUCENT
 }

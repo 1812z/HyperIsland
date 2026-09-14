@@ -1,7 +1,8 @@
 package io.github.hyperisland.xposed.hook.SystemUI
 
-import android.view.View
+import android.graphics.Color
 import android.view.ViewGroup
+import android.view.View
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.log
 import io.github.libxposed.api.XposedModule
@@ -62,9 +63,38 @@ internal object LockscreenWidgetPageHook {
         hookControllerMistouchGuard(module, rightControllerClass)
         hookBaseMistouchGuard(module, classLoader.loadClass(BASE_CONTROLLER_CLASS))
         hookMagazineLaunch(module, classLoader.loadClass(MAGAZINE_CONTROLLER_CLASS))
+        hookPageBlurWithoutDim(module, classLoader)
 
         installed = true
         log(module, "widget negative page hooks installed")
+    }
+
+    /** Preserve the stock page blur while removing only its opaque/dimming color layer. */
+    private fun hookPageBlurWithoutDim(module: XposedModule, loader: ClassLoader) {
+        runCatching {
+            val helper = loader.loadClass("com.android.keyguard.panel.KeyguardMoveHelper")
+            val field = helper.getDeclaredField("mFrontScrimView").apply { isAccessible = true }
+            val method = helper.getDeclaredMethod(
+                "updateKeyguardInfoBlurRatio",
+                Float::class.javaPrimitiveType,
+            ).apply { isAccessible = true }
+            val blendMethod = View::class.java.getDeclaredMethod(
+                "setMiBackgroundBlendColors",
+                IntArray::class.java,
+                Float::class.javaPrimitiveType,
+            ).apply { isAccessible = true }
+            module.hook(method).intercept { chain ->
+                val result = chain.proceed()
+                if (isWidgetMode() && (chain.args.getOrNull(0) as? Number)?.toFloat()?.let { it > 0f } == true) {
+                    val scrim = field.get(chain.thisObject) as? View
+                    if (scrim != null) {
+                        scrim.setBackgroundColor(Color.TRANSPARENT)
+                        runCatching { blendMethod.invoke(scrim, null, 0f) }
+                    }
+                }
+                result
+            }
+        }.onFailure { log(module, "page blur hook unavailable: ${it.message}") }
     }
 
     private fun hookPanelInstance(module: XposedModule, loader: ClassLoader) {
