@@ -9,6 +9,7 @@ import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
 object NotificationCountTracker {
     data class Scope(val pkg: String, val channelId: String)
     data class Entry(val scope: Scope, val sbn: StatusBarNotification, val posts: Int, val order: Long)
+    data class Removal(val entry: Entry? = null, val stale: Boolean = false)
     private val entries = HashMap<String, Entry>()
     private val notificationIds = HashMap<Scope, Int>()
     private val assignedIds = HashMap<Int, Scope>()
@@ -41,11 +42,29 @@ object NotificationCountTracker {
         // intentionally a no-op to avoid counting generateInnerNotifBean twice.
     }
 
-    @Synchronized fun remove(key: String): Entry? = entries.remove(key)
+    @Synchronized
+    fun remove(sbn: StatusBarNotification): Removal {
+        val current = entries[sbn.key] ?: return Removal()
+        // A remove callback for the previous instance can arrive after the same
+        // notification key has been posted again. Do not remove the replacement.
+        if (!sameNotification(current.sbn, sbn)) return Removal(stale = true)
+        return Removal(entry = entries.remove(sbn.key))
+    }
     @Synchronized fun count(scope: Scope): Int = entries.values.sumOf { if (it.scope == scope) it.posts else 0 }
     @Synchronized fun representative(scope: Scope): StatusBarNotification? = entries.values.asSequence()
         .filter { it.scope == scope }.maxByOrNull { it.order }?.sbn
     @Synchronized fun clear() { entries.clear(); nextOrder = 0L }
+
+    private fun sameNotification(
+        first: StatusBarNotification,
+        second: StatusBarNotification,
+    ): Boolean {
+        return first.key == second.key &&
+            first.postTime == second.postTime &&
+            first.uid == second.uid &&
+            first.id == second.id &&
+            first.tag == second.tag
+    }
 
     /** A snapshot can restore active keys, but cannot recover updates before a SystemUI restart. */
     @Synchronized
