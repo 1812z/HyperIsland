@@ -64,6 +64,8 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
     private var pickerSearch: EditText? = null
     private var pickerQuery = ""
     private var pickerBatch = 0
+    private var pickerPackage: String? = null
+    private val pickerAppRows = ArrayList<View>()
     private var imeWindowState: Pair<Int, Int>? = null
     private var horizontalGesture = false
     private var horizontalForwarded = false
@@ -710,6 +712,8 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         pickerSearch = null
         pickerQuery = ""
         pickerBatch = 0
+        pickerPackage = null
+        pickerAppRows.clear()
     }
 
     private fun buildPickerOverlay(providers: List<AppWidgetProviderInfo>): View {
@@ -736,29 +740,42 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
             setPadding(dp(22f), dp(20f), dp(22f), dp(10f))
         }
         val title = TextView(context).apply {
-            text = PICKER_TITLE
+            text = if (pickerPackage == null) PICKER_TITLE else pickerPackageLabel(pickerPackage!!)
+            tag = "picker-title"
             setTextColor(primaryTextColor())
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         }
-        val close = TextView(context).apply {
-            text = "×"
+        lateinit var closeButton: TextView
+        closeButton = TextView(context).apply {
+            text = if (pickerPackage == null) "×" else "‹"
             setTextColor(primaryTextColor())
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 22f)
             gravity = Gravity.CENTER
             background = circle(Color.argb(46, 255, 255, 255))
             layoutParams = LinearLayout.LayoutParams(dp(36f), dp(36f))
-            setOnClickListener { dismissPicker() }
+            setOnClickListener {
+                if (pickerPackage == null) dismissPicker()
+                else {
+                    pickerPackage = null
+                    title.text = PICKER_TITLE
+                    closeButton.text = "×"
+                    pickerQuery = ""
+                    pickerSearch?.setText("")
+                    renderPickerRows()
+                }
+            }
         }
         header.addView(title)
-        header.addView(close)
+        header.addView(closeButton)
         container.addView(header)
 
         val list = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
         pickerList = list
         pickerProviders = providers
         pickerRows.clear()
+        pickerAppRows.clear()
         pickerBatch = 0
         val search = EditText(context).apply {
             hint = PICKER_SEARCH_HINT
@@ -819,6 +836,10 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
 
     private fun schedulePickerRows() {
         if (pickerBatch >= pickerProviders.size || pickerList == null) return
+        if (pickerPackage == null) {
+            renderPickerRows()
+            return
+        }
         val start = pickerBatch
         val end = (start + PICKER_BATCH_SIZE).coerceAtMost(pickerProviders.size)
         pickerBatch = end
@@ -837,8 +858,108 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         }, PICKER_TOKEN, SystemClock.uptimeMillis() + 16L)
     }
 
+    /** Rebuilds the sheet body when switching between application and widget pages. */
+    private fun renderPickerRows() {
+        mainHandler.removeCallbacksAndMessages(PICKER_TOKEN)
+        val list = pickerList ?: return
+        list.removeAllViews()
+        pickerRows.clear()
+        pickerAppRows.clear()
+        pickerBatch = 0
+        if (pickerPackage == null) {
+            pickerProviders.groupBy { it.provider?.packageName.orEmpty() }
+                .toSortedMap()
+                .forEach { (packageName, providers) ->
+                    val row = buildPickerAppRow(packageName, providers.size)
+                    pickerAppRows += row
+                    list.addView(row)
+                }
+            if (pickerProviders.isEmpty()) list.addView(pickerEmptyView())
+        } else {
+            val providers = pickerProviders.filter { it.provider?.packageName == pickerPackage }
+            providers.forEach { info ->
+                val row = buildPickerRow(info)
+                pickerRows += info to row
+                list.addView(row)
+            }
+            if (providers.isEmpty()) list.addView(pickerEmptyView())
+        }
+    }
+
+    private fun pickerEmptyView(): View = TextView(context).apply {
+        text = PICKER_EMPTY
+        setTextColor(secondaryTextColor())
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+        gravity = Gravity.CENTER
+        setPadding(dp(24f), dp(60f), dp(24f), dp(60f))
+    }
+
+    private fun pickerPackageLabel(packageName: String): String = runCatching {
+        context.packageManager.getApplicationLabel(
+            context.packageManager.getApplicationInfo(packageName, 0),
+        ).toString()
+    }.getOrDefault(packageName)
+
+    private fun buildPickerAppRow(packageName: String, count: Int): View {
+        val row = LinearLayout(context).apply {
+            tag = packageName
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(18f), dp(10f), dp(18f), dp(10f))
+            isClickable = true
+            setOnClickListener {
+                pickerPackage = packageName
+                pickerSearch?.setText("")
+                renderPickerRows()
+                (picker?.findViewWithTag<View>("picker-title"))?.let { titleView ->
+                    (titleView as? TextView)?.text = pickerPackageLabel(packageName)
+                }
+            }
+        }
+        val icon = ImageView(context).apply {
+            layoutParams = LinearLayout.LayoutParams(dp(40f), dp(40f)).apply { marginEnd = dp(14f) }
+            runCatching {
+                setImageDrawable(context.packageManager.getApplicationIcon(packageName))
+            }
+        }
+        val labels = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f)
+            addView(TextView(context).apply {
+                text = pickerPackageLabel(packageName)
+                setTextColor(primaryTextColor())
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            })
+            addView(TextView(context).apply {
+                text = "共 $count 个小组件"
+                setTextColor(secondaryTextColor())
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            })
+        }
+        row.addView(icon)
+        row.addView(labels)
+        row.addView(TextView(context).apply {
+            text = "›"
+            setTextColor(secondaryTextColor())
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 28f)
+            gravity = Gravity.CENTER
+        })
+        return row
+    }
+
     private fun filterPickerRows(query: String) {
         val normalized = query.trim().lowercase()
+        if (pickerPackage == null) {
+            pickerAppRows.forEach { row ->
+                val packageName = row.tag?.toString().orEmpty()
+                row.visibility = if (
+                    normalized.isEmpty() ||
+                        pickerPackageLabel(packageName).lowercase().contains(normalized) ||
+                        packageName.lowercase().contains(normalized)
+                ) VISIBLE else GONE
+            }
+            return
+        }
         pickerRows.forEach { (info, row) ->
             row.visibility = if (matchesPickerQuery(info, normalized)) VISIBLE else GONE
         }
@@ -870,15 +991,34 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
                 setImageDrawable(info.loadIcon(context, resources.displayMetrics.densityDpi))
             }
         }
-        val label = TextView(context).apply {
-            text = runCatching { info.loadLabel(context.packageManager).toString() }
-                .getOrDefault(info.provider?.packageName.orEmpty())
-            setTextColor(primaryTextColor())
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+        val labels = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
             layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            addView(TextView(context).apply {
+                text = runCatching { info.loadLabel(context.packageManager).toString() }
+                    .getOrDefault(info.provider?.packageName.orEmpty())
+                setTextColor(primaryTextColor())
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
+            })
+            addView(TextView(context).apply {
+                text = "${info.minWidth} × ${info.minHeight}"
+                setTextColor(secondaryTextColor())
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+            })
         }
         row.addView(icon)
-        row.addView(label)
+        row.addView(labels)
+        row.addView(TextView(context).apply {
+            text = "›"
+            setTextColor(secondaryTextColor())
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 28f)
+            gravity = Gravity.CENTER
+        })
+        runCatching {
+            info.loadPreviewImage(context, resources.displayMetrics.densityDpi)
+        }.getOrNull()?.let { preview ->
+            icon.setImageDrawable(preview)
+        }
         return row
     }
 
