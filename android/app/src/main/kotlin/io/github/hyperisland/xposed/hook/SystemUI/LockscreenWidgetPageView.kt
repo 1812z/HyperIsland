@@ -248,7 +248,19 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
     }
 
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
-        if (picker != null || widgetDragActive) {
+        if (picker != null) {
+            // The picker is a modal surface. Lock the complete stream at DOWN so the
+            // keyguard pager cannot reclaim it when the finger crosses its gesture band.
+            if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                super.requestDisallowInterceptTouchEvent(true)
+            }
+            val handled = super.dispatchTouchEvent(event)
+            if (event.actionMasked == MotionEvent.ACTION_UP ||
+                event.actionMasked == MotionEvent.ACTION_CANCEL
+            ) super.requestDisallowInterceptTouchEvent(false)
+            return handled
+        }
+        if (widgetDragActive) {
             val handled = super.dispatchTouchEvent(event)
             if (event.actionMasked == MotionEvent.ACTION_UP ||
                 event.actionMasked == MotionEvent.ACTION_CANCEL
@@ -812,7 +824,9 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         val header = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(16f), dp(20f), dp(16f), dp(10f))
+            // The picker is attached below the status-bar area of the keyguard window.
+            // Keep a larger top inset so the title/buttons never sit under status icons.
+            setPadding(dp(16f), dp(52f), dp(16f), dp(10f))
         }
         val backButton = TextView(context).apply {
             text = "‹"
@@ -1123,6 +1137,8 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         runCatching { userManager?.isUserUnlocked == true }.getOrDefault(false)
 
     internal fun acceptsPageGesture(): Boolean = widgetsReady()
+
+    internal fun isPickerVisible(): Boolean = picker != null
 
     private fun safeAppWidgetInfo(appWidgetId: Int): AppWidgetProviderInfo? {
         if (!widgetsReady()) return null

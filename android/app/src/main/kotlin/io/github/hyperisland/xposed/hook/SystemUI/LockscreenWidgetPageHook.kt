@@ -103,6 +103,21 @@ internal object LockscreenWidgetPageHook {
             panelTouchMethod = injector.declaredMethods.firstOrNull {
                 it.name == "onTouchEvent" && it.parameterCount == 7
             }?.also { it.isAccessible = true }
+            panelTouchMethod?.let { method ->
+                // While the widget picker is visible it is a modal surface. The panel helper
+                // otherwise treats the upper/lower touch bands as keyguard gestures and sends
+                // CANCEL when a scroll crosses its boundary, so the picker only scrolls from a
+                // narrow strip. Mark the scope guards as consumed by the panel and let the child
+                // view receive the complete stream instead.
+                module.hook(method).intercept { chain ->
+                    if (pageRef?.get()?.isPickerVisible() == true) {
+                        chain.args[4] = true
+                        chain.args[5] = true
+                        chain.args[6] = true
+                    }
+                    chain.proceed()
+                }
+            }
             injector.declaredConstructors.forEach { constructor ->
                 constructor.isAccessible = true
                 module.hook(constructor).intercept { chain ->
@@ -130,6 +145,8 @@ internal object LockscreenWidgetPageHook {
             copy.recycle()
         }
     }
+
+    internal fun isPickerVisible(): Boolean = pageRef?.get()?.isPickerVisible() == true
 
     /** Attach the page as soon as the keyguard container joins the hierarchy. */
     private fun hookContainerAttach(module: XposedModule, containerClass: Class<*>) {
