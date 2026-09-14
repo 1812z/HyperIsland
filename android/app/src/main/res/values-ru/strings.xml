@@ -871,4 +871,18 @@
     <string name="batch_channel_scope_apps">Включенные каналы применены к приложениям %1$d.</string>
     <string name="applying">Применение</string>
     <string name="color_code">Код цвета (#RRGGBB или #AARRGGBB)</string>
+    <string name="ext_lockscreen_negative_page">Экран минус один на экране блокировки</string>
+    <string name="ext_lockscreen_negative_page_enabled">Экран минус один</string>
+    <string name="ext_lockscreen_negative_page_enabled_summary">Включить расширение экрана минус один</string>
+    <string name="ext_lockscreen_negative_page_dim">Затемнение фона</string>
+    <string name="ext_lockscreen_negative_page_dim_summary">Добавлять тёмный слой при открытии экрана минус один</string>
+    <string name="ext_lockscreen_negative_page_dim_amount">Степень затемнения</string>
+    <string name="lockscreen_widgets_title_default">Виджеты</string>
+    <string name="ext_lockscreen_negative_page_title">Верхний текст</string>
+    <string name="ext_lockscreen_negative_page_title_dialog">Настроить верхний текст</string>
+    <string name="ext_lockscreen_negative_page_title_hint">Введите верхний текст</string>
+    <string name="ext_lockscreen_negative_page_mode">Содержимое экрана минус один</string>
+    <string name="ext_lockscreen_negative_page_mode_summary">Выберите содержимое страницы минус один на экране блокировки</string>
+    <string name="ext_lockscreen_page_device_center">Центр устройств</string>
+    <string name="ext_lockscreen_page_widgets">Виджеты</string>
 </resources>

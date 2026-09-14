@@ -926,4 +926,18 @@
     <string name="batch_toast_scope_apps">%1$d uygulamaya uygula</string>
     <string name="applying">Uygulanıyor</string>
     <string name="color_code">Renk kodu (#RRGGBB veya #AARRGGBB)</string>
+    <string name="ext_lockscreen_negative_page">Kilit ekranı -1 sayfası</string>
+    <string name="ext_lockscreen_negative_page_enabled">Kilit ekranı -1 sayfası</string>
+    <string name="ext_lockscreen_negative_page_enabled_summary">Kilit ekranı -1 sayfası uzantısını etkinleştir</string>
+    <string name="ext_lockscreen_negative_page_dim">Arka planı karart</string>
+    <string name="ext_lockscreen_negative_page_dim_summary">-1 sayfası açılırken koyu bir katman uygula</string>
+    <string name="ext_lockscreen_negative_page_dim_amount">Karartma miktarı</string>
+    <string name="lockscreen_widgets_title_default">Widget\'lar</string>
+    <string name="ext_lockscreen_negative_page_title">Üst metin</string>
+    <string name="ext_lockscreen_negative_page_title_dialog">Üst metni ayarla</string>
+    <string name="ext_lockscreen_negative_page_title_hint">Üst metni girin</string>
+    <string name="ext_lockscreen_negative_page_mode">-1 sayfası içeriği</string>
+    <string name="ext_lockscreen_negative_page_mode_summary">Kilit ekranı -1 sayfasında ne gösterileceğini seçin</string>
+    <string name="ext_lockscreen_page_device_center">Cihaz merkezi</string>
+    <string name="ext_lockscreen_page_widgets">Widget\'lar</string>
 </resources>

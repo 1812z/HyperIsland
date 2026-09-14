@@ -68,9 +68,7 @@ class HyperIslandModule : XposedModule() {
                 if (ConfigManager.getBoolean("pref_hide_lockscreen_face_unlock_icon", false)) {
                     LockscreenFaceUnlockUiHook.init(this, param)
                 }
-                if (ConfigManager.getBoolean("pref_lockscreen_device_center", false) ||
-                    LockscreenWidgetPageHook.isWidgetMode()
-                ) {
+                if (LockscreenWidgetPageHook.isNegativePageEnabled()) {
                     LockscreenNegativePageHook.init(this, param)
                 }
                 IslandDispatcherHook.init(this, param)
@@ -147,7 +145,7 @@ class HyperIslandModule : XposedModule() {
             }
 
             "com.milink.service" ->
-                if (ConfigManager.getBoolean("pref_lockscreen_device_center", false)) {
+                if (LockscreenWidgetPageHook.isDeviceCenterMode()) {
                     LockscreenNegativePageHook.init(this, param)
                 }
 

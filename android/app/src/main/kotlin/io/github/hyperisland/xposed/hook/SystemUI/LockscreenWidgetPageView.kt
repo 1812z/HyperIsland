@@ -2,6 +2,7 @@ package io.github.hyperisland.xposed.hook.SystemUI
 
 import android.animation.ArgbEvaluator
 import android.animation.ValueAnimator
+import android.app.PendingIntent
 import android.appwidget.AppWidgetHost
 import android.appwidget.AppWidgetHostView
 import android.appwidget.AppWidgetManager
@@ -42,6 +43,9 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.view.inputmethod.InputMethodManager
+import io.github.hyperisland.R
+import io.github.hyperisland.xposed.ConfigManager
+import java.lang.reflect.Proxy
 import java.lang.reflect.Method
 import java.util.ArrayList
 import kotlin.math.roundToInt
@@ -125,10 +129,10 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         val header = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(22f), dp(38f), dp(16f), dp(8f))
+            setPadding(dp(38f), dp(38f), dp(16f), dp(8f))
         }
         val title = TextView(context).apply {
-            text = PAGE_TITLE
+            text = ConfigManager.getString(KEY_TITLE, defaultPageTitle(context))
             setTextColor(primaryTextColor())
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 20f)
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
@@ -451,17 +455,26 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         val replacement = runCatching {
             widgetHost.createView(context, cell.appWidgetId, info)
         }.getOrNull() ?: return
-        replacement.setPadding(0, 0, 0, 0)
+        normalizeHostView(replacement)
         replacement.clipToOutline = true
         replacement.outlineProvider = roundedOutline(dp(22f).toFloat())
         cell.removeView(cell.hostView)
         cell.hostView = replacement
         cell.addView(replacement, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+        configureWidgetInteraction(replacement)
         cell.materialView.visibility = INVISIBLE
         cell.updateFallbackBackground(replacement)
         WidgetMaterialEffect.apply(replacement)
         replacement.requestLayout()
         replacement.invalidate()
+    }
+
+    private fun normalizeHostView(hostView: AppWidgetHostView) {
+        if (hostView.paddingLeft != 0 || hostView.paddingTop != 0 ||
+            hostView.paddingRight != 0 || hostView.paddingBottom != 0
+        ) {
+            hostView.setPadding(0, 0, 0, 0)
+        }
     }
 
     private fun applyPageBackground() {
@@ -474,6 +487,13 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
             Configuration.UI_MODE_NIGHT_YES
 
     private fun primaryTextColor(): Int = if (isDarkMode()) Color.WHITE else Color.rgb(28, 28, 30)
+
+    private fun defaultPageTitle(context: Context): String = runCatching {
+        context.createPackageContext(
+            "io.github.hyperisland",
+            Context.CONTEXT_IGNORE_SECURITY,
+        ).getString(R.string.lockscreen_widgets_title_default)
+    }.getOrDefault("Widgets")
 
     private fun secondaryTextColor(): Int = if (isDarkMode()) {
         Color.argb(155, 255, 255, 255)
@@ -500,6 +520,7 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
             }
         }
         rebuildGrid()
+        LockscreenWidgetPageHook.runtimeLog("widget cells loaded=${cells.size}")
     }
 
     private fun attachExisting(appWidgetId: Int, info: AppWidgetProviderInfo) {
@@ -539,10 +560,11 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         val metrics = widgetMetrics(info)
         val cardPadding = dp(8f)
         cell.setPadding(cardPadding, cardPadding, cardPadding, cardPadding)
-        hostView.setPadding(0, 0, 0, 0)
+        normalizeHostView(hostView)
         hostView.clipToOutline = true
         hostView.outlineProvider = roundedOutline(dp(22f).toFloat())
         cell.addView(hostView, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
+        configureWidgetInteraction(hostView)
         cell.materialView.visibility = INVISIBLE
         cell.updateFallbackBackground(hostView)
         WidgetMaterialEffect.apply(hostView)
@@ -553,6 +575,47 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         rebuildGrid()
         if (persist) persistOrder()
         refreshEmptyState()
+    }
+
+    /**
+     * Route only activity PendingIntents through SystemUI's keyguard-aware starter. Returning
+     * false for broadcasts/services is intentional: media controls and other inline widget
+     * actions must keep the normal RemoteViews path and work without opening an app.
+     */
+    private fun configureWidgetInteraction(hostView: AppWidgetHostView) {
+        runCatching {
+            val handlerClass = Class.forName("android.widget.RemoteViews\$InteractionHandler")
+            val setter = AppWidgetHostView::class.java.getMethod(
+                "setInteractionHandler",
+                handlerClass,
+            )
+            val handler = Proxy.newProxyInstance(
+                handlerClass.classLoader,
+                arrayOf(handlerClass),
+            ) { proxy, method, args ->
+                // Object methods must not be answered with `false` — RemoteViews/framework code
+                // calls hashCode/equals/toString on the handler and would get a ClassCastException.
+                if (method.declaringClass == Any::class.java) {
+                    when (method.name) {
+                        "hashCode" -> System.identityHashCode(proxy)
+                        "equals" -> proxy === args?.firstOrNull()
+                        "toString" -> "HyperIslandWidgetInteractionHandler"
+                        else -> null
+                    }
+                } else if (method.name != "onInteraction" || args == null || args.size < 2) {
+                    false
+                } else {
+                    val view = args[0] as? android.view.View
+                    val pendingIntent = args[1] as? PendingIntent
+                    if (view == null || pendingIntent == null) false
+                    else LockscreenWidgetPageHook.handleWidgetInteraction(view, pendingIntent, args.getOrNull(2))
+                }
+            }
+            setter.invoke(hostView, handler)
+            LockscreenWidgetPageHook.runtimeLog("widget interaction handler installed")
+        }.onFailure {
+            LockscreenWidgetPageHook.runtimeLog("widget interaction handler unavailable: ${it.message}")
+        }
     }
 
     private fun removeCell(cell: WidgetCell) {
@@ -1252,6 +1315,7 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
             if (!isAttachedToWindow || longPressTriggered || horizontalGesture || gestureCancelled ||
                 kotlin.math.hypot(lastRawX - downX, lastRawY - downY) > touchSlop
             ) return@Runnable
+            LockscreenWidgetPageHook.clearWidgetClick()
             longPressTriggered = true
             dragOriginX = downX
             dragOriginY = downY
@@ -1291,6 +1355,7 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
 
         override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
             super.onLayout(changed, left, top, right, bottom)
+            normalizeHostView(hostView)
             applyCardBackground()
         }
 
@@ -1314,6 +1379,9 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
                     lastRawY = downY
                     gestureCancelled = false
                     longPressTriggered = false
+                    // RemoteViews may dispatch PendingIntent.send synchronously while the
+                    // ACTION_UP event is being delivered. Arm before the child sees the stream.
+                    LockscreenWidgetPageHook.markWidgetClick()
                     postDelayed(longPressRunnable, ViewConfiguration.getLongPressTimeout().toLong())
                 }
                 MotionEvent.ACTION_MOVE -> {
@@ -1323,11 +1391,13 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
                     val dy = ev.rawY - downY
                     if (kotlin.math.abs(dx) > touchSlop && kotlin.math.abs(dx) > kotlin.math.abs(dy) * 1.15f) {
                         removeCallbacks(longPressRunnable)
+                        LockscreenWidgetPageHook.clearWidgetClick()
                         gestureCancelled = true
                         return super.dispatchTouchEvent(ev)
                     }
                     if (kotlin.math.abs(dy) > touchSlop) {
                         removeCallbacks(longPressRunnable)
+                        LockscreenWidgetPageHook.clearWidgetClick()
                         gestureCancelled = true
                     }
                 }
@@ -1336,7 +1406,18 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
                     gestureCancelled = true
                 }
             }
-            return super.dispatchTouchEvent(ev)
+            val handled = super.dispatchTouchEvent(ev)
+            // RemoteViews posts the click (and therefore PendingIntent.send) rather than running
+            // it inline, so drop the marker only after that queued work has had a chance to run.
+            when (ev.actionMasked) {
+                MotionEvent.ACTION_UP ->
+                    postDelayed(
+                        { LockscreenWidgetPageHook.clearWidgetClick() },
+                        LockscreenWidgetPageHook.WIDGET_CLICK_CLEAR_DELAY_MS,
+                    )
+                MotionEvent.ACTION_CANCEL -> LockscreenWidgetPageHook.clearWidgetClick()
+            }
+            return handled
         }
 
         private fun cancelChildTouch() {
@@ -1476,7 +1557,7 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         private const val PREFS_NAME = "hyperisland_lockscreen_widgets"
         private const val KEY_IDS = "widget_ids"
         const val PAGE_TAG = "hyperisland_lockscreen_widget_page"
-        private const val PAGE_TITLE = "小组件"
+        private const val KEY_TITLE = "pref_lockscreen_negative_page_title"
         private const val EMPTY_HINT = "还没有小组件\n点击右上角 + 添加"
         private const val PICKER_TITLE = "添加小组件"
         private const val PICKER_SEARCH_HINT = "搜索小组件"

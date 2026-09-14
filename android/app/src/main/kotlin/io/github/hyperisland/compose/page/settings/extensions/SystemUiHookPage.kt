@@ -10,12 +10,10 @@ import androidx.compose.ui.res.stringResource
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.PreferenceSlider
 import io.github.hyperisland.compose.component.PreferenceSwitch
-import io.github.hyperisland.compose.component.PreferenceDropdown
 import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.component.SettingsAction
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.rememberBooleanPreference
-import io.github.hyperisland.compose.data.rememberStringPreference
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -37,11 +35,12 @@ internal fun SystemUiHookPage(
     val smoothingState = remember(KEY_SMOOTHING) {
         mutableFloatStateOf(prefs.getDouble(KEY_SMOOTHING, DEFAULT_SMOOTHING).toFloat())
     }
-    val lockscreenDeviceCenter = rememberBooleanPreference(prefs, KEY_LOCKSCREEN_DEVICE_CENTER, false)
-    val lockscreenPageMode = rememberStringPreference(
+    val lockscreenNegativePage = rememberBooleanPreference(
         prefs,
-        KEY_LOCKSCREEN_NEGATIVE_PAGE_MODE,
-        LOCKSCREEN_PAGE_MODE_DEVICE_CENTER,
+        KEY_LOCKSCREEN_NEGATIVE_PAGE_ENABLED,
+        prefs.getBoolean(KEY_LOCKSCREEN_DEVICE_CENTER, false) ||
+            prefs.getString(KEY_LOCKSCREEN_NEGATIVE_PAGE_MODE, LOCKSCREEN_PAGE_MODE_DEVICE_CENTER) ==
+            LOCKSCREEN_PAGE_MODE_WIDGETS,
     )
     val unlockAll = rememberBooleanPreference(prefs, KEY_UNLOCK_ALL_FOCUS, false)
     val bluetooth = rememberBooleanPreference(prefs, KEY_BLUETOOTH_ISLAND, false)
@@ -95,48 +94,13 @@ internal fun SystemUiHookPage(
                         },
                     )
                 }
-                PreferenceSwitch(
-                    title = stringResource(R.string.ext_lockscreen_device_center),
-                    summary = stringResource(R.string.ext_lockscreen_device_center_summary),
-                    icon = null,
-                    checked = lockscreenDeviceCenter.value,
-                ) { value ->
-                    if (actions.request(
-                            value,
-                            listOf(PKG_SYSTEM_UI, "com.milink.service"),
-                            scopeFailed,
-                        )
-                    ) {
-                        lockscreenDeviceCenter.value = value
-                        prefs.putBoolean(KEY_LOCKSCREEN_DEVICE_CENTER, value)
-                        actions.show(restartRequired)
-                    }
-                }
-                AnimatedVisibility(true) {
-                    PreferenceDropdown(
-                        title = stringResource(R.string.ext_lockscreen_negative_page_mode),
-                        summary = stringResource(R.string.ext_lockscreen_negative_page_mode_summary),
-                        icon = null,
-                        items = listOf(
-                            stringResource(R.string.ext_lockscreen_page_device_center),
-                            stringResource(R.string.ext_lockscreen_page_widgets),
-                        ),
-                        selectedIndex = if (lockscreenPageMode.value == LOCKSCREEN_PAGE_MODE_WIDGETS) 1 else 0,
-                    ) { index ->
-                        val mode = if (index == 1) {
-                            LOCKSCREEN_PAGE_MODE_WIDGETS
-                        } else {
-                            LOCKSCREEN_PAGE_MODE_DEVICE_CENTER
-                        }
-                        lockscreenPageMode.value = mode
-                        prefs.putString(KEY_LOCKSCREEN_NEGATIVE_PAGE_MODE, mode)
-                        if (mode == LOCKSCREEN_PAGE_MODE_DEVICE_CENTER && !lockscreenDeviceCenter.value) {
-                            lockscreenDeviceCenter.value = true
-                            prefs.putBoolean(KEY_LOCKSCREEN_DEVICE_CENTER, true)
-                        }
-                        actions.show(restartRequired)
-                    }
-                }
+                SettingsAction(
+                    title = stringResource(R.string.ext_lockscreen_negative_page),
+                    summary = stringResource(
+                        if (lockscreenNegativePage.value) R.string.ext_enabled else R.string.ext_disabled,
+                    ),
+                    endIcon = MiuixIcons.ChevronForward,
+                ) { onOpenDetail(SystemUiExtensionDetail.LockscreenNegativePage) }
                 PreferenceSwitch(
                     title = stringResource(R.string.ext_unlock_all_focus),
                     summary = stringResource(R.string.ext_unlock_all_focus_summary),

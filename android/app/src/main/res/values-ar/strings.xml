@@ -829,4 +829,18 @@
     <string name="whitelist_keywords">الكلمات المسموحة</string>
     <string name="xmsf">XMSF (إطار خدمات شاومي)</string>
     <string name="xposed_framework">إطار Xposed</string>
+    <string name="ext_lockscreen_negative_page">صفحة ناقص واحد لشاشة القفل</string>
+    <string name="ext_lockscreen_negative_page_enabled">صفحة ناقص واحد لشاشة القفل</string>
+    <string name="ext_lockscreen_negative_page_enabled_summary">تفعيل إضافة صفحة ناقص واحد</string>
+    <string name="ext_lockscreen_negative_page_dim">تعتيم الخلفية</string>
+    <string name="ext_lockscreen_negative_page_dim_summary">إضافة طبقة داكنة عند فتح صفحة ناقص واحد</string>
+    <string name="ext_lockscreen_negative_page_dim_amount">مقدار التعتيم</string>
+    <string name="lockscreen_widgets_title_default">الأدوات</string>
+    <string name="ext_lockscreen_negative_page_title">النص العلوي</string>
+    <string name="ext_lockscreen_negative_page_title_dialog">تعيين النص العلوي</string>
+    <string name="ext_lockscreen_negative_page_title_hint">أدخل النص العلوي</string>
+    <string name="ext_lockscreen_negative_page_mode">محتوى صفحة ناقص واحد</string>
+    <string name="ext_lockscreen_negative_page_mode_summary">اختر ما يظهر في صفحة ناقص واحد على شاشة القفل</string>
+    <string name="ext_lockscreen_page_device_center">مركز الأجهزة</string>
+    <string name="ext_lockscreen_page_widgets">الأدوات</string>
 </resources>

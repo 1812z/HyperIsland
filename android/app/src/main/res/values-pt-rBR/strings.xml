@@ -862,4 +862,18 @@
         <item quantity="one">Importação concluída: %1$d configuração de canal restaurada</item>
         <item quantity="other">Importação concluída: %1$d configurações de canal restauradas</item>
     </plurals>
+    <string name="ext_lockscreen_negative_page">Página menos um da tela de bloqueio</string>
+    <string name="ext_lockscreen_negative_page_enabled">Página menos um da tela de bloqueio</string>
+    <string name="ext_lockscreen_negative_page_enabled_summary">Ativar a extensão da página menos um</string>
+    <string name="ext_lockscreen_negative_page_dim">Escurecer fundo</string>
+    <string name="ext_lockscreen_negative_page_dim_summary">Aplicar uma camada escura ao abrir a página menos um</string>
+    <string name="ext_lockscreen_negative_page_dim_amount">Intensidade do escurecimento</string>
+    <string name="lockscreen_widgets_title_default">Widgets</string>
+    <string name="ext_lockscreen_negative_page_title">Texto superior</string>
+    <string name="ext_lockscreen_negative_page_title_dialog">Definir texto superior</string>
+    <string name="ext_lockscreen_negative_page_title_hint">Digite o texto superior</string>
+    <string name="ext_lockscreen_negative_page_mode">Conteúdo da página menos um</string>
+    <string name="ext_lockscreen_negative_page_mode_summary">Escolha o que será exibido na página menos um da tela de bloqueio</string>
+    <string name="ext_lockscreen_page_device_center">Central de dispositivos</string>
+    <string name="ext_lockscreen_page_widgets">Widgets</string>
 </resources>
