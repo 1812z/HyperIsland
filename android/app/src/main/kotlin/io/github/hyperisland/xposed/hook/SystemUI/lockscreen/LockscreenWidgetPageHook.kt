@@ -225,75 +225,72 @@ internal object LockscreenWidgetPageHook {
                     View::class.java,
                 ).apply { isAccessible = true }
             }.getOrNull()
-            var customScrimActive = false
-
-            fun clearCustomScrim(instance: Any?) {
-                if (!customScrimActive) return
-                val scrim = runCatching { field.get(instance) as? View }.getOrNull()
-                    ?: return
-                // The stock method has already restored its own state. This only removes the
-                // override written by this hook, so later keyguard/scrim transitions stay stock.
-                scrim.setBackgroundColor(Color.TRANSPARENT)
+            fun applyCustomScrim(instance: Any?, translation: Float, skipZero: Boolean = false) {
+                if (!isWidgetMode()) return
+                val scrim = runCatching { field.get(instance) as? View }.getOrNull() ?: return
+                // reset() calls setTranslation(0, ...) once to start its Folme return animation.
+                // That zero is only the animation target, not the current frame. Do not erase the
+                // current scrim before Folme supplies the first real position.
+                if (skipZero && translation == 0f) return
+                val dimEnabled = ConfigManager.getBoolean(
+                    "pref_lockscreen_negative_page_dim_enabled",
+                    true,
+                )
+                val dimAmount = ConfigManager.getInt(
+                    "pref_lockscreen_negative_page_dim_amount",
+                    50,
+                ).coerceIn(0, 100)
+                // Keep the stock SystemUI scrim untouched for the default setting. In
+                // particular, reset() starts its return Folme with a zero target and the stock
+                // implementation must be allowed to manage that transition itself.
+                if (dimEnabled && dimAmount == 50) return
+                val screenWidth = scrim.resources.displayMetrics.widthPixels.toFloat()
+                    .coerceAtLeast(1f)
+                // During the return path SystemUI may pass the offset from the center as a
+                // negative value. Its actual left-page position is width + offset.
+                val pagePosition = if (translation < 0f) screenWidth + translation else translation
+                val progress = (pagePosition / screenWidth).coerceIn(0f, 1f)
+                val alpha = if (dimEnabled) {
+                    (dimAmount * progress * 255 / 100).toInt()
+                } else {
+                    0
+                }
+                scrim.setBackgroundColor(Color.argb(alpha, 0, 0, 0))
                 runCatching { clearBlendMethod?.invoke(null, scrim) }
-                customScrimActive = false
             }
 
             module.hook(method).intercept { chain ->
                 val result = chain.proceed()
-                if (isWidgetMode() && (chain.args.getOrNull(0) as? Number)?.toFloat()?.let { it > 0f } == true) {
-                    val scrim = field.get(chain.thisObject) as? View
-                    if (scrim != null) {
-                        val dimEnabled = ConfigManager.getBoolean(
-                            "pref_lockscreen_negative_page_dim_enabled",
-                            true,
-                        )
-                        val dimAmount = ConfigManager.getInt(
-                            "pref_lockscreen_negative_page_dim_amount",
-                            50,
-                        ).coerceIn(0, 100)
-                        val screenWidth = scrim.resources.displayMetrics.widthPixels.toFloat().coerceAtLeast(1f)
-                        val progress = ((chain.args.getOrNull(0) as? Number)?.toFloat() ?: 0f)
-                            .div(screenWidth)
-                            .coerceIn(0f, 1f)
-                        val alpha = if (dimEnabled) {
-                            (dimAmount * progress * 255 / 100).toInt()
-                        } else {
-                            0
-                        }
-                        scrim.setBackgroundColor(Color.argb(alpha, 0, 0, 0))
-                        runCatching { clearBlendMethod?.invoke(null, scrim) }
-                        customScrimActive = true
-                    }
+                if (isWidgetMode()) {
+                    // Keep updating on the way back as well. The helper reports the current
+                    // horizontal position, so the scrim follows both the finger and settle
+                    // animation instead of disappearing when the return starts.
+                    applyCustomScrim(
+                        chain.thisObject,
+                        (chain.args.getOrNull(0) as? Number)?.toFloat() ?: 0f,
+                    )
                 }
                 result
             }
 
-            // Most exits eventually pass through setTranslation(0). Let stock code finish first,
-            // then remove only our custom override if the exit path skipped another blur frame.
-            helper.declaredMethods.firstOrNull {
+            val setTranslation = helper.declaredMethods.firstOrNull {
                 it.name == "setTranslation" && it.parameterCount == 5
-            }?.also { setTranslation ->
+            }
+            if (setTranslation != null) {
                 setTranslation.isAccessible = true
                 module.hook(setTranslation).intercept { chain ->
                     val result = chain.proceed()
-                    val translation = (chain.args.getOrNull(0) as? Number)?.toFloat() ?: 0f
-                    if (translation <= 0f) clearCustomScrim(chain.thisObject)
+                    // Apply after stock translation so the system keeps ownership of its blur
+                    // and animation, while this setting follows every actual position frame.
+                    applyCustomScrim(
+                        chain.thisObject,
+                        (chain.args.getOrNull(0) as? Number)?.toFloat() ?: 0f,
+                        skipZero = true,
+                    )
                     result
                 }
             }
 
-            listOf("reset", "resetImmediately").forEach { name ->
-                helper.declaredMethods.filter { it.name == name }.forEach { resetMethod ->
-                    resetMethod.isAccessible = true
-                    module.hook(resetMethod).intercept { chain ->
-                        try {
-                            chain.proceed()
-                        } finally {
-                            clearCustomScrim(chain.thisObject)
-                        }
-                    }
-                }
-            }
         }.onFailure { log(module, "page blur hook unavailable: ${it.message}") }
     }
 
