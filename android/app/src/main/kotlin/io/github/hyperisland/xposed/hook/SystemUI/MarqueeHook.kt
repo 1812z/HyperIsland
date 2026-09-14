@@ -44,16 +44,24 @@ object MarqueeHook : BaseHook() {
     private val observedViews = WeakHashMap<TextView, TextViewListeners>()
     private val islandMarqueeState = WeakHashMap<ViewGroup, Boolean>()
     private val islandAutoHideSessions = WeakHashMap<ViewGroup, IslandAutoHideSession>()
+    private val islandUpdateTokens = java.util.Collections.synchronizedMap(
+        WeakHashMap<ViewGroup, Any>(),
+    )
     private val forcedSingleLineMaxLines = WeakHashMap<TextView, Int>()
+    private val targetNotifications = java.util.Collections.synchronizedMap(
+        WeakHashMap<View, StatusBarNotification>(),
+    )
 
     private data class IslandAutoHideSession(
         val islandKey: String,
         val targetLoops: Int,
         val overrideTimeout: Boolean,
         val timeoutMs: Long,
+        val notification: StatusBarNotification?,
         val startedAtMs: Long = SystemClock.elapsedRealtime(),
         val scrollingViews: WeakHashMap<TextView, Int> = WeakHashMap(),
         var fallbackRunnable: Runnable? = null,
+        var fallbackGeneration: Long = 0L,
         var dismissed: Boolean = false,
     )
 
@@ -99,10 +107,43 @@ object MarqueeHook : BaseHook() {
         scrollerMap.clear()
         forcedSingleLineMaxLines.clear()
         islandMarqueeState.clear()
+        islandUpdateTokens.clear()
+        targetNotifications.clear()
         islandAutoHideSessions.forEach { (island, session) ->
             session.fallbackRunnable?.let(island::removeCallbacks)
         }
         islandAutoHideSessions.clear()
+    }
+
+    private fun resetIslandMarqueeState(island: ViewGroup) {
+        islandAutoHideSessions.remove(island)?.let { session ->
+            cancelFallback(island, session)
+        }
+        scrollerMap.keys.toList()
+            .filter { findBigIslandView(it) === island }
+            .forEach { stopMarquee(it) }
+    }
+
+    fun onNotificationRemoved(notification: StatusBarNotification) {
+        val islands = targetNotifications.entries
+            .filter { sameNotification(it.value, notification) }
+            .mapNotNull { it.key as? ViewGroup }
+        islands.forEach { island ->
+            islandUpdateTokens.remove(island)
+            resetIslandMarqueeState(island)
+            targetNotifications.remove(island)
+        }
+    }
+
+    private fun sameNotification(
+        first: StatusBarNotification,
+        second: StatusBarNotification,
+    ): Boolean {
+        return first.key == second.key &&
+            first.postTime == second.postTime &&
+            first.uid == second.uid &&
+            first.id == second.id &&
+            first.tag == second.tag
     }
 
     fun startMarquee(textView: TextView) {
@@ -169,39 +210,29 @@ object MarqueeHook : BaseHook() {
         overrideTimeout: Boolean = false,
         originalTimeoutSecs: Int = 5,
     ) {
-        // 覆盖超时依赖滚动文本的循环回调。没有实际文本（纯图标、空文本或
-        // 仅存在于展开视图中的文本）时，不能创建覆盖会话，否则会把普通
-        // island timeout 接管成一个永不完成的滚动任务。
-        val hasScrollableText = enabled && hasMarqueeText(bigIslandView)
-        trace("apply enabled=$enabled loops=$autoHideLoops override=$overrideTimeout text=$hasScrollableText island=${System.identityHashCode(bigIslandView)}")
-        if (enabled && autoHideLoops > 0 && !hasScrollableText) {
-            islandMarqueeState[bigIslandView] = false
-            islandAutoHideSessions.remove(bigIslandView)?.fallbackRunnable?.let {
-                bigIslandView.removeCallbacks(it)
-            }
-            traverseInternal(bigIslandView, false)
-            trace("skip override: no scrollable text island=${System.identityHashCode(bigIslandView)}")
-            return
-        }
-        //log("Marquee ${if (enabled) "enabled" else "disabled"} for island view")
+        val loops = if (enabled) autoHideLoops.coerceIn(0, 2) else 0
+        val effectiveOverride = enabled && overrideTimeout && loops > 0
+        // 开启覆盖超时（1_override/2_override）时，系统岛超时已被改成
+        // Int.MAX_VALUE（见 NotificationHook / ToastUiInterceptHook），会话是
+        // 岛消失的唯一责任人：无论大岛此刻有没有可滚动文本（短文本放不下
+        // 滚动、纯图标、文本只在展开视图里、或展开态下视图尚未布局），
+        // 都必须保留会话——没有滚动视图时由 fallback 定时器按原超时兜底，
+        // 绝不能因为 scrollingViews 暂时为空就删掉会话，否则岛会常驻。
+        // 只有未覆盖超时（系统超时仍正常）且确实没有文本时才不建会话。
+        val hasText = enabled && hasMarqueeText(bigIslandView)
+        val sessionLoops = if (loops > 0 && !hasText && !effectiveOverride) 0 else loops
+        trace(
+            "apply enabled=$enabled loops=$loops override=$effectiveOverride text=$hasText " +
+                "island=${System.identityHashCode(bigIslandView)}"
+        )
         islandMarqueeState[bigIslandView] = enabled
         configureAutoHideSession(
             bigIslandView,
-            if (enabled) autoHideLoops.coerceIn(0, 2) else 0,
-            enabled && overrideTimeout,
+            sessionLoops,
+            effectiveOverride,
             originalTimeoutSecs,
         )
         traverseInternal(bigIslandView, enabled)
-        // 覆盖超时只对确实存在滚动文本的岛生效。图标/空文本岛没有循环回调，
-        // 清理自动隐藏会话后交给 SystemUI 的普通 island timeout。
-        if (enabled && autoHideLoops > 0) {
-            val session = islandAutoHideSessions[bigIslandView]
-            if (session != null && session.scrollingViews.isEmpty()) {
-                session.fallbackRunnable?.let(bigIslandView::removeCallbacks)
-                islandAutoHideSessions.remove(bigIslandView)
-                trace("clear empty session island=${System.identityHashCode(bigIslandView)}")
-            }
-        }
     }
 
     private fun hasMarqueeText(view: View): Boolean {
@@ -225,24 +256,31 @@ object MarqueeHook : BaseHook() {
         val islandKey = targetIslandKey[island].orEmpty()
         val current = islandAutoHideSessions[island]
         if (targetLoops <= 0) {
-            current?.fallbackRunnable?.let(island::removeCallbacks)
+            current?.let {
+                cancelFallback(island, it)
+            }
             islandAutoHideSessions.remove(island)
             return
         }
-        if (current != null && current.islandKey == islandKey &&
-            current.targetLoops == targetLoops && current.overrideTimeout == overrideTimeout) {
-            return
+        current?.let {
+            cancelFallback(island, it)
         }
-        current?.fallbackRunnable?.let(island::removeCallbacks)
         val session = IslandAutoHideSession(
             islandKey = islandKey,
             targetLoops = targetLoops,
             overrideTimeout = overrideTimeout,
             timeoutMs = originalTimeoutSecs.coerceAtLeast(1) * 1000L,
+            notification = targetNotifications[island],
         )
         islandAutoHideSessions[island] = session
         trace("create session island=${System.identityHashCode(island)} loops=$targetLoops override=$overrideTimeout timeout=${session.timeoutMs}")
         scheduleFallbackIfNeeded(island, session)
+    }
+
+    private fun cancelFallback(island: ViewGroup, session: IslandAutoHideSession) {
+        session.fallbackRunnable?.let(island::removeCallbacks)
+        session.fallbackRunnable = null
+        session.fallbackGeneration++
     }
 
     private fun registerScrollingView(textView: TextView) {
@@ -250,8 +288,7 @@ object MarqueeHook : BaseHook() {
         val session = islandAutoHideSessions[island] ?: return
         session.scrollingViews[textView] = 0
         trace("register view=${System.identityHashCode(textView)} island=${System.identityHashCode(island)}")
-        session.fallbackRunnable?.let(island::removeCallbacks)
-        session.fallbackRunnable = null
+        cancelFallback(island, session)
     }
 
     private fun unregisterScrollingView(textView: TextView) {
@@ -295,10 +332,15 @@ object MarqueeHook : BaseHook() {
         if (!session.overrideTimeout || session.dismissed || session.scrollingViews.isNotEmpty() ||
             session.fallbackRunnable != null) return
         val elapsed = SystemClock.elapsedRealtime() - session.startedAtMs
+        val generation = session.fallbackGeneration
+        val islandRef = WeakReference(island)
         val runnable = Runnable {
+            if (session.fallbackGeneration != generation) return@Runnable
             session.fallbackRunnable = null
-            trace("fallback fire island=${System.identityHashCode(island)} views=${session.scrollingViews.size}")
-            if (session.scrollingViews.isEmpty()) dismissIsland(island, session)
+            val activeIsland = islandRef.get() ?: return@Runnable
+            if (islandAutoHideSessions[activeIsland] !== session) return@Runnable
+            trace("fallback fire island=${System.identityHashCode(activeIsland)} views=${session.scrollingViews.size}")
+            if (session.scrollingViews.isEmpty()) dismissIsland(activeIsland, session)
         }
         session.fallbackRunnable = runnable
         island.postDelayed(runnable, (session.timeoutMs - elapsed).coerceAtLeast(0L))
@@ -306,11 +348,14 @@ object MarqueeHook : BaseHook() {
 
     private fun dismissIsland(island: ViewGroup, session: IslandAutoHideSession) {
         if (session.dismissed) return
-        val key = targetIslandKey[island] ?: return
+        val key = targetIslandKey[island] ?: session.islandKey.takeIf { it.isNotBlank() }
+        if (key == null) {
+            trace("dismiss aborted: no island key island=${System.identityHashCode(island)}")
+            return
+        }
         session.dismissed = true
-        session.fallbackRunnable?.let(island::removeCallbacks)
-        session.fallbackRunnable = null
-        ActiveIslandDismissHook.dismiss(key)
+        cancelFallback(island, session)
+        ActiveIslandDismissHook.dismiss(key, session.notification)
     }
 
     private fun isInExpandedView(view: View): Boolean {
@@ -464,10 +509,20 @@ object MarqueeHook : BaseHook() {
                 val updateMethod = clazz.declaredMethods.firstOrNull { it.name == "updateBigIslandView" }
                 if (updateMethod != null) {
                     module.hook(updateMethod).intercept { chain ->
+                        val islandView = chain.thisObject as? ViewGroup
+                        val updateToken = Any()
+                        if (islandView != null) {
+                            islandUpdateTokens[islandView] = updateToken
+                            resetIslandMarqueeState(islandView)
+                            targetIslandKey[islandView]?.let(ActiveIslandDismissHook::invalidate)
+                        }
                         val result = chain.proceed()
                         try {
-                            val islandView = chain.thisObject as? ViewGroup
                             if (islandView == null) return@intercept result
+                            if (islandUpdateTokens[islandView] !== updateToken) {
+                                trace("ignore stale island update island=${System.identityHashCode(islandView)}")
+                                return@intercept result
+                            }
                             val islandData = chain.args.getOrNull(0)
                             var pkgName = ""
                             var channelId = ""
@@ -510,7 +565,8 @@ object MarqueeHook : BaseHook() {
                                             channelId = recent.second
                                         }
                                     }
-                                    isOngoing = (sbn?.notification?.flags ?: 0) and android.app.Notification.FLAG_ONGOING_EVENT != 0
+                                     isOngoing = (sbn?.notification?.flags ?: 0) and android.app.Notification.FLAG_ONGOING_EVENT != 0
+                                     if (sbn != null) targetNotifications[islandView] = sbn
                                     targetPkg[islandView] = pkgName
                                     targetChannel[islandView] = channelId
                                     if (islandKey.isNotEmpty()) {
@@ -685,8 +741,8 @@ object MarqueeHook : BaseHook() {
         fun start() {
             val view = viewRef.get() ?: return
             val textNow = normalizeText(view.text.toString())
-            if (isRunning && currentText == textNow) return
             registerScrollingView(view)
+            if (isRunning && currentText == textNow) return
             currentText = textNow
             isRunning = true
             currentScrollX = 0f
@@ -724,8 +780,10 @@ object MarqueeHook : BaseHook() {
                 stop()
                 return
             }
-            // View 已离开窗口（岛消失/被回收），立即停止
+            // View 已离开窗口（岛消失/被回收/切换到展开态），立即停止并解除注册，
+            // 避免覆盖超时会话永远等待一个不会再产生循环回调的视图。
             if (!view.isAttachedToWindow) {
+                unregisterScrollingView(view)
                 stop()
                 return
             }

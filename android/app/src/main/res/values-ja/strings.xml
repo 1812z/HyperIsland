@@ -871,4 +871,18 @@
     <string name="batch_channel_scope_apps">%1$d アプリに適用される有効なチャネル</string>
     <string name="applying">申請中</string>
     <string name="color_code">カラーコード（#RRGGBB または #AARRGGBB）</string>
+    <string name="ext_lockscreen_negative_page">ロック画面のマイナスワン画面</string>
+    <string name="ext_lockscreen_negative_page_enabled">ロック画面のマイナスワン画面</string>
+    <string name="ext_lockscreen_negative_page_enabled_summary">ロック画面のマイナスワン画面拡張を有効にします</string>
+    <string name="ext_lockscreen_negative_page_dim">背景を暗くする</string>
+    <string name="ext_lockscreen_negative_page_dim_summary">マイナスワン画面を開くときに暗いオーバーレイを表示します</string>
+    <string name="ext_lockscreen_negative_page_dim_amount">暗さ</string>
+    <string name="lockscreen_widgets_title_default">ウィジェット</string>
+    <string name="ext_lockscreen_negative_page_title">上部テキスト</string>
+    <string name="ext_lockscreen_negative_page_title_dialog">上部テキストを設定</string>
+    <string name="ext_lockscreen_negative_page_title_hint">上部テキストを入力</string>
+    <string name="ext_lockscreen_negative_page_mode">マイナスワン画面の内容</string>
+    <string name="ext_lockscreen_negative_page_mode_summary">ロック画面のマイナスワン画面に表示する内容を選択します</string>
+    <string name="ext_lockscreen_page_device_center">デバイス連携センター</string>
+    <string name="ext_lockscreen_page_widgets">ウィジェット</string>
 </resources>

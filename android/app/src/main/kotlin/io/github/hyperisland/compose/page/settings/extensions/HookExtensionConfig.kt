@@ -42,10 +42,17 @@ internal const val KEY_FACE_UNLOCK_ANIMATION = "pref_face_unlock_island_animatio
 internal const val KEY_FACE_UNLOCK_KEEP = "pref_face_unlock_island_keep_until_keyguard_hidden"
 internal const val KEY_HIDE_FACE_UNLOCK_ICON = "pref_hide_lockscreen_face_unlock_icon"
 internal const val KEY_LOCKSCREEN_DEVICE_CENTER = "pref_lockscreen_device_center"
+internal const val KEY_LOCKSCREEN_NEGATIVE_PAGE_MODE = "pref_lockscreen_negative_page_mode"
+internal const val KEY_LOCKSCREEN_NEGATIVE_PAGE_ENABLED = "pref_lockscreen_negative_page_enabled"
+internal const val KEY_LOCKSCREEN_NEGATIVE_PAGE_DIM_ENABLED = "pref_lockscreen_negative_page_dim_enabled"
+internal const val KEY_LOCKSCREEN_NEGATIVE_PAGE_DIM_AMOUNT = "pref_lockscreen_negative_page_dim_amount"
+internal const val KEY_LOCKSCREEN_NEGATIVE_PAGE_TITLE = "pref_lockscreen_negative_page_title"
 internal const val KEY_WIFI_TILE_DISCONNECT = "pref_wifi_tile_disconnect_only"
 
 internal const val MODE_DEFAULT = "default"
 internal const val MODE_OUTLINE = "outline"
+internal const val LOCKSCREEN_PAGE_MODE_DEVICE_CENTER = "device_center"
+internal const val LOCKSCREEN_PAGE_MODE_WIDGETS = "widgets"
 internal const val SCREEN_RECORDER_ICON_VOICE_RECORDER = "voice_recorder"
 internal const val SCREEN_RECORDER_ICON_SCREEN_RECORDER = "screen_recorder"
 internal const val SETTINGS_POSITION_TOP = "top"
@@ -97,4 +104,5 @@ internal enum class SystemUiExtensionDetail {
     HeartRate,
     Charge,
     FaceUnlock,
+    LockscreenNegativePage,
 }

@@ -16,6 +16,7 @@ import io.github.hyperisland.utils.resolveDynamicHighlightColor
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.hyperisland.xposed.hook.IslandOuterGlowHook
+import io.github.hyperisland.xposed.hook.MarqueeHook
 import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
 import io.github.hyperisland.xposed.islanddispatch.definition.IslandDispatchContract
 import io.github.hyperisland.xposed.template.core.TemplateRegistry
@@ -80,7 +81,12 @@ object GenericProgressHook : BaseHook() {
     )
 
     private val lastProgressCache = ConcurrentHashMap<String, Int>()
-    private val trackedForCancel = ConcurrentHashMap<String, Int>()
+    private data class TrackedProxy(
+        val source: StatusBarNotification,
+        val proxyId: Int,
+    )
+
+    private val trackedForCancel = ConcurrentHashMap<String, TrackedProxy>()
     private val cachedMediaEnabled = ConcurrentHashMap<String, Boolean>()
     private val hookedMediaFilterClasses = Collections.synchronizedMap(
         WeakHashMap<Class<*>, Boolean>(),
@@ -255,11 +261,17 @@ object GenericProgressHook : BaseHook() {
         module: XposedModule,
         classLoader: ClassLoader
     ) {
-        val context = HookUtils.getContext(classLoader) ?: return
         sbn ?: return
+        MarqueeHook.onNotificationRemoved(sbn)
+        val context = HookUtils.getContext(classLoader) ?: return
         if (ConfigManager.isDebugLogEnabled()) log(module, "count-trace removed key=${sbn.key}")
         IslandOuterGlowHook.removeMediaGlowRequest(sbn.packageName, sbn.key)
-        val removed = NotificationCountTracker.remove(sbn.key)
+        val removal = NotificationCountTracker.remove(sbn)
+        if (removal.stale) {
+            if (ConfigManager.isDebugLogEnabled()) log(module, "count-trace stale removed ignored key=${sbn.key}")
+            return
+        }
+        val removed = removal.entry
         if (removed != null) {
             val scope = removed.scope
             val remaining = NotificationCountTracker.count(scope)
@@ -272,8 +284,13 @@ object GenericProgressHook : BaseHook() {
             trackedForCancel.remove(sbn.key)
             return
         }
-        val proxyId = trackedForCancel.remove(sbn.key) ?: return
-        IslandDispatcher.cancel(context, proxyId)
+        val tracked = trackedForCancel[sbn.key] ?: return
+        if (!sameNotification(tracked.source, sbn)) {
+            if (ConfigManager.isDebugLogEnabled()) log(module, "count-trace stale proxy removal ignored key=${sbn.key}")
+            return
+        }
+        if (!trackedForCancel.remove(sbn.key, tracked)) return
+        IslandDispatcher.cancel(context, tracked.proxyId)
     }
 
 
@@ -648,11 +665,22 @@ object GenericProgressHook : BaseHook() {
             )
 
             if (trackedForCancel.size >= MAX_TRACKED_CANCEL_SIZE) trackedForCancel.clear()
-            trackedForCancel[sbn.key] = IslandDispatcher.NOTIF_ID
+            trackedForCancel[sbn.key] = TrackedProxy(sbn, IslandDispatcher.NOTIF_ID)
 
         } catch (e: Throwable) {
             logError(module, "handleSbn error: ${e.message}")
         }
+    }
+
+    private fun sameNotification(
+        first: StatusBarNotification,
+        second: StatusBarNotification,
+    ): Boolean {
+        return first.key == second.key &&
+            first.postTime == second.postTime &&
+            first.uid == second.uid &&
+            first.id == second.id &&
+            first.tag == second.tag
     }
 
     private fun resolveHighlightColor(

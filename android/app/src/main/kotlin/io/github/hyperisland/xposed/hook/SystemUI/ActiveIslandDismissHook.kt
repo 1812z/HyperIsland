@@ -18,6 +18,13 @@ object ActiveIslandDismissHook : BaseHook() {
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val hookedClassLoaders = ConcurrentHashMap.newKeySet<Int>()
+    private val pendingDismissals = ConcurrentHashMap<String, PendingDismissal>()
+
+    private class PendingDismissal {
+        @Volatile var cancelled = false
+        var expectedSbn: StatusBarNotification? = null
+        lateinit var runnable: Runnable
+    }
 
     @Volatile
     private var focusControllerRef: WeakReference<Any>? = null
@@ -31,13 +38,27 @@ object ActiveIslandDismissHook : BaseHook() {
         }
     }
 
-    fun dismiss(notificationKey: String) {
+    fun dismiss(notificationKey: String, expectedSbn: StatusBarNotification? = null) {
         if (notificationKey.isBlank()) return
-        mainHandler.post {
+        val request = PendingDismissal()
+        request.expectedSbn = expectedSbn ?: focusControllerRef?.get()?.let {
+            resolveSbn(it, notificationKey)
+        }
+        request.runnable = Runnable {
+            if (request.cancelled || pendingDismissals[notificationKey] !== request) {
+                diag("stale dismiss ignored key=$notificationKey")
+                return@Runnable
+            }
+            pendingDismissals.remove(notificationKey, request)
             val controller = focusControllerRef?.get()
             if (controller == null) {
                 diag("focus controller unavailable key=$notificationKey")
-                return@post
+                return@Runnable
+            }
+            val currentSbn = resolveSbn(controller, notificationKey)
+            if (request.expectedSbn != null && !sameNotification(currentSbn, request.expectedSbn)) {
+                diag("stale dismiss ignored after notification replacement key=$notificationKey")
+                return@Runnable
             }
             try {
                 // OS4 的 removeByKey 会同时删除通知中心使用的 FocusNotificationContent
@@ -53,7 +74,7 @@ object ActiveIslandDismissHook : BaseHook() {
                     islandOnly.isAccessible = true
                     islandOnly.invoke(controller, notificationKey, updateNoFloat)
                     diag("focus island-only remove invoked key=$notificationKey")
-                    return@post
+                    return@Runnable
                 }
 
                 val direct = controller.javaClass.declaredMethods.firstOrNull {
@@ -79,9 +100,36 @@ object ActiveIslandDismissHook : BaseHook() {
                 )
             }
         }
+        pendingDismissals.put(notificationKey, request)?.let { previous ->
+            previous.cancelled = true
+            mainHandler.removeCallbacks(previous.runnable)
+        }
+        mainHandler.post(request.runnable)
+    }
+
+    fun invalidate(notificationKey: String) {
+        invalidateDismissals(notificationKey)
+    }
+
+    /**
+     * A notification update can reuse the same key. Invalidate dismiss work that
+     * was queued for the previous contents before it can remove the new island.
+     */
+    private fun invalidateDismissals(notificationKey: String) {
+        if (notificationKey.isBlank()) return
+        pendingDismissals.remove(notificationKey)?.let { request ->
+            request.cancelled = true
+            mainHandler.removeCallbacks(request.runnable)
+        }
     }
 
     private fun resolveIslandUpdateNoFloat(controller: Any, notificationKey: String): Boolean {
+        val sbn = resolveSbn(controller, notificationKey)
+        return sbn?.notification?.extras
+            ?.getBoolean("miui.island.updateNoFloat", false) == true
+    }
+
+    private fun resolveSbn(controller: Any, notificationKey: String): StatusBarNotification? {
         var current: Class<*>? = controller.javaClass
         while (current != null) {
             val clazz = current
@@ -91,12 +139,24 @@ object ActiveIslandDismissHook : BaseHook() {
                     field.isAccessible = true
                     (field.get(controller) as? Map<*, *>)?.get(notificationKey) as? StatusBarNotification
                 }.getOrNull()
-                return sbn?.notification?.extras
-                    ?.getBoolean("miui.island.updateNoFloat", false) == true
+                return sbn
             }
             current = clazz.superclass
         }
-        return false
+        return null
+    }
+
+    private fun sameNotification(
+        current: StatusBarNotification?,
+        expected: StatusBarNotification?,
+    ): Boolean {
+        if (current === expected) return true
+        if (current == null || expected == null) return false
+        return current.key == expected.key &&
+            current.postTime == expected.postTime &&
+            current.uid == expected.uid &&
+            current.id == expected.id &&
+            current.tag == expected.tag
     }
 
     private fun hookFocusNotificationController(module: XposedModule, classLoader: ClassLoader) {
@@ -123,6 +183,8 @@ object ActiveIslandDismissHook : BaseHook() {
                         val sbn = chain.args.getOrNull(0) as? StatusBarNotification
                         if (sbn != null) {
                             focusControllerRef = WeakReference(chain.thisObject)
+                            invalidateDismissals(sbn.key)
+                            clearTimeoutRemovedKey(chain.thisObject, sbn.key)
                             //diag("focus controller captured key=${sbn.key}")
                         }
                         chain.proceed()
@@ -130,6 +192,26 @@ object ActiveIslandDismissHook : BaseHook() {
                 }
         } catch (_: Throwable) {
             hookedClassLoaders.remove(classLoaderId)
+        }
+    }
+
+    private fun clearTimeoutRemovedKey(controller: Any, notificationKey: String) {
+        var current: Class<*>? = controller.javaClass
+        while (current != null) {
+            val clazz = current
+            val field = runCatching {
+                clazz.getDeclaredField("islandTimeoutRemovedList")
+            }.getOrNull()
+            if (field != null) {
+                runCatching {
+                    field.isAccessible = true
+                    (field.get(controller) as? MutableCollection<*>)?.remove(notificationKey)
+                }.onFailure {
+                    diag("timeout-removed cleanup failed key=$notificationKey error=${it.message}")
+                }
+                return
+            }
+            current = clazz.superclass
         }
     }
 

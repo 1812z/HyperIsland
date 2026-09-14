@@ -9,7 +9,8 @@ import io.github.hyperisland.xposed.hook.SystemUI.IslandOutlineHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandTextSizeHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandTransitionVisualHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandSwipeActionHook
-import io.github.hyperisland.xposed.hook.SystemUI.LockscreenNegativePageHook
+import io.github.hyperisland.xposed.hook.SystemUI.lockscreen.LockscreenNegativePageHook
+import io.github.hyperisland.xposed.hook.SystemUI.lockscreen.LockscreenWidgetPageHook
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.SmallIslandIconHook
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.SmoothIslandHook
 import io.github.hyperisland.xposed.hook.ActiveIslandDismissHook
@@ -20,7 +21,7 @@ import io.github.hyperisland.xposed.hook.DownloadHook
 import io.github.hyperisland.xposed.hook.FocusNotifStatusBarIconHook
 import io.github.hyperisland.xposed.hook.FocusNotificationTextColorHook
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.FaceUnlockStateHook
-import io.github.hyperisland.xposed.hook.SystemUI.extensions.LockscreenFaceUnlockUiHook
+import io.github.hyperisland.xposed.hook.SystemUI.lockscreen.LockscreenFaceUnlockUiHook
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.KeyguardUnlockStateHook
 import io.github.hyperisland.xposed.hook.MediaNotificationTextColorHook
 import io.github.hyperisland.xposed.hook.PermissionManager.ClipboardToastHook
@@ -67,7 +68,7 @@ class HyperIslandModule : XposedModule() {
                 if (ConfigManager.getBoolean("pref_hide_lockscreen_face_unlock_icon", false)) {
                     LockscreenFaceUnlockUiHook.init(this, param)
                 }
-                if (ConfigManager.getBoolean("pref_lockscreen_device_center", false)) {
+                if (LockscreenWidgetPageHook.isNegativePageEnabled()) {
                     LockscreenNegativePageHook.init(this, param)
                 }
                 IslandDispatcherHook.init(this, param)
@@ -144,7 +145,7 @@ class HyperIslandModule : XposedModule() {
             }
 
             "com.milink.service" ->
-                if (ConfigManager.getBoolean("pref_lockscreen_device_center", false)) {
+                if (LockscreenWidgetPageHook.isDeviceCenterMode()) {
                     LockscreenNegativePageHook.init(this, param)
                 }
 

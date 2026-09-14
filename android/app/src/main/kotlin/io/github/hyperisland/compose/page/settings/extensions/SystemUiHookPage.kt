@@ -35,7 +35,13 @@ internal fun SystemUiHookPage(
     val smoothingState = remember(KEY_SMOOTHING) {
         mutableFloatStateOf(prefs.getDouble(KEY_SMOOTHING, DEFAULT_SMOOTHING).toFloat())
     }
-    val lockscreenDeviceCenter = rememberBooleanPreference(prefs, KEY_LOCKSCREEN_DEVICE_CENTER, false)
+    val lockscreenNegativePage = rememberBooleanPreference(
+        prefs,
+        KEY_LOCKSCREEN_NEGATIVE_PAGE_ENABLED,
+        prefs.getBoolean(KEY_LOCKSCREEN_DEVICE_CENTER, false) ||
+            prefs.getString(KEY_LOCKSCREEN_NEGATIVE_PAGE_MODE, LOCKSCREEN_PAGE_MODE_DEVICE_CENTER) ==
+            LOCKSCREEN_PAGE_MODE_WIDGETS,
+    )
     val unlockAll = rememberBooleanPreference(prefs, KEY_UNLOCK_ALL_FOCUS, false)
     val bluetooth = rememberBooleanPreference(prefs, KEY_BLUETOOTH_ISLAND, false)
     val heartRate = rememberBooleanPreference(prefs, KEY_HEART_RATE_ISLAND, false)
@@ -88,23 +94,13 @@ internal fun SystemUiHookPage(
                         },
                     )
                 }
-                PreferenceSwitch(
-                    title = stringResource(R.string.ext_lockscreen_device_center),
-                    summary = stringResource(R.string.ext_lockscreen_device_center_summary),
-                    icon = null,
-                    checked = lockscreenDeviceCenter.value,
-                ) { value ->
-                    if (actions.request(
-                            value,
-                            listOf(PKG_SYSTEM_UI, "com.milink.service"),
-                            scopeFailed,
-                        )
-                    ) {
-                        lockscreenDeviceCenter.value = value
-                        prefs.putBoolean(KEY_LOCKSCREEN_DEVICE_CENTER, value)
-                        actions.show(restartRequired)
-                    }
-                }
+                SettingsAction(
+                    title = stringResource(R.string.ext_lockscreen_negative_page),
+                    summary = stringResource(
+                        if (lockscreenNegativePage.value) R.string.ext_enabled else R.string.ext_disabled,
+                    ),
+                    endIcon = MiuixIcons.ChevronForward,
+                ) { onOpenDetail(SystemUiExtensionDetail.LockscreenNegativePage) }
                 PreferenceSwitch(
                     title = stringResource(R.string.ext_unlock_all_focus),
                     summary = stringResource(R.string.ext_unlock_all_focus_summary),
