@@ -170,6 +170,20 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
                 ),
             )
         }
+        val content = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            clipChildren = false
+            clipToPadding = false
+            addView(header, LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ))
+            addView(column, LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ))
+        }
+
         scroll = ScrollView(context).apply {
             isFillViewport = true
             overScrollMode = View.OVER_SCROLL_NEVER
@@ -177,10 +191,9 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
             clipToPadding = false
             isVerticalScrollBarEnabled = false
             isHorizontalScrollBarEnabled = false
-            addView(column, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+            addView(content, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         }
 
-        root.addView(header)
         root.addView(scroll, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
         addView(root, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
         deleteZone = TextView(context).apply {
@@ -220,6 +233,7 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         super.onDetachedFromWindow()
         restoreDragClipping()
         hideDeleteZone(immediate = true)
+        restoreImeWindow()
         if (!listening) return
         listening = false
         runCatching { widgetHost.stopListening() }
@@ -712,33 +726,45 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
                 val inputMethodManager = context.getSystemService(InputMethodManager::class.java)
                 inputMethodManager?.restartInput(search)
                 inputMethodManager?.showSoftInput(search, InputMethodManager.SHOW_IMPLICIT)
-            }, 120L)
+            }, 320L)
             search.setOnClickListener {
                 search.requestFocus()
-                search.post {
+                search.postDelayed({
                     prepareImeWindow(search)
                     val inputMethodManager = context.getSystemService(InputMethodManager::class.java)
                     inputMethodManager?.restartInput(search)
                     inputMethodManager?.showSoftInput(search, InputMethodManager.SHOW_IMPLICIT)
-                }
+                }, 80L)
             }
         }
     }
 
     private fun prepareImeWindow(view: View) {
         val root = view.rootView
-        root.clearFocus()
         view.requestFocus()
-        root.windowToken?.let {
-            val params = root.layoutParams
-            if (params is WindowManager.LayoutParams) {
-                params.flags = params.flags and WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM.inv()
-                params.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
-            }
+        val params = root.layoutParams as? WindowManager.LayoutParams ?: return
+        val original = imeWindowState
+        if (original == null) {
+            imeWindowState = params.flags to params.softInputMode
+        }
+        // Numeric PIN keyguard keeps the shade window not-focusable. Clear both flags that
+        // prevent an IME target, then commit the change to WindowManager (mutating the copy
+        // returned by getLayoutParams() alone is not enough).
+        params.flags = params.flags and WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM.inv()
+        params.flags = params.flags and WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE.inv()
+        params.softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE or
+            WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE
+        runCatching {
+            context.getSystemService(WindowManager::class.java)?.updateViewLayout(root, params)
         }
     }
 
     private fun dismissPicker() {
+        pickerSearch?.let { search ->
+            context.getSystemService(InputMethodManager::class.java)
+                ?.hideSoftInputFromWindow(search.windowToken, 0)
+        }
+        restoreImeWindow()
         picker?.let(::removeView)
         picker = null
         pickerProviders = emptyList()
@@ -748,6 +774,21 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         pickerQuery = ""
         pickerPackage = null
         pickerAppRows.clear()
+    }
+
+    private fun restoreImeWindow() {
+        val state = imeWindowState ?: return
+        val root = rootView
+        val params = root.layoutParams as? WindowManager.LayoutParams ?: run {
+            imeWindowState = null
+            return
+        }
+        params.flags = state.first
+        params.softInputMode = state.second
+        runCatching {
+            context.getSystemService(WindowManager::class.java)?.updateViewLayout(root, params)
+        }
+        imeWindowState = null
     }
 
     private fun buildPickerOverlay(providers: List<AppWidgetProviderInfo>): View {
