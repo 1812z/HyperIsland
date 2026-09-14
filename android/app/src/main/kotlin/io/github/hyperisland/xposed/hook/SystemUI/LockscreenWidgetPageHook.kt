@@ -38,7 +38,7 @@ internal object LockscreenWidgetPageHook {
         "com.android.keyguard.magazine.LockScreenMagazineController"
 
     @Volatile private var installed = false
-    private var pageRef: WeakReference<View>? = null
+    private var pageRef: WeakReference<LockscreenWidgetPageView>? = null
 
     fun install(module: XposedModule, classLoader: ClassLoader) {
         if (installed) return
@@ -98,7 +98,13 @@ internal object LockscreenWidgetPageHook {
         } ?: return
         method.isAccessible = true
         module.hook(method).intercept { chain ->
-            if (isWidgetMode()) false else chain.proceed()
+            if (isWidgetMode()) {
+                // AppWidgetService rejects every query before credential unlock. Consume the
+                // controller gesture in that state so a left swipe cannot enter the page.
+                if (pageRef?.get()?.acceptsPageGesture() != true) true else false
+            } else {
+                chain.proceed()
+            }
         }
     }
 
@@ -165,7 +171,7 @@ internal object LockscreenWidgetPageHook {
     }
 
     /** Hardcoded to widgets for the current test round; set false to follow the saved mode. */
-    internal const val FORCE_WIDGETS = true
+    internal const val FORCE_WIDGETS = false
     private const val NEGATIVE_PAGE_MODE_KEY = "pref_lockscreen_negative_page_mode"
     private const val PAGE_TAG = LockscreenWidgetPageView.PAGE_TAG
 }

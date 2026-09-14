@@ -14,6 +14,7 @@ import android.graphics.drawable.GradientDrawable
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.os.UserManager
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.ViewOutlineProvider
@@ -22,7 +23,7 @@ import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
-import android.view.ViewParent
+import android.view.VelocityTracker
 import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -47,9 +48,11 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
 
     private val appWidgetManager: AppWidgetManager = AppWidgetManager.getInstance(context)
     private val widgetHost = AppWidgetHost(context, HOST_ID)
+    private val userManager = context.getSystemService(UserManager::class.java)
     private val store = WidgetStore(context)
     private val cells = ArrayList<WidgetCell>()
     private val column: GridLayout
+    private val scroll: ScrollView
     private val emptyHint: TextView
     private val addButton: TextView
     private var picker: View? = null
@@ -66,12 +69,23 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
     private var pageDownX = 0f
     private var pageDownY = 0f
     private var pageChildCancelled = false
+    private var touchInScroll = false
+    private var pageVelocity: VelocityTracker? = null
     private var widgetDragActive = false
     private var pendingOrder: MutableList<WidgetCell>? = null
     private var pendingDragIndex = -1
-    private val dragSlotPositions = HashMap<WidgetCell, Pair<Float, Float>>()
-    private val dragBaseSlots = HashMap<WidgetCell, Pair<Float, Float>>()
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val unlockRetry = object : Runnable {
+        override fun run() {
+            if (!isAttachedToWindow || !listening) return
+            if (widgetsReady()) {
+                runCatching { widgetHost.startListening() }
+                loadWidgets()
+            } else {
+                mainHandler.postDelayed(this, 1000L)
+            }
+        }
+    }
 
     private val density = resources.displayMetrics.density
 
@@ -130,7 +144,7 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
                 ),
             )
         }
-        val scroll = WidgetScrollView(context).apply {
+        scroll = ScrollView(context).apply {
             isFillViewport = true
             overScrollMode = View.OVER_SCROLL_NEVER
             isVerticalScrollBarEnabled = false
@@ -147,8 +161,13 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         super.onAttachedToWindow()
         if (listening) return
         listening = true
-        runCatching { widgetHost.startListening() }
-        loadWidgets()
+        if (widgetsReady()) {
+            runCatching { widgetHost.startListening() }
+            loadWidgets()
+        } else {
+            emptyHint.visibility = VISIBLE
+            mainHandler.postDelayed(unlockRetry, 1000L)
+        }
     }
 
     override fun onDetachedFromWindow() {
@@ -157,9 +176,24 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         listening = false
         runCatching { widgetHost.stopListening() }
         mainHandler.removeCallbacksAndMessages(null)
+        pageVelocity?.recycle()
+        pageVelocity = null
+        touchInScroll = false
+        horizontalGesture = false
+        verticalGesture = false
     }
 
     override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        if (picker != null || widgetDragActive) {
+            val handled = super.dispatchTouchEvent(event)
+            if (event.actionMasked == MotionEvent.ACTION_UP ||
+                event.actionMasked == MotionEvent.ACTION_CANCEL
+            ) resetPageGesture()
+            return handled
+        }
+        if (verticalGesture && event.actionMasked != MotionEvent.ACTION_UP &&
+            event.actionMasked != MotionEvent.ACTION_CANCEL
+        ) return sendToScroll(event)
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 pageDownX = event.rawX
@@ -167,35 +201,78 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
                 horizontalGesture = false
                 verticalGesture = false
                 pageChildCancelled = false
-                super.requestDisallowInterceptTouchEvent(false)
+                val position = IntArray(2).also(scroll::getLocationOnScreen)
+                touchInScroll = event.rawX >= position[0] && event.rawX < position[0] + scroll.width &&
+                    event.rawY >= position[1] && event.rawY < position[1] + scroll.height
+                pageVelocity?.recycle()
+                pageVelocity = VelocityTracker.obtain().also { it.addMovement(event) }
+                // Keep the initial DOWN visible to the keyguard pager. We only disallow its
+                // interception after a vertical direction has been confirmed.
             }
             MotionEvent.ACTION_MOVE -> {
+                pageVelocity?.addMovement(event)
+                if (horizontalGesture) return super.dispatchTouchEvent(event)
+                if (!touchInScroll) return super.dispatchTouchEvent(event)
                 val dx = event.rawX - pageDownX
                 val dy = event.rawY - pageDownY
-                if (!horizontalGesture && !verticalGesture && !widgetDragActive &&
-                    kotlin.math.hypot(dx, dy) > touchSlop()
-                ) {
-                    if (kotlin.math.abs(dx) > kotlin.math.abs(dy) * 1.15f) {
+                if (kotlin.math.hypot(dx, dy) > touchSlop()) {
+                    pageVelocity?.computeCurrentVelocity(1000)
+                    val vx = kotlin.math.abs(pageVelocity?.xVelocity ?: 0f)
+                    val vy = kotlin.math.abs(pageVelocity?.yVelocity ?: 0f)
+                    val vertical = kotlin.math.abs(dy) > kotlin.math.abs(dx) * 1.1f ||
+                        (vy > vx * 1.35f && kotlin.math.abs(dy) > touchSlop() / 2f)
+                    val horizontal = kotlin.math.abs(dx) > kotlin.math.abs(dy) * 1.1f ||
+                        (vx > vy * 1.35f && kotlin.math.abs(dx) > touchSlop() / 2f)
+                    if (vertical && !horizontal) {
+                        verticalGesture = true
+                        cancelDescendantTouch(event)
+                        super.requestDisallowInterceptTouchEvent(true)
+                        sendToScroll(event, start = true)
+                        return true
+                    }
+                    if (horizontal && !vertical) {
                         horizontalGesture = true
                         cancelDescendantTouch(event)
-                        // Release the stock horizontal pager so it can finish the page switch.
                         super.requestDisallowInterceptTouchEvent(false)
-                    } else if (kotlin.math.abs(dy) > kotlin.math.abs(dx) * 1.15f) {
-                        verticalGesture = true
-                        // Keep the stock horizontal pager out of a vertical ScrollView gesture.
-                        super.requestDisallowInterceptTouchEvent(true)
                     }
                 }
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                horizontalGesture = false
-                verticalGesture = false
-                pageChildCancelled = false
-                super.requestDisallowInterceptTouchEvent(false)
+                val wasVertical = verticalGesture
+                if (wasVertical) sendToScroll(event)
+                resetPageGesture()
+                if (wasVertical) return true
             }
         }
-        if (horizontalGesture && event.actionMasked == MotionEvent.ACTION_MOVE) return true
         return super.dispatchTouchEvent(event)
+    }
+
+    private fun resetPageGesture() {
+        horizontalGesture = false
+        verticalGesture = false
+        pageChildCancelled = false
+        touchInScroll = false
+        pageVelocity?.recycle()
+        pageVelocity = null
+        super.requestDisallowInterceptTouchEvent(false)
+    }
+
+    private fun sendToScroll(source: MotionEvent, start: Boolean = false): Boolean {
+        val position = IntArray(2).also(scroll::getLocationOnScreen)
+        if (start) {
+            val down = MotionEvent.obtain(source).apply {
+                action = MotionEvent.ACTION_DOWN
+                setLocation(pageDownX - position[0], pageDownY - position[1])
+            }
+            scroll.onTouchEvent(down)
+            down.recycle()
+        }
+        val copy = MotionEvent.obtain(source).apply {
+            setLocation(source.rawX - position[0], source.rawY - position[1])
+        }
+        scroll.onTouchEvent(copy)
+        copy.recycle()
+        return true
     }
 
     private fun touchSlop(): Float = ViewConfiguration.get(context).scaledTouchSlop.toFloat()
@@ -214,10 +291,10 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         // to the stock KeyguardMoveHelper; a long-press drag owns the stream until it ends.
         if (widgetDragActive || verticalGesture) {
             super.requestDisallowInterceptTouchEvent(true)
-        } else if (horizontalGesture) {
-            super.requestDisallowInterceptTouchEvent(false)
         } else {
-            super.requestDisallowInterceptTouchEvent(disallowIntercept)
+            // RemoteViews may ask to keep the stream, but the page has not established a drag.
+            // Let SystemUI see horizontal swipes until a vertical scroll is confirmed.
+            super.requestDisallowInterceptTouchEvent(false)
         }
     }
 
@@ -232,7 +309,7 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
     }
 
     private fun refreshHostView(cell: WidgetCell) {
-        val info = appWidgetManager.getAppWidgetInfo(cell.appWidgetId) ?: return
+        val info = safeAppWidgetInfo(cell.appWidgetId) ?: return
         val replacement = runCatching {
             widgetHost.createView(context, cell.appWidgetId, info)
         }.getOrNull() ?: return
@@ -266,18 +343,22 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
     // ── Widget lifecycle ──────────────────────────────────────────────────────
 
     private fun loadWidgets() {
+        if (!widgetsReady()) {
+            mainHandler.removeCallbacks(unlockRetry)
+            mainHandler.postDelayed(unlockRetry, 1000L)
+            return
+        }
         column.removeAllViews()
         cells.clear()
         store.ids().forEach { id ->
-            val info = appWidgetManager.getAppWidgetInfo(id)
+            val info = safeAppWidgetInfo(id)
             if (info == null) {
                 store.remove(id)
             } else {
                 attachExisting(id, info)
             }
         }
-        column.addView(emptyHint)
-        refreshEmptyState()
+        rebuildGrid()
     }
 
     private fun attachExisting(appWidgetId: Int, info: AppWidgetProviderInfo) {
@@ -287,6 +368,7 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
     }
 
     private fun addWidget(info: AppWidgetProviderInfo) {
+        if (!widgetsReady()) return
         val provider = info.provider ?: return
         val appWidgetId = runCatching { widgetHost.allocateAppWidgetId() }.getOrElse { return }
         val bound = runCatching {
@@ -314,7 +396,6 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         val cell = WidgetCell(appWidgetId)
         cell.hostView = hostView
         val metrics = widgetMetrics(info)
-        val size = metrics.width to metrics.height
         val cardPadding = dp(8f)
         cell.setPadding(cardPadding, cardPadding, cardPadding, cardPadding)
         hostView.setPadding(0, 0, 0, 0)
@@ -325,10 +406,7 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         cell.spanX = metrics.spanX
         cell.spanY = metrics.spanY
         cells.add(cell)
-        column.addView(
-            cell,
-            gridParams(cell.spanX, cell.spanY, size.first, size.second),
-        )
+        rebuildGrid()
         if (persist) persistOrder()
         refreshEmptyState()
     }
@@ -337,6 +415,7 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         if (!cells.remove(cell)) return
         column.removeView(cell)
         runCatching { widgetHost.deleteAppWidgetId(cell.appWidgetId) }
+        rebuildGrid()
         persistOrder()
         refreshEmptyState()
     }
@@ -364,11 +443,20 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
 
     private fun rebuildGrid() {
         column.removeAllViews()
+        val slots = computeGridSlots(cells)
         cells.forEach { cell ->
-            val size = widgetMetrics(appWidgetManager.getAppWidgetInfo(cell.appWidgetId))
+            val slot = slots[cell] ?: return@forEach
+            val unit = widgetCellWidth()
+            val gap = dp(8f)
             column.addView(
                 cell,
-                gridParams(cell.spanX, cell.spanY, size.width, size.height),
+                gridParams(
+                    cell.spanX,
+                    cell.spanY,
+                    unit * cell.spanX + gap * (cell.spanX - 1),
+                    unit * cell.spanY + gap * (cell.spanY - 1),
+                    slot,
+                ),
             )
         }
         column.addView(
@@ -381,10 +469,16 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         refreshEmptyState()
     }
 
-    private fun gridParams(spanX: Int, spanY: Int, width: Int, height: Int) =
+    private fun gridParams(
+        spanX: Int,
+        spanY: Int,
+        width: Int,
+        height: Int,
+        slot: Pair<Int, Int>,
+    ) =
         GridLayout.LayoutParams(
-            GridLayout.spec(GridLayout.UNDEFINED, spanY),
-            GridLayout.spec(GridLayout.UNDEFINED, spanX),
+            GridLayout.spec((slot.second - column.paddingTop) / (widgetCellWidth() + dp(8f)), spanY),
+            GridLayout.spec((slot.first - column.paddingLeft) / (widgetCellWidth() + dp(8f)), spanX),
         ).apply {
             this.width = width
             this.height = height
@@ -396,45 +490,85 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         val order = pendingOrder ?: return
         val from = pendingDragIndex
         if (from < 0) return
-        val target = order.withIndex().filter { (_, candidate) -> candidate !== cell }
-            .minByOrNull { (index, _) ->
-                val position = dragBaseSlots[cells.getOrNull(index)] ?: (0f to 0f)
-                val location = IntArray(2).also(column::getLocationOnScreen)
-                val centerX = location[0] + position.first + cell.width / 2f
-                val centerY = location[1] + position.second + cell.height / 2f
-                kotlin.math.hypot(rawX - centerX, rawY - centerY)
-            }?.takeIf { (index, candidate) ->
-                val position = dragBaseSlots[cells.getOrNull(index)] ?: return@takeIf false
-                val location = IntArray(2).also(column::getLocationOnScreen)
-                rawX >= location[0] + position.first && rawX <= location[0] + position.first + candidate.width &&
-                    rawY >= location[1] + position.second && rawY <= location[1] + position.second + candidate.height
-            }?.index ?: return
-        if (target == from) return
+        val slots = computeGridSlots(order)
+        val location = IntArray(2).also(column::getLocationOnScreen)
+        val draggedLeft = location[0] + cell.left + cell.translationX
+        val draggedTop = location[1] + cell.top + cell.translationY
+        val targetCell = order.asSequence().filter { it !== cell }.mapNotNull { candidate ->
+            val slot = slots[candidate] ?: return@mapNotNull null
+            val left = (location[0] + slot.first).toFloat()
+            val top = (location[1] + slot.second).toFloat()
+            val overlapX = (minOf(draggedLeft + cell.width, left + candidate.width) -
+                maxOf(draggedLeft, left)).coerceAtLeast(0f)
+            val overlapY = (minOf(draggedTop + cell.height, top + candidate.height) -
+                maxOf(draggedTop, top)).coerceAtLeast(0f)
+            val overlap = overlapX * overlapY
+            if (overlap > candidate.width * candidate.height * 0.35f) candidate to overlap else null
+        }.maxByOrNull { it.second }?.first ?: return
+        val target = order.indexOf(targetCell)
+        if (target < 0 || target == from) return
+        val insertion = if (cell.spanX == GRID_COLUMNS) {
+            val targetRow = slots[targetCell]?.second
+            val rowIndices = order.indices.filter { index ->
+                order[index] !== cell && slots[order[index]]?.second == targetRow
+            }
+            if (rawY >= pageDownY) (rowIndices.maxOrNull() ?: target) + 1
+            else rowIndices.minOrNull() ?: target
+        } else {
+            if (target > from) target + 1 else target
+        }
         order.removeAt(from)
-        order.add(target.coerceIn(0, order.size), cell)
-        pendingDragIndex = target.coerceIn(0, order.lastIndex)
-        updateDragSlots(order)
+        val adjusted = if (insertion > from) insertion - 1 else insertion
+        if (adjusted == from) {
+            order.add(from, cell)
+            return
+        }
+        order.add(adjusted.coerceIn(0, order.size), cell)
+        pendingDragIndex = adjusted.coerceIn(0, order.lastIndex)
         animateAvoidance(cell)
     }
 
-    private fun updateDragSlots(order: List<WidgetCell>) {
-        val originalSlots = cells.mapNotNull { dragBaseSlots[it] }
-        order.forEachIndexed { index, item ->
-            originalSlots.getOrNull(index)?.let { slot -> dragSlotPositions[item] = slot }
+    private fun computeGridSlots(order: List<WidgetCell>): HashMap<WidgetCell, Pair<Int, Int>> {
+        val result = HashMap<WidgetCell, Pair<Int, Int>>()
+        val occupied = ArrayList<BooleanArray>()
+        fun fits(row: Int, col: Int, w: Int, h: Int): Boolean {
+            if (col + w > GRID_COLUMNS) return false
+            while (occupied.size < row + h) occupied += BooleanArray(GRID_COLUMNS)
+            for (r in row until row + h) for (c in col until col + w) if (occupied[r][c]) return false
+            return true
         }
+        order.forEach { item ->
+            var row = 0
+            var col = 0
+            while (!fits(row, col, item.spanX, item.spanY)) {
+                col++
+                if (col >= GRID_COLUMNS) { col = 0; row++ }
+            }
+            while (occupied.size < row + item.spanY) occupied += BooleanArray(GRID_COLUMNS)
+            for (r in row until row + item.spanY) for (c in col until col + item.spanX) occupied[r][c] = true
+            result[item] = column.paddingLeft + col * (widgetCellWidth() + dp(8f)) to
+                column.paddingTop + row * (widgetCellWidth() + dp(8f))
+        }
+        return result
+    }
+
+    private fun widgetCellWidth(): Int {
+        val contentWidth = resources.displayMetrics.widthPixels - dp(32f)
+        return ((contentWidth - dp(8f) * 3) / GRID_COLUMNS).coerceAtLeast(dp(48f))
     }
 
     private fun animateAvoidance(dragged: WidgetCell) {
         val order = pendingOrder ?: return
+        val slots = computeGridSlots(order)
         // The actual GridLayout hierarchy stays untouched for the entire touch stream.
         // Only siblings move to their provisional slots; this cannot cancel the drag target.
-        order.forEachIndexed { index, item ->
-            if (item === dragged) return@forEachIndexed
-            val slot = dragBaseSlots[cells.getOrNull(index)] ?: return@forEachIndexed
+        order.forEach { item ->
+            if (item === dragged) return@forEach
+            val slot = slots[item] ?: return@forEach
             item.animate().cancel()
             item.animate()
-                .translationX(slot.first - item.left)
-                .translationY(slot.second - item.top)
+                .translationX((slot.first - item.left).toFloat())
+                .translationY((slot.second - item.top).toFloat())
                 .setDuration(180L)
                 .setInterpolator(android.view.animation.DecelerateInterpolator(1.4f))
                 .start()
@@ -444,7 +578,7 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
     // ── Widget picker ─────────────────────────────────────────────────────────
 
     private fun showPicker() {
-        if (picker != null) return
+        if (picker != null || !widgetsReady()) return
         val providers = runCatching { appWidgetManager.installedProviders }
             .getOrDefault(emptyList())
             .filter { it.provider != null }
@@ -670,6 +804,16 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
+    private fun widgetsReady(): Boolean =
+        runCatching { userManager?.isUserUnlocked == true }.getOrDefault(false)
+
+    internal fun acceptsPageGesture(): Boolean = widgetsReady()
+
+    private fun safeAppWidgetInfo(appWidgetId: Int): AppWidgetProviderInfo? {
+        if (!widgetsReady()) return null
+        return runCatching { appWidgetManager.getAppWidgetInfo(appWidgetId) }.getOrNull()
+    }
+
     private fun dp(value: Float): Int = (value * density).roundToInt().coerceAtLeast(1)
 
     private fun widgetMetrics(info: AppWidgetProviderInfo?): WidgetMetrics {
@@ -834,13 +978,6 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
             widgetDragActive = true
             pendingOrder = cells.toMutableList()
             pendingDragIndex = cells.indexOf(this)
-            dragSlotPositions.clear()
-            dragBaseSlots.clear()
-            cells.forEach { item ->
-                val slot = item.left.toFloat() to item.top.toFloat()
-                dragBaseSlots[item] = slot
-                dragSlotPositions[item] = slot
-            }
             translationZ = dp(16f).toFloat()
             animate().cancel()
             animate()
@@ -854,17 +991,17 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         private fun finishDrag(commit: Boolean) {
             widgetDragActive = false
             val order = pendingOrder
-            val targetSlot = if (commit && order != null && pendingDragIndex >= 0) {
-                dragBaseSlots[cells[pendingDragIndex]]
-            } else {
-                dragSlotPositions[this]
+            val targetSlot = if (commit && order != null) computeGridSlots(order)[this] else null
+            if (!commit) {
+                pendingOrder = cells.toMutableList()
+                animateAvoidance(this)
             }
             animate().cancel()
             animate()
                 .scaleX(1f)
                 .scaleY(1f)
-                .translationX((targetSlot?.first ?: left.toFloat()) - left)
-                .translationY((targetSlot?.second ?: top.toFloat()) - top)
+                .translationX((targetSlot?.first ?: left) - left.toFloat())
+                .translationY((targetSlot?.second ?: top) - top.toFloat())
                 .setDuration(180L)
                 .setInterpolator(android.view.animation.DecelerateInterpolator(1.4f))
                 .withEndAction {
@@ -880,29 +1017,10 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
                         item.translationX = 0f
                         item.translationY = 0f
                     }
-                    dragSlotPositions.clear()
-                    dragBaseSlots.clear()
                     pendingOrder = null
                     pendingDragIndex = -1
                 }
                 .start()
-        }
-    }
-
-    /** ScrollView that gives the page a chance to classify the gesture before intercepting it. */
-    private class WidgetScrollView(context: Context) : ScrollView(context) {
-        override fun onInterceptTouchEvent(event: MotionEvent): Boolean {
-            var current: ViewParent? = parent
-            var page: LockscreenWidgetPageView? = null
-            while (current != null) {
-                if (current is LockscreenWidgetPageView) {
-                    page = current
-                    break
-                }
-                current = current.parent
-            }
-            if (page?.horizontalGesture == true || page?.widgetDragActive == true) return false
-            return super.onInterceptTouchEvent(event)
         }
     }
 

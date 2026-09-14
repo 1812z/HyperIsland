@@ -112,7 +112,7 @@ internal fun SystemUiHookPage(
                         actions.show(restartRequired)
                     }
                 }
-                AnimatedVisibility(lockscreenDeviceCenter.value) {
+                AnimatedVisibility(true) {
                     PreferenceDropdown(
                         title = stringResource(R.string.ext_lockscreen_negative_page_mode),
                         summary = stringResource(R.string.ext_lockscreen_negative_page_mode_summary),
@@ -130,6 +130,10 @@ internal fun SystemUiHookPage(
                         }
                         lockscreenPageMode.value = mode
                         prefs.putString(KEY_LOCKSCREEN_NEGATIVE_PAGE_MODE, mode)
+                        if (mode == LOCKSCREEN_PAGE_MODE_DEVICE_CENTER && !lockscreenDeviceCenter.value) {
+                            lockscreenDeviceCenter.value = true
+                            prefs.putBoolean(KEY_LOCKSCREEN_DEVICE_CENTER, true)
+                        }
                         actions.show(restartRequired)
                     }
                 }
