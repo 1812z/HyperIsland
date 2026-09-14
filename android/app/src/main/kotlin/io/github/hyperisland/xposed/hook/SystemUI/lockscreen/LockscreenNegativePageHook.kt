@@ -1,4 +1,4 @@
-package io.github.hyperisland.xposed.hook.SystemUI
+package io.github.hyperisland.xposed.hook.SystemUI.lockscreen
 
 import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.libxposed.api.XposedModule

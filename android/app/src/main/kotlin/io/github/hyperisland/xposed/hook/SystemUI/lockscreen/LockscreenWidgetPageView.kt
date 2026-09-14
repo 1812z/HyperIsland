@@ -1,4 +1,4 @@
-package io.github.hyperisland.xposed.hook.SystemUI
+package io.github.hyperisland.xposed.hook.SystemUI.lockscreen
 
 import android.animation.ArgbEvaluator
 import android.animation.ValueAnimator

@@ -1,4 +1,4 @@
-package io.github.hyperisland.xposed.hook.SystemUI
+package io.github.hyperisland.xposed.hook.SystemUI.lockscreen
 
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter

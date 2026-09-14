@@ -1,4 +1,4 @@
-package io.github.hyperisland.xposed.hook.SystemUI.extensions
+package io.github.hyperisland.xposed.hook.SystemUI.lockscreen
 
 import android.view.View
 import io.github.hyperisland.xposed.hook.BaseHook
