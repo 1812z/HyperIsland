@@ -170,16 +170,17 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     val extensionNavigationState = rememberPredictiveNavigationLayerState()
     val bottomBarProgress = remember { Animatable(0f) }
     var bottomBarHeightPx by remember { mutableIntStateOf(0) }
+    var bottomBarComposed by remember { mutableStateOf(true) }
     val density = LocalDensity.current
 
     @Composable
-    fun RootBottomBar() {
+    fun RootBottomBar(enabled: Boolean = true) {
         if (floatingNavigationBar.value) {
             if (liquidGlassNavigationBar.value) {
                 LiquidGlassNavigationBar(
                     selectedTabIndex = { pagerState.currentPage },
                     onTabSelected = { index ->
-                        if (pagerState.currentPage != index) {
+                        if (enabled && pagerState.currentPage != index) {
                             scope.launch { pagerState.animateScrollToPage(index) }
                         }
                     },
@@ -200,7 +201,9 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                     destinations.forEachIndexed { index, destination ->
                         FloatingNavigationBarItem(
                             selected = pagerState.currentPage == index,
-                            onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
+                            onClick = {
+                                if (enabled) scope.launch { pagerState.animateScrollToPage(index) }
+                            },
                             icon = destination.icon,
                             label = stringResource(destination.title),
                         )
@@ -213,7 +216,9 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                     destinations.forEachIndexed { index, destination ->
                         NavigationBarItem(
                             selected = pagerState.currentPage == index,
-                            onClick = { scope.launch { pagerState.animateScrollToPage(index) } },
+                            onClick = {
+                                if (enabled) scope.launch { pagerState.animateScrollToPage(index) }
+                            },
                             icon = destination.icon,
                             label = stringResource(destination.title),
                         )
@@ -264,7 +269,10 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     }
 
     LaunchedEffect(detailShown, detailNavigationState.isBackActive) {
-        if (!detailNavigationState.isBackActive) {
+        if (detailNavigationState.isBackActive) {
+            bottomBarComposed = true
+        } else {
+            if (!detailShown) bottomBarComposed = true
             bottomBarProgress.animateTo(
                 if (detailShown) 1f else 0f,
                 tween(
@@ -272,6 +280,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                     easing = FastOutSlowInEasing,
                 ),
             )
+            if (detailShown) bottomBarComposed = false
         }
     }
 
@@ -646,16 +655,18 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                 }
                 }
 
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .onSizeChanged { bottomBarHeightPx = it.height }
-                        .graphicsLayer {
+                if (bottomBarComposed) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .onSizeChanged { bottomBarHeightPx = it.height }
+                            .graphicsLayer {
                             translationY = size.height * bottomBarProgress.value
                             alpha = 1f - bottomBarProgress.value
                         },
-                ) {
-                    RootBottomBar()
+                    ) {
+                        RootBottomBar(enabled = !detailShown)
+                    }
                 }
             }
         }
