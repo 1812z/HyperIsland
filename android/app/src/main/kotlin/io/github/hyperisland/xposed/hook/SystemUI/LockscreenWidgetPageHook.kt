@@ -6,6 +6,7 @@ import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.log
 import io.github.libxposed.api.XposedModule
 import java.lang.ref.WeakReference
+import java.lang.reflect.Method
 
 /**
  * Replaces the keyguard negative-one page content with [LockscreenWidgetPageView].
@@ -34,25 +35,70 @@ internal object LockscreenWidgetPageHook {
         "com.android.keyguard.widget.MiuiKeyguardMoveLeftViewContainer"
     private const val LEFT_CONTROLLER_CLASS =
         "com.android.keyguard.negative.KeyguardMoveLeftController"
+    private const val RIGHT_CONTROLLER_CLASS =
+        "com.android.keyguard.negative.KeyguardMoveRightController"
+    private const val BASE_CONTROLLER_CLASS =
+        "com.android.keyguard.BaseKeyguardMoveController"
     private const val MAGAZINE_CONTROLLER_CLASS =
         "com.android.keyguard.magazine.LockScreenMagazineController"
 
     @Volatile private var installed = false
     private var pageRef: WeakReference<LockscreenWidgetPageView>? = null
+    private var panelRef: WeakReference<Any>? = null
+    private var panelTouchMethod: Method? = null
 
     fun install(module: XposedModule, classLoader: ClassLoader) {
         if (installed) return
         val containerClass = classLoader.loadClass(CONTAINER_CLASS)
         val leftControllerClass = classLoader.loadClass(LEFT_CONTROLLER_CLASS)
+        val rightControllerClass = classLoader.loadClass(RIGHT_CONTROLLER_CLASS)
+        hookPanelInstance(module, classLoader)
 
         hookContainerAttach(module, containerClass)
         hookContainerInflate(module, containerClass)
         hookControllerFlags(module, leftControllerClass)
         hookControllerTouchMove(module, leftControllerClass)
+        hookControllerMistouchGuard(module, leftControllerClass)
+        hookControllerMistouchGuard(module, rightControllerClass)
+        hookBaseMistouchGuard(module, classLoader.loadClass(BASE_CONTROLLER_CLASS))
         hookMagazineLaunch(module, classLoader.loadClass(MAGAZINE_CONTROLLER_CLASS))
 
         installed = true
         log(module, "widget negative page hooks installed")
+    }
+
+    private fun hookPanelInstance(module: XposedModule, loader: ClassLoader) {
+        runCatching {
+            val injector = loader.loadClass("com.android.keyguard.injector.KeyguardPanelViewInjector")
+            panelTouchMethod = injector.declaredMethods.firstOrNull {
+                it.name == "onTouchEvent" && it.parameterCount == 7
+            }?.also { it.isAccessible = true }
+            injector.declaredConstructors.forEach { constructor ->
+                constructor.isAccessible = true
+                module.hook(constructor).intercept { chain ->
+                    val result = chain.proceed()
+                    panelRef = WeakReference(chain.thisObject)
+                    result
+                }
+            }
+        }.onFailure { log(module, "panel instance hook unavailable: ${it.message}") }
+    }
+
+    /** Feed a confirmed horizontal stream into the stock KeyguardMoveHelper state machine. */
+    internal fun forwardHorizontal(event: android.view.MotionEvent, downX: Float, downY: Float) {
+        if (!isWidgetMode() || pageRef?.get()?.acceptsPageGesture() != true) return
+        val target = panelRef?.get() ?: return
+        val method = panelTouchMethod ?: return
+        runCatching {
+            // KeyguardMoveHelper consumes root/screen coordinates. The page receives events in
+            // its translated local space; forwarding that directly makes X oscillate as the
+            // negative page follows the finger. Normalize every event to raw screen coordinates.
+            val copy = android.view.MotionEvent.obtain(event).apply {
+                setLocation(event.rawX, event.rawY)
+            }
+            method.invoke(target, copy, 0, downX, downY, false, false, false)
+            copy.recycle()
+        }
     }
 
     /** Attach the page as soon as the keyguard container joins the hierarchy. */
@@ -108,6 +154,45 @@ internal object LockscreenWidgetPageHook {
         }
     }
 
+    /** The stock base controller's mistake-touch guard blocks the first reverse swipe from the
+     * widget page. SystemUI's own velocity/progress settle logic remains enabled below it. */
+    private fun hookControllerMistouchGuard(module: XposedModule, controllerClass: Class<*>) {
+        controllerClass.declaredConstructors.forEach { constructor ->
+            constructor.isAccessible = true
+            module.hook(constructor).intercept { chain ->
+                val result = chain.proceed()
+                if (isWidgetMode()) {
+                    (chain.thisObject as? Any)?.let { instance ->
+                        runCatching {
+                            val field = instance.javaClass.superclass
+                                ?.getDeclaredField("mEnableErrorTips")
+                            field?.isAccessible = true
+                            field?.setBoolean(instance, false)
+                        }
+                    }
+                }
+                result
+            }
+        }
+    }
+
+    private fun hookBaseMistouchGuard(module: XposedModule, baseClass: Class<*>) {
+        val move = baseClass.declaredMethods.firstOrNull {
+            it.name == "onTouchMove" && it.parameterCount == 2
+        } ?: return
+        move.isAccessible = true
+        module.hook(move).intercept { chain ->
+            if (isWidgetMode() && chain.thisObject.javaClass.name.startsWith("com.android.keyguard.negative.")) {
+                runCatching {
+                    val field = baseClass.getDeclaredField("mEnableErrorTips")
+                    field.isAccessible = true
+                    field.setBoolean(chain.thisObject, false)
+                }
+            }
+            chain.proceed()
+        }
+    }
+
     /**
      * `isLeftViewLaunchActivity()` returning true makes the settle animation ask the magazine
      * controller to launch its own page. Suppress that while widget mode is active.
@@ -137,6 +222,10 @@ internal object LockscreenWidgetPageHook {
 
     private fun syncWidgetPage(module: XposedModule, container: ViewGroup) {
         if (!isWidgetMode()) return
+        // The dragged card may extend beyond the scroll viewport and page edge. Keep the
+        // negative-page host from cutting off that translated child while it follows the finger.
+        container.clipChildren = false
+        container.clipToPadding = false
         for (index in 0 until container.childCount) {
             val child = container.getChildAt(index)
             if (child.tag != PAGE_TAG) child.visibility = View.GONE

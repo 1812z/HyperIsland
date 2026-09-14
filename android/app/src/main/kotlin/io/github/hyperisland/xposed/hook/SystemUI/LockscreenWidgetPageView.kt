@@ -23,6 +23,7 @@ import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
+import android.view.ViewGroup
 import android.view.VelocityTracker
 import android.view.WindowManager
 import android.widget.FrameLayout
@@ -65,15 +66,19 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
     private var pickerBatch = 0
     private var imeWindowState: Pair<Int, Int>? = null
     private var horizontalGesture = false
+    private var horizontalForwarded = false
     private var verticalGesture = false
     private var pageDownX = 0f
     private var pageDownY = 0f
     private var pageChildCancelled = false
     private var touchInScroll = false
+    private var touchInSystemGesture = false
+    private var scrollDownY = 0f
     private var pageVelocity: VelocityTracker? = null
     private var widgetDragActive = false
     private var pendingOrder: MutableList<WidgetCell>? = null
     private var pendingDragIndex = -1
+    private val dragClipStates = ArrayList<Triple<ViewGroup, Boolean, Boolean>>()
     private val mainHandler = Handler(Looper.getMainLooper())
     private val unlockRetry = object : Runnable {
         override fun run() {
@@ -91,17 +96,23 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
 
     init {
         applyPageBackground()
-        isClickable = false
+        // Keep the touch stream even when DOWN lands on page background or header whitespace.
+        // Horizontal gestures explicitly return false after classification to reach SystemUI.
+        isClickable = true
         isFocusable = false
+        clipChildren = false
+        clipToPadding = false
 
         val root = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
+            clipChildren = false
+            clipToPadding = false
         }
 
         val header = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(22f), dp(20f), dp(16f), dp(8f))
+            setPadding(dp(22f), dp(38f), dp(16f), dp(8f))
         }
         val title = TextView(context).apply {
             text = PAGE_TITLE
@@ -135,6 +146,8 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
             orientation = GridLayout.HORIZONTAL
             useDefaultMargins = false
             alignmentMode = GridLayout.ALIGN_BOUNDS
+            clipChildren = false
+            clipToPadding = false
             setPadding(dp(16f), dp(4f), dp(16f), dp(48f))
             addView(
                 emptyHint,
@@ -147,6 +160,8 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         scroll = ScrollView(context).apply {
             isFillViewport = true
             overScrollMode = View.OVER_SCROLL_NEVER
+            clipChildren = false
+            clipToPadding = false
             isVerticalScrollBarEnabled = false
             isHorizontalScrollBarEnabled = false
             addView(column, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
@@ -172,6 +187,7 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
+        restoreDragClipping()
         if (!listening) return
         listening = false
         runCatching { widgetHost.stopListening() }
@@ -179,7 +195,9 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         pageVelocity?.recycle()
         pageVelocity = null
         touchInScroll = false
+        touchInSystemGesture = false
         horizontalGesture = false
+        horizontalForwarded = false
         verticalGesture = false
     }
 
@@ -201,17 +219,38 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
                 horizontalGesture = false
                 verticalGesture = false
                 pageChildCancelled = false
-                val position = IntArray(2).also(scroll::getLocationOnScreen)
-                touchInScroll = event.rawX >= position[0] && event.rawX < position[0] + scroll.width &&
-                    event.rawY >= position[1] && event.rawY < position[1] + scroll.height
+                // Classify gestures across the whole screen-backed page, including the header
+                // and widget cards. Only the bottom system-gesture inset is excluded.
+                // Leave the bottom gesture handle/nav strip to SystemUI. It must never start
+                // the nested ScrollView, otherwise the white handle becomes unresponsive.
+                touchInSystemGesture = event.rawY >= resources.displayMetrics.heightPixels - dp(80f)
+                touchInScroll = !touchInSystemGesture
+                if (touchInSystemGesture) {
+                    // Do not dispatch the DOWN into ScrollView/RemoteViews. Returning false
+                    // keeps the bottom edge gesture owned by the SystemUI root (the white
+                    // handle), while all other regions remain eligible for page scrolling.
+                    resetPageGesture()
+                    return false
+                }
+                val scrollPosition = IntArray(2).also(scroll::getLocationOnScreen)
+                scrollDownY = (event.rawY - scrollPosition[1])
+                    .coerceIn(1f, (scroll.height - 2).coerceAtLeast(1).toFloat())
                 pageVelocity?.recycle()
                 pageVelocity = VelocityTracker.obtain().also { it.addMovement(event) }
-                // Keep the initial DOWN visible to the keyguard pager. We only disallow its
-                // interception after a vertical direction has been confirmed.
+                // Hold the full stream in the page until its direction is known. This prevents
+                // the shade/header interceptor from stealing vertical moves in the upper half.
+                // Horizontal confirmation below releases the parent for the stock pager.
+                super.requestDisallowInterceptTouchEvent(true)
             }
             MotionEvent.ACTION_MOVE -> {
                 pageVelocity?.addMovement(event)
-                if (horizontalGesture) return super.dispatchTouchEvent(event)
+                if (horizontalGesture) {
+                    LockscreenWidgetPageHook.forwardHorizontal(event, pageDownX, pageDownY)
+                    // The stock helper is fed directly below; dispatching this same event
+                    // through the view tree would update the translation a second time and
+                    // produces visible flicker while the finger is moving.
+                    return true
+                }
                 if (!touchInScroll) return super.dispatchTouchEvent(event)
                 val dx = event.rawX - pageDownX
                 val dy = event.rawY - pageDownY
@@ -233,15 +272,36 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
                     if (horizontal && !vertical) {
                         horizontalGesture = true
                         cancelDescendantTouch(event)
-                        super.requestDisallowInterceptTouchEvent(false)
+                        // Keep the ancestor out of this stream. Horizontal events are forwarded
+                        // directly to KeyguardPanelViewInjector to avoid duplicate animation.
+                        super.requestDisallowInterceptTouchEvent(true)
+                        if (!horizontalForwarded) {
+                            val down = MotionEvent.obtain(event).apply {
+                                action = MotionEvent.ACTION_DOWN
+                                setLocation(pageDownX, pageDownY)
+                            }
+                            LockscreenWidgetPageHook.forwardHorizontal(down, pageDownX, pageDownY)
+                            down.recycle()
+                            horizontalForwarded = true
+                        }
+                        LockscreenWidgetPageHook.forwardHorizontal(event, pageDownX, pageDownY)
+                        // Keep forwarding the current event after releasing interception. The
+                        // parent can now take over on the next dispatch pass without losing the
+                        // first visible horizontal displacement.
+                        return true
                     }
                 }
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 val wasVertical = verticalGesture
+                val wasHorizontal = horizontalGesture
                 if (wasVertical) sendToScroll(event)
+                if (wasHorizontal && horizontalForwarded) {
+                    LockscreenWidgetPageHook.forwardHorizontal(event, pageDownX, pageDownY)
+                }
                 resetPageGesture()
                 if (wasVertical) return true
+                if (wasHorizontal) return true
             }
         }
         return super.dispatchTouchEvent(event)
@@ -252,6 +312,7 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         verticalGesture = false
         pageChildCancelled = false
         touchInScroll = false
+        touchInSystemGesture = false
         pageVelocity?.recycle()
         pageVelocity = null
         super.requestDisallowInterceptTouchEvent(false)
@@ -262,13 +323,13 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         if (start) {
             val down = MotionEvent.obtain(source).apply {
                 action = MotionEvent.ACTION_DOWN
-                setLocation(pageDownX - position[0], pageDownY - position[1])
+                setLocation(pageDownX - position[0], scrollDownY)
             }
             scroll.onTouchEvent(down)
             down.recycle()
         }
         val copy = MotionEvent.obtain(source).apply {
-            setLocation(source.rawX - position[0], source.rawY - position[1])
+            setLocation(source.rawX - position[0], scrollDownY + source.rawY - pageDownY)
         }
         scroll.onTouchEvent(copy)
         copy.recycle()
@@ -276,6 +337,25 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
     }
 
     private fun touchSlop(): Float = ViewConfiguration.get(context).scaledTouchSlop.toFloat()
+
+    private fun allowDragOutsideViewport(cell: WidgetCell) {
+        restoreDragClipping()
+        var ancestor = cell.parent
+        while (ancestor is ViewGroup) {
+            dragClipStates += Triple(ancestor, ancestor.clipChildren, ancestor.clipToPadding)
+            ancestor.clipChildren = false
+            ancestor.clipToPadding = false
+            ancestor = ancestor.parent
+        }
+    }
+
+    private fun restoreDragClipping() {
+        dragClipStates.forEach { (view, children, padding) ->
+            view.clipChildren = children
+            view.clipToPadding = padding
+        }
+        dragClipStates.clear()
+    }
 
     private fun cancelDescendantTouch(source: MotionEvent) {
         if (pageChildCancelled) return
@@ -976,6 +1056,7 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
         private fun startDrag() {
             dragging = true
             widgetDragActive = true
+            allowDragOutsideViewport(this)
             pendingOrder = cells.toMutableList()
             pendingDragIndex = cells.indexOf(this)
             translationZ = dp(16f).toFloat()
@@ -1019,6 +1100,7 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
                     }
                     pendingOrder = null
                     pendingDragIndex = -1
+                    restoreDragClipping()
                 }
                 .start()
         }
