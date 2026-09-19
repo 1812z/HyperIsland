@@ -123,6 +123,7 @@ dependencies {
     implementation("androidx.graphics:graphics-shapes:1.1.0")
     implementation("io.github.d4viddf:hyperisland_kit:0.4.4")
     implementation("com.github.aptabase:aptabase-kotlin:0.0.8")
+    implementation("org.luckypray:dexkit:2.2.0")
     compileOnly("io.github.libxposed:api:102.0.0")
     implementation("io.github.libxposed:service:102.0.0")
 }
