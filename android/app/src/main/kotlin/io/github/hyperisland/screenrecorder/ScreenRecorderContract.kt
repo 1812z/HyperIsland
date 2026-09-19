@@ -11,8 +11,40 @@ object ScreenRecorderContract {
     const val EXTRA_TOGGLE_PAUSE = "hyperisland_recorder_toggle_pause"
     const val EXTRA_CONTROL_STOP = "hyperisland_recorder_control_stop"
 
+    // ── 录屏应用稳定入口（小米自有 action / extras，非混淆标识） ─────────────
+    const val RECORDER_SERVICE_ACTION = "miui.intent.screenrecorder.RECORDER_SERVICE"
+    const val EXTRA_IS_START_IMMEDIATELY = "is_start_immediately"
+    const val EXTRA_NEED_CHECK_AUDIO_PERMISSION = "need_check_audio_permission"
+    const val EXTRA_STOP_SCREENRECORDER = "stop_screenrecorder"
+
     const val PREF_RESOLUTION = "miui.screenrecorder.resolution"
     const val PREF_SOUND = "miui.screenrecorder.sound"
+
+    // ── 跨应用 API ───────────────────────────────────────────────────────────
+    /** 第三方应用调用控制服务需申请的权限（normal 级，安装即授予）。 */
+    const val API_PERMISSION = "io.github.hyperisland.permission.CONTROL_SCREEN_RECORDER"
+
+    /** 第三方应用绑定控制服务时使用的 action。 */
+    const val API_SERVICE_ACTION = "io.github.hyperisland.action.SCREEN_RECORDER_CONTROL"
+
+    const val API_MSG_REGISTER = 20
+    const val API_MSG_UNREGISTER = 21
+    const val API_MSG_QUERY = 22
+    const val API_MSG_STATE = 23
+    const val API_MSG_CONTROL = 24
+    const val API_MSG_RESULT = 25
+
+    const val API_OP_START = "start"
+    const val API_OP_PAUSE = "pause"
+    const val API_OP_RESUME = "resume"
+    const val API_OP_STOP = "stop"
+
+    const val API_EXTRA_OP = "op"
+    const val API_EXTRA_RESOLUTION = "resolution"
+    const val API_EXTRA_SOUND = "sound"
+    const val API_EXTRA_MOTION_PHOTO = "motion_photo"
+    const val API_EXTRA_SUCCESS = "success"
+    const val API_EXTRA_ERROR = "error"
 
     const val STATE_IDLE = 0
     const val STATE_STARTING = 1

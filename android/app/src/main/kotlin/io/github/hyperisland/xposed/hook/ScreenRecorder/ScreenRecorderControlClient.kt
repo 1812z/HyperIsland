@@ -40,7 +40,7 @@ internal object ScreenRecorderControlClient {
 
     @Volatile
     private var bindRequested = false
-    private var commandHandler: ((Int) -> Unit)? = null
+    private var commandHandler: ((Int, Bundle?) -> Unit)? = null
 
     @Volatile
     private var pendingStateReport: Int? = null
@@ -79,7 +79,7 @@ internal object ScreenRecorderControlClient {
         }
     }
 
-    fun initialize(context: Context, onCommand: (Int) -> Unit) {
+    fun initialize(context: Context, onCommand: (Int, Bundle?) -> Unit) {
         appContext = context.applicationContext
         commandHandler = onCommand
         bindIfNeeded()
@@ -141,7 +141,7 @@ internal object ScreenRecorderControlClient {
                 ),
             )
         }
-        commandHandler?.invoke(ScreenRecorderContract.MSG_COMMAND_PAUSE)
+        commandHandler?.invoke(ScreenRecorderContract.MSG_COMMAND_PAUSE, null)
         send(ScreenRecorderContract.MSG_COMMAND_PAUSE)
     }
 
@@ -155,18 +155,18 @@ internal object ScreenRecorderControlClient {
                 ),
             )
         }
-        commandHandler?.invoke(ScreenRecorderContract.MSG_COMMAND_RESUME)
+        commandHandler?.invoke(ScreenRecorderContract.MSG_COMMAND_RESUME, null)
         send(ScreenRecorderContract.MSG_COMMAND_RESUME)
     }
 
     fun stop() {
-        commandHandler?.invoke(ScreenRecorderContract.MSG_COMMAND_STOP)
+        commandHandler?.invoke(ScreenRecorderContract.MSG_COMMAND_STOP, null)
         send(ScreenRecorderContract.MSG_COMMAND_STOP)
     }
 
-    fun start() {
+    fun start(options: Bundle? = null) {
         reportStarting()
-        commandHandler?.invoke(ScreenRecorderContract.MSG_COMMAND_START)
+        commandHandler?.invoke(ScreenRecorderContract.MSG_COMMAND_START, options)
     }
 
     private fun bindIfNeeded() {
@@ -223,7 +223,7 @@ internal object ScreenRecorderControlClient {
             ScreenRecorderContract.MSG_COMMAND_RESUME,
             ScreenRecorderContract.MSG_COMMAND_STOP,
             ScreenRecorderContract.MSG_COMMAND_START,
-            -> commandHandler?.invoke(message.what)
+            -> commandHandler?.invoke(message.what, message.data)
         }
         return true
     }

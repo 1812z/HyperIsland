@@ -9,6 +9,15 @@
         android:protectionLevel="signature" />
     <uses-permission android:name="io.github.hyperisland.SEND_ISLAND" />
 
+    <!--
+        跨应用屏幕录制控制权限（normal 级）。
+        第三方应用在清单中声明 <uses-permission> 后即可通过
+        ScreenRecorderControlService 查询状态与控制录制。
+    -->
+    <permission
+        android:name="io.github.hyperisland.permission.CONTROL_SCREEN_RECORDER"
+        android:protectionLevel="normal" />
+
     <!-- 下载管理权限 -->
     <uses-permission android:name="android.permission.DOWNLOAD_WITHOUT_NOTIFICATION"/>
     <uses-permission android:name="android.permission.ACCESS_DOWNLOAD_MANAGER"/>
@@ -56,6 +65,10 @@
             android:name=".screenrecorder.ScreenRecorderControlService"
             android:exported="true"
             android:process=":screen_recorder_control"
-            android:stopWithTask="false" />
+            android:stopWithTask="false">
+            <intent-filter>
+                <action android:name="io.github.hyperisland.action.SCREEN_RECORDER_CONTROL" />
+            </intent-filter>
+        </service>
     </application>
 </manifest>

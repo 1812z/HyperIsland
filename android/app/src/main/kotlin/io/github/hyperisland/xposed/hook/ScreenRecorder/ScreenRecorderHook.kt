@@ -41,7 +41,7 @@ object ScreenRecorderHook : BaseHook() {
     private const val MODULE_PACKAGE = "io.github.hyperisland"
     private const val SETTINGS_ACTION =
         "android.service.quicksettings.action.QS_TILE_PREFERENCES"
-    private const val RECORDER_SERVICE_ACTION = "miui.intent.screenrecorder.RECORDER_SERVICE"
+    private const val RECORDER_SERVICE_ACTION = ScreenRecorderContract.RECORDER_SERVICE_ACTION
     private const val RECORDING_NOTIFICATION_ID = 110
     private const val HIGHLIGHT_COLOR = "#FB382F"
     private const val PREF_IMMEDIATE_START = "pref_screen_recorder_immediate_start"
@@ -86,8 +86,8 @@ object ScreenRecorderHook : BaseHook() {
         module.hook(attach).intercept { chain ->
             val result = chain.proceed()
             val context = chain.args.firstOrNull() as? Context ?: return@intercept result
-            ScreenRecorderControlClient.initialize(context) { command ->
-                handleControlCommand(context, command, module)
+            ScreenRecorderControlClient.initialize(context) { command, extras ->
+                handleControlCommand(context, command, extras, module)
             }
             if (Application.getProcessName() == ScreenRecorderContract.TARGET_PACKAGE) {
                 ScreenRecorderControlClient.observe { snapshot ->
@@ -554,6 +554,7 @@ object ScreenRecorderHook : BaseHook() {
                     return@intercept Service.START_NOT_STICKY
                 }
                 if (isRecorderControlIntent(intent)) {
+                    applyStartOptions(service, intent.extras, module)
                     if (
                         intent.getBooleanExtra(
                             ScreenRecorderContract.EXTRA_CONFIRMED_START,
@@ -732,7 +733,7 @@ object ScreenRecorderHook : BaseHook() {
         return intent.getBooleanExtra(ScreenRecorderContract.EXTRA_CONFIRMED_START, false) ||
             intent.getBooleanExtra(ScreenRecorderContract.EXTRA_TOGGLE_PAUSE, false) ||
             intent.getBooleanExtra(ScreenRecorderContract.EXTRA_CONTROL_STOP, false) ||
-            intent.getBooleanExtra("stop_screenrecorder", false) ||
+            intent.getBooleanExtra(ScreenRecorderContract.EXTRA_STOP_SCREENRECORDER, false) ||
             intent.getBooleanExtra("stop_self", false) ||
             intent.getBooleanExtra("do_nothing", false) ||
             intent.getBooleanExtra("is_screen_off_auto_stop", false)
@@ -835,11 +836,16 @@ object ScreenRecorderHook : BaseHook() {
     private fun requestRecorderStop(context: Context) {
         context.startService(Intent(RECORDER_SERVICE_ACTION).apply {
             setPackage(ScreenRecorderContract.TARGET_PACKAGE)
-            putExtra("stop_screenrecorder", true)
+            putExtra(ScreenRecorderContract.EXTRA_STOP_SCREENRECORDER, true)
         })
     }
 
-    private fun handleControlCommand(context: Context, command: Int, module: XposedModule) {
+    private fun handleControlCommand(
+        context: Context,
+        command: Int,
+        extras: Bundle?,
+        module: XposedModule,
+    ) {
         when (command) {
             ScreenRecorderContract.MSG_COMMAND_PAUSE -> {
                 if (MediaMuxerPauseGate.pause()) {
@@ -867,6 +873,7 @@ object ScreenRecorderHook : BaseHook() {
             }
             ScreenRecorderContract.MSG_COMMAND_START -> {
                 if (Application.getProcessName() == ScreenRecorderContract.TARGET_PACKAGE) {
+                    applyStartOptions(context, extras, module)
                     requestRecorderStart(context)
                     log(module, "control: Xiaomi recorder start dispatched")
                 }
@@ -874,10 +881,38 @@ object ScreenRecorderHook : BaseHook() {
         }
     }
 
+    /**
+     * 应用跨应用 API 传入的可选录制参数。
+     * 未传入的项保持录屏应用原有设置，实现"不传参则跟随旧设置"。
+     */
+    private fun applyStartOptions(context: Context, options: Bundle?, module: XposedModule) {
+        if (options == null) return
+        val editor = recorderPreferences(context).edit()
+        var changed = false
+        if (options.containsKey(ScreenRecorderContract.API_EXTRA_RESOLUTION)) {
+            val resolution = options.getString(ScreenRecorderContract.API_EXTRA_RESOLUTION)
+            if (!resolution.isNullOrBlank()) {
+                editor.putString(ScreenRecorderContract.PREF_RESOLUTION, resolution)
+                changed = true
+            }
+        }
+        if (options.containsKey(ScreenRecorderContract.API_EXTRA_SOUND)) {
+            val sound = options.getInt(ScreenRecorderContract.API_EXTRA_SOUND, 0)
+            editor.putString(ScreenRecorderContract.PREF_SOUND, sound.toString())
+            changed = true
+        }
+        if (changed) editor.apply()
+        if (options.containsKey(ScreenRecorderContract.API_EXTRA_MOTION_PHOTO)) {
+            val enabled = options.getBoolean(ScreenRecorderContract.API_EXTRA_MOTION_PHOTO, false)
+            MotionPhotoSession.arm(context, enabled)
+            log(module, "control: motion photo armed=$enabled")
+        }
+    }
+
     private fun requestRecorderStart(context: Context) {
         context.startService(Intent(RECORDER_SERVICE_ACTION).apply {
             setPackage(ScreenRecorderContract.TARGET_PACKAGE)
-            putExtra("is_start_immediately", true)
+            putExtra(ScreenRecorderContract.EXTRA_IS_START_IMMEDIATELY, true)
             putExtra(ScreenRecorderContract.EXTRA_CONFIRMED_START, true)
         })
     }
