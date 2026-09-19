@@ -9,6 +9,17 @@ import ReleaseHistory from './.vitepress/components/ReleaseHistory.vue'
 <div class="changelog-source" hidden>
 
 
+# V3.1.3 (2026-9-119)
+## 功能
+- 新增锁屏负一屏
+- 解锁岛新增锁样式2
+- 新增录屏 API 以对接侧边栏 [HyperDock](https://github.com/1812z/hyperdock)
+
+## 优化 & 修复
+- 优化 UI 界面
+- 修复滚动计时
+- 修复新版安全服务的剪贴板上岛
+
 # V3.1.2 (2026-9-13)
 ## 功能
 - 新增通知计数岛（显示通知数量及更新次数）
