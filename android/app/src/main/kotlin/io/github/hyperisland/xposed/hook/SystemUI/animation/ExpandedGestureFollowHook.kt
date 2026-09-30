@@ -37,6 +37,7 @@ object ExpandedGestureFollowHook : BaseHook() {
     private fun install(module: XposedModule, loader: ClassLoader) {
         installRawSwipe(module, loader)
         ExpandedMiniWindowFollowHook.install(module, loader)
+        ExpandedParabolicAnimationHook.install(module, loader)
         val candidates = listOf("anim.ui.animator.IslandSwipeAnimator",
             "anim.p110ui.animator.IslandSwipeAnimator", "anim.p120ui.animator.IslandSwipeAnimator",
             "anim.DynamicIslandAnimationDelegate")
@@ -142,6 +143,7 @@ object ExpandedGestureFollowHook : BaseHook() {
                 if (!enabled) return@intercept chain.proceed()
                 val x = chain.args[0] as? Float ?: return@intercept chain.proceed()
                 val y = chain.args[1] as? Float ?: return@intercept chain.proceed()
+                (chain.args[4] as? View)?.let { ExpandedParabolicAnimationHook.record(it, x, y) }
                 val previous = rawSwipe.get()
                 rawSwipe.set(Offset(x, y))
                 try {

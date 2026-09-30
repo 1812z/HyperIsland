@@ -23,6 +23,8 @@ internal fun AppearanceAnimationPage(prefs: FlutterPrefsRepository, onBack: () -
     val type = rememberStringPreference(prefs, Keys.TYPE, "system")
     val rebound = rememberBooleanPreference(prefs, Keys.REBOUND, true)
     val gestureFollow = rememberBooleanPreference(prefs, Keys.GESTURE_FOLLOW, false)
+    val parabolic = rememberBooleanPreference(prefs, Keys.PARABOLIC, false)
+    val throwStrength = rememberStringPreference(prefs, Keys.THROW_STRENGTH, "balanced")
     val curve = rememberStringPreference(prefs, Keys.CURVE, "balanced")
     val keepContentSize = rememberBooleanPreference(prefs, Keys.KEEP_CONTENT_SIZE, false)
     LaunchedEffect(keepContentSize.value, rebound.value) {
@@ -73,6 +75,31 @@ internal fun AppearanceAnimationPage(prefs: FlutterPrefsRepository, onBack: () -
                             stringResource(R.string.expand_animation_gesture_follow_summary), null, gestureFollow.value) {
                             gestureFollow.value = it
                             prefs.putBoolean(Keys.GESTURE_FOLLOW, it)
+                        }
+                        AnimatedVisibility(gestureFollow.value) {
+                            Column {
+                                PreferenceSwitch(stringResource(R.string.expand_animation_parabolic),
+                                    null, null, parabolic.value) {
+                                    parabolic.value = it
+                                    prefs.putBoolean(Keys.PARABOLIC, it)
+                                }
+                                AnimatedVisibility(parabolic.value) {
+                                    val strengths = listOf("gentle", "balanced", "strong", "powerful", "maximum")
+                                    PreferenceDropdown(
+                                        title = stringResource(R.string.expand_animation_throw_strength),
+                                        summary = null, icon = null,
+                                        items = listOf(stringResource(R.string.expand_throw_gentle),
+                                            stringResource(R.string.expand_throw_balanced),
+                                            stringResource(R.string.expand_throw_strong),
+                                            stringResource(R.string.expand_throw_powerful),
+                                            stringResource(R.string.expand_throw_maximum)),
+                                        selectedIndex = strengths.indexOf(throwStrength.value).coerceAtLeast(0),
+                                    ) {
+                                        throwStrength.value = strengths[it]
+                                        prefs.putString(Keys.THROW_STRENGTH, throwStrength.value)
+                                    }
+                                }
+                            }
                         }
                         val curves = listOf("balanced", "snappy", "gentle")
                         PreferenceDropdown(

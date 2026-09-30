@@ -902,4 +902,11 @@
     <string name="expand_corner_radius">Estado expandido</string>
     <string name="expand_animation_gesture_follow">Acompanhar gesto</string>
     <string name="expand_animation_gesture_follow_summary">Ao deslizar para cima para recolher, acompanhar suavemente o movimento horizontal do dedo</string>
+    <string name="expand_animation_parabolic">Animação parabólica</string>
+    <string name="expand_animation_throw_strength">Força do lançamento</string>
+    <string name="expand_throw_gentle">Suave</string>
+    <string name="expand_throw_balanced">Equilibrada</string>
+    <string name="expand_throw_strong">Forte</string>
+    <string name="expand_throw_powerful">Muito forte</string>
+    <string name="expand_throw_maximum">Máxima</string>
 </resources>

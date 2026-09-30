@@ -966,4 +966,11 @@
     <string name="expand_corner_radius">Genişletilmiş durum</string>
     <string name="expand_animation_gesture_follow">Hareket takibi</string>
     <string name="expand_animation_gesture_follow_summary">Daraltmak için yukarı kaydırırken parmağın yatay hareketini hafifçe takip et</string>
+    <string name="expand_animation_parabolic">Parabolik animasyon</string>
+    <string name="expand_animation_throw_strength">Fırlatma gücü</string>
+    <string name="expand_throw_gentle">Hafif</string>
+    <string name="expand_throw_balanced">Dengeli</string>
+    <string name="expand_throw_strong">Güçlü</string>
+    <string name="expand_throw_powerful">Çok güçlü</string>
+    <string name="expand_throw_maximum">Maksimum</string>
 </resources>

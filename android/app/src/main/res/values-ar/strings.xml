@@ -869,4 +869,11 @@
     <string name="expand_corner_radius">الحالة الموسعة</string>
     <string name="expand_animation_gesture_follow">تتبّع الإيماءة</string>
     <string name="expand_animation_gesture_follow_summary">تتبّع حركة الإصبع الأفقية قليلاً عند السحب لأعلى للطي</string>
+    <string name="expand_animation_parabolic">حركة قوسية</string>
+    <string name="expand_animation_throw_strength">قوة الرمي</string>
+    <string name="expand_throw_gentle">خفيفة</string>
+    <string name="expand_throw_balanced">متوازنة</string>
+    <string name="expand_throw_strong">قوية</string>
+    <string name="expand_throw_powerful">قوية جداً</string>
+    <string name="expand_throw_maximum">قصوى</string>
 </resources>

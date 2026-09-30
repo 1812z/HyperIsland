@@ -911,4 +911,11 @@
     <string name="expand_corner_radius">Развёрнутое состояние</string>
     <string name="expand_animation_gesture_follow">Следование за жестом</string>
     <string name="expand_animation_gesture_follow_summary">При сворачивании свайпом вверх слегка следовать за движением пальца по горизонтали</string>
+    <string name="expand_animation_parabolic">Параболическая анимация</string>
+    <string name="expand_animation_throw_strength">Сила броска</string>
+    <string name="expand_throw_gentle">Слабая</string>
+    <string name="expand_throw_balanced">Умеренная</string>
+    <string name="expand_throw_strong">Сильная</string>
+    <string name="expand_throw_powerful">Очень сильная</string>
+    <string name="expand_throw_maximum">Максимальная</string>
 </resources>

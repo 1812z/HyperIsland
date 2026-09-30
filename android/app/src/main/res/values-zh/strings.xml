@@ -974,4 +974,11 @@
     <string name="expand_corner_radius">展开态</string>
     <string name="expand_animation_gesture_follow">跟手效果</string>
     <string name="expand_animation_gesture_follow_summary">上滑收起时，整体小幅跟随手指左右移动</string>
+    <string name="expand_animation_parabolic">抛物线动画</string>
+    <string name="expand_animation_throw_strength">抛物力度</string>
+    <string name="expand_throw_gentle">轻柔</string>
+    <string name="expand_throw_balanced">均衡</string>
+    <string name="expand_throw_strong">强劲</string>
+    <string name="expand_throw_powerful">强烈</string>
+    <string name="expand_throw_maximum">极强</string>
 </resources>

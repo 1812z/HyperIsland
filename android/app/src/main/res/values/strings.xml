@@ -968,4 +968,11 @@
     <string name="expand_corner_radius">Expanded state</string>
     <string name="expand_animation_gesture_follow">Gesture following</string>
     <string name="expand_animation_gesture_follow_summary">Gently follow horizontal finger movement while swiping up to collapse</string>
+    <string name="expand_animation_parabolic">Parabolic animation</string>
+    <string name="expand_animation_throw_strength">Throw strength</string>
+    <string name="expand_throw_gentle">Gentle</string>
+    <string name="expand_throw_balanced">Balanced</string>
+    <string name="expand_throw_strong">Strong</string>
+    <string name="expand_throw_powerful">Powerful</string>
+    <string name="expand_throw_maximum">Maximum</string>
 </resources>

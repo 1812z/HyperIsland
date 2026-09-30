@@ -911,4 +911,11 @@
     <string name="expand_corner_radius">展開状態</string>
     <string name="expand_animation_gesture_follow">ジェスチャー追従</string>
     <string name="expand_animation_gesture_follow_summary">上にスワイプして閉じる際、指の左右の動きに軽く追従します</string>
+    <string name="expand_animation_parabolic">放物線アニメーション</string>
+    <string name="expand_animation_throw_strength">投げる強さ</string>
+    <string name="expand_throw_gentle">弱い</string>
+    <string name="expand_throw_balanced">標準</string>
+    <string name="expand_throw_strong">強い</string>
+    <string name="expand_throw_powerful">非常に強い</string>
+    <string name="expand_throw_maximum">最大</string>
 </resources>
