@@ -9,7 +9,7 @@ import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.util.Collections
 import java.util.WeakHashMap
 
-/** Rewrites only alpha and blur authored by the vertical expanded collapse gesture. */
+/** Rewrites alpha and blur authored by expanded collapse gestures in either axis. */
 object ExpandedCollapseAnimationHook : BaseHook() {
     private data class Config(
         val enabled: Boolean = false,
@@ -57,8 +57,12 @@ object ExpandedCollapseAnimationHook : BaseHook() {
             if (hookedClasses.contains(clazz)) continue
             try {
                 val floatType = Float::class.javaPrimitiveType!!
-                val methods = listOf("swipeUpExpandedAnimation")
-                    .map { clazz.getDeclaredMethod(it, floatType) }
+                // SystemUI routes both left and right swipes through swipeLeftExpandedAnimation.
+                // Discover each entry independently so an absent horizontal API on older
+                // builds does not prevent installing the vertical gesture customization.
+                val methods = listOf("swipeUpExpandedAnimation", "swipeLeftExpandedAnimation")
+                    .mapNotNull { runCatching { clazz.getDeclaredMethod(it, floatType) }.getOrNull() }
+                if (methods.isEmpty()) continue
                 val calculate = clazz.getDeclaredMethod("calculateSwipeAlpha", floatType)
                 val delegate = Class.forName(
                     "miui.systemui.dynamicisland.anim.DynamicIslandAnimationDelegate", false, loader)
