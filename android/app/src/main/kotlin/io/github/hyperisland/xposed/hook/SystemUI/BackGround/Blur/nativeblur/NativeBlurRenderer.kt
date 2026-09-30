@@ -68,7 +68,7 @@ internal class NativeBlurRenderer(
     }
 
     fun update(view: View, owned: OwnedBlur, config: BlurConfig, shapeView: View) {
-        val radius = io.github.hyperisland.xposed.hook.SystemUI.IslandCornerHook.configuredPx(
+        val radius = io.github.hyperisland.xposed.hook.SystemUI.corner.IslandCornerHook.configuredPx(
             view, owned.type == IslandType.EXPAND) ?: resolveCornerRadius(view)
         if (owned.cornerRadius != radius) {
             owned.cornerRadius = radius

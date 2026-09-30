@@ -1,4 +1,4 @@
-package io.github.hyperisland.xposed.hook.SystemUI
+package io.github.hyperisland.xposed.hook.SystemUI.corner
 
 import android.graphics.Canvas
 import android.graphics.Outline

@@ -6,7 +6,7 @@ import android.view.View
 import io.github.hyperisland.utils.getAppIcon
 import io.github.hyperisland.utils.resolveDynamicHighlightColor
 import io.github.hyperisland.xposed.ConfigManager
-import io.github.hyperisland.xposed.hook.SystemUI.IslandCornerHook
+import io.github.hyperisland.xposed.hook.SystemUI.corner.IslandCornerHook
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam

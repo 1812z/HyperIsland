@@ -1,4 +1,4 @@
-package io.github.hyperisland.xposed.hook.SystemUI
+package io.github.hyperisland.xposed.hook.SystemUI.geometry
 
 import android.content.res.Resources
 import io.github.hyperisland.xposed.ConfigManager

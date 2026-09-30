@@ -1,8 +1,9 @@
-package io.github.hyperisland.xposed.hook
+package io.github.hyperisland.xposed.hook.SystemUI.geometry
 
 import android.util.TypedValue
 import android.view.View
 import io.github.hyperisland.xposed.ConfigManager
+import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.hyperisland.xposed.utils.ResourceDimenHook
 import io.github.libxposed.api.XposedModule

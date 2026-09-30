@@ -1,19 +1,19 @@
 package io.github.hyperisland.xposed
 
-import io.github.hyperisland.xposed.hook.SystemUI.BigIslandMinWidthHook
-import io.github.hyperisland.xposed.hook.SystemUI.IslandIconHook
 import io.github.hyperisland.xposed.hook.SystemUI.DynamicIslandVisibilityHook
-import io.github.hyperisland.xposed.hook.SystemUI.IslandTopOffsetHook
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.IslandBlurHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandOutlineHook
-import io.github.hyperisland.xposed.hook.SystemUI.IslandTextSizeHook
+import io.github.hyperisland.xposed.hook.SystemUI.geometry.BigIslandMinWidthHook
+import io.github.hyperisland.xposed.hook.SystemUI.geometry.IslandIconHook
+import io.github.hyperisland.xposed.hook.SystemUI.geometry.IslandTextSizeHook
+import io.github.hyperisland.xposed.hook.SystemUI.geometry.IslandTopOffsetHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandTransitionVisualHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandSwipeActionHook
 import io.github.hyperisland.xposed.hook.SystemUI.ExpandedCollapseAnimationHook
 import io.github.hyperisland.xposed.hook.SystemUI.ExpandedLivelyAnimationHook
 import io.github.hyperisland.xposed.hook.SystemUI.ExpandedIosAnimationHook
-import io.github.hyperisland.xposed.hook.SystemUI.IslandCornerHook
-import io.github.hyperisland.xposed.hook.SystemUI.IslandOfficialMaterialCornerHook
+import io.github.hyperisland.xposed.hook.SystemUI.corner.IslandCornerHook
+import io.github.hyperisland.xposed.hook.SystemUI.corner.IslandOfficialMaterialCornerHook
 import io.github.hyperisland.xposed.hook.SystemUI.lockscreen.LockscreenNegativePageHook
 import io.github.hyperisland.xposed.hook.SystemUI.lockscreen.LockscreenWidgetPageHook
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.SmallIslandIconHook
@@ -34,7 +34,7 @@ import io.github.hyperisland.xposed.hook.SystemUI.GenericProgressHook
 import io.github.hyperisland.xposed.hook.SystemUI.ProxySourceHeadsUpSuppressHook
 import io.github.hyperisland.xposed.hook.SystemUI.WifiTileDisconnectHook
 import io.github.hyperisland.xposed.hook.IslandBackgroundHook
-import io.github.hyperisland.xposed.hook.IslandDimenHook
+import io.github.hyperisland.xposed.hook.SystemUI.geometry.IslandDimenHook
 import io.github.hyperisland.xposed.hook.IslandDispatcherHook
 import io.github.hyperisland.xposed.hook.IslandOuterGlowHook
 import io.github.hyperisland.xposed.hook.IslandTextColorHook
