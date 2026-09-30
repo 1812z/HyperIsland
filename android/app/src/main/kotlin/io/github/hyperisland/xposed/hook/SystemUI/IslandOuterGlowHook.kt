@@ -6,6 +6,7 @@ import android.view.View
 import io.github.hyperisland.utils.getAppIcon
 import io.github.hyperisland.utils.resolveDynamicHighlightColor
 import io.github.hyperisland.xposed.ConfigManager
+import io.github.hyperisland.xposed.hook.SystemUI.IslandCornerHook
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
@@ -358,6 +359,7 @@ object IslandOuterGlowHook : BaseHook() {
         if (!hookedGlowClassLoaders.add(clId)) return
         try {
             val clazz = classLoader.loadClass(GLOW_VIEW_CLASS)
+            hookGlowCornerRadius(module, clazz)
             // OS3 的 stopGlowEffect 为无参；OS4 改为 boolean 参数，并让多个光效 View
             // 共用 window 级容器。按方法能力分流，避免依赖易变的系统版本号/getprop。
             val usesOs4SharedGlowContainers = clazz.declaredMethods.any {
@@ -421,6 +423,45 @@ object IslandOuterGlowHook : BaseHook() {
             }
             if (methods.isNotEmpty()) log(module, "hooked glow view on ${clazz.name}")
         } catch (_: Throwable) {
+        }
+    }
+
+    private fun hookGlowCornerRadius(module: XposedModule, clazz: Class<*>) {
+        // The light shader has its own round-rect radius, independent of View Outline.
+        // Both stable geometry and fake/gesture animation updates use this entry point.
+        val methods = clazz.declaredMethods.filter {
+            it.name.substringBefore('$') == "setGlowEffectPosition" &&
+                    it.parameterCount == 5 &&
+                    it.parameterTypes.all { type -> type == Float::class.javaPrimitiveType }
+        }
+        methods.forEach { method ->
+            module.hook(method).intercept { chain ->
+                val args = runCatching {
+                    val view = chain.thisObject as? View ?: return@runCatching null
+                    // Identify the concrete slot, not the recent notification request:
+                    // BIG and EXPAND can both receive updates during their handoff.
+                    val expanded = when {
+                        view.javaClass.name.contains(EXPANDED_VIEW_MARKER) -> true
+                        view.javaClass.name.contains(BIG_VIEW_MARKER) -> false
+                        else -> return@runCatching null
+                    }
+                    val radius = IslandCornerHook.configuredPx(view, expanded)
+                        ?: return@runCatching null
+                    val left = (chain.args[0] as Number).toFloat()
+                    val top = (chain.args[1] as Number).toFloat()
+                    val right = (chain.args[2] as Number).toFloat()
+                    val bottom = (chain.args[3] as Number).toFloat()
+                    val width = right - left
+                    val height = bottom - top
+                    if (!width.isFinite() || !height.isFinite() || width < 0f || height < 0f) {
+                        return@runCatching null
+                    }
+                    chain.args.toTypedArray().also {
+                        it[4] = radius.coerceAtMost(minOf(width, height) / 2f)
+                    }
+                }.getOrNull()
+                if (args == null) chain.proceed() else chain.proceed(args)
+            }
         }
     }
 
