@@ -960,4 +960,6 @@
     <string name="expand_curve_snappy">Snappy</string>
     <string name="expand_curve_gentle">Gentle</string>
     <string name="expand_animation_keep_content_size">Keep content size</string>
+    <string name="expand_animation_ios">iOS</string>
+    <string name="expand_ios_content_top_gap">Content top spacing</string>
 </resources>

@@ -903,4 +903,6 @@
     <string name="expand_curve_snappy">Быстрая</string>
     <string name="expand_curve_gentle">Мягкая</string>
     <string name="expand_animation_keep_content_size">Сохранять размер содержимого</string>
+    <string name="expand_animation_ios">iOS</string>
+    <string name="expand_ios_content_top_gap">Верхний отступ содержимого</string>
 </resources>

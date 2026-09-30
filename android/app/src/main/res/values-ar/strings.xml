@@ -861,4 +861,6 @@
     <string name="expand_curve_snappy">سريع</string>
     <string name="expand_curve_gentle">ناعم</string>
     <string name="expand_animation_keep_content_size">الحفاظ على حجم المحتوى</string>
+    <string name="expand_animation_ios">iOS</string>
+    <string name="expand_ios_content_top_gap">المسافة أعلى المحتوى</string>
 </resources>

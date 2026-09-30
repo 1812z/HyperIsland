@@ -958,4 +958,6 @@
     <string name="expand_curve_snappy">Hızlı</string>
     <string name="expand_curve_gentle">Yumuşak</string>
     <string name="expand_animation_keep_content_size">İçerik boyutunu koru</string>
+    <string name="expand_animation_ios">iOS</string>
+    <string name="expand_ios_content_top_gap">İçeriğin üst boşluğu</string>
 </resources>

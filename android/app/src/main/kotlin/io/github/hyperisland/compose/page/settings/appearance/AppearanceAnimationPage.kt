@@ -38,13 +38,13 @@ internal fun AppearanceAnimationPage(prefs: FlutterPrefsRepository, onBack: () -
                     summary = stringResource(R.string.expand_animation_type_summary),
                     icon = null,
                     items = listOf(stringResource(R.string.follow_system),
-                         stringResource(R.string.expand_animation_lively)),
-                    selectedIndex = if (type.value == "lively") 1 else 0,
+                         stringResource(R.string.expand_animation_lively), stringResource(R.string.expand_animation_ios)),
+                    selectedIndex = when (type.value) { "lively" -> 1; "ios" -> 2; else -> 0 },
                 ) {
-                    type.value = if (it == 1) "lively" else "system"
+                    type.value = when (it) { 1 -> "lively"; 2 -> "ios"; else -> "system" }
                     prefs.putString(Keys.TYPE, type.value)
                 }
-                AnimatedVisibility(type.value == "lively") {
+                AnimatedVisibility(type.value == "lively" || type.value == "ios") {
                     Column {
                         AnimatedVisibility(!rebound.value) {
                         PreferenceSwitch(stringResource(R.string.expand_animation_keep_content_size),
@@ -81,6 +81,11 @@ internal fun AppearanceAnimationPage(prefs: FlutterPrefsRepository, onBack: () -
                             prefs.putString(Keys.CURVE, curve.value)
                         }
                     }
+                }
+                AnimatedVisibility(type.value == "ios") {
+                    LongPreferenceSlider(prefs, Keys.IOS_CONTENT_TOP_GAP,
+                        R.string.expand_ios_content_top_gap, 0, 20, Keys.DEFAULT_IOS_CONTENT_TOP_GAP,
+                        showDefaultAsSystem = false)
                 }
             }
         }

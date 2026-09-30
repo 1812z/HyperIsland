@@ -903,4 +903,6 @@
     <string name="expand_curve_snappy">軽快</string>
     <string name="expand_curve_gentle">穏やか</string>
     <string name="expand_animation_keep_content_size">コンテンツのサイズを維持</string>
+    <string name="expand_animation_ios">iOS</string>
+    <string name="expand_ios_content_top_gap">コンテンツ上部の余白</string>
 </resources>

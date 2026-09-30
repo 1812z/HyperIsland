@@ -156,8 +156,9 @@ object ExpandedLivelyAnimationHook : BaseHook() {
                     // Phone notification morphs only. App launch/miniwindows retain their own
                     // fake-view window animation and do not enter these four source methods.
                     val type = animationType
-                    if (type != "lively" || view == null ||
-                        view.resources.configuration.smallestScreenWidthDp >= 600
+                    if ((type != "lively" && type != "ios") || view == null ||
+                        runCatching { view.resources.configuration.smallestScreenWidthDp >= 600 }
+                            .getOrDefault(true)
                     ) return@intercept chain.proceed()
                     val previous = transition.get()
                     transition.set(Transition(names.getValue(method.name), rebound, curve, keepContentSize))

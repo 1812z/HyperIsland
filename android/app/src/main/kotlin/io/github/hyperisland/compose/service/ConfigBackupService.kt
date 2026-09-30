@@ -44,7 +44,7 @@ internal object ConfigBackupService {
             }
             val value = settings.opt(key)
             if (key == io.github.hyperisland.data.ExpandedCollapsePreferences.TYPE &&
-                value != "system" && value != "lively"
+                value != "system" && value != "lively" && value != "ios"
             ) throw InvalidConfigException()
             if (key in io.github.hyperisland.data.ExpandedCollapsePreferences.percentageKeys &&
                 (value !is Number || value.toDouble() !in 0.0..100.0 ||

@@ -6,6 +6,8 @@ object ExpandedCollapsePreferences {
     const val REBOUND = "pref_expand_animation_rebound"
     const val CURVE = "pref_expand_animation_curve"
     const val KEEP_CONTENT_SIZE = "pref_expand_animation_keep_content_size"
+    const val IOS_CONTENT_TOP_GAP = "pref_expand_ios_content_top_gap"
+    const val DEFAULT_IOS_CONTENT_TOP_GAP = 5L
     const val ENABLED = "pref_expand_collapse_animation_enabled"
     const val TRANSPARENCY_START = "pref_expand_collapse_transparency_start"
     const val TRANSPARENCY_END = "pref_expand_collapse_transparency_end"
