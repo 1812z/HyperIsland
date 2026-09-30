@@ -59,7 +59,6 @@ object MediaNotificationTextColorHook : BaseHook() {
     private val expandedProbeCount = AtomicInteger()
 
     @Volatile private var islandAnimationRunning = false
-    @Volatile private var collapseAnimationRunning = false
     @Volatile private var pendingTintRefresh = false
     @Volatile private var tintRefreshScheduled = false
 
@@ -138,32 +137,6 @@ object MediaNotificationTextColorHook : BaseHook() {
             }
         }
 
-        runCatching {
-            val collapseCoordinatorClass = classLoader.loadClass(
-                "miui.systemui.dynamicisland.event.CollapseEventCoordinator"
-            )
-            if (hookedClasses.add(collapseCoordinatorClass)) {
-                hookCollapseDirection(module, collapseCoordinatorClass)
-            }
-        }.onFailure { error ->
-            if (error !is ClassNotFoundException) {
-                logError(module, "failed to hook CollapseEventCoordinator: ${error.message}")
-            }
-        }
-    }
-
-    private fun hookCollapseDirection(module: XposedModule, coordinatorClass: Class<*>) {
-        coordinatorClass.declaredMethods
-            .filter { method -> method.name == "handleAppEvent" && method.parameterTypes.size == 3 }
-            .forEach { method ->
-                module.hook(method).intercept { chain ->
-                    if (chain.args.firstOrNull()?.javaClass?.name == COLLAPSE_EVENT_CLASS) {
-                        collapseAnimationRunning = true
-                    }
-                    chain.proceed()
-                }
-                log(module, "hooked media CollapseEventCoordinator#handleAppEvent")
-            }
     }
 
     private fun hookAnimationLifecycle(module: XposedModule, coordinatorClass: Class<*>) {
@@ -184,11 +157,9 @@ object MediaNotificationTextColorHook : BaseHook() {
                 module.hook(method).intercept { chain ->
                     val result = chain.proceed()
                     islandAnimationRunning = false
-                    val collapsed = collapseAnimationRunning
-                    collapseAnimationRunning = false
-                    if (!collapsed || method.name == "onAnimationCancel") {
-                        schedulePendingTintRefresh()
-                    }
+                    // Flush after collapse too; no further tint event is guaranteed.
+                    pendingTintRefresh = true
+                    schedulePendingTintRefresh()
                     result
                 }
                 log(module, "hooked media DynamicIslandEventCoordinator#${method.name}")
@@ -624,7 +595,5 @@ object MediaNotificationTextColorHook : BaseHook() {
         "miui.systemui.dynamicisland.window.content.DynamicIslandContentView"
     private const val DYNAMIC_ISLAND_WINDOW_VIEW_CLASS =
         "miui.systemui.dynamicisland.window.DynamicIslandWindowView"
-    private const val COLLAPSE_EVENT_CLASS =
-        "miui.systemui.dynamicisland.event.DynamicIslandEvent\$Collapse"
     private const val MAX_EXPANDED_PROBES = 8
 }

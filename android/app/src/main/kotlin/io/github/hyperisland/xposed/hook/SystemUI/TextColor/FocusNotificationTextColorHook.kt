@@ -53,7 +53,6 @@ object FocusNotificationTextColorHook : BaseHook() {
         Collections.newSetFromMap(WeakHashMap<TextView, Boolean>())
     )
     @Volatile private var islandAnimationRunning = false
-    @Volatile private var collapseAnimationRunning = false
     @Volatile private var pendingTintRefresh = false
     @Volatile private var tintRefreshScheduled = false
 
@@ -112,33 +111,6 @@ object FocusNotificationTextColorHook : BaseHook() {
             }
         }
 
-        runCatching {
-            val collapseCoordinatorClass = classLoader.loadClass(
-                "miui.systemui.dynamicisland.event.CollapseEventCoordinator"
-            )
-            if (hookedClasses.add(collapseCoordinatorClass)) {
-                hookCollapseDirection(module, collapseCoordinatorClass)
-            }
-        }.onFailure { error ->
-            if (error !is ClassNotFoundException) {
-                logError(module, "failed to hook CollapseEventCoordinator: ${error.message}")
-            }
-        }
-
-    }
-
-    private fun hookCollapseDirection(module: XposedModule, coordinatorClass: Class<*>) {
-        coordinatorClass.declaredMethods
-            .filter { method -> method.name == "handleAppEvent" && method.parameterTypes.size == 3 }
-            .forEach { method ->
-                module.hook(method).intercept { chain ->
-                    if (chain.args.firstOrNull()?.javaClass?.name == COLLAPSE_EVENT_CLASS) {
-                        collapseAnimationRunning = true
-                    }
-                    chain.proceed()
-                }
-                log(module, "hooked CollapseEventCoordinator#handleAppEvent")
-            }
     }
 
     private fun hookAnimationLifecycle(module: XposedModule, coordinatorClass: Class<*>) {
@@ -159,11 +131,9 @@ object FocusNotificationTextColorHook : BaseHook() {
                 module.hook(method).intercept { chain ->
                     val result = chain.proceed()
                     islandAnimationRunning = false
-                    val collapsed = collapseAnimationRunning
-                    collapseAnimationRunning = false
-                    if (!collapsed || method.name == "onAnimationCancel") {
-                        schedulePendingTintRefresh()
-                    }
+                    // Flush after collapse too; no further tint event is guaranteed.
+                    pendingTintRefresh = true
+                    schedulePendingTintRefresh()
                     result
                 }
                 log(module, "hooked DynamicIslandEventCoordinator#${method.name}")
@@ -344,12 +314,13 @@ object FocusNotificationTextColorHook : BaseHook() {
         val holders = snapshotTrackedHolders(trackedHolders, trackedHoldersLock)
         holders.forEach { holder ->
             val fields = injectedFields[holder] ?: return@forEach
+            val color = resolveTextColor(mode)
+            // Hidden real/fake holders also need fresh fields before reuse.
+            applyHolderFieldColors(holder, color)
             val views = originalTextColors[holder].orEmpty().mapNotNull { original ->
                 original.view.get()?.takeIf { it.isAttachedToWindow }?.let { original to it }
             }
             if (views.isEmpty()) return@forEach
-            val color = resolveTextColor(mode)
-            applyHolderFieldColors(holder, color)
             views.forEach { (original, textView) ->
                 if (original.field in fields) applyTextColor(textView, color)
             }
@@ -603,8 +574,5 @@ object FocusNotificationTextColorHook : BaseHook() {
     private const val BUTTON_DARK_MIN = 0x33
     private const val BUTTON_DARK_MAX = 0x66
     private const val MAX_COLOR_LUMINANCE = 255000
-
-    private const val COLLAPSE_EVENT_CLASS =
-        "miui.systemui.dynamicisland.event.DynamicIslandEvent\$Collapse"
 
 }

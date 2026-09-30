@@ -67,7 +67,7 @@ object StatusBarTextColorHook : BaseHook() {
             dispatchedTint = tint
             rawTintListeners.forEach { listener -> runCatching { listener(tint) } }
         }
-        val readable = IslandUiStateSource.getReadableTint() ?: toReadableTint(tint)
+        val readable = toReadableTint(tint)
         if (dispatchedReadableTint != readable) {
             dispatchedReadableTint = readable
             readableTintListeners.forEach { listener -> runCatching { listener(readable) } }
@@ -91,8 +91,11 @@ object StatusBarTextColorHook : BaseHook() {
         rawTintListeners.addIfAbsent(listener)
     }
 
+    // Use the same authoritative source as island text. Plugin light events may
+    // be missed during startup or panel restoration and must not mask newer tint.
     fun getReadableTint(): Int =
-        IslandUiStateSource.getReadableTint() ?: toReadableTint(latestTint)
+        if (IslandUiStateSource.isColorFrozen()) dispatchedReadableTint
+        else toReadableTint(latestTint)
 
     fun addReadableTintListener(listener: (Int) -> Unit) {
         readableTintListeners.addIfAbsent(listener)
@@ -156,10 +159,14 @@ object StatusBarTextColorHook : BaseHook() {
         activeReceiverRegistered = false
         runCatching {
             val receiverClass = classLoader.loadClass(DARK_RECEIVER_CLASS)
+            val dispatcherRef = WeakReference(dispatcher)
             val receiver = Proxy.newProxyInstance(
                 receiverClass.classLoader,
                 arrayOf(receiverClass),
             ) { proxy, method, args ->
+                if (method.name.startsWith("on") && dispatcherRef.get() !== activeDispatcher.get()) {
+                    return@newProxyInstance null
+                }
                 when (method.name) {
                     "onDarkChanged" -> {
                         updateDarkState(args)
@@ -189,6 +196,9 @@ object StatusBarTextColorHook : BaseHook() {
             addReceiver.invoke(dispatcher, receiver)
             dispatcherReceivers[dispatcher] = receiver
             activeReceiverRegistered = true
+            // Some builds do not replay both tint callbacks on registration.
+            // Seed all fields after registration, including light/dark colors.
+            captureDispatcherFields(dispatcher)
             log(module, "registered Dynamic Island DarkReceiver")
         }.onFailure { error ->
             logError(module, "DarkReceiver registration failed, using applyIconTint: ${error.message}")

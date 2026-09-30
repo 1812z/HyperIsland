@@ -110,8 +110,10 @@ object ExpandedGestureFollowHook : BaseHook() {
                             return@runCatching null
                         }
                         when {
-                            abs(dispatchedX) > abs(dy) -> Offset(0f, bounded(view, rawY))
-                            dy < 0f -> Offset(bounded(view, dx), 0f)
+                            // Stock side swipe only narrows the card. Add translation on
+                            // its primary axis too, keeping the existing vertical following.
+                            abs(dispatchedX) > abs(dy) -> Offset(bounded(view, dx), bounded(view, rawY))
+                            dy < 0f -> Offset(bounded(view, dx), bounded(view, rawY))
                             else -> return@runCatching null
                         }
                     }.getOrNull() ?: return@intercept chain.proceed()
