@@ -968,4 +968,8 @@
     <string name="expand_animation_keep_content_size">保持内容尺寸</string>
     <string name="expand_animation_ios">iOS</string>
     <string name="expand_ios_content_top_gap">内容顶部空隙</string>
+    <string name="island_position_size">位置与尺寸</string>
+    <string name="island_corner_section">圆角</string>
+    <string name="island_corner_radius">岛</string>
+    <string name="expand_corner_radius">展开态</string>
 </resources>

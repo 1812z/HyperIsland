@@ -6,12 +6,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
+import io.github.hyperisland.compose.component.SectionTitle
+import io.github.hyperisland.data.IslandCornerPreferences
 import top.yukonga.miuix.kmp.basic.Card
 
 @Composable
 internal fun AppearanceSizePage(prefs: FlutterPrefsRepository, onBack: () -> Unit) {
     AppearanceDetailPage(title = stringResource(R.string.appearance_size), onBack = onBack) {
         item {
+            SectionTitle(stringResource(R.string.island_position_size))
             Card(modifier = Modifier.fillMaxWidth()) {
                 DoublePreferenceSlider(prefs, KEY_ISLAND_HEIGHT, R.string.island_height, 0.0, 100.0, 0.0)
                 DoublePreferenceSlider(prefs, KEY_ISLAND_TOP_OFFSET, R.string.vertical_position, -40.0, 50.0, 0.0)
@@ -27,6 +30,17 @@ internal fun AppearanceSizePage(prefs: FlutterPrefsRepository, onBack: () -> Uni
                     followSystemAtDefault = true,
                 )
                 LongPreferenceSlider(prefs, KEY_SMALL_OFFSET, R.string.small_island_offset, -10, 50, 0)
+            }
+        }
+        item {
+            SectionTitle(stringResource(R.string.island_corner_section))
+            Card(modifier = Modifier.fillMaxWidth()) {
+                LongPreferenceSlider(prefs, IslandCornerPreferences.ISLAND,
+                    R.string.island_corner_radius, -1, 50, IslandCornerPreferences.SYSTEM,
+                    followSystemAtDefault = true)
+                LongPreferenceSlider(prefs, IslandCornerPreferences.EXPAND,
+                    R.string.expand_corner_radius, -1, 50, IslandCornerPreferences.SYSTEM,
+                    followSystemAtDefault = true)
             }
         }
     }

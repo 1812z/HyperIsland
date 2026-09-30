@@ -962,4 +962,8 @@
     <string name="expand_animation_keep_content_size">Keep content size</string>
     <string name="expand_animation_ios">iOS</string>
     <string name="expand_ios_content_top_gap">Content top spacing</string>
+    <string name="island_position_size">Position and size</string>
+    <string name="island_corner_section">Corner radius</string>
+    <string name="island_corner_radius">Island</string>
+    <string name="expand_corner_radius">Expanded state</string>
 </resources>

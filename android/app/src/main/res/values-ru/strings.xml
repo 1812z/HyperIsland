@@ -905,4 +905,8 @@
     <string name="expand_animation_keep_content_size">Сохранять размер содержимого</string>
     <string name="expand_animation_ios">iOS</string>
     <string name="expand_ios_content_top_gap">Верхний отступ содержимого</string>
+    <string name="island_position_size">Положение и размер</string>
+    <string name="island_corner_section">Скругление углов</string>
+    <string name="island_corner_radius">Остров</string>
+    <string name="expand_corner_radius">Развёрнутое состояние</string>
 </resources>

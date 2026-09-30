@@ -905,4 +905,8 @@
     <string name="expand_animation_keep_content_size">コンテンツのサイズを維持</string>
     <string name="expand_animation_ios">iOS</string>
     <string name="expand_ios_content_top_gap">コンテンツ上部の余白</string>
+    <string name="island_position_size">位置とサイズ</string>
+    <string name="island_corner_section">角の半径</string>
+    <string name="island_corner_radius">アイランド</string>
+    <string name="expand_corner_radius">展開状態</string>
 </resources>

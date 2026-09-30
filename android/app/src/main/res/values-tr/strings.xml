@@ -960,4 +960,8 @@
     <string name="expand_animation_keep_content_size">İçerik boyutunu koru</string>
     <string name="expand_animation_ios">iOS</string>
     <string name="expand_ios_content_top_gap">İçeriğin üst boşluğu</string>
+    <string name="island_position_size">Konum ve boyut</string>
+    <string name="island_corner_section">Köşe yarıçapı</string>
+    <string name="island_corner_radius">Ada</string>
+    <string name="expand_corner_radius">Genişletilmiş durum</string>
 </resources>

@@ -863,4 +863,8 @@
     <string name="expand_animation_keep_content_size">الحفاظ على حجم المحتوى</string>
     <string name="expand_animation_ios">iOS</string>
     <string name="expand_ios_content_top_gap">المسافة أعلى المحتوى</string>
+    <string name="island_position_size">الموضع والحجم</string>
+    <string name="island_corner_section">نصف قطر الزوايا</string>
+    <string name="island_corner_radius">الجزيرة</string>
+    <string name="expand_corner_radius">الحالة الموسعة</string>
 </resources>

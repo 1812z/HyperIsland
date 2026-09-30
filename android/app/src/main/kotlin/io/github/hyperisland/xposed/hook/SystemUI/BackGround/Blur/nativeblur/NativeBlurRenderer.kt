@@ -68,8 +68,9 @@ internal class NativeBlurRenderer(
     }
 
     fun update(view: View, owned: OwnedBlur, config: BlurConfig, shapeView: View) {
-        if (owned.cornerRadius.isNaN()) {
-            val radius = resolveCornerRadius(view)
+        val radius = io.github.hyperisland.xposed.hook.SystemUI.IslandCornerHook.configuredPx(
+            view, owned.type == IslandType.EXPAND) ?: resolveCornerRadius(view)
+        if (owned.cornerRadius != radius) {
             owned.cornerRadius = radius
             owned.clippedDrawable.setCornerRadius(radius)
             owned.liquidDrawable.setCornerRadius(radius)
@@ -102,7 +103,10 @@ internal class NativeBlurRenderer(
         }
     }
 
-    private fun resolveCornerRadius(view: View): Float = TypedValue.applyDimension(
+    private fun resolveCornerRadius(view: View): Float = runCatching {
+        val id = view.resources.getIdentifier("island_radius", "dimen", "com.android.systemui")
+        if (id == 0) null else view.resources.getDimension(id)
+    }.getOrNull() ?: TypedValue.applyDimension(
         TypedValue.COMPLEX_UNIT_DIP,
         32f,
         view.resources.displayMetrics,
