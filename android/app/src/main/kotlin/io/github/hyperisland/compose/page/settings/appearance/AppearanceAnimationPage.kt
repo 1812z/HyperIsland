@@ -22,6 +22,7 @@ internal fun AppearanceAnimationPage(prefs: FlutterPrefsRepository, onBack: () -
     val enabled = rememberBooleanPreference(prefs, Keys.ENABLED, false)
     val type = rememberStringPreference(prefs, Keys.TYPE, "system")
     val rebound = rememberBooleanPreference(prefs, Keys.REBOUND, true)
+    val gestureFollow = rememberBooleanPreference(prefs, Keys.GESTURE_FOLLOW, false)
     val curve = rememberStringPreference(prefs, Keys.CURVE, "balanced")
     val keepContentSize = rememberBooleanPreference(prefs, Keys.KEEP_CONTENT_SIZE, false)
     LaunchedEffect(keepContentSize.value, rebound.value) {
@@ -67,6 +68,11 @@ internal fun AppearanceAnimationPage(prefs: FlutterPrefsRepository, onBack: () -
                                 prefs.putBoolean(Keys.KEEP_CONTENT_SIZE, false)
                             }
                         }
+                        }
+                        PreferenceSwitch(stringResource(R.string.expand_animation_gesture_follow),
+                            stringResource(R.string.expand_animation_gesture_follow_summary), null, gestureFollow.value) {
+                            gestureFollow.value = it
+                            prefs.putBoolean(Keys.GESTURE_FOLLOW, it)
                         }
                         val curves = listOf("balanced", "snappy", "gentle")
                         PreferenceDropdown(

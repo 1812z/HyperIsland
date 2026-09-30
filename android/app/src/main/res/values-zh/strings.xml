@@ -972,4 +972,6 @@
     <string name="island_corner_section">圆角</string>
     <string name="island_corner_radius">岛</string>
     <string name="expand_corner_radius">展开态</string>
+    <string name="expand_animation_gesture_follow">跟手效果</string>
+    <string name="expand_animation_gesture_follow_summary">上滑收起时，整体小幅跟随手指左右移动</string>
 </resources>

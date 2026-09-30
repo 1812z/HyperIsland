@@ -867,4 +867,6 @@
     <string name="island_corner_section">نصف قطر الزوايا</string>
     <string name="island_corner_radius">الجزيرة</string>
     <string name="expand_corner_radius">الحالة الموسعة</string>
+    <string name="expand_animation_gesture_follow">تتبّع الإيماءة</string>
+    <string name="expand_animation_gesture_follow_summary">تتبّع حركة الإصبع الأفقية قليلاً عند السحب لأعلى للطي</string>
 </resources>

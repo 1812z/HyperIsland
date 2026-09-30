@@ -909,4 +909,6 @@
     <string name="island_corner_section">Скругление углов</string>
     <string name="island_corner_radius">Остров</string>
     <string name="expand_corner_radius">Развёрнутое состояние</string>
+    <string name="expand_animation_gesture_follow">Следование за жестом</string>
+    <string name="expand_animation_gesture_follow_summary">При сворачивании свайпом вверх слегка следовать за движением пальца по горизонтали</string>
 </resources>

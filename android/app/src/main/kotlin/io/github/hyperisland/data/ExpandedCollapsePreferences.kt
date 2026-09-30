@@ -4,6 +4,7 @@ package io.github.hyperisland.data
 object ExpandedCollapsePreferences {
     const val TYPE = "pref_expand_animation_type"
     const val REBOUND = "pref_expand_animation_rebound"
+    const val GESTURE_FOLLOW = "pref_expand_animation_gesture_follow"
     const val CURVE = "pref_expand_animation_curve"
     const val KEEP_CONTENT_SIZE = "pref_expand_animation_keep_content_size"
     const val IOS_CONTENT_TOP_GAP = "pref_expand_ios_content_top_gap"

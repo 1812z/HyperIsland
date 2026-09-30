@@ -966,4 +966,6 @@
     <string name="island_corner_section">Corner radius</string>
     <string name="island_corner_radius">Island</string>
     <string name="expand_corner_radius">Expanded state</string>
+    <string name="expand_animation_gesture_follow">Gesture following</string>
+    <string name="expand_animation_gesture_follow_summary">Gently follow horizontal finger movement while swiping up to collapse</string>
 </resources>

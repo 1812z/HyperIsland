@@ -1,4 +1,4 @@
-package io.github.hyperisland.xposed.hook.SystemUI
+package io.github.hyperisland.xposed.hook.SystemUI.animation
 
 import android.view.View
 import io.github.hyperisland.data.ExpandedCollapsePreferences

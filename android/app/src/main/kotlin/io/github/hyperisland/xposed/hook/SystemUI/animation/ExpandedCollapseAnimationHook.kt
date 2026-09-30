@@ -1,4 +1,4 @@
-package io.github.hyperisland.xposed.hook.SystemUI
+package io.github.hyperisland.xposed.hook.SystemUI.animation
 
 import io.github.hyperisland.data.ExpandedCollapsePreferences as Keys
 import io.github.hyperisland.xposed.ConfigManager

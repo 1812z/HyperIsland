@@ -900,4 +900,6 @@
     <string name="island_corner_section">Raio dos cantos</string>
     <string name="island_corner_radius">Ilha</string>
     <string name="expand_corner_radius">Estado expandido</string>
+    <string name="expand_animation_gesture_follow">Acompanhar gesto</string>
+    <string name="expand_animation_gesture_follow_summary">Ao deslizar para cima para recolher, acompanhar suavemente o movimento horizontal do dedo</string>
 </resources>

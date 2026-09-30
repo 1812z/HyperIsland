@@ -44,3 +44,4 @@ opencode.json
 /docs/.vitepress/cache
 /node_modules
 /docs/.vitepress/dist
+/android/.settings

@@ -50,7 +50,8 @@ internal object ConfigBackupService {
                 (value !is Number || value.toDouble() !in 0.0..100.0 ||
                     value.toDouble() != value.toLong().toDouble())
             ) throw InvalidConfigException()
-            if (key == io.github.hyperisland.data.ExpandedCollapsePreferences.ENABLED &&
+            if (key in setOf(io.github.hyperisland.data.ExpandedCollapsePreferences.ENABLED,
+                    io.github.hyperisland.data.ExpandedCollapsePreferences.GESTURE_FOLLOW) &&
                 value !is Boolean
             ) throw InvalidConfigException()
             if (value is Boolean || value is String || value is Number) {
