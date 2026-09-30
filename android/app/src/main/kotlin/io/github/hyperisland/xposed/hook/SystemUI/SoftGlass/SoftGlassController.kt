@@ -55,53 +55,104 @@ internal object SoftGlassController {
         Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>()),
     )
 
-    @Volatile private var systemParams: FloatArray? = null
-    @Volatile private var setViewMode: Method? = null
-    @Volatile private var clearBlend: Method? = null
-    @Volatile private var isBionicsActiveMethod: Method? = null
-    @Volatile private var bionicsRuntimeAvailable = false
+    private data class RuntimeBinding(
+        val contentClass: Class<*>,
+        val compatClass: Class<*>,
+        val params: FloatArray,
+        val setViewMode: Method,
+        val clearBlend: Method,
+        val isBionicsActive: Method,
+    )
 
-    fun bindRuntime(module: XposedModule, contentClass: Class<*>, compatClass: Class<*>) {
-        if (systemParams == null) {
-            systemParams = runCatching {
-                val field = contentClass.getDeclaredField("EXPANDED_GLASS_TOKEN").apply {
-                    isAccessible = true
-                }
-                val token = field.get(null)
-                val method = findMethod(token.javaClass, "getToBionicsParams")
-                    ?: return@runCatching null
-                (method.invoke(token) as? FloatArray)?.clone()
-            }.getOrNull()
+    // Publish one complete binding. A resource-only copy of the plugin must never replace the
+    // methods used by the already-bound island window, even if it exposes some of the same classes.
+    @Volatile private var runtime: RuntimeBinding? = null
+    private val systemParams get() = runtime?.params
+    private val setViewMode get() = runtime?.setViewMode
+    private val clearBlend get() = runtime?.clearBlend
+    private val isBionicsActiveMethod get() = runtime?.isBionicsActive
+    private val bionicsRuntimeAvailable get() = runtime != null
+    private var diagnosticEvents = 0
+
+    private fun loaderId(loader: ClassLoader?): String =
+        "${loader?.javaClass?.simpleName ?: "bootstrap"}@${System.identityHashCode(loader)}"
+
+    private fun diagnose(event: String, view: View) {
+        synchronized(this) {
+            if (diagnosticEvents >= 160) return
+            diagnosticEvents++
         }
+        val root = findWindowView(view)
+        log(
+            "$TAG trace $event view=${view.javaClass.simpleName}@${System.identityHashCode(view)} " +
+                "root=${root?.let(System::identityHashCode)} attached=${view.isAttachedToWindow} " +
+                "managed=${managedViews.contains(view)} rendering=${renderingViews.contains(view)} " +
+                "window=${root != null && retainedWindowBlurRoots.contains(root)} " +
+                "pass=${root != null && retainedPassBlurRoots.contains(root)}",
+        )
+    }
+
+    @Synchronized
+    fun bindRuntime(module: XposedModule, contentClass: Class<*>, compatClass: Class<*>): Boolean {
+        runtime?.let { bound ->
+            if (bound.contentClass === contentClass && bound.compatClass === compatClass) return true
+            logWarn(
+                "$TAG runtime rejected foreign binding " +
+                    "candidate=${loaderId(contentClass.classLoader)} " +
+                    "bound=${loaderId(bound.contentClass.classLoader)} " +
+                    "compat=${loaderId(compatClass.classLoader)}",
+            )
+            return false
+        }
+        val params = runCatching {
+            val field = contentClass.getDeclaredField("EXPANDED_GLASS_TOKEN").apply {
+                isAccessible = true
+            }
+            val token = field.get(null)
+            val method = findMethod(token.javaClass, "getToBionicsParams")
+                ?: return@runCatching null
+            (method.invoke(token) as? FloatArray)?.clone()
+        }.getOrNull()
         val styleClass = runCatching {
             Class.forName("miui.systemui.util.MiBackgroundStyle", false, contentClass.classLoader)
         }.getOrNull()
-        styleClass?.let {
+        val activeMethod = styleClass?.let {
             findMethod(it, "isBionicsActive", Context::class.java)
-        }?.let { isBionicsActiveMethod = it }
-        findMethod(
+        }
+        val viewModeMethod = findMethod(
             compatClass,
             "setMiViewBlurModeCompat",
             View::class.java,
             Int::class.javaPrimitiveType!!,
-        )?.let { setViewMode = it }
-        findMethod(
+        )
+        val clearBlendMethod = findMethod(
             compatClass,
             "clearMiBackgroundBlendColorCompat",
             View::class.java,
-        )?.let { clearBlend = it }
+        )
         // HyperOS versions cannot be distinguished reliably by Android SDK. These two APIs are
         // the actual OS4 Bionics capability boundary; OS3 must remain on the Gaussian path and
         // must not receive any of the Bionics source-writer hooks below.
-        bionicsRuntimeAvailable = systemParams != null && isBionicsActiveMethod != null
-        if (bionicsRuntimeAvailable) {
-            if (styleClass != null) hookSystemWriters(module, styleClass)
-            hookCompatWriters(module, compatClass)
+        if (params == null || activeMethod == null) {
+            log("$TAG runtime unavailable candidate=${loaderId(contentClass.classLoader)}")
+            return true // OS3 remains on its existing Gaussian path.
         }
+        check(params.size >= 42 && viewModeMethod != null && clearBlendMethod != null) {
+            "Incomplete Bionics runtime candidate=${loaderId(contentClass.classLoader)} params=${params.size}"
+        }
+        val candidate = RuntimeBinding(
+            contentClass, compatClass, params, viewModeMethod, clearBlendMethod, activeMethod,
+        )
+        hookSystemWriters(module, checkNotNull(styleClass))
+        hookCompatWriters(module, compatClass)
+        runtime = candidate
         log(
             "$TAG runtime bound bionics=$bionicsRuntimeAvailable " +
-                "params=${systemParams?.size ?: -1}",
+                "params=${params.size} owner=${loaderId(contentClass.classLoader)} " +
+                "style=${loaderId(activeMethod.declaringClass.classLoader)} " +
+                "compat=${loaderId(compatClass.classLoader)}",
         )
+        return true
     }
 
     /**
@@ -129,6 +180,7 @@ internal object SoftGlassController {
                 } else {
                     retainedWindowBlurRoots.remove(root)
                 }
+                diagnose("window-blur requested=$requested kept=$keepForSoft", root)
                 result
             }
         }
@@ -147,6 +199,7 @@ internal object SoftGlassController {
                 } else {
                     retainedPassBlurRoots.remove(root)
                 }
+                diagnose("pass-blur requested=$requested kept=$keepForSoft", root)
                 result
             }
         }
@@ -196,10 +249,12 @@ internal object SoftGlassController {
 
     fun apply(view: View, config: SoftGlassConfig): Boolean = runCatching {
         if (!isSystemBionicsActive(view)) {
+            diagnose("apply inactive", view)
             release(view)
             return@runCatching false
         }
         if (managedViews.contains(view) && appliedConfigs[view] == config) {
+            diagnose("apply cached", view)
             if (view.background != null) view.background = null
             return@runCatching true
         }
@@ -226,6 +281,7 @@ internal object SoftGlassController {
         setMaterial.invoke(view, 1)
         setGlass.invoke(view, customizeParams(baseParams(), config))
         appliedConfigs[view] = config
+        diagnose("apply submitted", view)
         view.invalidate()
         true
     }.getOrElse { error ->
@@ -263,6 +319,7 @@ internal object SoftGlassController {
         ensureWindowBlur(view)
         ensurePassWindowBlur(view)
         appliedConfigs[view]?.let { updateWindowRadius(view, it.blurRadius) }
+        diagnose("begin-rendering", view)
     }
 
     /** Temporarily removes only the sampler lease, retaining the prepared View material. */

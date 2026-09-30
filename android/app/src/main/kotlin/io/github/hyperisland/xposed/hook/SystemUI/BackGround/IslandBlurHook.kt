@@ -133,8 +133,19 @@ object IslandBlurHook : BaseHook() {
             ).mapNotNull { name ->
                 runCatching { Class.forName(name, false, classLoader) }.getOrNull()
             }.firstOrNull() ?: throw ClassNotFoundException("MiBlurCompat")
+            // createPackageContext(INCLUDE_CODE) can expose a second, standalone plugin copy.
+            // Resolve every class's method signatures before any runtime binding or Hook writes:
+            // Class.forName alone does not resolve DynamicIslandData and listener dependencies.
+            installStage = "loader-validation"
+            val preparationClasses = listOf(
+                "miui.systemui.dynamicisland.window.content.DynamicIslandContentView",
+                "miui.systemui.dynamicisland.window.content.DynamicIslandContentFakeView",
+            ).map { Class.forName(it, false, classLoader) }
+            (listOf(contentClass, backgroundClass, stateClass, windowViewClass, compatClass) +
+                preparationClasses).forEach { it.declaredMethods }
+            if (hookedContentClasses.contains(contentClass)) return
             installStage = "runtime-bind"
-            SoftGlassController.bindRuntime(module, contentClass, compatClass)
+            if (!SoftGlassController.bindRuntime(module, contentClass, compatClass)) return
             SoftGlassController.observeWindowLifecycle(module, windowViewClass)
             hookPreparationSources(module, classLoader)
             val updateMethod = contentClass.getDeclaredMethod(
@@ -593,9 +604,9 @@ object IslandBlurHook : BaseHook() {
         ).mapNotNull { name ->
             runCatching { Class.forName(name, false, classLoader) }.getOrNull()
         }.forEach { clazz ->
+            val methods = clazz.declaredMethods.filter { it.name == "updateExpandedView" }
             if (!hookedPreparationClasses.add(clazz)) return@forEach
-            clazz.declaredMethods
-                .filter { it.name == "updateExpandedView" }
+            methods
                 .forEach { method ->
                     method.isAccessible = true
                     module.hook(method).intercept { chain ->

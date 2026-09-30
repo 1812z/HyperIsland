@@ -9,6 +9,12 @@
 
 如果只修改真实 View，稳定状态可能正确，但缩放和移动动画仍会出现黑块、错位或模糊突然消失。
 
+## 柔光插件加载器兼容性排查
+
+其他模块使用 `createPackageContext("miui.systemui.plugin", CONTEXT_INCLUDE_CODE)` 时，可能触发一套独立插件加载器。`Class.forName` 能找到超级岛类并不代表其方法签名所需的 `DynamicIslandData` 等依赖已就绪。柔光 Hook 在绑定运行时前先解析关键类的方法签名；验证失败不修改已有绑定。Bionics 首次完整绑定后，其他内容类/兼容类实例不能覆盖该绑定。这是针对多加载器冲突的对照修复，仍需实机验证是否解决透明问题。
+
+复现顺序：高德导航正常上岛 → 熄屏亮屏 → 锁屏底部导航岛显示 → 观察解锁岛 → 解锁 → 地图岛展开收起。导出覆盖整个过程的 LSPosed 模块日志，关注 `HyperIsland[SoftGlass]` 的 `runtime bound`、`runtime rejected foreign binding` 和 `trace`，以及 `IslandBlurHook` 的 `loader-validation` 错误。`trace` 每个 SystemUI 进程最多记录 160 条，包含材质提交/缓存命中、窗口及穿窗模糊请求和本模块的采样持有记录；这些记录不等价于原生采样器实际状态。
+
 ## 1. 关键类
 
 | 用途 | 类 |
