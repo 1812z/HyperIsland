@@ -9,7 +9,18 @@ import ReleaseHistory from './.vitepress/components/ReleaseHistory.vue'
 <div class="changelog-source" hidden>
 
 
-# V3.1.3 (2026-9-119)
+# V3.1.4 (2026-9-30)
+## 功能
+- 新增动画样式调整
+- 新增展开态收起参数调整
+- 新增圆角自定义 
+
+## 优化 & 修复
+- 优化柔光玻璃兼容性
+- 更新依赖
+
+
+# V3.1.3 (2026-9-19)
 ## 功能
 - 新增锁屏负一屏
 - 解锁岛新增锁样式2
