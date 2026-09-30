@@ -42,9 +42,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -92,7 +92,6 @@ import io.github.hyperisland.compose.component.liquid.rememberCombinedBackdrop
 import io.github.hyperisland.compose.component.liquid.vibrancy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.FloatingNavigationBar
@@ -288,7 +287,8 @@ private fun FloatingLiquidBar(
             }
         }
     }
-    var currentIndex by remember(selectedIndex) { mutableIntStateOf(selectedIndex()) }
+    val latestSelectedIndex by rememberUpdatedState(selectedIndex)
+    val latestOnSelected by rememberUpdatedState(onSelected)
     class Holder { var animation: DampedDragAnimation? = null }
     val holder = remember { Holder() }
     val dragAnimation = remember(animationScope, tabsCount, density, isLeftToRight) {
@@ -310,8 +310,8 @@ private fun FloatingLiquidBar(
             },
             onDragStopped = {
                 val target = targetValue.fastRoundToInt().fastCoerceIn(0, tabsCount - 1)
-                currentIndex = target
                 animateToValue(target.toFloat())
+                latestOnSelected(target)
                 animationScope.launch { offsetAnimation.animateTo(0f, spring(1f, 300f, 0.5f)) }
             },
             onDrag = { _, amount ->
@@ -325,15 +325,9 @@ private fun FloatingLiquidBar(
             },
         ).also { holder.animation = it }
     }
-    LaunchedEffect(selectedIndex) {
-        snapshotFlow { selectedIndex() }.collectLatest {
-            currentIndex = it.fastCoerceIn(0, tabsCount - 1)
-        }
-    }
     LaunchedEffect(dragAnimation) {
-        snapshotFlow { currentIndex }.drop(1).collectLatest { index ->
-            dragAnimation.animateToValue(index.toFloat())
-            onSelected(index)
+        snapshotFlow { latestSelectedIndex() }.collectLatest { index ->
+            dragAnimation.animateToValue(index.fastCoerceIn(0, tabsCount - 1).toFloat())
         }
     }
     val interactiveHighlight = remember(animationScope, tabWidthPx, isLeftToRight) {
