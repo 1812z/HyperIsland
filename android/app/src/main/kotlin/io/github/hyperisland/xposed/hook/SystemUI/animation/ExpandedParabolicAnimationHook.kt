@@ -4,6 +4,8 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.view.View
+import android.view.MotionEvent
+import android.view.VelocityTracker
 import android.view.animation.PathInterpolator
 import io.github.hyperisland.data.ExpandedCollapsePreferences as Keys
 import io.github.hyperisland.xposed.ConfigManager
@@ -36,7 +38,16 @@ internal object ExpandedParabolicAnimationHook {
             }
         }
     }
-    private val directions = WeakHashMap<View, Direction>()
+    private val trackers = WeakHashMap<View, VelocityTracker>()
+    private val releases = WeakHashMap<View, Direction>()
+    private val touchDetach = object : View.OnAttachStateChangeListener {
+        override fun onViewAttachedToWindow(v: View) = Unit
+        override fun onViewDetachedFromWindow(v: View) {
+            trackers.remove(v)?.recycle()
+            releases.remove(v)
+            v.removeOnAttachStateChangeListener(this)
+        }
+    }
     private val flights = WeakHashMap<View, Flight>()
     private val targetFlights = WeakHashMap<View, Flight>()
     private val writing = ThreadLocal<Boolean>()
@@ -45,12 +56,6 @@ internal object ExpandedParabolicAnimationHook {
     private val detach = object : View.OnAttachStateChangeListener {
         override fun onViewAttachedToWindow(v: View) = Unit
         override fun onViewDetachedFromWindow(v: View) = stop(v)
-    }
-
-    fun record(view: View, x: Float, y: Float) {
-        if (!x.isFinite() || !y.isFinite()) return
-        if (directions.size >= 32 && !directions.containsKey(view)) return
-        directions[view] = Direction(x, y, android.os.SystemClock.uptimeMillis())
     }
 
     private fun stop(view: View) {
@@ -64,6 +69,7 @@ internal object ExpandedParabolicAnimationHook {
     }
 
     fun install(module: XposedModule, loader: ClassLoader) {
+        installVelocityTracking(module, loader)
         runCatching {
             installTranslationHooks(module)
             val clazz = loader.loadClass("miui.systemui.dynamicisland.anim.DynamicIslandAnimationDelegate")
@@ -74,14 +80,20 @@ internal object ExpandedParabolicAnimationHook {
             methods.forEach { method ->
                 module.hook(method).intercept { chain ->
                     val view = chain.args[0] as? View ?: return@intercept chain.proceed()
-                    val direction = directions.remove(view)
+                    var host: View? = view
+                    var direction: Direction? = null
+                    while (host != null) {
+                        releases.remove(host)?.let { direction = it }
+                        host = host.parent as? View
+                    }
+                    val release = direction
                     val result = chain.proceed()
                     runCatching {
                         if (!ExpandedGestureFollowHook.isEnabled() || !ConfigManager.getBoolean(Keys.PARABOLIC, false) ||
-                            direction == null || android.os.SystemClock.uptimeMillis() - direction.time > 250L ||
-                            hypot(direction.x, direction.y) <= 0f || !view.isAttachedToWindow ||
+                            release == null || android.os.SystemClock.uptimeMillis() - release.time > 250L ||
+                            hypot(release.x, release.y) <= 0f || !view.isAttachedToWindow ||
                             view.resources.configuration.smallestScreenWidthDp >= 600) return@runCatching
-                        launch(view, direction)
+                        launch(view, release)
                     }
                     result
                 }
@@ -89,9 +101,52 @@ internal object ExpandedParabolicAnimationHook {
             // Resetting a cancelled swipe must not leave a recent throw direction behind.
             clazz.declaredMethods.filter { it.name == "resetSwipe" && it.parameterCount == 1 }.forEach { method ->
                 module.hook(method).intercept { chain ->
-                    (chain.args[0] as? View)?.let { directions.remove(it) }
+                    var host = chain.args[0] as? View
+                    while (host != null) {
+                        releases.remove(host)
+                        host = host.parent as? View
+                    }
                     chain.proceed()
                 }
+            }
+            synchronized(hooked) { hooked.add(clazz) }
+        }
+    }
+
+    private fun installVelocityTracking(module: XposedModule, loader: ClassLoader) {
+        runCatching {
+            val clazz = loader.loadClass("miui.systemui.dynamicisland.window.DynamicIslandWindowView")
+            synchronized(hooked) { if (hooked.contains(clazz)) return@runCatching }
+            // Capture before SystemUI dispatches UP and commits its asynchronous state change.
+            val method = clazz.getMethod("dispatchTouchEvent", MotionEvent::class.java)
+            module.hook(method).intercept { chain ->
+                runCatching {
+                    val window = chain.thisObject as? View ?: return@runCatching
+                    if (!clazz.isInstance(window)) return@runCatching
+                    val event = chain.args[0] as? MotionEvent ?: return@runCatching
+                    if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                        trackers.remove(window)?.recycle()
+                        releases.remove(window)
+                        window.removeOnAttachStateChangeListener(touchDetach)
+                        if (ExpandedGestureFollowHook.isEnabled() && trackers.size < 32) {
+                            trackers[window] = VelocityTracker.obtain()
+                            window.addOnAttachStateChangeListener(touchDetach)
+                        }
+                    }
+                    val tracker = trackers[window] ?: return@runCatching
+                    tracker.addMovement(event)
+                    if (event.actionMasked == MotionEvent.ACTION_UP) {
+                        tracker.computeCurrentVelocity(1000)
+                        val id = event.getPointerId(event.actionIndex)
+                        releases[window] = Direction(tracker.getXVelocity(id), tracker.getYVelocity(id),
+                            android.os.SystemClock.uptimeMillis())
+                    }
+                    if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) {
+                        trackers.remove(window)?.recycle()
+                        if (event.actionMasked == MotionEvent.ACTION_CANCEL) releases.remove(window)
+                    }
+                }
+                chain.proceed()
             }
             synchronized(hooked) { hooked.add(clazz) }
         }
@@ -145,10 +200,14 @@ internal object ExpandedParabolicAnimationHook {
             else -> 12f to .07f
         }
         val limit = limitDp * density
-        val desiredX = limit * tanh(direction.x * response / limit)
+        // Velocity is px/s; project 80ms of release momentum into the existing distance tiers.
+        val projectedX = direction.x * .08f
+        val projectedY = direction.y * .08f
+        val desiredX = limit * tanh(projectedX * response / limit)
         // Stronger horizontal response, retaining the selected tier's distance limit.
-        val enhancedX = limit * tanh(direction.x * response * 2f / limit)
-        val desiredY = limit * tanh(direction.y * response / limit)
+        val horizontalLimit = limit * 1.5f
+        val enhancedX = horizontalLimit * tanh(projectedX * response * 4f / horizontalLimit)
+        val desiredY = limit * tanh(projectedY * response / limit)
         // The arc has a perpendicular bend, so reserve its 25% envelope too. Keep
         // upward throws within the available top margin instead of exiting the screen.
         val location = IntArray(2)
@@ -157,7 +216,9 @@ internal object ExpandedParabolicAnimationHook {
         val availableTop = (location[1] + rectTop - 2f * density).coerceAtLeast(0f)
         val upwardEnvelope = (-desiredY).coerceAtLeast(0f) + kotlin.math.abs(desiredX) * .25f
         val fit = if (upwardEnvelope > 0f) (availableTop / upwardEnvelope).coerceIn(0f, 1f) else 1f
-        val dx = enhancedX * fit
+        // Top clearance only constrains vertical motion. Applying it to X also
+        // suppresses horizontal throws near the status bar even with a fast release.
+        val dx = enhancedX
         val verticalBendX = desiredX * fit
         val dy = desiredY * fit
         val curve = ConfigManager.getString(Keys.CURVE, "balanced")

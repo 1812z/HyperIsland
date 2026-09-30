@@ -143,7 +143,6 @@ object ExpandedGestureFollowHook : BaseHook() {
                 if (!enabled) return@intercept chain.proceed()
                 val x = chain.args[0] as? Float ?: return@intercept chain.proceed()
                 val y = chain.args[1] as? Float ?: return@intercept chain.proceed()
-                (chain.args[4] as? View)?.let { ExpandedParabolicAnimationHook.record(it, x, y) }
                 val previous = rawSwipe.get()
                 rawSwipe.set(Offset(x, y))
                 try {
