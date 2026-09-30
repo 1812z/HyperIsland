@@ -127,7 +127,7 @@ class FlutterPrefsRepository(context: Context) {
         Context.MODE_PRIVATE,
     )
 
-    fun getBoolean(key: String, default: Boolean): Boolean =
+    fun getBoolean(key: String, default: Boolean = false): Boolean =
         runCatching { prefs.getBoolean(storageKey(key), default) }.getOrDefault(default)
 
     fun putBoolean(key: String, value: Boolean) {
@@ -141,12 +141,20 @@ class FlutterPrefsRepository(context: Context) {
         prefs.edit().putString(storageKey(key), value).apply()
     }
 
-    fun getLong(key: String, default: Long): Long =
+    fun getLong(key: String, default: Long = defaultLongPreference(key)): Long =
         runCatching { prefs.getLong(storageKey(key), default) }.getOrDefault(default)
 
     fun putLong(key: String, value: Long) {
-        prefs.edit().putLong(storageKey(key), value).apply()
+        val normalized = if (key in io.github.hyperisland.data.ExpandedCollapsePreferences.percentageKeys) {
+            value.coerceIn(0L, 100L)
+        } else value
+        prefs.edit().putLong(storageKey(key), normalized).apply()
     }
+
+    private fun defaultLongPreference(key: String): Long =
+        if (key in io.github.hyperisland.data.ExpandedCollapsePreferences.percentageKeys) {
+            io.github.hyperisland.data.ExpandedCollapsePreferences.defaultPercent(key)
+        } else 0L
 
     fun getDouble(key: String, default: Double): Double = runCatching {
         val raw = prefs.getString(storageKey(key), null) ?: return@runCatching default

@@ -940,4 +940,12 @@
     <string name="ext_lockscreen_negative_page_mode_summary">Kilit ekranı -1 sayfasında ne gösterileceğini seçin</string>
     <string name="ext_lockscreen_page_device_center">Cihaz merkezi</string>
     <string name="ext_lockscreen_page_widgets">Widget\'lar</string>
+    <string name="appearance_animation">Animasyon</string>
+    <string name="appearance_animation_summary">Genişletme ve daraltma animasyonlarını ayarla</string>
+    <string name="expand_collapse_custom">Genişletilmiş ada daraltma animasyonunu özelleştir</string>
+    <string name="expand_collapse_custom_summary">Genişletilmiş ada daraltma animasyonu parametrelerini özelleştir</string>
+    <string name="expand_collapse_transparency">Saydamlık</string>
+    <string name="expand_collapse_blur">İçerik bulanıklığı</string>
+    <string name="animation_start_degree">Başlangıç düzeyi</string>
+    <string name="animation_end_degree">Bitiş düzeyi</string>
 </resources>

@@ -948,4 +948,12 @@
     <string name="batch_toast_scope_apps">应用到 %1$d 个应用</string>
     <string name="applying">正在应用</string>
     <string name="color_code">颜色编码（#RRGGBB 或 #AARRGGBB）</string>
+    <string name="appearance_animation">动画</string>
+    <string name="appearance_animation_summary">调整展开收起动画</string>
+    <string name="expand_collapse_custom">展开态收起动画自定义</string>
+    <string name="expand_collapse_custom_summary">自定义展开态收起动画参数</string>
+    <string name="expand_collapse_transparency">透明度</string>
+    <string name="expand_collapse_blur">内容模糊度</string>
+    <string name="animation_start_degree">开始程度</string>
+    <string name="animation_end_degree">截止程度</string>
 </resources>

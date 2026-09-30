@@ -182,6 +182,7 @@ internal fun AppearancePage(
                     AppearanceSection.Text -> AppearanceTextPage(prefs, ::closeSection)
                     AppearanceSection.Icon -> AppearanceIconPage(prefs, ::closeSection)
                     AppearanceSection.Outline -> AppearanceOutlinePage(prefs, ::closeSection)
+                    AppearanceSection.Animation -> AppearanceAnimationPage(prefs, ::closeSection)
                     null -> Unit
                 }
             }

@@ -942,4 +942,12 @@
     <string name="batch_toast_scope_apps">Apply to %1$d apps</string>
     <string name="applying">Applying</string>
     <string name="color_code">Color code (#RRGGBB or #AARRGGBB)</string>
+    <string name="appearance_animation">Animation</string>
+    <string name="appearance_animation_summary">Adjust expand and collapse animations</string>
+    <string name="expand_collapse_custom">Customize expanded-state collapse animation</string>
+    <string name="expand_collapse_custom_summary">Customize expanded-state collapse animation parameters</string>
+    <string name="expand_collapse_transparency">Transparency</string>
+    <string name="expand_collapse_blur">Content blur</string>
+    <string name="animation_start_degree">Start level</string>
+    <string name="animation_end_degree">End level</string>
 </resources>

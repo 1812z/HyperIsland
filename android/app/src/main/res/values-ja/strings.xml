@@ -885,4 +885,12 @@
     <string name="ext_lockscreen_negative_page_mode_summary">ロック画面のマイナスワン画面に表示する内容を選択します</string>
     <string name="ext_lockscreen_page_device_center">デバイス連携センター</string>
     <string name="ext_lockscreen_page_widgets">ウィジェット</string>
+    <string name="appearance_animation">アニメーション</string>
+    <string name="appearance_animation_summary">展開・折りたたみアニメーションの調整</string>
+    <string name="expand_collapse_custom">展開状態からの折りたたみアニメーションをカスタマイズ</string>
+    <string name="expand_collapse_custom_summary">展開状態からの折りたたみアニメーションのパラメータを設定</string>
+    <string name="expand_collapse_transparency">透明度</string>
+    <string name="expand_collapse_blur">コンテンツのぼかし</string>
+    <string name="animation_start_degree">開始時の強度</string>
+    <string name="animation_end_degree">終了時の強度</string>
 </resources>

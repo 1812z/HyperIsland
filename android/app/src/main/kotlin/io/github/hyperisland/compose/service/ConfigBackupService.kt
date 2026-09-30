@@ -43,6 +43,13 @@ internal object ConfigBackupService {
                 throw InvalidConfigException()
             }
             val value = settings.opt(key)
+            if (key in io.github.hyperisland.data.ExpandedCollapsePreferences.percentageKeys &&
+                (value !is Number || value.toDouble() !in 0.0..100.0 ||
+                    value.toDouble() != value.toLong().toDouble())
+            ) throw InvalidConfigException()
+            if (key == io.github.hyperisland.data.ExpandedCollapsePreferences.ENABLED &&
+                value !is Boolean
+            ) throw InvalidConfigException()
             if (value is Boolean || value is String || value is Number) {
                 values[key] = value
             } else if (value != null && value !== JSONObject.NULL) {

@@ -876,4 +876,12 @@
     <string name="ext_lockscreen_negative_page_mode_summary">Escolha o que será exibido na página menos um da tela de bloqueio</string>
     <string name="ext_lockscreen_page_device_center">Central de dispositivos</string>
     <string name="ext_lockscreen_page_widgets">Widgets</string>
+    <string name="appearance_animation">Animação</string>
+    <string name="appearance_animation_summary">Ajustar animações de expansão e recolhimento</string>
+    <string name="expand_collapse_custom">Personalizar animação de recolhimento da ilha expandida</string>
+    <string name="expand_collapse_custom_summary">Personalizar parâmetros da animação de recolhimento da ilha expandida</string>
+    <string name="expand_collapse_transparency">Transparência</string>
+    <string name="expand_collapse_blur">Desfoque do conteúdo</string>
+    <string name="animation_start_degree">Nível inicial</string>
+    <string name="animation_end_degree">Nível final</string>
 </resources>

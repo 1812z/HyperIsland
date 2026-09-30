@@ -843,4 +843,12 @@
     <string name="ext_lockscreen_negative_page_mode_summary">اختر ما يظهر في صفحة ناقص واحد على شاشة القفل</string>
     <string name="ext_lockscreen_page_device_center">مركز الأجهزة</string>
     <string name="ext_lockscreen_page_widgets">الأدوات</string>
+    <string name="appearance_animation">الحركة</string>
+    <string name="appearance_animation_summary">ضبط حركات التوسيع والطي</string>
+    <string name="expand_collapse_custom">تخصيص حركة طي الجزيرة الموسعة</string>
+    <string name="expand_collapse_custom_summary">تخصيص معلمات حركة طي الجزيرة الموسعة</string>
+    <string name="expand_collapse_transparency">الشفافية</string>
+    <string name="expand_collapse_blur">تمويه المحتوى</string>
+    <string name="animation_start_degree">المستوى عند البداية</string>
+    <string name="animation_end_degree">المستوى عند النهاية</string>
 </resources>

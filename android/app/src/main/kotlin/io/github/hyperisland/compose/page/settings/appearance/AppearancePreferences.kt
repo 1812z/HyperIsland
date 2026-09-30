@@ -51,10 +51,11 @@ internal fun LongPreferenceSlider(
     increment: Long = 1,
     unit: SliderUnit = SliderUnit.Dp,
     followSystemAtDefault: Boolean = false,
+    showDefaultAsSystem: Boolean = true,
 ) {
     val state = rememberLongPreference(prefs, key, default)
     var draft by remember(key) { mutableFloatStateOf(state.value.toFloat()) }
-    val display = if (draft.toLong() == default && (default == 0L || followSystemAtDefault)) {
+    val display = if (showDefaultAsSystem && draft.toLong() == default && (default == 0L || followSystemAtDefault)) {
         stringResource(R.string.follow_system)
     } else when (unit) {
         SliderUnit.Dp -> stringResource(R.string.dp_value, draft.toInt())

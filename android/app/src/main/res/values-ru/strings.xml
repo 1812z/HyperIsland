@@ -885,4 +885,12 @@
     <string name="ext_lockscreen_negative_page_mode_summary">Выберите содержимое страницы минус один на экране блокировки</string>
     <string name="ext_lockscreen_page_device_center">Центр устройств</string>
     <string name="ext_lockscreen_page_widgets">Виджеты</string>
+    <string name="appearance_animation">Анимация</string>
+    <string name="appearance_animation_summary">Настройка анимации разворачивания и сворачивания</string>
+    <string name="expand_collapse_custom">Настроить анимацию сворачивания развёрнутого острова</string>
+    <string name="expand_collapse_custom_summary">Настройка параметров анимации сворачивания развёрнутого острова</string>
+    <string name="expand_collapse_transparency">Прозрачность</string>
+    <string name="expand_collapse_blur">Размытие содержимого</string>
+    <string name="animation_start_degree">Начальный уровень</string>
+    <string name="animation_end_degree">Конечный уровень</string>
 </resources>

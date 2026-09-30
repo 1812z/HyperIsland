@@ -10,7 +10,7 @@ import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.basic.ArrowRight
 
-internal enum class AppearanceSection { Size, Background, Text, Icon, Outline }
+internal enum class AppearanceSection { Size, Background, Text, Icon, Outline, Animation }
 
 @Composable
 internal fun AppearanceOverviewPage(
@@ -40,6 +40,7 @@ private fun appearanceSectionTitle(section: AppearanceSection): String = stringR
         AppearanceSection.Text -> R.string.appearance_text
         AppearanceSection.Icon -> R.string.appearance_icon
         AppearanceSection.Outline -> R.string.appearance_outline
+        AppearanceSection.Animation -> R.string.appearance_animation
     },
 )
 
@@ -51,5 +52,6 @@ private fun appearanceSectionSummary(section: AppearanceSection): String = strin
         AppearanceSection.Text -> R.string.appearance_text_summary
         AppearanceSection.Icon -> R.string.appearance_icon_summary
         AppearanceSection.Outline -> R.string.appearance_outline_summary
+        AppearanceSection.Animation -> R.string.appearance_animation_summary
     },
 )
