@@ -2,46 +2,40 @@ package io.github.hyperisland.compose.service
 
 import android.app.Application
 import android.content.Context
-import com.aptabase.Aptabase
+import android.util.Log
+import com.aptabase.EnvironmentInfo
 import io.github.hyperisland.utils.DevelopmentEnvironmentInfoProvider
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URI
+import java.time.Instant
+import java.util.UUID
 
-/** Sends a low-frequency compatibility snapshot from the app process only. */
+/** Sends a compatibility snapshot on each app launch, using a persistent installation ID. */
 internal object AnalyticsService {
-    private const val APP_KEY = "A-US-5058310366"
+    private const val APP_KEY = "A-SH-5661625625"
+    private const val EVENT_URL = "https://aptabase.1812z.top/api/v0/event"
     private const val STATE_PREFS = "HyperIslandAnalyticsState"
-    private const val LAST_SENT_AT = "last_environment_snapshot_at"
-    private const val LAST_SENT_VERSION = "last_environment_snapshot_version"
-    private const val LAST_SENT_SCHEMA = "last_environment_snapshot_schema"
-    private const val SCHEMA_VERSION = 2
-    private const val REPORT_INTERVAL_MS = 24L * 60L * 60L * 1000L
-
-    @Volatile
-    private var initialized = false
+    private const val INSTALLATION_ID = "installation_id"
 
     @Synchronized
     fun trackEnvironmentSnapshot(context: Context, isNewUser: Boolean) {
         val appContext = context.applicationContext
         if (Application.getProcessName() != appContext.packageName) return
+        if (!PrivacyConsentStore.isAccepted(appContext)) return
 
-        val environment = DevelopmentEnvironmentInfoProvider.load(appContext, isNewUser)
-        val state = appContext.getSharedPreferences(STATE_PREFS, Context.MODE_PRIVATE)
-        val now = System.currentTimeMillis()
-        val lastSentAt = state.getLong(LAST_SENT_AT, 0L)
-        val lastSentVersion = state.getInt(LAST_SENT_VERSION, -1)
-        val lastSentSchema = state.getInt(LAST_SENT_SCHEMA, 0)
-        val elapsed = now - lastSentAt
-        val due = lastSentSchema != SCHEMA_VERSION ||
-            lastSentVersion != environment.appVersionCode ||
-            elapsed < 0L || elapsed >= REPORT_INTERVAL_MS
-        if (!due) return
-
-        if (!initialized) {
-            Aptabase.instance.initialize(appContext, APP_KEY)
-            initialized = true
-        }
-        Aptabase.instance.trackEvent(
-            "environment_snapshot",
-            mapOf(
+        try {
+            val state = appContext.getSharedPreferences(STATE_PREFS, Context.MODE_PRIVATE)
+            val installationId = state.getString(INSTALLATION_ID, null)
+                ?.takeIf { it.isNotBlank() }
+                ?: UUID.randomUUID().toString().also {
+                    // Persist before sending so an interrupted launch cannot change the ID.
+                    if (!state.edit().putString(INSTALLATION_ID, it).commit()) return
+                }
+            val environment = DevelopmentEnvironmentInfoProvider.load(appContext, isNewUser)
+            val sdkEnvironment = EnvironmentInfo.get(appContext)
+            val properties = mapOf(
+                "installation_id" to installationId,
                 "app_version_name" to environment.appVersionName,
                 "app_version_code" to environment.appVersionCode,
                 "android_api" to environment.androidApi,
@@ -58,12 +52,43 @@ internal object AnalyticsService {
                 "xposed_framework_version" to environment.xposedFrameworkVersion,
                 "module_active" to if (environment.moduleActive) "yes" else "no",
                 "new_user" to if (environment.newUser) "yes" else "no",
-            ),
-        )
-        state.edit()
-            .putLong(LAST_SENT_AT, now)
-            .putInt(LAST_SENT_VERSION, environment.appVersionCode)
-            .putInt(LAST_SENT_SCHEMA, SCHEMA_VERSION)
-            .apply()
+            )
+            // SDK 0.0.8 cannot supply a persistent sessionId. Send its event format directly
+            // so the ID used by Aptabase itself stays stable, not just a custom property.
+            val event = JSONObject()
+                .put("timestamp", Instant.now().toString())
+                .put("sessionId", installationId)
+                .put("eventName", "environment_snapshot")
+                .put("systemProps", JSONObject(mapOf(
+                    "isDebug" to sdkEnvironment.isDebug,
+                    "osName" to sdkEnvironment.osName,
+                    "osVersion" to sdkEnvironment.osVersion,
+                    "locale" to sdkEnvironment.locale,
+                    "appVersion" to sdkEnvironment.appVersion,
+                    "appBuildNumber" to sdkEnvironment.appBuildNumber,
+                    "deviceModel" to sdkEnvironment.deviceModel,
+                    "sdkVersion" to "hyperisland-aptabase@1",
+                )))
+                .put("props", JSONObject(properties))
+            val connection = URI(EVENT_URL).toURL().openConnection() as HttpURLConnection
+            try {
+                connection.requestMethod = "POST"
+                connection.connectTimeout = 10_000
+                connection.readTimeout = 10_000
+                connection.setRequestProperty("App-Key", APP_KEY)
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.doOutput = true
+                connection.outputStream.bufferedWriter(Charsets.UTF_8).use {
+                    it.write(event.toString())
+                }
+                if (connection.responseCode !in 200..299) {
+                    Log.w("AnalyticsService", "Snapshot rejected: HTTP ${connection.responseCode}")
+                }
+            } finally {
+                connection.disconnect()
+            }
+        } catch (exception: Exception) {
+            Log.w("AnalyticsService", "Could not send environment snapshot", exception)
+        }
     }
 }

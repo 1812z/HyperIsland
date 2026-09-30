@@ -74,7 +74,8 @@ class MainActivity : ComponentActivity() {
                         showCloseButton = false,
                         onPrivacyAccepted = {
                             privacyPolicyAccepted = true
-                            startBackgroundTasks(prefs, isNewUser)
+                            trackAppLaunch(isNewUser)
+                            startBackgroundTasks(prefs)
                         },
                         onFinished = { onboardingCompleted = true },
                     )
@@ -91,7 +92,8 @@ class MainActivity : ComponentActivity() {
                             onAccept = {
                                 if (PrivacyConsentStore.accept(this)) {
                                     privacyPolicyAccepted = true
-                                    startBackgroundTasks(prefs, isNewUser)
+                                    trackAppLaunch(isNewUser)
+                                    startBackgroundTasks(prefs)
                                 }
                             },
                             onReject = ::finishAffinity,
@@ -102,15 +104,29 @@ class MainActivity : ComponentActivity() {
         }
 
         if (privacyPolicyAcceptedAtLaunch) {
-            startBackgroundTasks(prefs, isNewUser)
+            startBackgroundTasks(prefs)
         }
     }
 
-    private fun startBackgroundTasks(prefs: FlutterPrefsRepository, isNewUser: Boolean) {
+    override fun onStart() {
+        super.onStart()
+        if (PrivacyConsentStore.isAccepted(this)) {
+            val prefs = FlutterPrefsRepository(this)
+            trackAppLaunch(!prefs.getBoolean("pref_onboarding_completed", false))
+        }
+    }
+
+    private fun trackAppLaunch(isNewUser: Boolean) {
+        Thread {
+            XposedPrefsSyncApp.awaitReady()
+            AnalyticsService.trackEnvironmentSnapshot(applicationContext, isNewUser)
+        }.start()
+    }
+
+    private fun startBackgroundTasks(prefs: FlutterPrefsRepository) {
         if (!backgroundTasksStarted.compareAndSet(false, true)) return
         Thread {
             val xposedReady = XposedPrefsSyncApp.awaitReady()
-            AnalyticsService.trackEnvironmentSnapshot(applicationContext, isNewUser)
             if (xposedReady && prefs.getBoolean("pref_show_welcome", true)) {
                 TestNotificationService.sendWelcome(applicationContext)
             }

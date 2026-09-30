@@ -1,7 +1,7 @@
 # HyperIsland Privacy Policy
 
-Last updated: September 8, 2026  
-Effective: September 8, 2026
+Last updated: September 30, 2026<br>
+Effective: September 30, 2026
 
 HyperIsland is an open-source LSPosed module for HyperOS. This policy explains what information the app processes, why it is processed, where it goes, and how to contact us. Please read it before use. If you disagree, select “Decline and exit” on first launch.
 
@@ -13,7 +13,7 @@ This policy covers the HyperIsland Android app, its LSPosed module, and anonymou
 
 ### 2.1 Anonymous compatibility analytics
 
-After you explicitly accept this policy, the app sends an `environment_snapshot` through [Aptabase](https://aptabase.com/), containing:
+After you explicitly accept this policy, the app sends an `environment_snapshot` to the project's [self-hosted Aptabase service](https://aptabase.1812z.top/), containing:
 
 - HyperIsland version name and code;
 - Android API level, Android release, and device market name or model;
@@ -23,11 +23,12 @@ After you explicitly accept this policy, the app sends an `environment_snapshot`
 - Focus notification protocol version;
 - Xposed framework name and version, and whether the module is enabled with SystemUI in scope;
 - Whether initial onboarding has not yet been completed;
-- Event time, temporary session identifier, debug flag, locale, app version, and device model automatically attached by the Aptabase SDK.
+- A random installation identifier (`installation_id`, also used as the event's `sessionId`);
+- Event time, debug flag, locale, app version, and device model.
 
-The SDK generates a random temporary session identifier that changes with the app process or session. It is not a persistent identifier such as Android ID or an advertising ID. During a network connection, Aptabase receives the source IP and may use it to derive an anonymous statistical identifier and country or region. The app does not submit the raw IP as a custom event property.
+The installation identifier is randomly generated and stored locally when analytics first runs after consent. It remains unchanged across app restarts, device restarts, and in-place updates. Clearing app data or uninstalling and reinstalling generates a new identifier. It is not an Android ID, advertising ID, or hardware identifier and is used only to associate compatibility events from the same installation. The self-hosted server receives the source IP during a connection and may derive country or region information. The app does not submit the raw IP as a custom event property.
 
-The same app version normally sends no more than one snapshot every 24 hours. An app-version or analytics-schema change may trigger an immediate snapshot. Analytics runs only in the main HyperIsland app process, never in SystemUI or another hooked process.
+A snapshot is sent each time the app starts or returns to the foreground, and after initial consent. There is no longer a 24-hour reporting limit. Analytics runs only in the main HyperIsland app process, never in SystemUI or another hooked process.
 
 ### 2.2 Data processed locally for app features
 
@@ -55,9 +56,9 @@ Information is used only to provide and maintain module features, understand com
 
 ## 5. Sharing, storage, and international transfer
 
-Anonymous analytics is sent to Aptabase's US region and stored in the United States. Aptabase acts as the technical analytics provider. We do not sell analytics data or disclose it to other parties except where necessary for these purposes, legal compliance, or protection of users and the project.
+Compatibility analytics is sent over HTTPS to `aptabase.1812z.top`, a self-hosted Aptabase service operated by the project maintainers, and stored on that service's servers. Its storage region depends on the deployment location. Aptabase is the open-source analytics software used by this service. We do not sell analytics data or disclose it to other parties except where necessary for these purposes, legal compliance, or protection of users and the project.
 
-The open-source Aptabase server currently applies different retention periods to debug and release events. Actual cloud retention may also depend on service policy and account settings. Data is retained only as needed for the analytics purpose and identifiable project-level records may be deleted following a reasonable request. Because analytics has no persistent device identifier, a particular device's historical events usually cannot be isolated from aggregate data.
+Retention is controlled by the self-hosted service configuration. Data is retained only as needed for the analytics purpose and identifiable project-level records may be deleted following a reasonable request. The random installation identifier associates events from the same installation but does not directly identify you.
 
 ## 6. Information not collected by analytics
 
