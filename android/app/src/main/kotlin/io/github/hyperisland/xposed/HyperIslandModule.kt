@@ -10,6 +10,7 @@ import io.github.hyperisland.xposed.hook.SystemUI.IslandTextSizeHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandTransitionVisualHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandSwipeActionHook
 import io.github.hyperisland.xposed.hook.SystemUI.ExpandedCollapseAnimationHook
+import io.github.hyperisland.xposed.hook.SystemUI.ExpandedLivelyAnimationHook
 import io.github.hyperisland.xposed.hook.SystemUI.lockscreen.LockscreenNegativePageHook
 import io.github.hyperisland.xposed.hook.SystemUI.lockscreen.LockscreenWidgetPageHook
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.SmallIslandIconHook
@@ -87,6 +88,7 @@ class HyperIslandModule : XposedModule() {
                 IslandBlurHook.init(this, param)
                 IslandTransitionVisualHook.init(this, param)
                 ExpandedCollapseAnimationHook.init(this, param)
+                ExpandedLivelyAnimationHook.init(this, param)
                 StatusBarTextColorHook.init(this, param)
                 IslandTextColorHook.init(this, param)
                 TimerTextColorHook.init(this, param)

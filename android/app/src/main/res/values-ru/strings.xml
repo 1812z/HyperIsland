@@ -893,4 +893,14 @@
     <string name="expand_collapse_blur">Размытие содержимого</string>
     <string name="animation_start_degree">Начальный уровень</string>
     <string name="animation_end_degree">Конечный уровень</string>
+    <string name="expand_animation_type">Тип анимации разворачивания и сворачивания</string>
+    <string name="expand_animation_type_summary">Живая: изменение формы с лёгким вертикальным движением и мягкой пружиной</string>
+    <string name="expand_animation_lively">Живая</string>
+    <string name="expand_animation_bounce">Отскок</string>
+    <string name="expand_animation_rebound">Эффект отскока</string>
+    <string name="expand_animation_curve">Кривая анимации</string>
+    <string name="expand_curve_balanced">Сбалансированная</string>
+    <string name="expand_curve_snappy">Быстрая</string>
+    <string name="expand_curve_gentle">Мягкая</string>
+    <string name="expand_animation_keep_content_size">Сохранять размер содержимого</string>
 </resources>

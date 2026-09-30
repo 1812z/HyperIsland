@@ -4,20 +4,86 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.PreferenceSwitch
+import io.github.hyperisland.compose.component.PreferenceDropdown
 import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.rememberBooleanPreference
+import io.github.hyperisland.compose.data.rememberStringPreference
 import io.github.hyperisland.data.ExpandedCollapsePreferences as Keys
 import top.yukonga.miuix.kmp.basic.Card
 
 @Composable
 internal fun AppearanceAnimationPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) {
     val enabled = rememberBooleanPreference(prefs, Keys.ENABLED, false)
+    val type = rememberStringPreference(prefs, Keys.TYPE, "system")
+    val rebound = rememberBooleanPreference(prefs, Keys.REBOUND, true)
+    val curve = rememberStringPreference(prefs, Keys.CURVE, "balanced")
+    val keepContentSize = rememberBooleanPreference(prefs, Keys.KEEP_CONTENT_SIZE, false)
+    LaunchedEffect(keepContentSize.value, rebound.value) {
+        if (keepContentSize.value && rebound.value) {
+            rebound.value = false
+            prefs.putBoolean(Keys.REBOUND, false)
+        }
+    }
     AppearanceDetailPage(title = stringResource(R.string.appearance_animation), onBack = onBack) {
+        item {
+            Card(modifier = Modifier.fillMaxWidth()) {
+                PreferenceDropdown(
+                    title = stringResource(R.string.expand_animation_type),
+                    summary = stringResource(R.string.expand_animation_type_summary),
+                    icon = null,
+                    items = listOf(stringResource(R.string.follow_system),
+                         stringResource(R.string.expand_animation_lively)),
+                    selectedIndex = if (type.value == "lively") 1 else 0,
+                ) {
+                    type.value = if (it == 1) "lively" else "system"
+                    prefs.putString(Keys.TYPE, type.value)
+                }
+                AnimatedVisibility(type.value == "lively") {
+                    Column {
+                        AnimatedVisibility(!rebound.value) {
+                        PreferenceSwitch(stringResource(R.string.expand_animation_keep_content_size),
+                            null, null, keepContentSize.value) {
+                            keepContentSize.value = it
+                            prefs.putBoolean(Keys.KEEP_CONTENT_SIZE, it)
+                            if (it) {
+                                rebound.value = false
+                                prefs.putBoolean(Keys.REBOUND, false)
+                            }
+                        }
+                        }
+                        AnimatedVisibility(!keepContentSize.value) {
+                        PreferenceSwitch(stringResource(R.string.expand_animation_rebound),
+                            null, null, rebound.value) {
+                            rebound.value = it
+                            prefs.putBoolean(Keys.REBOUND, it)
+                            if (it) {
+                                keepContentSize.value = false
+                                prefs.putBoolean(Keys.KEEP_CONTENT_SIZE, false)
+                            }
+                        }
+                        }
+                        val curves = listOf("balanced", "snappy", "gentle")
+                        PreferenceDropdown(
+                            title = stringResource(R.string.expand_animation_curve),
+                            summary = null,
+                            icon = null,
+                            items = listOf(stringResource(R.string.expand_curve_balanced),
+                                stringResource(R.string.expand_curve_snappy), stringResource(R.string.expand_curve_gentle)),
+                            selectedIndex = curves.indexOf(curve.value).coerceAtLeast(0),
+                        ) {
+                            curve.value = curves[it]
+                            prefs.putString(Keys.CURVE, curve.value)
+                        }
+                    }
+                }
+            }
+        }
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(

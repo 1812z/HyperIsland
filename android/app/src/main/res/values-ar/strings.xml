@@ -851,4 +851,14 @@
     <string name="expand_collapse_blur">تمويه المحتوى</string>
     <string name="animation_start_degree">المستوى عند البداية</string>
     <string name="animation_end_degree">المستوى عند النهاية</string>
+    <string name="expand_animation_type">نوع حركة التوسيع والطي</string>
+    <string name="expand_animation_type_summary">حيوية: تحول الشكل مع حركة رأسية خفيفة وارتداد لطيف</string>
+    <string name="expand_animation_lively">حيوية</string>
+    <string name="expand_animation_bounce">ارتداد</string>
+    <string name="expand_animation_rebound">تأثير الارتداد</string>
+    <string name="expand_animation_curve">منحنى الحركة</string>
+    <string name="expand_curve_balanced">متوازن</string>
+    <string name="expand_curve_snappy">سريع</string>
+    <string name="expand_curve_gentle">ناعم</string>
+    <string name="expand_animation_keep_content_size">الحفاظ على حجم المحتوى</string>
 </resources>

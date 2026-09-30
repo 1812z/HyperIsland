@@ -950,4 +950,14 @@
     <string name="expand_collapse_blur">Content blur</string>
     <string name="animation_start_degree">Start level</string>
     <string name="animation_end_degree">End level</string>
+    <string name="expand_animation_type">Expand and collapse animation type</string>
+    <string name="expand_animation_type_summary">Lively: shape morphing with subtle vertical motion and a gentle spring</string>
+    <string name="expand_animation_lively">Lively</string>
+    <string name="expand_animation_bounce">Bounce</string>
+    <string name="expand_animation_rebound">Rebound effect</string>
+    <string name="expand_animation_curve">Animation curve</string>
+    <string name="expand_curve_balanced">Balanced</string>
+    <string name="expand_curve_snappy">Snappy</string>
+    <string name="expand_curve_gentle">Gentle</string>
+    <string name="expand_animation_keep_content_size">Keep content size</string>
 </resources>

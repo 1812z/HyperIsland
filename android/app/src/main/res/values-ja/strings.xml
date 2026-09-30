@@ -893,4 +893,14 @@
     <string name="expand_collapse_blur">コンテンツのぼかし</string>
     <string name="animation_start_degree">開始時の強度</string>
     <string name="animation_end_degree">終了時の強度</string>
+    <string name="expand_animation_type">展開・折りたたみアニメーションの種類</string>
+    <string name="expand_animation_type_summary">軽快：枠の変形とわずかな上下移動に、控えめな弾みを追加</string>
+    <string name="expand_animation_lively">軽快</string>
+    <string name="expand_animation_bounce">バウンス</string>
+    <string name="expand_animation_rebound">バウンド効果</string>
+    <string name="expand_animation_curve">アニメーションカーブ</string>
+    <string name="expand_curve_balanced">バランス</string>
+    <string name="expand_curve_snappy">軽快</string>
+    <string name="expand_curve_gentle">穏やか</string>
+    <string name="expand_animation_keep_content_size">コンテンツのサイズを維持</string>
 </resources>

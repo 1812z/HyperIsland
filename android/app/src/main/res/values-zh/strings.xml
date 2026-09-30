@@ -956,4 +956,14 @@
     <string name="expand_collapse_blur">内容模糊度</string>
     <string name="animation_start_degree">开始程度</string>
     <string name="animation_end_degree">截止程度</string>
+    <string name="expand_animation_type">展开收起动画类型</string>
+    <string name="expand_animation_type_summary">灵动：外框形变、内容轻移，带轻微弹性</string>
+    <string name="expand_animation_lively">灵动</string>
+    <string name="expand_animation_bounce">弹跳</string>
+    <string name="expand_animation_rebound">回弹效果</string>
+    <string name="expand_animation_curve">动画曲线</string>
+    <string name="expand_curve_balanced">均衡</string>
+    <string name="expand_curve_snappy">轻快</string>
+    <string name="expand_curve_gentle">柔和</string>
+    <string name="expand_animation_keep_content_size">保持内容尺寸</string>
 </resources>

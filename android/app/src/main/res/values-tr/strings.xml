@@ -948,4 +948,14 @@
     <string name="expand_collapse_blur">İçerik bulanıklığı</string>
     <string name="animation_start_degree">Başlangıç düzeyi</string>
     <string name="animation_end_degree">Bitiş düzeyi</string>
+    <string name="expand_animation_type">Genişletme ve daraltma animasyonu türü</string>
+    <string name="expand_animation_type_summary">Canlı: hafif dikey hareket ve yumuşak yay etkisiyle şekil dönüşümü</string>
+    <string name="expand_animation_lively">Canlı</string>
+    <string name="expand_animation_bounce">Sekme</string>
+    <string name="expand_animation_rebound">Geri sekme efekti</string>
+    <string name="expand_animation_curve">Animasyon eğrisi</string>
+    <string name="expand_curve_balanced">Dengeli</string>
+    <string name="expand_curve_snappy">Hızlı</string>
+    <string name="expand_curve_gentle">Yumuşak</string>
+    <string name="expand_animation_keep_content_size">İçerik boyutunu koru</string>
 </resources>
