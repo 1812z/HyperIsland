@@ -12,6 +12,7 @@ import io.github.hyperisland.compose.component.PreferenceDropdown
 import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.component.SettingsActionWithArrow
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
+import io.github.hyperisland.compose.page.settings.PresetEntryCard
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Blocklist
@@ -40,6 +41,7 @@ internal enum class SettingsDetail {
     KeepIsland,
     HookExtension,
     Onboarding,
+    Preset,
 }
 
 @Composable
@@ -53,6 +55,12 @@ internal fun SettingsPage(
     CollapsingPage(
         title = stringResource(R.string.nav_settings),
     ) {
+        item {
+            PresetEntryCard(
+                text = stringResource(R.string.preset_entry_hint),
+                onClick = { onOpenDetail(SettingsDetail.Preset) },
+            )
+        }
         item {
             SectionTitle(stringResource(R.string.island))
             Card(modifier = Modifier.fillMaxWidth()) {

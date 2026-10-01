@@ -987,4 +987,13 @@
     <string name="expand_throw_strong">强劲</string>
     <string name="expand_throw_powerful">强烈</string>
     <string name="expand_throw_maximum">极强</string>
+    <!-- 一键配置预设 -->
+    <string name="preset_entry_hint">不知道如何配置？点击使用预设~</string>
+    <string name="preset_page_title">配置预设</string>
+    <string name="preset_new_config">新建配置</string>
+    <string name="preset_apply_confirm_title">是否应用配置</string>
+    <string name="preset_apply_confirm_message">配置应用后无法撤销！</string>
+    <string name="preset_test_title">测试</string>
+    <string name="preset_test_subtitle">内置测试预设，不会修改任何配置</string>
+    <string name="preset_test_author">HyperIsland</string>
 </resources>

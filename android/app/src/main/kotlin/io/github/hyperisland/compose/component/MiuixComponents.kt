@@ -2,11 +2,15 @@ package io.github.hyperisland.compose.component
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridScope
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -123,6 +127,67 @@ internal fun DetailPage(
                 PageList(
                     padding = padding,
                     scrollBehavior = scrollBehavior,
+                    content = content,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 与 [DetailPage] 同构的详情页，正文使用响应式网格。
+ *
+ * [columns] 使用 [GridCells.Adaptive] 时列数随可用宽度动态变化：手机等窄屏为双列，
+ * 平板 / 折叠屏 / 桌面等宽屏自动增加列数，卡片同步拉伸铺满。
+ * 默认 128dp 可保证 320dp 起的窄屏稳定双列，超过约 440dp 后开始增加列数。
+ */
+@Composable
+internal fun DetailGridPage(
+    title: String,
+    onBack: () -> Unit,
+    columns: GridCells = GridCells.Adaptive(minSize = 128.dp),
+    horizontalContentPadding: Dp = 16.dp,
+    topContentPadding: Dp = 8.dp,
+    bottomContentPadding: Dp = 28.dp,
+    actions: @Composable RowScope.() -> Unit = {},
+    content: LazyGridScope.() -> Unit,
+) {
+    val scrollBehavior = MiuixScrollBehavior()
+    val blurEnabled = LocalBarBlurEnabled.current
+    BarBlurHost(enabled = blurEnabled) {
+        Scaffold(
+            topBar = {
+                BlurredBar(topGradient = true) {
+                    TopAppBar(
+                        title = title,
+                        largeTitle = title,
+                        color = Color.Transparent,
+                        scrollBehavior = scrollBehavior,
+                        navigationIcon = {
+                            IconButton(onClick = onBack) {
+                                Icon(MiuixIcons.Back, stringResource(R.string.back))
+                            }
+                        },
+                        actions = actions,
+                    )
+                }
+            },
+        ) { padding ->
+            BarBackdropContent(modifier = Modifier.fillMaxSize()) {
+                LazyVerticalGrid(
+                    columns = columns,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .overScrollVertical()
+                        .nestedScroll(scrollBehavior.nestedScrollConnection),
+                    contentPadding = PaddingValues(
+                        start = horizontalContentPadding,
+                        top = padding.calculateTopPadding() + topContentPadding,
+                        end = horizontalContentPadding,
+                        bottom = bottomContentPadding + LocalRootBottomBarPadding.current,
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     content = content,
                 )
             }

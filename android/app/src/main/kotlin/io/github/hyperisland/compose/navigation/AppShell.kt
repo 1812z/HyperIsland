@@ -78,6 +78,7 @@ import io.github.hyperisland.compose.page.settings.FilterRulesPage
 import io.github.hyperisland.compose.page.settings.IslandOtherPage
 import io.github.hyperisland.compose.page.settings.KeepIslandPage
 import io.github.hyperisland.compose.page.settings.MiscPage
+import io.github.hyperisland.compose.page.settings.PresetConfigPage
 import io.github.hyperisland.compose.page.settings.ReferencesPage
 import io.github.hyperisland.compose.page.settings.ThemeSettingsPage
 import io.github.hyperisland.compose.page.settings.extensions.BluetoothIslandPage
@@ -523,6 +524,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                 SettingsDetail.Theme -> ThemeSettingsPage(prefs, ::closeDetail)
                                 SettingsDetail.HideBehavior -> HideBehaviorPage(prefs, ::closeDetail)
                                 SettingsDetail.DefaultConfig -> DefaultConfigPage(prefs, ::closeDetail)
+                                SettingsDetail.Preset -> PresetConfigPage(prefs = prefs, onBack = ::closeDetail)
                                 SettingsDetail.AiConfig -> AiConfigPage(prefs, ::closeDetail)
                                 SettingsDetail.Misc -> MiscPage(
                                     prefs = prefs,
