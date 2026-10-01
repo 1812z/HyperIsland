@@ -11,7 +11,7 @@
 
 ## 柔光插件加载器兼容性排查
 
-其他模块使用 `createPackageContext("miui.systemui.plugin", CONTEXT_INCLUDE_CODE)` 时，可能触发一套独立插件加载器。`Class.forName` 能找到超级岛类并不代表其方法签名所需的 `DynamicIslandData` 等依赖已就绪。柔光 Hook 在绑定运行时前先解析关键类的方法签名；验证失败不修改已有绑定。Bionics 首次完整绑定后，其他内容类/兼容类实例不能覆盖该绑定。这是针对多加载器冲突的对照修复，仍需实机验证是否解决透明问题。
+其他模块使用 `createPackageContext("miui.systemui.plugin", CONTEXT_INCLUDE_CODE)` 时，可能触发一套独立插件加载器。`Class.forName` 能找到超级岛类并不代表其方法签名所需的 `DynamicIslandData` 等依赖已就绪。柔光 Hook 在绑定运行时前先解析关键类的方法签名；验证失败不修改已有绑定。运行时按实际内容 Class 隔离，不再拒绝所有后续加载器，也不以新绑定覆盖旧绑定。具体 View 通过内容祖先或 `updateBackgroundBg` 来源选择所属运行时；材质 token、兼容方法及 Bionics 能力查询均使用该绑定。此修复针对组件更新后 `runtime rejected foreign binding` 导致新运行时漏装，材质及采样效果仍需实机验证。
 
 复现顺序：高德导航正常上岛 → 熄屏亮屏 → 锁屏底部导航岛显示 → 观察解锁岛 → 解锁 → 地图岛展开收起。导出覆盖整个过程的 LSPosed 模块日志，关注 `HyperIsland[SoftGlass]` 的 `runtime bound`、`runtime rejected foreign binding` 和 `trace`，以及 `IslandBlurHook` 的 `loader-validation` 错误。`trace` 每个 SystemUI 进程最多记录 160 条，包含材质提交/缓存命中、窗口及穿窗模糊请求和本模块的采样持有记录；这些记录不等价于原生采样器实际状态。
 
@@ -872,6 +872,16 @@ Mini Window 手势
 - 不同 HyperOS 版本是否保持相同的 `actual*` 字段和 `onDraw()` 行为。
 
 ## 17. 生命周期、安全和性能约束
+
+### 17.0 动态 Hook 安装与失败降级
+
+- 动态发现监听 ClassLoader 构造，不监听每次 `loadClass`。BaseDex/Path/DelegateLast 的嵌套构造按线程和实际加载器实例合并，仅在最外层构造成功后分发一次，避免尚未完成构造就探测插件类。
+- 公共入口先验证超级岛 BaseContent/Background 类及方法签名依赖，再分发安装；缺类或依赖尚未就绪时不登记永久失败。ClassLoader 构造、`miui.systemui.plugin` 包回调和 `PluginFactory.createPluginContext()` 返回都可触发就绪探测，不在绘制/手势或每次 `loadClass` 中重试。
+- 每个注册回调使用独立 `ClassLoaderAttemptGate`，在确认就绪后登记安装尝试；使用弱键，最多保留 256 个存活加载器，达到上限时跳过新尝试，不驱逐旧项重新触发失败。已有就绪加载器用有上限的弱引用列表保存，后注册的回调会补装，各回调异常独立隔离。
+- GestureFollow 与 OfficialMaterialCorner 的默认加载器探测先验证就绪再登记。默认加载器缺类不代表插件不支持，后续插件就绪事件和新插件加载器仍可安装，不能全局首次失败后禁用功能。
+- 两项 Hook 的安装失败诊断按功能/候选类仅记录一次，日志字符串延迟构造；成功 Class 的弱集合仍用于防止不同加载器委托到同一 Class 后重复安装。
+- 此机制降低重复安装探测和日志开销，不证明目标 ROM 的类存在或对应视觉功能可用；缺失功能保留系统原行为，实际启动流畅度需实机确认。
+- 开启调试日志后，`HyperIsland[LoaderDiscovery]` 最多记录 120 条加载器诊断：包入口、`miui.systemui.plugin` Context 就绪及 `island-ready` 分发阶段，包含 PID、加载器身份、父加载器、背景类可见性和定义加载器。不记录无关加载器构造或 AOD 插件 Context，避免诊断刷屏。
 
 ### 17.1 实时模糊
 

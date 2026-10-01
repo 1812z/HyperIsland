@@ -15,6 +15,16 @@ abstract class BaseHook {
     }
 
     private var configListenerRegistered = false
+    private val loggedFailures = mutableSetOf<String>()
+
+    /** Bound diagnostic work too, even when many unrelated loaders are constructed. */
+    protected fun logFailureOnce(module: XposedModule, key: String, message: () -> String) {
+        synchronized(loggedFailures) {
+            if (loggedFailures.contains(key) || loggedFailures.size >= 64) return
+            loggedFailures.add(key)
+        }
+        if (ConfigManager.isDebugLogEnabled()) log(module, message())
+    }
 
     /**
      * 获取Hook的标签，用于日志记录

@@ -64,14 +64,28 @@ internal object SoftGlassController {
         val isBionicsActive: Method,
     )
 
-    // Publish one complete binding. A resource-only copy of the plugin must never replace the
-    // methods used by the already-bound island window, even if it exposes some of the same classes.
-    @Volatile private var runtime: RuntimeBinding? = null
-    private val systemParams get() = runtime?.params
-    private val setViewMode get() = runtime?.setViewMode
-    private val clearBlend get() = runtime?.clearBlend
-    private val isBionicsActiveMethod get() = runtime?.isBionicsActive
-    private val bionicsRuntimeAvailable get() = runtime != null
+    // Keep plugin generations isolated. Weak values are essential: Methods retain their Class.
+    private val runtimes = WeakHashMap<Class<*>, java.lang.ref.WeakReference<RuntimeBinding>>()
+    private val viewRuntimes = Collections.synchronizedMap(WeakHashMap<View, RuntimeBinding>())
+    private val bionicsRuntimeAvailable get() = synchronized(runtimes) {
+        runtimes.values.any { it.get() != null }
+    }
+
+    private fun runtimeFor(view: View): RuntimeBinding? {
+        viewRuntimes[view]?.let { return it }
+        var owner: View? = view
+        repeat(12) {
+            val current = owner ?: return null
+            var type: Class<*>? = current.javaClass
+            while (type != null) {
+                val candidate = type
+                synchronized(runtimes) { runtimes[candidate]?.get() }?.let { return it }
+                type = candidate.superclass
+            }
+            owner = current.parent as? View
+        }
+        return null
+    }
     private var diagnosticEvents = 0
 
     private fun loaderId(loader: ClassLoader?): String =
@@ -94,15 +108,10 @@ internal object SoftGlassController {
 
     @Synchronized
     fun bindRuntime(module: XposedModule, contentClass: Class<*>, compatClass: Class<*>): Boolean {
-        runtime?.let { bound ->
-            if (bound.contentClass === contentClass && bound.compatClass === compatClass) return true
-            logWarn(
-                "$TAG runtime rejected foreign binding " +
-                    "candidate=${loaderId(contentClass.classLoader)} " +
-                    "bound=${loaderId(bound.contentClass.classLoader)} " +
-                    "compat=${loaderId(compatClass.classLoader)}",
-            )
-            return false
+        synchronized(runtimes) {
+            runtimes.entries.removeAll { it.value.get() == null }
+            runtimes[contentClass]?.get()?.let { return it.compatClass === compatClass }
+            if (runtimes.size >= 32) return false
         }
         val params = runCatching {
             val field = contentClass.getDeclaredField("EXPANDED_GLASS_TOKEN").apply {
@@ -145,7 +154,11 @@ internal object SoftGlassController {
         )
         hookSystemWriters(module, checkNotNull(styleClass))
         hookCompatWriters(module, compatClass)
-        runtime = candidate
+        synchronized(runtimes) {
+            runtimes[contentClass] = java.lang.ref.WeakReference(candidate)
+        }
+        // Source hooks retain only their own validated runtime; foreign copies cannot replace it.
+        hookRuntimeLifetime(module, contentClass, candidate)
         log(
             "$TAG runtime bound bionics=$bionicsRuntimeAvailable " +
                 "params=${params.size} owner=${loaderId(contentClass.classLoader)} " +
@@ -153,6 +166,22 @@ internal object SoftGlassController {
                 "compat=${loaderId(compatClass.classLoader)}",
         )
         return true
+    }
+
+    private fun hookRuntimeLifetime(module: XposedModule, contentClass: Class<*>, binding: RuntimeBinding) {
+        val method = findMethod(contentClass, "updateBackgroundBg", View::class.java,
+            Boolean::class.javaPrimitiveType!!) ?: return
+        module.hook(method).intercept { chain ->
+            val target = chain.args.getOrNull(0) as? View
+            runCatching {
+                if (target != null) synchronized(viewRuntimes) {
+                    if (viewRuntimes.containsKey(target) || viewRuntimes.size < 256) {
+                        viewRuntimes[target] = binding
+                    }
+                }
+            }
+            chain.proceed()
+        }
     }
 
     /**
@@ -239,7 +268,7 @@ internal object SoftGlassController {
                 if (view != null && config != null && managedViews.contains(view)) {
                     val source = chain.args.getOrNull(1) as? FloatArray
                     return@intercept chain.proceed(
-                        arrayOf(view, customizeParams(source ?: baseParams(), config)),
+                        arrayOf(view, customizeParams(source ?: baseParams(runtimeFor(view)), config)),
                     )
                 }
                 chain.proceed()
@@ -248,6 +277,7 @@ internal object SoftGlassController {
     }
 
     fun apply(view: View, config: SoftGlassConfig): Boolean = runCatching {
+        val binding = runtimeFor(view) ?: return@runCatching false
         if (!isSystemBionicsActive(view)) {
             diagnose("apply inactive", view)
             release(view)
@@ -275,11 +305,12 @@ internal object SoftGlassController {
             installOutline(view)
             ensureDetachCleanup(view)
         }
-        setViewMode?.invoke(null, view, 1)
-        clearBlend?.invoke(null, view)
-        view.background = null
+        viewRuntimes[view] = binding
+        binding.setViewMode.invoke(null, view, 1)
+        binding.clearBlend.invoke(null, view)
         setMaterial.invoke(view, 1)
-        setGlass.invoke(view, customizeParams(baseParams(), config))
+        setGlass.invoke(view, customizeParams(baseParams(binding), config))
+        view.background = null
         appliedConfigs[view] = config
         diagnose("apply submitted", view)
         view.invalidate()
@@ -290,7 +321,7 @@ internal object SoftGlassController {
         false
     }
 
-    fun isManaged(view: View): Boolean = managedViews.contains(view)
+    fun isManaged(view: View): Boolean = managedViews.contains(view) && appliedConfigs.containsKey(view)
     fun isActive(view: View): Boolean = isManaged(view)
     fun hasManagedDescendant(root: View): Boolean {
         val views = synchronized(managedViews) { managedViews.toList() }
@@ -305,8 +336,7 @@ internal object SoftGlassController {
     }
     fun isBionicsRuntimeAvailable(): Boolean = bionicsRuntimeAvailable
     fun isSystemBionicsActive(view: View): Boolean = runCatching {
-        if (!bionicsRuntimeAvailable) return@runCatching false
-        isBionicsActiveMethod?.invoke(null, view.context) as? Boolean
+        runtimeFor(view)?.isBionicsActive?.invoke(null, view.context) as? Boolean
     }.getOrNull() == true
 
     /** Hidden state owns neither a material RenderNode nor a sampler lease. */
@@ -377,6 +407,7 @@ internal object SoftGlassController {
         appliedConfigs.remove(view)
         removeDetachCleanup(view)
         clearMaterial(view)
+        viewRuntimes.remove(view)
         restoreOutline(view, stock)
         if (restoreBackground && view.background == null) view.background = stock?.background
         if (root != null && !hasRenderingView(root)) {
@@ -394,6 +425,7 @@ internal object SoftGlassController {
     }
 
     private fun forget(view: View) {
+        viewRuntimes.remove(view)
         val root = findWindowView(view)
         managedViews.remove(view)
         renderingViews.remove(view)
@@ -416,8 +448,9 @@ internal object SoftGlassController {
                 Int::class.javaPrimitiveType!!,
             )?.invoke(view, 0)
         }
-        runCatching { clearBlend?.invoke(null, view) }
-        runCatching { setViewMode?.invoke(null, view, 0) }
+        val binding = runtimeFor(view)
+        runCatching { binding?.clearBlend?.invoke(null, view) }
+        runCatching { binding?.setViewMode?.invoke(null, view, 0) }
         view.invalidate()
     }
 
@@ -567,7 +600,7 @@ internal object SoftGlassController {
         val clipToOutline: Boolean,
     )
 
-    private fun baseParams(): FloatArray = systemParams?.clone() ?: floatArrayOf(
+    private fun baseParams(binding: RuntimeBinding?): FloatArray = binding?.params?.clone() ?: floatArrayOf(
         0f, 2f, .5f, .8f, .15f, 2.4f, .3f, .2f, 0f, 0f, 0f,
         .06f, .06f, .06f, .6f, .15f, .4f, 1.36f, 1f, 72f, 3.8f,
         80f, 1000f, 1.2f, .6f, -.4f, .6f, -.8f, 1.8f, 1.2f, 1f,

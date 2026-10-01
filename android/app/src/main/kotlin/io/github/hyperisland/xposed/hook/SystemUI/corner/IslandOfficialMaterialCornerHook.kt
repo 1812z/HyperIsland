@@ -15,6 +15,7 @@ import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.lifecycle.Isla
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.model.IslandType
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.model.MaterialType
 import io.github.hyperisland.xposed.utils.HookUtils
+import io.github.hyperisland.xposed.utils.ClassLoaderAttemptGate
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.util.Collections
@@ -26,6 +27,7 @@ object IslandOfficialMaterialCornerHook : BaseHook() {
     private const val BACKGROUND = "miui.systemui.dynamicisland.DynamicIslandBackgroundView"
     private const val CONTENT = "miui.systemui.dynamicisland.window.content.DynamicIslandBaseContentView"
     private val hookedClasses = Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>())
+    private val loaderAttempts = ClassLoaderAttemptGate()
     private val originalClipping = WeakHashMap<View, Boolean>()
     private val detachListener = object : View.OnAttachStateChangeListener {
         override fun onViewAttachedToWindow(v: View) = Unit
@@ -102,6 +104,8 @@ object IslandOfficialMaterialCornerHook : BaseHook() {
     }
 
     private fun hookPlugin(module: XposedModule, loader: ClassLoader) {
+        if (!HookUtils.isIslandLoaderReady(loader)) return
+        if (!loaderAttempts.enter(loader)) return
         runCatching {
             val clazz = loader.loadClass(BACKGROUND)
             synchronized(hookedClasses) { if (!hookedClasses.add(clazz)) return@runCatching }
@@ -139,7 +143,9 @@ object IslandOfficialMaterialCornerHook : BaseHook() {
                     canvas.restoreToCount(save)
                 }
             }
-        }.onFailure { log(module, "background corner hook unavailable: ${it.message}") }
+        }.onFailure { error ->
+            logFailureOnce(module, "background-corner") { "background corner hook unavailable: ${error.message}" }
+        }
         runCatching {
             val clazz = loader.loadClass(CONTENT)
             synchronized(hookedClasses) { if (!hookedClasses.add(clazz)) return@runCatching }
@@ -172,6 +178,8 @@ object IslandOfficialMaterialCornerHook : BaseHook() {
                 }
                 result
             }
-        }.onFailure { log(module, "material corner hook unavailable: ${it.message}") }
+        }.onFailure { error ->
+            logFailureOnce(module, "material-corner") { "material corner hook unavailable: ${error.message}" }
+        }
     }
 }

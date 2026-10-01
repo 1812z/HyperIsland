@@ -5,6 +5,7 @@ import io.github.hyperisland.data.ExpandedCollapsePreferences
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.hyperisland.xposed.utils.HookUtils
+import io.github.hyperisland.xposed.utils.ClassLoaderAttemptGate
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.util.Collections
@@ -17,6 +18,7 @@ object ExpandedGestureFollowHook : BaseHook() {
     private data class Offset(val x: Float, val y: Float)
     private val offset = ThreadLocal<Offset>()
     private val rawSwipe = ThreadLocal<Offset>()
+    private val loaderAttempts = ClassLoaderAttemptGate()
     private val hooked = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>()),
     )
@@ -35,6 +37,8 @@ object ExpandedGestureFollowHook : BaseHook() {
     }
 
     private fun install(module: XposedModule, loader: ClassLoader) {
+        if (!HookUtils.isIslandLoaderReady(loader)) return
+        if (!loaderAttempts.enter(loader)) return
         installRawSwipe(module, loader)
         ExpandedMiniWindowFollowHook.install(module, loader)
         ExpandedParabolicAnimationHook.install(module, loader)
@@ -128,7 +132,9 @@ object ExpandedGestureFollowHook : BaseHook() {
                     }
                 }
                 log(module, "installed on ${clazz.name}")
-            }.onFailure { log(module, "${clazz.name}: ${it.message}") }
+            }.onFailure { error ->
+                logFailureOnce(module, clazz.name) { "${clazz.name}: ${error.message}" }
+            }
         }
     }
 
@@ -155,7 +161,9 @@ object ExpandedGestureFollowHook : BaseHook() {
             }
             hooked.add(clazz)
             log(module, "capturing raw swipe on ${clazz.name}")
-        }.onFailure { log(module, "raw swipe hook unavailable: ${it.message}") }
+        }.onFailure { error ->
+            logFailureOnce(module, "raw-swipe") { "raw swipe hook unavailable: ${error.message}" }
+        }
     }
 
     internal fun isEnabled() = enabled

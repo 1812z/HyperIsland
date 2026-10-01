@@ -52,6 +52,7 @@ import io.github.hyperisland.xposed.hook.SystemUI.extensions.UnlockAllFocusHook
 import io.github.hyperisland.xposed.hook.UnlockFocusAuthHook
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import io.github.libxposed.api.XposedModule
+import io.github.hyperisland.xposed.utils.HookUtils
 
 /**
  * 模块主入口，继承 XposedModule。
@@ -67,6 +68,7 @@ class HyperIslandModule : XposedModule() {
         
         when (param.packageName) {
             "com.android.systemui" -> {
+                HookUtils.initializeLoaderDiagnostics(this, param.defaultClassLoader)
                 if (ConfigManager.getBoolean("pref_face_unlock_island", false)) {
                     FaceUnlockStateHook.init(this, param)
                     KeyguardUnlockStateHook.init(this, param)
@@ -132,6 +134,9 @@ class HyperIslandModule : XposedModule() {
                     ChargeIslandHook.init(this, param)
                 }
             }
+
+            "miui.systemui.plugin" ->
+                HookUtils.discoverPluginLoader(this, param.defaultClassLoader)
 
             "com.android.providers.downloads" ->
                 DownloadHook.init(this, param)
