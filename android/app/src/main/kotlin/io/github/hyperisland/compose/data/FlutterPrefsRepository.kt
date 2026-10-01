@@ -141,20 +141,12 @@ class FlutterPrefsRepository(context: Context) {
         prefs.edit().putString(storageKey(key), value).apply()
     }
 
-    fun getLong(key: String, default: Long = defaultLongPreference(key)): Long =
+    fun getLong(key: String, default: Long = 0L): Long =
         runCatching { prefs.getLong(storageKey(key), default) }.getOrDefault(default)
 
     fun putLong(key: String, value: Long) {
-        val normalized = if (key in io.github.hyperisland.data.ExpandedCollapsePreferences.percentageKeys) {
-            value.coerceIn(0L, 100L)
-        } else value
-        prefs.edit().putLong(storageKey(key), normalized).apply()
+        prefs.edit().putLong(storageKey(key), value).apply()
     }
-
-    private fun defaultLongPreference(key: String): Long =
-        if (key in io.github.hyperisland.data.ExpandedCollapsePreferences.percentageKeys) {
-            io.github.hyperisland.data.ExpandedCollapsePreferences.defaultPercent(key)
-        } else 0L
 
     fun getDouble(key: String, default: Double): Double = runCatching {
         val raw = prefs.getString(storageKey(key), null) ?: return@runCatching default

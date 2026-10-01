@@ -29,8 +29,7 @@ object ExpandedCollapseAnimationHook : BaseHook() {
     override fun getTag() = "HyperIsland[ExpandedCollapse]"
 
     override fun onConfigChanged() {
-        fun percent(key: String) = ConfigManager.getInt(key, Keys.defaultPercent(key).toInt())
-            .coerceIn(0, 100) / 100f
+        fun percent(key: String): Float = ConfigManager.getInt(key, Keys.defaultPercent(key).toInt()) / 100f
         config = Config(ConfigManager.getBoolean(Keys.ENABLED, false),
             percent(Keys.TRANSPARENCY_START), percent(Keys.TRANSPARENCY_END),
             percent(Keys.BLUR_START), percent(Keys.BLUR_END))

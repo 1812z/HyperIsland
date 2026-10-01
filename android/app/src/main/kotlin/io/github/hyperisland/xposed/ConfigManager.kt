@@ -263,7 +263,9 @@ object ConfigManager {
     }
 
     private fun isCoreKey(key: String): Boolean {
-        return key in CORE_PREF_KEYS || key.startsWith("pref_scene_surface_")
+        return key in CORE_PREF_KEYS || key.startsWith("pref_scene_surface_") ||
+            key.startsWith("pref_expand_animation_") || key.startsWith("pref_expand_collapse_") ||
+            key == "pref_expand_top_gap" || key == "pref_expand_content_top_gap"
     }
 
     private fun shardForKey(key: String): Int {

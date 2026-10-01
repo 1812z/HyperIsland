@@ -11,7 +11,7 @@ import io.github.hyperisland.xposed.hook.SystemUI.IslandTransitionVisualHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandSwipeActionHook
 import io.github.hyperisland.xposed.hook.SystemUI.animation.ExpandedCollapseAnimationHook
 import io.github.hyperisland.xposed.hook.SystemUI.animation.ExpandedLivelyAnimationHook
-import io.github.hyperisland.xposed.hook.SystemUI.animation.ExpandedIosAnimationHook
+import io.github.hyperisland.xposed.hook.SystemUI.animation.ExpandedLayoutHook
 import io.github.hyperisland.xposed.hook.SystemUI.animation.ExpandedGestureFollowHook
 import io.github.hyperisland.xposed.hook.SystemUI.corner.IslandCornerHook
 import io.github.hyperisland.xposed.hook.SystemUI.corner.IslandOfficialMaterialCornerHook
@@ -95,7 +95,7 @@ class HyperIslandModule : XposedModule() {
                 IslandTransitionVisualHook.init(this, param)
                 ExpandedCollapseAnimationHook.init(this, param)
                 ExpandedLivelyAnimationHook.init(this, param)
-                ExpandedIosAnimationHook.init(this, param)
+                ExpandedLayoutHook.init(this, param)
                 ExpandedGestureFollowHook.init(this, param)
                 IslandCornerHook.init(this, param)
                 IslandOfficialMaterialCornerHook.init(this, param)

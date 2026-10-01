@@ -15,7 +15,8 @@ import kotlin.math.tanh
 /** Synchronized content/outline morph with configurable nonlinear spring and rebound. */
 object ExpandedLivelyAnimationHook : BaseHook() {
     private data class Transition(
-        val expanding: Boolean, val bounce: Boolean, val curve: String, val keepContentSize: Boolean,
+        val expanding: Boolean, val bounce: Boolean,
+        val curve: String, val keepContentSize: Boolean,
         val momentum: Float,
     )
     private val transition = ThreadLocal<Transition>()
@@ -28,12 +29,14 @@ object ExpandedLivelyAnimationHook : BaseHook() {
     @Volatile private var keepContentSize = false
 
     override fun getTag() = "HyperIsland[ExpandedLively]"
-    internal fun isReboundEnabled() = rebound && (animationType == "lively" || animationType == "ios")
+    internal fun isReboundEnabled() = rebound &&
+        animationType == "lively"
     override fun onConfigChanged() {
         animationType = ConfigManager.getString(ExpandedCollapsePreferences.TYPE, "system")
         curve = ConfigManager.getString(ExpandedCollapsePreferences.CURVE, "balanced")
         keepContentSize = ConfigManager.getBoolean(ExpandedCollapsePreferences.KEEP_CONTENT_SIZE, false)
-        rebound = !keepContentSize && ConfigManager.getBoolean(ExpandedCollapsePreferences.REBOUND, true)
+        val legacyRebound = ConfigManager.getBoolean(ExpandedCollapsePreferences.REBOUND, true)
+        rebound = !keepContentSize && legacyRebound
     }
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
@@ -72,13 +75,15 @@ object ExpandedLivelyAnimationHook : BaseHook() {
             val smallTransY = prop("SMALL_ISLAND_TRANS_Y")
             val expandedAlpha = prop("EXPANDED_ALPHA")
             val expandedBlur = prop("EXPANDED_BLUR")
-            val verticalGeometry = listOf("CONTAINER_TRANS_Y", "CONTAINER_CLIP_TOP_PROGRESS",
+            val verticalGeometry = listOf("CONTAINER_CLIP_TOP_PROGRESS",
                 "CONTAINER_CLIP_BOTTOM_PROGRESS").map(::prop)
             val horizontalGeometry = listOf("CONTAINER_CLIP_START_PROGRESS",
                 "CONTAINER_CLIP_END_PROGRESS").map(::prop) +
-                listOf("CONTAINER_X", "CONTAINER_WIDTH", "CONTAINER_SCALE_X").mapNotNull {
+                listOf("CONTAINER_WIDTH", "CONTAINER_SCALE_X").mapNotNull {
                     runCatching { prop(it) }.getOrNull()
                 }
+            val containerY = prop("CONTAINER_TRANS_Y")
+            val containerX = runCatching { prop("CONTAINER_X") }.getOrNull()
             val copyState = state.getMethod("set", state)
             val stateConstructor = state.getConstructor()
             val add = state.getMethod("add", property, Float::class.javaPrimitiveType, LongArray::class.java)
@@ -123,8 +128,8 @@ object ExpandedLivelyAnimationHook : BaseHook() {
                         ?: cfgClass.getConstructor().newInstance()
                     // One response for both content and outline prevents split rebounds.
                     val response = when (active.curve) {
-                        "snappy" -> if (active.bounce) .40f else .36f
-                        "gentle" -> if (active.bounce) .48f else .52f
+                        "snappy" -> .40f
+                        "gentle" -> .48f
                         else -> .44f
                     }
                     val baseDamping = when (active.curve) {
@@ -134,30 +139,20 @@ object ExpandedLivelyAnimationHook : BaseHook() {
                     }
                     // Only Y velocity strengthens the vertical rebound. Horizontal
                     // endpoint overshoot belongs to the parabolic flight, not width morphs.
-                    val damping = if (active.bounce) baseDamping - .20f * active.momentum else 1f
-                    val spring = getStyle.invoke(null, -2,
-                        floatArrayOf(damping,
+                    fun spring(bounce: Boolean) = getStyle.invoke(null, -2,
+                        floatArrayOf(if (bounce) baseDamping - .20f * active.momentum else 1f,
                             response + if (active.expanding) 0f else .04f))
-                    (verticalGeometry + listOf(transY, scaleY, bigTransY, smallTransY)).forEach {
-                        special.invoke(config, it, spring, floatArrayOf())
+                    val sharedSpring = spring(active.bounce)
+                    (verticalGeometry + horizontalGeometry +
+                        listOf(scaleX, scaleY, bigScale, containerY, transY, bigTransY, smallTransY)).forEach {
+                        special.invoke(config, it, sharedSpring, floatArrayOf())
                     }
-                    val horizontalSpring = getStyle.invoke(null, -2,
-                        floatArrayOf(1f, response + if (active.expanding) 0f else .04f))
-                    (horizontalGeometry + listOf(scaleX, bigScale)).forEach {
-                        special.invoke(config, it, horizontalSpring, floatArrayOf())
-                    }
-                    // A monotonic fade preserves readability while geometry springs. On
-                    // collapse, briefly let the movement register before content fades away.
-                    // Non-rebound mode also needs the selected pacing on alpha/blur:
-                    // fixed fade timing masked geometry differences, especially when
-                    // keep-content-size disables content scaling altogether.
-                    val fadeResponse = if (active.bounce) .30f else response * .75f
+                    // X returns monotonically; X endpoint overshoot is flight-owned.
+                    containerX?.let { special.invoke(config, it, spring(false), floatArrayOf()) }
+                    // Fade timing is independent of either rebound switch.
+                    val fadeResponse = .30f
                     val fade = getStyle.invoke(null, -2, floatArrayOf(1f, fadeResponse))
-                    val fadeDelay = if (active.bounce) {
-                        if (active.expanding) 45L else 85L
-                    } else {
-                        (response * if (active.expanding) 100f else 80f).toLong()
-                    }
+                    val fadeDelay = if (active.expanding) 45L else 85L
                     listOf(expandedAlpha, expandedBlur).forEach {
                         delayedSpecial.invoke(config, it, fade,
                             fadeDelay,
@@ -173,7 +168,7 @@ object ExpandedLivelyAnimationHook : BaseHook() {
                     // Phone notification morphs only. App launch/miniwindows retain their own
                     // fake-view window animation and do not enter these four source methods.
                     val type = animationType
-                    if ((type != "lively" && type != "ios") || view == null ||
+                    if (type != "lively" || view == null ||
                         runCatching { view.resources.configuration.smallestScreenWidthDp >= 600 }
                             .getOrDefault(true)
                     ) return@intercept chain.proceed()

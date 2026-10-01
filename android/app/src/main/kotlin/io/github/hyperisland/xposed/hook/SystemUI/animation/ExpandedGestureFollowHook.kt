@@ -31,7 +31,7 @@ object ExpandedGestureFollowHook : BaseHook() {
     override fun onConfigChanged() {
         val type = ConfigManager.getString(ExpandedCollapsePreferences.TYPE, "system")
         // Hidden custom-style preferences stay saved, but must not affect system animations.
-        enabled = (type == "lively" || type == "ios") &&
+        enabled = type == "lively" &&
             ConfigManager.getBoolean(ExpandedCollapsePreferences.GESTURE_FOLLOW, false)
         if (!enabled) mainHandler.post {
             if (!enabled) {

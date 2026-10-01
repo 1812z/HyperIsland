@@ -17,6 +17,9 @@ import java.util.WeakHashMap
 import kotlin.math.hypot
 import kotlin.math.abs
 import kotlin.math.tanh
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.exp
 
 /** A temporary whole-island arc, added to stock motion only after a swipe commits collapse. */
 internal object ExpandedParabolicAnimationHook {
@@ -258,7 +261,8 @@ internal object ExpandedParabolicAnimationHook {
         // independent: horizontal velocity must not change the vertical excursion.
         val location = IntArray(2)
         background.getLocationOnScreen(location)
-        val rectTop = (getter(background, "getActualTop") as? Number)?.toFloat() ?: 0f
+        val rectTop = maxOf((getter(background, "getActualTop") as? Number)?.toFloat() ?: 0f,
+            (getter(view, "getIslandViewMarginTop") as? Number)?.toFloat() ?: 0f)
         val availableTop = (location[1] + rectTop - 2f * density).coerceAtLeast(0f)
         val upwardEnvelope = (-desiredY).coerceAtLeast(0f)
         val fit = if (upwardEnvelope > 0f) (availableTop / upwardEnvelope).coerceIn(0f, 1f) else 1f
@@ -267,20 +271,39 @@ internal object ExpandedParabolicAnimationHook {
         val dx = enhancedX
         val dy = desiredY * fit
         val curve = ConfigManager.getString(Keys.CURVE, "balanced")
-        val horizontalRebound = ExpandedLivelyAnimationHook.isReboundEnabled() && direction.x.isFinite()
-        // The opposite-side lobe depends ONLY on X velocity. A vertical fling
-        // cannot create or strengthen it. Keep it bounded even at extreme speed.
-        val reboundX = if (horizontalRebound) (dx * (.04f + .10f *
-            tanh(abs(direction.x) / density / 2400f))).coerceIn(-4f * density, 4f * density) else 0f
+        val returnOvershoot = ConfigManager.getBoolean(Keys.RETURN_OVERSHOOT, Keys.DEFAULT_RETURN_OVERSHOOT)
         fun smooth(progress: Float): Float {
             val t = progress.coerceIn(0f, 1f)
             return t * t * (3f - 2f * t)
         }
         val baseDuration = when (curve) { "snappy" -> 360L; "gentle" -> 520L; else -> 440L }
-        val hasHorizontalRebound = horizontalRebound && dx != 0f
+        val hasOvershoot = returnOvershoot && (dx != 0f || desiredY != 0f)
+        val damping = ConfigManager.getInt(Keys.OVERSHOOT_DAMPING,
+            Keys.DEFAULT_OVERSHOOT_DAMPING.toInt()) / 100f
+        val settlingDuration = ConfigManager.getInt(Keys.OVERSHOOT_DURATION,
+            Keys.DEFAULT_OVERSHOOT_DURATION.toInt())
+        val flightDuration = baseDuration + if (hasOvershoot) settlingDuration.toLong() else 0L
+        val outwardSeconds = baseDuration * .30f / 1000f
+        // One analytic damped spring carries velocity through the target. No
+        // restart or zero-speed waypoint at arrival; the excursion is determined
+        // by each axis's momentum and damping rather than a fixed dp endpoint.
+        fun springTravel(amplitude: Float, velocity: Float, seconds: Float): Float {
+            if (amplitude == 0f || !velocity.isFinite()) return 0f
+            if (seconds < outwardSeconds) return amplitude * smooth(seconds / outwardSeconds)
+            val elapsed = seconds - outwardSeconds
+            val momentum = tanh(abs(velocity) / density / 2400f)
+            val omega = when (curve) { "snappy" -> 16f; "gentle" -> 11f; else -> 13f }
+            val decay = omega * (damping - .20f * momentum).coerceAtLeast(.20f)
+            val phase = omega * elapsed
+            val position = amplitude * exp(-decay * elapsed) *
+                (cos(phase) + decay / omega * sin(phase))
+            // Remove only the already-decayed tail, with zero final velocity.
+            val remaining = flightDuration / 1000f - seconds
+            return position * smooth(remaining / .12f)
+        }
         val reference = WeakReference(view)
         flight.animator = ValueAnimator.ofFloat(0f, 1f).apply {
-            duration = baseDuration + if (hasHorizontalRebound) 280L else 0L
+            duration = flightDuration
             interpolator = when (curve) {
                 "snappy" -> PathInterpolator(.2f, 0f, .2f, 1f)
                 "gentle" -> PathInterpolator(.4f, 0f, .3f, 1f)
@@ -291,19 +314,17 @@ internal object ExpandedParabolicAnimationHook {
                 // elapsed time: the easing curve otherwise rushes its middle return leg.
                 val t = interpolator.getInterpolation(
                     (it.currentPlayTime.toFloat() / baseDuration).coerceIn(0f, 1f))
-                val horizontalTime = (it.currentPlayTime.toFloat() / duration).coerceIn(0f, 1f)
                 // Independent axis excursions, ending exactly at stock position.
                 val travel = 4f * t * (1f - t)
-                // Left throw: left peak -> cross the final position -> right peak ->
-                // settle. Mirror for right throws. Smooth derivatives at both peaks
-                // and the endpoint prevent snapping when the stock animation finishes.
-                val x = if (!hasHorizontalRebound) dx * travel else when {
-                    horizontalTime < .30f -> dx * smooth(horizontalTime / .30f)
-                    horizontalTime < .70f -> dx + (-reboundX - dx) *
-                        smooth((horizontalTime - .30f) / .40f)
-                    else -> -reboundX * (1f - smooth((horizontalTime - .70f) / .30f))
-                }
-                flight.move(x, dy * travel)
+                val seconds = it.currentPlayTime / 1000f
+                val x = if (hasOvershoot) springTravel(dx, direction.x, seconds) else dx * travel
+                val rawY = if (hasOvershoot) springTravel(desiredY, direction.y, seconds) else dy * travel
+                // Limit only upward screen travel, not the downward return overshoot.
+                // Soft compression avoids the velocity discontinuity of hard clamping.
+                val y = if (hasOvershoot && rawY < 0f) {
+                    if (availableTop > 0f) -availableTop * tanh(-rawY / availableTop) else 0f
+                } else rawY
+                flight.move(x, y)
             }
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {

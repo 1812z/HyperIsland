@@ -43,20 +43,6 @@ internal object ConfigBackupService {
                 throw InvalidConfigException()
             }
             val value = settings.opt(key)
-            if (key == io.github.hyperisland.data.ExpandedCollapsePreferences.TYPE &&
-                value != "system" && value != "lively" && value != "ios"
-            ) throw InvalidConfigException()
-            if (key in io.github.hyperisland.data.ExpandedCollapsePreferences.percentageKeys &&
-                (value !is Number || value.toDouble() !in 0.0..100.0 ||
-                    value.toDouble() != value.toLong().toDouble())
-            ) throw InvalidConfigException()
-            if (key in setOf(io.github.hyperisland.data.ExpandedCollapsePreferences.ENABLED,
-                    io.github.hyperisland.data.ExpandedCollapsePreferences.GESTURE_FOLLOW,
-                    io.github.hyperisland.data.ExpandedCollapsePreferences.PARABOLIC) &&
-                value !is Boolean
-            ) throw InvalidConfigException()
-            if (key == io.github.hyperisland.data.ExpandedCollapsePreferences.THROW_STRENGTH &&
-                value !in listOf("gentle", "balanced", "strong", "powerful", "maximum")) throw InvalidConfigException()
             if (value is Boolean || value is String || value is Number) {
                 values[key] = value
             } else if (value != null && value !== JSONObject.NULL) {

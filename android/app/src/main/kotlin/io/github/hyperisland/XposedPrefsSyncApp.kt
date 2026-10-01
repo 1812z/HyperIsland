@@ -298,6 +298,9 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
 
     private fun isCoreKey(rawKey: String): Boolean {
         return rawKey in CORE_PREF_KEYS ||
+            rawKey.startsWith("pref_expand_animation_") ||
+            rawKey.startsWith("pref_expand_collapse_") ||
+            rawKey == "pref_expand_top_gap" || rawKey == "pref_expand_content_top_gap" ||
             rawKey.startsWith("pref_scene_surface_")
     }
 
@@ -315,7 +318,7 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
         const val SHARD_COUNT = 32
         private const val META_FORMAT_VERSION = "sync_format_version"
         private const val META_CONFIG_DIGEST = "config_digest"
-        private const val SYNC_FORMAT_VERSION = 1
+        private const val SYNC_FORMAT_VERSION = 2
 
         private val CORE_PREF_KEYS = setOf(
             "pref_show_welcome",

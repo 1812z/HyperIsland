@@ -8,6 +8,7 @@ import io.github.hyperisland.R
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.data.IslandCornerPreferences
+import io.github.hyperisland.data.ExpandedCollapsePreferences as Keys
 import top.yukonga.miuix.kmp.basic.Card
 
 @Composable
@@ -30,6 +31,15 @@ internal fun AppearanceSizePage(prefs: FlutterPrefsRepository, onBack: () -> Uni
                     followSystemAtDefault = true,
                 )
                 LongPreferenceSlider(prefs, KEY_SMALL_OFFSET, R.string.small_island_offset, -10, 50, 0)
+            }
+        }
+        item {
+            SectionTitle(stringResource(R.string.expand_layout_section))
+            Card(modifier = Modifier.fillMaxWidth()) {
+                LongPreferenceSlider(prefs, Keys.TOP_GAP, R.string.expand_layout_top_gap,
+                    -1, 30, Keys.DEFAULT_TOP_GAP, followSystemAtDefault = true)
+                LongPreferenceSlider(prefs, Keys.CONTENT_TOP_GAP, R.string.expand_layout_content_top_gap,
+                    0, 20, Keys.DEFAULT_CONTENT_TOP_GAP, showDefaultAsSystem = false)
             }
         }
         item {

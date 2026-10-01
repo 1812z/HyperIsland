@@ -60,6 +60,8 @@ internal fun LongPreferenceSlider(
     } else when (unit) {
         SliderUnit.Dp -> stringResource(R.string.dp_value, draft.toInt())
         SliderUnit.Percent -> stringResource(R.string.percent_value, draft.toInt())
+        SliderUnit.Raw -> draft.toInt().toString()
+        SliderUnit.Milliseconds -> "${draft.toInt()} ms"
     }
     PreferenceSlider(
         title = stringResource(titleRes),
@@ -78,7 +80,7 @@ internal fun LongPreferenceSlider(
     )
 }
 
-internal enum class SliderUnit { Dp, Percent }
+internal enum class SliderUnit { Dp, Percent, Raw, Milliseconds }
 
 @Composable
 internal fun DoublePreferenceSlider(

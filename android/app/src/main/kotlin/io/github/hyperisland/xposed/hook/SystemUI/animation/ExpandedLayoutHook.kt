@@ -17,7 +17,7 @@ import java.util.Collections
 import java.util.WeakHashMap
 
 /** Aligns focus expansion with the computed island top, without changing persisted offsets. */
-object ExpandedIosAnimationHook : BaseHook() {
+object ExpandedLayoutHook : BaseHook() {
     private const val BASE = "miui.systemui.dynamicisland.window.content.DynamicIslandBaseContentView"
     private const val WINDOW = "miui.systemui.dynamicisland.window.DynamicIslandWindowView"
     private val hooked = Collections.synchronizedSet(
@@ -37,14 +37,16 @@ object ExpandedIosAnimationHook : BaseHook() {
     private val mainHandler = Handler(Looper.getMainLooper())
     @Volatile private var enabled = false
     @Volatile private var contentTopGapDp = 0
+    @Volatile private var topGapDp = -1
 
-    override fun getTag() = "HyperIsland[ExpandedIos]"
+    override fun getTag() = "HyperIsland[ExpandedLayout]"
 
     override fun onConfigChanged() {
-        enabled = ConfigManager.getString(ExpandedCollapsePreferences.TYPE, "system") == "ios"
-        contentTopGapDp = ConfigManager.getInt(ExpandedCollapsePreferences.IOS_CONTENT_TOP_GAP,
-            ExpandedCollapsePreferences.DEFAULT_IOS_CONTENT_TOP_GAP.toInt())
-            .coerceIn(0, 20)
+        topGapDp = ConfigManager.getInt(ExpandedCollapsePreferences.TOP_GAP,
+            ExpandedCollapsePreferences.DEFAULT_TOP_GAP.toInt())
+        contentTopGapDp = ConfigManager.getInt(ExpandedCollapsePreferences.CONTENT_TOP_GAP,
+            ExpandedCollapsePreferences.DEFAULT_CONTENT_TOP_GAP.toInt())
+        enabled = topGapDp >= 0 || contentTopGapDp > 0
         mainHandler.post {
             runCatching {
             if (!enabled) {
@@ -88,10 +90,10 @@ object ExpandedIosAnimationHook : BaseHook() {
                 // Read the computed margin, not cutoutY, a resource constant or a stored dp
                 // offset: island height, rotation and IslandTopOffsetHook already feed it.
                 runCatching {
-                    if (!supported(owner)) original else {
+                    if (!supported(owner) || topGapDp < 0) original else {
                         val top = (islandTop.invoke(owner) as Number).toInt()
                         watch(owner)
-                        top
+                        top + (topGapDp * owner.resources.displayMetrics.density + .5f).toInt()
                     }
                 }.getOrDefault(original)
             }
@@ -100,7 +102,7 @@ object ExpandedIosAnimationHook : BaseHook() {
                 runCatching { if (owner != null && supported(owner)) {
                     watch(owner)
                     // Raise before the system submits the first expanded animation frame.
-                    if (chain.args.firstOrNull()?.javaClass?.simpleName == "Expanded") lift(owner)
+                    if (topGapDp >= 0 && chain.args.firstOrNull()?.javaClass?.simpleName == "Expanded") lift(owner)
                 } }
                 val result = chain.proceed()
                 runCatching { if (owner != null) updateLayer(owner) }
@@ -184,7 +186,7 @@ object ExpandedIosAnimationHook : BaseHook() {
             findMethod(owner.javaClass, "isAnimating")?.invoke(owner) == true
         }.getOrDefault(false)
         val leaving = stateName(owner, "getLastState") == "Expanded" && animating
-        if (supported(owner) && (expanding || leaving)) lift(owner) else restoreOwner(owner)
+        if (topGapDp >= 0 && supported(owner) && (expanding || leaving)) lift(owner) else restoreOwner(owner)
     }
 
     private fun contentSlot(owner: View): View? = runCatching {
