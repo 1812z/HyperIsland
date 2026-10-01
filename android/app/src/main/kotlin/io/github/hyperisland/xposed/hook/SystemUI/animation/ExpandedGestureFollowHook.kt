@@ -26,7 +26,10 @@ object ExpandedGestureFollowHook : BaseHook() {
 
     override fun getTag() = "HyperIsland[GestureFollow]"
     override fun onConfigChanged() {
-        enabled = ConfigManager.getBoolean(ExpandedCollapsePreferences.GESTURE_FOLLOW, false)
+        val type = ConfigManager.getString(ExpandedCollapsePreferences.TYPE, "system")
+        // Hidden custom-style preferences stay saved, but must not affect system animations.
+        enabled = (type == "lively" || type == "ios") &&
+            ConfigManager.getBoolean(ExpandedCollapsePreferences.GESTURE_FOLLOW, false)
     }
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
