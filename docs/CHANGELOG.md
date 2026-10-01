@@ -8,6 +8,19 @@ import ReleaseHistory from './.vitepress/components/ReleaseHistory.vue'
 
 <div class="changelog-source" hidden>
 
+# V3.1.5 (2026-10-1)
+## 破坏性更新，迁移 iOS 样式至外观/尺寸，支持精细化参数调节
+## 功能
+- 新增竖向回弹动画
+- 新增归位越界动画及自定义
+
+## 优化 & 修复
+- 优化日志管理
+- 优化 Hook 加载速度与稳定性
+- 优化动画曲线
+- 修复动画类型读取错误
+- 修复底栏无响应
+
 
 # V3.1.4 (2026-9-30)
 ## 功能
