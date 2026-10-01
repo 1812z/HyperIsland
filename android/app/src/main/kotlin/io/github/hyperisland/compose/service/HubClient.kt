@@ -64,7 +64,7 @@ internal object HubClient {
             .put("name", preset.title)
             .put("description", preset.content)
             .put("author", preset.author)
-            .put("version", "1.0.0")
+            .put("version", preset.version.ifBlank { "1.0.0" })
             .put("payload", JSONObject().put("sections", sections))
         val (code, response) = request("POST", "/api/configs", body = body)
         if (code != HttpURLConnection.HTTP_ACCEPTED) {
@@ -118,6 +118,7 @@ internal object HubClient {
         downloads = optLong("downloads", 0L),
         local = false,
         createdAt = parseTime(optString("publishedAt")),
+        version = optString("version"),
         sections = emptyMap(),
     )
 
@@ -143,6 +144,7 @@ internal object HubClient {
             downloads = optLong("downloads", 0L),
             local = false,
             createdAt = parseTime(optString("publishedAt")),
+            version = optString("version"),
             sections = sections,
         )
     }

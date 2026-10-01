@@ -18,6 +18,7 @@ import org.json.JSONObject
  * @param local 是否为本地预设。本地预设可删除、可上传云端；云端预设只能应用。
  * @param createdAt 创建时间，UTC epoch 毫秒（`System.currentTimeMillis()`），不写入本地格式化时间，
  *   保证跨时区 / 跨国家排序一致。
+ * @param version 版本号（云端列表 / 详情返回）。本地预设为空，用于判断缓存是否需要重新下载。
  * @param sections 分节快照：叶子分类 id -> 该分类覆盖的键值 JSON。
  */
 internal data class ConfigPreset(
@@ -28,6 +29,7 @@ internal data class ConfigPreset(
     val downloads: Long,
     val local: Boolean,
     val createdAt: Long = 0L,
+    val version: String = "",
     val sections: Map<String, JSONObject>,
 ) {
     fun toJson(): JSONObject {
@@ -41,6 +43,7 @@ internal data class ConfigPreset(
             .put("downloads", downloads)
             .put("local", local)
             .put("createdAt", createdAt)
+            .put("version", version)
             .put("sections", sectionsJson)
     }
 
@@ -59,6 +62,7 @@ internal data class ConfigPreset(
                 downloads = json.optLong("downloads", 0L),
                 local = json.optBoolean("local", true),
                 createdAt = json.optLong("createdAt", 0L),
+                version = json.optString("version"),
                 sections = sections,
             )
         }
@@ -78,6 +82,27 @@ internal fun sortPresets(presets: List<ConfigPreset>, order: PresetSortOrder): L
         PresetSortOrder.Downloads -> presets.sortedByDescending { it.downloads }
         PresetSortOrder.Date -> presets.sortedByDescending { it.createdAt }
     }
+
+/**
+ * 判断远端版本是否比本地缓存版本更新。
+ *
+ * 版本号按 `.` 分段做数值比较，非数字段取前导数字（如 `1.0.0-beta` 取 0），缺失段按 0；
+ * 远端为空视为不更新，本地为空视为需要更新。
+ */
+internal fun isRemoteVersionNewer(remote: String, local: String): Boolean {
+    if (remote.isBlank()) return false
+    if (local.isBlank()) return true
+    val remoteParts = remote.split('.')
+    val localParts = local.split('.')
+    for (index in 0 until maxOf(remoteParts.size, localParts.size)) {
+        val remoteValue = remoteParts.getOrNull(index)?.leadingNumber() ?: 0
+        val localValue = localParts.getOrNull(index)?.leadingNumber() ?: 0
+        if (remoteValue != localValue) return remoteValue > localValue
+    }
+    return false
+}
+
+private fun String.leadingNumber(): Int = takeWhile { it.isDigit() }.toIntOrNull() ?: 0
 
 internal const val PRESET_TITLE_MAX = 10
 internal const val PRESET_CONTENT_MAX = 100
@@ -246,12 +271,21 @@ internal object PresetStore {
 
     /**
      * 读取已缓存的云端预设正文。命中即刷新访问时间（LRU），避免每次点进去都重新下载。
+     *
+     * [remoteVersion] 为列表元数据中的版本号；若缓存版本更旧，则丢弃缓存并按未命中处理，
+     * 下次进入时重新联网下载正文。
      */
-    fun cachedHubPreset(context: Context, id: String): ConfigPreset? {
+    fun cachedHubPreset(context: Context, id: String, remoteVersion: String = ""): ConfigPreset? {
         val entries = loadHubCache(context).toMutableList()
         val index = entries.indexOfFirst { it.preset.id == id }
         if (index < 0) return null
-        val touched = entries[index].copy(cachedAt = System.currentTimeMillis())
+        val cached = entries[index]
+        if (isRemoteVersionNewer(remoteVersion, cached.preset.version)) {
+            entries.removeAt(index)
+            persistHubCache(context, entries)
+            return null
+        }
+        val touched = cached.copy(cachedAt = System.currentTimeMillis())
         entries[index] = touched
         persistHubCache(context, entries)
         return touched.preset

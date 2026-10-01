@@ -186,6 +186,7 @@ internal fun DetailGridPage(
                         modifier = Modifier.fillMaxSize(),
                         topAppBarScrollBehavior = scrollBehavior,
                         contentPadding = PaddingValues(top = padding.calculateTopPadding()),
+                        refreshTexts = listOf("", "", "", ""),
                     ) {
                         PageGrid(
                             padding = padding,

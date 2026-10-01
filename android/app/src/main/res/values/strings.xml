@@ -1013,4 +1013,9 @@
     <string name="preset_edit">Edit</string>
     <string name="preset_section_count">%1$d items</string>
     <string name="preset_saved">Saved</string>
+    <string name="preset_applied_count">Applied %1$d items</string>
+    <string name="preset_import_clipboard">Import from clipboard</string>
+    <string name="preset_import_empty">Clipboard is empty</string>
+    <string name="preset_import_failed">Clipboard does not contain a valid preset</string>
+    <string name="preset_import_success">Imported "%1$s"</string>
 </resources>

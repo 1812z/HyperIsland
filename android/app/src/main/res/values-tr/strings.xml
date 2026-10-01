@@ -1009,4 +1009,9 @@
     <string name="preset_edit">Düzenle</string>
     <string name="preset_section_count">%1$d öğe</string>
     <string name="preset_saved">Kaydedildi</string>
+    <string name="preset_applied_count">%1$d öğe uygulandı</string>
+    <string name="preset_import_clipboard">Panodan içe aktar</string>
+    <string name="preset_import_empty">Pano boş</string>
+    <string name="preset_import_failed">Pano geçerli bir ön ayar içermiyor</string>
+    <string name="preset_import_success">"%1$s" içe aktarıldı</string>
 </resources>

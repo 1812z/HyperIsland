@@ -49,6 +49,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -79,7 +80,6 @@ import org.json.JSONObject
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
-import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.DropdownEntry
@@ -156,6 +156,35 @@ internal fun PresetConfigPage(
                 .onFailure { snackbarState.showSnackbar(cloudLoadFailed) }
         }
     }
+
+    // 从剪贴板导入复制的预设 JSON（与「复制」输出的格式一致）到本地预设。
+    fun importFromClipboard() {
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val text = clipboard.primaryClip
+            ?.takeIf { it.itemCount > 0 }
+            ?.getItemAt(0)
+            ?.coerceToText(context)
+            ?.toString()
+        val preset = text?.takeIf { it.isNotBlank() }
+            ?.let { runCatching { ConfigPreset.fromJson(JSONObject(it)) }.getOrNull() }
+            ?.takeIf { it.title.isNotBlank() }
+        when {
+            text.isNullOrBlank() -> scope.launch {
+                snackbarState.showSnackbar(context.getString(R.string.preset_import_empty))
+            }
+            preset == null -> scope.launch {
+                snackbarState.showSnackbar(context.getString(R.string.preset_import_failed))
+            }
+            else -> {
+                val local = preset.copy(id = UUID.randomUUID().toString(), local = true, downloads = 0L)
+                PresetStore.saveLocal(context, local)
+                reload++
+                scope.launch {
+                    snackbarState.showSnackbar(context.getString(R.string.preset_import_success, local.title))
+                }
+            }
+        }
+    }
     // 仅在软件本次启动后首次进入页面时自动拉取；再次进入复用进程内列表，手动下拉才刷新。
     LaunchedEffect(Unit) {
         runCatching { PresetCloudState.ensureLoaded() }
@@ -170,17 +199,23 @@ internal fun PresetConfigPage(
     var showNewSheet by remember { mutableStateOf(false) }
     var applyTarget by remember { mutableStateOf<ConfigPreset?>(null) }
     var applySheetShown by remember { mutableStateOf(false) }
+    // 应用成功后待弹出的提示条数；等 bottom sheet 关闭动画结束再展示。
+    var appliedCount by remember { mutableStateOf<Int?>(null) }
+    // 上传成功后待弹出到页面底部的提示；同样等 sheet 关闭动画结束再展示。
+    var uploadResult by remember { mutableStateOf<String?>(null) }
 
     val newConfigLabel = stringResource(R.string.preset_new_config)
+    val importLabel = stringResource(R.string.preset_import_clipboard)
     val sortLabel = stringResource(R.string.preset_sort)
     val nameLabel = stringResource(R.string.preset_sort_name)
     val downloadsLabel = stringResource(R.string.preset_sort_downloads)
     val dateLabel = stringResource(R.string.preset_sort_date)
-    val menuEntries = remember(newConfigLabel, sortLabel, nameLabel, downloadsLabel, dateLabel, sortOrder) {
+    val menuEntries = remember(newConfigLabel, importLabel, sortLabel, nameLabel, downloadsLabel, dateLabel, sortOrder) {
         listOf(
             DropdownEntry(
                 items = listOf(
                     DropdownItem(text = newConfigLabel, onClick = { showNewSheet = true }),
+                    DropdownItem(text = importLabel, onClick = { importFromClipboard() }),
                 ),
             ),
             DropdownEntry(
@@ -275,7 +310,19 @@ internal fun PresetConfigPage(
             show = applySheetShown,
             preset = preset,
             onDismiss = { applySheetShown = false },
-            onDismissFinished = { applyTarget = null },
+            onDismissFinished = {
+                applyTarget = null
+                appliedCount?.let { count ->
+                    appliedCount = null
+                    scope.launch {
+                        snackbarState.showSnackbar(context.getString(R.string.preset_applied_count, count))
+                    }
+                }
+                uploadResult?.let { message ->
+                    uploadResult = null
+                    scope.launch { snackbarState.showSnackbar(message) }
+                }
+            },
             onDelete = {
                 PresetStore.deleteLocal(context, preset.id)
                 reload++
@@ -289,18 +336,26 @@ internal fun PresetConfigPage(
             },
             onApply = { effective, selectedSectionIds ->
                 PresetStore.apply(context, effective, selectedSectionIds)
+                appliedCount = effective.sections
+                    .filterKeys { it in selectedSectionIds }
+                    .values
+                    .sumOf { it.length() }
                 applySheetShown = false
             },
             onSaveContent = { updated ->
                 PresetStore.saveLocal(context, updated)
                 reload++
             },
+            onUploadResult = { message ->
+                uploadResult = message
+                applySheetShown = false
+            },
         )
     }
 }
 
 /**
- * 设置页顶部的强调色入口卡片。
+ * 设置页顶部的预设入口卡片。使用 Miuix 默认（信息）卡片配色，不指定颜色。
  */
 @Composable
 internal fun PresetEntryCard(
@@ -310,10 +365,6 @@ internal fun PresetEntryCard(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.defaultColors(
-            color = MiuixTheme.colorScheme.primaryContainer,
-            contentColor = MiuixTheme.colorScheme.onPrimaryContainer,
-        ),
         showIndication = true,
         onClick = onClick,
     ) {
@@ -327,21 +378,18 @@ internal fun PresetEntryCard(
                 imageVector = MiuixIcons.Help,
                 contentDescription = null,
                 modifier = Modifier.size(22.dp),
-                tint = MiuixTheme.colorScheme.onPrimaryContainer,
             )
             Spacer(Modifier.width(12.dp))
             Text(
                 text = text,
                 modifier = Modifier.weight(1f),
                 style = MiuixTheme.textStyles.body1,
-                color = MiuixTheme.colorScheme.onPrimaryContainer,
             )
             Spacer(Modifier.width(8.dp))
             Icon(
                 imageVector = MiuixIcons.Basic.ArrowRight,
                 contentDescription = null,
                 modifier = Modifier.size(width = 10.dp, height = 16.dp),
-                tint = MiuixTheme.colorScheme.onPrimaryContainer,
             )
         }
     }
@@ -561,6 +609,7 @@ private fun ApplyPresetBottomSheet(
     onCopy: () -> Unit,
     onApply: (ConfigPreset, Set<String>) -> Unit,
     onSaveContent: (ConfigPreset) -> Unit,
+    onUploadResult: (String) -> Unit,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -572,7 +621,6 @@ private fun ApplyPresetBottomSheet(
     var downloadAttempt by remember(preset) { mutableIntStateOf(0) }
 
     var uploading by remember(preset) { mutableStateOf(false) }
-    var uploadMessage by remember(preset) { mutableStateOf<String?>(null) }
 
     var showContent by remember(preset) { mutableStateOf(false) }
     var savedMessage by remember(preset) { mutableStateOf(false) }
@@ -581,7 +629,9 @@ private fun ApplyPresetBottomSheet(
     LaunchedEffect(preset, downloadAttempt) {
         if (!needsDownload) return@LaunchedEffect
         // 命中本地缓存就不再联网，避免每次点进来都下载。缓存序列化放到 IO 线程。
-        val cached = withContext(Dispatchers.IO) { PresetStore.cachedHubPreset(context, preset.id) }
+        val cached = withContext(Dispatchers.IO) {
+            PresetStore.cachedHubPreset(context, preset.id, preset.version)
+        }
         if (cached != null) {
             resolved = cached
             downloading = false
@@ -652,7 +702,16 @@ private fun ApplyPresetBottomSheet(
                             }
                         }
                         item(key = "title_$sectionId") {
-                            SmallTitle(configSectionTitle(sectionId))
+                            // 与 SmallTitle 同样的字号 / 颜色，仅改为居中。
+                            Text(
+                                text = configSectionTitle(sectionId),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 28.dp, vertical = 8.dp),
+                                style = MiuixTheme.textStyles.subtitle,
+                                color = MiuixTheme.colorScheme.onBackgroundVariant,
+                                textAlign = TextAlign.Center,
+                            )
                         }
                         item(key = "card_$sectionId") {
                             Card(modifier = Modifier.fillMaxWidth()) {
@@ -807,15 +866,17 @@ private fun ApplyPresetBottomSheet(
                                                 onClick = {
                                                     scope.launch {
                                                         uploading = true
-                                                        uploadMessage = null
-                                                        runCatching { HubClient.upload(preset) }
-                                                            .onSuccess {
-                                                                uploadMessage = context.getString(R.string.preset_upload_success)
-                                                            }
-                                                            .onFailure { error ->
-                                                                uploadMessage = uploadErrorMessage(context, error)
-                                                            }
+                                                        val message = runCatching { HubClient.upload(preset) }
+                                                            .fold(
+                                                                onSuccess = {
+                                                                    context.getString(R.string.preset_upload_success)
+                                                                },
+                                                                onFailure = { error ->
+                                                                    uploadErrorMessage(context, error)
+                                                                },
+                                                            )
                                                         uploading = false
+                                                        onUploadResult(message)
                                                     }
                                                 },
                                                 enabled = !uploading,
@@ -838,13 +899,6 @@ private fun ApplyPresetBottomSheet(
                                             ) {
                                                 Text(stringResource(R.string.preset_copy))
                                             }
-                                        }
-                                        uploadMessage?.let { message ->
-                                            Text(
-                                                text = message,
-                                                style = MiuixTheme.textStyles.footnote1,
-                                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                                            )
                                         }
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),

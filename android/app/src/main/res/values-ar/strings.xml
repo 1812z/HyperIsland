@@ -912,4 +912,9 @@
     <string name="preset_edit">تعديل</string>
     <string name="preset_section_count">%1$d عنصر</string>
     <string name="preset_saved">تم الحفظ</string>
+    <string name="preset_applied_count">تم تطبيق %1$d عنصر</string>
+    <string name="preset_import_clipboard">استيراد من الحافظة</string>
+    <string name="preset_import_empty">الحافظة فارغة</string>
+    <string name="preset_import_failed">لا تحتوي الحافظة على إعداد جاهز صالح</string>
+    <string name="preset_import_success">تم استيراد «%1$s»</string>
 </resources>

@@ -954,4 +954,9 @@
     <string name="preset_edit">Изменить</string>
     <string name="preset_section_count">%1$d элементов</string>
     <string name="preset_saved">Сохранено</string>
+    <string name="preset_applied_count">Применено элементов: %1$d</string>
+    <string name="preset_import_clipboard">Импорт из буфера обмена</string>
+    <string name="preset_import_empty">Буфер обмена пуст</string>
+    <string name="preset_import_failed">В буфере обмена нет допустимого пресета</string>
+    <string name="preset_import_success">Импортирован «%1$s»</string>
 </resources>

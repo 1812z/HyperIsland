@@ -945,4 +945,9 @@
     <string name="preset_edit">Editar</string>
     <string name="preset_section_count">%1$d itens</string>
     <string name="preset_saved">Salvo</string>
+    <string name="preset_applied_count">%1$d itens aplicados</string>
+    <string name="preset_import_clipboard">Importar da área de transferência</string>
+    <string name="preset_import_empty">A área de transferência está vazia</string>
+    <string name="preset_import_failed">A área de transferência não contém um preset válido</string>
+    <string name="preset_import_success">"%1$s" importado</string>
 </resources>

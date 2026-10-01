@@ -954,4 +954,9 @@
     <string name="preset_edit">編集</string>
     <string name="preset_section_count">%1$d 項目</string>
     <string name="preset_saved">保存しました</string>
+    <string name="preset_applied_count">%1$d 項目を適用しました</string>
+    <string name="preset_import_clipboard">クリップボードからインポート</string>
+    <string name="preset_import_empty">クリップボードが空です</string>
+    <string name="preset_import_failed">クリップボードに有効なプリセットがありません</string>
+    <string name="preset_import_success">「%1$s」をインポートしました</string>
 </resources>
