@@ -882,4 +882,34 @@
     <string name="expand_throw_strong">قوية</string>
     <string name="expand_throw_powerful">قوية جداً</string>
     <string name="expand_throw_maximum">قصوى</string>
+    <!-- Config presets -->
+    <string name="preset_entry_hint">لا تعرف كيفية الإعداد؟ اضغط لاستخدام إعداد جاهز</string>
+    <string name="preset_page_title">الإعدادات الجاهزة</string>
+    <string name="preset_new_config">إعداد جديد</string>
+    <string name="preset_section_notification">الإشعارات</string>
+    <string name="preset_section_toast">Toast</string>
+    <string name="preset_info_section">معلومات الإعداد</string>
+    <string name="preset_field_title">العنوان</string>
+    <string name="preset_field_content">الوصف</string>
+    <string name="preset_field_author">المؤلف</string>
+    <string name="preset_delete">حذف</string>
+    <string name="preset_upload">رفع</string>
+    <string name="preset_copy">نسخ</string>
+    <string name="preset_apply">تطبيق</string>
+    <string name="preset_sort">الترتيب حسب</string>
+    <string name="preset_sort_name">الاسم</string>
+    <string name="preset_sort_downloads">التنزيلات</string>
+    <string name="preset_sort_date">التاريخ</string>
+    <string name="preset_cloud_load_failed">تعذّر تحميل قائمة السحابة</string>
+    <string name="preset_upload_success">تم الإرسال، بانتظار المراجعة</string>
+    <string name="preset_upload_quota">انتهت حصة الرفع اليومية (%1$d/%2$d)</string>
+    <string name="preset_upload_failed">فشل الرفع</string>
+    <string name="preset_uploading">جارٍ الرفع…</string>
+    <string name="preset_downloading">جارٍ التنزيل…</string>
+    <string name="preset_download_failed">فشل التنزيل</string>
+    <string name="preset_retry">إعادة المحاولة</string>
+    <string name="preset_view">عرض</string>
+    <string name="preset_edit">تعديل</string>
+    <string name="preset_section_count">%1$d عنصر</string>
+    <string name="preset_saved">تم الحفظ</string>
 </resources>

@@ -24,6 +24,7 @@ import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.PullToRefresh
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.basic.SmallTitle
@@ -150,6 +151,9 @@ internal fun DetailGridPage(
     topContentPadding: Dp = 8.dp,
     bottomContentPadding: Dp = 28.dp,
     actions: @Composable RowScope.() -> Unit = {},
+    snackbarHost: @Composable () -> Unit = {},
+    isRefreshing: Boolean = false,
+    onRefresh: (() -> Unit)? = null,
     content: LazyGridScope.() -> Unit,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
@@ -172,27 +176,69 @@ internal fun DetailGridPage(
                     )
                 }
             },
+            snackbarHost = snackbarHost,
         ) { padding ->
             BarBackdropContent(modifier = Modifier.fillMaxSize()) {
-                LazyVerticalGrid(
-                    columns = columns,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .overScrollVertical()
-                        .nestedScroll(scrollBehavior.nestedScrollConnection),
-                    contentPadding = PaddingValues(
-                        start = horizontalContentPadding,
-                        top = padding.calculateTopPadding() + topContentPadding,
-                        end = horizontalContentPadding,
-                        bottom = bottomContentPadding + LocalRootBottomBarPadding.current,
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    content = content,
-                )
+                if (onRefresh != null) {
+                    PullToRefresh(
+                        isRefreshing = isRefreshing,
+                        onRefresh = onRefresh,
+                        modifier = Modifier.fillMaxSize(),
+                        topAppBarScrollBehavior = scrollBehavior,
+                        contentPadding = PaddingValues(top = padding.calculateTopPadding()),
+                    ) {
+                        PageGrid(
+                            padding = padding,
+                            scrollBehavior = scrollBehavior,
+                            columns = columns,
+                            horizontalContentPadding = horizontalContentPadding,
+                            topContentPadding = topContentPadding,
+                            bottomContentPadding = bottomContentPadding,
+                            content = content,
+                        )
+                    }
+                } else {
+                    PageGrid(
+                        padding = padding,
+                        scrollBehavior = scrollBehavior,
+                        columns = columns,
+                        horizontalContentPadding = horizontalContentPadding,
+                        topContentPadding = topContentPadding,
+                        bottomContentPadding = bottomContentPadding,
+                        content = content,
+                    )
+                }
             }
         }
     }
+}
+
+@Composable
+private fun PageGrid(
+    padding: PaddingValues,
+    scrollBehavior: ScrollBehavior,
+    columns: GridCells,
+    horizontalContentPadding: Dp,
+    topContentPadding: Dp,
+    bottomContentPadding: Dp,
+    content: LazyGridScope.() -> Unit,
+) {
+    LazyVerticalGrid(
+        columns = columns,
+        modifier = Modifier
+            .fillMaxSize()
+            .overScrollVertical()
+            .nestedScroll(scrollBehavior.nestedScrollConnection),
+        contentPadding = PaddingValues(
+            start = horizontalContentPadding,
+            top = padding.calculateTopPadding() + topContentPadding,
+            end = horizontalContentPadding,
+            bottom = bottomContentPadding + LocalRootBottomBarPadding.current,
+        ),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        content = content,
+    )
 }
 
 @Composable

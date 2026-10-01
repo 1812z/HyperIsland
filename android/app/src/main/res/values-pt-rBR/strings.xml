@@ -915,4 +915,34 @@
     <string name="expand_throw_strong">Forte</string>
     <string name="expand_throw_powerful">Muito forte</string>
     <string name="expand_throw_maximum">Máxima</string>
+    <!-- Config presets -->
+    <string name="preset_entry_hint">Não sabe como configurar? Toque para usar um preset</string>
+    <string name="preset_page_title">Presets de configuração</string>
+    <string name="preset_new_config">Nova configuração</string>
+    <string name="preset_section_notification">Notificações</string>
+    <string name="preset_section_toast">Toast</string>
+    <string name="preset_info_section">Informações da configuração</string>
+    <string name="preset_field_title">Título</string>
+    <string name="preset_field_content">Descrição</string>
+    <string name="preset_field_author">Autor</string>
+    <string name="preset_delete">Excluir</string>
+    <string name="preset_upload">Enviar</string>
+    <string name="preset_copy">Copiar</string>
+    <string name="preset_apply">Aplicar</string>
+    <string name="preset_sort">Ordenar por</string>
+    <string name="preset_sort_name">Nome</string>
+    <string name="preset_sort_downloads">Downloads</string>
+    <string name="preset_sort_date">Data</string>
+    <string name="preset_cloud_load_failed">Falha ao carregar a lista da nuvem</string>
+    <string name="preset_upload_success">Enviado, aguardando análise</string>
+    <string name="preset_upload_quota">Cota diária de envios esgotada (%1$d/%2$d)</string>
+    <string name="preset_upload_failed">Falha no envio</string>
+    <string name="preset_uploading">Enviando…</string>
+    <string name="preset_downloading">Baixando…</string>
+    <string name="preset_download_failed">Falha no download</string>
+    <string name="preset_retry">Tentar novamente</string>
+    <string name="preset_view">Visualizar</string>
+    <string name="preset_edit">Editar</string>
+    <string name="preset_section_count">%1$d itens</string>
+    <string name="preset_saved">Salvo</string>
 </resources>

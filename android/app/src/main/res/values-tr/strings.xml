@@ -979,4 +979,34 @@
     <string name="expand_throw_strong">Güçlü</string>
     <string name="expand_throw_powerful">Çok güçlü</string>
     <string name="expand_throw_maximum">Maksimum</string>
+    <!-- Config presets -->
+    <string name="preset_entry_hint">Nasıl yapılandıracağınızı bilmiyor musunuz? Ön ayar kullanmak için dokunun</string>
+    <string name="preset_page_title">Yapılandırma ön ayarları</string>
+    <string name="preset_new_config">Yeni yapılandırma</string>
+    <string name="preset_section_notification">Bildirimler</string>
+    <string name="preset_section_toast">Toast</string>
+    <string name="preset_info_section">Yapılandırma bilgisi</string>
+    <string name="preset_field_title">Başlık</string>
+    <string name="preset_field_content">Açıklama</string>
+    <string name="preset_field_author">Yazar</string>
+    <string name="preset_delete">Sil</string>
+    <string name="preset_upload">Yükle</string>
+    <string name="preset_copy">Kopyala</string>
+    <string name="preset_apply">Uygula</string>
+    <string name="preset_sort">Sıralama ölçütü</string>
+    <string name="preset_sort_name">Ad</string>
+    <string name="preset_sort_downloads">İndirme</string>
+    <string name="preset_sort_date">Tarih</string>
+    <string name="preset_cloud_load_failed">Bulut listesi yüklenemedi</string>
+    <string name="preset_upload_success">Gönderildi, inceleme bekliyor</string>
+    <string name="preset_upload_quota">Günlük yükleme kotası doldu (%1$d/%2$d)</string>
+    <string name="preset_upload_failed">Yükleme başarısız</string>
+    <string name="preset_uploading">Yükleniyor…</string>
+    <string name="preset_downloading">İndiriliyor…</string>
+    <string name="preset_download_failed">İndirme başarısız</string>
+    <string name="preset_retry">Yeniden dene</string>
+    <string name="preset_view">Görüntüle</string>
+    <string name="preset_edit">Düzenle</string>
+    <string name="preset_section_count">%1$d öğe</string>
+    <string name="preset_saved">Kaydedildi</string>
 </resources>

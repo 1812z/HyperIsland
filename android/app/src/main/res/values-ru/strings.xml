@@ -924,4 +924,34 @@
     <string name="expand_throw_strong">Сильная</string>
     <string name="expand_throw_powerful">Очень сильная</string>
     <string name="expand_throw_maximum">Максимальная</string>
+    <!-- Config presets -->
+    <string name="preset_entry_hint">Не знаете, как настроить? Нажмите, чтобы использовать пресет</string>
+    <string name="preset_page_title">Пресеты конфигурации</string>
+    <string name="preset_new_config">Новая конфигурация</string>
+    <string name="preset_section_notification">Уведомления</string>
+    <string name="preset_section_toast">Toast</string>
+    <string name="preset_info_section">Информация о конфигурации</string>
+    <string name="preset_field_title">Заголовок</string>
+    <string name="preset_field_content">Описание</string>
+    <string name="preset_field_author">Автор</string>
+    <string name="preset_delete">Удалить</string>
+    <string name="preset_upload">Загрузить</string>
+    <string name="preset_copy">Копировать</string>
+    <string name="preset_apply">Применить</string>
+    <string name="preset_sort">Сортировка</string>
+    <string name="preset_sort_name">По имени</string>
+    <string name="preset_sort_downloads">По загрузкам</string>
+    <string name="preset_sort_date">По дате</string>
+    <string name="preset_cloud_load_failed">Не удалось загрузить список из облака</string>
+    <string name="preset_upload_success">Отправлено, ожидает проверки</string>
+    <string name="preset_upload_quota">Дневной лимит загрузок исчерпан (%1$d/%2$d)</string>
+    <string name="preset_upload_failed">Не удалось загрузить</string>
+    <string name="preset_uploading">Загрузка…</string>
+    <string name="preset_downloading">Скачивание…</string>
+    <string name="preset_download_failed">Не удалось скачать</string>
+    <string name="preset_retry">Повторить</string>
+    <string name="preset_view">Просмотр</string>
+    <string name="preset_edit">Изменить</string>
+    <string name="preset_section_count">%1$d элементов</string>
+    <string name="preset_saved">Сохранено</string>
 </resources>
