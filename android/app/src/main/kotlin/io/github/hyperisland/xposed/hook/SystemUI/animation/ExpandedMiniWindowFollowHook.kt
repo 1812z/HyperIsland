@@ -29,6 +29,8 @@ internal object ExpandedMiniWindowFollowHook {
         view.removeOnAttachStateChangeListener(detach)
     }
 
+    fun clearAll() = drags.keys.toList().forEach(::clear)
+
     fun install(module: XposedModule, loader: ClassLoader) {
         runCatching {
             val clazz = loader.loadClass("miui.systemui.dynamicisland.window.content.DynamicIslandContentFakeView")
@@ -91,6 +93,10 @@ internal object ExpandedMiniWindowFollowHook {
                 val result = chain.proceed()
                 runCatching {
                     val view = chain.thisObject as? View ?: return@runCatching
+                    if (!ExpandedGestureFollowHook.isEnabled()) {
+                        clear(view)
+                        return@runCatching
+                    }
                     drags[view]?.let { drag ->
                         drag.tracking = true
                         view.translationX = drag.originalX + drag.x
@@ -101,6 +107,10 @@ internal object ExpandedMiniWindowFollowHook {
             module.hook(update).intercept { chain ->
                 runCatching {
                     val view = chain.thisObject as? View ?: return@runCatching
+                    if (!ExpandedGestureFollowHook.isEnabled()) {
+                        clear(view)
+                        return@runCatching
+                    }
                     drags[view]?.takeIf { it.tracking }?.let { drag ->
                         // Apply before stock tracking can launch the mini-window at its threshold.
                         view.translationX = drag.originalX + drag.x

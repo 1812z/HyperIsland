@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI.animation
 
+import android.os.Handler
+import android.os.Looper
 import android.view.View
 import io.github.hyperisland.data.ExpandedCollapsePreferences
 import io.github.hyperisland.xposed.ConfigManager
@@ -23,6 +25,7 @@ object ExpandedGestureFollowHook : BaseHook() {
         Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>()),
     )
     @Volatile private var enabled = false
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     override fun getTag() = "HyperIsland[GestureFollow]"
     override fun onConfigChanged() {
@@ -30,6 +33,12 @@ object ExpandedGestureFollowHook : BaseHook() {
         // Hidden custom-style preferences stay saved, but must not affect system animations.
         enabled = (type == "lively" || type == "ios") &&
             ConfigManager.getBoolean(ExpandedCollapsePreferences.GESTURE_FOLLOW, false)
+        if (!enabled) mainHandler.post {
+            if (!enabled) {
+                ExpandedMiniWindowFollowHook.clearAll()
+                ExpandedParabolicAnimationHook.clearAll()
+            }
+        }
     }
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {

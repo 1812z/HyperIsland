@@ -9,11 +9,14 @@ import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.util.Collections
 import java.util.WeakHashMap
+import kotlin.math.abs
+import kotlin.math.tanh
 
 /** Synchronized content/outline morph with configurable nonlinear spring and rebound. */
 object ExpandedLivelyAnimationHook : BaseHook() {
     private data class Transition(
         val expanding: Boolean, val bounce: Boolean, val curve: String, val keepContentSize: Boolean,
+        val momentum: Float,
     )
     private val transition = ThreadLocal<Transition>()
     private val hooked = Collections.synchronizedSet(
@@ -25,6 +28,7 @@ object ExpandedLivelyAnimationHook : BaseHook() {
     @Volatile private var keepContentSize = false
 
     override fun getTag() = "HyperIsland[ExpandedLively]"
+    internal fun isReboundEnabled() = rebound && (animationType == "lively" || animationType == "ios")
     override fun onConfigChanged() {
         animationType = ConfigManager.getString(ExpandedCollapsePreferences.TYPE, "system")
         curve = ConfigManager.getString(ExpandedCollapsePreferences.CURVE, "balanced")
@@ -42,6 +46,7 @@ object ExpandedLivelyAnimationHook : BaseHook() {
     }
 
     private fun install(module: XposedModule, loader: ClassLoader) {
+        ExpandedParabolicAnimationHook.installVelocityTracking(module, loader)
         val delegate = runCatching {
             Class.forName("miui.systemui.dynamicisland.anim.DynamicIslandAnimationDelegate", false, loader)
         }.getOrNull() ?: return
@@ -67,9 +72,13 @@ object ExpandedLivelyAnimationHook : BaseHook() {
             val smallTransY = prop("SMALL_ISLAND_TRANS_Y")
             val expandedAlpha = prop("EXPANDED_ALPHA")
             val expandedBlur = prop("EXPANDED_BLUR")
-            val geometry = listOf("CONTAINER_TRANS_Y", "CONTAINER_CLIP_START_PROGRESS",
-                "CONTAINER_CLIP_END_PROGRESS", "CONTAINER_CLIP_TOP_PROGRESS",
+            val verticalGeometry = listOf("CONTAINER_TRANS_Y", "CONTAINER_CLIP_TOP_PROGRESS",
                 "CONTAINER_CLIP_BOTTOM_PROGRESS").map(::prop)
+            val horizontalGeometry = listOf("CONTAINER_CLIP_START_PROGRESS",
+                "CONTAINER_CLIP_END_PROGRESS").map(::prop) +
+                listOf("CONTAINER_X", "CONTAINER_WIDTH", "CONTAINER_SCALE_X").mapNotNull {
+                    runCatching { prop(it) }.getOrNull()
+                }
             val copyState = state.getMethod("set", state)
             val stateConstructor = state.getConstructor()
             val add = state.getMethod("add", property, Float::class.javaPrimitiveType, LongArray::class.java)
@@ -109,7 +118,7 @@ object ExpandedLivelyAnimationHook : BaseHook() {
                         args[2] = initial
                     }
                     // Keep the system's geometry-derived scale and translation endpoints.
-                    // Content and outline use the SAME spring, including its overshoot.
+                    // Content and outline share their own axis's spring.
                     val config = args[1]?.let { configCopy.newInstance(it) }
                         ?: cfgClass.getConstructor().newInstance()
                     // One response for both content and outline prevents split rebounds.
@@ -118,16 +127,24 @@ object ExpandedLivelyAnimationHook : BaseHook() {
                         "gentle" -> if (active.bounce) .48f else .52f
                         else -> .44f
                     }
-                    val damping = if (!active.bounce) 1f else when (active.curve) {
+                    val baseDamping = when (active.curve) {
                         "snappy" -> .70f
                         "gentle" -> .74f
                         else -> .72f
                     }
+                    // Only Y velocity strengthens the vertical rebound. Horizontal
+                    // endpoint overshoot belongs to the parabolic flight, not width morphs.
+                    val damping = if (active.bounce) baseDamping - .20f * active.momentum else 1f
                     val spring = getStyle.invoke(null, -2,
                         floatArrayOf(damping,
                             response + if (active.expanding) 0f else .04f))
-                    (geometry + listOf(transY, scaleX, scaleY, bigScale, bigTransY, smallTransY)).forEach {
+                    (verticalGeometry + listOf(transY, scaleY, bigTransY, smallTransY)).forEach {
                         special.invoke(config, it, spring, floatArrayOf())
+                    }
+                    val horizontalSpring = getStyle.invoke(null, -2,
+                        floatArrayOf(1f, response + if (active.expanding) 0f else .04f))
+                    (horizontalGeometry + listOf(scaleX, bigScale)).forEach {
+                        special.invoke(config, it, horizontalSpring, floatArrayOf())
                     }
                     // A monotonic fade preserves readability while geometry springs. On
                     // collapse, briefly let the movement register before content fades away.
@@ -161,7 +178,11 @@ object ExpandedLivelyAnimationHook : BaseHook() {
                             .getOrDefault(true)
                     ) return@intercept chain.proceed()
                     val previous = transition.get()
-                    transition.set(Transition(names.getValue(method.name), rebound, curve, keepContentSize))
+                    val speed = runCatching { ExpandedParabolicAnimationHook.takeVerticalTransitionSpeed(view) }
+                        .getOrDefault(0f)
+                    val momentum = tanh(abs(speed) / 1800f)
+                    transition.set(Transition(names.getValue(method.name), rebound, curve, keepContentSize,
+                        momentum))
                     try {
                         chain.proceed()
                     } finally {
