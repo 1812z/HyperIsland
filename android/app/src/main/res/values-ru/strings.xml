@@ -927,12 +927,15 @@
     <!-- Config presets -->
     <string name="preset_entry_hint">Не знаете, как настроить? Нажмите, чтобы использовать пресет</string>
     <string name="preset_page_title">Пресеты конфигурации</string>
+    <string name="preset_search">Поиск пресетов</string>
     <string name="preset_new_config">Новая конфигурация</string>
     <string name="preset_section_notification">Уведомления</string>
     <string name="preset_section_toast">Toast</string>
     <string name="preset_info_section">Информация о конфигурации</string>
     <string name="preset_field_title">Заголовок</string>
     <string name="preset_field_content">Описание</string>
+    <string name="preset_field_description">Описание</string>
+    <string name="preset_field_time">Время</string>
     <string name="preset_field_author">Автор</string>
     <string name="preset_delete">Удалить</string>
     <string name="preset_upload">Загрузить</string>

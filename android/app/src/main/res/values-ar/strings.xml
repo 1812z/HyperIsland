@@ -885,12 +885,15 @@
     <!-- Config presets -->
     <string name="preset_entry_hint">لا تعرف كيفية الإعداد؟ اضغط لاستخدام إعداد جاهز</string>
     <string name="preset_page_title">الإعدادات الجاهزة</string>
+    <string name="preset_search">البحث في الإعدادات الجاهزة</string>
     <string name="preset_new_config">إعداد جديد</string>
     <string name="preset_section_notification">الإشعارات</string>
     <string name="preset_section_toast">Toast</string>
     <string name="preset_info_section">معلومات الإعداد</string>
     <string name="preset_field_title">العنوان</string>
     <string name="preset_field_content">الوصف</string>
+    <string name="preset_field_description">الوصف</string>
+    <string name="preset_field_time">الوقت</string>
     <string name="preset_field_author">المؤلف</string>
     <string name="preset_delete">حذف</string>
     <string name="preset_upload">رفع</string>

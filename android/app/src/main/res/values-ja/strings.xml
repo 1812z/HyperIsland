@@ -927,12 +927,15 @@
     <!-- Config presets -->
     <string name="preset_entry_hint">設定方法がわからない？タップしてプリセットを使う</string>
     <string name="preset_page_title">設定プリセット</string>
+    <string name="preset_search">プリセットを検索</string>
     <string name="preset_new_config">新規設定</string>
     <string name="preset_section_notification">通知</string>
     <string name="preset_section_toast">Toast</string>
     <string name="preset_info_section">設定情報</string>
     <string name="preset_field_title">タイトル</string>
     <string name="preset_field_content">説明</string>
+    <string name="preset_field_description">説明</string>
+    <string name="preset_field_time">時間</string>
     <string name="preset_field_author">作者</string>
     <string name="preset_delete">削除</string>
     <string name="preset_upload">アップロード</string>

@@ -11,8 +11,10 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -72,6 +74,9 @@ import io.github.hyperisland.compose.data.parseAppConfigLeafId
 import io.github.hyperisland.compose.data.sortPresets
 import io.github.hyperisland.compose.service.HubClient
 import io.github.hyperisland.compose.service.HubException
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -86,6 +91,8 @@ import top.yukonga.miuix.kmp.basic.DropdownEntry
 import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.InputField
+import top.yukonga.miuix.kmp.basic.SearchBar
 import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
@@ -196,6 +203,16 @@ internal fun PresetConfigPage(
         sortPresets(cloudPresets, sortOrder)
     }
 
+    var searchExpanded by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    val keyword = searchQuery.trim()
+    val localFiltered = remember(localSorted, keyword) {
+        if (keyword.isBlank()) localSorted else localSorted.filter { it.matchesQuery(keyword) }
+    }
+    val otherFiltered = remember(otherSorted, keyword) {
+        if (keyword.isBlank()) otherSorted else otherSorted.filter { it.matchesQuery(keyword) }
+    }
+
     var showNewSheet by remember { mutableStateOf(false) }
     var applyTarget by remember { mutableStateOf<ConfigPreset?>(null) }
     var applySheetShown by remember { mutableStateOf(false) }
@@ -257,8 +274,35 @@ internal fun PresetConfigPage(
         isRefreshing = PresetCloudState.refreshing,
         onRefresh = { refreshCloud() },
     ) {
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            SearchBar(
+                inputField = {
+                    InputField(
+                        query = searchQuery,
+                        onQueryChange = { searchQuery = it },
+                        onSearch = {},
+                        expanded = searchExpanded,
+                        onExpandedChange = { searchExpanded = it },
+                        label = stringResource(R.string.preset_search),
+                    )
+                },
+                onExpandedChange = { searchExpanded = it },
+                expanded = searchExpanded,
+                outsideEndAction = {
+                    Text(
+                        modifier = Modifier
+                            .padding(horizontal = 12.dp)
+                            .clickable(interactionSource = null, indication = null) {
+                                searchExpanded = false
+                            },
+                        text = stringResource(R.string.cancel),
+                        color = MiuixTheme.colorScheme.primary,
+                    )
+                },
+            ) {}
+        }
         // 本地配置置顶，且不显示下载量。
-        items(localSorted, key = { it.id }) { preset ->
+        items(localFiltered, key = { it.id }) { preset ->
             PresetConfigCard(
                 preset = preset,
                 showDownloads = false,
@@ -268,12 +312,12 @@ internal fun PresetConfigPage(
                 },
             )
         }
-        if (localSorted.isNotEmpty() && otherSorted.isNotEmpty()) {
+        if (localFiltered.isNotEmpty() && otherFiltered.isNotEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) {
                 HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
             }
         }
-        items(otherSorted, key = { it.id }) { preset ->
+        items(otherFiltered, key = { it.id }) { preset ->
             PresetConfigCard(
                 preset = preset,
                 showDownloads = true,
@@ -651,6 +695,8 @@ private fun ApplyPresetBottomSheet(
     val effective = resolved ?: preset
     val includedIds = remember(effective) { effective.sections.keys.toList() }
     var selectedIds by remember(effective) { mutableStateOf(includedIds.toSet()) }
+    // 云端列表 / 详情返回的是 ISO8601 字符串，HubClient 已转为 epoch 毫秒；这里再转本地可读时间。
+    val createdLabel = remember(preset.createdAt) { formatPresetTime(preset.createdAt) }
 
     fun openContent() {
         draft.clear()
@@ -771,19 +817,55 @@ private fun ApplyPresetBottomSheet(
                     contentPadding = PaddingValues(top = 4.dp, bottom = sheetBottomPadding(16.dp)),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    if (preset.content.isNotBlank()) {
-                        item {
-                            Text(
-                                text = preset.content,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 4.dp),
-                                style = MiuixTheme.textStyles.body2,
-                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                            )
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp),
+                            verticalAlignment = Alignment.Top,
+                        ) {
+                            Column(
+                                modifier = Modifier.width(IntrinsicSize.Max),
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                if (preset.content.isNotBlank()) {
+                                    Text(
+                                        text = "${stringResource(R.string.preset_field_description)}:",
+                                        style = MiuixTheme.textStyles.body1,
+                                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                    )
+                                }
+                                if (createdLabel.isNotBlank()) {
+                                    Text(
+                                        text = "${stringResource(R.string.preset_field_time)}:",
+                                        style = MiuixTheme.textStyles.body1,
+                                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.width(16.dp))
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                if (preset.content.isNotBlank()) {
+                                    Text(
+                                        text = preset.content,
+                                        style = MiuixTheme.textStyles.body1,
+                                        color = MiuixTheme.colorScheme.onSurface,
+                                    )
+                                }
+                                if (createdLabel.isNotBlank()) {
+                                    Text(
+                                        text = createdLabel,
+                                        style = MiuixTheme.textStyles.body1,
+                                        color = MiuixTheme.colorScheme.onSurface,
+                                    )
+                                }
+                            }
                         }
-                        item { HorizontalDivider() }
                     }
+                    item { HorizontalDivider() }
 
                     when {
                         downloading -> item {
@@ -949,6 +1031,22 @@ private fun ApplyPresetBottomSheet(
             }
         }
     }
+}
+
+/** 搜索匹配：标题 / 说明 / 作者任一包含关键字即命中（忽略大小写）。 */
+private fun ConfigPreset.matchesQuery(keyword: String): Boolean =
+    title.contains(keyword, ignoreCase = true) ||
+        content.contains(keyword, ignoreCase = true) ||
+        author.contains(keyword, ignoreCase = true)
+
+/** 把 epoch 毫秒转成本地可读时间；解析失败或未设置时返回空串。 */
+private fun formatPresetTime(epochMillis: Long): String {
+    if (epochMillis <= 0L) return ""
+    return runCatching {
+        Instant.ofEpochMilli(epochMillis)
+            .atZone(ZoneId.systemDefault())
+            .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+    }.getOrDefault("")
 }
 
 private fun uploadErrorMessage(context: Context, error: Throwable): String = when {

@@ -918,12 +918,15 @@
     <!-- Config presets -->
     <string name="preset_entry_hint">Não sabe como configurar? Toque para usar um preset</string>
     <string name="preset_page_title">Presets de configuração</string>
+    <string name="preset_search">Pesquisar presets</string>
     <string name="preset_new_config">Nova configuração</string>
     <string name="preset_section_notification">Notificações</string>
     <string name="preset_section_toast">Toast</string>
     <string name="preset_info_section">Informações da configuração</string>
     <string name="preset_field_title">Título</string>
     <string name="preset_field_content">Descrição</string>
+    <string name="preset_field_description">Descrição</string>
+    <string name="preset_field_time">Hora</string>
     <string name="preset_field_author">Autor</string>
     <string name="preset_delete">Excluir</string>
     <string name="preset_upload">Enviar</string>

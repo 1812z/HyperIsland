@@ -984,6 +984,7 @@
     <!-- 一键配置预设 -->
     <string name="preset_entry_hint">Not sure how to configure? Tap to use a preset</string>
     <string name="preset_page_title">Config presets</string>
+    <string name="preset_search">Search presets</string>
     <string name="preset_new_config">New configuration</string>
     <string name="preset_apply_confirm_title">Apply this configuration?</string>
     <string name="preset_apply_confirm_message">This cannot be undone after applying!</string>
@@ -992,6 +993,8 @@
     <string name="preset_info_section">Config info</string>
     <string name="preset_field_title">Title</string>
     <string name="preset_field_content">Description</string>
+    <string name="preset_field_description">Description</string>
+    <string name="preset_field_time">Time</string>
     <string name="preset_field_author">Author</string>
     <string name="preset_delete">Delete</string>
     <string name="preset_upload">Upload</string>
