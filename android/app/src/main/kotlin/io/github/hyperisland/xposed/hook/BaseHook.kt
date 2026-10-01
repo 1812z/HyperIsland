@@ -25,7 +25,7 @@ abstract class BaseHook {
             if (loggedFailures.contains(key) || loggedFailures.size >= 64) return
             loggedFailures.add(key)
         }
-        log(module, message())
+        log(module) { message() }
     }
 
     /**
@@ -55,9 +55,11 @@ abstract class BaseHook {
     }
 
     /**
-     * 获取日志实例（开关判断由 io.github.hyperisland.xposed.logDebug 内部完成）
+     * 获取日志实例（开关判断由 io.github.hyperisland.xposed.logDebug 内部完成）。
+     * message 是 lambda：关闭调试开关时字符串根本不拼接。
      */
-    protected fun log(module: XposedModule, message: String) = module.logDebug(getTag(), message)
+    protected inline fun log(module: XposedModule, message: () -> String) =
+        module.logDebug(getTag(), message)
 
     /**
      * 获取警告日志实例
@@ -74,7 +76,7 @@ abstract class BaseHook {
      */
     fun init(module: XposedModule, param: PackageLoadedParam) {
         ensureConfigManager(module)
-        log(module, "initializing for ${param.packageName}")
+        log(module) { "initializing for ${param.packageName}" }
         try {
             onInit(module, param)
         } catch (e: Throwable) {

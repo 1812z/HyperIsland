@@ -115,7 +115,7 @@ object FaceUnlockStateHook : BaseHook() {
             )
             hookFaceRunningState(module, clazz)
             hookFaceAuthenticationCallbacks(module, clazz)
-            log(module, "face monitor hooked: ${clazz.name}")
+            log(module) { "face monitor hooked: ${clazz.name}" }
         }
     }
 
@@ -142,7 +142,7 @@ object FaceUnlockStateHook : BaseHook() {
                 FaceUnlockFocusController.FaceState.FAILED,
             )
             hookRepositoryErrorMethods(module, clazz)
-            log(module, "face repository callback hooked: ${clazz.name}")
+            log(module) { "face repository callback hooked: ${clazz.name}" }
             return true
         }
         return false
@@ -202,7 +202,7 @@ object FaceUnlockStateHook : BaseHook() {
                 authenticationActivity = true,
             )
             hookErrorMethods(module, callbackClass, setOf("onAuthenticationError"))
-            log(module, "face callback hooked: ${callbackClass.name}")
+            log(module) { "face callback hooked: ${callbackClass.name}" }
         }
     }
 
@@ -376,7 +376,7 @@ object FaceUnlockStateHook : BaseHook() {
         authenticationActivity: Boolean = false,
     ) {
         val context: Context = classLoader?.let(HookUtils::getContext) ?: return
-        log(module, "face state=$state source=$source")
+        log(module) { "face state=$state source=$source" }
         if (authenticationActivity) {
             FaceUnlockFocusController.onFaceAuthenticationActivity(context)
         } else if (runningStopped) {

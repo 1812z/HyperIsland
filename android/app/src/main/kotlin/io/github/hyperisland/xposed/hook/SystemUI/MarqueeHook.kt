@@ -29,8 +29,8 @@ object MarqueeHook : BaseHook() {
 
     override fun getTag() = TAG
 
-    private fun trace(message: String) {
-        log("marquee-trace $message")
+    private inline fun trace(message: () -> String) {
+        log { "marquee-trace ${message()}" }
     }
 
     override fun onConfigChanged() {
@@ -221,10 +221,8 @@ object MarqueeHook : BaseHook() {
         // 只有未覆盖超时（系统超时仍正常）且确实没有文本时才不建会话。
         val hasText = enabled && hasMarqueeText(bigIslandView)
         val sessionLoops = if (loops > 0 && !hasText && !effectiveOverride) 0 else loops
-        trace(
-            "apply enabled=$enabled loops=$loops override=$effectiveOverride text=$hasText " +
-                "island=${System.identityHashCode(bigIslandView)}"
-        )
+        trace { "apply enabled=$enabled loops=$loops override=$effectiveOverride text=$hasText " +
+                "island=${System.identityHashCode(bigIslandView)}" }
         islandMarqueeState[bigIslandView] = enabled
         configureAutoHideSession(
             bigIslandView,
@@ -273,7 +271,7 @@ object MarqueeHook : BaseHook() {
             notification = targetNotifications[island],
         )
         islandAutoHideSessions[island] = session
-        trace("create session island=${System.identityHashCode(island)} loops=$targetLoops override=$overrideTimeout timeout=${session.timeoutMs}")
+        trace { "create session island=${System.identityHashCode(island)} loops=$targetLoops override=$overrideTimeout timeout=${session.timeoutMs}" }
         scheduleFallbackIfNeeded(island, session)
     }
 
@@ -287,7 +285,7 @@ object MarqueeHook : BaseHook() {
         val island = findBigIslandView(textView) ?: return
         val session = islandAutoHideSessions[island] ?: return
         session.scrollingViews[textView] = 0
-        trace("register view=${System.identityHashCode(textView)} island=${System.identityHashCode(island)}")
+        trace { "register view=${System.identityHashCode(textView)} island=${System.identityHashCode(island)}" }
         cancelFallback(island, session)
     }
 
@@ -296,7 +294,7 @@ object MarqueeHook : BaseHook() {
         if (island != null) {
             val session = islandAutoHideSessions[island]
             if (session != null && session.scrollingViews.remove(textView) != null) {
-                trace("unregister view=${System.identityHashCode(textView)} island=${System.identityHashCode(island)}")
+                trace { "unregister view=${System.identityHashCode(textView)} island=${System.identityHashCode(island)}" }
                 scheduleFallbackIfNeeded(island, session)
             }
             return
@@ -305,7 +303,7 @@ object MarqueeHook : BaseHook() {
         // 从所有会话中清理，避免 override timeout 永远等待一个已移除的 TextView。
         islandAutoHideSessions.forEach { (candidateIsland, session) ->
             if (session.scrollingViews.remove(textView) != null) {
-                trace("unregister detached view=${System.identityHashCode(textView)} island=${System.identityHashCode(candidateIsland)}")
+                trace { "unregister detached view=${System.identityHashCode(textView)} island=${System.identityHashCode(candidateIsland)}" }
                 scheduleFallbackIfNeeded(candidateIsland, session)
             }
         }
@@ -323,7 +321,7 @@ object MarqueeHook : BaseHook() {
             completedLoops >= session.targetLoops
         }
         if (shouldDismiss) {
-            trace("loop dismiss island=${System.identityHashCode(island)} loops=$completedLoops")
+            trace { "loop dismiss island=${System.identityHashCode(island)} loops=$completedLoops" }
             dismissIsland(island, session)
         }
     }
@@ -339,7 +337,7 @@ object MarqueeHook : BaseHook() {
             session.fallbackRunnable = null
             val activeIsland = islandRef.get() ?: return@Runnable
             if (islandAutoHideSessions[activeIsland] !== session) return@Runnable
-            trace("fallback fire island=${System.identityHashCode(activeIsland)} views=${session.scrollingViews.size}")
+            trace { "fallback fire island=${System.identityHashCode(activeIsland)} views=${session.scrollingViews.size}" }
             if (session.scrollingViews.isEmpty()) dismissIsland(activeIsland, session)
         }
         session.fallbackRunnable = runnable
@@ -350,7 +348,7 @@ object MarqueeHook : BaseHook() {
         if (session.dismissed) return
         val key = targetIslandKey[island] ?: session.islandKey.takeIf { it.isNotBlank() }
         if (key == null) {
-            trace("dismiss aborted: no island key island=${System.identityHashCode(island)}")
+            trace { "dismiss aborted: no island key island=${System.identityHashCode(island)}" }
             return
         }
         session.dismissed = true
@@ -520,7 +518,7 @@ object MarqueeHook : BaseHook() {
                         try {
                             if (islandView == null) return@intercept result
                             if (islandUpdateTokens[islandView] !== updateToken) {
-                                trace("ignore stale island update island=${System.identityHashCode(islandView)}")
+                                trace { "ignore stale island update island=${System.identityHashCode(islandView)}" }
                                 return@intercept result
                             }
                             val islandData = chain.args.getOrNull(0)
@@ -706,7 +704,7 @@ object MarqueeHook : BaseHook() {
                         }
                         result
                     }
-                    module.log("Hooked updateBigIslandView on $className (classLoader=${System.identityHashCode(classLoader)})")
+                    module.log { "Hooked updateBigIslandView on $className (classLoader=${System.identityHashCode(classLoader)})" }
                 }
             } catch (_: Exception) {}
         }

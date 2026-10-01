@@ -109,7 +109,7 @@ object ExpandedCollapseAnimationHook : BaseHook() {
                         }
                     }
                 }
-                log(module, "installed on ${clazz.name}")
+                log(module) { "installed on ${clazz.name}" }
             } catch (e: NoSuchMethodException) {
                 // A delegate without swipe methods is expected on OS4.
             } catch (e: Throwable) {

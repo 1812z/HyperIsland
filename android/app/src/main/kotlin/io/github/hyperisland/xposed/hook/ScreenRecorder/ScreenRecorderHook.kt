@@ -70,7 +70,7 @@ object ScreenRecorderHook : BaseHook() {
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
         if (param.packageName != ScreenRecorderContract.TARGET_PACKAGE) return
-        log(module, "init: screen recorder hook loaded")
+        log(module) { "init: screen recorder hook loaded" }
         hookVideoEncoderSyncFrame(module)
         hookMediaMuxerOutput(module)
         hookMediaMuxerLifecycle(module)
@@ -130,10 +130,7 @@ object ScreenRecorderHook : BaseHook() {
                 hookRecordingNotification(module, serviceClass)
             }
         }
-        log(
-            module,
-            "init: discovered tiles=${hookedTileClasses.size} recorderServices=${hookedRecorderServiceClasses.size}",
-        )
+        log(module) { "init: discovered tiles=${hookedTileClasses.size} recorderServices=${hookedRecorderServiceClasses.size}" }
     }
 
     private fun hookConcreteTileService(
@@ -150,7 +147,7 @@ object ScreenRecorderHook : BaseHook() {
         onClick.isAccessible = true
         module.hook(onClick).intercept { chain ->
             val service = chain.thisObject as? TileService ?: return@intercept chain.proceed()
-            log(module, "tile: intercepted ${service.javaClass.name}.onClick")
+            log(module) { "tile: intercepted ${service.javaClass.name}.onClick" }
             runCatching {
                 if (recorderDialogVisible) return@runCatching
                 recorderDialogVisible = true
@@ -163,7 +160,7 @@ object ScreenRecorderHook : BaseHook() {
                             recorderDialogVisible = false
                             ScreenRecorderControlClient.reportStarting()
                             requestRecorderStart(service)
-                            log(module, "control: immediate start requested from tile")
+                            log(module) { "control: immediate start requested from tile" }
                         } else {
                             val settingsActivity = resolveSettingsActivity(service)
                                 ?: error("QS_TILE_PREFERENCES activity not found")
@@ -211,10 +208,7 @@ object ScreenRecorderHook : BaseHook() {
                     else -> false
                 }
                 if (isRecorderOverlay && !RecorderOverlayGate.allows(view)) {
-                    log(
-                        module,
-                        "float: blocked overlay view=${view?.javaClass?.name} type=$windowType",
-                    )
+                    log(module) { "float: blocked overlay view=${view?.javaClass?.name} type=$windowType" }
                     null
                 } else {
                     chain.proceed()
@@ -571,7 +565,7 @@ object ScreenRecorderHook : BaseHook() {
                 ) {
                     ScreenRecorderControlClient.reportStarting()
                     requestRecorderStart(service)
-                    log(module, "control: immediate start requested from recorder service")
+                    log(module) { "control: immediate start requested from recorder service" }
                     return@intercept Service.START_NOT_STICKY
                 }
                 if (recorderDialogVisible) {
@@ -707,21 +701,15 @@ object ScreenRecorderHook : BaseHook() {
                 if (bypassNextLowBatteryWarning.compareAndSet(true, false)) {
                     val replacementArgs = chain.args.toTypedArray()
                     replacementArgs[0] = true
-                    log(
-                        module,
-                        "control: bypassed Xiaomi low-battery confirmation in " +
-                            "${method.declaringClass.name}.${method.name}",
-                    )
+                    log(module) { "control: bypassed Xiaomi low-battery confirmation in " +
+                            "${method.declaringClass.name}.${method.name}" }
                     chain.proceed(replacementArgs)
                 } else {
                     chain.proceed()
                 }
             }
-            log(
-                module,
-                "init: hooked recorder validation " +
-                    "${method.declaringClass.name}.${method.name}(boolean, int)",
-            )
+            log(module) { "init: hooked recorder validation " +
+                    "${method.declaringClass.name}.${method.name}(boolean, int)" }
         }
 
         if (validationMethods.isEmpty()) {
@@ -849,7 +837,7 @@ object ScreenRecorderHook : BaseHook() {
         when (command) {
             ScreenRecorderContract.MSG_COMMAND_PAUSE -> {
                 if (MediaMuxerPauseGate.pause()) {
-                    log(module, "control: MediaMuxer sample output paused")
+                    log(module) { "control: MediaMuxer sample output paused" }
                 }
             }
             ScreenRecorderContract.MSG_COMMAND_RESUME -> {
@@ -859,23 +847,20 @@ object ScreenRecorderHook : BaseHook() {
                         requestedSyncFrames = VideoEncoderSyncFrameRequester.requestSyncFrames()
                     }
                 ) {
-                    log(
-                        module,
-                        "control: MediaMuxer resumed, requested keyframes=$requestedSyncFrames",
-                    )
+                    log(module) { "control: MediaMuxer resumed, requested keyframes=$requestedSyncFrames" }
                 }
             }
             ScreenRecorderContract.MSG_COMMAND_STOP -> {
                 if (Application.getProcessName() == ScreenRecorderContract.TARGET_PACKAGE) {
                     requestRecorderStop(context)
-                    log(module, "control: Xiaomi recorder stop dispatched")
+                    log(module) { "control: Xiaomi recorder stop dispatched" }
                 }
             }
             ScreenRecorderContract.MSG_COMMAND_START -> {
                 if (Application.getProcessName() == ScreenRecorderContract.TARGET_PACKAGE) {
                     applyStartOptions(context, extras, module)
                     requestRecorderStart(context)
-                    log(module, "control: Xiaomi recorder start dispatched")
+                    log(module) { "control: Xiaomi recorder start dispatched" }
                 }
             }
         }
@@ -905,7 +890,7 @@ object ScreenRecorderHook : BaseHook() {
         if (options.containsKey(ScreenRecorderContract.API_EXTRA_MOTION_PHOTO)) {
             val enabled = options.getBoolean(ScreenRecorderContract.API_EXTRA_MOTION_PHOTO, false)
             MotionPhotoSession.arm(context, enabled)
-            log(module, "control: motion photo armed=$enabled")
+            log(module) { "control: motion photo armed=$enabled" }
         }
     }
 
@@ -988,10 +973,10 @@ object ScreenRecorderHook : BaseHook() {
             MediaMuxerPauseGate.onStarted(muxer)
             MotionPhotoSession.onMuxerStarted(muxer) { context ->
                 requestRecorderStop(context)
-                log(module, "motion photo: 30-second recording limit reached")
+                log(module) { "motion photo: 30-second recording limit reached" }
             }
             ScreenRecorderControlClient.reportStarted()
-            log(module, "state: MediaMuxer started, recording confirmed")
+            log(module) { "state: MediaMuxer started, recording confirmed" }
             result
         }
 
@@ -1006,11 +991,8 @@ object ScreenRecorderHook : BaseHook() {
                         MotionPhotoSession.onMuxerReleased(muxer) { conversion ->
                             when (conversion) {
                                 is MotionPhotoSession.Result.Success -> {
-                                    log(
-                                        module,
-                                        "motion photo saved: ${conversion.path}" +
-                                            if (conversion.sourceDeleted) "" else " (MP4 retained)",
-                                    )
+                                    log(module) { "motion photo saved: ${conversion.path}" +
+                                            if (conversion.sourceDeleted) "" else " (MP4 retained)" }
                                 }
                                 is MotionPhotoSession.Result.Failed -> logError(
                                     module,
@@ -1021,7 +1003,7 @@ object ScreenRecorderHook : BaseHook() {
                     }
                     if (muxer != null && MediaMuxerPauseGate.onStopped(muxer)) {
                         ScreenRecorderControlClient.reportIdle()
-                        log(module, "state: MediaMuxer $methodName, recording ended")
+                        log(module) { "state: MediaMuxer $methodName, recording ended" }
                     }
                 }
             }

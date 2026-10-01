@@ -71,7 +71,7 @@ object LockscreenFaceUnlockUiHook : BaseHook() {
         }
 
         hooked = true
-        log(module, "native lock-screen face UI hidden; authentication remains enabled")
+        log(module) { "native lock-screen face UI hidden; authentication remains enabled" }
     }
 
     private fun isMainLockscreenView(instance: Any?): Boolean {

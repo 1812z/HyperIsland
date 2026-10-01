@@ -356,7 +356,7 @@ object IslandBlurHook : BaseHook() {
                 }
                 result
             }
-            module.log("native island blur hook installed loader=$classLoader")
+            module.log { "native island blur hook installed loader=$classLoader" }
         } catch (e: ClassNotFoundException) {
             // Most process/plugin loaders are irrelevant and legitimately miss the content
             // class. Once that class resolves, every later miss is a real compatibility fault.

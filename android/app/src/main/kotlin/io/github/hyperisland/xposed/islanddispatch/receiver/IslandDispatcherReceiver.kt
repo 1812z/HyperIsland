@@ -71,7 +71,7 @@ internal object IslandDispatcherReceiver {
     private fun handleShow(context: Context, intent: Intent) {
         try {
             val request = IslandRequest.fromIntent(intent)
-            IslandDispatchState.module?.log("${IslandDispatchContract.TAG}: onReceive title=${request.title}")
+            IslandDispatchState.module?.log { "${IslandDispatchContract.TAG}: onReceive title=${request.title}" }
             IslandDispatcherNotifier.post(context, request)
         } catch (e: Exception) {
             IslandDispatchState.module?.logError("${IslandDispatchContract.TAG}: onReceive error: ${e.message}")

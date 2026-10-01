@@ -125,7 +125,7 @@ object IslandTransitionVisualHook : BaseHook() {
         }
 
         hookAnimationClasses(module, classLoader, access)
-        log(module, "fake island transition visuals hooked")
+        log(module) { "fake island transition visuals hooked" }
     }
 
     private fun hookAnimationClasses(
@@ -236,7 +236,7 @@ object IslandTransitionVisualHook : BaseHook() {
     ) {
         val animatorClass = findFirstClass(classLoader, FAKE_VIEW_ANIMATOR_CLASSES) ?: return
         if (!hookedAnimatorClasses.add(animatorClass)) return
-        log(module, "fake animator source hooked class=${animatorClass.name}")
+        log(module) { "fake animator source hooked class=${animatorClass.name}" }
         val getFakeView = findMethod(animatorClass, "getFakeView") ?: return
 
         sequenceOf(

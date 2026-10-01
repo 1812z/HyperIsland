@@ -99,7 +99,7 @@ object BigIslandMinWidthHook : BaseHook() {
                         return@intercept maxWidthPx
                     }
                     hookedLegacyCalculateMaxWidthWithSmall = true
-                    log(module, "hooked legacy calculateMaxWidthWithSmall on $BASE_CONTENT_VIEW_CLASS")
+                    log(module) { "hooked legacy calculateMaxWidthWithSmall on $BASE_CONTENT_VIEW_CLASS" }
                 }
             }
 
@@ -145,10 +145,7 @@ object BigIslandMinWidthHook : BaseHook() {
                         return@intercept null
                     }
                     hookedSetMaxWidth = true
-                    log(
-                        module,
-                        "hooked setMaxWidth(${setMaxWidthMethod.parameterTypes.size} args) on $BASE_CONTENT_VIEW_CLASS",
-                    )
+                    log(module) { "hooked setMaxWidth(${setMaxWidthMethod.parameterTypes.size} args) on $BASE_CONTENT_VIEW_CLASS" }
                 }
             }
         } catch (_: ClassNotFoundException) {
@@ -188,7 +185,7 @@ object BigIslandMinWidthHook : BaseHook() {
                 combinedMaxWidth
             }
             hookedModernCalculateMaxWidthWithSmall = true
-            log(module, "hooked modern calculateMaxWidthWithSmall on $PHONE_HELPER_CLASS")
+            log(module) { "hooked modern calculateMaxWidthWithSmall on $PHONE_HELPER_CLASS" }
         } catch (_: ClassNotFoundException) {
         } catch (e: Exception) {
             logError(module, "failed to hook calculateMaxWidthWithSmall on $PHONE_HELPER_CLASS: ${e.message}")

@@ -63,7 +63,7 @@ object ToastUiInterceptHook : BaseHook() {
         val clId = System.identityHashCode(cl)
         if (hookedClassLoaders.contains(clId)) return
         hookedClassLoaders.add(clId)
-        log(module, "ToastUI intercept init")
+        log(module) { "ToastUI intercept init" }
 
         var total = 0
         total += hookCommandQueue(module, cl)
@@ -92,7 +92,7 @@ object ToastUiInterceptHook : BaseHook() {
                         if (handled) null else chain.proceed()
                     }
                     count++
-                    log(module, "hooked CommandQueue#showToast(${method.parameterCount})")
+                    log(module) { "hooked CommandQueue#showToast(${method.parameterCount})" }
                 } catch (e: Throwable) {
                     logError(module, "hook CommandQueue#showToast failed: ${e.message}")
                 }
@@ -119,7 +119,7 @@ object ToastUiInterceptHook : BaseHook() {
                         if (handled) null else chain.proceed()
                     }
                     count++
-                    log(module, "hooked ToastUI#showToast(${method.parameterCount})")
+                    log(module) { "hooked ToastUI#showToast(${method.parameterCount})" }
                 } catch (e: Throwable) {
                     logError(module, "hook ToastUI#showToast failed: ${e.message}")
                 }

@@ -142,7 +142,7 @@ object WifiTileDisconnectHook : BaseHook() {
         }
 
         hooked = true
-        log(module, "hooked ${tileClass.name} (wifi disconnect-only, restrictState=${restrictStateClass != null})")
+        log(module) { "hooked ${tileClass.name} (wifi disconnect-only, restrictState=${restrictStateClass != null})" }
     }
 
     /**
@@ -182,12 +182,12 @@ object WifiTileDisconnectHook : BaseHook() {
             sawDisconnected = false
             pendingRadioRestore = false
             startSoftDisconnect(wifiManager)
-            log(module, "wifi soft-disconnect: disabled=${disabledNetIds.size} networks")
+            log(module) { "wifi soft-disconnect: disabled=${disabledNetIds.size} networks" }
         } else {
             softDisabled = false
             sawDisconnected = false
             restoreConnections(ctx)
-            log(module, "wifi soft-disconnect restored")
+            log(module) { "wifi soft-disconnect restored" }
         }
         refreshTile(module, tile)
         return true

@@ -173,7 +173,7 @@ private class HdrHighlightCompositor(
         ensureBufferSize(rootView)
         if (!requestLogged) {
             requestLogged = true
-            log("HyperIsland[LiquidGlassHDR] fixed highlight compositor requested")
+            log { "HyperIsland[LiquidGlassHDR] fixed highlight compositor requested" }
         }
         scheduleFrame()
     }
@@ -201,7 +201,7 @@ private class HdrHighlightCompositor(
             if (released || view.parent != null || !rootView.isAttachedToWindow) return@post
             runCatching {
                 rootView.addView(view, ViewGroup.LayoutParams(1, 1))
-                log("HyperIsland[LiquidGlassHDR] fixed overlay attached to window root")
+                log { "HyperIsland[LiquidGlassHDR] fixed overlay attached to window root" }
                 ensureBufferSize(rootView)
                 view.visibility = View.VISIBLE
                 scheduleFrame()
@@ -339,7 +339,7 @@ private class HdrHighlightCompositor(
             setTargetRatio.invoke(renderer, HDR_HEADROOM)
             if (!rendererSetupLogged) {
                 rendererSetupLogged = true
-                log("HyperIsland[LiquidGlassHDR] F16 renderer HDR ratio=$HDR_HEADROOM")
+                log { "HyperIsland[LiquidGlassHDR] F16 renderer HDR ratio=$HDR_HEADROOM" }
             }
             true
         }.onFailure { error ->
@@ -369,7 +369,7 @@ private class HdrHighlightCompositor(
                 transactionClass.getMethod("apply").invoke(transaction)
                 if (!metadataSetupLogged) {
                     metadataSetupLogged = true
-                    log("HyperIsland[LiquidGlassHDR] BLAST metadata ratio=$HDR_HEADROOM")
+                    log { "HyperIsland[LiquidGlassHDR] BLAST metadata ratio=$HDR_HEADROOM" }
                 }
             } finally {
                 runCatching { transactionClass.getMethod("close").invoke(transaction) }
@@ -424,7 +424,7 @@ private class HdrHighlightCompositor(
         surfaceReady = true
         rendererConfigurationAttempted = false
         applyHdrMetadata()
-        log("HyperIsland[LiquidGlassHDR] fixed highlight surface ready headroom=$HDR_HEADROOM")
+        log { "HyperIsland[LiquidGlassHDR] fixed highlight surface ready headroom=$HDR_HEADROOM" }
         scheduleFrame()
     }
 

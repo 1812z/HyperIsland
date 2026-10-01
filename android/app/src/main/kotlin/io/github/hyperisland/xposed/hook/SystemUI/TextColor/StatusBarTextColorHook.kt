@@ -139,7 +139,7 @@ object StatusBarTextColorHook : BaseHook() {
                         result
                     }
                 }
-            log(module, "hooked DarkIconDispatcherImpl root tint source")
+            log(module) { "hooked DarkIconDispatcherImpl root tint source" }
             true
         }.getOrElse { error ->
             if (error !is ClassNotFoundException) {
@@ -199,7 +199,7 @@ object StatusBarTextColorHook : BaseHook() {
             // Some builds do not replay both tint callbacks on registration.
             // Seed all fields after registration, including light/dark colors.
             captureDispatcherFields(dispatcher)
-            log(module, "registered Dynamic Island DarkReceiver")
+            log(module) { "registered Dynamic Island DarkReceiver" }
         }.onFailure { error ->
             logError(module, "DarkReceiver registration failed, using applyIconTint: ${error.message}")
             captureDispatcherFields(dispatcher)

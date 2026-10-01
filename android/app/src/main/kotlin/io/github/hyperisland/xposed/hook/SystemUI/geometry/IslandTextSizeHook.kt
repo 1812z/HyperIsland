@@ -76,7 +76,7 @@ object IslandTextSizeHook : BaseHook() {
                             result
                         }
                     }
-                log(module, "hooked island text size on $className")
+                log(module) { "hooked island text size on $className" }
             } catch (_: ClassNotFoundException) {
             } catch (e: Throwable) {
                 logError(module, "failed to hook $className: ${e.message}")

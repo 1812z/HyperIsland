@@ -94,7 +94,7 @@ object LockscreenDeviceCenterHook : BaseHook() {
         hookActivityCleanup(module, activityClass)
 
         deviceCenterHooked = true
-        log(module, "$DEVICE_CENTER_ACTIVITY allowed to occlude keyguard")
+        log(module) { "$DEVICE_CENTER_ACTIVITY allowed to occlude keyguard" }
     }
 
     /**

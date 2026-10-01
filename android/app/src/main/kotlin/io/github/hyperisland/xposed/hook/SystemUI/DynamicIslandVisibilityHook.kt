@@ -93,7 +93,7 @@ object DynamicIslandVisibilityHook : BaseHook() {
                     chain.proceed()
                 }
             }
-            log(module, "hooked status bar island region (cl=$classLoaderId, methods=${methods.size})")
+            log(module) { "hooked status bar island region (cl=$classLoaderId, methods=${methods.size})" }
         } catch (e: Throwable) {
             hookedRegionClassLoaders.remove(classLoaderId)
             logError(module, "status bar region hook failed cl=$classLoaderId: ${e.message}")
@@ -128,7 +128,7 @@ object DynamicIslandVisibilityHook : BaseHook() {
                 statusBarCountAvailable = true
                 available = true
             }
-            log(module, "hooked status bar island count (cl=$classLoaderId, methods=${methods.size})")
+            log(module) { "hooked status bar island count (cl=$classLoaderId, methods=${methods.size})" }
         } catch (e: Throwable) {
             hookedStatusBarClassLoaders.remove(classLoaderId)
             logError(module, "status bar count hook failed cl=$classLoaderId: ${e.message}")
@@ -165,7 +165,7 @@ object DynamicIslandVisibilityHook : BaseHook() {
                 lifecycleAvailable = true
                 available = true
             }
-            log(module, "hooked content lifecycle (cl=$classLoaderId, methods=$hookedMethods)")
+            log(module) { "hooked content lifecycle (cl=$classLoaderId, methods=$hookedMethods)" }
         } catch (e: Throwable) {
             hookedContentClassLoaders.remove(classLoaderId)
             logError(module, "content lifecycle hook failed cl=$classLoaderId: ${e.message}")
@@ -207,7 +207,7 @@ object DynamicIslandVisibilityHook : BaseHook() {
             if (methods.isNotEmpty()) {
                 available = true
             }
-            log(module, "hooked onStateChange (cl=$classLoaderId, methods=${methods.size})")
+            log(module) { "hooked onStateChange (cl=$classLoaderId, methods=${methods.size})" }
         } catch (e: Throwable) {
             hookedCoordinatorClassLoaders.remove(classLoaderId)
             logError(module, "hook failed cl=$classLoaderId: ${e.message}")
@@ -365,8 +365,8 @@ object DynamicIslandVisibilityHook : BaseHook() {
     private fun notificationIdFromKey(key: String): Int? =
         key.split('|').getOrNull(2)?.toIntOrNull()
 
-    private fun diag(message: String) {
-        log("$TAG $message")
+    private inline fun diag(message: () -> String) {
+        log { "$TAG ${message()}" }
     }
 
     data class Event(

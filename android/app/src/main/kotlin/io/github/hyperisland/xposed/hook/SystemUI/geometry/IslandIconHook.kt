@@ -119,10 +119,7 @@ object IslandIconHook : BaseHook() {
                 }
             }
 
-            log(
-                module,
-                "hooked icon holder bind=${bindMethods.size}, width=${getWidth != null}",
-            )
+            log(module) { "hooked icon holder bind=${bindMethods.size}, width=${getWidth != null}" }
         } catch (_: ClassNotFoundException) {
         } catch (error: Throwable) {
             hookedClasses.remove(runCatching { classLoader.loadClass(ICON_HOLDER_CLASS) }.getOrNull())

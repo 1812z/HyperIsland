@@ -100,7 +100,7 @@ object ProxySourceHeadsUpSuppressHook : BaseHook() {
                 chain.proceed()
             }
         }
-        log(module, "hooked OS4 ${injectorClass.name}.shouldPeek(NotificationEntry)")
+        log(module) { "hooked OS4 ${injectorClass.name}.shouldPeek(NotificationEntry)" }
     }
 
     private fun hookOs3(
@@ -124,7 +124,7 @@ object ProxySourceHeadsUpSuppressHook : BaseHook() {
                 chain.proceed()
             }
         }
-        log(module, "hooked OS3 ${providerClass.name}.checkHeadsUp(NotificationEntry, boolean)")
+        log(module) { "hooked OS3 ${providerClass.name}.checkHeadsUp(NotificationEntry, boolean)" }
     }
 
     private fun suppressibleSource(entry: Any?): StatusBarNotification? {
@@ -155,11 +155,8 @@ object ProxySourceHeadsUpSuppressHook : BaseHook() {
         sbn: StatusBarNotification,
         platform: String,
     ) {
-        log(
-            module,
-            "suppressed source heads-up: platform=$platform pkg=${sbn.packageName} " +
-                "id=${sbn.id} key=${sbn.key}",
-        )
+        log(module) { "suppressed source heads-up: platform=$platform pkg=${sbn.packageName} " +
+                "id=${sbn.id} key=${sbn.key}" }
     }
 
     private fun findField(clazz: Class<*>, name: String): Field {

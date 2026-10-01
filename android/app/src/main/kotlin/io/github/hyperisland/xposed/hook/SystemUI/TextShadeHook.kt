@@ -92,7 +92,7 @@ object TextShadeHook : BaseHook() {
             }
             result
         }
-        log(module, "hooked setTextVisibility on $className")
+        log(module) { "hooked setTextVisibility on $className" }
     }
 
     private fun hookHideAfterMethod(
@@ -112,7 +112,7 @@ object TextShadeHook : BaseHook() {
             }
         }
         if (methods.isNotEmpty()) {
-            log(module, "hooked $methodName on $className")
+            log(module) { "hooked $methodName on $className" }
         }
     }
 

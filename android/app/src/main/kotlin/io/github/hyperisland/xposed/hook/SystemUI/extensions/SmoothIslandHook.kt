@@ -15,6 +15,7 @@ import androidx.graphics.shapes.RoundedPolygon
 import androidx.graphics.shapes.toPath
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.BaseHook
+import io.github.hyperisland.xposed.logWarn
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
@@ -169,7 +170,7 @@ object SmoothIslandHook : BaseHook() {
                 }
             }
             outlineHooked = true
-            log(module, "hooked Outline.setRoundRect")
+            log(module) { "hooked Outline.setRoundRect" }
         } catch (e: Throwable) {
             logError(module, "hookOutlineRoundRect failed: ${e.message}")
         }
@@ -235,7 +236,7 @@ object SmoothIslandHook : BaseHook() {
                         result
                     }
                 }
-                log(module, "hooked $className.getOutline")
+                log(module) { "hooked $className.getOutline" }
             } catch (_: Throwable) {
             }
         }
@@ -263,7 +264,7 @@ object SmoothIslandHook : BaseHook() {
                 if (view != null && canvas != null && drawSmoothIsland(view, canvas)) null else chain.proceed()
             }
             pluginHooksInstalled = true
-            log(module, "hooked plugin smooth island; os4OfficialSmooth=$os4OfficialSmoothMode")
+            log(module) { "hooked plugin smooth island; os4OfficialSmooth=$os4OfficialSmoothMode" }
         } catch (_: Throwable) {
         }
     }
@@ -457,7 +458,7 @@ object SmoothIslandHook : BaseHook() {
         } catch (t: Throwable) {
             if (!drawFallbackLogged) {
                 drawFallbackLogged = true
-                android.util.Log.w(TAG, "drawSmoothIsland fell back to MIUI drawing", t)
+                logWarn(TAG, "drawSmoothIsland fell back to MIUI drawing", t)
             }
             return false
         }

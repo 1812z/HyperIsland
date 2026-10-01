@@ -31,7 +31,7 @@ object IslandDispatcher {
             IslandDispatcherNotifier.ensureChannels(appCtx)
             IslandDispatcherReceiver.register(appCtx)
             IslandDispatchState.registered = true
-            xposedModule.log("${IslandDispatchContract.TAG}: registered in pid=${android.os.Process.myPid()}")
+            xposedModule.log { "${IslandDispatchContract.TAG}: registered in pid=${android.os.Process.myPid()}" }
         }
     }
 

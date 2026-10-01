@@ -15,6 +15,9 @@ import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
 import io.github.hyperisland.xposed.islanddispatch.definition.IslandRequest
+import io.github.hyperisland.xposed.logDebug
+import io.github.hyperisland.xposed.logError
+import io.github.hyperisland.xposed.logWarn
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import org.luckypray.dexkit.DexKitBridge
@@ -52,19 +55,15 @@ object ClipboardToastHook : BaseHook() {
             .getOrNull()
             .orEmpty()
         if (!isToastProcess(param.packageName, processName)) {
-            safeLog(
-                module,
-                Log.INFO,
-                "skip process: package=${param.packageName}, process=$processName",
-            )
+            safeLog(module, Log.INFO) {
+                "skip process: package=${param.packageName}, process=$processName"
+            }
             return
         }
 
-        safeLog(
-            module,
-            Log.INFO,
-            "initializing in package=${param.packageName}, process=$processName",
-        )
+        safeLog(module, Log.INFO) {
+            "initializing in package=${param.packageName}, process=$processName"
+        }
         val toastHooked = installHook(module, "ToastUtil") {
             hookSecurityCenterToast(module, param.defaultClassLoader)
         }
@@ -96,17 +95,19 @@ object ClipboardToastHook : BaseHook() {
     ): T? = try {
         block()
     } catch (t: Throwable) {
-        safeLog(
-            module,
-            Log.ERROR,
-            "$name hook failed: ${Log.getStackTraceString(t)}",
-        )
+        safeLog(module, Log.ERROR) {
+            "$name hook failed: ${Log.getStackTraceString(t)}"
+        }
         null
     }
 
-    private fun safeLog(module: XposedModule, priority: Int, message: String) {
+    private inline fun safeLog(module: XposedModule, priority: Int, message: () -> String) {
         try {
-            module.log(priority, TAG, message)
+            when (priority) {
+                Log.ERROR -> module.logError(TAG, message())
+                Log.WARN -> module.logWarn(TAG, message())
+                else -> module.logDebug(TAG, message)
+            }
         } catch (_: Throwable) {
             // A diagnostic failure must never abort package initialization.
         }
@@ -154,7 +155,7 @@ object ClipboardToastHook : BaseHook() {
                     showMethods.forEach { hookShowToastMethod(module, it) }
                     return@use true
                 }
-                safeLog(module, Log.INFO, "log anchor miss; trying class anchor")
+                safeLog(module, Log.INFO) { "log anchor miss; trying class anchor" }
                 bridge.findClass {
                     matcher {
                         usingStrings(ANCHOR_CLOSE_TIP_ACTION)
@@ -169,7 +170,7 @@ object ClipboardToastHook : BaseHook() {
                     .isNotEmpty()
             }
         }.getOrElse {
-            safeLog(module, Log.WARN, "DexKit ToastUtil match failed: ${it.message}")
+            safeLog(module, Log.WARN) { "DexKit ToastUtil match failed: ${it.message}" }
             false
         }
 
@@ -184,7 +185,7 @@ object ClipboardToastHook : BaseHook() {
     private fun hookShowToastMethod(module: XposedModule, method: Method) {
         if (!hookedToastMethods.add(method)) return
         method.isAccessible = true
-        safeLog(module, Log.INFO, "hooking ${method.declaringClass.name}.${method.name}")
+        safeLog(module, Log.INFO) { "hooking ${method.declaringClass.name}.${method.name}" }
         runCatching {
             module.hook(method).intercept { chain ->
                 if (!ConfigManager.getBoolean(KEY_OPTIMIZE_ISLAND_STYLE, true)) {
@@ -206,7 +207,7 @@ object ClipboardToastHook : BaseHook() {
             }
         }.onFailure {
             hookedToastMethods.remove(method)
-            safeLog(module, Log.WARN, "hook ${method.name} failed: ${it.message}")
+            safeLog(module, Log.WARN) { "hook ${method.name} failed: ${it.message}" }
         }
     }
 
@@ -253,7 +254,7 @@ object ClipboardToastHook : BaseHook() {
         )
         true
     }.getOrElse {
-        module.log(Log.ERROR, TAG, "clipboard island failed for $packageName: ${it.message}")
+        module.logError(TAG, "clipboard island failed for $packageName: ${it.message}")
         false
     }
 
@@ -290,9 +291,9 @@ object ClipboardToastHook : BaseHook() {
                     runCatching {
                         Toast.makeText(view.context, message, Toast.LENGTH_SHORT).show()
                     }.onSuccess {
-                        log(module, "converted clipboard overlay: text=$message")
+                        log(module) { "converted clipboard overlay: text=$message" }
                     }.onFailure {
-                        module.log(Log.ERROR, TAG, "window fallback failed: ${it.message}")
+                        module.logError(TAG, "window fallback failed: ${it.message}")
                     }
                 }
                 null

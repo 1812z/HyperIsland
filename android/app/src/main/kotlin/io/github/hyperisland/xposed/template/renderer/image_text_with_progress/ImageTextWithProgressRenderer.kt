@@ -2,9 +2,9 @@ package io.github.hyperisland.xposed.renderer.image_text_with_progress
 
 import android.content.Context
 import android.os.Bundle
-import android.util.Log
 import io.github.d4viddf.hyperisland_kit.HyperPicture
 import io.github.hyperisland.xposed.hook.FocusNotifStatusBarIconHook
+import io.github.hyperisland.xposed.logDebug
 import io.github.hyperisland.xposed.renderer.IslandRenderer
 import io.github.hyperisland.xposed.renderer.RendererContext
 import io.github.hyperisland.xposed.renderer.fixTextButtonJson
@@ -146,9 +146,9 @@ object ImageTextWithProgressRenderer : IslandRenderer {
                 FocusNotifStatusBarIconHook.markDirectProxyPosted(vm.timeoutSecs)
             }
 
-            Log.d("HyperIsland", "HyperIsland[$RENDERER_ID]: rendered template=${vm.templateId}")
+            logDebug("HyperIsland") { "HyperIsland[$RENDERER_ID]: rendered template=${vm.templateId}" }
         } catch (e: Exception) {
-            Log.d("HyperIsland", "HyperIsland[$RENDERER_ID]: render error: ${e.message}")
+            logDebug("HyperIsland") { "HyperIsland[$RENDERER_ID]: render error: ${e.message}" }
         }
     }
 }

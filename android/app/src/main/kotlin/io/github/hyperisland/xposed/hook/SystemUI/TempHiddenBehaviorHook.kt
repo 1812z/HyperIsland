@@ -47,7 +47,7 @@ object TempHiddenBehaviorHook : BaseHook() {
                 }
                 result
             }
-            log(module, "hooked Application.onCreate")
+            log(module) { "hooked Application.onCreate" }
         } catch (e: Throwable) {
             logError(module, "Application.onCreate hook failed: ${e.message}")
         }
@@ -72,7 +72,7 @@ object TempHiddenBehaviorHook : BaseHook() {
         hookCanEnterAppState(module, clazz) { count++ }
         hookNotificationPanelExpandHeightChanged(module, clazz) { count++ }
         hookCommandQueueDisable(module, clazz) { count++ }
-        log(module, "hooked windowViewController temp hide methods=$count")
+        log(module) { "hooked windowViewController temp hide methods=$count" }
         return count > 0
     }
 
@@ -89,7 +89,7 @@ object TempHiddenBehaviorHook : BaseHook() {
             .forEach { method ->
                 module.hook(method).intercept { chain ->
                     val enabled = HideBehavior.FOREGROUND_APP.enabled()
-                    log(module, "${clazz.simpleName}.canEnterAppState enabled=$enabled blocked=${!enabled}")
+                    log(module) { "${clazz.simpleName}.canEnterAppState enabled=$enabled blocked=${!enabled}" }
                     if (enabled) chain.proceed() else false
                 }
                 onHooked()
@@ -110,10 +110,7 @@ object TempHiddenBehaviorHook : BaseHook() {
                     if (invokingWithFilteredArgs.get() == true) return@intercept chain.proceed()
                     val original = chain.args.getOrNull(0)
                     val blocked = original == true && !behavior.enabled()
-                    log(
-                        module,
-                        "${clazz.simpleName}.$methodName original=$original behavior=${behavior.name} enabled=${behavior.enabled()} blocked=$blocked"
-                    )
+                    log(module) { "${clazz.simpleName}.$methodName original=$original behavior=${behavior.name} enabled=${behavior.enabled()} blocked=$blocked" }
                     if (blocked) {
                         invokeWithFilteredArgs(method, chain.thisObject, false)
                     } else {
@@ -172,7 +169,7 @@ object TempHiddenBehaviorHook : BaseHook() {
                     val expandHeight = chain.args.getOrNull(0) as? Float
                     val expandThresh = chain.args.getOrNull(1) as? Float
                     val blocked = expandHeight != null && expandHeight > 0f && !HideBehavior.NOTIFICATION_CENTER.enabled()
-                    log(module, "DynamicIslandWindowViewController.notificationPanelExpandHeightChanged expandHeight=$expandHeight notificationCenterEnabled=${HideBehavior.NOTIFICATION_CENTER.enabled()} blocked=$blocked")
+                    log(module) { "DynamicIslandWindowViewController.notificationPanelExpandHeightChanged expandHeight=$expandHeight notificationCenterEnabled=${HideBehavior.NOTIFICATION_CENTER.enabled()} blocked=$blocked" }
                     if (blocked && expandThresh != null) {
                         invokeWithFilteredArgs(method, chain.thisObject, 0f, expandThresh)
                     } else {
@@ -196,7 +193,7 @@ object TempHiddenBehaviorHook : BaseHook() {
                     val original = chain.args.getOrNull(0) as? Int
                     val notificationIconsDisabled = original != null && (original and 0x200000) != 0
                     val blocked = notificationIconsDisabled && !HideBehavior.NOTIFICATION_CENTER.enabled()
-                    log(module, "DynamicIslandWindowViewController.commandQueueDisable original=$original notificationCenterEnabled=${HideBehavior.NOTIFICATION_CENTER.enabled()} blocked=$blocked")
+                    log(module) { "DynamicIslandWindowViewController.commandQueueDisable original=$original notificationCenterEnabled=${HideBehavior.NOTIFICATION_CENTER.enabled()} blocked=$blocked" }
                     if (blocked) {
                         invokeWithFilteredArgs(method, chain.thisObject, original and 0x200000.inv())
                     } else {

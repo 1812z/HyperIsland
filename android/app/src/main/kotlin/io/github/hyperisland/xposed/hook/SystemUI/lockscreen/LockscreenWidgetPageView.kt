@@ -520,7 +520,7 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
             }
         }
         rebuildGrid()
-        LockscreenWidgetPageHook.runtimeLog("widget cells loaded=${cells.size}")
+        LockscreenWidgetPageHook.runtimeLog { "widget cells loaded=${cells.size}" }
     }
 
     private fun attachExisting(appWidgetId: Int, info: AppWidgetProviderInfo) {
@@ -612,9 +612,9 @@ internal class LockscreenWidgetPageView(context: Context) : FrameLayout(context)
                 }
             }
             setter.invoke(hostView, handler)
-            LockscreenWidgetPageHook.runtimeLog("widget interaction handler installed")
+            LockscreenWidgetPageHook.runtimeLog { "widget interaction handler installed" }
         }.onFailure {
-            LockscreenWidgetPageHook.runtimeLog("widget interaction handler unavailable: ${it.message}")
+            LockscreenWidgetPageHook.runtimeLog { "widget interaction handler unavailable: ${it.message}" }
         }
     }
 

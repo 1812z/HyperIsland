@@ -121,7 +121,7 @@ object FocusNotificationTextColorHook : BaseHook() {
                     islandAnimationRunning = true
                     chain.proceed()
                 }
-                log(module, "hooked DynamicIslandEventCoordinator#onAnimationStart")
+                log(module) { "hooked DynamicIslandEventCoordinator#onAnimationStart" }
             }
         coordinatorClass.declaredMethods
             .filter { method ->
@@ -136,7 +136,7 @@ object FocusNotificationTextColorHook : BaseHook() {
                     schedulePendingTintRefresh()
                     result
                 }
-                log(module, "hooked DynamicIslandEventCoordinator#${method.name}")
+                log(module) { "hooked DynamicIslandEventCoordinator#${method.name}" }
             }
     }
 
@@ -167,7 +167,7 @@ object FocusNotificationTextColorHook : BaseHook() {
                     }
                     result
                 }
-                log(module, "hooked ModuleViewHolder#initTextAndColor")
+                log(module) { "hooked ModuleViewHolder#initTextAndColor" }
             }
 
         holderClass.declaredMethods
@@ -183,7 +183,7 @@ object FocusNotificationTextColorHook : BaseHook() {
                     }
                     result
                 }
-                log(module, "hooked ModuleViewHolder#bind button text colors")
+                log(module) { "hooked ModuleViewHolder#bind button text colors" }
             }
     }
 

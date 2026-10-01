@@ -108,7 +108,7 @@ object IslandOutlineHook : BaseHook() {
                         outlineType(runCatching { stateField.get(chain.thisObject) }.getOrNull()),
                     )
                 }
-                log(module, "hooked updateMedianLuma")
+                log(module) { "hooked updateMedianLuma" }
             }
     }
 
@@ -146,7 +146,7 @@ object IslandOutlineHook : BaseHook() {
                         outlineType(chain.args.getOrNull(0)),
                     )
                 }
-                log(module, "hooked updateDarkLightMode")
+                log(module) { "hooked updateDarkLightMode" }
             }
     }
 
@@ -158,7 +158,7 @@ object IslandOutlineHook : BaseHook() {
             }
             chain.proceed()
         }
-        log(module, "hooked background setDrawable")
+        log(module) { "hooked background setDrawable" }
     }
 
     /** Adds the current stock SystemUI stroke to a replacement drawable. */

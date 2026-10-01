@@ -38,7 +38,7 @@ object UnlockAllFocusHook : BaseHook() {
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
         if (!isEnabled()) {
-            log(module, "disabled, skipping hook for ${param.packageName}")
+            log(module) { "disabled, skipping hook for ${param.packageName}" }
             return
         }
         val hookedDirectly = hookFocusWhitelist(module, param.defaultClassLoader)
@@ -66,7 +66,7 @@ object UnlockAllFocusHook : BaseHook() {
                     result
                 }
             }
-            log(module, "waiting for focus notification plugin class loader")
+            log(module) { "waiting for focus notification plugin class loader" }
         } catch (e: Throwable) {
             logError(module, "failed to hook plugin class loader — ${e.message}")
         }
@@ -85,7 +85,7 @@ object UnlockAllFocusHook : BaseHook() {
                 }
                 .forEach { method ->
                     module.hook(method).intercept { true }
-                    log(module, "hooked ${method.name}(${method.parameterTypes.joinToString { it.simpleName }})")
+                    log(module) { "hooked ${method.name}(${method.parameterTypes.joinToString { it.simpleName }})" }
                     hooked = true
                 }
         } catch (_: ClassNotFoundException) {
@@ -103,7 +103,7 @@ object UnlockAllFocusHook : BaseHook() {
                 }
                 .forEach { method ->
                     module.hook(method).intercept { true }
-                    log(module, "hooked SignatureChecker.${method.name}")
+                    log(module) { "hooked SignatureChecker.${method.name}" }
                     hooked = true
                 }
         } catch (_: ClassNotFoundException) {

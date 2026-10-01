@@ -45,9 +45,7 @@ internal object IslandDispatcherNotifier {
                 channelId = request.sourceChannelId.orEmpty(),
             )
             if (!request.bypassSceneBehavior && sceneDecision.shouldSuppress) {
-                IslandDispatchState.module?.log(
-                    "${IslandDispatchContract.TAG}: skip dispatcher post by scene rule",
-                )
+                IslandDispatchState.module?.log { "${IslandDispatchContract.TAG}: skip dispatcher post by scene rule" }
                 return false
             }
 
@@ -249,9 +247,7 @@ internal object IslandDispatcherNotifier {
                             ?.optJSONObject("param_island")
                             ?.opt("islandTimeout")
                     }.getOrNull()
-                    IslandDispatchState.module?.log(
-                        "count-trace dispatcher timeout=${request.timeoutSecs} jsonIslandTimeout=$timeout islandEnabled=${request.islandEnabled}",
-                    )
+                    IslandDispatchState.module?.log { "count-trace dispatcher timeout=${request.timeoutSecs} jsonIslandTimeout=$timeout islandEnabled=${request.islandEnabled}" }
                 }
             }
             request.sourcePackage?.let { notif.extras.putString("hyperisland_source_pkg", it) }
@@ -285,17 +281,13 @@ internal object IslandDispatcherNotifier {
                 notif.extras.putBoolean("hyperisland_preserve_status_bar_small_icon", true)
                 FocusNotifStatusBarIconHook.markDirectProxyPosted(request.timeoutSecs)
             }
-            IslandDispatchState.module?.log(
-                "${IslandDispatchContract.TAG}: preserve marker=$shouldPreserveStatusBarSmallIcon title=${request.title} | notifId=${request.notifId} | showNotification=${request.showNotification}",
-            )
+            IslandDispatchState.module?.log { "${IslandDispatchContract.TAG}: preserve marker=$shouldPreserveStatusBarSmallIcon title=${request.title} | notifId=${request.notifId} | showNotification=${request.showNotification}" }
 
             if (request.clearBeforePost) {
                 nm.cancel(request.notifId)
             }
             nm.notify(request.notifId, notif)
-            IslandDispatchState.module?.log(
-                "count-trace nm.notify id=${request.notifId} updatable=${request.updatable} islandOnly=${request.islandOnly} title=${request.title} content=${request.content}",
-            )
+            IslandDispatchState.module?.log { "count-trace nm.notify id=${request.notifId} updatable=${request.updatable} islandOnly=${request.islandOnly} title=${request.title} content=${request.content}" }
             IslandDispatchState.postedIds.add(request.notifId)
             request.sourcePackage?.let { pkg ->
                 MarqueeHook.markDirectProxyPosted(pkg, request.sourceChannelId ?: "toast")
@@ -312,7 +304,7 @@ internal object IslandDispatcherNotifier {
             val nm = context.getSystemService(NotificationManager::class.java) ?: return
             nm.cancel(notifId)
             IslandDispatchState.postedIds.remove(notifId)
-            IslandDispatchState.module?.log("${IslandDispatchContract.TAG}: cancel notifId=$notifId")
+            IslandDispatchState.module?.log { "${IslandDispatchContract.TAG}: cancel notifId=$notifId" }
         } catch (e: Exception) {
             IslandDispatchState.module?.logError("${IslandDispatchContract.TAG}: cancel error: ${e.message}")
         }
@@ -345,9 +337,7 @@ internal object IslandDispatcherNotifier {
         if (request.clearBeforePost) nm.cancel(request.notifId)
         nm.notify(request.notifId, notif)
         IslandDispatchState.postedIds.add(request.notifId)
-        IslandDispatchState.module?.log(
-            "${IslandDispatchContract.TAG}: posted custom extras notifId=${request.notifId}",
-        )
+        IslandDispatchState.module?.log { "${IslandDispatchContract.TAG}: posted custom extras notifId=${request.notifId}" }
     }
 
     fun ensureChannels(context: Context) {

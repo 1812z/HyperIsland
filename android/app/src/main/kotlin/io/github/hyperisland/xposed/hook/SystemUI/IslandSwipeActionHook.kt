@@ -81,14 +81,14 @@ object IslandSwipeActionHook : BaseHook() {
                         if (target != null && coordinator != null) {
                             pendingExpandedByCoordinator[coordinator] = target
                             scheduleExpandedFallback(coordinator, target)
-                            diag("expanded swipe captured key=${target.key} action=$action")
+                            diag { "expanded swipe captured key=${target.key} action=$action" }
                         }
                         val result = chain.proceed()
                         if (view != null && coordinator != null &&
                             invokeNoArg(chain.thisObject, "getCurrentExpandedState") === view
                         ) {
                             pendingExpandedByCoordinator.remove(coordinator)
-                            diag("expanded collapse skipped key=${target?.key}")
+                            diag { "expanded collapse skipped key=${target?.key}" }
                         }
                         result
                     }
@@ -125,7 +125,7 @@ object IslandSwipeActionHook : BaseHook() {
                         if (targetView != null && target != null) {
                             pendingBigByView[targetView] = target
                             scheduleBigExpiry(targetView, target)
-                            diag("big swipe captured key=${target.key} action=$action event=$eventName")
+                            diag { "big swipe captured key=${target.key} action=$action event=$eventName" }
                         }
                         chain.proceed()
                     }
@@ -198,7 +198,7 @@ object IslandSwipeActionHook : BaseHook() {
         val ongoing = notification.flags and Notification.FLAG_ONGOING_EVENT != 0
         val updatable = hasUpdatableFocusParam(notification.extras)
         if (ongoing || updatable) {
-            diag("ignored persistent key=${sbn.key} ongoing=$ongoing updatable=$updatable")
+            diag { "ignored persistent key=${sbn.key} ongoing=$ongoing updatable=$updatable" }
             return true
         }
         return false
@@ -220,14 +220,14 @@ object IslandSwipeActionHook : BaseHook() {
             ACTION_CANCEL_NOTIFICATION -> {
                 val sbn = target.sbn
                 if (sbn == null) {
-                    diag("cancel skipped without sbn key=${target.key} source=$source")
+                    diag { "cancel skipped without sbn key=${target.key} source=$source" }
                     return
                 }
                 if (!cancelNotification(sbn)) return
             }
             ACTION_HIDE_ISLAND -> ActiveIslandDismissHook.dismiss(target.key)
         }
-        diag("executed key=${target.key} action=${target.action} source=$source")
+        diag { "executed key=${target.key} action=${target.action} source=$source" }
     }
 
     private fun cancelNotification(sbn: StatusBarNotification): Boolean {
@@ -258,7 +258,7 @@ object IslandSwipeActionHook : BaseHook() {
             )
             true
         }.onFailure {
-            diag("cancel failed key=${sbn.key} error=${it.cause?.message ?: it.message}")
+            diag { "cancel failed key=${sbn.key} error=${it.cause?.message ?: it.message}" }
         }.getOrDefault(false)
     }
 
@@ -289,8 +289,8 @@ object IslandSwipeActionHook : BaseHook() {
         null
     }.getOrNull()
 
-    private fun diag(message: String) {
-        log("$TAG $message")
+    private inline fun diag(message: () -> String) {
+        log { "$TAG ${message()}" }
     }
 
     private data class Target(

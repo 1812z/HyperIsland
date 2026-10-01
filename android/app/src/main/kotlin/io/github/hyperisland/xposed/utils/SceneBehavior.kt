@@ -5,8 +5,8 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.res.Configuration
 import android.provider.Settings
-import android.util.Log
 import io.github.hyperisland.xposed.ConfigManager
+import io.github.hyperisland.xposed.logDebug
 
 object SceneBehavior {
 
@@ -185,7 +185,7 @@ object SceneBehavior {
             @Suppress("DEPRECATION")
             am.getRunningTasks(1).firstOrNull()?.topActivity?.packageName.orEmpty()
         } catch (e: Throwable) {
-            Log.d("HyperIsland", "HyperIsland[Scene]: get foreground failed: ${e.message}")
+            logDebug("HyperIsland[Scene]") { "get foreground failed: ${e.message}" }
             ""
         }
     }
@@ -209,7 +209,7 @@ object SceneBehavior {
             val nm = context.getSystemService(NotificationManager::class.java) ?: return false
             nm.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL
         } catch (e: Throwable) {
-            Log.d("HyperIsland", "HyperIsland[Scene]: read DND failed: ${e.message}")
+            logDebug("HyperIsland[Scene]") { "read DND failed: ${e.message}" }
             false
         }
     }

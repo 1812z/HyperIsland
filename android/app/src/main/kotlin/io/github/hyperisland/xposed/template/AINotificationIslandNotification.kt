@@ -68,10 +68,8 @@ object AINotificationIslandNotification : IslandTemplate {
         val leftText  = aiText?.left  ?: data.title
         val rightText = aiText?.right ?: data.subtitle.ifEmpty { data.title }
 
-        log(
-            if (aiText != null) "$TAG: AI text — left=$leftText | right=$rightText"
-            else "$TAG: fallback text — left=$leftText | right=$rightText"
-        )
+        log { if (aiText != null) "$TAG: AI text — left=$leftText | right=$rightText"
+            else "$TAG: fallback text — left=$leftText | right=$rightText" }
 
         if (data.focusNotif == "off") {
             if (injectViaDispatcher(context, data, leftText, rightText) && data.islandEnabled) {

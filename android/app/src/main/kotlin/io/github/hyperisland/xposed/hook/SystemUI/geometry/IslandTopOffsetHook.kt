@@ -70,7 +70,7 @@ object IslandTopOffsetHook : BaseHook() {
                 result
             }
             hookedContentView = true
-            log(module, "hooked $CONTENT_VIEW_CLASS.setCutoutY(float)")
+            log(module) { "hooked $CONTENT_VIEW_CLASS.setCutoutY(float)" }
         } catch (_: ClassNotFoundException) {
         } catch (e: Exception) {
             logError(module, "hookContentView failed: ${e.message}")

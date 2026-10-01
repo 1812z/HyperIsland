@@ -199,7 +199,7 @@ object KeepIslandHook : BaseHook() {
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
         cachedModule = module
-        log(module, "onInit pkg=${param.packageName}")
+        log(module) { "onInit pkg=${param.packageName}" }
         registerIslandVisibilityListener()
         hookApplicationOnCreate(module, param)
     }
@@ -226,7 +226,7 @@ object KeepIslandHook : BaseHook() {
                 }
                 result
             }
-            log(module, "hooked Application.onCreate")
+            log(module) { "hooked Application.onCreate" }
         } catch (e: Throwable) {
             logError(module, "Application.onCreate hook failed: ${e.message}")
         }
@@ -236,23 +236,23 @@ object KeepIslandHook : BaseHook() {
         val ctx = appContext ?: return
         if (!autoHideTrackingEnabled) return
         if (event.global) {
-            diag("ignored global island region visible=${event.visible}")
+            diag { "ignored global island region visible=${event.visible}" }
             return
         }
         if (event.notificationId == KEEP_ISLAND_NOTIF_ID ||
             event.sourceChannel == KEEP_ISLAND_CHANNEL
         ) {
-            diag("ignored keep island key=${event.key} visible=${event.visible}")
+            diag { "ignored keep island key=${event.key} visible=${event.visible}" }
             return
         }
         if (event.visible && event.sourcePackage != "com.android.systemui" &&
             event.sourcePackage == foregroundPackage(ctx)
         ) {
-            diag("ignored foreground island key=${event.key} pkg=${event.sourcePackage}")
+            diag { "ignored foreground island key=${event.key} pkg=${event.sourcePackage}" }
             return
         }
         if (event.visible) markRealIslandVisible(ctx, event.key) else markRealIslandHidden(event.key)
-        diag("accepted island key=${event.key} visible=${event.visible} active=${activeRealKeys.size}")
+        diag { "accepted island key=${event.key} visible=${event.visible} active=${activeRealKeys.size}" }
     }
 
     private fun registerIslandVisibilityListener() {
@@ -261,7 +261,7 @@ object KeepIslandHook : BaseHook() {
         DynamicIslandVisibilityHook.addListener(islandVisibilityListener)
     }
 
-    private fun diag(message: String) {
+    private inline fun diag(message: () -> String) {
         cachedModule?.let { log(it, message) }
     }
 
@@ -411,7 +411,7 @@ object KeepIslandHook : BaseHook() {
             )
             lastContentUpdateAt = System.currentTimeMillis()
             keepIslandContentCustomized = texts.first != " " || texts.second.isNotEmpty()
-            cachedModule?.let { log(it, "keep island ${if (restore) "restored" else "posted"}") }
+            cachedModule?.let { log(it) { "keep island ${if (restore) "restored" else "posted"}" } }
             if (hasConfiguredKeepIslandContent()) schedulePeriodicDataUpdate()
         } catch (e: Exception) {
             cachedModule?.let { logError(it, "keep island post failed: ${e.message}") }
@@ -1428,7 +1428,7 @@ object KeepIslandHook : BaseHook() {
             lastContentUpdateSignature = null
             cachedPanelFocusContent = null
             cancelPeriodicDataUpdate()
-            cachedModule?.let { log(it, "keep island cancelled") }
+            cachedModule?.let { log(it) { "keep island cancelled" } }
         } catch (e: Exception) {
             cachedModule?.let { logError(it, "keep island cancel failed: ${e.message}") }
         }

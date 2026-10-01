@@ -19,6 +19,8 @@ import android.util.Log
 import android.view.MotionEvent
 import android.view.VelocityTracker
 import android.view.animation.PathInterpolator
+import io.github.hyperisland.xposed.logDebug
+import io.github.hyperisland.xposed.logError
 import io.github.libxposed.api.XposedModule
 import java.lang.ref.WeakReference
 import java.lang.reflect.Field
@@ -156,7 +158,7 @@ internal object LockscreenActivityReturn {
                                     }
                                 }.also { main.postDelayed(it, 4000L) }
                                 accepted = true
-                                debug("interactive unocclude accepted task=$requestedTask")
+                                debug { "interactive unocclude accepted task=$requestedTask" }
                             }
                         } catch (error: Throwable) {
                             session?.let(::discard)
@@ -185,7 +187,7 @@ internal object LockscreenActivityReturn {
             val current = session
             if (mode == 1 && current != null && current.task == id) {
                 current.target = WeakReference(target)
-                debug("closing leash captured task=$id")
+                debug { "closing leash captured task=$id" }
             }
         }.onFailure { errorLog("cannot identify remote target", it) }
     }
@@ -299,7 +301,7 @@ internal object LockscreenActivityReturn {
             }
         }.onFailure { errorLog("cannot finish interactive unocclude", it) }
         if (target != null) runCatching { resetLeashMethod.invoke(null, target) }
-        debug("interactive return finished commit=${current.commit} timeout=$force")
+        debug { "interactive return finished commit=${current.commit} timeout=$force" }
     }
 
     private fun discard(current: Session) {
@@ -325,7 +327,7 @@ internal object LockscreenActivityReturn {
             if (!binder.transact(IBinder.FIRST_CALL_TRANSACTION, data, reply, 0)) false else {
                 reply.readException()
                 (reply.readInt() == 1).also { accepted ->
-                    if (!accepted) debug("return controller not ready; using system back")
+                    if (!accepted) debug { "return controller not ready; using system back" }
                 }
             }
         } catch (error: Exception) {
@@ -343,14 +345,14 @@ internal object LockscreenActivityReturn {
         } catch (_: Exception) { } finally { data.recycle() }
     }
 
-    private fun debug(message: String) {
+    private inline fun debug(message: () -> String) {
         val module = moduleRef?.get()
-        if (module != null) module.log(Log.INFO, TAG, message) else Log.i(TAG, message)
+        if (module != null) module.logDebug(TAG, message) else Log.i(TAG, message())
     }
 
     private fun errorLog(message: String, error: Throwable) {
         val module = moduleRef?.get()
-        if (module != null) module.log(Log.ERROR, TAG, "$message: $error")
+        if (module != null) module.logError(TAG, "$message: $error")
         else Log.e(TAG, message, error)
     }
 

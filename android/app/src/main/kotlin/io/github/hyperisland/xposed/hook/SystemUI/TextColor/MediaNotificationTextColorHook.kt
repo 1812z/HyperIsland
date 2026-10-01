@@ -77,7 +77,7 @@ object MediaNotificationTextColorHook : BaseHook() {
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
         StatusBarTextColorHook.addReadableTintListener(statusBarTintListener)
-        log("$TAG [MediaTitleDiag] init, defaultClassLoader=${param.defaultClassLoader}")
+        log { "$TAG [MediaTitleDiag] init, defaultClassLoader=${param.defaultClassLoader}" }
         hookClasses(module, param.defaultClassLoader)
         HookUtils.hookDynamicClassLoaders(module, ClassLoader.getSystemClassLoader()) { classLoader ->
             hookClasses(module, classLoader)
@@ -147,7 +147,7 @@ object MediaNotificationTextColorHook : BaseHook() {
                     islandAnimationRunning = true
                     chain.proceed()
                 }
-                log(module, "hooked media DynamicIslandEventCoordinator#onAnimationStart")
+                log(module) { "hooked media DynamicIslandEventCoordinator#onAnimationStart" }
             }
         coordinatorClass.declaredMethods
             .filter { method ->
@@ -162,7 +162,7 @@ object MediaNotificationTextColorHook : BaseHook() {
                     schedulePendingTintRefresh()
                     result
                 }
-                log(module, "hooked media DynamicIslandEventCoordinator#${method.name}")
+                log(module) { "hooked media DynamicIslandEventCoordinator#${method.name}" }
             }
     }
 
@@ -181,7 +181,7 @@ object MediaNotificationTextColorHook : BaseHook() {
         val methods = contentViewClass.declaredMethods.filter { method ->
             method.name == "updateExpandedView" && method.parameterTypes.size == 3
         }
-        log("$TAG [MediaTitleDiag] expanded install hook methods=${methods.size}")
+        log { "$TAG [MediaTitleDiag] expanded install hook methods=${methods.size}" }
         methods.forEach { method ->
             module.hook(method).intercept { chain ->
                 val data = chain.args.firstOrNull()
@@ -189,7 +189,7 @@ object MediaNotificationTextColorHook : BaseHook() {
                 if (data != null && root != null) expandedViewData[root] = data
                 chain.proceed()
             }
-            log(module, "hooked DynamicIslandContentView#updateExpandedView")
+            log(module) { "hooked DynamicIslandContentView#updateExpandedView" }
         }
     }
 
@@ -198,7 +198,7 @@ object MediaNotificationTextColorHook : BaseHook() {
             method.name.startsWith("setContentView") &&
                 method.parameterTypes.contentEquals(arrayOf(View::class.java))
         }
-        log("$TAG [MediaTitleDiag] physical install hook methods=${methods.size}")
+        log { "$TAG [MediaTitleDiag] physical install hook methods=${methods.size}" }
         methods.forEach { method ->
             module.hook(method).intercept { chain ->
                 val root = chain.args.firstOrNull() as? View
@@ -209,16 +209,14 @@ object MediaNotificationTextColorHook : BaseHook() {
                     if (data != null) {
                         handleExpandedIslandData(data)
                     } else if (expandedProbeCount.getAndIncrement() < MAX_EXPANDED_PROBES) {
-                        log(
-                            "$TAG [MediaTitleDiag] physical install without data " +
+                        log { "$TAG [MediaTitleDiag] physical install without data " +
                                 "root=${root.javaClass.name}, " +
-                                "textViewIds=${collectTextViewResourceNames(root).distinct()}"
-                        )
+                                "textViewIds=${collectTextViewResourceNames(root).distinct()}" }
                     }
                 }
                 result
             }
-            log(module, "hooked DynamicIslandExpandedView#${method.name}")
+            log(module) { "hooked DynamicIslandExpandedView#${method.name}" }
         }
     }
 
@@ -252,7 +250,7 @@ object MediaNotificationTextColorHook : BaseHook() {
                 }
                 result
             }
-            log(module, "hooked DynamicIslandWindowView#${method.name}")
+            log(module) { "hooked DynamicIslandWindowView#${method.name}" }
         }
     }
 
@@ -286,14 +284,12 @@ object MediaNotificationTextColorHook : BaseHook() {
                 val titleProbe = roots.firstNotNullOfOrNull { root ->
                     findExpandedMediaTitle(root, notification)
                 }
-                log(
-                    "$TAG [MediaTitleDiag] expanded install probe " +
+                log { "$TAG [MediaTitleDiag] expanded install probe " +
                         "data=${data.javaClass.name}, " +
                         "pkg=${sbn?.packageName ?: extras?.getString("miui.pkg.name")}, " +
                         "pendingIntent=$hasMediaPendingIntent, sbnMedia=$sbnMedia, " +
                         "root=${realRoot?.javaClass?.name}, titleId=${titleProbe?.let(::resourceEntryName)}, " +
-                        "textViewIds=${roots.flatMap(::collectTextViewResourceNames).distinct()}"
-                )
+                        "textViewIds=${roots.flatMap(::collectTextViewResourceNames).distinct()}" }
             }
 
             var matched = 0
@@ -315,17 +311,15 @@ object MediaNotificationTextColorHook : BaseHook() {
                 }
             }
             if (shouldLogProbe) {
-                log(
-                    "$TAG [MediaTitleDiag] expanded media color " +
+                log { "$TAG [MediaTitleDiag] expanded media color " +
                         "pkg=${sbn?.packageName ?: extras?.getString("miui.pkg.name")}, " +
                         "pendingIntent=$hasMediaPendingIntent, sbnMedia=$sbnMedia, " +
                         "realRoot=${realRoot?.javaClass?.name}, roots=${roots.size}, " +
-                        "titles=$matched, subtitles=$subtitleMatched"
-                )
+                        "titles=$matched, subtitles=$subtitleMatched" }
             }
             if (matched == 0 && shouldLogProbe) {
                 val ids = roots.flatMap(::collectTextViewResourceNames).distinct()
-                log("$TAG [MediaTitleDiag] expanded title not found, textViewIds=$ids")
+                log { "$TAG [MediaTitleDiag] expanded title not found, textViewIds=$ids" }
             }
         }.onFailure { error ->
             logError(

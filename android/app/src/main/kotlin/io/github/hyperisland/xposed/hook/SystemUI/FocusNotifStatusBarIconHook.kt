@@ -77,7 +77,7 @@ object FocusNotifStatusBarIconHook : BaseHook() {
                 }
                 result
             }
-            log(module, "hooked ActiveNotificationsStoreBuilder.toModel(NotificationEntry)")
+            log(module) { "hooked ActiveNotificationsStoreBuilder.toModel(NotificationEntry)" }
         } catch (e: Throwable) {
             logError(module, "ActiveNotificationsStoreBuilder.toModel hook failed — ${e.message}")
         }
@@ -88,7 +88,7 @@ object FocusNotifStatusBarIconHook : BaseHook() {
             classLoader.loadClass(TARGET_FRAGMENT_CLASS)
         }.getOrNull()
         if (fragmentClass == null) {
-            log(module, "updateStatusBarVisibilities hook skipped — $TARGET_FRAGMENT_CLASS not found")
+            log(module) { "updateStatusBarVisibilities hook skipped — $TARGET_FRAGMENT_CLASS not found" }
             return
         }
 
@@ -99,10 +99,7 @@ object FocusNotifStatusBarIconHook : BaseHook() {
             )
         }.getOrNull()
         if (method == null) {
-            log(
-                module,
-                "updateStatusBarVisibilities hook skipped — method not found in ${fragmentClass.name}"
-            )
+            log(module) { "updateStatusBarVisibilities hook skipped — method not found in ${fragmentClass.name}" }
             return
         }
 
@@ -118,14 +115,14 @@ object FocusNotifStatusBarIconHook : BaseHook() {
                         forceShowNotificationIconsModel(module, fragment)
                         restoreNotificationIconArea(fragment)
                         refreshNotificationIconArea(module, fragment)
-                        log(module, "icon area restored")
+                        log(module) { "icon area restored" }
                     }
                 }
                 result
             }
-            log(module, "hooked ${method.declaringClass.name}.updateStatusBarVisibilities(boolean)")
+            log(module) { "hooked ${method.declaringClass.name}.updateStatusBarVisibilities(boolean)" }
         } catch (e: Throwable) {
-            log(module, "updateStatusBarVisibilities hook skipped — ${e.message}")
+            log(module) { "updateStatusBarVisibilities hook skipped — ${e.message}" }
         }
     }
 

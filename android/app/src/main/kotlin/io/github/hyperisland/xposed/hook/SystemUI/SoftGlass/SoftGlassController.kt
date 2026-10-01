@@ -97,13 +97,11 @@ internal object SoftGlassController {
             diagnosticEvents++
         }
         val root = findWindowView(view)
-        log(
-            "$TAG trace $event view=${view.javaClass.simpleName}@${System.identityHashCode(view)} " +
+        log { "$TAG trace $event view=${view.javaClass.simpleName}@${System.identityHashCode(view)} " +
                 "root=${root?.let(System::identityHashCode)} attached=${view.isAttachedToWindow} " +
                 "managed=${managedViews.contains(view)} rendering=${renderingViews.contains(view)} " +
                 "window=${root != null && retainedWindowBlurRoots.contains(root)} " +
-                "pass=${root != null && retainedPassBlurRoots.contains(root)}",
-        )
+                "pass=${root != null && retainedPassBlurRoots.contains(root)}" }
     }
 
     @Synchronized
@@ -143,7 +141,7 @@ internal object SoftGlassController {
         // the actual OS4 Bionics capability boundary; OS3 must remain on the Gaussian path and
         // must not receive any of the Bionics source-writer hooks below.
         if (params == null || activeMethod == null) {
-            log("$TAG runtime unavailable candidate=${loaderId(contentClass.classLoader)}")
+            log { "$TAG runtime unavailable candidate=${loaderId(contentClass.classLoader)}" }
             return true // OS3 remains on its existing Gaussian path.
         }
         check(params.size >= 42 && viewModeMethod != null && clearBlendMethod != null) {
@@ -159,12 +157,10 @@ internal object SoftGlassController {
         }
         // Source hooks retain only their own validated runtime; foreign copies cannot replace it.
         hookRuntimeLifetime(module, contentClass, candidate)
-        log(
-            "$TAG runtime bound bionics=$bionicsRuntimeAvailable " +
+        log { "$TAG runtime bound bionics=$bionicsRuntimeAvailable " +
                 "params=${params.size} owner=${loaderId(contentClass.classLoader)} " +
                 "style=${loaderId(activeMethod.declaringClass.classLoader)} " +
-                "compat=${loaderId(compatClass.classLoader)}",
-        )
+                "compat=${loaderId(compatClass.classLoader)}" }
         return true
     }
 

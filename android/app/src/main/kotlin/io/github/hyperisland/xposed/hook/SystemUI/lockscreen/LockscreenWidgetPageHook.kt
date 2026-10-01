@@ -82,7 +82,7 @@ internal object LockscreenWidgetPageHook {
         hookPageBlurWithoutDim(module, classLoader)
 
         installed = true
-        log(module, "widget negative page hooks installed")
+        log(module) { "widget negative page hooks installed" }
     }
 
     private fun hookDependency(module: XposedModule, loader: ClassLoader) {
@@ -96,7 +96,7 @@ internal object LockscreenWidgetPageHook {
                     result
                 }
             }
-        }.onFailure { log(module, "dependency instance hook unavailable: ${it.message}") }
+        }.onFailure { log(module) { "dependency instance hook unavailable: ${it.message}" } }
     }
 
     private fun hookActivityStarter(module: XposedModule, loader: ClassLoader) {
@@ -110,7 +110,7 @@ internal object LockscreenWidgetPageHook {
                 .sortedBy { it.parameterCount }
                 .firstOrNull()
                 ?.also { it.isAccessible = true }
-            module.log("$TAG: ActivityStarter overloads=${candidates.map { it.parameterCount }}")
+            module.log { "$TAG: ActivityStarter overloads=${candidates.map { it.parameterCount }}" }
             startPendingIntentMethod?.let { method ->
                 module.hook(method).intercept { chain ->
                     activityStarterRef = WeakReference(chain.thisObject)
@@ -125,7 +125,7 @@ internal object LockscreenWidgetPageHook {
                     result
                 }
             }
-        }.onFailure { log(module, "activity starter hook unavailable: ${it.message}") }
+        }.onFailure { log(module) { "activity starter hook unavailable: ${it.message}" } }
     }
 
     /** Legacy RemoteViews clicks call PendingIntent.send directly instead of InteractionHandler. */
@@ -134,7 +134,7 @@ internal object LockscreenWidgetPageHook {
             val pendingIntentClass = loader.loadClass("android.app.PendingIntent")
             val methods = pendingIntentClass.declaredMethods
                 .filter { it.name == "send" }
-            module.log("$TAG: legacy PendingIntent.send candidates=${methods.size}")
+            module.log { "$TAG: legacy PendingIntent.send candidates=${methods.size}" }
             methods.forEach { method ->
                     method.isAccessible = true
                     module.hook(method).intercept { chain ->
@@ -144,7 +144,7 @@ internal object LockscreenWidgetPageHook {
                         val pendingIntent = chain.thisObject as? PendingIntent
                             ?: return@intercept chain.proceed()
                         val isActivity = isActivityPendingIntent(pendingIntent)
-                        runtimeLog("legacy PendingIntent.send activity=$isActivity")
+                        runtimeLog { "legacy PendingIntent.send activity=$isActivity" }
                         val target = if (isActivity && !widgetLaunchGuard) {
                             activityStarterRef?.get() ?: resolveActivityStarter()
                         } else null
@@ -153,7 +153,7 @@ internal object LockscreenWidgetPageHook {
                             widgetClickUntil = 0L
                             widgetLaunchGuard = true
                             runCatching { invokeActivityStarter(starter, target, pendingIntent) }
-                                .onFailure { runtimeLog("legacy widget activity launch failed: ${it.message}") }
+                                .onFailure { runtimeLog { "legacy widget activity launch failed: ${it.message}" } }
                             widgetLaunchGuard = false
                             null
                         } else {
@@ -161,7 +161,7 @@ internal object LockscreenWidgetPageHook {
                         }
                     }
                 }
-        }.onFailure { log(module, "legacy widget PendingIntent hook unavailable: ${it.message}") }
+        }.onFailure { log(module) { "legacy widget PendingIntent hook unavailable: ${it.message}" } }
     }
 
     /** Android 35 RemoteViews dispatches widget clicks through this hidden static method. */
@@ -175,7 +175,7 @@ internal object LockscreenWidgetPageHook {
                     View::class.java.isAssignableFrom(method.parameterTypes[0]) &&
                     method.parameterTypes[1] == PendingIntent::class.java
             }
-            module.log("$TAG: RemoteViews.startPendingIntent candidates=${methods.size}")
+            module.log { "$TAG: RemoteViews.startPendingIntent candidates=${methods.size}" }
             methods.forEach { method ->
                 method.isAccessible = true
                 module.hook(method).intercept { chain ->
@@ -186,7 +186,7 @@ internal object LockscreenWidgetPageHook {
                             PendingIntent::class.java.getMethod("isActivity").invoke(pendingIntent) as Boolean
                     }.getOrDefault(false)
                     val inlineControl = pendingIntent?.let { isInlineControlPendingIntent(it) } == true
-                    if (active) runtimeLog("RemoteViews.startPendingIntent activity=$activity inline=$inlineControl")
+                    if (active) runtimeLog { "RemoteViews.startPendingIntent activity=$activity inline=$inlineControl" }
                     if (active && activity && !inlineControl && pendingIntent != null && !widgetLaunchGuard) {
                         val target = activityStarterRef?.get() ?: resolveActivityStarter()
                         val starter = startPendingIntentMethod
@@ -194,12 +194,12 @@ internal object LockscreenWidgetPageHook {
                             widgetClickUntil = 0L
                             widgetLaunchGuard = true
                             runCatching { invokeActivityStarter(starter, target, pendingIntent) }
-                                .onSuccess { runtimeLog("RemoteViews activity launch invoked") }
-                                .onFailure { runtimeLog("RemoteViews activity launch failed: ${it.message}") }
+                                .onSuccess { runtimeLog { "RemoteViews activity launch invoked" } }
+                                .onFailure { runtimeLog { "RemoteViews activity launch failed: ${it.message}" } }
                             widgetLaunchGuard = false
                             true
                         } else {
-                            runtimeLog("RemoteViews activity starter unavailable")
+                            runtimeLog { "RemoteViews activity starter unavailable" }
                             chain.proceed()
                         }
                     } else {
@@ -207,7 +207,7 @@ internal object LockscreenWidgetPageHook {
                     }
                 }
             }
-        }.onFailure { log(module, "RemoteViews click hook unavailable: ${it.message}") }
+        }.onFailure { log(module) { "RemoteViews click hook unavailable: ${it.message}" } }
     }
 
     /** Preserve the stock page blur while removing only its opaque/dimming color layer. */
@@ -291,7 +291,7 @@ internal object LockscreenWidgetPageHook {
                 }
             }
 
-        }.onFailure { log(module, "page blur hook unavailable: ${it.message}") }
+        }.onFailure { log(module) { "page blur hook unavailable: ${it.message}" } }
     }
 
     private fun hookPanelInstance(module: XposedModule, loader: ClassLoader) {
@@ -323,7 +323,7 @@ internal object LockscreenWidgetPageHook {
                     result
                 }
             }
-        }.onFailure { log(module, "panel instance hook unavailable: ${it.message}") }
+        }.onFailure { log(module) { "panel instance hook unavailable: ${it.message}" } }
     }
 
     /** Feed a confirmed horizontal stream into the stock KeyguardMoveHelper state machine. */
@@ -349,12 +349,12 @@ internal object LockscreenWidgetPageHook {
     internal fun handleWidgetInteraction(view: View, pendingIntent: PendingIntent, response: Any?): Boolean {
         val isActivity = isActivityPendingIntent(pendingIntent)
         val inlineControl = isInlineControlPendingIntent(pendingIntent)
-        runtimeLog("interaction handler received activity=$isActivity inline=$inlineControl creator=${pendingIntent.creatorPackage}")
+        runtimeLog { "interaction handler received activity=$isActivity inline=$inlineControl creator=${pendingIntent.creatorPackage}" }
         if (!isActivity || inlineControl) return dispatchRemoteViewsPendingIntent(view, pendingIntent, response)
         val target = activityStarterRef?.get() ?: resolveActivityStarter()
         val method = startPendingIntentMethod
         if (target == null || method == null) {
-            runtimeLog("activity starter unavailable")
+            runtimeLog { "activity starter unavailable" }
             return false
         }
         return runCatching {
@@ -362,11 +362,11 @@ internal object LockscreenWidgetPageHook {
             widgetLaunchGuard = true
             invokeActivityStarter(method, target, pendingIntent)
             widgetLaunchGuard = false
-            runtimeLog("startPendingIntentDismissingKeyguard invoked")
+            runtimeLog { "startPendingIntentDismissingKeyguard invoked" }
             true
         }.onFailure {
             widgetLaunchGuard = false
-            runtimeLog("failed to start widget activity: ${it.message}")
+            runtimeLog { "failed to start widget activity: ${it.message}" }
         }
             .getOrDefault(false)
     }
@@ -404,7 +404,7 @@ internal object LockscreenWidgetPageHook {
         } finally {
             widgetLaunchGuard = false
         }
-    }.onFailure { runtimeLog("RemoteViews default interaction failed: ${it.message}") }
+    }.onFailure { runtimeLog { "RemoteViews default interaction failed: ${it.message}" } }
         .getOrDefault(false)
 
     internal fun markWidgetClick() {
@@ -412,7 +412,7 @@ internal object LockscreenWidgetPageHook {
         // land after ACTION_UP returns. Keep the marker alive for that dispatch window; the
         // movement/long-press paths and the post-UP clear below all cancel it.
         widgetClickUntil = SystemClock.uptimeMillis() + WIDGET_CLICK_WINDOW_MS
-        runtimeLog("widget click marker armed")
+        runtimeLog { "widget click marker armed" }
     }
 
     internal fun clearWidgetClick() {
@@ -428,8 +428,8 @@ internal object LockscreenWidgetPageHook {
         method.invoke(pendingIntent) as Boolean
     }.getOrDefault(false)
 
-    internal fun runtimeLog(message: String) {
-        moduleRef?.get()?.log("$TAG: $message")
+    internal fun runtimeLog(message: () -> String) {
+        moduleRef?.get()?.log { "$TAG: ${message()}" }
     }
 
     /** Invoke whichever ActivityStarter overload this SystemUI build exposes. */
@@ -500,9 +500,9 @@ internal object LockscreenWidgetPageHook {
             }
             if (activityStarterRef?.get() != null) return@runCatching activityStarterRef?.get()
         }
-        runtimeLog("Dependency getter unavailable methods=${candidates.map { it.toGenericString() }}")
+        runtimeLog { "Dependency getter unavailable methods=${candidates.map { it.toGenericString() }}" }
         null
-    }.onFailure { runtimeLog("unable to resolve ActivityStarter from Dependency: ${it.message}") }
+    }.onFailure { runtimeLog { "unable to resolve ActivityStarter from Dependency: ${it.message}" } }
         .getOrNull()
 
     /** Attach the page as soon as the keyguard container joins the hierarchy. */
@@ -648,7 +648,7 @@ internal object LockscreenWidgetPageHook {
             ),
         )
         pageRef = WeakReference(page)
-        log(module, "widget page attached")
+        log(module) { "widget page attached" }
     }
 
     internal fun isWidgetMode(): Boolean {
@@ -668,8 +668,8 @@ internal object LockscreenWidgetPageHook {
     internal fun isDeviceCenterMode(): Boolean =
         isNegativePageEnabled() && !isWidgetMode()
 
-    private fun log(module: XposedModule, message: String) {
-        module.log("$TAG: $message")
+    private inline fun log(module: XposedModule, message: () -> String) {
+        module.log { "$TAG: ${message()}" }
     }
 
     /** Hardcoded to widgets for the current test round; set false to follow the saved mode. */

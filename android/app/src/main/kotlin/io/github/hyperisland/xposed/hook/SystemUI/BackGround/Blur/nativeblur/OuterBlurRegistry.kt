@@ -113,7 +113,7 @@ internal class OuterBlurRegistry(
         if (typeChanged) {
             val currentDrawable = drawableField.get(backgroundView) as? Drawable
             if (currentDrawable !== outer.renderDrawable) outer.stockDrawable = currentDrawable
-            log("$TAG reuse ${outer.owned.type} -> $type")
+            log { "$TAG reuse ${outer.owned.type} -> $type" }
             outer.owned.type = type
         }
         outer.shapeView = WeakReference(shapeView)
@@ -148,7 +148,7 @@ internal class OuterBlurRegistry(
         if (runCatching { drawableField.get(backgroundView) }.getOrNull() === outer.renderDrawable) {
             runCatching { drawableField.set(backgroundView, outer.stockDrawable) }
         }
-        log("$TAG release ${outer.owned.type}, reason=$reason")
+        log { "$TAG release ${outer.owned.type}, reason=$reason" }
         outer.release()
         backgroundView.invalidate()
     }
@@ -272,7 +272,7 @@ internal class OuterBlurRegistry(
             val stock = drawableField.get(backgroundView) as? Drawable
             val owned = renderer.create(backgroundView, item.type) ?: run {
                 removePending(backgroundView)
-                log("$TAG native blur unavailable for ${item.type}")
+                log { "$TAG native blur unavailable for ${item.type}" }
                 return@runCatching
             }
             candidate = owned

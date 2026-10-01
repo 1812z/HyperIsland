@@ -121,7 +121,7 @@ object IslandTextColorHook : BaseHook() {
                     }
                     result
                 }
-                log(module, "hooked ${method.name}")
+                log(module) { "hooked ${method.name}" }
             }
     }
 
@@ -138,7 +138,7 @@ object IslandTextColorHook : BaseHook() {
                     }
                     chain.proceed()
                 }
-                log(module, "hooked updateDarkLightMode")
+                log(module) { "hooked updateDarkLightMode" }
             }
     }
 

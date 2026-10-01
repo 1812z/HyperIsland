@@ -62,7 +62,7 @@ object BluetoothIslandHook : BaseHook() {
                 if (app != null) registerReceiver(app, module)
                 result
             }
-            log(module, "hooked Application.onCreate")
+            log(module) { "hooked Application.onCreate" }
         } catch (e: Throwable) {
             logError(module, "hook failed: ${e.message}")
         }
@@ -87,7 +87,7 @@ object BluetoothIslandHook : BaseHook() {
             }
             IslandDispatcher.register(appContext, module)
             registered = true
-            log(module, "bluetooth receiver registered, enabled=${ConfigManager.getBoolean(PREF_ENABLED, false)}")
+            log(module) { "bluetooth receiver registered, enabled=${ConfigManager.getBoolean(PREF_ENABLED, false)}" }
         }
     }
 
@@ -110,16 +110,13 @@ object BluetoothIslandHook : BaseHook() {
                 if (showDeviceName && hasPendingNameRefresh) {
                     if (battery in 0..100) lastBattery = battery
                     moduleRef?.let {
-                        log(
-                            it,
-                            "skip bluetooth battery update while device name is showing: key=$key cachedBattery=$lastBattery",
-                        )
+                        log(it) { "skip bluetooth battery update while device name is showing: key=$key cachedBattery=$lastBattery" }
                     }
                     return
                 }
                 if (lastConnected && battery in 0..100) {
                     lastBattery = battery
-                    moduleRef?.let { log(it, "bluetooth battery changed: battery=$battery") }
+                    moduleRef?.let { log(it) { "bluetooth battery changed: battery=$battery" } }
                     postBluetoothIsland(
                         context = context,
                         connected = true,
@@ -131,10 +128,7 @@ object BluetoothIslandHook : BaseHook() {
                     )
                 } else {
                     moduleRef?.let {
-                        log(
-                            it,
-                            "skip bluetooth battery update: connected=$lastConnected battery=$battery key=$key",
-                        )
+                        log(it) { "skip bluetooth battery update: connected=$lastConnected battery=$battery key=$key" }
                     }
                 }
                 return
@@ -148,10 +142,7 @@ object BluetoothIslandHook : BaseHook() {
             val deviceAddress = getBluetoothDevice(intent)?.address
             if (!isDeviceAllowedByWhitelist(deviceAddress)) {
                 moduleRef?.let {
-                    log(
-                        it,
-                        "skip bluetooth island: device not in whitelist address=$deviceAddress",
-                    )
+                    log(it) { "skip bluetooth island: device not in whitelist address=$deviceAddress" }
                 }
                 return
             }
@@ -164,19 +155,13 @@ object BluetoothIslandHook : BaseHook() {
             if (battery in 0..100) lastBattery = battery
             val key = deviceKey(intent, deviceName)
             moduleRef?.let {
-                log(
-                    it,
-                    "bluetooth state changed: connected=$connected battery=$battery " +
+                log(it) { "bluetooth state changed: connected=$connected battery=$battery " +
                         "deviceName=$deviceName key=$key showDeviceName=$showDeviceName " +
-                        "displayDurationSecs=$displayDurationSecs",
-                )
+                        "displayDurationSecs=$displayDurationSecs" }
             }
             if (connected && battery !in 0..100 && !showDeviceName) {
                 moduleRef?.let {
-                    log(
-                        it,
-                        "skip bluetooth connected island: battery unknown deviceName=$deviceName key=$key",
-                    )
+                    log(it) { "skip bluetooth connected island: battery unknown deviceName=$deviceName key=$key" }
                 }
                 return
             }
@@ -201,10 +186,7 @@ object BluetoothIslandHook : BaseHook() {
             } else {
                 pendingNameRefreshes.remove(key)?.let { mainHandler.removeCallbacks(it) }
                 moduleRef?.let {
-                    log(
-                        it,
-                        "post bluetooth status directly: connected=$connected deviceName=$deviceName key=$key battery=$battery",
-                    )
+                    log(it) { "post bluetooth status directly: connected=$connected deviceName=$deviceName key=$key battery=$battery" }
                 }
                 postBluetoothIsland(
                     context = context,
@@ -284,11 +266,8 @@ object BluetoothIslandHook : BaseHook() {
         val fromCache = readCachedDeviceName(intent)
         val resolved = fromDevice ?: fromCache ?: device?.address ?: "Bluetooth"
         moduleRef?.let {
-            log(
-                it,
-                "resolve bluetooth device name: resolved=$resolved fromDevice=$fromDevice " +
-                    "fromCache=$fromCache address=${device?.address}",
-            )
+            log(it) { "resolve bluetooth device name: resolved=$resolved fromDevice=$fromDevice " +
+                    "fromCache=$fromCache address=${device?.address}" }
         }
         return resolved
     }
@@ -310,11 +289,8 @@ object BluetoothIslandHook : BaseHook() {
             pendingNameRefreshes.remove(key)
             val refreshBattery = if (connected && lastBattery in 0..100) lastBattery else battery
             moduleRef?.let {
-                log(
-                    it,
-                    "delayed bluetooth status refresh: key=$key connected=$connected " +
-                        "battery=$battery refreshBattery=$refreshBattery deviceName=$deviceName",
-                )
+                log(it) { "delayed bluetooth status refresh: key=$key connected=$connected " +
+                        "battery=$battery refreshBattery=$refreshBattery deviceName=$deviceName" }
             }
             postBluetoothIsland(
                 context = context,

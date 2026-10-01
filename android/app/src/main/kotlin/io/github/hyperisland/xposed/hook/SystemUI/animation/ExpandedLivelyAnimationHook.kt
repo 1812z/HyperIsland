@@ -169,7 +169,7 @@ object ExpandedLivelyAnimationHook : BaseHook() {
                     }
                 }
             }
-            log(module, "installed: synchronized content and outline spring morph")
+            log(module) { "installed: synchronized content and outline spring morph" }
         } catch (e: Throwable) {
             logWarn(module, "installation failed: ${e.message}")
         }

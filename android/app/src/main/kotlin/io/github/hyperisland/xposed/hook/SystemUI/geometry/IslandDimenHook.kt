@@ -60,7 +60,7 @@ object IslandDimenHook : BaseHook() {
                 }
                 result
             }
-            log(module, "hooked $CONTENT_VIEW_CLASS.calculateBigIslandY()")
+            log(module) { "hooked $CONTENT_VIEW_CLASS.calculateBigIslandY()" }
         } catch (_: ClassNotFoundException) {
         } catch (e: Exception) {
             logError(module, "hookContentView failed: ${e.message}")

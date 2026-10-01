@@ -139,7 +139,7 @@ object TimerTextColorHook : BaseHook() {
                     }
                     result
                 }
-                log(module, "hooked ${holderClass.name}#${method.name}")
+                log(module) { "hooked ${holderClass.name}#${method.name}" }
             }
     }
 
@@ -168,7 +168,7 @@ object TimerTextColorHook : BaseHook() {
                     }
                     result
                 }
-                log(module, "hooked ${holderClass.name}#${method.name}")
+                log(module) { "hooked ${holderClass.name}#${method.name}" }
             }
     }
 
@@ -191,7 +191,7 @@ object TimerTextColorHook : BaseHook() {
                     }
                     result
                 }
-                log(module, "hooked ${holderClass.name}#${method.name}")
+                log(module) { "hooked ${holderClass.name}#${method.name}" }
             }
 
         holderClass.declaredMethods
@@ -215,7 +215,7 @@ object TimerTextColorHook : BaseHook() {
                     }
                     result
                 }
-                log(module, "hooked ${holderClass.name}#${method.name}")
+                log(module) { "hooked ${holderClass.name}#${method.name}" }
             }
     }
 
@@ -233,7 +233,7 @@ object TimerTextColorHook : BaseHook() {
                     (chain.thisObject as? TextView)?.let(::applyTrackedTimer)
                     result
                 }
-                log(module, "hooked ${textEffectViewClass.name}#${method.name}")
+                log(module) { "hooked ${textEffectViewClass.name}#${method.name}" }
             }
     }
 
@@ -259,7 +259,7 @@ object TimerTextColorHook : BaseHook() {
                     }
                     result
                 }
-                log(module, "hooked ${contentViewClass.name}#${method.name}")
+                log(module) { "hooked ${contentViewClass.name}#${method.name}" }
             }
     }
 

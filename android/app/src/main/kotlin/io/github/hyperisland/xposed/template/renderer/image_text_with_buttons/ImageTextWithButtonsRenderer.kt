@@ -2,7 +2,6 @@ package io.github.hyperisland.xposed.renderer.image_text_with_buttons
 
 import android.content.Context
 import android.os.Bundle
-import android.util.Log
 import io.github.d4viddf.hyperisland_kit.HyperAction
 import io.github.d4viddf.hyperisland_kit.HyperIslandNotification
 import io.github.d4viddf.hyperisland_kit.HyperPicture
@@ -13,6 +12,7 @@ import io.github.d4viddf.hyperisland_kit.models.PicInfo
 import io.github.d4viddf.hyperisland_kit.models.ProgressTextInfo
 import io.github.d4viddf.hyperisland_kit.models.TextInfo
 import io.github.hyperisland.xposed.hook.FocusNotifStatusBarIconHook
+import io.github.hyperisland.xposed.logDebug
 import io.github.hyperisland.xposed.renderer.IslandRenderer
 import io.github.hyperisland.xposed.renderer.RendererContext
 import io.github.hyperisland.xposed.renderer.fixTextButtonJson
@@ -188,9 +188,9 @@ object ImageTextWithButtonsRenderer : IslandRenderer {
                 useActionsButton   -> ImageTextWithRightTextButtonRenderer.RENDERER_ID
                 else               -> RENDERER_ID
             }
-            Log.d("HyperIsland", "HyperIsland[$rendererTag]: rendered template=${vm.templateId}")
+            logDebug("HyperIsland") { "HyperIsland[$rendererTag]: rendered template=${vm.templateId}" }
         } catch (e: Exception) {
-            Log.d("HyperIsland", "HyperIsland[$RENDERER_ID]: render error: ${e.message}")
+            logDebug("HyperIsland") { "HyperIsland[$RENDERER_ID]: render error: ${e.message}" }
         }
     }
 }

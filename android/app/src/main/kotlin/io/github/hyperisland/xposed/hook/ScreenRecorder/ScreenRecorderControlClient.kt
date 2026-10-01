@@ -14,9 +14,10 @@ import android.os.Message
 import android.os.Messenger
 import android.os.RemoteException
 import android.os.SystemClock
-import android.util.Log
 import io.github.hyperisland.screenrecorder.RecorderSnapshot
 import io.github.hyperisland.screenrecorder.ScreenRecorderContract
+import io.github.hyperisland.xposed.logDebug
+import io.github.hyperisland.xposed.logWarn
 import java.util.IdentityHashMap
 import java.util.WeakHashMap
 import java.util.concurrent.CopyOnWriteArraySet
@@ -51,7 +52,7 @@ internal object ScreenRecorderControlClient {
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             remote = service?.let(::Messenger)
-            Log.d(TAG, "control: state service connected")
+            logDebug(TAG) { "control: state service connected" }
             pendingStateReport?.let { report ->
                 pendingStateReport = null
                 send(report)
@@ -182,7 +183,7 @@ internal object ScreenRecorderControlClient {
         }.getOrDefault(false)
         if (!bound) {
             bindRequested = false
-            Log.w(TAG, "control: state service bind failed")
+            logWarn(TAG, "control: state service bind failed")
         }
     }
 

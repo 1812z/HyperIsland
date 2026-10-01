@@ -193,7 +193,7 @@ object IslandOuterGlowHook : BaseHook() {
                     }
                 }
             }
-            if (methods.isNotEmpty()) log(module, "hooked dynamic island avoid-screen-burn-in translation on ${clazz.name}")
+            if (methods.isNotEmpty()) log(module) { "hooked dynamic island avoid-screen-burn-in translation on ${clazz.name}" }
         } catch (_: Throwable) {
         }
     }
@@ -207,7 +207,7 @@ object IslandOuterGlowHook : BaseHook() {
                 it.name == "getFEATURE_DYNAMIC_ISLAND_SHADER" && it.parameterCount == 0
             } ?: return
             module.hook(method).intercept { true }
-            log(module, "hooked shader feature flag on ${clazz.name}")
+            log(module) { "hooked shader feature flag on ${clazz.name}" }
         } catch (_: Throwable) {
         }
     }
@@ -290,10 +290,7 @@ object IslandOuterGlowHook : BaseHook() {
                         }
                     }
                     if (mode == GLOW_MODE_EXPAND && (channelForLog == "media" || mediaFocusTarget != null)) {
-                        log(
-                            module,
-                            "media focus state: owned=$hasOwnedRequest cached=${mediaFocusTarget != null} forced=${forcedTarget != null} effect=${extras?.getString(EFFECT_KEY)} focusColor=${extras?.getString("hyperisland_focus_out_effect_color")} dynamicColor=${extras?.getString("hyperisland_dynamic_glow_color")}",
-                        )
+                        log(module) { "media focus state: owned=$hasOwnedRequest cached=${mediaFocusTarget != null} forced=${forcedTarget != null} effect=${extras?.getString(EFFECT_KEY)} focusColor=${extras?.getString("hyperisland_focus_out_effect_color")} dynamicColor=${extras?.getString("hyperisland_dynamic_glow_color")}" }
                     }
 
                     val result = chain.proceed()
@@ -324,18 +321,15 @@ object IslandOuterGlowHook : BaseHook() {
                             if (glowView != null) synchronized(glowTargets) {
                                 glowTargets[glowView] = recentOwnedTarget!!
                             }
-                            log(module, "media glow forced start: pkg=${mediaRequest.pkg} island=${mediaRequest.islandEnabled} color=${mediaRequest.islandColor}")
+                            log(module) { "media glow forced start: pkg=${mediaRequest.pkg} island=${mediaRequest.islandEnabled} color=${mediaRequest.islandColor}" }
                             invokeGlowEffectMethod(glowView, "startGlowEffect")
                         }
                         mode == GLOW_MODE_EXPAND && hasOwnedRequest -> {
-                            log(module, "focus glow start: channel=$channelForLog view=${glowView?.javaClass?.name}")
+                            log(module) { "focus glow start: channel=$channelForLog view=${glowView?.javaClass?.name}" }
                             invokeGlowEffectMethod(glowView, "startGlowEffect")
                         }
                         mediaFocusTarget != null -> {
-                            log(
-                                module,
-                                "media focus cached start: pkg=${mediaFocusTarget.pkg} color=${mediaFocusTarget.focusOutEffectColor} view=${glowView?.javaClass?.name}",
-                            )
+                            log(module) { "media focus cached start: pkg=${mediaFocusTarget.pkg} color=${mediaFocusTarget.focusOutEffectColor} view=${glowView?.javaClass?.name}" }
                             invokeGlowEffectMethod(glowView, "startGlowEffect")
                         }
                         forcedTarget != null -> {
@@ -349,7 +343,7 @@ object IslandOuterGlowHook : BaseHook() {
                     result
                 }
             }
-            if (methods.isNotEmpty()) log(module, "hooked animation controller on ${clazz.name}")
+            if (methods.isNotEmpty()) log(module) { "hooked animation controller on ${clazz.name}" }
         } catch (_: Throwable) {
         }
     }
@@ -421,7 +415,7 @@ object IslandOuterGlowHook : BaseHook() {
                     result
                 }
             }
-            if (methods.isNotEmpty()) log(module, "hooked glow view on ${clazz.name}")
+            if (methods.isNotEmpty()) log(module) { "hooked glow view on ${clazz.name}" }
         } catch (_: Throwable) {
         }
     }
@@ -487,15 +481,12 @@ object IslandOuterGlowHook : BaseHook() {
                     val channelId = targetBundle.getString("hyperisland_channel_id")
                         ?: targetBundle.getString("hyperisland_source_channel")
                     if (sourceExtras.containsKey("miui.focus.param.media") || channelId == "media") {
-                        log(
-                            module,
-                            "media glow bridge: pkg=${sbn.packageName} channel=$channelId big=${targetBundle.getString(BIG_EFFECT_KEY)} effect=${targetBundle.getString(EFFECT_KEY)} islandColor=${targetBundle.getString("hyperisland_island_outer_glow_color")} focusColor=${targetBundle.getString("hyperisland_focus_out_effect_color")} dynamicColor=${targetBundle.getString("hyperisland_dynamic_glow_color")}",
-                        )
+                        log(module) { "media glow bridge: pkg=${sbn.packageName} channel=$channelId big=${targetBundle.getString(BIG_EFFECT_KEY)} effect=${targetBundle.getString(EFFECT_KEY)} islandColor=${targetBundle.getString("hyperisland_island_outer_glow_color")} focusColor=${targetBundle.getString("hyperisland_focus_out_effect_color")} dynamicColor=${targetBundle.getString("hyperisland_dynamic_glow_color")}" }
                     }
                     result
                 }
             }
-            if (methods.isNotEmpty()) log(module, "hooked focus extras bridge on ${clazz.name}")
+            if (methods.isNotEmpty()) log(module) { "hooked focus extras bridge on ${clazz.name}" }
         } catch (_: Throwable) {
         }
     }
@@ -723,10 +714,7 @@ object IslandOuterGlowHook : BaseHook() {
         )
         setRuntimeShaderFloat(runtimeShader, "uUseBaseColor", if (useBaseColor) 1f else 0f)
         if (mode == GLOW_MODE_EXPAND || target.channelId == "media") {
-            log(
-                module,
-                "glow color apply: mode=$mode target=${target.pkg}/${target.channelId} forced=${target.forcedGlobal} enabled=${cfg.effectEnabled} single=$singleColorEnabled color=${cfg.colorArgb?.let { String.format("#%08X", it) }} shaderApplied=$applied",
-            )
+            log(module) { "glow color apply: mode=$mode target=${target.pkg}/${target.channelId} forced=${target.forcedGlobal} enabled=${cfg.effectEnabled} single=$singleColorEnabled color=${cfg.colorArgb?.let { String.format("#%08X", it) }} shaderApplied=$applied" }
         }
     }
 
@@ -752,10 +740,7 @@ object IslandOuterGlowHook : BaseHook() {
         val range = ConfigManager.getInt("pref_outer_glow_range", 0).coerceIn(0, 100)
         val container = invokeNoArg(glowView, "getMContainer")
         if (container == null) {
-            log(
-                module,
-                "glow range apply: range=$range container=null view=${glowView.javaClass.name}",
-            )
+            log(module) { "glow range apply: range=$range container=null view=${glowView.javaClass.name}" }
             return
         }
         val defaultRange = synchronized(defaultGlowRanges) {
@@ -773,10 +758,7 @@ object IslandOuterGlowHook : BaseHook() {
             "setSizeOfGlowArea",
             appliedRange,
         )
-        log(
-            module,
-            "glow range apply: range=$range area=$defaultRange->$appliedRange applied=$rangeApplied view=${glowView.javaClass.name}",
-        )
+        log(module) { "glow range apply: range=$range area=$defaultRange->$appliedRange applied=$rangeApplied view=${glowView.javaClass.name}" }
     }
 
     private fun resolveMediaFocusGlowTarget(
@@ -877,10 +859,7 @@ object IslandOuterGlowHook : BaseHook() {
     private fun logGlowViewProbe(module: XposedModule, glowView: Any?, mode: Int) {
         if (glowView == null) return
         val target = recentOwnedTarget
-        log(
-            module,
-            "glow view probe: mode=$mode class=${glowView.javaClass.name} target=${target?.pkg}/${target?.channelId} targetMode=${target?.mode}",
-        )
+        log(module) { "glow view probe: mode=$mode class=${glowView.javaClass.name} target=${target?.pkg}/${target?.channelId} targetMode=${target?.mode}" }
         logObjectShape(module, "glowView", glowView)
         invokeNoArg(glowView, "getMContainer")?.let { container ->
             logObjectShape(module, "glowContainer", container)
@@ -903,7 +882,7 @@ object IslandOuterGlowHook : BaseHook() {
             .joinToString(limit = 24, truncated = "...") { method ->
                 "${method.name}():${method.returnType.simpleName}"
             }
-        log(module, "$label shape: class=${cls.name} fields=[$fields] noArgMethods=[$methods]")
+        log(module) { "$label shape: class=${cls.name} fields=[$fields] noArgMethods=[$methods]" }
     }
 
     private fun shouldApplyOwnedGlowForMode(mode: Int): Boolean {
@@ -992,7 +971,7 @@ object IslandOuterGlowHook : BaseHook() {
             }
         }
         if (restored) {
-            log(module, "kept OS4 shared glow containers visible for another running effect")
+            log(module) { "kept OS4 shared glow containers visible for another running effect" }
         }
     }
 

@@ -47,7 +47,7 @@ object NotificationCountIslandNotification : IslandTemplate {
         val count = data.notificationCount.coerceAtLeast(0)
         val signature = "$count|${data.notificationKey.orEmpty()}|${data.title}|${data.subtitle}"
         if (lastPostedSignature.put(scopeKey(scope), signature) == signature) {
-            log("count-trace template skip pkg=${data.pkg} channel=${data.channelId} count=$count (unchanged)")
+            log { "count-trace template skip pkg=${data.pkg} channel=${data.channelId} count=$count (unchanged)" }
             return
         }
         val fallback = Icon.createWithResource(context, android.R.drawable.ic_dialog_info)
@@ -81,7 +81,7 @@ object NotificationCountIslandNotification : IslandTemplate {
             islandEnabled = data.islandEnabled,
             bypassSceneBehavior = false,
         ))
-        log("count-trace template post pkg=${data.pkg} channel=${data.channelId} count=$count timeout=${data.islandTimeout} ongoing=${data.isOngoing} posted=$posted notifId=$notificationId updatable=false")
+        log { "count-trace template post pkg=${data.pkg} channel=${data.channelId} count=$count timeout=${data.islandTimeout} ongoing=${data.isOngoing} posted=$posted notifId=$notificationId updatable=false" }
     }
 
     /** Gray circular badge used by the right island area; the text remains the expanded content. */

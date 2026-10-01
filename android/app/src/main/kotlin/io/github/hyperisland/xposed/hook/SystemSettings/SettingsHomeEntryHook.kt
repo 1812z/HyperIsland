@@ -54,7 +54,7 @@ object SettingsHomeEntryHook : BaseHook() {
             result
         }
 
-        log(module, "hooked MiuiSettings.updateHeaderList")
+        log(module) { "hooked MiuiSettings.updateHeaderList" }
     }
 
     private fun insertEntry(
@@ -91,7 +91,7 @@ object SettingsHomeEntryHook : BaseHook() {
             inheritAdjacentGroupId(headers, header, insertPosition)
         }
         headers.add(insertPosition, header)
-        log(module, "inserted HyperIsland settings entry")
+        log(module) { "inserted HyperIsland settings entry" }
     }
 
     private fun installIconHook(module: XposedModule) {
@@ -115,7 +115,7 @@ object SettingsHomeEntryHook : BaseHook() {
         }
 
         iconHookInstalled = methods.isNotEmpty()
-        log(module, "hooked Resources.getDrawable for settings entry icon")
+        log(module) { "hooked Resources.getDrawable for settings entry icon" }
     }
 
     private fun loadModuleIcon(resources: Resources?): Drawable? = try {

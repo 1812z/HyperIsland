@@ -1,7 +1,7 @@
 package io.github.hyperisland.xposed.template.core.filters
 
-import android.util.Log
 import io.github.hyperisland.xposed.ConfigManager
+import io.github.hyperisland.xposed.logDebug
 import io.github.hyperisland.xposed.template.core.models.NotifData
 
 object KeywordFilter {
@@ -54,7 +54,9 @@ object KeywordFilter {
         }
 
         if (result) {
-            Log.d(TAG, "$pkg/$channelId blocked: mode=$mode, whitelistMatch=$matchesWhitelist, blacklistMatch=$matchesBlacklist")
+            logDebug(TAG) {
+                "$pkg/$channelId blocked: mode=$mode, whitelistMatch=$matchesWhitelist, blacklistMatch=$matchesBlacklist"
+            }
         }
 
         return result

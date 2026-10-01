@@ -84,7 +84,7 @@ object SmallIslandIconHook : BaseHook() {
                     result
                 }
             }
-            log(module, "hooked precise small-island icon bind=${bindMethods.size}")
+            log(module) { "hooked precise small-island icon bind=${bindMethods.size}" }
         } catch (error: Throwable) {
             hookedClasses.remove(holderClass)
             logError(module, "failed to hook $ICON_HOLDER_CLASS: ${error.message}")

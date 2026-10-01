@@ -123,7 +123,7 @@ object ExpandedIosAnimationHook : BaseHook() {
                     }
                 }
             }
-            log(module, "installed computed-top alignment for real/fake focus expansion")
+            log(module) { "installed computed-top alignment for real/fake focus expansion" }
         } catch (e: Throwable) {
             logWarn(module, "installation failed: ${e.message}")
         }

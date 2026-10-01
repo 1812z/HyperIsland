@@ -135,10 +135,8 @@ object InProcessController {
     private fun loadSettings() {
         resumeNotificationEnabled = ConfigManager.getBoolean("pref_resume_notification", true)
         showTaskIconEnabled = ConfigManager.getBoolean("pref_download_show_task_icon", true)
-        module?.log(
-            "$TAG: settings loaded — resumeNotification=$resumeNotificationEnabled, " +
-                "showTaskIcon=$showTaskIconEnabled"
-        )
+        module?.log { "$TAG: settings loaded — resumeNotification=$resumeNotificationEnabled, " +
+                "showTaskIcon=$showTaskIconEnabled" }
     }
 
     fun ensureRegistered(context: Context, xposedModule: XposedModule) {
@@ -192,7 +190,7 @@ object InProcessController {
         }
         registerDownloadObserver(appCtx)
         registered = true
-        xposedModule.log("$TAG: registered in pid=${android.os.Process.myPid()}")
+        xposedModule.log { "$TAG: registered in pid=${android.os.Process.myPid()}" }
     }
 
     /**
@@ -225,7 +223,7 @@ object InProcessController {
         if (queryHasActiveDownload(context) == true) {
             lastDownloadSnapshot = null
             cancelPausedOverlay(context)
-            module?.log("$TAG: removed paused overlay because an active download exists")
+            module?.log { "$TAG: removed paused overlay because an active download exists" }
             return
         }
         val snapshot = lastDownloadSnapshot ?: return
@@ -239,7 +237,7 @@ object InProcessController {
         if (shouldRemove) {
             lastDownloadSnapshot = null
             cancelPausedOverlay(context)
-            module?.log("$TAG: removed stale paused overlay for id=${snapshot.downloadId}")
+            module?.log { "$TAG: removed stale paused overlay for id=${snapshot.downloadId}" }
         }
     }
 
@@ -466,7 +464,7 @@ object InProcessController {
         if (!snapshot.isMultiFile && sameTask) {
             lastDownloadSnapshot = null
             cancelPausedOverlay(context)
-            module?.log("$TAG: removed paused overlay after UI delete id=$downloadId")
+            module?.log { "$TAG: removed paused overlay after UI delete id=$downloadId" }
         } else {
             mainHandler.postDelayed({ reconcilePausedOverlay(context) }, 100L)
         }
@@ -488,15 +486,15 @@ object InProcessController {
         for (className in candidates) {
             try {
                 val clazz = classLoader.loadClass(className)
-                module.log("$TAG: Found MiuiDownloadManager: $className")
+                module.log { "$TAG: Found MiuiDownloadManager: $className" }
 
                 val pauseMethod = clazz.getDeclaredMethod("pauseDownload", LongArray::class.java)
                 module.hook(pauseMethod).intercept { chain ->
                     val ids = chain.args[0] as? LongArray
-                    module.log("$TAG: pauseDownload called ids=${ids?.toList()}")
+                    module.log { "$TAG: pauseDownload called ids=${ids?.toList()}" }
                     chain.proceed()
                 }
-                module.log("$TAG: Hooked pauseDownload in $className")
+                module.log { "$TAG: Hooked pauseDownload in $className" }
                 break
             } catch (_: Throwable) {}
         }
@@ -741,10 +739,8 @@ object InProcessController {
                 if (!resumeNotificationEnabled) return@postDelayed
                 val snapshot = lastDownloadSnapshot ?: queryPausedSnapshot(context) ?: return@postDelayed
                 lastDownloadSnapshot = snapshot
-                module?.log(
-                    "$TAG: restoring paused overlay after DownloadNotifier.cancelAll " +
-                        "downloadId=${snapshot.downloadId}"
-                )
+                module?.log { "$TAG: restoring paused overlay after DownloadNotifier.cancelAll " +
+                        "downloadId=${snapshot.downloadId}" }
                 postPausedOverlay(context, snapshot.isMultiFile, snapshot)
             },
             250L,
@@ -792,10 +788,8 @@ object InProcessController {
 
             val nm = context.getSystemService(NotificationManager::class.java)
             nm?.notify(null, snapshot.notifId, notif)
-            module?.log(
-                "$TAG: posted paused overlay id=${snapshot.notifId} " +
-                    "channel=${snapshot.channelId} downloadId=${snapshot.downloadId}"
-            )
+            module?.log { "$TAG: posted paused overlay id=${snapshot.notifId} " +
+                    "channel=${snapshot.channelId} downloadId=${snapshot.downloadId}" }
         } catch (e: Exception) {
             module?.logError("$TAG: repostAsPaused failed: ${e.message}")
         }

@@ -64,7 +64,7 @@ class HyperIslandModule : XposedModule() {
 
     override fun onPackageLoaded(param: PackageLoadedParam) {
         initializeConfigManager()
-        log("onPackageLoaded: pkg=${param.packageName}")
+        log { "onPackageLoaded: pkg=${param.packageName}" }
         
         when (param.packageName) {
             "com.android.systemui" -> {

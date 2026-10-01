@@ -45,18 +45,18 @@ object ActiveIslandDismissHook : BaseHook() {
         }
         request.runnable = Runnable {
             if (request.cancelled || pendingDismissals[notificationKey] !== request) {
-                diag("stale dismiss ignored key=$notificationKey")
+                diag { "stale dismiss ignored key=$notificationKey" }
                 return@Runnable
             }
             pendingDismissals.remove(notificationKey, request)
             val controller = focusControllerRef?.get()
             if (controller == null) {
-                diag("focus controller unavailable key=$notificationKey")
+                diag { "focus controller unavailable key=$notificationKey" }
                 return@Runnable
             }
             val currentSbn = resolveSbn(controller, notificationKey)
             if (request.expectedSbn != null && !sameNotification(currentSbn, request.expectedSbn)) {
-                diag("stale dismiss ignored after notification replacement key=$notificationKey")
+                diag { "stale dismiss ignored after notification replacement key=$notificationKey" }
                 return@Runnable
             }
             try {
@@ -72,7 +72,7 @@ object ActiveIslandDismissHook : BaseHook() {
                     val updateNoFloat = resolveIslandUpdateNoFloat(controller, notificationKey)
                     islandOnly.isAccessible = true
                     islandOnly.invoke(controller, notificationKey, updateNoFloat)
-                    diag("focus island-only remove invoked key=$notificationKey")
+                    diag { "focus island-only remove invoked key=$notificationKey" }
                     return@Runnable
                 }
 
@@ -91,12 +91,10 @@ object ActiveIslandDismissHook : BaseHook() {
                     synthetic.isAccessible = true
                     synthetic.invoke(null, controller, notificationKey)
                 }
-                diag("focus removeByKey invoked key=$notificationKey")
+                diag { "focus removeByKey invoked key=$notificationKey" }
             } catch (e: Throwable) {
-                diag(
-                    "focus removeByKey failed key=$notificationKey " +
-                        "error=${e.cause?.message ?: e.message}",
-                )
+                diag { "focus removeByKey failed key=$notificationKey " +
+                        "error=${e.cause?.message ?: e.message}" }
             }
         }
         pendingDismissals.put(notificationKey, request)?.let { previous ->
@@ -206,7 +204,7 @@ object ActiveIslandDismissHook : BaseHook() {
                     field.isAccessible = true
                     (field.get(controller) as? MutableCollection<*>)?.remove(notificationKey)
                 }.onFailure {
-                    diag("timeout-removed cleanup failed key=$notificationKey error=${it.message}")
+                    diag { "timeout-removed cleanup failed key=$notificationKey error=${it.message}" }
                 }
                 return
             }
@@ -214,7 +212,7 @@ object ActiveIslandDismissHook : BaseHook() {
         }
     }
 
-    private fun diag(message: String) {
-        log("HyperIsland[IslandDismissDiag] $message")
+    private inline fun diag(message: () -> String) {
+        log { "HyperIsland[IslandDismissDiag] ${message()}" }
     }
 }

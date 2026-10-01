@@ -131,7 +131,7 @@ object ExpandedGestureFollowHook : BaseHook() {
                         if (previous == null) offset.remove() else offset.set(previous)
                     }
                 }
-                log(module, "installed on ${clazz.name}")
+                log(module) { "installed on ${clazz.name}" }
             }.onFailure { error ->
                 logFailureOnce(module, clazz.name) { "${clazz.name}: ${error.message}" }
             }
@@ -160,7 +160,7 @@ object ExpandedGestureFollowHook : BaseHook() {
                 }
             }
             hooked.add(clazz)
-            log(module, "capturing raw swipe on ${clazz.name}")
+            log(module) { "capturing raw swipe on ${clazz.name}" }
         }.onFailure { error ->
             logFailureOnce(module, "raw-swipe") { "raw swipe hook unavailable: ${error.message}" }
         }

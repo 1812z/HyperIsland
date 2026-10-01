@@ -178,7 +178,7 @@ object GenericProgressHook : BaseHook() {
                 pkg to channels
             }
         if (map.isNotEmpty()) cachedWhitelist = map
-        log(module, "whitelist loaded (${map.size} apps): ${map.keys}")
+        log(module) { "whitelist loaded (${map.size} apps): ${map.keys}" }
         return map
     }
 
@@ -230,7 +230,7 @@ object GenericProgressHook : BaseHook() {
                 handleNotificationRemoved(chain.args[0] as? StatusBarNotification, module, classLoader)
                 result
             }
-            log(module, "hooked MiuiNotificationListener notification lifecycle")
+            log(module) { "hooked MiuiNotificationListener notification lifecycle" }
         }.onFailure { logError(module, "MiuiNotificationListener lifecycle hook failed: ${it.message}") }
 
         hookMediaNotificationFilter(module, classLoader)
@@ -247,7 +247,7 @@ object GenericProgressHook : BaseHook() {
                 if (sbn != null) handleSbn(sbn, module, classLoader)
                 chain.proceed()
             }
-            log(module, "hooked MiuiBaseNotifUtil.generateInnerNotifBean")
+            log(module) { "hooked MiuiBaseNotifUtil.generateInnerNotifBean" }
         } catch (e: Throwable) {
             logError(module, "hook failed: ${e.message}")
         }
@@ -261,11 +261,11 @@ object GenericProgressHook : BaseHook() {
         sbn ?: return
         MarqueeHook.onNotificationRemoved(sbn)
         val context = HookUtils.getContext(classLoader) ?: return
-        log(module, "count-trace removed key=${sbn.key}")
+        log(module) { "count-trace removed key=${sbn.key}" }
         IslandOuterGlowHook.removeMediaGlowRequest(sbn.packageName, sbn.key)
         val removal = NotificationCountTracker.remove(sbn)
         if (removal.stale) {
-            log(module, "count-trace stale removed ignored key=${sbn.key}")
+            log(module) { "count-trace stale removed ignored key=${sbn.key}" }
             return
         }
         val removed = removal.entry
@@ -283,7 +283,7 @@ object GenericProgressHook : BaseHook() {
         }
         val tracked = trackedForCancel[sbn.key] ?: return
         if (!sameNotification(tracked.source, sbn)) {
-            log(module, "count-trace stale proxy removal ignored key=${sbn.key}")
+            log(module) { "count-trace stale proxy removal ignored key=${sbn.key}" }
             return
         }
         if (!trackedForCancel.remove(sbn.key, tracked)) return
@@ -350,8 +350,8 @@ object GenericProgressHook : BaseHook() {
             val restoreLockscreen = resolveTriOpt(restoreLockscreenRaw, defaultRestoreLockscreen)
 
             if (restoreLockscreen == "on" && shouldRedactPrivateContentOnLockscreen(context, notif, module)) {
-                log(module, "restoreLockscreen raw=$restoreLockscreenRaw, resolved=$restoreLockscreen, default=$defaultRestoreLockscreen")
-                log(module, "skipping due to lockscreen restore")
+                log(module) { "restoreLockscreen raw=$restoreLockscreenRaw, resolved=$restoreLockscreen, default=$defaultRestoreLockscreen" }
+                log(module) { "skipping due to lockscreen restore" }
                 extras.remove("miui.focus.param")
                 extras.remove("hyperisland_processed")
                 return
@@ -407,7 +407,7 @@ object GenericProgressHook : BaseHook() {
             val notificationCount = if (template == NotificationCountIslandNotification.TEMPLATE_ID) {
                 NotificationCountTracker.count(NotificationCountTracker.Scope(pkg, channelId)).coerceAtLeast(1)
             } else 1
-            log(module, "count-trace source pkg=$pkg channel=$channelId key=${sbn.key} template=$template count=$notificationCount")
+            log(module) { "count-trace source pkg=$pkg channel=$channelId key=${sbn.key} template=$template count=$notificationCount" }
 
             val appIconRaw = context.packageManager.getAppIcon(pkg)
             val largeIcon  = extractLargeIcon(extras)
@@ -609,7 +609,7 @@ object GenericProgressHook : BaseHook() {
                 extras.remove("miui.effect.src")
             }
 
-            log(module, "$pkg/$channelId | $title |  template=$template")
+            log(module) { "$pkg/$channelId | $title |  template=$template" }
 //            log(module, "$pkg/$channelId | $title | $progressPercent% | template=$template | buttons=${actions.size} | largeIcon=${largeIcon != null} | preserveSmallIcon=$preserveStatusBarSmallIcon")
 
             TemplateRegistry.dispatch(
@@ -707,7 +707,7 @@ object GenericProgressHook : BaseHook() {
     ): Boolean {
         if (!isKeyguardLocked(context, module)) return false
         val vis = notif.visibility
-        log(module, "notification visibility = $vis (PUBLIC=${Notification.VISIBILITY_PUBLIC}, PRIVATE=${Notification.VISIBILITY_PRIVATE}, SECRET=${Notification.VISIBILITY_SECRET})")
+        log(module) { "notification visibility = $vis (PUBLIC=${Notification.VISIBILITY_PUBLIC}, PRIVATE=${Notification.VISIBILITY_PRIVATE}, SECRET=${Notification.VISIBILITY_SECRET})" }
         if (vis == Notification.VISIBILITY_PUBLIC) return false
         // VISIBILITY_PRIVATE 或 VISIBILITY_SECRET 都应该跳过处理
         return true
@@ -716,7 +716,7 @@ object GenericProgressHook : BaseHook() {
     private fun isKeyguardLocked(context: Context, module: XposedModule): Boolean {
         val keyguardManager = context.getSystemService(KeyguardManager::class.java) ?: return false
         val locked = keyguardManager.isKeyguardLocked
-        log(module, "isKeyguardLocked = $locked")
+        log(module) { "isKeyguardLocked = $locked" }
         return locked
     }
 
@@ -862,10 +862,7 @@ object GenericProgressHook : BaseHook() {
             focusColor = resolvedOutEffectColor,
             module = module,
         )
-        log(
-            module,
-            "media glow request: pkg=$pkg id=$notifId island=$islandOuterGlowRaw/$resolvedIslandOuterGlowMode focus=$outerGlowRaw/$resolvedOuterGlowMode big=${extras.getString("miui.bigIsland.effect.src")} effect=${extras.getString("miui.effect.src")} islandColor=$resolvedIslandOuterGlowColor focusColor=$resolvedOutEffectColor dynamicColor=$dynamicColor",
-        )
+        log(module) { "media glow request: pkg=$pkg id=$notifId island=$islandOuterGlowRaw/$resolvedIslandOuterGlowMode focus=$outerGlowRaw/$resolvedOuterGlowMode big=${extras.getString("miui.bigIsland.effect.src")} effect=${extras.getString("miui.effect.src")} islandColor=$resolvedIslandOuterGlowColor focusColor=$resolvedOutEffectColor dynamicColor=$dynamicColor" }
     }
 
     private fun hookMediaNotificationFilter(module: XposedModule, classLoader: ClassLoader) {
@@ -905,15 +902,12 @@ object GenericProgressHook : BaseHook() {
                     false
                 }
                 if (shouldFilter && sbn != null) {
-                    log(
-                        module,
-                        "media notification filtered: pkg=${sbn.packageName} id=${sbn.id} key=${sbn.key}",
-                    )
+                    log(module) { "media notification filtered: pkg=${sbn.packageName} id=${sbn.id} key=${sbn.key}" }
                     return@intercept true
                 }
                 chain.proceed()
             }
-            log(module, "hooked FocusNotificationPluginImpl.onNotificationPosted")
+            log(module) { "hooked FocusNotificationPluginImpl.onNotificationPosted" }
         } catch (_: ClassNotFoundException) {
         } catch (e: Throwable) {
             hookedClass?.let { hookedMediaFilterClasses.remove(it) }

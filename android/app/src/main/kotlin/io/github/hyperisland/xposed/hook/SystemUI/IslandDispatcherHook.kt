@@ -49,7 +49,7 @@ object IslandDispatcherHook : BaseHook() {
                 }
                 result
             }
-            log(module, "hooked Application.onCreate in SystemUI")
+            log(module) { "hooked Application.onCreate in SystemUI" }
         } catch (e: Throwable) {
             hooked = false
             logError(module, "hook failed: ${e.message}")

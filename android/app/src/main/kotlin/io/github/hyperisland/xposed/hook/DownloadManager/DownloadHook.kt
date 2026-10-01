@@ -114,7 +114,7 @@ object DownloadHook : BaseHook() {
         val classLoader = param.defaultClassLoader
         val pkg = param.packageName
 
-        log(module, "handleLoadPackage pkg=$pkg")
+        log(module) { "handleLoadPackage pkg=$pkg" }
 
         try {
             val nmClass = classLoader.loadClass("android.app.NotificationManager")
@@ -170,7 +170,7 @@ object DownloadHook : BaseHook() {
             val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: ""
             val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
             val channelId = notif.channelId ?: ""
-            log(module, "[RAW/Notify] ch=$channelId | title=$title | text=$text")
+            log(module) { "[RAW/Notify] ch=$channelId | title=$title | text=$text" }
             if (!isDownloadNotification(title, text, extras) && channelId.isEmpty()) return
 
             val context = HookUtils.getContext(classLoader) ?: return
@@ -238,7 +238,7 @@ object DownloadHook : BaseHook() {
             if (downloadId > 0) { info.downloadId = downloadId; downloadIdMap[downloadId] = pkg }
             processedNotifications.entries.removeIf { now - it.value.lastProcessTime > 10000 }
 
-            log(module, "[Notify] $appName | $fileName | $progress% | paused=$isPaused | notifId=$id | tag=$tag | downloadId=$downloadId")
+            log(module) { "[Notify] $appName | $fileName | $progress% | paused=$isPaused | notifId=$id | tag=$tag | downloadId=$downloadId" }
 
             val snapshotKey = "${tag}_$id"
             if (isComplete) {
@@ -347,7 +347,7 @@ object DownloadHook : BaseHook() {
                             }
                             if (!isLatestIconGeneration(item)) {
                                 shouldProceed = false
-                                log(module, "Ignored stale Download Manager icon callback")
+                                log(module) { "Ignored stale Download Manager icon callback" }
                             }
                             val builder = item?.javaClass?.getDeclaredField("mBuilder")?.let { field ->
                                 field.isAccessible = true
@@ -373,7 +373,7 @@ object DownloadHook : BaseHook() {
                         if (shouldProceed) chain.proceed() else null
                     }
                 }
-            log(module, "Hooked NotificationHelper.updateNotification")
+            log(module) { "Hooked NotificationHelper.updateNotification" }
         } catch (_: ClassNotFoundException) {
         } catch (e: Throwable) {
             logError(module, "NotificationHelper hook error: ${e.message}")
@@ -444,7 +444,7 @@ object DownloadHook : BaseHook() {
                         }
                     }
                 }
-                log(module, "Hooked $className.delete")
+                log(module) { "Hooked $className.delete" }
                 break
             } catch (_: ClassNotFoundException) {
             } catch (e: Throwable) {
@@ -467,7 +467,7 @@ object DownloadHook : BaseHook() {
                     }
                 }
             }
-            log(module, "Hooked DownloadNotifier.cancelAll")
+            log(module) { "Hooked DownloadNotifier.cancelAll" }
         } catch (_: ClassNotFoundException) {
         } catch (e: Throwable) {
             logError(module, "DownloadNotifier.cancelAll hook error: ${e.message}")
@@ -504,7 +504,7 @@ object DownloadHook : BaseHook() {
         try {
             val method = clazz.getDeclaredMethod(methodName)
             module.hook(method).intercept { chain ->
-                log(module, "[$label] $methodName called")
+                log(module) { "[$label] $methodName called" }
                 chain.proceed()
             }
         } catch (_: Throwable) {}

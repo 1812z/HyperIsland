@@ -96,7 +96,7 @@ object HeartRateIslandHook : BaseHook() {
                 if (app != null && appContext == null) initialize(app)
                 result
             }
-            log(module, "hooked Application.onCreate")
+            log(module) { "hooked Application.onCreate" }
         }.onFailure {
             initialized = false
             logError(module, "hook failed: ${it.message}")
@@ -169,13 +169,13 @@ object HeartRateIslandHook : BaseHook() {
             if (!runtimeEnabled) {
                 closeGatt()
                 cancelIsland()
-                moduleRef?.let { log(it, "heart rate island disabled at runtime") }
+                moduleRef?.let { log(it) { "heart rate island disabled at runtime" } }
             } else if (forceReconnect || !previousEnabled ||
                 previousReadMode != runtimeReadMode ||
                 previousDeviceAddress != runtimeDeviceAddress
             ) {
                 moduleRef?.let {
-                    log(it, "heart rate config changed, reconnect address=$runtimeDeviceAddress")
+                    log(it) { "heart rate config changed, reconnect address=$runtimeDeviceAddress" }
                 }
                 closeGatt()
                 cancelIsland()
@@ -208,7 +208,7 @@ object HeartRateIslandHook : BaseHook() {
         }
         val address = runtimeDeviceAddress
         if (address.isEmpty()) {
-            moduleRef?.let { log(it, "heart rate device is not configured") }
+            moduleRef?.let { log(it) { "heart rate device is not configured" } }
             return
         }
         val adapter = context.getSystemService(BluetoothManager::class.java)?.adapter
@@ -231,7 +231,7 @@ object HeartRateIslandHook : BaseHook() {
             }
             moduleRef?.let {
                 val mode = if (autoConnect) "auto" else "direct"
-                log(it, "connecting heart rate device address=$address mode=$mode")
+                log(it) { "connecting heart rate device address=$address mode=$mode" }
             }
         }.onFailure {
             activeGattAutoConnect = false
@@ -250,7 +250,7 @@ object HeartRateIslandHook : BaseHook() {
             if (newState == BluetoothProfile.STATE_CONNECTED && status == BluetoothGatt.GATT_SUCCESS) {
                 connected = true
                 mainHandler.removeCallbacks(setupRetryRunnable)
-                moduleRef?.let { log(it, "heart rate device connected") }
+                moduleRef?.let { log(it) { "heart rate device connected" } }
                 if (!gatt.discoverServices()) {
                     failAndRetrySetup(gatt, "failed to start heart rate service discovery")
                 }
@@ -287,7 +287,7 @@ object HeartRateIslandHook : BaseHook() {
                 descriptor.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
                 gatt.writeDescriptor(descriptor)
             }
-            moduleRef?.let { log(it, "heart rate notifications enabled=$writeStarted") }
+            moduleRef?.let { log(it) { "heart rate notifications enabled=$writeStarted" } }
             if (!writeStarted) {
                 failAndRetrySetup(gatt, "failed to start heart rate descriptor write")
             }
@@ -401,20 +401,14 @@ object HeartRateIslandHook : BaseHook() {
         }
         if (activeGattAutoConnect) {
             moduleRef?.let {
-                log(
-                    it,
-                    "heart rate device offline status=$status state=$newState; " +
-                        "waiting for Bluetooth auto-connect",
-                )
+                log(it) { "heart rate device offline status=$status state=$newState; " +
+                        "waiting for Bluetooth auto-connect" }
             }
             return
         }
         moduleRef?.let {
-            log(
-                it,
-                "heart rate direct connection ended status=$status state=$newState; " +
-                    "registering Bluetooth auto-connect",
-            )
+            log(it) { "heart rate direct connection ended status=$status state=$newState; " +
+                    "registering Bluetooth auto-connect" }
         }
         mainHandler.post {
             if (activeGatt !== gatt || !runtimeEnabled) return@post

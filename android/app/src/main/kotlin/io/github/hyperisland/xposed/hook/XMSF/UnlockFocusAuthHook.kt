@@ -26,7 +26,7 @@ object UnlockFocusAuthHook : BaseHook() {
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
         if (!isEnabled()) {
-            log(module, "disabled, skipping hook for ${param.packageName}")
+            log(module) { "disabled, skipping hook for ${param.packageName}" }
             return
         }
         hookAuthSession(module, param.defaultClassLoader)
@@ -87,10 +87,10 @@ object UnlockFocusAuthHook : BaseHook() {
 
                 try {
                     val originalCode = getIntField(error, "a")
-                    log(module, "auth error intercepted, original errorCode=$originalCode, forcing to 0")
+                    log(module) { "auth error intercepted, original errorCode=$originalCode, forcing to 0" }
                     setField(error, "a", 0)
                     val successResult = callMethod(chain.thisObject!!, "h")
-                    log(module, "auth bypassed successfully")
+                    log(module) { "auth bypassed successfully" }
                     successResult  // skip original
                 } catch (e: Throwable) {
                     logError(module, "bypass failed — ${e.message}")
@@ -98,7 +98,7 @@ object UnlockFocusAuthHook : BaseHook() {
                 }
             }
 
-            log(module, "hooked AuthSession.b(error)")
+            log(module) { "hooked AuthSession.b(error)" }
         } catch (e: Throwable) {
             logError(module, "failed to hook $AUTH_SESSION_CLASS — ${e.message}")
         }

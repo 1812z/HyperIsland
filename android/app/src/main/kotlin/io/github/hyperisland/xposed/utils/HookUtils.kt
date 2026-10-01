@@ -86,9 +86,8 @@ object HookUtils {
             "background=found defining=${describe(target.classLoader)}"
         }.getOrElse { "background=missing error=${it.javaClass.simpleName}" }
         val path = runCatching { loader.toString().take(1500) }.getOrDefault("unavailable")
-        module.logDebug(DIAGNOSTIC_TAG,
-            "pid=${Process.myPid()} event=$event loader=${describe(loader)} parent=${describe(loader.parent)} " +
-                "$probe $detail path=$path")
+        module.logDebug(DIAGNOSTIC_TAG) { "pid=${Process.myPid()} event=$event loader=${describe(loader)} parent=${describe(loader.parent)} " +
+                "$probe $detail path=$path" }
     }
 
     /** Context creation is an additional readiness event, not a per-frame retry. */
@@ -113,11 +112,9 @@ object HookUtils {
                     result
                 }
             }
-            module.logDebug(DIAGNOSTIC_TAG,
-                "pid=${Process.myPid()} plugin-context-observer methods=${methods.size}")
+            module.logDebug(DIAGNOSTIC_TAG) { "pid=${Process.myPid()} plugin-context-observer methods=${methods.size}" }
         }.onFailure {
-            module.logDebug(DIAGNOSTIC_TAG,
-                "pid=${Process.myPid()} plugin-context-observer unavailable=${it.javaClass.simpleName}")
+            module.logDebug(DIAGNOSTIC_TAG) { "pid=${Process.myPid()} plugin-context-observer unavailable=${it.javaClass.simpleName}" }
         }
     }
 
@@ -193,8 +190,7 @@ object HookUtils {
                             }
                         }
                     } catch (error: Exception) {
-                        module.logDebug(DIAGNOSTIC_TAG,
-                            "constructor-hook unavailable class=$clName error=${error.javaClass.simpleName}")
+                        module.logDebug(DIAGNOSTIC_TAG) { "constructor-hook unavailable class=$clName error=${error.javaClass.simpleName}" }
                     }
                 }
             } catch (_: Exception) {}

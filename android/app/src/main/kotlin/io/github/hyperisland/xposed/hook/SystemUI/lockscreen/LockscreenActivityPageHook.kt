@@ -46,7 +46,7 @@ internal object LockscreenActivityPageHook {
     private var getEntryTransitionAlpha: Method? = null
     private var setEntryTransitionAlpha: Method? = null
 
-    private fun log(module: XposedModule, message: String) {
+    private inline fun log(module: XposedModule, message: () -> String) {
         module.logDebug(TAG, message)
     }
 
@@ -98,7 +98,7 @@ internal object LockscreenActivityPageHook {
         hookSystemScrimSuppression(module, classLoader)
         hookKeyguardEntryFade(module, classLoader, magazineHelper)
         systemUiHooked = true
-        log(module, "SystemUI negative-one page redirected to ${page.activityName}")
+        log(module) { "SystemUI negative-one page redirected to ${page.activityName}" }
     }
 
     /**
