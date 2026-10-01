@@ -290,8 +290,7 @@ object IslandSwipeActionHook : BaseHook() {
     }.getOrNull()
 
     private fun diag(message: String) {
-        if (!ConfigManager.isDebugLogEnabled()) return
-        ConfigManager.module()?.log("$TAG $message")
+        log("$TAG $message")
     }
 
     private data class Target(

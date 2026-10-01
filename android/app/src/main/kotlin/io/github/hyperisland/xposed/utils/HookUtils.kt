@@ -3,8 +3,8 @@ package io.github.hyperisland.xposed.utils
 import io.github.libxposed.api.XposedModule
 import android.content.Context
 import android.os.Process
-import android.util.Log
 import io.github.hyperisland.xposed.ConfigManager
+import io.github.hyperisland.xposed.logDebug
 import java.util.WeakHashMap
 import java.util.IdentityHashMap
 import java.lang.ref.WeakReference
@@ -73,6 +73,7 @@ object HookUtils {
     } ?: "bootstrap"
 
     private fun traceLoader(module: XposedModule, loader: ClassLoader, event: String, detail: String = "") {
+        // 前置短路：关闭调试日志时直接跳过下方昂贵的 Class.forName / toString 探测
         if (!ConfigManager.isDebugLogEnabled()) return
         synchronized(diagnosticEvents) {
             if (diagnosticCount >= 120 || diagnosticEvents.size >= 256) return
@@ -85,7 +86,7 @@ object HookUtils {
             "background=found defining=${describe(target.classLoader)}"
         }.getOrElse { "background=missing error=${it.javaClass.simpleName}" }
         val path = runCatching { loader.toString().take(1500) }.getOrDefault("unavailable")
-        module.log(Log.DEBUG, DIAGNOSTIC_TAG,
+        module.logDebug(DIAGNOSTIC_TAG,
             "pid=${Process.myPid()} event=$event loader=${describe(loader)} parent=${describe(loader.parent)} " +
                 "$probe $detail path=$path")
     }
@@ -112,15 +113,11 @@ object HookUtils {
                     result
                 }
             }
-            if (ConfigManager.isDebugLogEnabled()) {
-                module.log(Log.DEBUG, DIAGNOSTIC_TAG,
-                    "pid=${Process.myPid()} plugin-context-observer methods=${methods.size}")
-            }
+            module.logDebug(DIAGNOSTIC_TAG,
+                "pid=${Process.myPid()} plugin-context-observer methods=${methods.size}")
         }.onFailure {
-            if (ConfigManager.isDebugLogEnabled()) {
-                module.log(Log.DEBUG, DIAGNOSTIC_TAG,
-                    "pid=${Process.myPid()} plugin-context-observer unavailable=${it.javaClass.simpleName}")
-            }
+            module.logDebug(DIAGNOSTIC_TAG,
+                "pid=${Process.myPid()} plugin-context-observer unavailable=${it.javaClass.simpleName}")
         }
     }
 
@@ -196,10 +193,8 @@ object HookUtils {
                             }
                         }
                     } catch (error: Exception) {
-                        if (ConfigManager.isDebugLogEnabled()) {
-                            module.log(Log.DEBUG, DIAGNOSTIC_TAG,
-                                "constructor-hook unavailable class=$clName error=${error.javaClass.simpleName}")
-                        }
+                        module.logDebug(DIAGNOSTIC_TAG,
+                            "constructor-hook unavailable class=$clName error=${error.javaClass.simpleName}")
                     }
                 }
             } catch (_: Exception) {}

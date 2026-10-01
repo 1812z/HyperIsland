@@ -1,7 +1,9 @@
 package io.github.hyperisland.xposed.hook
 
-import android.util.Log
 import io.github.hyperisland.xposed.ConfigManager
+import io.github.hyperisland.xposed.logDebug
+import io.github.hyperisland.xposed.logError
+import io.github.hyperisland.xposed.logWarn
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 
@@ -23,7 +25,7 @@ abstract class BaseHook {
             if (loggedFailures.contains(key) || loggedFailures.size >= 64) return
             loggedFailures.add(key)
         }
-        if (ConfigManager.isDebugLogEnabled()) log(module, message())
+        log(module, message())
     }
 
     /**
@@ -53,26 +55,19 @@ abstract class BaseHook {
     }
 
     /**
-     * 获取日志实例
+     * 获取日志实例（开关判断由 io.github.hyperisland.xposed.logDebug 内部完成）
      */
-    protected fun log(module: XposedModule, message: String) {
-        if (ConfigManager.isDebugLogEnabled())
-            module.log(Log.DEBUG, getTag(), message)
-    }
+    protected fun log(module: XposedModule, message: String) = module.logDebug(getTag(), message)
 
     /**
      * 获取警告日志实例
      */
-    protected fun logWarn(module: XposedModule, message: String) {
-        module.log(Log.WARN, getTag(), message)
-    }
+    protected fun logWarn(module: XposedModule, message: String) = module.logWarn(getTag(), message)
 
     /**
      * 获取错误日志实例
      */
-    protected fun logError(module: XposedModule, message: String) {
-        module.log(Log.ERROR, getTag(), message)
-    }
+    protected fun logError(module: XposedModule, message: String) = module.logError(getTag(), message)
 
     /**
      * Hook入口点，确保配置管理器初始化后调用onInit

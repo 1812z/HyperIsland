@@ -3,7 +3,6 @@ package io.github.hyperisland.xposed.hook
 import android.os.Handler
 import android.os.Looper
 import android.service.notification.StatusBarNotification
-import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.log
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
@@ -216,7 +215,6 @@ object ActiveIslandDismissHook : BaseHook() {
     }
 
     private fun diag(message: String) {
-        if (!ConfigManager.isDebugLogEnabled()) return
-        ConfigManager.module()?.log("HyperIsland[IslandDismissDiag] $message")
+        log("HyperIsland[IslandDismissDiag] $message")
     }
 }

@@ -3,7 +3,6 @@ package io.github.hyperisland.xposed.hook.SystemUI
 import android.os.Bundle
 import android.graphics.Region
 import android.service.notification.StatusBarNotification
-import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.log
 import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.hyperisland.xposed.utils.HookUtils
@@ -367,8 +366,7 @@ object DynamicIslandVisibilityHook : BaseHook() {
         key.split('|').getOrNull(2)?.toIntOrNull()
 
     private fun diag(message: String) {
-        if (!ConfigManager.isDebugLogEnabled()) return
-        ConfigManager.module()?.log("$TAG $message")
+        log("$TAG $message")
     }
 
     data class Event(

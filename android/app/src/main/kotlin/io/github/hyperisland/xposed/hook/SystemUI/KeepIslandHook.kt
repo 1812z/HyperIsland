@@ -262,7 +262,6 @@ object KeepIslandHook : BaseHook() {
     }
 
     private fun diag(message: String) {
-        if (!ConfigManager.isDebugLogEnabled()) return
         cachedModule?.let { log(it, message) }
     }
 

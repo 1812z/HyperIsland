@@ -30,7 +30,7 @@ object MarqueeHook : BaseHook() {
     override fun getTag() = TAG
 
     private fun trace(message: String) {
-        if (ConfigManager.isDebugLogEnabled()) log("marquee-trace $message")
+        log("marquee-trace $message")
     }
 
     override fun onConfigChanged() {

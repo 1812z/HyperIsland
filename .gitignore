@@ -45,3 +45,4 @@ opencode.json
 /node_modules
 /docs/.vitepress/dist
 /android/.settings
+/tmp

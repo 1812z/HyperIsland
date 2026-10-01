@@ -7,6 +7,8 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.view.View
 import android.view.ViewGroup
+import io.github.hyperisland.xposed.logDebug
+import io.github.hyperisland.xposed.logError
 import io.github.libxposed.api.XposedModule
 import java.lang.reflect.Field
 import java.lang.reflect.Method
@@ -45,13 +47,11 @@ internal object LockscreenActivityPageHook {
     private var setEntryTransitionAlpha: Method? = null
 
     private fun log(module: XposedModule, message: String) {
-        if (io.github.hyperisland.xposed.ConfigManager.isDebugLogEnabled()) {
-            module.log(android.util.Log.DEBUG, TAG, message)
-        }
+        module.logDebug(TAG, message)
     }
 
     private fun logError(module: XposedModule, message: String) {
-        module.log(android.util.Log.ERROR, TAG, message)
+        module.logError(TAG, message)
     }
 
     fun install(module: XposedModule, classLoader: ClassLoader, target: LockscreenActivityPage) {

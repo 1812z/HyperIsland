@@ -222,9 +222,6 @@ object GenericProgressHook : BaseHook() {
                     NotificationCountTracker.posted(sbn, loadChannelTemplate(sbn.packageName, sbn.notification?.channelId.orEmpty()))
                 }
                 val result = chain.proceed()
-                (chain.args.firstOrNull() as? StatusBarNotification)?.let { sbn ->
-                    if (ConfigManager.isDebugLogEnabled()) log(module, "count-trace concrete posted key=${sbn.key}")
-                }
                 result
             }
             val removed = listenerClass.getDeclaredMethod("onNotificationRemoved", StatusBarNotification::class.java, rankingMap, Int::class.javaPrimitiveType!!)
@@ -264,11 +261,11 @@ object GenericProgressHook : BaseHook() {
         sbn ?: return
         MarqueeHook.onNotificationRemoved(sbn)
         val context = HookUtils.getContext(classLoader) ?: return
-        if (ConfigManager.isDebugLogEnabled()) log(module, "count-trace removed key=${sbn.key}")
+        log(module, "count-trace removed key=${sbn.key}")
         IslandOuterGlowHook.removeMediaGlowRequest(sbn.packageName, sbn.key)
         val removal = NotificationCountTracker.remove(sbn)
         if (removal.stale) {
-            if (ConfigManager.isDebugLogEnabled()) log(module, "count-trace stale removed ignored key=${sbn.key}")
+            log(module, "count-trace stale removed ignored key=${sbn.key}")
             return
         }
         val removed = removal.entry
@@ -286,7 +283,7 @@ object GenericProgressHook : BaseHook() {
         }
         val tracked = trackedForCancel[sbn.key] ?: return
         if (!sameNotification(tracked.source, sbn)) {
-            if (ConfigManager.isDebugLogEnabled()) log(module, "count-trace stale proxy removal ignored key=${sbn.key}")
+            log(module, "count-trace stale proxy removal ignored key=${sbn.key}")
             return
         }
         if (!trackedForCancel.remove(sbn.key, tracked)) return
@@ -306,9 +303,7 @@ object GenericProgressHook : BaseHook() {
             val isHyperIslandProxy =
                 extras.getString(EXTRA_OWNER) == OWNER_MARKER ||
                     (isDispatcherChannel && pkg == "com.android.systemui")
-            if (ConfigManager.isDebugLogEnabled()) {
-                log(module, "count-trace enter pkg=$pkg key=${sbn.key} channel=$channelId proxy=$isHyperIslandProxy dispatcher=$isDispatcherChannel")
-            }
+            //log(module, "count-trace enter pkg=$pkg key=${sbn.key} channel=$channelId proxy=$isHyperIslandProxy dispatcher=$isDispatcherChannel")
 
             // Notification 对象可能被应用复用；每次处理源通知时先清除旧的代发标记，
             // 仅由本轮确实成功的代发路径重新写入。
@@ -412,9 +407,7 @@ object GenericProgressHook : BaseHook() {
             val notificationCount = if (template == NotificationCountIslandNotification.TEMPLATE_ID) {
                 NotificationCountTracker.count(NotificationCountTracker.Scope(pkg, channelId)).coerceAtLeast(1)
             } else 1
-            if (ConfigManager.isDebugLogEnabled()) {
-                log(module, "count-trace source pkg=$pkg channel=$channelId key=${sbn.key} template=$template count=$notificationCount")
-            }
+            log(module, "count-trace source pkg=$pkg channel=$channelId key=${sbn.key} template=$template count=$notificationCount")
 
             val appIconRaw = context.packageManager.getAppIcon(pkg)
             val largeIcon  = extractLargeIcon(extras)
@@ -912,12 +905,10 @@ object GenericProgressHook : BaseHook() {
                     false
                 }
                 if (shouldFilter && sbn != null) {
-                    if (ConfigManager.isDebugLogEnabled()) {
-                        log(
-                            module,
-                            "media notification filtered: pkg=${sbn.packageName} id=${sbn.id} key=${sbn.key}",
-                        )
-                    }
+                    log(
+                        module,
+                        "media notification filtered: pkg=${sbn.packageName} id=${sbn.id} key=${sbn.key}",
+                    )
                     return@intercept true
                 }
                 chain.proceed()
