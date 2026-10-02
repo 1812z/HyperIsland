@@ -152,7 +152,8 @@ object SettingsHomeEntryHook : BaseHook() {
 
     private fun createLaunchIntent(): Intent = Intent().apply {
         setClassName(MODULE_PACKAGE, MAIN_ACTIVITY)
-        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        // 以“系统设置的子页面”方式进入模块：不新建任务（不加 FLAG_ACTIVITY_NEW_TASK），
+        // 让 Activity 叠加在系统设置的任务栈之上，返回时自然回到设置主页。
         putExtra("isDisplayHomeAsUpEnabled", true)
     }
 
