@@ -245,6 +245,45 @@ internal object PresetStore {
             title = label,
         )
 
+    /**
+     * 由预设包含的叶子 id 构建「应用配置」的层级树：
+     * - 通知 / Toast 分组下挂对应的应用级叶子（标题为应用名）；
+     * - 其他分组按注册表递归过滤，只保留被包含的叶子；无匹配叶子的分组整体隐藏。
+     */
+    fun presetSectionTree(context: Context, leafIds: Set<String>): List<ConfigSection> {
+        fun filter(node: ConfigSection): ConfigSection? {
+            if (node.children.isEmpty()) return node.takeIf { it.id in leafIds }
+            val children = node.children.mapNotNull { filter(it) }
+            return node.takeIf { children.isNotEmpty() }?.copy(children = children)
+        }
+        val appLeaves = leafIds.mapNotNull { id ->
+            parseAppConfigLeafId(id)?.let { it.first to it.second }
+        }
+        return ConfigSectionGroups.mapNotNull { group ->
+            when (group.id) {
+                "notification" -> appChildren(context, group, appLeaves, AppConfigKind.Notification)
+                "toast" -> appChildren(context, group, appLeaves, AppConfigKind.Toast)
+                else -> filter(group)
+            }
+        } + leafIds
+            // 跨版本预设可能带当前注册表没有的分节 id，回退为单独节点展示。
+            .filter { parseAppConfigLeafId(it) == null && findConfigSection(it) == null }
+            .map { ConfigSection(id = it, titleRes = 0, title = it) }
+    }
+
+    private fun appChildren(
+        context: Context,
+        group: ConfigSection,
+        appLeaves: List<Pair<AppConfigKind, String>>,
+        kind: AppConfigKind,
+    ): ConfigSection? {
+        val children = appLeaves
+            .filter { it.first == kind }
+            .map { (_, packageName) -> appLeafSection(kind, packageName, appLabel(context, packageName)) }
+            .sortedBy { it.title?.lowercase() }
+        return group.takeIf { children.isNotEmpty() }?.copy(children = children)
+    }
+
     private fun appConfigRoots(prefs: SharedPreferences): Map<String, JSONObject> {
         val result = LinkedHashMap<String, JSONObject>()
         logicalEntries(prefs).forEach { (key, value) ->

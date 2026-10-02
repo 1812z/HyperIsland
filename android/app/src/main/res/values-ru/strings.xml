@@ -928,6 +928,7 @@
     <string name="preset_entry_hint">Не знаете, как настроить? Нажмите, чтобы использовать пресет</string>
     <string name="preset_page_title">Пресеты конфигурации</string>
     <string name="preset_search">Поиск пресетов</string>
+    <string name="close">Закрыть</string>
     <string name="preset_new_config">Новая конфигурация</string>
     <string name="preset_section_notification">Уведомления</string>
     <string name="preset_section_toast">Toast</string>
@@ -940,6 +941,7 @@
     <string name="preset_delete">Удалить</string>
     <string name="preset_upload">Загрузить</string>
     <string name="preset_copy">Копировать</string>
+    <string name="preset_copy_success">Скопировано</string>
     <string name="preset_apply">Применить</string>
     <string name="preset_sort">Сортировка</string>
     <string name="preset_sort_name">По имени</string>

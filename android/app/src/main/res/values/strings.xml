@@ -985,6 +985,7 @@
     <string name="preset_entry_hint">Not sure how to configure? Tap to use a preset</string>
     <string name="preset_page_title">Config presets</string>
     <string name="preset_search">Search presets</string>
+    <string name="close">Close</string>
     <string name="preset_new_config">New configuration</string>
     <string name="preset_apply_confirm_title">Apply this configuration?</string>
     <string name="preset_apply_confirm_message">This cannot be undone after applying!</string>
@@ -999,6 +1000,7 @@
     <string name="preset_delete">Delete</string>
     <string name="preset_upload">Upload</string>
     <string name="preset_copy">Copy</string>
+    <string name="preset_copy_success">Copied</string>
     <string name="preset_apply">Apply</string>
     <string name="preset_sort">Sort by</string>
     <string name="preset_sort_name">Name</string>

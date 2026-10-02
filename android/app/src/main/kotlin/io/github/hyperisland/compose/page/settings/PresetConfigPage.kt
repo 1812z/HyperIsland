@@ -12,6 +12,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -45,15 +46,16 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.navigationevent.NavigationEventDispatcher
 import androidx.navigationevent.NavigationEventInfo
@@ -85,23 +87,27 @@ import org.json.JSONObject
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
-import top.yukonga.miuix.kmp.basic.Checkbox
+import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.DropdownEntry
 import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.InputField
 import top.yukonga.miuix.kmp.basic.SearchBar
 import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.basic.TextFieldDefaults
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.basic.ArrowRight
+import top.yukonga.miuix.kmp.icon.basic.Check
+import top.yukonga.miuix.kmp.icon.basic.Close
 import top.yukonga.miuix.kmp.icon.extended.Contacts
+import top.yukonga.miuix.kmp.icon.extended.Delete
 import top.yukonga.miuix.kmp.icon.extended.Download
 import top.yukonga.miuix.kmp.icon.extended.Help
 import top.yukonga.miuix.kmp.icon.extended.More
@@ -218,8 +224,8 @@ internal fun PresetConfigPage(
     var applySheetShown by remember { mutableStateOf(false) }
     // 应用成功后待弹出的提示条数；等 bottom sheet 关闭动画结束再展示。
     var appliedCount by remember { mutableStateOf<Int?>(null) }
-    // 上传成功后待弹出到页面底部的提示；同样等 sheet 关闭动画结束再展示。
-    var uploadResult by remember { mutableStateOf<String?>(null) }
+    // 上传 / 复制成功后待弹出到页面底部的提示；等 sheet 关闭动画结束再展示。
+    var sheetMessage by remember { mutableStateOf<String?>(null) }
 
     val newConfigLabel = stringResource(R.string.preset_new_config)
     val importLabel = stringResource(R.string.preset_import_clipboard)
@@ -362,8 +368,8 @@ internal fun PresetConfigPage(
                         snackbarState.showSnackbar(context.getString(R.string.preset_applied_count, count))
                     }
                 }
-                uploadResult?.let { message ->
-                    uploadResult = null
+                sheetMessage?.let { message ->
+                    sheetMessage = null
                     scope.launch { snackbarState.showSnackbar(message) }
                 }
             },
@@ -372,11 +378,14 @@ internal fun PresetConfigPage(
                 reload++
                 applySheetShown = false
             },
-            onCopy = {
+            onCopy = { target ->
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                 clipboard.setPrimaryClip(
-                    ClipData.newPlainText(preset.title, preset.toJson().toString(2)),
+                    ClipData.newPlainText(target.title, target.toJson().toString(2)),
                 )
+                // 复制后收起 sheet，并在页面底部提示。
+                sheetMessage = context.getString(R.string.preset_copy_success)
+                applySheetShown = false
             },
             onApply = { effective, selectedSectionIds ->
                 PresetStore.apply(context, effective, selectedSectionIds)
@@ -390,8 +399,8 @@ internal fun PresetConfigPage(
                 PresetStore.saveLocal(context, updated)
                 reload++
             },
-            onUploadResult = { message ->
-                uploadResult = message
+            onSheetMessage = { message ->
+                sheetMessage = message
                 applySheetShown = false
             },
         )
@@ -536,6 +545,49 @@ private fun sheetBottomPadding(extra: Dp = 12.dp): Dp {
 }
 
 /**
+ * 以下配色全部用 Miuix 语义 token，禁止硬编码，保证深色模式自动切换。
+ *
+ * 浅色：sheet = 淡灰（与默认按钮同色），卡片 / 输入框 / 普通按钮 = 白。
+ * 深色：把两者互换，让 sheet 更暗、卡片更亮，符合深色层级。
+ */
+@Composable
+private fun presetSheetColor(): Color =
+    if (isSystemInDarkTheme()) MiuixTheme.colorScheme.surfaceContainer
+    else MiuixTheme.colorScheme.secondaryVariant
+
+@Composable
+private fun presetSurfaceColor(): Color =
+    if (isSystemInDarkTheme()) MiuixTheme.colorScheme.secondaryVariant
+    else MiuixTheme.colorScheme.surfaceContainer
+
+@Composable
+private fun presetSurfaceContentColor(): Color =
+    if (isSystemInDarkTheme()) MiuixTheme.colorScheme.onSecondaryVariant
+    else MiuixTheme.colorScheme.onSurfaceContainer
+
+@Composable
+private fun presetCardColors() = CardDefaults.defaultColors(
+    color = presetSurfaceColor(),
+    contentColor = presetSurfaceContentColor(),
+)
+
+/**
+ * sheet 内的普通按钮配色：用卡片同款的白 / 黑色（`surfaceContainer`），随深浅色主题自动切换。
+ * 不要硬编码颜色，否则深色模式不会跟随。
+ */
+@Composable
+private fun presetButtonColors() = ButtonDefaults.buttonColors(
+    color = presetSurfaceColor(),
+    contentColor = presetSurfaceContentColor(),
+)
+
+@Composable
+private fun presetTextFieldColors() = TextFieldDefaults.textFieldColors(
+    backgroundColor = presetSurfaceColor(),
+    labelColor = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+)
+
+/**
  * 新建配置 bottom sheet：顶部配置信息（标题 / 内容 / 作者）+ 配置分类选择树。
  */
 @Composable
@@ -552,9 +604,26 @@ private fun NewPresetBottomSheet(
     var authorInput by remember(show) { mutableStateOf("") }
     var selectedLeafIds by remember(show) { mutableStateOf(emptySet<String>()) }
 
+    val canSave = titleInput.isNotBlank() && selectedLeafIds.isNotEmpty()
+    fun save() {
+        onSave(titleInput.trim(), contentInput.trim(), authorInput.trim(), selectedLeafIds)
+    }
+
     WindowBottomSheet(
         show = show,
         title = stringResource(R.string.preset_new_config),
+        backgroundColor = presetSheetColor(),
+        insideMargin = DpSize(12.dp, 0.dp),
+        startAction = {
+            IconButton(onClick = onDismiss) {
+                Icon(MiuixIcons.Basic.Close, contentDescription = stringResource(R.string.close))
+            }
+        },
+        endAction = {
+            IconButton(onClick = ::save, enabled = canSave) {
+                Icon(MiuixIcons.Basic.Check, contentDescription = stringResource(R.string.save))
+            }
+        },
         onDismissRequest = onDismiss,
     ) {
         LazyColumn(
@@ -566,48 +635,48 @@ private fun NewPresetBottomSheet(
         ) {
             item {
                 SmallTitle(stringResource(R.string.preset_info_section))
-                Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        TextField(
-                            value = titleInput,
-                            onValueChange = { if (it.length <= PRESET_TITLE_MAX) titleInput = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            label = stringResource(R.string.preset_field_title),
-                            useLabelAsPlaceholder = true,
-                            singleLine = true,
-                        )
-                        TextField(
-                            value = contentInput,
-                            onValueChange = { if (it.length <= PRESET_CONTENT_MAX) contentInput = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            label = stringResource(R.string.preset_field_content),
-                            useLabelAsPlaceholder = true,
-                            singleLine = false,
-                            maxLines = 3,
-                        )
-                        TextField(
-                            value = authorInput,
-                            onValueChange = { if (it.length <= PRESET_AUTHOR_MAX) authorInput = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            label = stringResource(R.string.preset_field_author),
-                            useLabelAsPlaceholder = true,
-                            singleLine = true,
-                        )
-                    }
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    TextField(
+                        value = titleInput,
+                        onValueChange = { if (it.length <= PRESET_TITLE_MAX) titleInput = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = stringResource(R.string.preset_field_title),
+                        useLabelAsPlaceholder = true,
+                        singleLine = true,
+                        colors = presetTextFieldColors(),
+                    )
+                    TextField(
+                        value = contentInput,
+                        onValueChange = { if (it.length <= PRESET_CONTENT_MAX) contentInput = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = stringResource(R.string.preset_field_content),
+                        useLabelAsPlaceholder = true,
+                        singleLine = false,
+                        maxLines = 3,
+                        colors = presetTextFieldColors(),
+                    )
+                    TextField(
+                        value = authorInput,
+                        onValueChange = { if (it.length <= PRESET_AUTHOR_MAX) authorInput = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = stringResource(R.string.preset_field_author),
+                        useLabelAsPlaceholder = true,
+                        singleLine = true,
+                        colors = presetTextFieldColors(),
+                    )
                 }
             }
             item {
                 SmallTitle(stringResource(R.string.config))
-                Card(modifier = Modifier.fillMaxWidth()) {
+                Card(modifier = Modifier.fillMaxWidth(), colors = presetCardColors()) {
                     ConfigSectionTree(
                         sections = sectionTree,
                         selectedLeafIds = selectedLeafIds,
                         onSelectedLeafIdsChange = { selectedLeafIds = it },
                         counts = sectionCounts,
-                        modifier = Modifier.padding(vertical = 4.dp),
                     )
                 }
             }
@@ -616,14 +685,16 @@ private fun NewPresetBottomSheet(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    TextButton(
-                        text = stringResource(R.string.cancel),
+                    Button(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f),
-                    )
+                        colors = presetButtonColors(),
+                    ) {
+                        Text(stringResource(R.string.cancel))
+                    }
                     Button(
-                        onClick = { onSave(titleInput.trim(), contentInput.trim(), authorInput.trim(), selectedLeafIds) },
-                        enabled = titleInput.isNotBlank() && selectedLeafIds.isNotEmpty(),
+                        onClick = ::save,
+                        enabled = canSave,
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColorsPrimary(),
                     ) {
@@ -650,10 +721,10 @@ private fun ApplyPresetBottomSheet(
     onDismiss: () -> Unit,
     onDismissFinished: () -> Unit,
     onDelete: () -> Unit,
-    onCopy: () -> Unit,
+    onCopy: (ConfigPreset) -> Unit,
     onApply: (ConfigPreset, Set<String>) -> Unit,
     onSaveContent: (ConfigPreset) -> Unit,
-    onUploadResult: (String) -> Unit,
+    onSheetMessage: (String) -> Unit,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -693,8 +764,18 @@ private fun ApplyPresetBottomSheet(
     }
 
     val effective = resolved ?: preset
-    val includedIds = remember(effective) { effective.sections.keys.toList() }
+    // 空 JSON / 空配置的分节直接隐藏，不参与展示与应用。
+    val includedIds = remember(effective) {
+        effective.sections.filterValues { it.length() > 0 }.keys.toList()
+    }
     var selectedIds by remember(effective) { mutableStateOf(includedIds.toSet()) }
+    // 应用配置也复用新建配置的可展开树，通知 / Toast 的应用级叶子挂在对应分组下。
+    val sectionTree = remember(includedIds, context) {
+        PresetStore.presetSectionTree(context, includedIds.toSet())
+    }
+    val sectionCounts = remember(effective) {
+        effective.sections.mapValues { (id, values) -> appSectionCount(id, values) }
+    }
     // 云端列表 / 详情返回的是 ISO8601 字符串，HubClient 已转为 epoch 毫秒；这里再转本地可读时间。
     val createdLabel = remember(preset.createdAt) { formatPresetTime(preset.createdAt) }
 
@@ -712,6 +793,28 @@ private fun ApplyPresetBottomSheet(
     WindowBottomSheet(
         show = show,
         title = preset.title,
+        backgroundColor = presetSheetColor(),
+        insideMargin = DpSize(12.dp, 0.dp),
+        startAction = {
+            // 仅本地预设显示左上角关闭图标。
+            if (preset.local) {
+                IconButton(onClick = onDismiss) {
+                    Icon(MiuixIcons.Basic.Close, contentDescription = stringResource(R.string.close))
+                }
+            }
+        },
+        // 本地预设：右上角为 error 色删除图标（删除按钮从底部移到这里）；内容视图不显示。
+        endAction = {
+            if (preset.local && !showContent) {
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        imageVector = MiuixIcons.Delete,
+                        contentDescription = stringResource(R.string.preset_delete),
+                        tint = MiuixTheme.colorScheme.error,
+                    )
+                }
+            }
+        },
         // 内容视图下返回 / 点击外部逐级返回详情，而不是直接关闭整个 bottom sheet。
         onDismissRequest = { if (showContent) showContent = false else onDismiss() },
         onDismissFinished = onDismissFinished,
@@ -741,12 +844,7 @@ private fun ApplyPresetBottomSheet(
                     contentPadding = PaddingValues(top = 4.dp, bottom = sheetBottomPadding(16.dp)),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    effective.sections.entries.forEachIndexed { index, (sectionId, values) ->
-                        if (index > 0) {
-                            item(key = "divider_$sectionId") {
-                                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                            }
-                        }
+                    effective.sections.filterValues { it.length() > 0 }.forEach { (sectionId, values) ->
                         item(key = "title_$sectionId") {
                             // 与 SmallTitle 同样的字号 / 颜色，仅改为居中。
                             Text(
@@ -760,7 +858,7 @@ private fun ApplyPresetBottomSheet(
                             )
                         }
                         item(key = "card_$sectionId") {
-                            Card(modifier = Modifier.fillMaxWidth()) {
+                            Card(modifier = Modifier.fillMaxWidth(), colors = presetCardColors()) {
                                 Column {
                                     values.keys().forEach { key ->
                                         val draftRef = draftKey(sectionId, key)
@@ -788,11 +886,13 @@ private fun ApplyPresetBottomSheet(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
-                                TextButton(
-                                    text = stringResource(R.string.back),
+                                Button(
                                     onClick = { showContent = false },
                                     modifier = Modifier.weight(1f),
-                                )
+                                    colors = presetButtonColors(),
+                                ) {
+                                    Text(stringResource(R.string.back))
+                                }
                                 if (effective.local) {
                                     Button(
                                         onClick = {
@@ -818,54 +918,55 @@ private fun ApplyPresetBottomSheet(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp),
-                            verticalAlignment = Alignment.Top,
-                        ) {
-                            Column(
-                                modifier = Modifier.width(IntrinsicSize.Max),
-                                verticalArrangement = Arrangement.spacedBy(10.dp),
+                        Card(modifier = Modifier.fillMaxWidth(), colors = presetCardColors()) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.Top,
                             ) {
-                                if (preset.content.isNotBlank()) {
-                                    Text(
-                                        text = "${stringResource(R.string.preset_field_description)}:",
-                                        style = MiuixTheme.textStyles.body1,
-                                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                                    )
+                                Column(
+                                    modifier = Modifier.width(IntrinsicSize.Max),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                                ) {
+                                    if (preset.content.isNotBlank()) {
+                                        Text(
+                                            text = "${stringResource(R.string.preset_field_description)}:",
+                                            style = MiuixTheme.textStyles.body1,
+                                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                        )
+                                    }
+                                    if (createdLabel.isNotBlank()) {
+                                        Text(
+                                            text = "${stringResource(R.string.preset_field_time)}:",
+                                            style = MiuixTheme.textStyles.body1,
+                                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                        )
+                                    }
                                 }
-                                if (createdLabel.isNotBlank()) {
-                                    Text(
-                                        text = "${stringResource(R.string.preset_field_time)}:",
-                                        style = MiuixTheme.textStyles.body1,
-                                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                                    )
-                                }
-                            }
-                            Spacer(Modifier.width(16.dp))
-                            Column(
-                                modifier = Modifier.weight(1f),
-                                verticalArrangement = Arrangement.spacedBy(10.dp),
-                            ) {
-                                if (preset.content.isNotBlank()) {
-                                    Text(
-                                        text = preset.content,
-                                        style = MiuixTheme.textStyles.body1,
-                                        color = MiuixTheme.colorScheme.onSurface,
-                                    )
-                                }
-                                if (createdLabel.isNotBlank()) {
-                                    Text(
-                                        text = createdLabel,
-                                        style = MiuixTheme.textStyles.body1,
-                                        color = MiuixTheme.colorScheme.onSurface,
-                                    )
+                                Spacer(Modifier.width(16.dp))
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                                ) {
+                                    if (preset.content.isNotBlank()) {
+                                        Text(
+                                            text = preset.content,
+                                            style = MiuixTheme.textStyles.body1,
+                                            color = MiuixTheme.colorScheme.onSurfaceContainer,
+                                        )
+                                    }
+                                    if (createdLabel.isNotBlank()) {
+                                        Text(
+                                            text = createdLabel,
+                                            style = MiuixTheme.textStyles.body1,
+                                            color = MiuixTheme.colorScheme.onSurfaceContainer,
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
-                    item { HorizontalDivider() }
 
                     when {
                         downloading -> item {
@@ -905,41 +1006,48 @@ private fun ApplyPresetBottomSheet(
                         }
 
                         else -> {
-                            if (includedIds.isNotEmpty()) {
+                            if (sectionTree.isNotEmpty()) {
                                 item {
-                                    Card(modifier = Modifier.fillMaxWidth()) {
-                                        Column {
-                                            includedIds.forEach { id ->
-                                                val checked = id in selectedIds
-                                                SelectableSectionRow(
-                                                    // 跨版本预设可能带当前注册表没有的分节 id，回退用原始 id 展示。
-                                                    title = configSectionTitle(id),
-                                                    count = appSectionCount(id, effective.sections[id]),
-                                                    checked = checked,
-                                                    onToggle = {
-                                                        selectedIds = if (checked) selectedIds - id else selectedIds + id
-                                                    },
-                                                )
-                                            }
-                                        }
+                                    Card(modifier = Modifier.fillMaxWidth(), colors = presetCardColors()) {
+                                        ConfigSectionTree(
+                                            sections = sectionTree,
+                                            selectedLeafIds = selectedIds,
+                                            onSelectedLeafIdsChange = { selectedIds = it },
+                                            counts = sectionCounts,
+                                        )
                                     }
                                 }
                             }
                             item {
                                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                                    // 查看 / 编辑：进入配置内容视图。
-                                    Button(
-                                        onClick = ::openContent,
-                                        modifier = Modifier.fillMaxWidth(),
-                                        colors = ButtonDefaults.buttonColors(),
-                                    ) {
-                                        Text(
-                                            stringResource(
-                                                if (preset.local) R.string.preset_edit else R.string.preset_view,
-                                            ),
-                                        )
+                                    // 配置有效时才提供查看 / 编辑与复制（复制便于剪贴板导出）。
+                                    if (includedIds.isNotEmpty()) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        ) {
+                                            Button(
+                                                onClick = ::openContent,
+                                                modifier = Modifier.weight(1f),
+                                                colors = presetButtonColors(),
+                                            ) {
+                                                Text(
+                                                    stringResource(
+                                                        if (preset.local) R.string.preset_edit else R.string.preset_view,
+                                                    ),
+                                                )
+                                            }
+                                            Button(
+                                                onClick = { onCopy(effective) },
+                                                modifier = Modifier.weight(1f),
+                                                colors = presetButtonColors(),
+                                            ) {
+                                                Text(stringResource(R.string.preset_copy))
+                                            }
+                                        }
                                     }
                                     if (preset.local) {
+                                        // 删除改为右上角图标；上传下移到原删除位置。
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -958,12 +1066,12 @@ private fun ApplyPresetBottomSheet(
                                                                 },
                                                             )
                                                         uploading = false
-                                                        onUploadResult(message)
+                                                        onSheetMessage(message)
                                                     }
                                                 },
                                                 enabled = !uploading,
                                                 modifier = Modifier.weight(1f),
-                                                colors = ButtonDefaults.buttonColors(),
+                                                colors = presetButtonColors(),
                                             ) {
                                                 Text(
                                                     if (uploading) {
@@ -973,27 +1081,6 @@ private fun ApplyPresetBottomSheet(
                                                     },
                                                 )
                                             }
-                                            Button(
-                                                onClick = onCopy,
-                                                enabled = !uploading,
-                                                modifier = Modifier.weight(1f),
-                                                colors = ButtonDefaults.buttonColors(),
-                                            ) {
-                                                Text(stringResource(R.string.preset_copy))
-                                            }
-                                        }
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                        ) {
-                                            TextButton(
-                                                text = stringResource(R.string.preset_delete),
-                                                onClick = onDelete,
-                                                modifier = Modifier.weight(1f),
-                                                colors = ButtonDefaults.textButtonColors(
-                                                    textColor = MiuixTheme.colorScheme.error,
-                                                ),
-                                            )
                                             Button(
                                                 onClick = { onApply(effective, selectedIds) },
                                                 enabled = selectedIds.isNotEmpty(),
@@ -1008,11 +1095,13 @@ private fun ApplyPresetBottomSheet(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                                         ) {
-                                            TextButton(
-                                                text = stringResource(R.string.cancel),
+                                            Button(
                                                 onClick = onDismiss,
                                                 modifier = Modifier.weight(1f),
-                                            )
+                                                colors = presetButtonColors(),
+                                            ) {
+                                                Text(stringResource(R.string.cancel))
+                                            }
                                             Button(
                                                 onClick = { onApply(effective, selectedIds) },
                                                 enabled = selectedIds.isNotEmpty(),
@@ -1182,41 +1271,6 @@ private fun ContentEntryRow(
                 color = MiuixTheme.colorScheme.onSurfaceContainer,
             )
         }
-    }
-}
-
-@Composable
-private fun SelectableSectionRow(
-    title: String,
-    count: Int,
-    checked: Boolean,
-    onToggle: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = title,
-            modifier = Modifier.weight(1f),
-            style = MiuixTheme.textStyles.body1,
-            color = MiuixTheme.colorScheme.onSurfaceContainer,
-        )
-        if (count > 0) {
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = stringResource(R.string.preset_section_count, count),
-                style = MiuixTheme.textStyles.footnote1,
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-            )
-        }
-        Spacer(Modifier.width(8.dp))
-        Checkbox(
-            state = ToggleableState(checked),
-            onClick = onToggle,
-        )
     }
 }
 

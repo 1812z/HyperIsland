@@ -886,6 +886,7 @@
     <string name="preset_entry_hint">لا تعرف كيفية الإعداد؟ اضغط لاستخدام إعداد جاهز</string>
     <string name="preset_page_title">الإعدادات الجاهزة</string>
     <string name="preset_search">البحث في الإعدادات الجاهزة</string>
+    <string name="close">إغلاق</string>
     <string name="preset_new_config">إعداد جديد</string>
     <string name="preset_section_notification">الإشعارات</string>
     <string name="preset_section_toast">Toast</string>
@@ -898,6 +899,7 @@
     <string name="preset_delete">حذف</string>
     <string name="preset_upload">رفع</string>
     <string name="preset_copy">نسخ</string>
+    <string name="preset_copy_success">تم النسخ</string>
     <string name="preset_apply">تطبيق</string>
     <string name="preset_sort">الترتيب حسب</string>
     <string name="preset_sort_name">الاسم</string>
