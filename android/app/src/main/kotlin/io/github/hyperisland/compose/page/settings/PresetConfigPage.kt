@@ -4,10 +4,13 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -37,6 +40,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -46,6 +50,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -83,6 +88,7 @@ import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 import org.json.JSONObject
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
@@ -116,6 +122,9 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.window.WindowBottomSheet
 
 private val PresetCardHeight = 144.dp
+
+/** 应用配置 bottom sheet 的层级：详情 → 配置内容 → 全屏编辑。 */
+private enum class PresetSheetView { Detail, Content, Editor }
 
 /**
  * 云端列表的进程级状态：跨越页面返回 / 再次进入保持，避免每次进入都重新拉取。
@@ -737,9 +746,14 @@ private fun ApplyPresetBottomSheet(
 
     var uploading by remember(preset) { mutableStateOf(false) }
 
-    var showContent by remember(preset) { mutableStateOf(false) }
+    var view by remember(preset) { mutableStateOf(PresetSheetView.Detail) }
     var savedMessage by remember(preset) { mutableStateOf(false) }
     val draft = remember(preset) { mutableStateMapOf<String, String>() }
+    // 选中 / 删除 / 正在全屏编辑的条目（draftRef）。
+    var selectedEntry by remember(preset) { mutableStateOf<String?>(null) }
+    var deletedKeys by remember(preset) { mutableStateOf(emptySet<String>()) }
+    var editingEntry by remember(preset) { mutableStateOf<String?>(null) }
+    var editingText by remember(preset) { mutableStateOf("") }
 
     LaunchedEffect(preset, downloadAttempt) {
         if (!needsDownload) return@LaunchedEffect
@@ -787,7 +801,7 @@ private fun ApplyPresetBottomSheet(
             }
         }
         savedMessage = false
-        showContent = true
+        view = PresetSheetView.Content
     }
 
     WindowBottomSheet(
@@ -803,9 +817,9 @@ private fun ApplyPresetBottomSheet(
                 }
             }
         },
-        // 本地预设：右上角为 error 色删除图标（删除按钮从底部移到这里）；内容视图不显示。
+        // 本地预设：右上角为 error 色删除图标（删除按钮从底部移到这里）；仅在详情视图显示。
         endAction = {
-            if (preset.local && !showContent) {
+            if (preset.local && view == PresetSheetView.Detail) {
                 IconButton(onClick = onDelete) {
                     Icon(
                         imageVector = MiuixIcons.Delete,
@@ -815,17 +829,21 @@ private fun ApplyPresetBottomSheet(
                 }
             }
         },
-        // 内容视图下返回 / 点击外部逐级返回详情，而不是直接关闭整个 bottom sheet。
-        onDismissRequest = { if (showContent) showContent = false else onDismiss() },
+        // 非详情视图下返回 / 点击外部逐级返回，而不是直接关闭整个 bottom sheet。
+        onDismissRequest = {
+            if (view == PresetSheetView.Detail) onDismiss() else view = PresetSheetView.Detail
+        },
         onDismissFinished = onDismissFinished,
     ) {
         // 预测性返回手势会先让 sheet 自身滑出，无法通过 onDismissRequest 拦截；
-        // 这里在内容视图时抢先注册返回处理器，使返回逐级回到详情。
-        ContentBackInterceptor(enabled = showContent) { showContent = false }
+        // 这里在非详情视图时抢先注册返回处理器，使返回逐级回退。
+        ContentBackInterceptor(enabled = view != PresetSheetView.Detail) {
+            view = if (view == PresetSheetView.Editor) PresetSheetView.Content else PresetSheetView.Detail
+        }
         AnimatedContent(
-            targetState = showContent,
+            targetState = view,
             transitionSpec = {
-                if (targetState) {
+                if (targetState.ordinal > initialState.ordinal) {
                     (slideInHorizontally { it } + fadeIn(tween(300, easing = FastOutSlowInEasing))) togetherWith
                         (slideOutHorizontally { -it / 3 } + fadeOut(tween(200, easing = FastOutSlowInEasing)))
                 } else {
@@ -835,9 +853,59 @@ private fun ApplyPresetBottomSheet(
             },
             modifier = Modifier.fillMaxWidth(),
             label = "presetSheetContent",
-        ) { contentShown ->
-            if (contentShown) {
-                LazyColumn(
+        ) { targetView ->
+            when (targetView) {
+                PresetSheetView.Editor -> LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 600.dp),
+                    contentPadding = PaddingValues(top = 4.dp, bottom = sheetBottomPadding(16.dp)),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    item {
+                        TextField(
+                            value = editingText,
+                            onValueChange = { editingText = it },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 320.dp),
+                            label = editingEntry?.substringAfter('|').orEmpty(),
+                            useLabelAsPlaceholder = true,
+                            singleLine = false,
+                            minLines = 2,
+                            colors = presetTextFieldColors(),
+                        )
+                    }
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Button(
+                                onClick = {
+                                    view = PresetSheetView.Content
+                                    editingEntry = null
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = presetButtonColors(),
+                            ) {
+                                Text(stringResource(R.string.cancel))
+                            }
+                            Button(
+                                onClick = {
+                                    editingEntry?.let { ref -> draft[ref] = editingText }
+                                    view = PresetSheetView.Content
+                                    editingEntry = null
+                                },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColorsPrimary(),
+                            ) {
+                                Text(stringResource(R.string.save))
+                            }
+                        }
+                    }
+                }
+                PresetSheetView.Content -> LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(max = 600.dp),
@@ -862,12 +930,60 @@ private fun ApplyPresetBottomSheet(
                                 Column {
                                     values.keys().forEach { key ->
                                         val draftRef = draftKey(sectionId, key)
-                                        ContentEntryRow(
-                                            entryKey = key,
-                                            value = draft[draftRef] ?: displayValue(values.opt(key)),
-                                            editable = effective.local,
-                                            onValueChange = { draft[draftRef] = it },
-                                        )
+                                        if (draftRef in deletedKeys) return@forEach
+                                        key(draftRef) {
+                                            ContentEntryRow(
+                                                entryKey = key,
+                                                value = draft[draftRef] ?: displayValue(values.opt(key)),
+                                                editable = effective.local,
+                                                onSelect = { selectedEntry = draftRef },
+                                                onValueChange = { draft[draftRef] = it },
+                                            )
+                                            AnimatedVisibility(
+                                                visible = effective.local && selectedEntry == draftRef,
+                                                enter = fadeIn() + expandVertically(),
+                                                exit = fadeOut() + shrinkVertically(),
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(start = 16.dp, end = 16.dp, bottom = 10.dp),
+                                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                                ) {
+                                                    // 浅色沿用 TextButton 默认的 secondaryVariant，深色改用 sheet 背景色，
+                                                    // 两种主题下都与卡片形成对比。
+                                                    Button(
+                                                        onClick = {
+                                                            deletedKeys = deletedKeys + draftRef
+                                                            selectedEntry = null
+                                                        },
+                                                        modifier = Modifier.weight(1f),
+                                                        colors = ButtonDefaults.buttonColors(
+                                                            color = presetSheetColor(),
+                                                            contentColor = MiuixTheme.colorScheme.error,
+                                                        ),
+                                                    ) {
+                                                        Text(stringResource(R.string.preset_delete))
+                                                    }
+                                                    Button(
+                                                        onClick = {
+                                                            editingEntry = draftRef
+                                                            editingText = prettyJson(
+                                                                draft[draftRef] ?: displayValue(values.opt(key)),
+                                                            )
+                                                            view = PresetSheetView.Editor
+                                                        },
+                                                        modifier = Modifier.weight(1f),
+                                                        colors = ButtonDefaults.buttonColors(
+                                                            color = presetSheetColor(),
+                                                            contentColor = MiuixTheme.colorScheme.onBackground,
+                                                        ),
+                                                    ) {
+                                                        Text(stringResource(R.string.preset_edit))
+                                                    }
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -887,7 +1003,7 @@ private fun ApplyPresetBottomSheet(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
                                 Button(
-                                    onClick = { showContent = false },
+                                    onClick = { view = PresetSheetView.Detail },
                                     modifier = Modifier.weight(1f),
                                     colors = presetButtonColors(),
                                 ) {
@@ -896,7 +1012,7 @@ private fun ApplyPresetBottomSheet(
                                 if (effective.local) {
                                     Button(
                                         onClick = {
-                                            onSaveContent(buildEdited(effective, draft))
+                                            onSaveContent(buildEdited(effective, draft, deletedKeys))
                                             savedMessage = true
                                         },
                                         modifier = Modifier.weight(1f),
@@ -909,8 +1025,7 @@ private fun ApplyPresetBottomSheet(
                         }
                     }
                 }
-            } else {
-                LazyColumn(
+                PresetSheetView.Detail -> LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(max = 600.dp),
@@ -1187,18 +1302,37 @@ private fun configSectionTitle(id: String): String {
     return findConfigSection(id)?.let { stringResource(it.titleRes) } ?: id
 }
 
-private fun buildEdited(base: ConfigPreset, draft: Map<String, String>): ConfigPreset {
+private fun buildEdited(
+    base: ConfigPreset,
+    draft: Map<String, String>,
+    deletedKeys: Set<String> = emptySet(),
+): ConfigPreset {
     val sections = LinkedHashMap<String, JSONObject>()
     base.sections.forEach { (sectionId, values) ->
         val edited = JSONObject()
         values.keys().forEach { key ->
+            val draftRef = draftKey(sectionId, key)
+            if (draftRef in deletedKeys) return@forEach
             val original = values.opt(key)
-            val text = draft[draftKey(sectionId, key)] ?: displayValue(original)
+            val text = draft[draftRef] ?: displayValue(original)
             edited.put(key, coerceValue(original, text))
         }
-        sections[sectionId] = edited
+        if (edited.length() > 0) sections[sectionId] = edited
     }
     return base.copy(sections = sections)
+}
+
+/** 尽量把值格式化成可读 JSON；不是 JSON 时原样返回。 */
+private fun prettyJson(text: String): String {
+    val trimmed = text.trim()
+    if (trimmed.isEmpty()) return text
+    return runCatching {
+        when {
+            trimmed.startsWith("[") -> JSONArray(trimmed).toString(2)
+            trimmed.startsWith("{") -> JSONObject(trimmed).toString(2)
+            else -> text
+        }
+    }.getOrDefault(text)
 }
 
 /**
@@ -1244,6 +1378,7 @@ private fun ContentEntryRow(
     entryKey: String,
     value: String,
     editable: Boolean,
+    onSelect: () -> Unit,
     onValueChange: (String) -> Unit,
 ) {
     Column(
@@ -1261,7 +1396,9 @@ private fun ContentEntryRow(
             TextField(
                 value = value,
                 onValueChange = onValueChange,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onFocusChanged { if (it.isFocused) onSelect() },
                 singleLine = true,
                 colors = TextFieldDefaults.textFieldColors(
                     // 与 sheet 背景同色，才能在白色 / 黑色卡片上形成对比（深色模式尤其明显）。

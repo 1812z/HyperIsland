@@ -181,13 +181,14 @@ internal object PresetStore {
         val editor = prefs.edit()
         preset.sections.forEach { (id, values) ->
             if (id !in selectedSectionIds) return@forEach
-            // 应用级叶子：把该应用的对应子对象合并回 `pref_app_config_<包名>`，保留另一类配置。
+            // 应用级叶子：把该应用的对应子对象合并回 `pref_app_config_<包名>`。
+            // 只覆盖预设里实际包含的子对象，未包含的（如 channels、另一类 toast）保留现值，
+            // 避免「预设只有通知配置却把整个微信 JSON 覆盖」。
             parseAppConfigLeafId(id)?.let { (kind, packageName) ->
                 val prefKey = APP_CONFIG_PREFIX + packageName
                 val partial = values.optJSONObject(prefKey) ?: return@forEach
                 val existing = runCatching { JSONObject(prefs.getString(storageKey(prefKey), null) ?: "{}") }
                     .getOrNull() ?: JSONObject()
-                kind.subKeys.forEach { existing.remove(it) }
                 kind.subKeys.forEach { sub -> partial.optJSONObject(sub)?.let { existing.put(sub, it) } }
                 if (existing.length() == 0) editor.remove(storageKey(prefKey))
                 else editor.putString(storageKey(prefKey), existing.toString())
