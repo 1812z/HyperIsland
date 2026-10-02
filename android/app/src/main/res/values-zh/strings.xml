@@ -645,6 +645,8 @@
     <string name="hide_behavior_notification_center_summary">通知栏展开或下滑过渡时隐藏超级岛</string>
     <string name="hide_behavior_foreground_app">前台应用</string>
     <string name="hide_behavior_foreground_app_summary">前台应用打开时隐藏自身超级岛</string>
+    <string name="hide_behavior_screenshot">截屏</string>
+    <string name="hide_behavior_screenshot_summary">截屏时临时隐藏超级岛，截屏完成后恢复显示</string>
     <string name="open_onboarding">打开初始引导</string>
     <string name="open_onboarding_summary">重新查看欢迎与快速上手流程</string>
     <string name="hide_desktop_icon">隐藏桌面图标</string>
@@ -704,6 +706,7 @@
     <string name="xmsf">小米服务框架</string>
     <string name="hook_scope_settings">系统设置</string>
     <string name="screen_recorder">屏幕录制</string>
+    <string name="screenshot">截屏</string>
     <string name="security_center">安全服务</string>
     <string name="restart_root_required">请检查是否已给予本应用 ROOT 权限</string>
     <string name="restart_failed">重启失败：%1$s</string>

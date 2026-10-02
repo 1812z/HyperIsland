@@ -639,6 +639,8 @@
     <string name="hide_behavior_notification_center_summary">Hide the island while the notification shade expands or transitions</string>
     <string name="hide_behavior_foreground_app">Foreground app</string>
     <string name="hide_behavior_foreground_app_summary">Hide the app\'s own island while it is in the foreground</string>
+    <string name="hide_behavior_screenshot">Screenshot</string>
+    <string name="hide_behavior_screenshot_summary">Temporarily hide the island while a screenshot is captured, then restore it afterwards</string>
     <string name="open_onboarding">Open onboarding</string>
     <string name="open_onboarding_summary">Review the welcome and quick start flow</string>
     <string name="hide_desktop_icon">Hide Desktop Icon</string>
@@ -698,6 +700,7 @@
     <string name="xmsf">XMSF (Xiaomi Service Framework)</string>
     <string name="hook_scope_settings">System Settings</string>
     <string name="screen_recorder">Screen Recorder</string>
+    <string name="screenshot">Screenshot</string>
     <string name="security_center">Security Service</string>
     <string name="restart_root_required">Please check if ROOT permission has been granted to this app</string>
     <string name="restart_failed">Restart failed: %1$s</string>

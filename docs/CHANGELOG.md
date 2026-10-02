@@ -11,6 +11,7 @@ import ReleaseHistory from './.vitepress/components/ReleaseHistory.vue'
 # V3.1.6-Beta2 (2026-10-2)
 ## 功能
 - 新增预设中心，上传后即可公开配置，注意应用预设会覆盖当前参数
+- 隐藏行为新增「截屏」：截屏时临时隐藏超级岛，截屏完成后恢复显示
 
 
 # V3.1.5 (2026-10-1)

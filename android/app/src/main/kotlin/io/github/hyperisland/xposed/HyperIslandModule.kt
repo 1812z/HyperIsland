@@ -47,6 +47,8 @@ import io.github.hyperisland.xposed.hook.TempHiddenBehaviorHook
 import io.github.hyperisland.xposed.hook.TimerTextColorHook
 import io.github.hyperisland.xposed.hook.StatusBarTextColorHook
 import io.github.hyperisland.xposed.hook.ScreenRecorder.ScreenRecorderHook
+import io.github.hyperisland.xposed.hook.Screenshot.ScreenshotSignalHook
+import io.github.hyperisland.xposed.hook.SystemUI.ScreenshotTempHideHook
 import io.github.hyperisland.xposed.hook.ToastUiInterceptHook
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.UnlockAllFocusHook
 import io.github.hyperisland.xposed.hook.UnlockFocusAuthHook
@@ -110,6 +112,7 @@ class HyperIslandModule : XposedModule() {
                 IslandOutlineHook.init(this, param)
                 if (ConfigManager.getBoolean("pref_temp_hide_behavior_enabled", false)) {
                     TempHiddenBehaviorHook.init(this, param)
+                    ScreenshotTempHideHook.init(this, param)
                 }
                 if (ConfigManager.getBoolean("pref_smooth_island", false)) {
                     SmoothIslandHook.init(this, param)
@@ -152,6 +155,11 @@ class HyperIslandModule : XposedModule() {
             "com.miui.screenrecorder" ->
                 if (ConfigManager.getBoolean("pref_screen_recorder_island", false)) {
                     ScreenRecorderHook.init(this, param)
+                }
+
+            "com.miui.screenshot" ->
+                if (ConfigManager.getBoolean("pref_temp_hide_behavior_enabled", false)) {
+                    ScreenshotSignalHook.init(this, param)
                 }
 
             "com.miui.securitycenter" -> {

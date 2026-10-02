@@ -844,6 +844,18 @@ Mini Window 手势
 - 系统 `updateBackgroundBg()` 的 Drawable、MiBlur 和 BlendColor 行为。
 - `DynamicIslandContentView.updateExpandedView()` 先更新 EXPAND 材质，再替换通知内容子 View。
 - `DynamicIslandWindowView.updateWindowBlur()` 的 Classic/Bionics 半径分支及 `50/500` 两级半径。
+  - 版本差异（已用 17.1.3.76.0 与 18.3.2.34.0 两版对比确认）：本文档描述的是**较新的 18.x**。
+    `updateWindowBlur(boolean)` / `updatePassWindowBlur(boolean, String)` 在 18.3.2.34.0 上
+    **存在**（前者内部走 `MiBackgroundStyle.setBackgroundBlurRadius(view, classic, 50, 500)`，
+    与上面的 `50/500` 吻合）；而在 17.1.3.76.0 上**不存在**。
+    以它们为采集点的 Hook 在 17.x 上会静默失效，必须按方法是否存在做探测并留兜底。
+  - 两版一致的部分（可安全依赖）：`DynamicIslandWindowView extends FrameLayout`、
+    `onAttachedToWindow()` / `onConfigChanged(Configuration)` / `onKeyguardShowing(boolean)` /
+    `onIslandTempHide(boolean, DynamicIslandWindowState.TempHiddenType)` 签名不变；
+    两版都**没有**覆写 `setVisibility`（只给 realView / backgroundView / fakeView 设），
+    因此直接把根容器置 `INVISIBLE` 不会被系统改回。
+  - `DynamicIslandWindowState.TempHiddenType` 两版都是同样的 12 个常量，**没有 SCREENSHOT**；
+    需要临时隐藏时只能借用现成常量（见 `ScreenshotTempHideHook`）。
 - `DynamicIslandEventCoordinator` 仅在展开/动画需要时切换 pass-window blur。
 - `FakeViewAnimHelper` 三态目标槽的 Folme `onBegin` 显示时机，以及 fake 槽材质在隐藏期间保持不变。
 - `DynamicIslandBackgroundView.onDraw()` 每帧按 `actual*` 设置 Drawable bounds。

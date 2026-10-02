@@ -74,6 +74,11 @@ internal val RestartScopeTargets = listOf(
         command = "am force-stop com.miui.screenrecorder",
     ),
     RestartScopeTarget(
+        packageName = "com.miui.screenshot",
+        label = R.string.screenshot,
+        command = "am force-stop com.miui.screenshot",
+    ),
+    RestartScopeTarget(
         packageName = "com.miui.securitycenter",
         label = R.string.security_center,
         command = "am force-stop com.miui.securitycenter",

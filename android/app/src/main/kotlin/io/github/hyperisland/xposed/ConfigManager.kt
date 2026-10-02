@@ -498,6 +498,7 @@ object ConfigManager {
         "pref_temp_hide_screen_locked",
         "pref_temp_hide_notification_center",
         "pref_temp_hide_foreground_app",
+        "pref_temp_hide_screenshot",
         "pref_blur_bars",
         "pref_debug_log"
     )

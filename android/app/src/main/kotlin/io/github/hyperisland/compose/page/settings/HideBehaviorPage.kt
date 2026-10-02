@@ -24,6 +24,7 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Hide
 import top.yukonga.miuix.kmp.icon.extended.Lock
 import top.yukonga.miuix.kmp.icon.extended.Pin
+import top.yukonga.miuix.kmp.icon.extended.ScreenCapture
 import top.yukonga.miuix.kmp.icon.extended.ScreenMirroring
 import top.yukonga.miuix.kmp.icon.extended.Settings
 import top.yukonga.miuix.kmp.icon.extended.Show
@@ -39,6 +40,7 @@ internal fun HideBehaviorPage(prefs: FlutterPrefsRepository, onBack: () -> Unit)
     val screenLockedState = rememberBooleanPreference(prefs, KEY_SCREEN_LOCKED, true)
     val notificationCenterState = rememberBooleanPreference(prefs, KEY_NOTIFICATION_CENTER, true)
     val foregroundAppState = rememberBooleanPreference(prefs, KEY_FOREGROUND_APP, true)
+    val screenshotState = rememberBooleanPreference(prefs, KEY_SCREENSHOT, true)
     val master by masterState
     val snackbarState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -121,6 +123,13 @@ internal fun HideBehaviorPage(prefs: FlutterPrefsRepository, onBack: () -> Unit)
                     foregroundAppState.value,
                     master,
                 ) { foregroundAppState.value = it; prefs.putBoolean(KEY_FOREGROUND_APP, it) }
+                PreferenceSwitch(
+                    stringResource(R.string.hide_behavior_screenshot),
+                    stringResource(R.string.hide_behavior_screenshot_summary),
+                    MiuixIcons.ScreenCapture,
+                    screenshotState.value,
+                    master,
+                ) { screenshotState.value = it; prefs.putBoolean(KEY_SCREENSHOT, it) }
             }
         }
     }
@@ -134,3 +143,4 @@ private const val KEY_FULLSCREEN_LANDSCAPE_DISABLE = "pref_temp_hide_fullscreen_
 private const val KEY_SCREEN_LOCKED = "pref_temp_hide_screen_locked"
 private const val KEY_NOTIFICATION_CENTER = "pref_temp_hide_notification_center"
 private const val KEY_FOREGROUND_APP = "pref_temp_hide_foreground_app"
+private const val KEY_SCREENSHOT = "pref_temp_hide_screenshot"
