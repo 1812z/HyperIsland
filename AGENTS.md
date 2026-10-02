@@ -56,7 +56,7 @@ Xposed 使用 libxposed 新 API（`io.github.libxposed.api`），不是旧 Xpose
 - 应用预设：点击卡片 → `ApplyPresetBottomSheet` 查看详情 + 多选要应用的分节 → `PresetStore.apply()`。本地预设底部为「删除（红）/ 上传云端 / 应用（强调色）」，云端预设为「取消 / 应用」，标题统一「配置预设」，sheet 内不使用图标。
 - 本地预设存于独立 `HyperIslandPresets` SharedPreferences，**不写入** `FlutterSharedPreferences`，避免同步到 Hook 进程或混入配置备份。快照 / 还原直接读写 `FlutterSharedPreferences`，Double 前缀处理与 `ConfigBackupService` 一致。
 - AI 分类显式排除 `pref_ai_api_key`。通知 / Toast 已按 `pref_app_config_<包名>` 内部子对象区分：通知 = `notification` + `channels`，Toast = `toast`。二者在配置树中展开为「按应用」的叶子（`appconfig:<kind>:<包名>`，仅显示应用名），快照只抓对应子对象、应用时合并回原 JSON 并保留另一类；叶子 id 解析见 `parseAppConfigLeafId`，动态树由 `PresetStore.appConfigSectionTree` 构建。
-- 云端配置：`compose/service/HubClient.kt` 对接 `https://hyperisland-hub.1812z.top`（文档 `HyperIsland-Hub/API.md`）。列表 `GET /api/configs?page=N`（仅元数据）、详情 `GET /api/configs/{id}`（含 `payload.sections`；**必须带 `X-Install-Id`，服务端按设备累加下载量，缺标识或格式不对返回 400 `install_id_required`**）、上传 `POST /api/configs`（匿名；同来源同内容 `409 duplicate`，超出每来源每日额度 `429 daily_limit`）。上传必须显式构造 Hub 信封（形态 A，`payload` 为对象），不能只依赖服务端自动包裹。云端预设 id 加 `hub:` 前缀；应用云端预设时先查本地缓存再按需下载正文。安装标识由 `HubClient.installIdentifier` 生成并存在 `HyperIslandHub` SharedPreferences，与统计服务的 `installation_id` 相互独立。审核令牌不下发客户端。
+- 云端配置：`compose/service/HubClient.kt` 对接 `https://hyperisland-hub.1812z.top`（文档 `HyperIsland-Hub/API.md`）。列表 `GET /api/configs?page=N`（仅元数据）、详情 `GET /api/configs/{id}`（含 `payload.sections`，累加下载量）、上传 `POST /api/configs`（匿名，按 IP 每日限流）。上传必须显式构造 Hub 信封（形态 A，`payload` 为对象），不能只依赖服务端自动包裹。云端预设 id 加 `hub:` 前缀；应用云端预设时先查本地缓存再按需下载正文。审核令牌不下发客户端。
 - 云端正文缓存在 `HyperIslandPresets` 的 `hub_cache`（最多 100 份，LRU 淘汰），避免重复下载；缓存读写走 IO 线程。云端列表是进程级状态，软件启动后**首次进入页面**自动拉取一次，之后复用内存列表，仅下拉刷新才重新拉取。
 
 ## 新增配置项检查清单
