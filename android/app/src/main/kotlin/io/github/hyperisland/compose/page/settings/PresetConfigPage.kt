@@ -1263,6 +1263,11 @@ private fun ContentEntryRow(
                 onValueChange = onValueChange,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
+                colors = TextFieldDefaults.textFieldColors(
+                    // 与 sheet 背景同色，才能在白色 / 黑色卡片上形成对比（深色模式尤其明显）。
+                    backgroundColor = presetSheetColor(),
+                    labelColor = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                ),
             )
         } else {
             Text(
