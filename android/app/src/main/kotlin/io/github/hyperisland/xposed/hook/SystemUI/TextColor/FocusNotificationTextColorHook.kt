@@ -463,31 +463,28 @@ object FocusNotificationTextColorHook : BaseHook() {
             return
         }
 
+        // TimerTextEffectView wraps its text in TimerTextEffectSpan; the countdown
+        // HyperChronometer wraps it in HyperChronometerEffectSpan. Both render the
+        // color from the span, so the TextView color alone is not enough.
         val text = textView.text as? Spanned
-        val classLoader = textView.javaClass.classLoader ?: return
-        val spanClass = runCatching {
-            classLoader.loadClass(
-                "miuix.colorful.texteffect.TimerTextEffectSpan"
-            )
-        }.getOrNull()
-        val appearanceMethod = spanClass?.methods?.firstOrNull { method ->
-            method.name == "setOldTextAppearance" && method.parameterTypes.size == 2
+        val classLoader = textView.javaClass.classLoader
+        var updatedSpan = false
+        if (text != null && classLoader != null) {
+            EFFECT_SPAN_CLASS_NAMES.forEach { spanClassName ->
+                val spanClass = runCatching { classLoader.loadClass(spanClassName) }.getOrNull()
+                    ?: return@forEach
+                val appearanceMethod = spanClass.methods.firstOrNull { method ->
+                    method.name == "setOldTextAppearance" && method.parameterTypes.size == 2
+                } ?: return@forEach
+                val spans = text.getSpans(0, text.length, spanClass)
+                if (spans.isEmpty()) return@forEach
+                if (runCatching { appearanceMethod.invoke(spans[0], text, color) }.isSuccess) {
+                    updatedSpan = true
+                }
+            }
         }
-        val spans = if (text != null && spanClass != null) {
-            text.getSpans(0, text.length, spanClass)
-        } else {
-            emptyArray()
-        }
-        if (appearanceMethod == null || spans.isEmpty()) {
-            textView.setTextColor(color)
-            return
-        }
-        if (runCatching { appearanceMethod.invoke(spans[0], text, color) }.isFailure) {
-            textView.setTextColor(color)
-            return
-        }
-        textView.setTextColor(color)
-        textView.invalidate()
+        if (textView.currentTextColor != color) textView.setTextColor(color)
+        if (updatedSpan) textView.invalidate()
     }
 
     private fun resolveTextColor(mode: String): Int {
@@ -568,6 +565,11 @@ object FocusNotificationTextColorHook : BaseHook() {
     private data class OriginalButtonColor(
         val view: WeakReference<TextView>,
         val colors: ColorStateList,
+    )
+
+    private val EFFECT_SPAN_CLASS_NAMES = listOf(
+        "miuix.colorful.texteffect.TimerTextEffectSpan",
+        "miuix.colorful.texteffect.HyperChronometerEffectSpan",
     )
 
     private const val BUTTON_TITLE_ID = "focus_button_title"

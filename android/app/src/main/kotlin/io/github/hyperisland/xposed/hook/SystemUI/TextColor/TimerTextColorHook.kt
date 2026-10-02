@@ -263,9 +263,17 @@ object TimerTextColorHook : BaseHook() {
             }
     }
 
+    /**
+     * Registers both timer view families that a focus module can expose:
+     * the counting [TIMER_TEXT_EFFECT_VIEW_CLASS] and the countdown
+     * [HYPER_CHRONOMETER_CLASS] (including its `HyperChronometerPlugin` subclass,
+     * which is the view the focus layout actually inflates for `timerInfo`).
+     */
     private fun registerFocusTimerTextViews(view: View) {
-        if (view.javaClass.name == TIMER_TEXT_EFFECT_VIEW_CLASS &&
-            view is TextView && resourceEntryName(view) in FOCUS_TEXT_IDS
+        if (view is TextView &&
+            resourceEntryName(view) in FOCUS_TEXT_IDS &&
+            (matchesClassFamily(view, TIMER_TEXT_EFFECT_VIEW_CLASS) ||
+                matchesClassFamily(view, HYPER_CHRONOMETER_CLASS))
         ) {
             trackTimer(view, TimerScope.FOCUS)
         }
@@ -277,13 +285,23 @@ object TimerTextColorHook : BaseHook() {
     }
 
     private fun findTextViewByClassName(view: View, className: String): TextView? {
-        if (view.javaClass.name == className && view is TextView) return view
+        if (view is TextView && matchesClassFamily(view, className)) return view
         if (view is ViewGroup) {
             for (index in 0 until view.childCount) {
                 findTextViewByClassName(view.getChildAt(index), className)?.let { return it }
             }
         }
         return null
+    }
+
+    /** True when [view]'s class, or any superclass, matches [className]. */
+    private fun matchesClassFamily(view: View, className: String): Boolean {
+        var current: Class<*>? = view.javaClass
+        while (current != null) {
+            if (current.name == className) return true
+            current = current.superclass
+        }
+        return false
     }
 
     private fun resourceEntryName(view: View): String? {
@@ -390,9 +408,11 @@ object TimerTextColorHook : BaseHook() {
     private fun resolveTextEffectAccessors(textView: TextView): TextEffectAccessors? {
         if (resolvedTextEffectViews.contains(textView)) return textEffectAccessors[textView]
         resolvedTextEffectViews.add(textView)
-        val spanClassName = when (textView.javaClass.name) {
-            TIMER_TEXT_EFFECT_VIEW_CLASS -> TIMER_TEXT_EFFECT_SPAN_CLASS
-            HYPER_CHRONOMETER_CLASS -> HYPER_CHRONOMETER_SPAN_CLASS
+        val spanClassName = when {
+            matchesClassFamily(textView, TIMER_TEXT_EFFECT_VIEW_CLASS) ->
+                TIMER_TEXT_EFFECT_SPAN_CLASS
+            matchesClassFamily(textView, HYPER_CHRONOMETER_CLASS) ->
+                HYPER_CHRONOMETER_SPAN_CLASS
             else -> return null
         }
         val classLoader = textView.javaClass.classLoader ?: ClassLoader.getSystemClassLoader()
