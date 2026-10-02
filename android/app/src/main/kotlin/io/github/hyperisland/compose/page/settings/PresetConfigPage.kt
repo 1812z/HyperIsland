@@ -683,7 +683,7 @@ private fun ApplyPresetBottomSheet(
         }
         downloading = true
         downloadFailed = false
-        runCatching { HubClient.detail(preset) }
+        runCatching { HubClient.detail(context, preset) }
             .onSuccess { detail ->
                 withContext(Dispatchers.IO) { PresetStore.cacheHubPreset(context, detail) }
                 resolved = detail

@@ -1,10 +1,12 @@
 package io.github.hyperisland.compose.service
 
+import android.content.Context
 import io.github.hyperisland.BuildConfig
 import io.github.hyperisland.compose.data.ConfigPreset
 import java.net.HttpURLConnection
 import java.net.URL
 import java.time.Instant
+import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -30,6 +32,10 @@ internal object HubClient {
     /** 云端预设 id 前缀，避免与本机 UUID 冲突，也用于识别来源。 */
     private const val ID_PREFIX = "hub:"
 
+    /** 安装标识的存放位置。与统计服务各自独立，互不影响。 */
+    private const val STATE_PREFS = "HyperIslandHub"
+    private const val KEY_INSTALL_ID = "install_id"
+
     fun isHubId(id: String): Boolean = id.startsWith(ID_PREFIX)
 
     /** 拉取全部已发布配置的列表元数据（不含正文）。列表不累加下载量。 */
@@ -46,10 +52,15 @@ internal object HubClient {
         result
     }
 
-    /** 拉取配置详情（含正文）。此接口会在服务端累加下载量。 */
-    suspend fun detail(preset: ConfigPreset): ConfigPreset = withContext(Dispatchers.IO) {
+    /**
+     * 拉取配置详情（含正文）。
+     *
+     * 必须带安装标识：服务端按它给下载量去重，同一台设备反复拉同一份配置只算一次。
+     * 缺标识或格式不对会被服务端以 400 install_id_required 拒绝。
+     */
+    suspend fun detail(context: Context, preset: ConfigPreset): ConfigPreset = withContext(Dispatchers.IO) {
         val id = preset.id.removePrefix(ID_PREFIX)
-        val (code, body) = request("GET", "/api/configs/$id")
+        val (code, body) = request("GET", "/api/configs/$id", installId = installIdentifier(context))
         if (code !in 200..299) throw HubException(code, body.optString("error"), body.opt("detail"))
         body.toDetailPreset()
     }
@@ -80,10 +91,28 @@ internal object HubClient {
         }
     }
 
+    /**
+     * 安装标识：首次调用时生成 UUID 并落盘，之后固定不变。
+     *
+     * 它只用于让服务端统计"多少台设备下载过"，不含任何可识别信息。
+     * 清除应用数据或换设备会得到新值（那一份配置会被当成新设备再计一次），属预期行为。
+     * 不要为了调整统计数字而主动改变它。
+     */
+    @Synchronized
+    private fun installIdentifier(context: Context): String {
+        val prefs = context.applicationContext
+            .getSharedPreferences(STATE_PREFS, Context.MODE_PRIVATE)
+        prefs.getString(KEY_INSTALL_ID, null)?.takeIf { it.isNotBlank() }?.let { return it }
+        val fresh = UUID.randomUUID().toString()
+        prefs.edit().putString(KEY_INSTALL_ID, fresh).apply()
+        return fresh
+    }
+
     private fun request(
         method: String,
         path: String,
         body: JSONObject? = null,
+        installId: String? = null,
     ): Pair<Int, JSONObject> {
         val connection = (URL(BASE + path).openConnection() as HttpURLConnection).apply {
             requestMethod = method
@@ -91,6 +120,7 @@ internal object HubClient {
             readTimeout = READ_TIMEOUT
             setRequestProperty("Accept", "application/json")
             setRequestProperty("User-Agent", "HyperIsland/${BuildConfig.VERSION_NAME}")
+            if (installId != null) setRequestProperty("X-Install-Id", installId)
             if (body != null) {
                 doOutput = true
                 setRequestProperty("Content-Type", "application/json; charset=UTF-8")
