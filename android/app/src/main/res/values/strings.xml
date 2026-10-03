@@ -221,7 +221,10 @@
     <string name="island_icon">Large island icon</string>
     <string name="island_icon_summary">Show the large icon of the island when enabled (small island not affected)</string>
     <string name="preserve_small_icon">Status bar icon</string>
-    <string name="preserve_small_icon_summary">Whether to force keep status bar icon when focus notification is displayed</string>
+    <string name="status_bar_icon_subtitle_show">Force show the status bar icon</string>
+    <string name="status_bar_icon_subtitle_hide">Force hide the status bar icon</string>
+    <string name="status_bar_icon_subtitle_system">Leave the status bar icon untouched</string>
+    <string name="status_bar_icon_system">Follow system</string>
     <string name="glow">Outer glow</string>
     <string name="focus_outer_glow">Focus notification outer ring light effect</string>
     <string name="island_outer_glow">Large island outer ring light effect</string>

@@ -84,7 +84,7 @@ object NotificationIslandNotification : IslandTemplate {
                     firstFloat       = data.firstFloat == "on",
                     enableFloat      = data.enableFloatMode == "on",
                     showNotification = false,
-                    preserveStatusBarSmallIcon = data.preserveStatusBarSmallIcon != "off",
+                    preserveStatusBarSmallIcon = data.statusBarIconMode == "on",
                     contentIntent    = data.contentIntent,
                     isOngoing        = data.isOngoing,
                     showIslandIcon   = data.showIslandIcon == "on",
@@ -128,7 +128,7 @@ object NotificationIslandNotification : IslandTemplate {
         val focusIcon = (data.largeIcon ?: data.appIconRaw ?: data.notifIcon ?: fallbackIcon).toRounded(context)
 
         val showNotification   = data.focusNotif != "off" && data.showNotification != "off"
-        val shouldPreserveIcon = showNotification && data.preserveStatusBarSmallIcon != "off"
+        val shouldPreserveIcon = showNotification && data.statusBarIconMode == "on"
 
         val safeProgress = data.progress.coerceIn(0, 100)
         val baseVm = IslandViewModel(

@@ -85,6 +85,15 @@ internal fun ToastSettingsFormPage(
         enabled,
         disabled,
     )
+    // Toast 一定是焦点通知（系统会自动隐藏它的状态栏图标），所以只提供“开启强制显示 / 跟随系统”。
+    val statusBarIconValues = optionalValues(isBatch, TRI_ON, TRI_SYSTEM)
+    @Composable
+    fun statusBarIconLabels(): List<String> = optionalLabels(
+        isBatch,
+        noChange,
+        enabled,
+        stringResource(R.string.status_bar_icon_system),
+    )
     val glowValues = optionalValues(isBatch, TRI_DEFAULT, TRI_ON, TRI_OFF, TRI_FOLLOW_DYNAMIC)
     @Composable
     fun glowLabels(defaultMode: String): List<String> = optionalLabels(
@@ -206,10 +215,18 @@ internal fun ToastSettingsFormPage(
                         ) { onStateChange(state.copy(enableFloat = it)) }
                         FormDropdown(
                             title = stringResource(R.string.preserve_small_icon),
-                            summary = stringResource(R.string.preserve_small_icon_summary),
-                            value = state.preserveSmallIcon,
-                            values = triValues,
-                            labels = triLabels(defaults.preserveSmallIcon),
+                            summary = when (state.preserveSmallIcon) {
+                                TRI_ON -> stringResource(R.string.status_bar_icon_subtitle_show)
+                                null -> null
+                                else -> stringResource(R.string.status_bar_icon_subtitle_system)
+                            },
+                            value = when (state.preserveSmallIcon) {
+                                TRI_ON -> TRI_ON
+                                null -> null
+                                else -> TRI_SYSTEM
+                            },
+                            values = statusBarIconValues,
+                            labels = statusBarIconLabels(),
                         ) { onStateChange(state.copy(preserveSmallIcon = it)) }
                         FormDropdown(
                             title = stringResource(R.string.marquee_channel),
@@ -638,6 +655,9 @@ private const val TRI_DEFAULT = "default"
 private const val TRI_ON = "on"
 private const val TRI_OFF = "off"
 private const val TRI_FOLLOW_DYNAMIC = "follow_dynamic"
+
+/** 状态栏图标：Toast 只区分“开启强制显示 / 跟随系统”，历史值（default/off）都按跟随系统处理。 */
+private const val TRI_SYSTEM = "system"
 private const val FILTER_BLACKLIST = "blacklist"
 private const val FILTER_WHITELIST = "whitelist"
 private val TOAST_ITEM_MARGIN = PaddingValues(horizontal = 18.dp, vertical = 14.dp)

@@ -13,6 +13,8 @@ import io.github.hyperisland.compose.data.channel.OPTION_DEFAULT
 import io.github.hyperisland.compose.data.channel.OPTION_OFF
 import io.github.hyperisland.compose.data.channel.OPTION_ON
 import io.github.hyperisland.compose.data.channel.RENDERER_IMAGE_TEXT_BUTTONS
+import io.github.hyperisland.compose.data.channel.STATUS_BAR_ICON_DEFAULT
+import io.github.hyperisland.compose.data.channel.STATUS_BAR_ICON_SYSTEM
 import io.github.hyperisland.compose.data.channel.TEMPLATE_NOTIFICATION
 import org.json.JSONArray
 import org.json.JSONObject
@@ -38,7 +40,8 @@ internal data class DefaultConfigSettings(
     val suppressHeadsUp: Boolean = true,
     val restoreLockscreen: Boolean = false,
     val showIslandIcon: Boolean = true,
-    val preserveSmallIcon: Boolean = false,
+    /** 通知状态栏小图标默认行为：1=强制显示 2=强制不显示 3=跟随系统 */
+    val statusBarIcon: Int = STATUS_BAR_ICON_SYSTEM,
     val outerGlow: String = "off",
     val forceOuterGlow: Boolean = false,
     val outEffectColor: String = "",
@@ -347,7 +350,7 @@ class FlutterPrefsRepository(context: Context) {
             iconMode = channel.optString("icon", ICON_AUTO),
             focus = channel.optString("focus", OPTION_DEFAULT),
             showNotification = channel.optString("show_notification", OPTION_ON),
-            preserveSmallIcon = channel.optString("preserve_small_icon", OPTION_DEFAULT),
+            statusBarIcon = channel.optInt("status_bar_icon", STATUS_BAR_ICON_DEFAULT),
             showIslandIcon = channel.optString("show_island_icon", OPTION_DEFAULT),
             firstFloat = channel.optString("first_float", OPTION_DEFAULT),
             enableFloat = channel.optString("enable_float", OPTION_DEFAULT),
@@ -386,7 +389,7 @@ class FlutterPrefsRepository(context: Context) {
             putIfNonDefault(channel, "icon", value.iconMode, ICON_AUTO)
             putIfNonDefault(channel, "focus", value.focus, OPTION_DEFAULT)
             putIfNonDefault(channel, "show_notification", value.showNotification, OPTION_ON)
-            putIfNonDefault(channel, "preserve_small_icon", value.preserveSmallIcon, OPTION_DEFAULT)
+            putIfNonDefault(channel, "status_bar_icon", value.statusBarIcon, STATUS_BAR_ICON_DEFAULT)
             putIfNonDefault(channel, "show_island_icon", value.showIslandIcon, OPTION_DEFAULT)
             putIfNonDefault(channel, "first_float", value.firstFloat, OPTION_DEFAULT)
             putIfNonDefault(channel, "enable_float", value.enableFloat, OPTION_DEFAULT)
@@ -430,26 +433,29 @@ class FlutterPrefsRepository(context: Context) {
         }
     }
 
-    internal fun defaultConfigSettings(): DefaultConfigSettings = DefaultConfigSettings(
-        firstFloat = getBoolean("pref_default_first_float", false),
-        aodText = getBoolean("pref_default_aod_text", false),
-        enableFloat = getBoolean("pref_default_enable_float", false),
-        marquee = getBoolean("pref_default_marquee", false),
-        marqueeAutoHide = getString("pref_default_marquee_auto_hide", "off"),
-        timeout = getLong("pref_default_timeout", 5L).toInt().coerceAtLeast(1),
-        dynamicHighlightColor = getBoolean("pref_default_dynamic_highlight_color", false),
-        focusNotification = getBoolean("pref_default_focus_notif", true),
-        suppressHeadsUp = getBoolean("pref_default_suppress_heads_up", true),
-        restoreLockscreen = getBoolean("pref_default_restore_lockscreen", false),
-        showIslandIcon = getBoolean("pref_default_show_island_icon", true),
-        preserveSmallIcon = getBoolean("pref_default_preserve_small_icon", false),
-        outerGlow = getOuterGlowMode("pref_default_outer_glow"),
-        forceOuterGlow = getBoolean("pref_default_force_outer_glow", false),
-        outEffectColor = getString("pref_default_out_effect_color"),
-        islandOuterGlow = getOuterGlowMode("pref_default_island_outer_glow"),
-        forceIslandOuterGlow = getBoolean("pref_default_force_island_outer_glow", false),
-        islandOuterGlowColor = getString("pref_default_island_outer_glow_color"),
-    )
+    internal fun defaultConfigSettings(): DefaultConfigSettings {
+        val statusBarIcon = getLong("pref_default_status_bar_icon", STATUS_BAR_ICON_SYSTEM.toLong()).toInt()
+        return DefaultConfigSettings(
+            firstFloat = getBoolean("pref_default_first_float", false),
+            aodText = getBoolean("pref_default_aod_text", false),
+            enableFloat = getBoolean("pref_default_enable_float", false),
+            marquee = getBoolean("pref_default_marquee", false),
+            marqueeAutoHide = getString("pref_default_marquee_auto_hide", "off"),
+            timeout = getLong("pref_default_timeout", 5L).toInt().coerceAtLeast(1),
+            dynamicHighlightColor = getBoolean("pref_default_dynamic_highlight_color", false),
+            focusNotification = getBoolean("pref_default_focus_notif", true),
+            suppressHeadsUp = getBoolean("pref_default_suppress_heads_up", true),
+            restoreLockscreen = getBoolean("pref_default_restore_lockscreen", false),
+            showIslandIcon = getBoolean("pref_default_show_island_icon", true),
+            statusBarIcon = statusBarIcon,
+            outerGlow = getOuterGlowMode("pref_default_outer_glow"),
+            forceOuterGlow = getBoolean("pref_default_force_outer_glow", false),
+            outEffectColor = getString("pref_default_out_effect_color"),
+            islandOuterGlow = getOuterGlowMode("pref_default_island_outer_glow"),
+            forceIslandOuterGlow = getBoolean("pref_default_force_island_outer_glow", false),
+            islandOuterGlowColor = getString("pref_default_island_outer_glow_color"),
+        )
+    }
 
     internal fun setDefaultConfigSettings(value: DefaultConfigSettings) {
         putBoolean("pref_default_first_float", value.firstFloat)
@@ -463,7 +469,7 @@ class FlutterPrefsRepository(context: Context) {
         putBoolean("pref_default_suppress_heads_up", value.suppressHeadsUp)
         putBoolean("pref_default_restore_lockscreen", value.restoreLockscreen)
         putBoolean("pref_default_show_island_icon", value.showIslandIcon)
-        putBoolean("pref_default_preserve_small_icon", value.preserveSmallIcon)
+        putLong("pref_default_status_bar_icon", value.statusBarIcon.toLong())
         putString("pref_default_outer_glow", value.outerGlow)
         putBoolean("pref_default_force_outer_glow", value.forceOuterGlow)
         if (value.outEffectColor.isBlank()) remove("pref_default_out_effect_color")

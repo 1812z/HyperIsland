@@ -95,7 +95,15 @@ object ConfigManager {
      * 优先用 getLong 读取再转换，若类型不符再尝试 getInt。
      */
     fun getInt(key: String, default: Int): Int =
-        try { prefsForKey(key)?.getLong(fk(key), default.toLong())?.toInt() ?: default }
+        try {
+            when (val value = appConfigValue(key)) {
+                AppConfigMissing -> default
+                null -> prefsForKey(key)?.getLong(fk(key), default.toLong())?.toInt() ?: default
+                is Number -> value.toInt()
+                is String -> value.toIntOrNull() ?: default
+                else -> default
+            }
+        }
         catch (_: ClassCastException) {
             try { prefsForKey(key)?.getInt(fk(key), default) ?: default }
             catch (_: ClassCastException) { default }
@@ -322,7 +330,7 @@ object ConfigManager {
         "pref_channel_icon_" to "icon",
         "pref_channel_focus_" to "focus",
         "pref_channel_show_notification_" to "show_notification",
-        "pref_channel_preserve_small_icon_" to "preserve_small_icon",
+        "pref_channel_status_bar_icon_" to "status_bar_icon",
         "pref_channel_show_island_icon_" to "show_island_icon",
         "pref_channel_first_float_" to "first_float",
         "pref_channel_enable_float_" to "enable_float",
@@ -424,7 +432,7 @@ object ConfigManager {
         "pref_default_out_effect_color",
         "pref_default_island_outer_glow_color",
         "pref_default_restore_lockscreen",
-        "pref_default_preserve_small_icon",
+        "pref_default_status_bar_icon",
         "pref_default_timeout",
         "pref_fullscreen_behavior",
         "pref_landscape_behavior",

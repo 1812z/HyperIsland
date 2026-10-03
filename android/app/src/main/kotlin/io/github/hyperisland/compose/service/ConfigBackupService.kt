@@ -297,7 +297,6 @@ internal object ConfigBackupService {
         "icon" to LegacyField("pref_channel_icon_", "auto"),
         "focus" to LegacyField("pref_channel_focus_", "default"),
         "show_notification" to LegacyField("pref_channel_show_notification_", "on"),
-        "preserve_small_icon" to LegacyField("pref_channel_preserve_small_icon_", "default"),
         "show_island_icon" to LegacyField("pref_channel_show_island_icon_", "default"),
         "first_float" to LegacyField("pref_channel_first_float_", "default"),
         "enable_float" to LegacyField("pref_channel_enable_float_", "default"),

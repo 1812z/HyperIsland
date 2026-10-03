@@ -99,7 +99,7 @@ object NotificationCountIslandNotification : IslandTemplate {
             updatable         = false,
             showNotification  = showNotification,
             setFocusProxy     = showNotification,
-            preserveStatusBarSmallIcon = showNotification && data.preserveStatusBarSmallIcon != "off",
+            preserveStatusBarSmallIcon = showNotification && data.statusBarIconMode == "on",
             firstFloat        = false,
             enableFloat       = false,
             timeoutSecs       = data.islandTimeout,

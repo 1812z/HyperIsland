@@ -26,8 +26,11 @@ data class NotifData(
     val focusNotif: String = "default",
     /** 是否显示焦点通知通知栏字段: "on" / "off" */
     val showNotification: String = "on",
-    /** 是否保留状态栏左上角小图标: "default" / "on" / "off" */
-    val preserveStatusBarSmallIcon: String = "default",
+    /**
+     * 状态栏左上角小图标处理方式（已在 NotificationHook 中解析，不含 default）：
+     * "on" 强制显示 / "off" 强制不显示 / "system" 完全不动
+     */
+    val statusBarIconMode: String = "system",
     /** 初次自动展开 islandFirstFloat: "default" / "on" / "off" */
     val firstFloat: String = "default",
     /** 更新时自动展开 enableFloat: "default" / "on" / "off" */

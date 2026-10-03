@@ -100,6 +100,12 @@ object GenericProgressHook : BaseHook() {
     private const val MAX_TRACKED_CANCEL_SIZE = 500
     private const val MAX_MEDIA_ENABLED_CACHE_SIZE = 500
 
+    // 状态栏小图标开关取值，必须与 compose 侧 ChannelSettings.STATUS_BAR_ICON_* 保持一致
+    private const val STATUS_BAR_ICON_DEFAULT = 0
+    private const val STATUS_BAR_ICON_SHOW = 1
+    private const val STATUS_BAR_ICON_HIDE = 2
+    private const val STATUS_BAR_ICON_SYSTEM = 3
+
     private fun loadChannelStringSetting(cacheKey: String, prefKey: String, default: String): String {
         cachedChannelSettings[cacheKey]?.let { return it }
         val value = ConfigManager.getString(prefKey, default).takeIf { it.isNotBlank() } ?: default
@@ -113,6 +119,21 @@ object GenericProgressHook : BaseHook() {
         cachedChannelSettings[cacheKey] = if (value) "1" else "0"
         return value
     }
+
+    private fun loadIntSetting(cacheKey: String, prefKey: String, default: Int): Int {
+        cachedChannelSettings[cacheKey]?.let { return it.toIntOrNull() ?: default }
+        val value = ConfigManager.getInt(prefKey, default)
+        cachedChannelSettings[cacheKey] = value.toString()
+        return value
+    }
+
+    /** 把渠道 int 配置解析为最终模式："on" 强制显示 / "off" 强制不显示 / "system" 完全不动。 */
+    private fun resolveStatusBarIconMode(channelValue: Int, globalDefault: Int): String =
+        when (if (channelValue == STATUS_BAR_ICON_DEFAULT) globalDefault else channelValue) {
+            STATUS_BAR_ICON_SHOW -> "on"
+            STATUS_BAR_ICON_HIDE -> "off"
+            else -> "system"
+        }
 
     private fun resolveTriStateBoolean(global: Boolean, channelValue: String): Boolean {
         return when (channelValue) {
@@ -424,7 +445,7 @@ object GenericProgressHook : BaseHook() {
                 "pref_default_island_outer_glow",
                 "off",
             )
-            val defaultPreserveSmallIcon = loadBooleanSetting("global:default_preserve_small_icon","pref_default_preserve_small_icon", false)
+            val defaultStatusBarIcon = loadIntSetting("global:default_status_bar_icon", "pref_default_status_bar_icon", STATUS_BAR_ICON_SYSTEM)
             val defaultShowIslandIcon    = loadBooleanSetting("global:default_show_island_icon",   "pref_default_show_island_icon",   true)
 
             val focusNotif = resolveTriOpt(
@@ -436,9 +457,14 @@ object GenericProgressHook : BaseHook() {
                 "pref_channel_show_notification_${pkg}_$channelId",
                 "on",
             )
-            val preserveStatusBarSmallIcon = resolveTriOpt(
-                loadChannelStringSetting("preserve_small_icon:$pkg/$channelId", "pref_channel_preserve_small_icon_${pkg}_$channelId", "default"),
-                defaultPreserveSmallIcon
+            // 状态栏小图标：新 int 配置（0 默认跟随全局 / 1 强制显示 / 2 强制不显示 / 3 跟随系统）
+            val statusBarIconMode = resolveStatusBarIconMode(
+                loadIntSetting(
+                    "status_bar_icon:$pkg/$channelId",
+                    "pref_channel_status_bar_icon_${pkg}_$channelId",
+                    STATUS_BAR_ICON_DEFAULT,
+                ),
+                defaultStatusBarIcon,
             )
             val showIslandIcon = resolveTriOpt(
                 loadChannelStringSetting("show_island_icon:$pkg/$channelId", "pref_channel_show_island_icon_${pkg}_$channelId", "default"),
@@ -609,8 +635,17 @@ object GenericProgressHook : BaseHook() {
                 extras.remove("miui.effect.src")
             }
 
+            // 状态栏小图标只在“系统默认行为与用户选择不一致”时才需要 Hook：
+            //   焦点通知：系统自动隐藏图标 → 只有「强制显示」要处理（由渲染器写保留标记）；
+            //   普通通知：系统默认显示图标 → 只有「强制隐藏」要处理（这里写隐藏标记）。
+            if (statusBarIconMode == "off" && showNotification != "off" && focusNotif == "off") {
+                extras.putBoolean("hyperisland_hide_status_bar_small_icon", true)
+            } else {
+                extras.remove("hyperisland_hide_status_bar_small_icon")
+            }
+
             log(module) { "$pkg/$channelId | $title |  template=$template" }
-//            log(module, "$pkg/$channelId | $title | $progressPercent% | template=$template | buttons=${actions.size} | largeIcon=${largeIcon != null} | preserveSmallIcon=$preserveStatusBarSmallIcon")
+//            log(module, "$pkg/$channelId | $title | $progressPercent% | template=$template | buttons=${actions.size} | largeIcon=${largeIcon != null} | statusBarIconMode=$statusBarIconMode")
 
             TemplateRegistry.dispatch(
                 templateId = template,
@@ -630,7 +665,7 @@ object GenericProgressHook : BaseHook() {
                     iconMode        = iconMode,
                     focusNotif      = focusNotif,
                     showNotification = showNotification,
-                    preserveStatusBarSmallIcon = preserveStatusBarSmallIcon,
+                    statusBarIconMode = statusBarIconMode,
                     showIslandIcon  = showIslandIcon,
                     firstFloat      = effectiveFirstFloat,
                     enableFloatMode = effectiveEnableFloat,

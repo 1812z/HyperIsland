@@ -9,13 +9,18 @@ import io.github.libxposed.api.XposedModule
 import kotlin.jvm.JvmStatic
 
 /**
- * 定向保留 HyperIsland 代理焦点通知的状态栏左上角小图标。
+ * 定向控制 HyperIsland 通知在状态栏左上角的小图标。
+ *
+ * - 强制显示：把代理焦点通知的 isFocusNotification 置 false，并强制图标区域可见；
+ * - 强制不显示：把模型里的 statusBarIcon 置空，图标不进入状态栏图标集合（息屏 / 通知架走各自字段，不受影响）。
  *
  * 作用域：com.android.systemui（系统界面）
  */
 object FocusNotifStatusBarIconHook : BaseHook() {
 
     private const val TAG = "HyperIsland[FocusStatusBarIcon]"
+    private const val MARKER_PRESERVE_ICON = "hyperisland_preserve_status_bar_small_icon"
+    private const val MARKER_HIDE_ICON = "hyperisland_hide_status_bar_small_icon"
     private const val TARGET_ENTRY_CLASS =
         "com.android.systemui.statusbar.notification.collection.NotificationEntry"
     private const val TARGET_STORE_BUILDER_CLASS =
@@ -68,7 +73,19 @@ object FocusNotifStatusBarIconHook : BaseHook() {
                 val model = result ?: return@intercept result
                 val sbn = getObjectFieldOrNull(entry, "mSbn") ?: return@intercept result
                 val notification = resolveNotificationFromSbnLike(sbn) ?: return@intercept result
-                if (!isHyperIslandFocusProxy(notification.extras)) return@intercept result
+                val extras = notification.extras
+
+                // 强制不显示：置空 statusBarIcon，toIconInfo 返回 null，该通知不进入状态栏图标数据。
+                if (extras?.getBoolean(MARKER_HIDE_ICON, false) == true) {
+                    try {
+                        setFieldValue(model, "statusBarIcon", null)
+                    } catch (e: Throwable) {
+                        logError(module, "failed to clear statusBarIcon — ${e.message}")
+                    }
+                    return@intercept result
+                }
+
+                if (!isHyperIslandFocusProxy(extras)) return@intercept result
 
                 try {
                     setFieldValue(model, "isFocusNotification", false)
@@ -186,7 +203,7 @@ object FocusNotifStatusBarIconHook : BaseHook() {
 
     private fun isHyperIslandFocusProxy(extras: Bundle?): Boolean {
         if (extras == null) return false
-        return extras.getBoolean("hyperisland_preserve_status_bar_small_icon", false)
+        return extras.getBoolean(MARKER_PRESERVE_ICON, false)
     }
 
     private fun getObjectFieldOrNull(instance: Any, fieldName: String): Any? {

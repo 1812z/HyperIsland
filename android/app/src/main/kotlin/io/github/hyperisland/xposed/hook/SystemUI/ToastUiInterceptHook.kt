@@ -25,11 +25,17 @@ object ToastUiInterceptHook : BaseHook() {
     private const val SELF_PKG = "io.github.hyperisland"
     private const val DEDUPE_WINDOW_MS = 1200L
 
+    // Toast 状态栏图标开关取值，与 compose 侧 ToastSettingsFormPage 的 TRI_ON / TRI_SYSTEM 一致
+    private const val TOAST_STATUS_BAR_ICON_SHOW = "on"
+    private const val TOAST_STATUS_BAR_ICON_SYSTEM = "system"
+
     private data class ToastRule(
         val forwardEnabled: Boolean,
         val blockOriginal: Boolean,
         val showNotification: Boolean,
         val showIslandIcon: Boolean,
+        /** 状态栏小图标：true 强制显示（Toast 是焦点通知，系统默认会自动隐藏） */
+        val preserveStatusBarSmallIcon: Boolean,
         val firstFloat: Boolean,
         val enableFloat: Boolean,
         val timeoutSecs: Int,
@@ -202,6 +208,10 @@ object ToastUiInterceptHook : BaseHook() {
             "pref_toast_show_island_icon_$pkg",
             true,
         )
+        // 只有“开启”才介入：Toast 一定是焦点通知，系统本来就会隐藏它的状态栏图标。
+        val preserveStatusBarSmallIcon = ConfigManager
+            .getString("pref_toast_preserve_small_icon_$pkg", TOAST_STATUS_BAR_ICON_SYSTEM) ==
+            TOAST_STATUS_BAR_ICON_SHOW
         val defaultFirstFloat = ConfigManager.getBoolean("pref_default_first_float", false)
         val defaultEnableFloat = ConfigManager.getBoolean("pref_default_enable_float", false)
         val defaultDynamicHighlightColor = ConfigManager.getBoolean(
@@ -293,6 +303,7 @@ object ToastUiInterceptHook : BaseHook() {
             blockOriginal = block,
             showNotification = showNotification,
             showIslandIcon = showIslandIcon,
+            preserveStatusBarSmallIcon = preserveStatusBarSmallIcon,
             firstFloat = firstFloat,
             enableFloat = enableFloat,
             timeoutSecs = clampedTimeout,
@@ -412,7 +423,7 @@ object ToastUiInterceptHook : BaseHook() {
                     enableFloat = sceneDecision.applyToBoolean(rule.enableFloat),
                     showNotification = rule.showNotification,
                     showIslandIcon = rule.showIslandIcon,
-                    preserveStatusBarSmallIcon = false,
+                    preserveStatusBarSmallIcon = rule.preserveStatusBarSmallIcon,
                     highlightColor = resolvedHighlightColor,
                     showLeftHighlightColor = rule.showLeftHighlightColor,
                     showRightHighlightColor = rule.showRightHighlightColor,

@@ -50,6 +50,10 @@ import io.github.hyperisland.compose.data.channel.RENDERER_IMAGE_TEXT_BUTTONS
 import io.github.hyperisland.compose.data.channel.RENDERER_IMAGE_TEXT_PROGRESS
 import io.github.hyperisland.compose.data.channel.RENDERER_IMAGE_TEXT_RIGHT_BUTTON
 import io.github.hyperisland.compose.data.channel.RENDERER_IMAGE_TEXT_WRAP
+import io.github.hyperisland.compose.data.channel.STATUS_BAR_ICON_DEFAULT
+import io.github.hyperisland.compose.data.channel.STATUS_BAR_ICON_HIDE
+import io.github.hyperisland.compose.data.channel.STATUS_BAR_ICON_SHOW
+import io.github.hyperisland.compose.data.channel.STATUS_BAR_ICON_SYSTEM
 import io.github.hyperisland.compose.data.channel.TEMPLATE_AI_NOTIFICATION
 import io.github.hyperisland.compose.data.channel.TEMPLATE_NOTIFICATION
 import io.github.hyperisland.compose.data.channel.TEMPLATE_NOTIFICATION_COUNT
@@ -128,12 +132,28 @@ internal fun ChannelSettingsFormPage(
     } else {
         listOf<String?>(OPTION_DEFAULT, OPTION_ON, OPTION_OFF, OPTION_FOLLOW_DYNAMIC)
     }
+    val statusBarIconValues = optionalValues(
+        isBatch,
+        STATUS_BAR_ICON_DEFAULT,
+        STATUS_BAR_ICON_SHOW,
+        STATUS_BAR_ICON_HIDE,
+        STATUS_BAR_ICON_SYSTEM,
+    )
     @Composable
     fun glowLabels(defaultValue: String): List<String> {
         val defaultLabel = if (isBatch) default else defaultGlowLabel(defaultValue)
         val labels = listOf(defaultLabel, on, off, stringResource(R.string.follow_dynamic_color))
         return if (isBatch) listOf(noChange) + labels else labels
     }
+    @Composable
+    fun statusBarIconLabels(): List<String> = optionalLabels(
+        isBatch,
+        noChange,
+        stringResource(R.string.default_with_value, statusBarIconShortLabel(defaults.statusBarIcon)),
+        on,
+        off,
+        stringResource(R.string.status_bar_icon_system),
+    )
 
     DetailPage(title = title, onBack = onBack) {
         headerText?.let { message ->
@@ -362,7 +382,7 @@ internal fun ChannelSettingsFormPage(
                             state.copy(
                                 focus = value,
                                 showNotification = OPTION_ON,
-                                preserveSmallIcon = OPTION_OFF,
+                                statusBarIcon = STATUS_BAR_ICON_SYSTEM,
                                 islandEnabled = true,
                             )
                         } else {
@@ -370,6 +390,14 @@ internal fun ChannelSettingsFormPage(
                         },
                     )
                 }
+                // 普通通知也能用，所以不受“焦点通知”开关控制，始终显示。
+                // 副标题只在默认配置页说明行为，渠道页保持空。
+                FormDropdown(
+                    title = stringResource(R.string.preserve_small_icon),
+                    value = state.statusBarIcon,
+                    values = statusBarIconValues,
+                    labels = statusBarIconLabels(),
+                ) { onStateChange(state.copy(statusBarIcon = it)) }
                 AnimatedVisibility(visible = focusEnabled) {
                     Column {
                         if (isBatch) {
@@ -389,9 +417,6 @@ internal fun ChannelSettingsFormPage(
                                 checked = state.showNotification == OPTION_OFF,
                                 insideMargin = CHANNEL_FORM_MARGIN,
                             ) { onStateChange(state.copy(showNotification = if (it) OPTION_OFF else OPTION_ON)) }
-                        }
-                        TriField(stringResource(R.string.preserve_small_icon), state.preserveSmallIcon, triValues, triLabels(defaults.preserveSmallIcon)) {
-                            onStateChange(state.copy(preserveSmallIcon = it))
                         }
                         TriField(stringResource(R.string.restore_lockscreen), state.restoreLockscreen, triValues, triLabels(defaults.restoreLockscreen)) {
                             onStateChange(state.copy(restoreLockscreen = it))
@@ -710,6 +735,16 @@ private fun defaultGlowLabel(defaultValue: String): String = stringResource(
 @Composable
 private fun enabledLabel(value: Boolean): String = stringResource(
     if (value) R.string.enabled_option else R.string.disabled_option,
+)
+
+/** 状态栏小图标全局默认值的短标签，用于渠道“默认（X）”文案。 */
+@Composable
+private fun statusBarIconShortLabel(value: Int): String = stringResource(
+    when (value) {
+        STATUS_BAR_ICON_SHOW -> R.string.enabled_option
+        STATUS_BAR_ICON_HIDE -> R.string.disabled_option
+        else -> R.string.status_bar_icon_system
+    },
 )
 
 @Composable

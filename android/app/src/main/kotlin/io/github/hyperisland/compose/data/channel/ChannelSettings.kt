@@ -6,7 +6,7 @@ internal data class ChannelSettings(
     val iconMode: String = ICON_AUTO,
     val focus: String = OPTION_DEFAULT,
     val showNotification: String = OPTION_ON,
-    val preserveSmallIcon: String = OPTION_DEFAULT,
+    val statusBarIcon: Int = STATUS_BAR_ICON_DEFAULT,
     val showIslandIcon: String = OPTION_DEFAULT,
     val firstFloat: String = OPTION_DEFAULT,
     val enableFloat: String = OPTION_DEFAULT,
@@ -40,7 +40,7 @@ internal data class ChannelSettingsPatch(
     val iconMode: String? = null,
     val focus: String? = null,
     val showNotification: String? = null,
-    val preserveSmallIcon: String? = null,
+    val statusBarIcon: Int? = null,
     val showIslandIcon: String? = null,
     val firstFloat: String? = null,
     val enableFloat: String? = null,
@@ -75,7 +75,7 @@ internal fun ChannelSettings.toFullPatch(): ChannelSettingsPatch = ChannelSettin
     iconMode = iconMode,
     focus = focus,
     showNotification = showNotification,
-    preserveSmallIcon = preserveSmallIcon,
+    statusBarIcon = statusBarIcon,
     showIslandIcon = showIslandIcon,
     firstFloat = firstFloat,
     enableFloat = enableFloat,
@@ -107,7 +107,7 @@ internal fun ChannelSettings.withPatch(patch: ChannelSettingsPatch): ChannelSett
     iconMode = patch.iconMode ?: iconMode,
     focus = patch.focus ?: focus,
     showNotification = patch.showNotification ?: showNotification,
-    preserveSmallIcon = patch.preserveSmallIcon ?: preserveSmallIcon,
+    statusBarIcon = patch.statusBarIcon ?: statusBarIcon,
     showIslandIcon = patch.showIslandIcon ?: showIslandIcon,
     firstFloat = patch.firstFloat ?: firstFloat,
     enableFloat = patch.enableFloat ?: enableFloat,
@@ -162,6 +162,15 @@ internal const val OPTION_DEFAULT = "default"
 internal const val OPTION_ON = "on"
 internal const val OPTION_OFF = "off"
 internal const val OPTION_FOLLOW_DYNAMIC = "follow_dynamic"
+
+/**
+ * 渠道状态栏小图标开关（int：新配置，避免旧 preserve_small_icon 干扰）。
+ * 默认跟随全局默认；开=强制显示；关=强制不显示；跟随系统=完全不干预。
+ */
+internal const val STATUS_BAR_ICON_DEFAULT = 0
+internal const val STATUS_BAR_ICON_SHOW = 1
+internal const val STATUS_BAR_ICON_HIDE = 2
+internal const val STATUS_BAR_ICON_SYSTEM = 3
 
 internal const val FILTER_BLACKLIST = "blacklist"
 internal const val FILTER_WHITELIST = "whitelist"

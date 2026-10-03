@@ -25,6 +25,9 @@ import io.github.hyperisland.compose.component.parseHexColor
 import io.github.hyperisland.compose.component.toArgbHex
 import io.github.hyperisland.compose.data.DefaultConfigSettings
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
+import io.github.hyperisland.compose.data.channel.STATUS_BAR_ICON_HIDE
+import io.github.hyperisland.compose.data.channel.STATUS_BAR_ICON_SHOW
+import io.github.hyperisland.compose.data.channel.STATUS_BAR_ICON_SYSTEM
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
@@ -60,6 +63,21 @@ internal fun DefaultConfigPage(
         stringResource(R.string.marquee_twice),
         stringResource(R.string.marquee_once_override),
         stringResource(R.string.marquee_twice_override),
+    )
+    val statusBarIconValues = remember {
+        listOf(STATUS_BAR_ICON_SHOW, STATUS_BAR_ICON_HIDE, STATUS_BAR_ICON_SYSTEM)
+    }
+    val statusBarIconLabels = listOf(
+        stringResource(R.string.enabled_option),
+        stringResource(R.string.disabled_option),
+        stringResource(R.string.status_bar_icon_system),
+    )
+    val statusBarIconSummary = stringResource(
+        when (settings.statusBarIcon) {
+            STATUS_BAR_ICON_SHOW -> R.string.status_bar_icon_subtitle_show
+            STATUS_BAR_ICON_HIDE -> R.string.status_bar_icon_subtitle_hide
+            else -> R.string.status_bar_icon_subtitle_system
+        },
     )
 
     fun update(value: DefaultConfigSettings) {
@@ -163,12 +181,16 @@ internal fun DefaultConfigPage(
                     summary = stringResource(R.string.island_icon_summary),
                     insideMargin = DEFAULT_ITEM_MARGIN,
                 )
-                SwitchPreference(
-                    checked = settings.preserveSmallIcon,
-                    onCheckedChange = { update(settings.copy(preserveSmallIcon = it)) },
+                OverlayDropdownPreference(
+                    items = statusBarIconLabels,
+                    selectedIndex = statusBarIconValues.indexOf(settings.statusBarIcon).coerceAtLeast(0),
                     title = stringResource(R.string.preserve_small_icon),
-                    summary = stringResource(R.string.preserve_small_icon_summary),
+                    summary = statusBarIconSummary,
                     insideMargin = DEFAULT_ITEM_MARGIN,
+                    renderInRootScaffold = false,
+                    onSelectedIndexChange = { index ->
+                        update(settings.copy(statusBarIcon = statusBarIconValues[index]))
+                    },
                 )
             }
         }

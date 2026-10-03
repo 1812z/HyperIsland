@@ -227,7 +227,10 @@
     <string name="island_icon">大岛图标</string>
     <string name="island_icon_summary">开启后显示超级岛的大图标（小岛不受影响）</string>
     <string name="preserve_small_icon">状态栏图标</string>
-    <string name="preserve_small_icon_summary">焦点通知打开时，是否强制保留状态栏小图标</string>
+    <string name="status_bar_icon_subtitle_show">强制显示状态栏图标</string>
+    <string name="status_bar_icon_subtitle_hide">强制隐藏状态栏图标</string>
+    <string name="status_bar_icon_subtitle_system">不修改状态栏图标行为</string>
+    <string name="status_bar_icon_system">跟随系统</string>
     <string name="glow">外圈光效</string>
     <string name="focus_outer_glow">焦点通知外圈光效</string>
     <string name="island_outer_glow">大岛外圈光效</string>
