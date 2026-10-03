@@ -80,9 +80,9 @@ object ImageTextWithButtonsRenderer : IslandRenderer {
             builder.setIslandFirstFloat(vm.firstFloat)
             builder.setEnableFloat(vm.enableFloat)
             builder.setShowNotification(vm.showNotification)
-            builder.setIslandConfig(timeout = vm.timeoutSecs)
+            builder.setIslandConfig(timeout = vm.timeoutSecs, dismissible = vm.dismissIsland)
 
-            // 小岛 + 大岛（islandEnabled=false 时不构建，param_island 自然不存在）
+            // 小岛 + 大岛（islandEnabled=false 时不构建 areas，岛由 dismissIsland 关闭）
             if (vm.islandEnabled) {
                 // 小岛
                 if (vm.circularProgress != null) {

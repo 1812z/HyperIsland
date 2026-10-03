@@ -73,8 +73,14 @@ data class IslandViewModel(
     val aodTitle: String? = null,
     /** 息屏显示自定义配置（JSON 字符串），包含文本表达式与图标来源。 */
     val aodCustomizationJson: String? = null,
-    /** 是否启用超级岛（false 时从 focus param 中移除 param_island 字段）。 */
+    /** 是否构建小岛 / 大岛内容（false 时不写 smallIslandArea / bigIslandArea）。 */
     val islandEnabled: Boolean = true,
+    /**
+     * 写入 param_island.dismissIsland：true 时系统不会为这条通知显示岛。
+     *
+     * 用于「通知本身要变焦点通知、但岛必须留给别的通知（如计数岛代理）」的场景。
+     */
+    val dismissIsland: Boolean = false,
     /** 息屏显示图标；null 时渲染器回退到 [islandIcon]。 */
     val aodIcon: Icon? = null,
 )

@@ -76,7 +76,7 @@ object ImageTextWithProgressRenderer : IslandRenderer {
             builder.setIslandFirstFloat(vm.firstFloat)
             builder.setEnableFloat(vm.enableFloat)
             builder.setShowNotification(vm.showNotification)
-            builder.setIslandConfig(timeout = vm.timeoutSecs)
+            builder.setIslandConfig(timeout = vm.timeoutSecs, dismissible = vm.dismissIsland)
 
             val progress = vm.circularProgress
             if (progress != null) {
@@ -89,39 +89,42 @@ object ImageTextWithProgressRenderer : IslandRenderer {
                 )
             }
 
-            builder.setSmallIsland(islandIconKey)
+            // 小岛 + 大岛（islandEnabled=false 时不构建 areas，岛由 dismissIsland 关闭）
+            if (vm.islandEnabled) {
+                builder.setSmallIsland(islandIconKey)
 
-            val leftSide = if (!vm.showIslandIcon) {
-                io.github.d4viddf.hyperisland_kit.models.ImageTextInfoLeft(
-                    type = 1,
-                    textInfo = io.github.d4viddf.hyperisland_kit.models.TextInfo(
-                        title = vm.leftTitle,
-                        narrowFont = vm.showLeftNarrowFont,
-                        showHighlightColor = vm.showLeftHighlightColor,
-                    ),
-                )
-            } else {
-                io.github.d4viddf.hyperisland_kit.models.ImageTextInfoLeft(
-                    type = 1,
-                    picInfo = io.github.d4viddf.hyperisland_kit.models.PicInfo(type = 1, pic = islandIconKey),
-                    textInfo = io.github.d4viddf.hyperisland_kit.models.TextInfo(
-                        title = vm.leftTitle,
-                        narrowFont = vm.showLeftNarrowFont,
-                        showHighlightColor = vm.showLeftHighlightColor,
+                val leftSide = if (!vm.showIslandIcon) {
+                    io.github.d4viddf.hyperisland_kit.models.ImageTextInfoLeft(
+                        type = 1,
+                        textInfo = io.github.d4viddf.hyperisland_kit.models.TextInfo(
+                            title = vm.leftTitle,
+                            narrowFont = vm.showLeftNarrowFont,
+                            showHighlightColor = vm.showLeftHighlightColor,
+                        ),
+                    )
+                } else {
+                    io.github.d4viddf.hyperisland_kit.models.ImageTextInfoLeft(
+                        type = 1,
+                        picInfo = io.github.d4viddf.hyperisland_kit.models.PicInfo(type = 1, pic = islandIconKey),
+                        textInfo = io.github.d4viddf.hyperisland_kit.models.TextInfo(
+                            title = vm.leftTitle,
+                            narrowFont = vm.showLeftNarrowFont,
+                            showHighlightColor = vm.showLeftHighlightColor,
+                        ),
+                    )
+                }
+                builder.setBigIslandInfo(
+                    left = leftSide,
+                    right = io.github.d4viddf.hyperisland_kit.models.ImageTextInfoRight(
+                        type = 2,
+                        textInfo = io.github.d4viddf.hyperisland_kit.models.TextInfo(
+                            title = vm.rightTitle,
+                            narrowFont = vm.showRightNarrowFont,
+                            showHighlightColor = vm.showRightHighlightColor,
+                        ),
                     ),
                 )
             }
-            builder.setBigIslandInfo(
-                left = leftSide,
-                right = io.github.d4viddf.hyperisland_kit.models.ImageTextInfoRight(
-                    type = 2,
-                    textInfo = io.github.d4viddf.hyperisland_kit.models.TextInfo(
-                        title = vm.rightTitle,
-                        narrowFont = vm.showRightNarrowFont,
-                        showHighlightColor = vm.showRightHighlightColor,
-                    ),
-                ),
-            )
 
             val resourceBundle = builder.buildResourceBundle()
             val pictures = resourceBundle.getBundle("miui.focus.pics") ?: Bundle()
@@ -132,7 +135,7 @@ object ImageTextWithProgressRenderer : IslandRenderer {
 
             var jsonParam = fixTextButtonJson(builder.buildJsonParam())
             jsonParam = injectUpdatable(jsonParam, vm.updatable)
-            jsonParam = injectHighlightColor(jsonParam, vm.highlightColor)
+            if (vm.islandEnabled) jsonParam = injectHighlightColor(jsonParam, vm.highlightColor)
             jsonParam = injectOuterGlow(jsonParam, vm.outerGlow)
             jsonParam = injectOutEffectColor(jsonParam, vm.outEffectColor)
             jsonParam = injectAodConfig(jsonParam, vm.aodTitle, aodIconKey)

@@ -96,7 +96,9 @@ internal fun ChannelSettingsFormPage(
     val focusValue = state.focus ?: OPTION_OFF
     val focusEnabled = focusValue == OPTION_ON ||
         (focusValue == OPTION_DEFAULT && defaults.focusNotification)
-    val islandVisible = state.islandEnabled != false
+    // 计数岛模板的岛由模板固定代发：开关藏起来，岛相关设置始终可见。
+    val isCountTemplate = state.template == TEMPLATE_NOTIFICATION_COUNT
+    val islandVisible = isCountTemplate || state.islandEnabled != false
     val marqueeEnabled = when (state.marquee) {
         OPTION_ON -> true
         OPTION_OFF -> false
@@ -185,23 +187,26 @@ internal fun ChannelSettingsFormPage(
         item {
             SectionTitle(stringResource(R.string.island))
             Card {
-                if (isBatch) {
-                    FormDropdown(
-                        title = stringResource(R.string.channel_enable_island),
-                        value = state.islandEnabled,
-                        values = listOf(null, true, false),
-                        labels = listOf(noChange, on, off),
-                        enabled = focusEnabled,
-                    ) { onStateChange(state.copy(islandEnabled = it)) }
-                } else {
-                    PreferenceSwitch(
-                        title = stringResource(R.string.channel_enable_island),
-                        summary = null,
-                        icon = null,
-                        checked = state.islandEnabled != false,
-                        enabled = focusEnabled,
-                        insideMargin = CHANNEL_FORM_MARGIN,
-                    ) { onStateChange(state.copy(islandEnabled = it)) }
+                // 计数岛模板必须显示计数岛，不提供「启用超级岛」开关（与下方开关同款出现/消失动画）。
+                AnimatedVisibility(visible = !isCountTemplate) {
+                    if (isBatch) {
+                        FormDropdown(
+                            title = stringResource(R.string.channel_enable_island),
+                            value = state.islandEnabled,
+                            values = listOf(null, true, false),
+                            labels = listOf(noChange, on, off),
+                            enabled = focusEnabled,
+                        ) { onStateChange(state.copy(islandEnabled = it)) }
+                    } else {
+                        PreferenceSwitch(
+                            title = stringResource(R.string.channel_enable_island),
+                            summary = null,
+                            icon = null,
+                            checked = state.islandEnabled != false,
+                            enabled = focusEnabled,
+                            insideMargin = CHANNEL_FORM_MARGIN,
+                        ) { onStateChange(state.copy(islandEnabled = it)) }
+                    }
                 }
                 AnimatedVisibility(visible = islandVisible) {
                     Column {
@@ -233,29 +238,31 @@ internal fun ChannelSettingsFormPage(
                         TriField(stringResource(R.string.update_float), state.enableFloat, triValues, triLabels(defaults.enableFloat)) {
                             onStateChange(state.copy(enableFloat = it))
                         }
-                        if (state.template != TEMPLATE_NOTIFICATION_COUNT) {
-                            TriField(stringResource(R.string.marquee_channel), state.marquee, triValues, triLabels(defaults.marquee)) {
-                                onStateChange(state.copy(marquee = it))
-                            }
-                            FormDropdown(
-                                title = stringResource(R.string.marquee_auto_hide),
-                                value = state.marqueeAutoHide,
-                                values = optionalValues(isBatch, OPTION_DEFAULT, OPTION_OFF, "1", "2", "1_override", "2_override"),
-                                labels = optionalLabels(
-                                    isBatch,
-                                    noChange,
-                                    if (isBatch) default else stringResource(
-                                        R.string.default_with_value,
-                                        marqueeAutoHideLabel(defaults.marqueeAutoHide),
+                        AnimatedVisibility(visible = !isCountTemplate) {
+                            Column {
+                                TriField(stringResource(R.string.marquee_channel), state.marquee, triValues, triLabels(defaults.marquee)) {
+                                    onStateChange(state.copy(marquee = it))
+                                }
+                                FormDropdown(
+                                    title = stringResource(R.string.marquee_auto_hide),
+                                    value = state.marqueeAutoHide,
+                                    values = optionalValues(isBatch, OPTION_DEFAULT, OPTION_OFF, "1", "2", "1_override", "2_override"),
+                                    labels = optionalLabels(
+                                        isBatch,
+                                        noChange,
+                                        if (isBatch) default else stringResource(
+                                            R.string.default_with_value,
+                                            marqueeAutoHideLabel(defaults.marqueeAutoHide),
+                                        ),
+                                        off,
+                                        stringResource(R.string.marquee_once),
+                                        stringResource(R.string.marquee_twice),
+                                        stringResource(R.string.marquee_once_override),
+                                        stringResource(R.string.marquee_twice_override),
                                     ),
-                                    off,
-                                    stringResource(R.string.marquee_once),
-                                    stringResource(R.string.marquee_twice),
-                                    stringResource(R.string.marquee_once_override),
-                                    stringResource(R.string.marquee_twice_override),
-                                ),
-                                enabled = marqueeEnabled,
-                            ) { onStateChange(state.copy(marqueeAutoHide = it)) }
+                                    enabled = marqueeEnabled,
+                                ) { onStateChange(state.copy(marqueeAutoHide = it)) }
+                            }
                         }
                         ArrowPreference(
                             title = stringResource(R.string.auto_disappear),
@@ -266,11 +273,11 @@ internal fun ChannelSettingsFormPage(
                                 timeoutDialog = true
                             },
                         )
-                        if (!isBatch && onOpenCustomization != null) {
+                        AnimatedVisibility(visible = !isBatch && !isCountTemplate && onOpenCustomization != null) {
                             ArrowPreference(
                                 title = stringResource(R.string.channel_island_customization),
                                 insideMargin = CHANNEL_FORM_MARGIN,
-                                onClick = { onOpenCustomization(ChannelCustomizationTarget.Island) },
+                                onClick = { onOpenCustomization?.invoke(ChannelCustomizationTarget.Island) },
                             )
                         }
                     }

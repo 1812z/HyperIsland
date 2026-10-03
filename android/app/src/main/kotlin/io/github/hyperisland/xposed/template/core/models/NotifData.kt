@@ -68,7 +68,7 @@ data class NotifData(
     val aodText: String = "default",
     /** 息屏显示自定义配置（JSON 字符串），包含文本表达式与图标来源。 */
     val aodCustomizationJson: String? = null,
-    /** 是否启用超级岛（false 时从 focus param 中移除 param_island 字段）。 */
+    /** 是否启用超级岛（false 时不构建小岛 / 大岛 areas；要连岛一起关掉需配合 dismissIsland）。 */
     val islandEnabled: Boolean = true,
     /** 当前通知条数岛统计范围内的活动通知数。普通模板固定为 1。 */
     val notificationCount: Int = 1,
