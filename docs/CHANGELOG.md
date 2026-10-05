@@ -8,6 +8,11 @@ import ReleaseHistory from './.vitepress/components/ReleaseHistory.vue'
 
 <div class="changelog-source" hidden>
 
+# V3.1.7-Beta1(2026-10-5)
+## 功能
+- 预设新增还原配置功能
+- 预设空白项恢复默认配置
+
 
 # V3.1.6(2026-10-4)
 ## 破坏性更新，状态栏图标配置支持3项开关，原配置已弃用
