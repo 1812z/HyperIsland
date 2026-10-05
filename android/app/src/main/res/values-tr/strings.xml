@@ -1,5 +1,8 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
+    <string name="preset_reset_config">Ayarları sıfırla</string>
+    <string name="preset_reset_summary">Seçilen öğelerin ayarları varsayılan değerlere sıfırlanacak</string>
+    <string name="preset_reset_success">Seçilen ayarlar sıfırlandı</string>
     <string name="privacy_consent_title">Gizlilik Politikası</string>
     <string name="privacy_consent_message">HyperIsland’ı kullanmak için önce %1$s belgesini okuyup kabul etmelisiniz.</string>
     <string name="privacy_policy_name">Gizlilik Politikası</string>

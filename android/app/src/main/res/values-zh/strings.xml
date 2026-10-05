@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="preset_reset_config">还原配置</string>
+    <string name="preset_reset_summary">选中的项目配置将恢复默认</string>
+    <string name="preset_reset_success">所选配置已还原</string>
     <string name="privacy_consent_title">隐私政策</string>
     <string name="privacy_consent_message">为了给您提供更好的服务，您需要阅读并同意 %1$s 才可继续使用 HyperIsland</string>
     <string name="privacy_policy_name">《隐私政策》</string>

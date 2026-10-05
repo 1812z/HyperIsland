@@ -44,6 +44,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -70,6 +71,9 @@ import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.ConfigSectionTree
 import io.github.hyperisland.compose.component.DetailGridPage
 import io.github.hyperisland.compose.data.ConfigPreset
+import io.github.hyperisland.compose.data.ConfigSection
+import io.github.hyperisland.compose.data.ConfigSectionGroups
+import io.github.hyperisland.compose.data.InstalledAppsRepository
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.PRESET_AUTHOR_MAX
 import io.github.hyperisland.compose.data.PRESET_CONTENT_MAX
@@ -86,6 +90,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -120,8 +125,54 @@ import top.yukonga.miuix.kmp.icon.extended.More
 import top.yukonga.miuix.kmp.menu.OverlayIconCascadingDropdownMenu
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.window.WindowBottomSheet
+import top.yukonga.miuix.kmp.window.WindowDialog
 
 private val PresetCardHeight = 144.dp
+
+@Composable
+private fun ResetConfigDialog(
+    show: Boolean,
+    sections: List<ConfigSection>,
+    counts: Map<String, Int>,
+    onDismiss: () -> Unit,
+    onApply: (Set<String>) -> Unit,
+) {
+    var selected by remember(show) { mutableStateOf(emptySet<String>()) }
+    WindowDialog(
+        show = show,
+        title = stringResource(R.string.preset_reset_config),
+        onDismissRequest = onDismiss,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(stringResource(R.string.preset_reset_summary))
+            LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 400.dp)) {
+                item {
+                    ConfigSectionTree(
+                        sections = sections,
+                        selectedLeafIds = selected,
+                        onSelectedLeafIdsChange = { selected = it },
+                        counts = counts,
+                    )
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Button(
+                    onClick = { onApply(selected) },
+                    enabled = selected.isNotEmpty(),
+                    modifier = Modifier.weight(1f),
+                ) { Text(stringResource(R.string.apply)) }
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColorsPrimary(),
+                ) { Text(stringResource(R.string.cancel)) }
+            }
+        }
+    }
+}
 
 /** 应用配置 bottom sheet 的层级：详情 → 配置内容 → 全屏编辑。 */
 private enum class PresetSheetView { Detail, Content, Editor }
@@ -165,6 +216,26 @@ internal fun PresetConfigPage(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val snackbarState = remember { SnackbarHostState() }
+    var configRevision by remember { mutableIntStateOf(0) }
+    DisposableEffect(prefs) {
+        val removeListener = prefs.addChangeListener { configRevision++ }
+        onDispose { removeListener() }
+    }
+    // 页面进入时后台准备分类和名称，sheet / dialog 共用；显示与收起均不触发重新加载。
+    val sectionTree by produceState(ConfigSectionGroups, configRevision) {
+        value = withContext(Dispatchers.IO) { PresetStore.appConfigSectionTree(context) }
+    }
+    val sectionCounts by produceState(emptyMap<String, Int>(), configRevision) {
+        value = withContext(Dispatchers.IO) { PresetStore.sectionKeyCounts(context) }
+    }
+    LaunchedEffect(sectionTree) {
+        val repository = InstalledAppsRepository(context.applicationContext)
+        sectionTree.flatMap { it.leafIds }
+            .mapNotNull { parseAppConfigLeafId(it)?.second }.distinct().forEach { packageName ->
+                withContext(Dispatchers.IO) { repository.loadIcon(packageName) }
+                delay(16)
+            }
+    }
 
     var reload by remember { mutableIntStateOf(0) }
     var sortOrder by remember { mutableStateOf(PresetSortOrder.Date) }
@@ -229,6 +300,7 @@ internal fun PresetConfigPage(
     }
 
     var showNewSheet by remember { mutableStateOf(false) }
+    var showResetDialog by remember { mutableStateOf(false) }
     var applyTarget by remember { mutableStateOf<ConfigPreset?>(null) }
     var applySheetShown by remember { mutableStateOf(false) }
     // 应用成功后待弹出的提示条数；等 bottom sheet 关闭动画结束再展示。
@@ -238,16 +310,18 @@ internal fun PresetConfigPage(
 
     val newConfigLabel = stringResource(R.string.preset_new_config)
     val importLabel = stringResource(R.string.preset_import_clipboard)
+    val resetLabel = stringResource(R.string.preset_reset_config)
     val sortLabel = stringResource(R.string.preset_sort)
     val nameLabel = stringResource(R.string.preset_sort_name)
     val downloadsLabel = stringResource(R.string.preset_sort_downloads)
     val dateLabel = stringResource(R.string.preset_sort_date)
-    val menuEntries = remember(newConfigLabel, importLabel, sortLabel, nameLabel, downloadsLabel, dateLabel, sortOrder) {
+    val menuEntries = remember(newConfigLabel, importLabel, resetLabel, sortLabel, nameLabel, downloadsLabel, dateLabel, sortOrder) {
         listOf(
             DropdownEntry(
                 items = listOf(
                     DropdownItem(text = newConfigLabel, onClick = { showNewSheet = true }),
                     DropdownItem(text = importLabel, onClick = { importFromClipboard() }),
+                    DropdownItem(text = resetLabel, onClick = { showResetDialog = true }),
                 ),
             ),
             DropdownEntry(
@@ -346,6 +420,8 @@ internal fun PresetConfigPage(
 
     NewPresetBottomSheet(
         show = showNewSheet,
+        sectionTree = sectionTree,
+        sectionCounts = sectionCounts,
         onDismiss = { showNewSheet = false },
         onSave = { title, content, author, selectedLeafIds ->
             val preset = ConfigPreset(
@@ -361,6 +437,18 @@ internal fun PresetConfigPage(
             PresetStore.saveLocal(context, preset)
             reload++
             showNewSheet = false
+        },
+    )
+
+    ResetConfigDialog(
+        show = showResetDialog,
+        sections = sectionTree,
+        counts = sectionCounts,
+        onDismiss = { showResetDialog = false },
+        onApply = { selected ->
+            PresetStore.reset(context, selected)
+            showResetDialog = false
+            scope.launch { snackbarState.showSnackbar(context.getString(R.string.preset_reset_success)) }
         },
     )
 
@@ -602,12 +690,11 @@ private fun presetTextFieldColors() = TextFieldDefaults.textFieldColors(
 @Composable
 private fun NewPresetBottomSheet(
     show: Boolean,
+    sectionTree: List<ConfigSection>,
+    sectionCounts: Map<String, Int>,
     onDismiss: () -> Unit,
     onSave: (title: String, content: String, author: String, selectedLeafIds: Set<String>) -> Unit,
 ) {
-    val context = LocalContext.current
-    val sectionCounts = remember(show) { PresetStore.sectionKeyCounts(context) }
-    val sectionTree = remember(show) { PresetStore.appConfigSectionTree(context) }
     var titleInput by remember(show) { mutableStateOf("") }
     var contentInput by remember(show) { mutableStateOf("") }
     var authorInput by remember(show) { mutableStateOf("") }
@@ -784,8 +871,10 @@ private fun ApplyPresetBottomSheet(
     }
     var selectedIds by remember(effective) { mutableStateOf(includedIds.toSet()) }
     // 应用配置也复用新建配置的可展开树，通知 / Toast 的应用级叶子挂在对应分组下。
-    val sectionTree = remember(includedIds, context) {
-        PresetStore.presetSectionTree(context, includedIds.toSet())
+    val sectionTree by produceState(emptyList<ConfigSection>(), includedIds) {
+        value = withContext(Dispatchers.IO) {
+            PresetStore.presetSectionTree(context, includedIds.toSet())
+        }
     }
     val sectionCounts = remember(effective) {
         effective.sections.mapValues { (id, values) -> appSectionCount(id, values) }

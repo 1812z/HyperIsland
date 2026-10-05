@@ -123,6 +123,7 @@ internal object PresetStore {
     private const val FLUTTER_PREFS = "FlutterSharedPreferences"
     private const val FLUTTER_PREFIX = "flutter."
     private const val DOUBLE_PREFIX = "VGhpcyBpcyB0aGUgcHJlZml4IGZvciBEb3VibGUu"
+    private val appLabels = LinkedHashMap<String, String>(512, 0.75f, true)
 
     fun loadLocal(context: Context): List<ConfigPreset> {
         val raw = presetsPrefs(context).getString(KEY_LOCAL, null) ?: return emptyList()
@@ -185,14 +186,14 @@ internal object PresetStore {
         if (selectedSectionIds.isEmpty()) return
         val prefs = flutterPrefs(context)
         val editor = prefs.edit()
+        val appRoots = appConfigRoots(prefs).toMutableMap()
         preset.sections.forEach { (id, values) ->
             if (id !in selectedSectionIds) return@forEach
             // 应用级叶子：只替换该应用的对应子对象。
             parseAppConfigLeafId(id)?.let { (kind, packageName) ->
                 val prefKey = APP_CONFIG_PREFIX + packageName
                 val partial = values.optJSONObject(prefKey) ?: return@forEach
-                val existing = runCatching { JSONObject(prefs.getString(storageKey(prefKey), null) ?: "{}") }
-                    .getOrNull() ?: JSONObject()
+                val existing = appRoots.getOrPut(packageName) { JSONObject() }
                 // 先清理当前类型的全部子对象，再写回预设内容。
                 // 例如通知类型会同时清理 notification / channels，但不会影响 toast。
                 kind.subKeys.forEach { sub -> existing.remove(sub) }
@@ -218,6 +219,30 @@ internal object PresetStore {
                     is Double, is Float -> editor.putString(storageKey(key), DOUBLE_PREFIX + (value as Number).toDouble())
                     is String -> editor.putString(storageKey(key), value)
                 }
+            }
+        }
+        editor.apply()
+    }
+
+    /** 清空选中的分类；应用级叶子只移除对应类型，保留其他 APP 和同 APP 的其他类型。 */
+    fun reset(context: Context, selectedSectionIds: Set<String>) {
+        val prefs = flutterPrefs(context)
+        val entries = logicalEntries(prefs)
+        val roots = appConfigRoots(prefs)
+        val editor = prefs.edit()
+        selectedSectionIds.forEach { id ->
+            val appLeaf = parseAppConfigLeafId(id)
+            if (appLeaf != null) {
+                val (kind, packageName) = appLeaf
+                val root = roots[packageName] ?: return@forEach
+                kind.subKeys.forEach(root::remove)
+                val key = storageKey(APP_CONFIG_PREFIX + packageName)
+                if (root.length() == 0) editor.remove(key)
+                else editor.putString(key, root.toString())
+            } else {
+                val section = findConfigSection(id) ?: return@forEach
+                (section.allExactKeys + entries.keys.filter(section::matches)).distinct()
+                    .forEach { editor.remove(storageKey(it)) }
             }
         }
         editor.apply()
@@ -251,10 +276,18 @@ internal object PresetStore {
     }
 
     /** 读取应用显示名，失败时回退包名。 */
-    fun appLabel(context: Context, packageName: String): String = runCatching {
-        val packageManager = context.packageManager
-        packageManager.getApplicationLabel(packageManager.getApplicationInfo(packageName, 0)).toString()
-    }.getOrDefault(packageName)
+    fun appLabel(context: Context, packageName: String): String {
+        synchronized(appLabels) { appLabels[packageName]?.let { return it } }
+        val label = runCatching {
+            val packageManager = context.packageManager
+            packageManager.getApplicationLabel(packageManager.getApplicationInfo(packageName, 0)).toString()
+        }.getOrDefault(packageName)
+        synchronized(appLabels) {
+            appLabels[packageName] = label
+            while (appLabels.size > 512) appLabels.remove(appLabels.keys.first())
+        }
+        return label
+    }
 
     private fun appLeafSection(kind: AppConfigKind, packageName: String, label: String): ConfigSection =
         ConfigSection(

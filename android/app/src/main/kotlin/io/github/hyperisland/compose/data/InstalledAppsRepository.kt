@@ -44,13 +44,19 @@ internal class InstalledAppsRepository(private val context: Context) {
         iconCache[packageName]
     }
 
-    fun loadIcon(packageName: String): ImageBitmap? = synchronized(iconCache) {
-        if (iconCache.containsKey(packageName)) return@synchronized iconCache[packageName]
+    fun loadIcon(packageName: String): ImageBitmap? {
+        synchronized(iconCache) {
+            if (iconCache.containsKey(packageName)) return iconCache[packageName]
+        }
+        // PackageManager / drawable 解码不能占用缓存锁，否则主线程 cachedIcon 也会被阻塞。
         val bitmap = runCatching {
             context.packageManager.getApplicationIcon(packageName).toBitmap(96).asImageBitmap()
         }.getOrNull()
-        iconCache[packageName] = bitmap
-        bitmap
+        synchronized(iconCache) {
+            iconCache[packageName] = bitmap
+            while (iconCache.size > 512) iconCache.remove(iconCache.keys.first())
+        }
+        return bitmap
     }
 
     private companion object {
@@ -59,6 +65,6 @@ internal class InstalledAppsRepository(private val context: Context) {
         val EXCLUDED_PACKAGES = setOf("com.android.providers.downloads.ui", "com.android.systemui")
         val cacheLock = Any()
         var appCache: List<InstalledApp> = emptyList()
-        val iconCache = mutableMapOf<String, ImageBitmap?>()
+        val iconCache = LinkedHashMap<String, ImageBitmap?>(512, 0.75f, true)
     }
 }
