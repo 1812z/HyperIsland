@@ -174,25 +174,42 @@ internal object PresetStore {
         return result
     }
 
-    /** 把预设中选中的分节写回配置。 */
+    /**
+     * 把预设中选中的分节写回配置。
+     *
+     * 普通配置按叶子分类整体替换：先移除该分类登记的全部键，再写入预设中实际保存的键，
+     * 未保存的键回落到各自的读取默认值，避免「预设只保存了一个字段，但其他字段继续沿用旧值」。
+     * 应用级配置则只替换当前 APP、当前类型对应的 JSON 子对象，保留同 APP 的其他类型和其他 APP。
+     */
     fun apply(context: Context, preset: ConfigPreset, selectedSectionIds: Set<String>) {
         if (selectedSectionIds.isEmpty()) return
         val prefs = flutterPrefs(context)
         val editor = prefs.edit()
         preset.sections.forEach { (id, values) ->
             if (id !in selectedSectionIds) return@forEach
-            // 应用级叶子：把该应用的对应子对象合并回 `pref_app_config_<包名>`。
-            // 只覆盖预设里实际包含的子对象，未包含的（如 channels、另一类 toast）保留现值，
-            // 避免「预设只有通知配置却把整个微信 JSON 覆盖」。
+            // 应用级叶子：只替换该应用的对应子对象。
             parseAppConfigLeafId(id)?.let { (kind, packageName) ->
                 val prefKey = APP_CONFIG_PREFIX + packageName
                 val partial = values.optJSONObject(prefKey) ?: return@forEach
                 val existing = runCatching { JSONObject(prefs.getString(storageKey(prefKey), null) ?: "{}") }
                     .getOrNull() ?: JSONObject()
+                // 先清理当前类型的全部子对象，再写回预设内容。
+                // 例如通知类型会同时清理 notification / channels，但不会影响 toast。
+                kind.subKeys.forEach { sub -> existing.remove(sub) }
                 kind.subKeys.forEach { sub -> partial.optJSONObject(sub)?.let { existing.put(sub, it) } }
                 if (existing.length() == 0) editor.remove(storageKey(prefKey))
                 else editor.putString(storageKey(prefKey), existing.toString())
                 return@forEach
+            }
+
+            // 普通叶子：按分类范围整体替换。缺失的预设键保持删除状态，读取时使用默认值。
+            findConfigSection(id)?.let { section ->
+                section.allExactKeys.forEach { key -> editor.remove(storageKey(key)) }
+                section.allKeyPrefixes.forEach { prefix ->
+                    logicalEntries(prefs).keys
+                        .filter { it.startsWith(prefix) }
+                        .forEach { key -> editor.remove(storageKey(key)) }
+                }
             }
             values.keys().forEach { key ->
                 when (val value = values.opt(key)) {

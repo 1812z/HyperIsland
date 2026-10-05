@@ -228,22 +228,65 @@ internal val ConfigSectionGroups: List<ConfigSection> = listOf(
             ConfigSection(
                 id = "ext_system_ui",
                 titleRes = R.string.system_ui,
-                exactKeys = listOf(
-                    "pref_smooth_island",
-                    "pref_smooth_island_smoothing",
-                    "pref_unlock_all_focus",
-                    "pref_hide_lockscreen_face_unlock_icon",
-                    "pref_small_island_icon_adjustment",
-                    "pref_small_island_icon_opacity",
-                    "pref_wifi_tile_disconnect_only",
-                    "pref_lockscreen_device_center",
-                ),
-                keyPrefixes = listOf(
-                    "pref_bluetooth_island",
-                    "pref_heart_rate_island",
-                    "pref_charge_island",
-                    "pref_face_unlock_island",
-                    "pref_lockscreen_negative_page_",
+                // 这里按功能拆成独立叶子，应用某个功能预设时不再重置其他扩展功能。
+                children = listOf(
+                    ConfigSection(
+                        id = "ext_smooth_island",
+                        titleRes = R.string.smooth_island,
+                        exactKeys = listOf(
+                            "pref_smooth_island",
+                            "pref_smooth_island_smoothing",
+                        ),
+                    ),
+                    ConfigSection(
+                        id = "ext_focus_unlock",
+                        titleRes = R.string.ext_unlock_all_focus,
+                        exactKeys = listOf("pref_unlock_all_focus"),
+                    ),
+                    ConfigSection(
+                        id = "ext_face_unlock_icon",
+                        titleRes = R.string.ext_hide_face_icon,
+                        exactKeys = listOf("pref_hide_lockscreen_face_unlock_icon"),
+                    ),
+                    ConfigSection(
+                        id = "ext_small_icon",
+                        titleRes = R.string.ext_small_icon,
+                        exactKeys = listOf(
+                            "pref_small_island_icon_adjustment",
+                            "pref_small_island_icon_opacity",
+                        ),
+                    ),
+                    ConfigSection(
+                        id = "ext_wifi_tile",
+                        titleRes = R.string.ext_wifi_tile_disconnect,
+                        exactKeys = listOf("pref_wifi_tile_disconnect_only"),
+                    ),
+                    ConfigSection(
+                        id = "ext_bluetooth_island",
+                        titleRes = R.string.bluetooth_island,
+                        keyPrefixes = listOf("pref_bluetooth_island"),
+                    ),
+                    ConfigSection(
+                        id = "ext_heart_rate_island",
+                        titleRes = R.string.heart_rate_island,
+                        keyPrefixes = listOf("pref_heart_rate_island"),
+                    ),
+                    ConfigSection(
+                        id = "ext_charge_island",
+                        titleRes = R.string.charge_island,
+                        keyPrefixes = listOf("pref_charge_island"),
+                    ),
+                    ConfigSection(
+                        id = "ext_face_unlock_island",
+                        titleRes = R.string.face_unlock_island,
+                        keyPrefixes = listOf("pref_face_unlock_island"),
+                    ),
+                    ConfigSection(
+                        id = "ext_lockscreen_negative_page",
+                        titleRes = R.string.ext_lockscreen_negative_page,
+                        keyPrefixes = listOf("pref_lockscreen_negative_page_"),
+                        exactKeys = listOf("pref_lockscreen_device_center"),
+                    ),
                 ),
             ),
             ConfigSection(
