@@ -119,6 +119,13 @@ object ExpandedPressTiltHook : BaseHook() {
                 (getter(owner, "getFakeView") as? View)?.let {
                     if (it !== background && !isDescendant(it, background)) hosts += it
                 }
+                // Official light rendering lives in external window containers.
+                // Rotate only this card's effect Views, never the shared containers.
+                listOf("getMGlowEffectUpperView", "getMGlowEffectBottomView").forEach { name ->
+                    (getter(card, name) as? View)?.let { effect ->
+                        if (effect !in hosts && hosts.none { isDescendant(effect, it) }) hosts += effect
+                    }
+                }
                 val press = Press(window, owner, card, event.rawX, event.rawY, dx, dy, hosts.map(::Target))
                 presses[window] = press
                 window.addOnAttachStateChangeListener(detach)
@@ -176,31 +183,41 @@ object ExpandedPressTiltHook : BaseHook() {
         // bounds would feed back into the pivot and make the fixed edge drift.
         val anchorX = if (press.dx > 0f) 0f else if (press.dx < 0f) card.width.toFloat() else card.width / 2f
         val anchorY = if (press.dy > 0f) 0f else if (press.dy < 0f) card.height.toFloat() else card.height / 2f
-        val location = IntArray(2)
-        card.getLocationInWindow(location)
+        val background = press.targets.firstOrNull()?.view?.get() ?: return stop(press)
+        var pivotX = anchorX
+        var pivotY = anchorY
+        var child: View = card
+        while (child !== background) {
+            val parent = child.parent as? View ?: return stop(press)
+            pivotX += child.left - parent.scrollX
+            pivotY += child.top - parent.scrollY
+            child = parent
+        }
+        val backgroundPosition = unrotatedPosition(background)
         press.targets.forEach { target ->
             val host = target.view.get() ?: return@forEach
-            var x = anchorX
-            var y = anchorY
-            var child: View = card
-            while (child !== host) {
-                val parent = child.parent as? View ?: break
-                x += child.left - parent.scrollX
-                y += child.top - parent.scrollY
-                child = parent
-            }
-            if (child !== host) {
-                val hostLocation = IntArray(2)
-                host.getLocationInWindow(hostLocation)
-                x = location[0] - hostLocation[0] + anchorX
-                y = location[1] - hostLocation[1] + anchorY
-            }
-            host.pivotX = x
-            host.pivotY = y
+            val position = unrotatedPosition(host)
+            // Subtract the effect View's stock translation as well: its origin
+            // is the shader canvas, not the card's corner. Do not use rotated
+            // screen bounds, which feed the previous frame back into the pivot.
+            host.pivotX = backgroundPosition.first + pivotX - position.first
+            host.pivotY = backgroundPosition.second + pivotY - position.second
             host.cameraDistance = 1600f * host.resources.displayMetrics.density
             host.rotationX = target.rotationX - 2f * press.dy * press.progress
             host.rotationY = target.rotationY + 2f * press.dx * press.progress
         }
+    }
+    private fun unrotatedPosition(view: View): Pair<Float, Float> {
+        var x = 0f
+        var y = 0f
+        var current: View? = view
+        while (current != null) {
+            val parent = current.parent as? View
+            x += current.left + current.translationX - (parent?.scrollX ?: 0)
+            y += current.top + current.translationY - (parent?.scrollY ?: 0)
+            current = parent
+        }
+        return x to y
     }
     private fun stop(press: Press) {
         press.animator?.cancel()

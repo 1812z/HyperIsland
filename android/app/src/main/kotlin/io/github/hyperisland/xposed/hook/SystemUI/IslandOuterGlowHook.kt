@@ -13,6 +13,7 @@ import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.util.WeakHashMap
+import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
 
 object IslandOuterGlowHook : BaseHook() {
@@ -75,6 +76,9 @@ object IslandOuterGlowHook : BaseHook() {
     private val hookedAvoidBurnInClassLoaders = ConcurrentHashMap.newKeySet<Int>()
     private val hookedShaderSourceClassLoaders = ConcurrentHashMap.newKeySet<Int>()
     private val defaultShaderColors = WeakHashMap<Class<*>, FloatArray>()
+    private val hookedGeometryClasses = Collections.synchronizedSet(
+        Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>()),
+    )
     private val glowTargets = WeakHashMap<Any, OwnedGlowTarget>()
     private val runningGlowViews = WeakHashMap<Any, Boolean>()
     private val defaultGlowRanges = WeakHashMap<Any, Float>()
@@ -125,6 +129,7 @@ object IslandOuterGlowHook : BaseHook() {
         hookFocusExtrasBridge(module, param.defaultClassLoader)
         hookAvoidBurnInHelper(module, param.defaultClassLoader)
         hookShaderSource(module, param.defaultClassLoader)
+        hookGlowGeometry(module, param.defaultClassLoader)
     }
 
     override fun onConfigChanged() {
@@ -141,6 +146,51 @@ object IslandOuterGlowHook : BaseHook() {
             hookFocusExtrasBridge(module, cl)
             hookAvoidBurnInHelper(module, cl)
             hookShaderSource(module, cl)
+            hookGlowGeometry(module, cl)
+        }
+    }
+
+    private fun hookGlowGeometry(module: XposedModule, loader: ClassLoader) {
+        if (!HookUtils.isIslandLoaderReady(loader)) return
+        runCatching {
+            val delegate = loader.loadClass("miui.systemui.dynamicisland.anim.DynamicIslandAnimationDelegate")
+            if (hookedGeometryClasses.contains(delegate)) return@runCatching
+            val update = delegate.getDeclaredMethod("containerScheduleUpdate")
+            val snapshot = delegate.getDeclaredMethod("snapshotProperties").apply { isAccessible = true }
+            val viewField = delegate.getDeclaredField("view").apply { isAccessible = true }
+            val updaterField = delegate.getDeclaredField("propertyUpdater").apply { isAccessible = true }
+            val updater = updaterField.type
+            val radiusMethod = updater.getDeclaredMethod("containerClipRadius", Float::class.javaPrimitiveType,
+                Float::class.javaPrimitiveType).apply { isAccessible = true }
+            val bounds = listOf("getContainerX", "getContainerTransY", "getContainerClipStart",
+                "getContainerClipTop", "getContainerClipEnd", "getContainerClipBottom")
+                .map { snapshot.returnType.getMethod(it) }
+            if (!hookedGeometryClasses.add(delegate)) return@runCatching
+            module.hook(update).intercept { chain ->
+                val result = chain.proceed()
+                // Gesture/clip-only frames bypass updateBigIsland/updateExpanded,
+                // where the official glow normally receives its new aperture.
+                runCatching {
+                    val owner = viewField.get(chain.thisObject) ?: return@runCatching
+                    val state = invokeNoArg(owner, "getState")?.javaClass?.simpleName
+                    val glow = when (state) {
+                        "Expanded" -> invokeNoArg(owner, "getExpandedView")
+                        "BigIsland", "ShowOnceBigIsland" -> invokeNoArg(owner, "getBigIslandView")
+                        else -> null
+                    } ?: return@runCatching
+                    val value = snapshot.invoke(chain.thisObject)
+                    val geometry = bounds.map { (it.invoke(value) as Number).toFloat() }
+                    val radius = radiusMethod.invoke(updaterField.get(chain.thisObject), geometry[3], geometry[5])
+                    val position = glow.javaClass.methods.firstOrNull {
+                        it.name.substringBefore('$') == "updateGlowEffectAnim" && it.parameterCount == 5
+                    } ?: return@runCatching
+                    position.invoke(glow, geometry[0] + geometry[2], geometry[1] + geometry[3],
+                        geometry[0] + geometry[4], geometry[1] + geometry[5], radius)
+                }
+                result
+            }
+        }.onFailure { error ->
+            logFailureOnce(module, "glow-geometry") { "glow geometry hook unavailable: ${error.message}" }
         }
     }
 
