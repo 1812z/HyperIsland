@@ -121,7 +121,9 @@ object ImageTextWithButtonsRenderer : IslandRenderer {
 
             // 按钮（showNotification=false 时不添加）
             val effectiveActions = vm.actions.take(maxButtons)
-            if (effectiveActions.isNotEmpty() && vm.showNotification) {
+            // 焦点通知关闭时，代发链路仍由本渲染器生成超级岛协议；此时不能因
+            // showNotification=false 而丢弃用户配置的按钮样式。
+            if (effectiveActions.isNotEmpty() && (vm.showNotification || !vm.setFocusProxy)) {
                 if (useActionsButton) {
                     // 按钮组件1 type=2：右侧文字按钮，无图标，仅支持 1 个
                     val action = effectiveActions.first()

@@ -72,6 +72,8 @@ object NotificationIslandNotification : IslandTemplate {
                 defaultLeft = data.title,
                 defaultRight = data.subtitle.ifEmpty { data.title },
             )
+            val renderedExtras = Bundle()
+            resolveRenderer(data.renderer).render(context, renderedExtras, process(context, data))
 
             IslandDispatcher.post(
                 context,
@@ -104,6 +106,8 @@ object NotificationIslandNotification : IslandTemplate {
                     aodTitle         = islandText.second.ifEmpty { islandText.first },
                     aodCustomizationJson = data.aodCustomizationJson,
                     islandEnabled    = data.islandEnabled,
+                    renderer         = data.renderer,
+                    notificationExtras = renderedExtras,
                 ),
             )
             //ConfigManager.module()?.log("$TAG: dispatcher island — ${data.title} | iconMode=${data.iconMode} | timeout=${data.islandTimeout}")

@@ -325,6 +325,7 @@ internal object IslandDispatcherNotifier {
             .setOnlyAlertOnce(request.notificationOnlyAlertOnce)
             .setOngoing(request.isOngoing)
             .apply {
+                request.contentIntent?.let { setContentIntent(it) }
                 if (request.notificationSilent) {
                     setSound(null)
                     setVibrate(null)
@@ -334,6 +335,22 @@ internal object IslandDispatcherNotifier {
             .build()
         notif.extras.putAll(extras)
         notif.extras.putString(EXTRA_OWNER, OWNER_MARKER)
+        request.sourcePackage?.let { notif.extras.putString("hyperisland_source_pkg", it) }
+        request.sourceChannelId?.let {
+            notif.extras.putString("hyperisland_source_channel", it)
+        }
+        request.outEffectColor?.let {
+            notif.extras.putString("hyperisland_focus_out_effect_color", it)
+        }
+        request.islandOuterGlowColor?.let {
+            notif.extras.putString("hyperisland_island_outer_glow_color", it)
+        }
+        if (request.islandEnabled && request.islandOuterGlow) {
+            notif.extras.putString("miui.bigIsland.effect.src", EFFECT_SRC)
+        }
+        if (request.outerGlow) {
+            notif.extras.putString("miui.effect.src", EFFECT_SRC)
+        }
         if (request.clearBeforePost) nm.cancel(request.notifId)
         nm.notify(request.notifId, notif)
         IslandDispatchState.postedIds.add(request.notifId)

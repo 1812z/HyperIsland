@@ -328,6 +328,12 @@ $userPrompt
                     "ai_right" to rightText,
                 ),
             )
+            val renderedExtras = Bundle()
+            resolveRenderer(data.renderer).render(
+                context,
+                renderedExtras,
+                process(context, data, leftText, rightText),
+            )
             IslandDispatcher.post(
                 context,
                 IslandRequest(
@@ -359,6 +365,8 @@ $userPrompt
                     aodTitle         = islandText.second.ifEmpty { islandText.first },
                     aodCustomizationJson = data.aodCustomizationJson,
                     islandEnabled    = data.islandEnabled,
+                    renderer         = data.renderer,
+                    notificationExtras = renderedExtras,
                 ),
             )
         } catch (e: Exception) {
