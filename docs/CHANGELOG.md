@@ -8,6 +8,16 @@ import ReleaseHistory from './.vitepress/components/ReleaseHistory.vue'
 
 <div class="changelog-source" hidden>
 
+# V3.1.8(2026-10-7)
+## 功能
+- 外观/动画的灵动类型新增「按压倾斜」：展开通知按压侧透视下沉
+- 外圈光效适配按压倾斜
+
+## 优化 & 修复
+- 修复焦点通知关闭时通知样式丢失
+- 修复默认配置保存失败问题
+
+
 # V3.1.7-Beta1(2026-10-5)
 ## 功能
 - 预设新增还原配置功能
