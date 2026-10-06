@@ -901,6 +901,7 @@
     <string name="expand_animation_lively">軽快</string>
     <string name="expand_animation_bounce">バウンス</string>
     <string name="expand_animation_rebound">バウンド効果</string>
+    <string name="expand_animation_press_tilt">押下時の傾き</string>
     <string name="expand_layout_section">展開時のレイアウト</string>
     <string name="expand_layout_top_gap">上部の間隔</string>
     <string name="expand_layout_content_top_gap">コンテンツ上部の間隔</string>

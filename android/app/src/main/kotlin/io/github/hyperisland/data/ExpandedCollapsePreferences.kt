@@ -4,6 +4,7 @@ package io.github.hyperisland.data
 object ExpandedCollapsePreferences {
     const val TYPE = "pref_expand_animation_type"
     const val REBOUND = "pref_expand_animation_rebound"
+    const val PRESS_TILT = "pref_expand_animation_press_tilt"
     const val RETURN_OVERSHOOT = "pref_expand_animation_return_overshoot"
     const val DEFAULT_RETURN_OVERSHOOT = true
     const val OVERSHOOT_DAMPING = "pref_expand_animation_overshoot_damping"

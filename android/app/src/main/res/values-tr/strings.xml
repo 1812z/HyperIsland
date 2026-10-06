@@ -956,6 +956,7 @@
     <string name="expand_animation_lively">Canlı</string>
     <string name="expand_animation_bounce">Sekme</string>
     <string name="expand_animation_rebound">Geri sekme efekti</string>
+    <string name="expand_animation_press_tilt">Basınca eğilme</string>
     <string name="expand_layout_section">Genişletilmiş görünüm</string>
     <string name="expand_layout_top_gap">Üst boşluk</string>
     <string name="expand_layout_content_top_gap">İçerik üst boşluğu</string>

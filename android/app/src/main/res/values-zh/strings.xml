@@ -967,6 +967,7 @@
     <string name="expand_animation_lively">灵动</string>
     <string name="expand_animation_bounce">弹跳</string>
     <string name="expand_animation_rebound">回弹效果</string>
+    <string name="expand_animation_press_tilt">按压倾斜</string>
     <string name="expand_layout_section">展开态</string>
     <string name="expand_layout_top_gap">顶部间距</string>
     <string name="expand_layout_content_top_gap">内容顶部间距</string>

@@ -901,6 +901,7 @@
     <string name="expand_animation_lively">Живая</string>
     <string name="expand_animation_bounce">Отскок</string>
     <string name="expand_animation_rebound">Эффект отскока</string>
+    <string name="expand_animation_press_tilt">Наклон при нажатии</string>
     <string name="expand_layout_section">Развёрнутое состояние</string>
     <string name="expand_layout_top_gap">Отступ сверху</string>
     <string name="expand_layout_content_top_gap">Верхний отступ содержимого</string>

@@ -39,6 +39,7 @@ internal fun AppearanceAnimationPage(prefs: FlutterPrefsRepository, onBack: () -
     val enabled = rememberBooleanPreference(prefs, Keys.ENABLED, false)
     val type = rememberStringPreference(prefs, Keys.TYPE, "system")
     val rebound = rememberBooleanPreference(prefs, Keys.REBOUND, true)
+    val pressTilt = rememberBooleanPreference(prefs, Keys.PRESS_TILT, false)
     val returnOvershoot = rememberBooleanPreference(prefs, Keys.RETURN_OVERSHOOT, Keys.DEFAULT_RETURN_OVERSHOOT)
     val showOvershootDialog = remember { mutableStateOf(false) }
     val dampingDraft = remember { mutableStateOf(Keys.DEFAULT_OVERSHOOT_DAMPING.toFloat()) }
@@ -91,6 +92,11 @@ internal fun AppearanceAnimationPage(prefs: FlutterPrefsRepository, onBack: () -
                                 prefs.putBoolean(Keys.KEEP_CONTENT_SIZE, false)
                             }
                         }
+                        }
+                        PreferenceSwitch(stringResource(R.string.expand_animation_press_tilt),
+                            null, null, pressTilt.value) {
+                            pressTilt.value = it
+                            prefs.putBoolean(Keys.PRESS_TILT, it)
                         }
                         PreferenceSwitch(stringResource(R.string.expand_animation_gesture_follow),
                             stringResource(R.string.expand_animation_gesture_follow_summary), null, gestureFollow.value) {

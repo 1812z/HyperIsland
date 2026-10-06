@@ -892,6 +892,7 @@
     <string name="expand_animation_lively">Dinâmica</string>
     <string name="expand_animation_bounce">Salto</string>
     <string name="expand_animation_rebound">Efeito de retorno elástico</string>
+    <string name="expand_animation_press_tilt">Inclinação ao pressionar</string>
     <string name="expand_layout_section">Estado expandido</string>
     <string name="expand_layout_top_gap">Espaçamento superior</string>
     <string name="expand_layout_content_top_gap">Espaçamento superior do conteúdo</string>

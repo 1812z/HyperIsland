@@ -859,6 +859,7 @@
     <string name="expand_animation_lively">حيوية</string>
     <string name="expand_animation_bounce">ارتداد</string>
     <string name="expand_animation_rebound">تأثير الارتداد</string>
+    <string name="expand_animation_press_tilt">الإمالة عند الضغط</string>
     <string name="expand_layout_section">الحالة الموسعة</string>
     <string name="expand_layout_top_gap">المسافة العلوية</string>
     <string name="expand_layout_content_top_gap">المسافة العلوية للمحتوى</string>
