@@ -483,7 +483,6 @@ class FlutterPrefsRepository(context: Context) {
     internal fun toastAppSettings(packageName: String): ToastAppSettings = runCatching {
         val toast = JSONObject(getString("pref_app_config_$packageName"))
             .optJSONObject("toast") ?: return@runCatching ToastAppSettings()
-        val defaultTimeout = defaultConfigSettings().timeout.toString()
         val storedTimeout = toast.optString("timeout", TRI_STATE_DEFAULT)
         ToastAppSettings(
             forwardEnabled = toast.optBoolean("forward", false),
@@ -495,9 +494,9 @@ class FlutterPrefsRepository(context: Context) {
             preserveSmallIcon = toast.optString("preserve_small_icon", TRI_STATE_DEFAULT),
             marquee = toast.optString("marquee", TRI_STATE_DEFAULT),
             marqueeAutoHide = toast.optString("marquee_auto_hide", TRI_STATE_DEFAULT),
-            timeout = storedTimeout.takeUnless {
-                it.isBlank() || it == "5" || it == defaultTimeout
-            } ?: TRI_STATE_DEFAULT,
+            // 保留用户显式输入的数值，即使它与全局默认值相同。
+            // 只有明确保存为 TRI_STATE_DEFAULT 时，才表示跟随全局默认配置。
+            timeout = storedTimeout.takeUnless(String::isBlank) ?: TRI_STATE_DEFAULT,
             highlightColor = toast.optString("highlight_color", ""),
             dynamicHighlightColor = toast.optString("dynamic_highlight_color", TRI_STATE_DEFAULT),
             showLeftHighlight = toast.optString("show_left_highlight", TRI_STATE_OFF),
