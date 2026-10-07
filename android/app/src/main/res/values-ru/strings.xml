@@ -466,6 +466,8 @@
     <string name="marquee_summary">Прокручивать ли длинные сообщения на Острове</string>
     <string name="smooth_island">Плавный Остров</string>
     <string name="smooth_island_summary">Оптимизация контуров острова с помощью капсул с настраиваемой непрерывной кривизной</string>
+    <string name="smooth_island_warning_title">Продолжить включение?</string>
+    <string name="smooth_island_warning_message">Плавный Остров несовместим с фонами и материалами и может вызвать смещение или сбои отображения Острова</string>
     <string name="charge_island">HyperIsland зарядки</string>
     <string name="bluetooth_island">Bluetooth HyperIsland</string>
     <string name="face_unlock_island">Остров разблокировки</string>

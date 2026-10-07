@@ -773,6 +773,8 @@
     <string name="small_only">Desativar expansão</string>
     <string name="smooth_island">Ilha Suave</string>
     <string name="smooth_island_summary">Otimizar os contornos da Ilha com cápsulas de curvatura contínua ajustável</string>
+    <string name="smooth_island_warning_title">Continuar ativando?</string>
+    <string name="smooth_island_warning_message">A Ilha Suave é incompatível com planos de fundo e materiais, e pode causar desalinhamento ou exibição incorreta da Ilha</string>
     <string name="software_version">Versão do software: %1$s</string>
     <string name="support_development">Apoiar o desenvolvimento</string>
     <string name="support_development_summary">Faça uma doação aos desenvolvedores para mostrar seu apoio</string>

@@ -1,12 +1,18 @@
 package io.github.hyperisland.compose.page.settings.extensions
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.PreferenceSlider
 import io.github.hyperisland.compose.component.PreferenceSwitch
@@ -14,10 +20,13 @@ import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.component.SettingsAction
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.rememberBooleanPreference
+import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.SnackbarHost
+import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.ChevronForward
+import top.yukonga.miuix.kmp.window.WindowDialog
 
 @Composable
 internal fun SystemUiHookPage(
@@ -32,6 +41,7 @@ internal fun SystemUiHookPage(
     val disabledText = stringResource(R.string.ext_disabled)
 
     val smooth = rememberBooleanPreference(prefs, KEY_SMOOTH_ISLAND, false)
+    var showSmoothWarning by remember { mutableStateOf(false) }
     val smoothingState = remember(KEY_SMOOTHING) {
         mutableFloatStateOf(prefs.getDouble(KEY_SMOOTHING, DEFAULT_SMOOTHING).toFloat())
     }
@@ -54,6 +64,14 @@ internal fun SystemUiHookPage(
     }
     val wifiTileDisconnect = rememberBooleanPreference(prefs, KEY_WIFI_TILE_DISCONNECT, false)
 
+    val applySmoothIsland: (Boolean) -> Unit = { value ->
+        if (actions.request(value, listOf(PKG_SYSTEM_UI), scopeFailed)) {
+            smooth.value = value
+            prefs.putBoolean(KEY_SMOOTH_ISLAND, value)
+            actions.show(restartRequired)
+        }
+    }
+
     HookExtensionScaffold(
         title = stringResource(R.string.ext_system_ui),
         onBack = onBack,
@@ -69,10 +87,10 @@ internal fun SystemUiHookPage(
                     icon = null,
                     checked = smooth.value,
                 ) { value ->
-                    if (actions.request(value, listOf(PKG_SYSTEM_UI), scopeFailed)) {
-                        smooth.value = value
-                        prefs.putBoolean(KEY_SMOOTH_ISLAND, value)
-                        actions.show(restartRequired)
+                    if (value) {
+                        showSmoothWarning = true
+                    } else {
+                        applySmoothIsland(false)
                     }
                 }
                 AnimatedVisibility(smooth.value) {
@@ -210,6 +228,33 @@ internal fun SystemUiHookPage(
                     endIcon = MiuixIcons.ChevronForward,
                 ) { onOpenDetail(SystemUiExtensionDetail.FaceUnlock) }
             }
+        }
+    }
+
+    WindowDialog(
+        show = showSmoothWarning,
+        title = stringResource(R.string.smooth_island_warning_title),
+        summary = stringResource(R.string.smooth_island_warning_message),
+        onDismissRequest = { showSmoothWarning = false },
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            TextButton(
+                text = stringResource(R.string.confirm),
+                onClick = {
+                    showSmoothWarning = false
+                    applySmoothIsland(true)
+                },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.textButtonColorsPrimary(),
+            )
+            TextButton(
+                text = stringResource(R.string.cancel),
+                onClick = { showSmoothWarning = false },
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }

@@ -539,6 +539,8 @@
     <string name="marquee_summary">超级岛消息过长是否滚动显示</string>
     <string name="smooth_island">平滑超级岛</string>
     <string name="smooth_island_summary">使用可调连续曲率胶囊优化超级岛轮廓</string>
+    <string name="smooth_island_warning_title">是否继续开启</string>
+    <string name="smooth_island_warning_message">平滑岛不兼容背景/材质，并可能导致超级岛错位异常</string>
     <string name="charge_island">充电超级岛</string>
     <string name="bluetooth_island">蓝牙超级岛</string>
     <string name="heart_rate_island">心率岛</string>

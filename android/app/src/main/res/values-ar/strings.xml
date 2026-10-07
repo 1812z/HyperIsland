@@ -787,6 +787,8 @@
     <string name="small_only">تعطيل التوسيع</string>
     <string name="smooth_island">أيلاند ناعم</string>
     <string name="smooth_island_summary">حسّن حواف الجزيرة بكبسولات ذات انحناء مستمر قابل للتعديل</string>
+    <string name="smooth_island_warning_title">هل تريد المتابعة في التفعيل؟</string>
+    <string name="smooth_island_warning_message">أيلاند ناعم غير متوافق مع الخلفيات والمواد، وقد يؤدي إلى اختلال محاذاة الجزيرة أو ظهورها بشكل غير صحيح</string>
     <string name="software_version">إصدار البرنامج: %1$s</string>
     <string name="state_empty">فارغ</string>
     <string name="state_off">إيقاف</string>

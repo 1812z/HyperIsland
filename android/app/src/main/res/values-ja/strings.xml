@@ -466,6 +466,8 @@
     <string name="marquee_summary">Island で長いメッセージをスクロールします</string>
     <string name="smooth_island">スムーズ Island</string>
     <string name="smooth_island_summary">調整可能な連続曲率カプセルでアイランドの輪郭を最適化します</string>
+    <string name="smooth_island_warning_title">有効化を続行しますか</string>
+    <string name="smooth_island_warning_message">スムーズ Island は背景/マテリアルと互換性がなく、Island の位置ずれや表示異常が発生する可能性があります</string>
     <string name="charge_island">充電HyperIsland</string>
     <string name="bluetooth_island">Bluetooth HyperIsland</string>
     <string name="face_unlock_island">ロック解除アイランド</string>

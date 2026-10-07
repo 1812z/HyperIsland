@@ -533,6 +533,8 @@
     <string name="marquee_summary">Whether to scroll long messages on Island</string>
     <string name="smooth_island">Smooth Island</string>
     <string name="smooth_island_summary">Optimize Island contours with adjustable continuous-curvature capsules</string>
+    <string name="smooth_island_warning_title">Continue enabling?</string>
+    <string name="smooth_island_warning_message">Smooth Island is incompatible with backgrounds and materials, and may cause the Island to misalign or display incorrectly.</string>
     <string name="charge_island">Charging Island</string>
     <string name="bluetooth_island">Bluetooth Island</string>
     <string name="heart_rate_island">Heart Rate Island</string>

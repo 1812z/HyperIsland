@@ -515,6 +515,8 @@
     <string name="marquee_summary">Uzun mesajlar adada kaydırılır</string>
     <string name="smooth_island">Pürüzsüz Ada</string>
     <string name="smooth_island_summary">Ada hatlarını eğimli kapsüllerle optimize eder</string>
+    <string name="smooth_island_warning_title">Etkinleştirmeye devam edilsin mi?</string>
+    <string name="smooth_island_warning_message">Pürüzsüz Ada arka planlar ve materyallerle uyumlu değildir, Ada kaymasına veya hatalı görünmesine neden olabilir</string>
     <string name="charge_island">Şarj Adası</string>
     <string name="bluetooth_island">Bluetooth Adası</string>
     <string name="heart_rate_island">Nabız Adası</string>
