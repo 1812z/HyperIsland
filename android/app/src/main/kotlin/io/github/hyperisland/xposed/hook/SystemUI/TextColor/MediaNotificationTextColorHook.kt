@@ -17,6 +17,7 @@ import io.github.hyperisland.xposed.logError
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
+import java.lang.ref.WeakReference
 import java.util.Collections
 import java.util.WeakHashMap
 import java.util.concurrent.atomic.AtomicInteger
@@ -44,11 +45,12 @@ object MediaNotificationTextColorHook : BaseHook() {
     private val attachRefreshViews = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<TextView, Boolean>())
     )
-    private val pendingPostViews = Collections.synchronizedSet(
-        Collections.newSetFromMap(WeakHashMap<TextView, Boolean>())
+    private val pendingPostViews = Collections.synchronizedMap(
+        WeakHashMap<TextView, Runnable>()
     )
     private val expandedViewData = Collections.synchronizedMap(
-        WeakHashMap<View, Any>()
+        // Island data holds getView()/getFakeView(); a strong value would keep its weak key alive.
+        WeakHashMap<View, WeakReference<Any>>()
     )
     private val internalTitleViewIds: List<Int> by lazy {
         resolveInternalViewIds("title")
@@ -186,8 +188,24 @@ object MediaNotificationTextColorHook : BaseHook() {
             module.hook(method).intercept { chain ->
                 val data = chain.args.firstOrNull()
                 val root = data?.let { invokeNoArg(it, "getView") as? View }
-                if (data != null && root != null) expandedViewData[root] = data
-                chain.proceed()
+                val reference = data?.let { WeakReference(it) }
+                if (root != null && reference != null) {
+                    synchronized(expandedViewData) {
+                        if (expandedViewData.size < MAX_TRACKED_VIEWS) {
+                            expandedViewData[root] = reference
+                        }
+                    }
+                }
+                try {
+                    chain.proceed()
+                } finally {
+                    // Reused content and failed updates may never call setContentView.
+                    if (root != null && reference != null) {
+                        synchronized(expandedViewData) {
+                            if (expandedViewData[root] === reference) expandedViewData.remove(root)
+                        }
+                    }
+                }
             }
             log(module) { "hooked DynamicIslandContentView#updateExpandedView" }
         }
@@ -204,7 +222,7 @@ object MediaNotificationTextColorHook : BaseHook() {
                 val root = chain.args.firstOrNull() as? View
                 val result = chain.proceed()
                 if (root != null) {
-                    val data = expandedViewData.remove(root)
+                    val data = expandedViewData.remove(root)?.get()
                         ?: findCurrentIslandData(chain.thisObject as? View)
                     if (data != null) {
                         handleExpandedIslandData(data)
@@ -331,22 +349,30 @@ object MediaNotificationTextColorHook : BaseHook() {
 
     private fun applyExpandedMediaTextColor(textView: TextView, subtitle: Boolean) {
         val originals = if (subtitle) subtitleColors else titleColors
-        if (!originals.containsKey(textView)) {
-            originals[textView] = textView.textColors
-            ensureAttachRefresh(textView, subtitle)
+        synchronized(originals) {
+            if (!originals.containsKey(textView)) {
+                if (originals.size >= MAX_TRACKED_VIEWS) return
+                originals[textView] = textView.textColors
+                ensureAttachRefresh(textView, subtitle)
+            }
         }
         val mode = getConfiguredMode()
         if (mode == MODE_DEFAULT) return
         val color = resolveTargetColor(mode, subtitle)
         applyTextColor(textView, color)
-        if (pendingPostViews.add(textView)) {
-            textView.post {
-                pendingPostViews.remove(textView)
+        synchronized(pendingPostViews) {
+            if (pendingPostViews.containsKey(textView)) return
+            val targetReference = WeakReference(textView)
+            val refresh = Runnable {
+                val target = targetReference.get() ?: return@Runnable
+                pendingPostViews.remove(target)
                 val currentMode = getConfiguredMode()
                 if (currentMode != MODE_DEFAULT) {
-                    applyTextColor(textView, resolveTargetColor(currentMode, subtitle))
+                    applyTextColor(target, resolveTargetColor(currentMode, subtitle))
                 }
             }
+            pendingPostViews[textView] = refresh
+            if (!textView.post(refresh)) pendingPostViews.remove(textView)
         }
     }
 
@@ -361,7 +387,11 @@ object MediaNotificationTextColorHook : BaseHook() {
                 }
             }
 
-            override fun onViewDetachedFromWindow(view: View) = Unit
+            override fun onViewDetachedFromWindow(view: View) {
+                val target = view as? TextView ?: return
+                pendingPostViews.remove(target)?.let { target.removeCallbacks(it) }
+                // Keep the bounded weak color snapshot for SystemUI's detach/reattach reuse.
+            }
         })
     }
 
@@ -590,4 +620,5 @@ object MediaNotificationTextColorHook : BaseHook() {
     private const val DYNAMIC_ISLAND_WINDOW_VIEW_CLASS =
         "miui.systemui.dynamicisland.window.DynamicIslandWindowView"
     private const val MAX_EXPANDED_PROBES = 8
+    private const val MAX_TRACKED_VIEWS = 128
 }
