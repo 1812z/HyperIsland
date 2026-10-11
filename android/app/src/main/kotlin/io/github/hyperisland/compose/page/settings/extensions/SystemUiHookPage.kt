@@ -56,6 +56,7 @@ internal fun SystemUiHookPage(
     val bluetooth = rememberBooleanPreference(prefs, KEY_BLUETOOTH_ISLAND, false)
     val heartRate = rememberBooleanPreference(prefs, KEY_HEART_RATE_ISLAND, false)
     val charge = rememberBooleanPreference(prefs, KEY_CHARGE_ISLAND, false)
+    val musicIslandSpectrum = rememberBooleanPreference(prefs, KEY_MUSIC_ISLAND_SPECTRUM, false)
     val faceUnlock = rememberBooleanPreference(prefs, KEY_FACE_UNLOCK_ISLAND, false)
     val hideFaceIcon = rememberBooleanPreference(prefs, KEY_HIDE_FACE_UNLOCK_ICON, false)
     val iconAdjustment = rememberBooleanPreference(prefs, KEY_SMALL_ICON_ADJUSTMENT, false)
@@ -227,6 +228,14 @@ internal fun SystemUiHookPage(
                     ),
                     endIcon = MiuixIcons.ChevronForward,
                 ) { onOpenDetail(SystemUiExtensionDetail.FaceUnlock) }
+                SettingsAction(
+                    title = stringResource(R.string.music_island),
+                    summary = stringResource(
+                        R.string.ext_spectrum_summary,
+                        if (musicIslandSpectrum.value) enabledText else disabledText,
+                    ),
+                    endIcon = MiuixIcons.ChevronForward,
+                ) { onOpenDetail(SystemUiExtensionDetail.MusicIslandSpectrum) }
             }
         }
     }

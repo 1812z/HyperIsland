@@ -89,6 +89,7 @@ import io.github.hyperisland.compose.page.settings.extensions.HeartRateIslandPag
 import io.github.hyperisland.compose.page.settings.extensions.HookExtensionDetail
 import io.github.hyperisland.compose.page.settings.extensions.HookExtensionPage
 import io.github.hyperisland.compose.page.settings.extensions.LockscreenNegativePage
+import io.github.hyperisland.compose.page.settings.extensions.MusicIslandSpectrumPage
 import io.github.hyperisland.compose.page.settings.extensions.ScreenRecorderHookPage
 import io.github.hyperisland.compose.page.settings.extensions.SecurityCenterHookPage
 import io.github.hyperisland.compose.page.settings.extensions.SystemSettingsHookPage
@@ -700,6 +701,7 @@ private fun ExtensionSubDetailPage(
         SystemUiExtensionDetail.Charge -> ChargeIslandPage(prefs, onBack)
         SystemUiExtensionDetail.FaceUnlock -> FaceUnlockIslandPage(prefs, onBack)
         SystemUiExtensionDetail.LockscreenNegativePage -> LockscreenNegativePage(prefs, onBack)
+        SystemUiExtensionDetail.MusicIslandSpectrum -> MusicIslandSpectrumPage(prefs, onBack)
         null -> Unit
     }
 }

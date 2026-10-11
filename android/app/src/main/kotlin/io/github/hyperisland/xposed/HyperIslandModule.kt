@@ -24,6 +24,7 @@ import io.github.hyperisland.xposed.hook.ActiveIslandDismissHook
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.BluetoothIslandHook
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.HeartRateIslandHook
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.ChargeIslandHook
+import io.github.hyperisland.xposed.hook.SystemUI.extensions.MusicIslandSpectrumHook
 import io.github.hyperisland.xposed.hook.DownloadHook
 import io.github.hyperisland.xposed.hook.FocusNotifStatusBarIconHook
 import io.github.hyperisland.xposed.hook.FocusNotificationTextColorHook
@@ -134,6 +135,9 @@ class HyperIslandModule : XposedModule() {
                 }
                 if (ConfigManager.getBoolean("pref_charge_island", false)) {
                     ChargeIslandHook.init(this, param)
+                }
+                if (ConfigManager.getBoolean("pref_music_island_spectrum", false)) {
+                    MusicIslandSpectrumHook.init(this, param)
                 }
             }
 

@@ -282,6 +282,11 @@ internal val ConfigSectionGroups: List<ConfigSection> = listOf(
                         keyPrefixes = listOf("pref_face_unlock_island"),
                     ),
                     ConfigSection(
+                        id = "ext_music_island_spectrum",
+                        titleRes = R.string.music_island,
+                        keyPrefixes = listOf("pref_music_island_spectrum"),
+                    ),
+                    ConfigSection(
                         id = "ext_lockscreen_negative_page",
                         titleRes = R.string.ext_lockscreen_negative_page,
                         keyPrefixes = listOf("pref_lockscreen_negative_page_"),
