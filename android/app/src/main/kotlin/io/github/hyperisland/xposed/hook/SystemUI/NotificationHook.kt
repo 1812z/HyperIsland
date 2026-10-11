@@ -308,7 +308,15 @@ object GenericProgressHook : BaseHook() {
             return
         }
         if (!trackedForCancel.remove(sbn.key, tracked)) return
-        IslandDispatcher.cancel(context, tracked.proxyId)
+        // 普通模板 focusNotif=off 走代发时，多条源通知共用同一个 NOTIF_ID 代发通知，
+        // 岛只做“最近一条”的内容更新。任一条源通知被移除（如 QQ 合并/替换旧消息）
+        // 都不能取消共享岛，只有当没有其它活跃源通知仍引用该 proxyId 时才取消。
+        val stillReferenced = trackedForCancel.values.any { it.proxyId == tracked.proxyId }
+        if (!stillReferenced) {
+            IslandDispatcher.cancel(context, tracked.proxyId)
+        } else {
+            log(module) { "count-trace proxy removal deferred key=${sbn.key} proxyId=${tracked.proxyId} (still referenced)" }
+        }
     }
 
 
