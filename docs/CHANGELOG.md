@@ -8,6 +8,17 @@ import ReleaseHistory from './.vitepress/components/ReleaseHistory.vue'
 
 <div class="changelog-source" hidden>
 
+# V3.1.9(2026-10-11)
+## 功能
+- Hook 拓展：新增音乐岛实时频谱
+
+## 优化 & 修复
+- 优化媒体文本可能的占用异常
+- 修复内容顶部间距重复叠加
+- 修复全屏情况下可能导致柔光透明
+- 修复多条通知（关闭焦点情况下）同时出现导致后续有通知就消失问题
+
+
 # V3.1.8(2026-10-7)
 ## 功能
 - 外观/动画的灵动类型新增「按压倾斜」：展开通知按压侧透视下沉
