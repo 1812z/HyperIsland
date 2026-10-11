@@ -108,6 +108,27 @@ object ExpandedLayoutHook : BaseHook() {
                 runCatching { if (owner != null) updateLayer(owner) }
                 result
             }
+            // updateExpandedSize() writes the measured expanded_view height back into the
+            // notification child/fake View. Our top gap lives in expanded_view's padding, so that
+            // measured total already contains the gap. Without compensation the child's fixed
+            // height grows by the gap on every update: the content stays put while the bottom
+            // blank area accumulates exactly once per new message.
+            val updateExpandedSize = base.declaredMethods.firstOrNull {
+                it.name == "updateExpandedSize" &&
+                    it.parameterCount == 3 &&
+                    it.parameterTypes.getOrNull(0) == Int::class.javaPrimitiveType &&
+                    it.parameterTypes.getOrNull(1) == Int::class.javaPrimitiveType
+            }
+            if (updateExpandedSize != null) {
+                module.hook(updateExpandedSize).intercept { chain ->
+                    val owner = chain.thisObject as? View
+                    val result = chain.proceed()
+                    runCatching {
+                        if (owner != null) compensateExpandedHeight(owner, chain.args.getOrNull(2))
+                    }
+                    result
+                }
+            }
             // updateExpandedView replaces the notification child before SystemUI measures
             // its height. Apply padding here rather than changing measured-height fields.
             listOf("DynamicIslandContentView", "DynamicIslandContentFakeView").forEach { name ->
@@ -241,6 +262,35 @@ object ExpandedLayoutHook : BaseHook() {
         }
         originalPadding.remove(slot)?.let {
             slot.setPadding(it.left, it.top, it.right, it.bottom)
+        }
+    }
+
+    /**
+     * updateExpandedSize() writes expanded_view's measured height back into the notification
+     * child and fake View. That measured height already includes the gap padding applied to the
+     * slot, so without compensation the child's fixed height grows by the gap on every content
+     * update. Strip the gap from the child/fake View heights so the slot stays
+     * wrap_content = child + padding and the bottom blank area stops accumulating.
+     */
+    private fun compensateExpandedHeight(owner: View, data: Any?) {
+        if (!enabled || contentTopGapDp <= 0 || !supported(owner)) return
+        val slot = contentSlot(owner) ?: return
+        val saved = originalPadding[slot] ?: return
+        val extra = slot.paddingTop - saved.top
+        if (extra <= 0) return
+        val dataClass = data?.javaClass ?: return
+        sequenceOf("getView", "getFakeView").forEach { getterName ->
+            val child = findMethod(dataClass, getterName)
+                ?.let { runCatching { it.invoke(data) as? View }.getOrNull() }
+                ?: return@forEach
+            val params = child.layoutParams ?: return@forEach
+            if (params.height > 0) {
+                val corrected = params.height - extra
+                if (corrected > 0 && params.height != corrected) {
+                    params.height = corrected
+                    child.layoutParams = params
+                }
+            }
         }
     }
 
