@@ -8,6 +8,15 @@ import ReleaseHistory from './.vitepress/components/ReleaseHistory.vue'
 
 <div class="changelog-source" hidden>
 
+# V3.1.10(2026-10-13)
+## 功能
+- 预设支持更新/编辑/查看状态等操作
+
+## 优化 & 修复
+- 优化界面显示
+- 修复测试通知
+
+
 # V3.1.9(2026-10-11)
 ## 功能
 - Hook 拓展：新增音乐岛实时频谱
