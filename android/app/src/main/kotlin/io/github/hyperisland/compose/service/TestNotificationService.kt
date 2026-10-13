@@ -47,6 +47,7 @@ internal object TestNotificationService {
         content: String,
         clearPrevious: Boolean,
         enableFloat: Boolean,
+        expandFirst: Boolean = false,
     ) {
         IslandDispatcher.sendBroadcast(
             context,
@@ -54,7 +55,7 @@ internal object TestNotificationService {
                 title = title.ifEmpty { context.getString(R.string.island_welcome_title) },
                 content = content.ifEmpty { "HyperIsland" },
                 icon = context.packageManager.getAppIcon(context.packageName),
-                firstFloat = false,
+                firstFloat = expandFirst,
                 enableFloat = enableFloat,
                 clearBeforePost = clearPrevious,
                 highlightColor = "#E040FB",

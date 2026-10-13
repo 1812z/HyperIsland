@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.runtime.Composable
@@ -54,6 +55,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
@@ -89,6 +91,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.UUID
+import kotlin.math.ceil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -127,7 +130,38 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.window.WindowBottomSheet
 import top.yukonga.miuix.kmp.window.WindowDialog
 
+/** 手机（窄屏）下预设卡片高度。 */
 private val PresetCardHeight = 144.dp
+
+/** 平板等宽屏下卡片更宽，正文多显示一行，高度相应加高一行（body2 单行约 20dp + 一点余量）。 */
+private val PresetCardWideExtraHeight = 28.dp
+
+/** 屏幕短边达到该值即按宽屏（平板 / 折叠屏展开 / 桌面模式）处理，手机维持现状。 */
+private val PresetWideScreenMinWidth = 600.dp
+
+/** 宽屏基准列数：竖屏 3 列、横屏 4 列（单卡约为手机单卡 180dp 的 1.4~1.7 倍）。 */
+private const val PresetWidePortraitColumns = 3
+private const val PresetWideLandscapeColumns = 4
+
+/** 宽屏下单卡宽度上限，超过就继续增列（超宽窗口 / 桌面模式不会出现超宽卡片）。 */
+private val PresetWideCardMaxWidth = 480.dp
+
+/** 手机端网格列规则：内容宽度自适应，从 128dp 起分列（保持原有显示效果）。 */
+private val PresetPhoneColumns = GridCells.Adaptive(minSize = 128.dp)
+
+/**
+ * 预设网格列数。
+ *
+ * 手机沿用 [PresetPhoneColumns]；宽屏（短边 ≥ [PresetWideScreenMinWidth]）竖屏 3 列、横屏 4 列，
+ * 单卡宽度比手机略大且不再随屏幕变宽而拉伸；窗口实在太宽时按 [PresetWideCardMaxWidth] 增列。
+ */
+private fun presetGridColumns(widthDp: Int, heightDp: Int): GridCells {
+    if (minOf(widthDp, heightDp).dp < PresetWideScreenMinWidth) return PresetPhoneColumns
+    val base = if (widthDp < heightDp) PresetWidePortraitColumns else PresetWideLandscapeColumns
+    // DetailGridPage 左右各 16dp 内容内边距，这里用屏幕宽度近似可用宽度
+    val needed = ceil((widthDp - 32) / PresetWideCardMaxWidth.value).toInt()
+    return GridCells.Fixed(maxOf(base, needed))
+}
 
 @Composable
 private fun ResetConfigDialog(
@@ -207,6 +241,9 @@ private object PresetCloudState {
  *
  * 本地 + 云端（HyperIsland-Hub）预设统一展示。顶栏 More 菜单可新建配置 / 切换排序；
  * 点击卡片打开应用配置 bottom sheet，云端预设会在打开时下载正文。
+ *
+ * 布局：手机保持原样（128dp 自适应，通常 2 列）；平板等宽屏竖屏 3 列、横屏 4 列，
+ * 卡片高度加高一行正文（见 [presetGridColumns] / [PresetConfigCard]）。
  */
 @Composable
 internal fun PresetConfigPage(
@@ -215,6 +252,14 @@ internal fun PresetConfigPage(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    // 宽屏（平板 / 折叠屏展开 / 桌面模式）判定：只影响卡片尺寸与网格列数
+    val configuration = LocalConfiguration.current
+    val screenWidthDp = configuration.screenWidthDp
+    val screenHeightDp = configuration.screenHeightDp
+    val wideScreen = minOf(screenWidthDp, screenHeightDp).dp >= PresetWideScreenMinWidth
+    val presetColumns = remember(screenWidthDp, screenHeightDp) {
+        presetGridColumns(screenWidthDp, screenHeightDp)
+    }
     val snackbarState = remember { SnackbarHostState() }
     var configRevision by remember { mutableIntStateOf(0) }
     DisposableEffect(prefs) {
@@ -354,6 +399,7 @@ internal fun PresetConfigPage(
     DetailGridPage(
         title = stringResource(R.string.preset_page_title),
         onBack = onBack,
+        columns = presetColumns,
         actions = {
             OverlayIconCascadingDropdownMenu(entries = menuEntries) {
                 Icon(MiuixIcons.More, stringResource(R.string.list_actions))
@@ -395,6 +441,7 @@ internal fun PresetConfigPage(
             PresetConfigCard(
                 preset = preset,
                 showDownloads = false,
+                wide = wideScreen,
                 onClick = {
                     applyTarget = preset
                     applySheetShown = true
@@ -410,6 +457,7 @@ internal fun PresetConfigPage(
             PresetConfigCard(
                 preset = preset,
                 showDownloads = true,
+                wide = wideScreen,
                 onClick = {
                     applyTarget = preset
                     applySheetShown = true
@@ -547,6 +595,8 @@ internal fun PresetEntryCard(
 
 /**
  * 单个预设卡片：固定高度，标题、副标题、分割线、作者与下载量。
+ *
+ * [wide] 为 true 时（平板等宽屏，卡片比手机宽）再加高一行并让正文多显示一行。
  */
 @Composable
 internal fun PresetConfigCard(
@@ -554,11 +604,12 @@ internal fun PresetConfigCard(
     showDownloads: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    wide: Boolean = false,
 ) {
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .height(PresetCardHeight),
+            .height(if (wide) PresetCardHeight + PresetCardWideExtraHeight else PresetCardHeight),
         showIndication = true,
         onClick = onClick,
     ) {
@@ -580,7 +631,7 @@ internal fun PresetConfigCard(
                 text = preset.content,
                 style = MiuixTheme.textStyles.body2,
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                maxLines = 2,
+                maxLines = if (wide) 3 else 2,
                 overflow = TextOverflow.Ellipsis,
             )
             Spacer(Modifier.weight(1f))
