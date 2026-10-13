@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.annotation.StringRes
 import io.github.hyperisland.R
+import java.util.UUID
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -19,6 +20,14 @@ import org.json.JSONObject
  * @param createdAt 创建时间，UTC epoch 毫秒（`System.currentTimeMillis()`），不写入本地格式化时间，
  *   保证跨时区 / 跨国家排序一致。
  * @param version 版本号（云端列表 / 详情返回）。本地预设为空，用于判断缓存是否需要重新下载。
+ * @param hubId 云端（HyperIsland-Hub）签发的配置 id，空串表示从未上传过。
+ *   本地预设上传成功后回填，之后再次上传即走「更新」而非新建。
+ * @param hubStatus 该配置在云端的状态，取 [HUB_STATUS_PENDING] / [HUB_STATUS_PUBLISHED] /
+ *   [HUB_STATUS_REJECTED]；空串表示没查过（或从未上传）。由上传结果与自查接口回填，
+ *   决定卡片背景水印图标与详情里的状态栏。注意 pending / rejected 在公开列表里看不到，
+ *   只能靠自查接口得知。
+ * @param hubRejectReason 审核失败的原因（仅 [HUB_STATUS_REJECTED] 有值），直接展示给用户；
+ *   其余状态为空串。重新提交后由上传结果清空。
  * @param sections 分节快照：叶子分类 id -> 该分类覆盖的键值 JSON。
  */
 internal data class ConfigPreset(
@@ -30,6 +39,9 @@ internal data class ConfigPreset(
     val local: Boolean,
     val createdAt: Long = 0L,
     val version: String = "",
+    val hubId: String = "",
+    val hubStatus: String = "",
+    val hubRejectReason: String = "",
     val sections: Map<String, JSONObject>,
 ) {
     fun toJson(): JSONObject {
@@ -44,6 +56,9 @@ internal data class ConfigPreset(
             .put("local", local)
             .put("createdAt", createdAt)
             .put("version", version)
+            .put("hubId", hubId)
+            .put("hubStatus", hubStatus)
+            .put("hubRejectReason", hubRejectReason)
             .put("sections", sectionsJson)
     }
 
@@ -63,6 +78,9 @@ internal data class ConfigPreset(
                 local = json.optBoolean("local", true),
                 createdAt = json.optLong("createdAt", 0L),
                 version = json.optString("version"),
+                hubId = json.optString("hubId"),
+                hubStatus = json.optString("hubStatus"),
+                hubRejectReason = json.optString("hubRejectReason"),
                 sections = sections,
             )
         }
@@ -108,6 +126,11 @@ internal const val PRESET_TITLE_MAX = 10
 internal const val PRESET_CONTENT_MAX = 100
 internal const val PRESET_AUTHOR_MAX = 20
 
+/** 云端审核状态。与 HyperIsland-Hub 的 `status` 字段取值一致，空串表示尚未查询过。 */
+internal const val HUB_STATUS_PENDING = "pending"
+internal const val HUB_STATUS_PUBLISHED = "published"
+internal const val HUB_STATUS_REJECTED = "rejected"
+
 /**
  * 本地预设存储与快照 / 还原。
  *
@@ -119,11 +142,35 @@ internal object PresetStore {
     private const val PRESETS_PREFS = "HyperIslandPresets"
     private const val KEY_LOCAL = "local_presets"
     private const val KEY_HUB_CACHE = "hub_cache"
+    private const val KEY_DEVICE_ID = "device_id"
     private const val HUB_CACHE_MAX = 100
     private const val FLUTTER_PREFS = "FlutterSharedPreferences"
     private const val FLUTTER_PREFIX = "flutter."
     private const val DOUBLE_PREFIX = "VGhpcyBpcyB0aGUgcHJlZml4IGZvciBEb3VibGUu"
     private val appLabels = LinkedHashMap<String, String>(512, 0.75f, true)
+
+    /**
+     * 本机设备标识：首次调用生成一个 UUID 并长期保存。
+     *
+     * 只用于让云端区分「谁上传的配置」，从而允许上传者更新自己的配置与自查审核进度。
+     * 它随上传请求的 `X-Device-Id` 头发送（不放进配置正文，也不会出现在任何响应里）。
+     */
+    fun deviceId(context: Context): String {
+        val prefs = presetsPrefs(context)
+        prefs.getString(KEY_DEVICE_ID, null)?.takeIf { it.isNotBlank() }?.let { return it }
+        val generated = UUID.randomUUID().toString()
+        prefs.edit().putString(KEY_DEVICE_ID, generated).apply()
+        return generated
+    }
+
+    /**
+     * 已缓存正文的云端预设版本：`hub:<id>` -> 缓存时的版本号。
+     *
+     * 供卡片角标判断「云端有新版本」用。这里刻意走只读路径，不触发 LRU 写回，
+     * 避免列表每组合一次就写一遍 SharedPreferences。
+     */
+    fun hubCachedVersions(context: Context): Map<String, String> =
+        loadHubCache(context).associate { it.preset.id to it.preset.version }
 
     fun loadLocal(context: Context): List<ConfigPreset> {
         val raw = presetsPrefs(context).getString(KEY_LOCAL, null) ?: return emptyList()
@@ -144,6 +191,51 @@ internal object PresetStore {
 
     fun deleteLocal(context: Context, id: String) {
         persist(context, loadLocal(context).filterNot { it.id == id })
+    }
+
+    /**
+     * 按云端 id 回填本地预设的审核状态、下载量与拒绝原因，**保持它在列表中的位置不变**。
+     *
+     * 不能用 [saveLocal] 代替：那是新建语义，会把条目挪到列表最前，
+     * 刷新一次状态列表顺序就变一次。没有实际变化时不写盘。
+     */
+    fun updateLocalHub(
+        context: Context,
+        hubId: String,
+        status: String,
+        downloads: Long,
+        rejectReason: String = "",
+    ) {
+        if (hubId.isBlank()) return
+        val list = loadLocal(context)
+        val updated = list.map { preset ->
+            if (preset.hubId == hubId) {
+                preset.copy(hubStatus = status, downloads = downloads, hubRejectReason = rejectReason)
+            } else {
+                preset
+            }
+        }
+        if (updated != list) persist(context, updated)
+    }
+
+    /**
+     * 摘掉本地预设与云端的关联（云端那条已经不存在了），**保持它在列表中的位置不变**。
+     *
+     * 在线 id 一旦清空，这条就等同于一条全新的本地配置：卡片不再显示任何云端状态水印，
+     * 下次点上传走的是新建而不是更新。版本号也一并清掉——它记的是「上传到云端的那一版」，
+     * 云端已经没有这条了，留着只会让详情里出现一个没有归属的版本号。
+     */
+    fun detachLocalHub(context: Context, hubId: String) {
+        if (hubId.isBlank()) return
+        val list = loadLocal(context)
+        val updated = list.map { preset ->
+            if (preset.hubId == hubId) {
+                preset.copy(hubId = "", hubStatus = "", hubRejectReason = "", version = "", downloads = 0L)
+            } else {
+                preset
+            }
+        }
+        if (updated != list) persist(context, updated)
     }
 
     /** 按选中的叶子分类抓取当前配置值。 */

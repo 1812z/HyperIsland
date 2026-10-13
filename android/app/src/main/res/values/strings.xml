@@ -1024,6 +1024,15 @@
     <string name="preset_field_description">Description</string>
     <string name="preset_field_time">Time</string>
     <string name="preset_field_author">Author</string>
+    <string name="preset_field_status">Status</string>
+    <string name="preset_field_reject_reason">Reason</string>
+    <string name="preset_status_not_uploaded">Not uploaded</string>
+    <string name="preset_status_pending">Pending review</string>
+    <string name="preset_status_published">Published</string>
+    <string name="preset_status_rejected">Rejected</string>
+    <string name="preset_status_unknown">Unknown</string>
+    <!-- Status and version on one line, e.g. "Published (1.0.0)" -->
+    <string name="preset_status_with_version">%1$s (%2$s)</string>
     <string name="preset_delete">Delete</string>
     <string name="preset_upload">Upload</string>
     <string name="preset_copy">Copy</string>
@@ -1035,9 +1044,20 @@
     <string name="preset_sort_date">Date</string>
     <string name="preset_cloud_load_failed">Failed to load cloud list</string>
     <string name="preset_upload_success">Submitted, pending review</string>
+    <string name="preset_update_success">Updated, pending review</string>
     <string name="preset_upload_quota">Daily upload quota used up (%1$d/%2$d)</string>
     <string name="preset_upload_failed">Upload failed</string>
+    <string name="preset_upload_duplicate">An identical configuration already exists in the cloud</string>
+    <string name="preset_update_not_owner">Cannot update: this configuration was not uploaded from this device</string>
+    <string name="preset_update_removed">Removed from the cloud. It is now a new local configuration</string>
     <string name="preset_uploading">Uploading…</string>
+    <string name="preset_modify_config">Modify</string>
+    <string name="preset_modify_success">Overwrote %1$s</string>
+    <string name="preset_confirm">Confirm</string>
+    <string name="preset_confirm_delete_title">Delete this preset?</string>
+    <string name="preset_confirm_delete_message">Once deleted, you can never update the cloud configuration again.</string>
+    <string name="preset_confirm_update_title">Update this configuration?</string>
+    <string name="preset_confirm_update_message">This configuration was uploaded before. Continuing will overwrite it.</string>
     <string name="preset_downloading">Downloading…</string>
     <string name="preset_download_failed">Download failed</string>
     <string name="preset_retry">Retry</string>
