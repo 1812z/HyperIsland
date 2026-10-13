@@ -88,6 +88,7 @@ import io.github.hyperisland.compose.page.settings.extensions.FaceUnlockIslandPa
 import io.github.hyperisland.compose.page.settings.extensions.HeartRateIslandPage
 import io.github.hyperisland.compose.page.settings.extensions.HookExtensionDetail
 import io.github.hyperisland.compose.page.settings.extensions.HookExtensionPage
+import io.github.hyperisland.compose.page.settings.extensions.homeassistant.HomeAssistantPage
 import io.github.hyperisland.compose.page.settings.extensions.LockscreenNegativePage
 import io.github.hyperisland.compose.page.settings.extensions.MusicIslandSpectrumPage
 import io.github.hyperisland.compose.page.settings.extensions.ScreenRecorderHookPage
@@ -605,6 +606,10 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                     onBack = { extensionDetail = null },
                                 )
                                 HookExtensionDetail.DownloadManager -> DownloadManagerHookPage(
+                                    prefs = prefs,
+                                    onBack = { extensionDetail = null },
+                                )
+                                HookExtensionDetail.HomeAssistant -> HomeAssistantPage(
                                     prefs = prefs,
                                     onBack = { extensionDetail = null },
                                 )

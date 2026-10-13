@@ -55,6 +55,12 @@ internal const val KEY_MUSIC_ISLAND_SPECTRUM_GRADIENT_END = "pref_music_island_s
 internal const val KEY_MUSIC_ISLAND_SPECTRUM_BAR_COUNT = "pref_music_island_spectrum_bar_count"
 internal const val KEY_MUSIC_ISLAND_SPECTRUM_SMOOTHING = "pref_music_island_spectrum_smoothing"
 
+// Home Assistant 拓展（键名与 HomeAssistantContract 保持一致，此处只做页面侧引用）
+internal const val KEY_HOME_ASSISTANT = "pref_home_assistant"
+internal const val KEY_HOME_ASSISTANT_URL = "pref_home_assistant_url"
+internal const val KEY_HOME_ASSISTANT_TOKEN = "pref_home_assistant_token"
+internal const val KEY_HOME_ASSISTANT_SUBSCRIPTIONS = "pref_home_assistant_subscriptions"
+
 internal const val MODE_DEFAULT = "default"
 internal const val MODE_OUTLINE = "outline"
 internal const val LOCKSCREEN_PAGE_MODE_DEVICE_CENTER = "device_center"
@@ -111,6 +117,7 @@ internal enum class HookExtensionDetail {
     Xmsf,
     ScreenRecorder,
     DownloadManager,
+    HomeAssistant,
 }
 
 internal enum class SystemUiExtensionDetail {

@@ -25,6 +25,7 @@ import io.github.hyperisland.xposed.hook.SystemUI.extensions.BluetoothIslandHook
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.HeartRateIslandHook
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.ChargeIslandHook
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.MusicIslandSpectrumHook
+import io.github.hyperisland.xposed.hook.SystemUI.extensions.HomeAssistantIslandHook
 import io.github.hyperisland.xposed.hook.DownloadHook
 import io.github.hyperisland.xposed.hook.FocusNotifStatusBarIconHook
 import io.github.hyperisland.xposed.hook.FocusNotificationTextColorHook
@@ -139,6 +140,9 @@ class HyperIslandModule : XposedModule() {
                 if (ConfigManager.getBoolean("pref_music_island_spectrum", false)) {
                     MusicIslandSpectrumHook.init(this, param)
                 }
+                // Home Assistant 拓展：不建后台服务，只注入 SystemUI；启用与否在 Hook 内部按配置判断，
+                // 因此总开关无需重启 SystemUI。
+                HomeAssistantIslandHook.init(this, param)
             }
 
             "miui.systemui.plugin" ->

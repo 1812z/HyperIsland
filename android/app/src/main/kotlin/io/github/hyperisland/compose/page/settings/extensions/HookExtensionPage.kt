@@ -37,15 +37,19 @@ import top.yukonga.miuix.kmp.icon.extended.Blocklist
 import top.yukonga.miuix.kmp.icon.extended.ChevronForward
 import top.yukonga.miuix.kmp.icon.extended.Community
 import top.yukonga.miuix.kmp.icon.extended.Download
+import top.yukonga.miuix.kmp.icon.extended.Home
 import top.yukonga.miuix.kmp.icon.extended.Layers
 import top.yukonga.miuix.kmp.icon.extended.Settings
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private data class HookAppEntry(
     val detail: HookExtensionDetail,
-    val packages: List<String>,
+    /** 关联的应用包名；为空表示这是模块自身的扩展（如 Home Assistant），只显示回退图标。 */
+    val packages: List<String> = emptyList(),
     @StringRes val title: Int,
     val fallbackIcon: ImageVector,
+    /** 没有关联应用时列表行显示的摘要文案。 */
+    @StringRes val fallbackSummary: Int? = null,
 )
 
 @Composable
@@ -92,6 +96,12 @@ internal fun HookExtensionPage(
                 title = R.string.ext_download_manager,
                 fallbackIcon = MiuixIcons.Download,
             ),
+            HookAppEntry(
+                detail = HookExtensionDetail.HomeAssistant,
+                title = R.string.ext_home_assistant,
+                fallbackIcon = MiuixIcons.Home,
+                fallbackSummary = R.string.ext_home_assistant_summary,
+            ),
         )
     }
 
@@ -132,7 +142,8 @@ private fun HookAppRow(
     val title = appLabel ?: fallbackTitle
     val summary = entry.packages.firstOrNull { packageName ->
         runCatching { context.packageManager.getApplicationInfo(packageName, 0) }.isSuccess
-    } ?: entry.packages.first()
+    } ?: entry.packages.firstOrNull()
+        ?: entry.fallbackSummary?.let { stringResource(it) }.orEmpty()
 
     BasicComponent(
         startAction = {

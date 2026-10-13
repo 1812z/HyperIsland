@@ -94,6 +94,7 @@ internal fun DetailPage(
     actionDescription: String = "",
     onAction: (() -> Unit)? = null,
     snackbarHost: @Composable () -> Unit = {},
+    floatingActionButton: @Composable () -> Unit = {},
     content: LazyListScope.() -> Unit,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
@@ -122,6 +123,7 @@ internal fun DetailPage(
                     )
                 }
             },
+            floatingActionButton = floatingActionButton,
             snackbarHost = snackbarHost,
         ) { padding ->
             BarBackdropContent(modifier = Modifier.fillMaxSize()) {

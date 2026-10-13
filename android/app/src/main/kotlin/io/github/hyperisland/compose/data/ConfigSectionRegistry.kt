@@ -325,6 +325,17 @@ internal val ConfigSectionGroups: List<ConfigSection> = listOf(
                     "pref_download_show_task_icon",
                 ),
             ),
+            ConfigSection(
+                id = "ext_home_assistant",
+                titleRes = R.string.ext_home_assistant,
+                // 不含 pref_home_assistant_token：访问令牌与 AI 密钥同级，绝不进预设导出。
+                exactKeys = listOf(
+                    "pref_home_assistant",
+                    "pref_home_assistant_url",
+                    "pref_home_assistant_subscriptions",
+                    "pref_home_assistant_display_seconds",
+                ),
+            ),
         ),
     ),
 )
