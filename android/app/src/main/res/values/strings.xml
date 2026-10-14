@@ -1188,5 +1188,8 @@
     <string name="ha_select_variable_summary">Select an entity and attribute, then copy its placeholder</string>
     <string name="ha_placeholder_copied">Placeholder copied</string>
     <string name="ha_template_input_hint">Enter content or use {entity.attribute}</string>
+    <string name="ha_display_keep">Always on</string>
+    <string name="ha_display_custom">Custom</string>
+    <string name="ha_display_seconds_hint">In seconds, 1 - %1$d</string>
 
 </resources>

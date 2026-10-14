@@ -43,6 +43,28 @@ data class HaEntity(
             return if (token.isBlank()) path else "$path?token=$token"
         }
 
+    /**
+     * 图片版本号，Hook 侧拿它当缓存失效条件：**图片没换就一次都不重新下载**。
+     *
+     * HA 的 image 实体每次换图都会刷新 `image_last_updated`（并且它本身就是该实体的 `state`），
+     * 这个变化会随 `state_changed` 推过来，所以「图片变了才更新」是可以做到的 ——
+     * 不需要靠定时轮询。
+     *
+     * 其它域（camera 等）没有这个语义，返回空串，由 Hook 侧的 TTL 兜底。
+     */
+    val imageVersion: String
+        get() {
+            attributes["image_last_updated"]?.takeIf(String::isNotBlank)?.let { return it }
+            // 少数集成不下发该属性，但 image 实体的 state 就是同一个时间戳，可作等价物。
+            return if (domain == "image" && state.isNotBlank() &&
+                state != STATE_UNAVAILABLE && state != STATE_UNKNOWN
+            ) {
+                state
+            } else {
+                ""
+            }
+        }
+
     fun valueOf(attribute: String): String = when {
         attribute.isBlank() || attribute == ATTRIBUTE_STATE -> state
         else -> attributes[attribute].orEmpty()
@@ -121,6 +143,11 @@ data class HaSubscription(
     val triggerAttribute: String = "",
     val condition: String = HaCondition.Equals.id,
     val value: String = "",
+    /**
+     * 显示时长（秒）。**0 = 常驻**：条件满足就一直显示，条件不再满足立刻撤掉；
+     * 大于 0 则投递后自动消失（计时交给系统侧的岛超时，我们不额外起定时器）。
+     */
+    val displaySeconds: Int = 0,
     val islandEnabled: Boolean = true,
     val focusEnabled: Boolean = false,
     val islandFirstFloat: Boolean = false,
@@ -197,6 +224,7 @@ data class HaSubscription(
         put("triggerAttribute", triggerAttribute)
         put("condition", condition)
         put("value", value)
+        put("displaySeconds", displaySeconds)
         put("islandEnabled", islandEnabled)
         put("focusEnabled", focusEnabled)
         put("islandFirstFloat", islandFirstFloat)
@@ -243,6 +271,8 @@ data class HaSubscription(
                 triggerAttribute = json.optString("triggerAttribute"),
                 condition = json.optString("condition", HaCondition.Equals.id),
                 value = json.optString("value"),
+                // 老配置没有这个字段 → 0（常驻），与升级前的实际行为一致。
+                displaySeconds = json.optInt("displaySeconds", 0).coerceAtLeast(0),
                 islandEnabled = json.optBoolean("islandEnabled", true),
                 focusEnabled = json.optBoolean("focusEnabled", false),
                 islandFirstFloat = json.optBoolean("islandFirstFloat", false),

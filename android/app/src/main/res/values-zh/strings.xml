@@ -1194,5 +1194,8 @@
     <string name="ha_select_variable_summary">选择实体和属性后复制占位符</string>
     <string name="ha_placeholder_copied">占位符已复制</string>
     <string name="ha_template_input_hint">输入内容或使用 {entity.attribute}</string>
+    <string name="ha_display_keep">常驻</string>
+    <string name="ha_display_custom">自定义</string>
+    <string name="ha_display_seconds_hint">单位秒，可填 1 - %1$d</string>
 
 </resources>

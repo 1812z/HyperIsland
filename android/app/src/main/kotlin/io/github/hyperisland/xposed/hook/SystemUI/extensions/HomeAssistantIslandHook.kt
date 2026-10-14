@@ -89,7 +89,8 @@ object HomeAssistantIslandHook : BaseHook() {
     /**
      * 设备面板左侧图标用的实体图片位图缓存（LRU）。
      *
-     * key 是完整 URL：HA 的图片令牌会随重启变化，所以换 URL 即换 key，天然失效。
+     * key 是 [entityImageKey]（绝对地址 + 图片版本号）：HA 的 image 实体换图时版本号会变，
+     * 换 key 即失效，**图片没换就不会重新下载**，比定时轮询省电得多。
      * 面板图标只有 58dp，采样上限 [ENTITY_IMAGE_MAX_PX] 足够，把每个位图控制在 ~80KB。
      * 所有访问都必须拿 [entityImageCache] 的锁（主线程与下载线程都会碰）。
      */
@@ -98,10 +99,10 @@ object HomeAssistantIslandHook : BaseHook() {
             size > ENTITY_IMAGE_CACHE_MAX
     }
 
-    /** 在途下载的 URL 集合：同一 URL 只允许一次请求。 */
+    /** 在途下载的 key 集合：同一个 key 只允许一次请求。 */
     private val entityImagePending = java.util.Collections.synchronizedSet(HashSet<String>())
 
-    /** URL → 上次发起下载的时间；失败时限流重试，成功且未过 TTL 时不会再发。 */
+    /** key → 上次发起下载的时间；失败时限流重试，成功且未过期时不会再发。 */
     private val entityImageAttempts = ConcurrentHashMap<String, Long>()
 
     /** 实体图片下载线程（单线程串行，避免同时在拉多张图）。 */
@@ -109,17 +110,26 @@ object HomeAssistantIslandHook : BaseHook() {
         Thread(runnable, "HyperIsland-HA-image").apply { isDaemon = true }
     }
 
-    private data class CachedEntityImage(val bitmap: Bitmap, val at: Long)
+    private data class CachedEntityImage(val bitmap: Bitmap, val at: Long, val url: String)
 
     private const val ENTITY_IMAGE_CACHE_MAX = 6
     private const val ENTITY_IMAGE_MAX_PX = 144
     private const val ENTITY_IMAGE_TIMEOUT_MS = 4000
 
-    /** 缓存有效期：HA 的图片实体换图时状态的令牌可能不变，只靠状态事件刷不出来，必须定期重拉。 */
+    /**
+     * 兜底刷新间隔，**只对拿不到版本号的实体生效**（camera 等）。
+     *
+     * HA 的 image 实体有 `image_last_updated`，换图会随 state_changed 推过来，走的是版本驱动、
+     * 零轮询；这类实体完全不吃这个 TTL。只有不会随图片变化而改状态的实体（camera 快照）
+     * 才按这个间隔、在面板因其它数据重投时顺带刷新一次。
+     */
     private const val ENTITY_IMAGE_TTL_MS = 5 * 60 * 1000L
 
-    /** 同一 URL 的最短重试间隔，避免下载失败后每次状态更新都打一次 HA。 */
+    /** 同一 key 的最短重试间隔，避免下载失败后每次状态更新都打一次 HA。 */
     private const val ENTITY_IMAGE_RETRY_MS = 60 * 1000L
+
+    /** 失败限流记录的条数上限，超过就顺手清掉已过期的。 */
+    private const val ENTITY_IMAGE_ATTEMPTS_MAX = 32
 
     private const val EXTRA_SUBSCRIPTION_ID = "ha_subscription_id"
     private const val ACTION_SWITCH_CHARGING_CHART = "io.github.hyperisland.action.HA_SWITCH_CHARGING_CHART"
@@ -264,6 +274,16 @@ object HomeAssistantIslandHook : BaseHook() {
                     log(module) { "ha-icon snapshot entity=${entity.entityId} icon=${entity.icon} attrs=${entity.attributes.keys.sorted()}" }
                 }
             }
+            // get_states 只是基线、不走 onStateChanged；断线期间错过的变化（image 换图、令牌轮换）
+            // 只能靠这次全量态补上 —— 对仍在匹配中的订阅重跑评估，签名不同就会补投一次。
+            val context = appContext
+            if (context != null && matchedSubscriptions.isNotEmpty()) {
+                matchedSubscriptions.keys.toList().forEach { id ->
+                    runtimeSubscriptions.firstOrNull { it.id == id }?.let { subscription ->
+                        evaluateSubscription(context, subscription)
+                    }
+                }
+            }
         }
 
         override fun onStateChanged(entity: HaEntity) {
@@ -303,34 +323,43 @@ object HomeAssistantIslandHook : BaseHook() {
             val isTriggerEvent = subscription.triggerEntityId == entity.entityId
             val isDataEvent = subscription.dataEntityIds.contains(entity.entityId)
             if (!isTriggerEvent && !isDataEvent) return@forEach
-            val triggerEntity = entityCache[subscription.triggerEntityId] ?: return@forEach
-            val current = triggerEntity.valueOf(subscription.triggerAttribute)
-            val matched = subscription.conditionType.matches(current, subscription.value)
-            if (!matched) {
-                matchedSubscriptions.remove(subscription.id)
-                cancelIsland(context, subscription)
-                return@forEach
-            }
-            matchedSubscriptions[subscription.id] = true
-            val values = entityCache.toMap()
-            val (title, content) = HaTemplate.focusTexts(subscription, values)
-            val islandTexts = HaTemplate.islandTexts(subscription, values, carouselIndices[subscription.id] ?: 0)
-            val signature = run {
-                val base = HaTemplate.signature(title + islandTexts.first, content + islandTexts.second)
-                // 设备面板的 3 行文本与两条进度不在 title/content 里，必须单独参与比较，否则进度变了岛不会刷新。
-                if (subscription.templateType == HaTemplateType.DEVICE) {
-                    base + "\u0000" + deviceSignature(subscription, values)
-                } else {
-                    base
-                }
-            }
-            if (lastSignature[subscription.id] == signature) return@forEach
-            lastSignature[subscription.id] = signature
-            if (subscription.islandEnabled || subscription.focusEnabled) {
-                postIsland(context, subscription, islandTexts, title, content)
-            }
-            if (subscription.islandEnabled && subscription.islandCarouselInterval > 0) scheduleCarousel(context, subscription)
+            evaluateSubscription(context, subscription)
         }
+    }
+
+    /**
+     * 按**当前缓存态**评估一条订阅：条件不成立就撤岛，成立则按内容签名决定要不要重投。
+     *
+     * 签名由当前值算出（只和上一次投递比较），所以除了状态事件，重连后拿全量态重跑一遍也能
+     * 精准补投 —— 断线期间错过的变化（image 换图、令牌轮换）不会一直停在旧内容上。
+     */
+    private fun evaluateSubscription(context: Context, subscription: HaSubscription) {
+        val triggerEntity = entityCache[subscription.triggerEntityId] ?: return
+        val current = triggerEntity.valueOf(subscription.triggerAttribute)
+        if (!subscription.conditionType.matches(current, subscription.value)) {
+            matchedSubscriptions.remove(subscription.id)
+            cancelIsland(context, subscription)
+            return
+        }
+        matchedSubscriptions[subscription.id] = true
+        val values = entityCache.toMap()
+        val (title, content) = HaTemplate.focusTexts(subscription, values)
+        val islandTexts = HaTemplate.islandTexts(subscription, values, carouselIndices[subscription.id] ?: 0)
+        val signature = run {
+            val base = HaTemplate.signature(title + islandTexts.first, content + islandTexts.second)
+            // 设备面板的 3 行文本与两条进度不在 title/content 里，必须单独参与比较，否则进度变了岛不会刷新。
+            if (subscription.templateType == HaTemplateType.DEVICE) {
+                base + "\u0000" + deviceSignature(subscription, values)
+            } else {
+                base
+            }
+        }
+        if (lastSignature[subscription.id] == signature) return
+        lastSignature[subscription.id] = signature
+        if (subscription.islandEnabled || subscription.focusEnabled) {
+            postIsland(context, subscription, islandTexts, title, content)
+        }
+        if (subscription.islandEnabled && subscription.islandCarouselInterval > 0) scheduleCarousel(context, subscription)
     }
 
     private fun postIsland(
@@ -350,7 +379,7 @@ object HomeAssistantIslandHook : BaseHook() {
             icon = islandIcon(subscription, values),
             focusIcon = resolveEntityIcon(subscription, values, focusIconSources(subscription)),
             notifId = subscription.notifId,
-            timeoutSecs = Int.MAX_VALUE,
+            timeoutSecs = islandTimeoutSecs(subscription),
             firstFloat = subscription.islandFirstFloat && !activeNotifIds.containsKey(subscription.id),
             enableFloat = false,
             showNotification = subscription.focusEnabled,
@@ -596,16 +625,51 @@ object HomeAssistantIslandHook : BaseHook() {
     private fun panelLogo(subscription: HaSubscription, values: Map<String, HaEntity>): Icon? {
         val entityId = subscription.deviceImageEntityId
         if (entityId.isBlank()) return loadCustomIcon(subscription.deviceIconPath)
-        val path = values[entityId]?.entityPictureUrl.orEmpty()
+        val entity = values[entityId]
+        val path = entity?.entityPictureUrl.orEmpty()
         if (path.isBlank()) return null
         val url = haAbsoluteUrl(path)
-        val cached = synchronized(entityImageCache) { entityImageCache[url] }
-        // 过期就先回旧的（面板不闪空白），同时后台刷新；下载完成后会重投一次。
-        if (cached == null || System.currentTimeMillis() - cached.at >= ENTITY_IMAGE_TTL_MS) {
-            requestEntityImage(url, entityId)
-        }
+        val version = entity?.imageVersion.orEmpty()
+        val key = entityImageKey(url, version)
+        // 换图时新旧位图是两个 key：新图没下完之前先拿同一地址的旧图顶上，避免图标闪一下空白。
+        val cached = cachedEntityImage(key, url, allowStale = true)
+        // 有版本号（image 实体）：只有版本变化才取图，图片没换一次都不请求；
+        // 没版本号（camera 等）：退回 TTL，过期后跟着面板重投顺带刷新。
+        val stale = cached == null ||
+            (version.isBlank() && System.currentTimeMillis() - cached.at >= ENTITY_IMAGE_TTL_MS)
+        // 只有「这条订阅正在显示」时才允许取图：条件已不满足（岛已撤）、订阅被禁用、
+        // 或配置刚重载还没重新评估时，一张都不许拉 —— 不然面板都没了图片还在后台下载，纯白耗电。
+        if (stale && isSubscriptionShowing(subscription)) requestEntityImage(key, url, entityId)
         return cached?.let { Icon.createWithBitmap(it.bitmap) }
     }
+
+    /**
+     * 这条订阅当前是否处于显示状态。
+     *
+     * [matchedSubscriptions] 的写入时机很关键：[evaluateSubscription] 是**先**标记匹配、
+     * **再**算签名、**最后**才投递，所以投递路径上这个判断永远为真，不会误伤首帧取图。
+     * 反过来，条件不再满足（[cancelIsland] 移除标记）或整块配置重载（[cancelAllIslands] 清表）
+     * 之后，所有取图请求都会被挡掉。
+     */
+    private fun isSubscriptionShowing(subscription: HaSubscription): Boolean =
+        subscription.enabled && matchedSubscriptions.containsKey(subscription.id)
+
+    /**
+     * 缓存键：绝对地址 + 图片版本号。
+     *
+     * 版本号为空（实体不提供换图信号）时退化成纯地址键，由 TTL 兜底。
+     */
+    private fun entityImageKey(url: String, version: String): String =
+        if (version.isBlank()) url else "$url#$version"
+
+    /**
+     * 读缓存。[allowStale] 为 true 时，精确 key 未命中会退回**同一地址**的旧版本位图
+     * （面板先显示旧图，新图下完再替换）；为 false 时只认精确 key，用于签名里的就绪判定。
+     */
+    private fun cachedEntityImage(key: String, url: String, allowStale: Boolean): CachedEntityImage? =
+        synchronized(entityImageCache) {
+            entityImageCache[key] ?: if (allowStale) entityImageCache.values.lastOrNull { it.url == url } else null
+        }
 
     /**
      * 图片接口的绝对地址。
@@ -654,18 +718,26 @@ object HomeAssistantIslandHook : BaseHook() {
         else -> null
     }
 
-    /** 后台下载实体图片；成功后清掉相关订阅的内容签名，让下一次评估把图片补上。 */
-    private fun requestEntityImage(url: String, entityId: String) {
+    /**
+     * 后台下载实体图片；成功后清掉相关订阅的内容签名，让下一次评估把图片补上。
+     *
+     * [key] 是带版本号的缓存键（限流、去重、落缓存都用它），[url] 才是真正要请求的地址。
+     */
+    private fun requestEntityImage(key: String, url: String, entityId: String) {
         val now = System.currentTimeMillis()
-        entityImageAttempts[url]?.let { if (now - it < ENTITY_IMAGE_RETRY_MS) return }
-        synchronized(entityImagePending) { if (!entityImagePending.add(url)) return }
-        entityImageAttempts[url] = now
+        entityImageAttempts[key]?.let { if (now - it < ENTITY_IMAGE_RETRY_MS) return }
+        // key 带版本号，会随每次换图新增；失败记录必须限长，否则这个 map 会一直长。
+        if (entityImageAttempts.size > ENTITY_IMAGE_ATTEMPTS_MAX) {
+            entityImageAttempts.entries.removeAll { now - it.value >= ENTITY_IMAGE_RETRY_MS }
+        }
+        synchronized(entityImagePending) { if (!entityImagePending.add(key)) return }
+        entityImageAttempts[key] = now
         val token = runtimeToken
         runCatching {
             entityImageExecutor.execute {
                 val outcome = runCatching { downloadEntityImage(url, token) }
                 val bitmap = outcome.getOrNull()
-                synchronized(entityImagePending) { entityImagePending.remove(url) }
+                synchronized(entityImagePending) { entityImagePending.remove(key) }
                 if (bitmap == null) {
                     val detail = outcome.exceptionOrNull()
                         ?.let { " (${it.javaClass.simpleName} ${it.message.orEmpty()})" }
@@ -674,8 +746,16 @@ object HomeAssistantIslandHook : BaseHook() {
                     return@execute
                 }
                 synchronized(entityImageCache) {
-                    entityImageCache[url] = CachedEntityImage(bitmap, System.currentTimeMillis())
+                    // 换图后 key 会变，顺手淘汰同一地址的旧版本，别让旧图把 LRU 占满。
+                    val iterator = entityImageCache.entries.iterator()
+                    while (iterator.hasNext()) {
+                        val existing = iterator.next().key
+                        if (existing != key && existing.startsWith("$url#")) iterator.remove()
+                    }
+                    entityImageCache[key] = CachedEntityImage(bitmap, System.currentTimeMillis(), url)
                 }
+                // 成功了就不用再限流：后续重复请求会被缓存直接挡掉。
+                entityImageAttempts.remove(key)
                 moduleRef?.let { log(it) { "entity image ready entity=$entityId ${bitmap.width}x${bitmap.height}" } }
                 // 图片是否就绪是设备面板签名的一部分，清掉签名后重新评估就会补投一次。
                 runtimeSubscriptions.forEach { subscription ->
@@ -689,7 +769,7 @@ object HomeAssistantIslandHook : BaseHook() {
                 }
             }
         }.onFailure {
-            synchronized(entityImagePending) { entityImagePending.remove(url) }
+            synchronized(entityImagePending) { entityImagePending.remove(key) }
         }
     }
 
@@ -779,10 +859,15 @@ object HomeAssistantIslandHook : BaseHook() {
         val logo = if (imageEntityId.isBlank()) {
             s.deviceIconPath
         } else {
-            val path = values[imageEntityId]?.entityPictureUrl.orEmpty()
-            val ready = path.isNotBlank() &&
-                synchronized(entityImageCache) { entityImageCache.containsKey(haAbsoluteUrl(path)) }
-            path + "|" + (if (ready) "ready" else "pending")
+            val entity = values[imageEntityId]
+            val path = entity?.entityPictureUrl.orEmpty()
+            val version = entity?.imageVersion.orEmpty()
+            val url = if (path.isBlank()) "" else haAbsoluteUrl(path)
+            // 精确 key（不吃过渡旧图）：换图 → 版本变 → 签名变 → 面板重投并把新图取回来。
+            val ready = url.isNotEmpty() &&
+                cachedEntityImage(entityImageKey(url, version), url, allowStale = false) != null
+            // 版本必须进签名：图片变了但地址没变时，只有它能触发重投。
+            path + "|" + version + "|" + (if (ready) "ready" else "pending")
         }
         return HaTemplate.deviceLines(s, values).joinToString("|") +
             "|" + left + "|" + right + "|" + metricCount + "|" + logo
@@ -830,6 +915,18 @@ object HomeAssistantIslandHook : BaseHook() {
     private data class HaChargingSample(val elapsed: Long, val power: Double?, val current: Double?, val voltage: Double?)
     private enum class HaChargingMode { POWER, CURRENT, VOLTAGE }
 
+    /**
+     * 岛 / 通知的显示时长。
+     *
+     * - 默认「常驻」→ [Int.MAX_VALUE]：条件满足就一直显示，条件不再满足由 [cancelIsland] 撤掉；
+     * - 用户选了自定义秒数 → 投递后到点自动消失（计时在系统侧，我们不维护定时器）。
+     *
+     * ⚠️ 状态轮播会周期性重投，等于不断续期：开了轮播 + 自定义时长，实际表现仍是常驻
+     * （轮播本身的语义就是「一直显示」）。
+     */
+    private fun islandTimeoutSecs(subscription: HaSubscription): Int =
+        subscription.displaySeconds.takeIf { it > 0 } ?: Int.MAX_VALUE
+
     private fun cancelIsland(context: Context, subscription: HaSubscription) {
         val notifId = activeNotifIds.remove(subscription.id) ?: return
         lastSignature.remove(subscription.id)
@@ -844,8 +941,11 @@ object HomeAssistantIslandHook : BaseHook() {
         activeNotifIds.forEach { (_, notifId) -> IslandDispatcher.cancel(context, notifId) }
         activeNotifIds.clear()
         lastSignature.clear()
+        // 清掉匹配标记 = 所有取图请求立刻被 isSubscriptionShowing() 挡掉（见 panelLogo）。
         matchedSubscriptions.clear()
         entityCache.clear()
+        // entityImageCache 故意不清：配置每次改动都会走到这里（applyConfig），
+        // 清了反而让下一次显示重新下载一遍，更费电；它是 LRU 6 项、每张 ~80KB，留着更划算。
         carouselRunnables.values.forEach(carouselHandler::removeCallbacks)
         carouselRunnables.clear()
         carouselIndices.clear()
@@ -867,7 +967,7 @@ object HomeAssistantIslandHook : BaseHook() {
                 val icon = islandIcon(current, values)
                 val focusIcon = resolveEntityIcon(current, values, focusIconSources(current))
                 val panelViews = panelRemoteViews(context, current)
-                IslandDispatcher.post(context, IslandRequest(title = island.first, content = island.second, focusTitle = focus.first, focusContent = focus.second, icon = icon, focusIcon = focusIcon, notifId = current.notifId, timeoutSecs = Int.MAX_VALUE, firstFloat = false, enableFloat = false, showNotification = current.focusEnabled, islandOnly = !current.focusEnabled, islandEnabled = current.islandEnabled, showIslandIcon = current.showIslandIcon, updatable = true, isOngoing = true, focusRemoteViews = panelViews?.first, focusNightRemoteViews = panelViews?.second, focusIslandExpandRemoteViews = panelViews?.third, sourcePackage = "io.github.hyperisland", sourceChannelId = HomeAssistantContract.SOURCE_CHANNEL_ID))
+                IslandDispatcher.post(context, IslandRequest(title = island.first, content = island.second, focusTitle = focus.first, focusContent = focus.second, icon = icon, focusIcon = focusIcon, notifId = current.notifId, timeoutSecs = islandTimeoutSecs(current), firstFloat = false, enableFloat = false, showNotification = current.focusEnabled, preserveStatusBarSmallIcon = false, islandOnly = !current.focusEnabled, islandEnabled = current.islandEnabled, showIslandIcon = current.showIslandIcon, updatable = true, isOngoing = true, focusRemoteViews = panelViews?.first, focusNightRemoteViews = panelViews?.second, focusIslandExpandRemoteViews = panelViews?.third, sourcePackage = "io.github.hyperisland", sourceChannelId = HomeAssistantContract.SOURCE_CHANNEL_ID))
                 carouselHandler.postDelayed(this, current.islandCarouselInterval.coerceAtLeast(1) * 1000L)
             }
         }

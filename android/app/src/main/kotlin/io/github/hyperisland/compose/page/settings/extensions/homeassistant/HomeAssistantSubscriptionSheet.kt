@@ -76,6 +76,9 @@ internal fun HomeAssistantSubscriptionSheet(
     var attributeTarget by remember(show) { mutableStateOf<String?>(null) }
     var placeholderEntityId by remember(show) { mutableStateOf("") }
     var textTarget by remember(show) { mutableStateOf<String?>(null) }
+    // 显示条件（比较方式 + 参考值）与显示时长都走弹窗，避免 sheet 上堆表单。
+    var conditionDialog by remember(show) { mutableStateOf(false) }
+    var durationDialog by remember(show) { mutableStateOf(false) }
     val entityMap = remember(entities) { entities.associateBy(HaEntity::entityId) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -151,6 +154,7 @@ internal fun HomeAssistantSubscriptionSheet(
                         summary = draft.triggerAttribute.ifBlank { stringResource(R.string.ha_attribute_state) },
                         endIcon = MiuixIcons.ChevronForward,
                     ) { pickAttribute("trigger") }
+                    // 比较方式本身就是个下拉，直接用默认组件留在卡片里，不进弹窗。
                     PreferenceDropdown(
                         title = stringResource(R.string.ha_condition),
                         summary = condition.label(),
@@ -158,12 +162,41 @@ internal fun HomeAssistantSubscriptionSheet(
                         items = conditionItems.map { it.label() },
                         selectedIndex = conditionItems.indexOf(condition).coerceAtLeast(0),
                     ) { index -> draft = draft.copy(condition = conditionItems[index].id) }
-                    HaTextField(
-                        value = draft.value,
-                        onValueChange = { draft = draft.copy(value = it) },
-                        label = stringResource(R.string.ha_condition_value),
-                        keyboardOptions = if (condition.needsNumber) KeyboardOptions(keyboardType = KeyboardType.Number) else KeyboardOptions.Default,
-                    )
+                    // 参考值走弹窗，弹窗里只有一个输入框。
+                    SourceRow(
+                        title = stringResource(R.string.ha_condition_value),
+                        summary = draft.value.ifBlank { stringResource(R.string.not_set) },
+                    ) { conditionDialog = true }
+                    // 显示时机：常驻（默认）或自定义秒数。
+                    PreferenceDropdown(
+                        title = stringResource(R.string.ha_display_mode),
+                        summary = if (draft.displaySeconds <= 0) {
+                            stringResource(R.string.ha_display_keep)
+                        } else {
+                            stringResource(R.string.ha_seconds, draft.displaySeconds)
+                        },
+                        icon = null,
+                        items = listOf(
+                            stringResource(R.string.ha_display_keep),
+                            stringResource(R.string.ha_display_custom),
+                        ),
+                        selectedIndex = if (draft.displaySeconds <= 0) 0 else 1,
+                    ) { index ->
+                        draft = if (index == 0) {
+                            draft.copy(displaySeconds = 0)
+                        } else {
+                            // 切到自定义先给个默认值，否则下面那行点开来是空的。
+                            draft.copy(displaySeconds = draft.displaySeconds.takeIf { it > 0 } ?: DEFAULT_DISPLAY_SECONDS)
+                        }
+                    }
+                    AnimatedVisibility(visible = draft.displaySeconds > 0) {
+                        Column {
+                            SourceRow(
+                                title = stringResource(R.string.ha_display_seconds),
+                                summary = stringResource(R.string.ha_seconds, draft.displaySeconds),
+                            ) { durationDialog = true }
+                        }
+                    }
                 }
             }
             item {
@@ -377,6 +410,26 @@ internal fun HomeAssistantSubscriptionSheet(
         attributeTarget = null
     })
 
+    HaConditionValueDialog(
+        show = conditionDialog,
+        needsNumber = condition.needsNumber,
+        value = draft.value,
+        onDismiss = { conditionDialog = false },
+        onSave = { nextValue ->
+            draft = draft.copy(value = nextValue)
+            conditionDialog = false
+        },
+    )
+    HaDurationDialog(
+        show = durationDialog,
+        seconds = draft.displaySeconds,
+        onDismiss = { durationDialog = false },
+        onSave = { seconds ->
+            draft = draft.copy(displaySeconds = seconds)
+            durationDialog = false
+        },
+    )
+
     HaTemplateTextDialog(
         show = textTarget != null && textTarget in TEXT_TARGETS,
         title = stringResource(
@@ -464,8 +517,6 @@ private fun HaTemplateTextDialog(
     WindowDialog(
         show = show,
         title = title,
-        // 对话框走 sheet 的灰底，输入框用 Card 同色（白），两者必须有明确对比，否则看不清边界。
-        backgroundColor = haSheetColor(),
         onDismissRequest = onDismiss,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -477,7 +528,6 @@ private fun HaTemplateTextDialog(
                 useLabelAsPlaceholder = true,
                 minLines = 2,
                 maxLines = 4,
-                colors = haTextFieldColors(haSurfaceColor()),
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -490,6 +540,109 @@ private fun HaTemplateTextDialog(
                 )
                 Button(
                     onClick = { onSave(value) },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColorsPrimary(),
+                ) {
+                    Text(stringResource(R.string.save))
+                }
+            }
+        }
+    }
+}
+
+/** 自定义显示时长的默认值（秒）：切到「自定义」时先填这个，用户再改。 */
+private const val DEFAULT_DISPLAY_SECONDS = 10
+
+/** 显示时长上限（24 小时）：防止手滑输入一个天文数字把岛钉死。 */
+private const val MAX_DISPLAY_SECONDS = 86400
+
+/**
+ * 显示条件的「参考值」编辑。
+ *
+ * 弹窗里只放一个输入框 + 默认的取消/保存（比较方式留在 sheet 的下拉里）。
+ * 全部走 Miuix 默认组件：不覆写对话框底色、不给输入框套自定义颜色、不套 Card。
+ */
+@Composable
+private fun HaConditionValueDialog(
+    show: Boolean,
+    needsNumber: Boolean,
+    value: String,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit,
+) {
+    var text by remember(show, value) { mutableStateOf(value) }
+    WindowDialog(
+        show = show,
+        title = stringResource(R.string.ha_condition_value),
+        onDismissRequest = onDismiss,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            TextField(
+                value = text,
+                onValueChange = { text = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = stringResource(R.string.ha_condition_value),
+                useLabelAsPlaceholder = true,
+                singleLine = true,
+                keyboardOptions = if (needsNumber) {
+                    KeyboardOptions(keyboardType = KeyboardType.Number)
+                } else {
+                    KeyboardOptions.Default
+                },
+            )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                TextButton(
+                    text = stringResource(R.string.cancel),
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f),
+                )
+                Button(
+                    onClick = { onSave(text) },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColorsPrimary(),
+                ) {
+                    Text(stringResource(R.string.save))
+                }
+            }
+        }
+    }
+}
+
+/** 显示时长编辑（秒）：1 ~ [MAX_DISPLAY_SECONDS]，输入非法时禁用保存。 */
+@Composable
+private fun HaDurationDialog(
+    show: Boolean,
+    seconds: Int,
+    onDismiss: () -> Unit,
+    onSave: (Int) -> Unit,
+) {
+    var text by remember(show, seconds) { mutableStateOf(seconds.takeIf { it > 0 }?.toString().orEmpty()) }
+    val parsed = text.trim().toIntOrNull()
+    val valid = parsed != null && parsed in 1..MAX_DISPLAY_SECONDS
+    WindowDialog(
+        show = show,
+        title = stringResource(R.string.ha_display_seconds),
+        onDismissRequest = onDismiss,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            TextField(
+                value = text,
+                onValueChange = { input -> text = input.filter(Char::isDigit).take(5) },
+                modifier = Modifier.fillMaxWidth(),
+                label = stringResource(R.string.ha_display_seconds_hint, MAX_DISPLAY_SECONDS),
+                useLabelAsPlaceholder = true,
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            )
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                TextButton(
+                    text = stringResource(R.string.cancel),
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f),
+                )
+                Button(
+                    onClick = { parsed?.let(onSave) },
+                    enabled = valid,
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColorsPrimary(),
                 ) {

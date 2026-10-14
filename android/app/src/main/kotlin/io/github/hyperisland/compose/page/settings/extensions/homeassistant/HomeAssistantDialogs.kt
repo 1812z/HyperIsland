@@ -68,7 +68,6 @@ internal fun HaEntityPickerDialog(
     WindowDialog(
         show = show,
         title = stringResource(R.string.ha_entity_pick),
-        backgroundColor = haSheetColor(),
         onDismissRequest = onDismiss,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -80,7 +79,6 @@ internal fun HaEntityPickerDialog(
                     label = stringResource(R.string.ha_entity_search),
                     useLabelAsPlaceholder = true,
                     singleLine = true,
-                    colors = haTextFieldColors(haSurfaceColor()),
                 )
             }
             if (percentOnly || imageOnly) {
@@ -164,8 +162,6 @@ internal fun HaAttributePickerDialog(
     WindowDialog(
         show = show,
         title = stringResource(R.string.ha_attribute_pick),
-        // 与「选择实体」「模板编辑」保持同一套对比关系：对话框灰底 + 内部列表白 Card。
-        backgroundColor = haSheetColor(),
         onDismissRequest = onDismiss,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
