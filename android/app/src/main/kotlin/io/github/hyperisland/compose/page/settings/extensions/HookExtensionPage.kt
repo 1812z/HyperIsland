@@ -1,6 +1,7 @@
 package io.github.hyperisland.compose.page.settings.extensions
 
 import android.content.Context
+import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
@@ -18,6 +19,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -50,6 +52,8 @@ private data class HookAppEntry(
     val fallbackIcon: ImageVector,
     /** 没有关联应用时列表行显示的摘要文案。 */
     @StringRes val fallbackSummary: Int? = null,
+    /** 模块自身扩展的专属图标（如 Home Assistant 的官方 logo），优先于 [fallbackIcon]。 */
+    @DrawableRes val iconRes: Int? = null,
 )
 
 @Composable
@@ -101,6 +105,7 @@ internal fun HookExtensionPage(
                 title = R.string.ext_home_assistant,
                 fallbackIcon = MiuixIcons.Home,
                 fallbackSummary = R.string.ext_home_assistant_summary,
+                iconRes = R.drawable.home_assistant,
             ),
         )
     }
@@ -152,14 +157,21 @@ private fun HookAppRow(
                 contentAlignment = Alignment.Center,
             ) {
                 val currentIcon = icon
-                if (currentIcon != null) {
-                    Image(
+                val customIcon = entry.iconRes
+                when {
+                    // 关联应用：直接画应用图标。
+                    currentIcon != null -> Image(
                         bitmap = currentIcon,
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
                     )
-                } else {
-                    Icon(
+                    // 模块自身扩展：画自带的专属图标（如 Home Assistant logo，透明底，昼夜主题都可用）。
+                    customIcon != null -> Image(
+                        painter = painterResource(customIcon),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                    else -> Icon(
                         imageVector = entry.fallbackIcon,
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),

@@ -174,6 +174,9 @@ internal fun HomeAssistantPage(
                 }
             }
         },
+        // 总开关打开时右下角才有「+」悬浮按钮；把列表底部留白抬到按钮之上，
+        // 否则最后一条订阅会被按钮压住（FAB 本体 60dp + 12dp 间距）。
+        bottomContentPadding = if (enabled.value) 96.dp else 28.dp,
     ) {
         item {
             SectionTitle(stringResource(R.string.config))
