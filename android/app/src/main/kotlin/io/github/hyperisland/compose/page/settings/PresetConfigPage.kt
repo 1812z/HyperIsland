@@ -1054,10 +1054,12 @@ private fun PresetConfirmDialog(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            // 刻意不传 colors：弹窗背景是 background（浅色为纯白），
+            // 用 sheet 里的 presetButtonColors()（浅色也是白）会与背景糊成一片。
+            // 默认按钮色 = secondaryVariant，浅 / 深色都能看清。
             Button(
                 onClick = onConfirm,
                 modifier = Modifier.weight(1f),
-                colors = presetButtonColors(),
             ) {
                 Text(stringResource(R.string.preset_confirm))
             }

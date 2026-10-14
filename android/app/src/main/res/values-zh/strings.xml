@@ -1158,6 +1158,13 @@
     <string name="ha_device_metric_left">左侧百分比实体</string>
     <string name="ha_device_metric_right">右侧百分比实体</string>
     <string name="ha_device_icon">设备图标</string>
+    <string name="ha_device_icon_source">图标来源</string>
+    <string name="ha_device_icon_custom_image">自定义图片</string>
+    <string name="ha_device_icon_entity">实体图片</string>
+    <string name="ha_device_metric_count">底部百分比组件</string>
+    <string name="ha_device_metric_count_one">1 个</string>
+    <string name="ha_device_metric_count_two">2 个</string>
+    <string name="ha_image_only">仅支持带图片的实体（image / camera）</string>
     <string name="ha_percent_only">仅支持百分比类型的实体</string>
     <string name="ha_island_icon_source">岛图标</string>
     <string name="ha_island_icon_follow">跟随实体</string>

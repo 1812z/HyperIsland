@@ -45,11 +45,17 @@ internal fun HaEntityPickerDialog(
     onRetry: () -> Unit,
     /** 仅列出单位是百分比的实体（设备面板的进度源用）。 */
     percentOnly: Boolean = false,
+    /** 仅列出能提供图片的实体（image / camera，设备面板左侧图标用）。 */
+    imageOnly: Boolean = false,
 ) {
     var query by remember(show) { mutableStateOf("") }
     val keyword = query.trim().lowercase()
-    val filtered = remember(entities, keyword, percentOnly) {
-        val scoped = if (percentOnly) entities.filter(HaTemplate::isPercent) else entities
+    val filtered = remember(entities, keyword, percentOnly, imageOnly) {
+        val scoped = when {
+            percentOnly -> entities.filter(HaTemplate::isPercent)
+            imageOnly -> entities.filter { it.entityPictureUrl.isNotBlank() }
+            else -> entities
+        }
         if (keyword.isEmpty()) {
             scoped
         } else {
@@ -77,9 +83,9 @@ internal fun HaEntityPickerDialog(
                     colors = haTextFieldColors(haSurfaceColor()),
                 )
             }
-            if (percentOnly) {
+            if (percentOnly || imageOnly) {
                 Text(
-                    text = stringResource(R.string.ha_percent_only),
+                    text = stringResource(if (imageOnly) R.string.ha_image_only else R.string.ha_percent_only),
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     fontSize = MiuixTheme.textStyles.body2.fontSize,
                 )
@@ -133,6 +139,10 @@ internal fun HaEntityPickerDialog(
 /**
  * 属性选择器：留空（默认 `state`）或挑选实体里的任一属性，
  * 例如 `sensor.phone` 的 `battery_level`。同时展示每个属性当前的值。
+ *
+ * `highlightSelected` 决定要不要把「当前生效的属性」显示为选中：
+ * - 触发属性：勾选当前生效的那一项（含 state，用户要能一眼看出订阅真正在监听什么）；
+ * - 其余入口（充电三项、选取变量复制占位符）：一律不勾选，避免带着上一条配置的残留勾选造成误导。
  */
 @Composable
 internal fun HaAttributePickerDialog(
@@ -141,6 +151,8 @@ internal fun HaAttributePickerDialog(
     selectedAttribute: String,
     onDismiss: () -> Unit,
     onSelected: (String) -> Unit,
+    /** 仅触发属性传 true；其它入口一律 false（打开即空白）。 */
+    highlightSelected: Boolean = false,
 ) {
     val entries = remember(entity) {
         buildList {
@@ -152,6 +164,8 @@ internal fun HaAttributePickerDialog(
     WindowDialog(
         show = show,
         title = stringResource(R.string.ha_attribute_pick),
+        // 与「选择实体」「模板编辑」保持同一套对比关系：对话框灰底 + 内部列表白 Card。
+        backgroundColor = haSheetColor(),
         onDismissRequest = onDismiss,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -159,9 +173,9 @@ internal fun HaAttributePickerDialog(
                 LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp)) {
                     items(entries, key = { it.first }) { (name, value) ->
                         val isState = name == HaEntity.ATTRIBUTE_STATE
-                        // 不把默认的 state 当作已选择；用户必须主动点击属性。
-                        // 非 state 属性仍显示已有配置的选中状态。
-                        val selected = !isState && name == selectedAttribute
+                        // 只有触发属性需要标出「当前生效的那一项」，其余入口打开时不勾选任何东西。
+                        // 未选属性 = 听 state，所以触发属性在属性为空时要勾在「状态（state）」这一行上。
+                        val selected = highlightSelected && if (isState) selectedAttribute.isBlank() else name == selectedAttribute
                         BasicComponent(
                             title = if (isState) stringResource(R.string.ha_attribute_state) else name,
                             summary = value.takeIf { it.isNotEmpty() },

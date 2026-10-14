@@ -85,6 +85,42 @@ object HomeAssistantIslandHook : BaseHook() {
     private val carouselIndices = ConcurrentHashMap<String, Int>()
     private val chargingHistory = ConcurrentHashMap<String, ArrayDeque<HaChargingSample>>()
     private val chargingModes = ConcurrentHashMap<String, HaChargingMode>()
+
+    /**
+     * 设备面板左侧图标用的实体图片位图缓存（LRU）。
+     *
+     * key 是完整 URL：HA 的图片令牌会随重启变化，所以换 URL 即换 key，天然失效。
+     * 面板图标只有 58dp，采样上限 [ENTITY_IMAGE_MAX_PX] 足够，把每个位图控制在 ~80KB。
+     * 所有访问都必须拿 [entityImageCache] 的锁（主线程与下载线程都会碰）。
+     */
+    private val entityImageCache = object : LinkedHashMap<String, CachedEntityImage>(8, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, CachedEntityImage>): Boolean =
+            size > ENTITY_IMAGE_CACHE_MAX
+    }
+
+    /** 在途下载的 URL 集合：同一 URL 只允许一次请求。 */
+    private val entityImagePending = java.util.Collections.synchronizedSet(HashSet<String>())
+
+    /** URL → 上次发起下载的时间；失败时限流重试，成功且未过 TTL 时不会再发。 */
+    private val entityImageAttempts = ConcurrentHashMap<String, Long>()
+
+    /** 实体图片下载线程（单线程串行，避免同时在拉多张图）。 */
+    private val entityImageExecutor = java.util.concurrent.Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "HyperIsland-HA-image").apply { isDaemon = true }
+    }
+
+    private data class CachedEntityImage(val bitmap: Bitmap, val at: Long)
+
+    private const val ENTITY_IMAGE_CACHE_MAX = 6
+    private const val ENTITY_IMAGE_MAX_PX = 144
+    private const val ENTITY_IMAGE_TIMEOUT_MS = 4000
+
+    /** 缓存有效期：HA 的图片实体换图时状态的令牌可能不变，只靠状态事件刷不出来，必须定期重拉。 */
+    private const val ENTITY_IMAGE_TTL_MS = 5 * 60 * 1000L
+
+    /** 同一 URL 的最短重试间隔，避免下载失败后每次状态更新都打一次 HA。 */
+    private const val ENTITY_IMAGE_RETRY_MS = 60 * 1000L
+
     private const val EXTRA_SUBSCRIPTION_ID = "ha_subscription_id"
     private const val ACTION_SWITCH_CHARGING_CHART = "io.github.hyperisland.action.HA_SWITCH_CHARGING_CHART"
 
@@ -496,9 +532,10 @@ object HomeAssistantIslandHook : BaseHook() {
     }
 
     /**
-     * 设备面板模板：复用 KeepIsland 的设备布局（左侧图标 + 3 行文本 + 2 条百分比进度）。
+     * 设备面板模板：复用 KeepIsland 的设备布局（左侧图标 + 3 行文本 + 1~2 条百分比进度）。
      *
-     * 与 KeepIsland 不同的是，这里所有文本都来自订阅里的自定义模板，进度来自用户选择的百分比实体。
+     * 与 KeepIsland 不同的是，这里所有文本都来自订阅里的自定义模板，进度来自用户选择的百分比实体，
+     * 左侧图标可以是本地图片，也可以是某个 image / camera 实体的图片（异步下载，见 [panelLogo]）。
      */
     private fun deviceRemoteViews(
         context: Context,
@@ -507,8 +544,13 @@ object HomeAssistantIslandHook : BaseHook() {
         val values = entityCache.toMap()
         val lines = HaTemplate.deviceLines(subscription, values)
         val left = values[subscription.deviceLeftEntityId]?.let(HaTemplate::percentOf)
-        val right = values[subscription.deviceRightEntityId]?.let(HaTemplate::percentOf)
-        val logo = loadCustomIcon(subscription.deviceIconPath)
+        val metricCount = subscription.deviceMetricCount.coerceIn(1, 2)
+        val right = if (metricCount >= 2) {
+            values[subscription.deviceRightEntityId]?.let(HaTemplate::percentOf)
+        } else {
+            null
+        }
+        val logo = panelLogo(subscription, values)
         fun build(): RemoteViews = RemoteViews(
             context.moduleContext().packageName,
             io.github.hyperisland.R.layout.focus_notification_device,
@@ -522,13 +564,21 @@ object HomeAssistantIslandHook : BaseHook() {
             setTextViewText(io.github.hyperisland.R.id.device_memory_value, percentText(right))
             setProgressBar(io.github.hyperisland.R.id.device_cpu_progress, 100, (left ?: 0f).toInt(), false)
             setProgressBar(io.github.hyperisland.R.id.device_memory_progress, 100, (right ?: 0f).toInt(), false)
+            // 每帧都必须显式写可见性：RemoteViews 的更新会落在同一个已膨胀的视图上，
+            // 少写一次就会沿用上一帧的状态（数量从 2 改成 1 后右列不会消失）。
+            setViewVisibility(
+                io.github.hyperisland.R.id.device_metric_right,
+                if (metricCount >= 2) View.VISIBLE else View.GONE,
+            )
             if (logo != null) {
                 setImageViewIcon(io.github.hyperisland.R.id.device_logo, logo)
+                setViewVisibility(io.github.hyperisland.R.id.device_logo, View.VISIBLE)
             } else {
+                // 实体图片是异步下载的：没就绪时先留空（保留左侧空位，避免文字左右跳动）。
                 setViewVisibility(io.github.hyperisland.R.id.device_logo, View.INVISIBLE)
             }
         }
-        // 面板本身不含位图，日间 / 夜间 / 展开共用同一份 RemoteViews（Binder 只序列化一次）。
+        // 日间 / 夜间 / 展开共用同一份 RemoteViews（布局内的文字色由 values-night 覆盖，翻夜不用换视图）。
         val views = build()
         return Triple(views, views, views)
     }
@@ -536,11 +586,207 @@ object HomeAssistantIslandHook : BaseHook() {
     private fun entityTitleOf(entityId: String, values: Map<String, HaEntity>): String =
         values[entityId]?.title.orEmpty()
 
-    /** 设备面板的内容签名：3 行文本 + 两条进度（用于「内容没变不更新」的比较）。 */
-    private fun deviceSignature(s: HaSubscription, values: Map<String, HaEntity>): String =
-        HaTemplate.deviceLines(s, values).joinToString("|") + "|" +
-            percentText(values[s.deviceLeftEntityId]?.let(HaTemplate::percentOf)) + "|" +
+    /**
+     * 设备面板左侧图标：实体图片（image / camera 的 `entity_picture`）或本地自定义图片。
+     *
+     * 实体图片要带 Bearer 令牌拉取，不能在渲染线程同步下载（渲染既可能发生在主线程的轮播里，
+     * 也可能发生在 WS 回调线程）。所以这里只读缓存：未命中就丢给后台线程下载并先返回 null，
+     * 下载完成后再重投一次（见 [requestEntityImage]）。
+     */
+    private fun panelLogo(subscription: HaSubscription, values: Map<String, HaEntity>): Icon? {
+        val entityId = subscription.deviceImageEntityId
+        if (entityId.isBlank()) return loadCustomIcon(subscription.deviceIconPath)
+        val path = values[entityId]?.entityPictureUrl.orEmpty()
+        if (path.isBlank()) return null
+        val url = haAbsoluteUrl(path)
+        val cached = synchronized(entityImageCache) { entityImageCache[url] }
+        // 过期就先回旧的（面板不闪空白），同时后台刷新；下载完成后会重投一次。
+        if (cached == null || System.currentTimeMillis() - cached.at >= ENTITY_IMAGE_TTL_MS) {
+            requestEntityImage(url, entityId)
+        }
+        return cached?.let { Icon.createWithBitmap(it.bitmap) }
+    }
+
+    /**
+     * 图片接口的绝对地址。
+     *
+     * ⚠️ `runtimeUrl` 是用户填的 **WebSocket** 地址（`ws://` / `wss://`，也允许 `http(s)://`），
+     * 直接拼出来会是 `wss://host:8124/api/image_proxy/…` —— HttpURLConnection 不认识 wss，
+     * 连握手都进不去（日志里只会看到一句 download failed）。所以 scheme 必须映射回 http(s)，
+     * 并沿用用户地址里的端口与反向代理路径前缀。
+     */
+    private fun haAbsoluteUrl(path: String): String {
+        if (path.startsWith("http://") || path.startsWith("https://")) return path
+        val base = haBaseUrl()
+        val suffix = if (path.startsWith("/")) path else "/$path"
+        val origin = haOrigin(base)
+        val prefix = if (origin.isEmpty()) "" else base.removePrefix(origin)
+        // 服务端给的路径本身已带代理前缀时不要再叠加一次。
+        return if (prefix.isNotEmpty() && suffix.startsWith("$prefix/")) origin + suffix else base + suffix
+    }
+
+    /** HA 的 HTTP(S) 根地址：用户地址换 scheme 并去掉 `/api/websocket` 尾巴。 */
+    private fun haBaseUrl(): String {
+        val url = runtimeUrl.trim().trimEnd('/')
+        val schemeEnd = url.indexOf("://")
+        val scheme = when {
+            schemeEnd <= 0 -> "http://"
+            url.startsWith("wss://", true) || url.startsWith("https://", true) -> "https://"
+            else -> "http://"
+        }
+        val body = if (schemeEnd > 0) url.substring(schemeEnd + 3) else url
+        return scheme + body.removeSuffix("/api/websocket")
+    }
+
+    /** 取 `scheme://host:port`，不含路径。 */
+    private fun haOrigin(url: String): String {
+        val schemeEnd = url.indexOf("://")
+        if (schemeEnd <= 0) return ""
+        val body = url.substring(schemeEnd + 3)
+        val slash = body.indexOf('/')
+        return url.substring(0, schemeEnd + 3) + if (slash < 0) body else body.substring(0, slash)
+    }
+
+    /** http ↔ https 互换，用于主地址连接层面失败时的兜底重试。 */
+    private fun alternateSchemeUrl(url: String): String? = when {
+        url.startsWith("https://") -> "http://" + url.removePrefix("https://")
+        url.startsWith("http://") -> "https://" + url.removePrefix("http://")
+        else -> null
+    }
+
+    /** 后台下载实体图片；成功后清掉相关订阅的内容签名，让下一次评估把图片补上。 */
+    private fun requestEntityImage(url: String, entityId: String) {
+        val now = System.currentTimeMillis()
+        entityImageAttempts[url]?.let { if (now - it < ENTITY_IMAGE_RETRY_MS) return }
+        synchronized(entityImagePending) { if (!entityImagePending.add(url)) return }
+        entityImageAttempts[url] = now
+        val token = runtimeToken
+        runCatching {
+            entityImageExecutor.execute {
+                val outcome = runCatching { downloadEntityImage(url, token) }
+                val bitmap = outcome.getOrNull()
+                synchronized(entityImagePending) { entityImagePending.remove(url) }
+                if (bitmap == null) {
+                    val detail = outcome.exceptionOrNull()
+                        ?.let { " (${it.javaClass.simpleName} ${it.message.orEmpty()})" }
+                        .orEmpty()
+                    moduleRef?.let { logError(it, "entity image download failed:$detail $url") }
+                    return@execute
+                }
+                synchronized(entityImageCache) {
+                    entityImageCache[url] = CachedEntityImage(bitmap, System.currentTimeMillis())
+                }
+                moduleRef?.let { log(it) { "entity image ready entity=$entityId ${bitmap.width}x${bitmap.height}" } }
+                // 图片是否就绪是设备面板签名的一部分，清掉签名后重新评估就会补投一次。
+                runtimeSubscriptions.forEach { subscription ->
+                    if (subscription.deviceImageEntityId == entityId) lastSignature.remove(subscription.id)
+                }
+                val entity = entityCache[entityId]
+                if (entity != null) {
+                    Handler(Looper.getMainLooper()).post {
+                        appContext?.let { context -> handleStateChanged(context, entity) }
+                    }
+                }
+            }
+        }.onFailure {
+            synchronized(entityImagePending) { entityImagePending.remove(url) }
+        }
+    }
+
+    /**
+     * 拉取实体图片。
+     *
+     * `wss://` → `https://` 只是我们的推断，所以主地址在**连接层面**失败时再换一种协议试一次；
+     * HTTP 错误码（401 / 404）说明地址本身是通的，换协议没有意义，直接放弃。
+     */
+    private fun downloadEntityImage(url: String, token: String): Bitmap? {
+        for ((index, candidate) in listOfNotNull(url, alternateSchemeUrl(url)).withIndex()) {
+            var networkError = false
+            val bytes = try {
+                fetchEntityImageBytes(candidate, token)
+            } catch (e: Exception) {
+                networkError = true
+                moduleRef?.let {
+                    logError(it, "entity image request error: ${e.javaClass.simpleName} ${e.message.orEmpty()} $candidate")
+                }
+                null
+            }
+            if (bytes != null) return decodeSampledImage(bytes)
+            if (!networkError) return null
+            if (index == 0) moduleRef?.let { log(it) { "entity image retry with alternate scheme" } }
+        }
+        return null
+    }
+
+    /** 单次请求：HTTP 报错返回 null，网络 / TLS 失败直接抛出交给调用方决定是否换协议。 */
+    private fun fetchEntityImageBytes(url: String, token: String): ByteArray? {
+        val raw = java.net.URL(url).openConnection()
+        // 与 WS 客户端保持一致：WS 走裸 SSLSocket，JSSE 默认不做主机名校验。
+        // 这里同样只校验证书链、不校验主机名，否则会出现「订阅连得上、图标却握手失败」的割裂。
+        (raw as? javax.net.ssl.HttpsURLConnection)?.let { https ->
+            https.hostnameVerifier = javax.net.ssl.HostnameVerifier { _, _ -> true }
+        }
+        val connection = (raw as java.net.HttpURLConnection).apply {
+            connectTimeout = ENTITY_IMAGE_TIMEOUT_MS
+            readTimeout = ENTITY_IMAGE_TIMEOUT_MS
+            setRequestProperty("Accept", "image/*")
+            // 官方示例里的 `?time=` 是给浏览器 / 代理用的缓存破除参数。我们故意不写进 URL：
+            // URL 同时是本地 LRU 的键和设备面板签名的一部分，带时间戳会让它每帧都变。
+            // 改用请求头达到同样效果。
+            setRequestProperty("Cache-Control", "no-cache")
+            if (token.isNotBlank()) setRequestProperty("Authorization", "Bearer $token")
+        }
+        return try {
+            val code = connection.responseCode
+            if (code !in 200..299) {
+                moduleRef?.let { logError(it, "entity image http $code: $url") }
+                null
+            } else {
+                connection.inputStream.use { it.readBytes() }.takeIf { it.isNotEmpty() }
+            }
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    /** 按 [ENTITY_IMAGE_MAX_PX] 采样解码；面板图标只有 58dp，不需要原图。 */
+    private fun decodeSampledImage(bytes: ByteArray): Bitmap? {
+        val bounds = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+        var sampleSize = 1
+        while (bounds.outWidth / sampleSize > ENTITY_IMAGE_MAX_PX || bounds.outHeight / sampleSize > ENTITY_IMAGE_MAX_PX) {
+            sampleSize *= 2
+        }
+        return android.graphics.BitmapFactory.decodeByteArray(
+            bytes,
+            0,
+            bytes.size,
+            android.graphics.BitmapFactory.Options().apply { inSampleSize = sampleSize },
+        )
+    }
+
+    /** 设备面板的内容签名：3 行文本 + 进度（按组件数量）+ 图标来源状态。 */
+    private fun deviceSignature(s: HaSubscription, values: Map<String, HaEntity>): String {
+        val metricCount = s.deviceMetricCount.coerceIn(1, 2)
+        val left = percentText(values[s.deviceLeftEntityId]?.let(HaTemplate::percentOf))
+        val right = if (metricCount >= 2) {
             percentText(values[s.deviceRightEntityId]?.let(HaTemplate::percentOf))
+        } else {
+            "-"
+        }
+        val imageEntityId = s.deviceImageEntityId
+        val logo = if (imageEntityId.isBlank()) {
+            s.deviceIconPath
+        } else {
+            val path = values[imageEntityId]?.entityPictureUrl.orEmpty()
+            val ready = path.isNotBlank() &&
+                synchronized(entityImageCache) { entityImageCache.containsKey(haAbsoluteUrl(path)) }
+            path + "|" + (if (ready) "ready" else "pending")
+        }
+        return HaTemplate.deviceLines(s, values).joinToString("|") +
+            "|" + left + "|" + right + "|" + metricCount + "|" + logo
+    }
 
     private fun percentText(percent: Float?): String = percent?.let { "${it.toInt()}%" } ?: "--%"
 

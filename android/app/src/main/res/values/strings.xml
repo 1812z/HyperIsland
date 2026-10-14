@@ -1152,6 +1152,13 @@
     <string name="ha_device_metric_left">Left percentage entity</string>
     <string name="ha_device_metric_right">Right percentage entity</string>
     <string name="ha_device_icon">Device icon</string>
+    <string name="ha_device_icon_source">Icon source</string>
+    <string name="ha_device_icon_custom_image">Custom image</string>
+    <string name="ha_device_icon_entity">Entity image</string>
+    <string name="ha_device_metric_count">Bottom percentage components</string>
+    <string name="ha_device_metric_count_one">1</string>
+    <string name="ha_device_metric_count_two">2</string>
+    <string name="ha_image_only">Only entities with an image (image/camera) can be selected</string>
     <string name="ha_percent_only">Only entities with a percentage unit can be selected</string>
     <string name="ha_island_icon_source">Island icon</string>
     <string name="ha_island_icon_follow">Follow entity</string>

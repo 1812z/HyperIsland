@@ -15,6 +15,33 @@ data class HaEntity(
     val title: String get() = friendlyName.ifBlank { entityId }
     val displayValue: String get() = if (unit.isBlank()) state else "$state $unit"
     val icon: String get() = attributes["icon"].orEmpty()
+    val domain: String get() = entityId.substringBefore('.', "")
+
+    /**
+     * 实体图片地址（**相对路径**，绝对地址由 Hook 侧补 base）。
+     *
+     * 优先级：
+     * 1. 服务端下发的 `entity_picture` —— image / camera 都会给，形如
+     *    `/api/image_proxy/<id>?token=<access_token>`，最可靠；
+     * 2. 没有该属性时按官方代理接口自己拼，令牌取 `access_token` 属性；
+     * 3. 连令牌都没有就返回不带查询串的接口地址 —— 请求带上 `Authorization: Bearer`
+     *    同样能过鉴权（官方 REST 示例就是这么调的）。
+     *
+     * ⚠️ **绝对不能用 `state` 当令牌**（曾经的 bug）：image 实体的 state 是
+     * `image_last_updated` 时间戳，camera 的 state 是 idle / recording 之类，
+     * 真正的令牌只存在于 `access_token` 属性里（HA 核心拼 `entity_picture` 用的也是它）。
+     */
+    val entityPictureUrl: String
+        get() {
+            attributes["entity_picture"]?.takeIf(String::isNotBlank)?.let { return it }
+            val token = attributes["access_token"].orEmpty()
+            val path = when (domain) {
+                "image" -> "/api/image_proxy/$entityId"
+                "camera" -> "/api/camera_proxy/$entityId"
+                else -> return ""
+            }
+            return if (token.isBlank()) path else "$path?token=$token"
+        }
 
     fun valueOf(attribute: String): String = when {
         attribute.isBlank() || attribute == ATTRIBUTE_STATE -> state
@@ -23,6 +50,8 @@ data class HaEntity(
 
     companion object {
         const val ATTRIBUTE_STATE = "state"
+        const val STATE_UNAVAILABLE = "unavailable"
+        const val STATE_UNKNOWN = "unknown"
 
         fun fromJson(json: JSONObject): HaEntity {
             val attributesJson = json.optJSONObject("attributes")
@@ -115,13 +144,18 @@ data class HaSubscription(
     val chargingCurrentAttribute: String = "",
     val chargingVoltageEntityId: String = "",
     val chargingVoltageAttribute: String = "",
-    // ---- 设备面板模板（DEVICE）：3 行自定义文本 + 2 个百分比实体 + 左侧自定义图标 ----
+    // ---- 设备面板模板（DEVICE）：3 行自定义文本 + 1~2 个百分比实体 + 左侧图标 ----
     val deviceLine1: String = "{name}",
     val deviceLine2: String = "{state}",
     val deviceLine3: String = "",
     val deviceLeftEntityId: String = "",
     val deviceRightEntityId: String = "",
+    /** 左侧图标来源：true = 用 [deviceIconEntityId] 的实体图片（image/camera），false = 用本地 [deviceIconPath]。 */
+    val deviceIconFromEntity: Boolean = false,
+    val deviceIconEntityId: String = "",
     val deviceIconPath: String = "",
+    /** 底部百分比组件数量：1 或 2。 */
+    val deviceMetricCount: Int = 2,
     /** 超级岛图标来源：true = 跟随实体（自动读实体 icon），false = 用 [islandIconPath] 自定义图片。 */
     val islandIconFollow: Boolean = true,
     val islandIconPath: String = "",
@@ -129,6 +163,8 @@ data class HaSubscription(
     val enabled: Boolean = true,
 ) {
     val conditionType: HaCondition get() = HaCondition.of(condition)
+    /** 面板左侧图标实际使用的图片实体；来源选了「自定义图片」时为空。 */
+    val deviceImageEntityId: String get() = if (deviceIconFromEntity) deviceIconEntityId else ""
     val notifId: Int get() = HaNotifIds.of(id)
     val isValid: Boolean get() = triggerEntityId.isNotBlank()
     val dataEntityIds: Set<String>
@@ -141,6 +177,7 @@ data class HaSubscription(
                 chargingVoltageEntityId,
                 deviceLeftEntityId,
                 deviceRightEntityId,
+                deviceIconEntityId,
             )
             val referenced = HaTemplate.referencedEntityIds(
                 islandLeftTemplate,
@@ -188,7 +225,10 @@ data class HaSubscription(
         put("deviceLine3", deviceLine3)
         put("deviceLeftEntityId", deviceLeftEntityId)
         put("deviceRightEntityId", deviceRightEntityId)
+        put("deviceIconFromEntity", deviceIconFromEntity)
+        put("deviceIconEntityId", deviceIconEntityId)
         put("deviceIconPath", deviceIconPath)
+        put("deviceMetricCount", deviceMetricCount)
         put("islandIconFollow", islandIconFollow)
         put("islandIconPath", islandIconPath)
         put("showIslandIcon", showIslandIcon)
@@ -231,7 +271,10 @@ data class HaSubscription(
                 deviceLine3 = json.optString("deviceLine3"),
                 deviceLeftEntityId = json.optString("deviceLeftEntityId"),
                 deviceRightEntityId = json.optString("deviceRightEntityId"),
+                deviceIconFromEntity = json.optBoolean("deviceIconFromEntity", false),
+                deviceIconEntityId = json.optString("deviceIconEntityId"),
                 deviceIconPath = json.optString("deviceIconPath"),
+                deviceMetricCount = json.optInt("deviceMetricCount", 2).coerceIn(1, 2),
                 islandIconFollow = json.optBoolean("islandIconFollow", true),
                 islandIconPath = json.optString("islandIconPath"),
                 showIslandIcon = json.optBoolean("showIslandIcon", true),

@@ -240,15 +240,58 @@ internal fun HomeAssistantSubscriptionSheet(
                                     ChargingSourceRow(stringResource(R.string.ha_charging_voltage), entityLabel(draft.chargingVoltageEntityId, draft.chargingVoltageAttribute)) { pickEntity("charging_voltage") }
                                 }
                             }
-                            // 设备面板：3 行文本 + 2 个百分比实体 + 面板左侧的自定义图标（不影响超级岛图标）。
+                            // 设备面板：3 行文本 + 1~2 个百分比实体 + 面板左侧图标（不影响超级岛图标）。
                             AnimatedVisibility(visible = draft.templateType == HaTemplateType.DEVICE) {
                                 Column {
                                     SourceRow(stringResource(R.string.ha_device_line_1), draft.deviceLine1) { textTarget = "device_line_1" }
                                     SourceRow(stringResource(R.string.ha_device_line_2), draft.deviceLine2) { textTarget = "device_line_2" }
                                     SourceRow(stringResource(R.string.ha_device_line_3), draft.deviceLine3) { textTarget = "device_line_3" }
+                                    // 底部进度组件数量：1 个时只有左列，右列整块收起。
+                                    PreferenceDropdown(
+                                        title = stringResource(R.string.ha_device_metric_count),
+                                        summary = if (draft.deviceMetricCount <= 1) {
+                                            stringResource(R.string.ha_device_metric_count_one)
+                                        } else {
+                                            stringResource(R.string.ha_device_metric_count_two)
+                                        },
+                                        icon = null,
+                                        items = listOf(
+                                            stringResource(R.string.ha_device_metric_count_one),
+                                            stringResource(R.string.ha_device_metric_count_two),
+                                        ),
+                                        selectedIndex = if (draft.deviceMetricCount <= 1) 0 else 1,
+                                    ) { index -> draft = draft.copy(deviceMetricCount = if (index == 0) 1 else 2) }
                                     SourceRow(stringResource(R.string.ha_device_metric_left), entityTitle(draft.deviceLeftEntityId)) { pickEntity("device_left") }
-                                    SourceRow(stringResource(R.string.ha_device_metric_right), entityTitle(draft.deviceRightEntityId)) { pickEntity("device_right") }
-                                    SourceRow(stringResource(R.string.ha_device_icon), iconFileLabel(draft.deviceIconPath)) { pickDeviceIcon.launch(arrayOf("image/*")) }
+                                    AnimatedVisibility(visible = draft.deviceMetricCount > 1) {
+                                        Column {
+                                            SourceRow(stringResource(R.string.ha_device_metric_right), entityTitle(draft.deviceRightEntityId)) { pickEntity("device_right") }
+                                        }
+                                    }
+                                    // 左侧图标来源：本地自定义图片，或直接取实体图片（image / camera 的 entity_picture）。
+                                    PreferenceDropdown(
+                                        title = stringResource(R.string.ha_device_icon_source),
+                                        summary = if (draft.deviceIconFromEntity) {
+                                            stringResource(R.string.ha_device_icon_entity)
+                                        } else {
+                                            stringResource(R.string.ha_device_icon_custom_image)
+                                        },
+                                        icon = null,
+                                        items = listOf(
+                                            stringResource(R.string.ha_device_icon_custom_image),
+                                            stringResource(R.string.ha_device_icon_entity),
+                                        ),
+                                        selectedIndex = if (draft.deviceIconFromEntity) 1 else 0,
+                                    ) { index -> draft = draft.copy(deviceIconFromEntity = index == 1) }
+                                    AnimatedVisibility(visible = !draft.deviceIconFromEntity) {
+                                        Column {
+                                            SourceRow(stringResource(R.string.ha_device_icon), iconFileLabel(draft.deviceIconPath)) { pickDeviceIcon.launch(arrayOf("image/*")) }
+                                        }
+                                    }
+                                    AnimatedVisibility(visible = draft.deviceIconFromEntity) {
+                                        Column {
+                                            SourceRow(stringResource(R.string.ha_device_icon_entity), entityTitle(draft.deviceIconEntityId)) { pickEntity("device_icon") }
+                                        }
+                                    }
                                 }
                             }
                             // 焦点通知同样只填模板，实体取值走占位符。
@@ -265,7 +308,12 @@ internal fun HomeAssistantSubscriptionSheet(
             item {
                 SmallTitle(stringResource(R.string.ha_select_variable))
                 Card(modifier = Modifier.fillMaxWidth(), colors = haCardColors()) {
-                    SourceRow(stringResource(R.string.ha_select_variable), stringResource(R.string.ha_select_variable_summary)) { pickerTarget = "placeholder" }
+                    SourceRow(stringResource(R.string.ha_select_variable), stringResource(R.string.ha_select_variable_summary)) {
+                        // 每次打开都从空白开始：变量选取是一次性的复制助手，
+                        // 带着上一次选的实体重新打开会多出一个勾选，容易误以为已经配好了。
+                        placeholderEntityId = ""
+                        pickerTarget = "placeholder"
+                    }
                 }
             }
             item {
@@ -282,8 +330,9 @@ internal fun HomeAssistantSubscriptionSheet(
         show = pickerTarget != null,
         entities = entities,
         selectedEntityId = if (pickerTarget == "placeholder") placeholderEntityId else selectedIdForTarget(draft, pickerTarget),
-        // 设备面板的两个进度源只接受百分比类型的实体。
+        // 设备面板的两个进度源只接受百分比类型的实体；左侧图标选实体时只列出带图片的实体。
         percentOnly = pickerTarget == "device_left" || pickerTarget == "device_right",
+        imageOnly = pickerTarget == "device_icon",
         status = status,
         onDismiss = { pickerTarget = null },
         onSelected = { selected ->
@@ -298,16 +347,20 @@ internal fun HomeAssistantSubscriptionSheet(
             "charging_voltage" -> draft.copy(chargingVoltageEntityId = selected.entityId)
             "device_left" -> draft.copy(deviceLeftEntityId = selected.entityId)
             "device_right" -> draft.copy(deviceRightEntityId = selected.entityId)
+            "device_icon" -> draft.copy(deviceIconEntityId = selected.entityId)
             else -> draft
         }
-        // 选完实体紧接着选属性（触发实体与充电三项）；百分比实体直接取 state，不需要再选属性。
+        // 选完实体紧接着选属性（触发实体与充电三项）；百分比实体与图片实体直接取 state，不需要再选属性。
         val target = pickerTarget
-        if (target != null && target != "placeholder" && target != "device_left" && target != "device_right") {
+        val noAttribute = setOf("placeholder", "device_left", "device_right", "device_icon")
+        if (target != null && target !in noAttribute) {
             attributeTarget = target
         }
         pickerTarget = null
     }, onRetry = onRetry)
-    HaAttributePickerDialog(show = attributeTarget != null, entity = entityMap[if (attributeTarget == "placeholder") placeholderEntityId else selectedIdForTarget(draft, attributeTarget)], selectedAttribute = selectedAttributeForTarget(draft, attributeTarget), onDismiss = { attributeTarget = null }, onSelected = { attribute ->
+    HaAttributePickerDialog(show = attributeTarget != null, entity = entityMap[if (attributeTarget == "placeholder") placeholderEntityId else selectedIdForTarget(draft, attributeTarget)], selectedAttribute = selectedAttributeForTarget(draft, attributeTarget),
+        // 只有触发属性打开时标出已启用的那一项；充电三项与「选取变量」打开即空白，不自动勾选。
+        highlightSelected = attributeTarget == "trigger", onDismiss = { attributeTarget = null }, onSelected = { attribute ->
         if (attributeTarget == "placeholder") {
             val placeholder = "{${placeholderEntityId}.${attribute.ifBlank { HaEntity.ATTRIBUTE_STATE }}}"
             val clipboard = context.getSystemService(ClipboardManager::class.java)
@@ -477,6 +530,7 @@ private fun selectedIdForTarget(s: HaSubscription, target: String?): String = wh
     "charging_voltage" -> s.chargingVoltageEntityId
     "device_left" -> s.deviceLeftEntityId
     "device_right" -> s.deviceRightEntityId
+    "device_icon" -> s.deviceIconEntityId
     else -> ""
 }
 
