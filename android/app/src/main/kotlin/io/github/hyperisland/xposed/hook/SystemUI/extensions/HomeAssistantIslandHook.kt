@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.res.ColorStateList
 import android.graphics.drawable.Icon
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -580,7 +581,10 @@ object HomeAssistantIslandHook : BaseHook() {
             null
         }
         val logo = panelLogo(subscription, values)
-        fun build(): RemoteViews = RemoteViews(
+        // 颜色必须显式下发：RemoteViews 是在 SystemUI/超级岛插件进程里膨胀的，布局里的
+        // `@color/focus_panel_text_*` 取不到本应用的夜间限定符，只引用资源的话恒为日间黑字。
+        // 口径与 KeepIsland 的 PanelPalette、以及本文件的充电面板完全一致。
+        fun build(palette: HaPanelPalette): RemoteViews = RemoteViews(
             context.moduleContext().packageName,
             io.github.hyperisland.R.layout.focus_notification_device,
         ).apply {
@@ -593,6 +597,33 @@ object HomeAssistantIslandHook : BaseHook() {
             setTextViewText(io.github.hyperisland.R.id.device_memory_value, percentText(right))
             setProgressBar(io.github.hyperisland.R.id.device_cpu_progress, 100, (left ?: 0f).toInt(), false)
             setProgressBar(io.github.hyperisland.R.id.device_memory_progress, 100, (right ?: 0f).toInt(), false)
+            setTextColor(io.github.hyperisland.R.id.device_name, palette.primary)
+            setTextColor(io.github.hyperisland.R.id.device_chipset, palette.secondary)
+            setTextColor(io.github.hyperisland.R.id.device_uptime, palette.tertiary)
+            setTextColor(io.github.hyperisland.R.id.device_cpu_label, palette.secondary)
+            setTextColor(io.github.hyperisland.R.id.device_memory_label, palette.secondary)
+            setTextColor(io.github.hyperisland.R.id.device_cpu_value, palette.primary)
+            setTextColor(io.github.hyperisland.R.id.device_memory_value, palette.primary)
+            setColorStateList(
+                io.github.hyperisland.R.id.device_cpu_progress,
+                "setProgressTintList",
+                ColorStateList.valueOf(palette.primary),
+            )
+            setColorStateList(
+                io.github.hyperisland.R.id.device_cpu_progress,
+                "setProgressBackgroundTintList",
+                ColorStateList.valueOf(palette.track),
+            )
+            setColorStateList(
+                io.github.hyperisland.R.id.device_memory_progress,
+                "setProgressTintList",
+                ColorStateList.valueOf(palette.primary),
+            )
+            setColorStateList(
+                io.github.hyperisland.R.id.device_memory_progress,
+                "setProgressBackgroundTintList",
+                ColorStateList.valueOf(palette.track),
+            )
             // 每帧都必须显式写可见性：RemoteViews 的更新会落在同一个已膨胀的视图上，
             // 少写一次就会沿用上一帧的状态（数量从 2 改成 1 后右列不会消失）。
             setViewVisibility(
@@ -607,9 +638,41 @@ object HomeAssistantIslandHook : BaseHook() {
                 setViewVisibility(io.github.hyperisland.R.id.device_logo, View.INVISIBLE)
             }
         }
-        // 日间 / 夜间 / 展开共用同一份 RemoteViews（布局内的文字色由 values-night 覆盖，翻夜不用换视图）。
-        val views = build()
-        return Triple(views, views, views)
+        // 日间 / 夜间两份（展开态复用夜间，与充电面板一致）：系统按 rv / rvNight 选，翻夜不用重建。
+        val light = build(HaPanelPalette.LIGHT)
+        val dark = build(HaPanelPalette.DARK)
+        return Triple(light, dark, dark)
+    }
+
+    /**
+     * 设备面板的深浅色字色。
+     *
+     * 为什么不能只靠 `values-night`：RemoteViews 的布局是在 SystemUI（超级岛插件）进程里膨胀的，
+     * 那一侧解析本应用资源时拿不到夜间限定符，`@color/focus_panel_text_*` 会恒定取到日间黑字，
+     * 表现就是夜间设备面板一片黑。所以必须按日/夜各构建一份 RemoteViews 并显式设色。
+     *
+     * 数值与 `values/colors.xml` / `values-night/colors.xml` 及 KeepIsland 的 `PanelPalette` 对齐。
+     */
+    private data class HaPanelPalette(
+        val primary: Int,
+        val secondary: Int,
+        val tertiary: Int,
+        val track: Int,
+    ) {
+        companion object {
+            val LIGHT = HaPanelPalette(
+                primary = Color.argb(230, 0, 0, 0),
+                secondary = Color.argb(166, 0, 0, 0),
+                tertiary = Color.argb(115, 0, 0, 0),
+                track = Color.argb(31, 0, 0, 0),
+            )
+            val DARK = HaPanelPalette(
+                primary = Color.WHITE,
+                secondary = Color.argb(191, 255, 255, 255),
+                tertiary = Color.argb(143, 255, 255, 255),
+                track = Color.argb(40, 255, 255, 255),
+            )
+        }
     }
 
     private fun entityTitleOf(entityId: String, values: Map<String, HaEntity>): String =
