@@ -27,6 +27,7 @@ internal class HaSession(
     private val url: String,
     private val token: String,
     private val listener: Listener,
+    private val watchedEntityIds: Set<String> = emptySet(),
 ) {
 
     interface Listener {
@@ -164,13 +165,14 @@ internal class HaSession(
         synchronized(lock) {
             statesId = nextRequestId++
             subscribeId = nextRequestId++
+            subscribeRequestId = subscribeId
         }
         statesRequestId = statesId
-        subscribeRequestId = subscribeId
         socket.send("{\"id\":$statesId,\"type\":\"get_states\"}")
-        socket.send(
-            "{\"id\":$subscribeId,\"type\":\"subscribe_events\",\"event_type\":\"state_changed\"}",
-        )
+        // HA 的 subscribe_events 只支持按 event_type 订阅，不支持 entity_id 过滤。
+        // 因此每个连接只建立一个 state_changed 订阅，再在 handleEvent 中按
+        // watchedEntityIds 过滤，避免发送服务端不接受的 entity_id 参数。
+        socket.send("{\"id\":$subscribeId,\"type\":\"subscribe_events\",\"event_type\":\"state_changed\"}")
     }
 
     private fun handleMessage(message: JSONObject) {
@@ -218,6 +220,7 @@ internal class HaSession(
         val newState = data.optJSONObject("new_state") ?: return
         val entity = HaEntity.fromJson(newState)
         if (entity.entityId.isEmpty()) return
+        if (watchedEntityIds.isNotEmpty() && entity.entityId !in watchedEntityIds) return
         val previous = lastResolved[entity.entityId]
         val currentSignature = signature(entity)
         synchronized(lock) {

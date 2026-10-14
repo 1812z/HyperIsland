@@ -19,13 +19,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.state.ToggleableState
 import io.github.hyperisland.R
 import io.github.hyperisland.homeassistant.HaEntity
+import io.github.hyperisland.homeassistant.HaTemplate
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.window.WindowDialog
@@ -43,14 +43,17 @@ internal fun HaEntityPickerDialog(
     onDismiss: () -> Unit,
     onSelected: (HaEntity) -> Unit,
     onRetry: () -> Unit,
+    /** 仅列出单位是百分比的实体（设备面板的进度源用）。 */
+    percentOnly: Boolean = false,
 ) {
     var query by remember(show) { mutableStateOf("") }
     val keyword = query.trim().lowercase()
-    val filtered = remember(entities, keyword) {
+    val filtered = remember(entities, keyword, percentOnly) {
+        val scoped = if (percentOnly) entities.filter(HaTemplate::isPercent) else entities
         if (keyword.isEmpty()) {
-            entities
+            scoped
         } else {
-            entities.filter {
+            scoped.filter {
                 it.entityId.lowercase().contains(keyword) || it.title.lowercase().contains(keyword)
             }
         }
@@ -59,6 +62,7 @@ internal fun HaEntityPickerDialog(
     WindowDialog(
         show = show,
         title = stringResource(R.string.ha_entity_pick),
+        backgroundColor = haSheetColor(),
         onDismissRequest = onDismiss,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -70,6 +74,14 @@ internal fun HaEntityPickerDialog(
                     label = stringResource(R.string.ha_entity_search),
                     useLabelAsPlaceholder = true,
                     singleLine = true,
+                    colors = haTextFieldColors(haSurfaceColor()),
+                )
+            }
+            if (percentOnly) {
+                Text(
+                    text = stringResource(R.string.ha_percent_only),
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    fontSize = MiuixTheme.textStyles.body2.fontSize,
                 )
             }
             when {
@@ -106,11 +118,6 @@ internal fun HaEntityPickerDialog(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                TextButton(
-                    text = stringResource(R.string.ha_entity_clear),
-                    onClick = onDismiss,
-                    modifier = Modifier.weight(1f),
-                )
                 Button(
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
@@ -152,7 +159,9 @@ internal fun HaAttributePickerDialog(
                 LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp)) {
                     items(entries, key = { it.first }) { (name, value) ->
                         val isState = name == HaEntity.ATTRIBUTE_STATE
-                        val selected = if (isState) selectedAttribute.isEmpty() else name == selectedAttribute
+                        // 不把默认的 state 当作已选择；用户必须主动点击属性。
+                        // 非 state 属性仍显示已有配置的选中状态。
+                        val selected = !isState && name == selectedAttribute
                         BasicComponent(
                             title = if (isState) stringResource(R.string.ha_attribute_state) else name,
                             summary = value.takeIf { it.isNotEmpty() },

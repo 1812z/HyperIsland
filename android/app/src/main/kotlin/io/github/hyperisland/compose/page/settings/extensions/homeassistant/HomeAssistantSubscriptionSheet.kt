@@ -1,6 +1,7 @@
 package io.github.hyperisland.compose.page.settings.extensions.homeassistant
 
-import androidx.compose.foundation.BorderStroke
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -10,30 +11,33 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.border
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.PreferenceDropdown
 import io.github.hyperisland.compose.component.SettingsAction
 import io.github.hyperisland.compose.component.SettingsItemMargin
+import io.github.hyperisland.compose.component.keepisland.KeepIslandContentListDialog
+import io.github.hyperisland.compose.service.KeepIslandService
 import io.github.hyperisland.homeassistant.HaCondition
 import io.github.hyperisland.homeassistant.HaEntity
 import io.github.hyperisland.homeassistant.HaSubscription
-import io.github.hyperisland.homeassistant.HaTemplate
 import io.github.hyperisland.homeassistant.HaTemplateType
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
@@ -51,6 +55,10 @@ import top.yukonga.miuix.kmp.icon.extended.ChevronForward
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.window.WindowBottomSheet
+import top.yukonga.miuix.kmp.window.WindowDialog
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 internal fun HomeAssistantSubscriptionSheet(
@@ -64,14 +72,30 @@ internal fun HomeAssistantSubscriptionSheet(
     onRetry: () -> Unit,
 ) {
     var draft by remember(show, initial) { mutableStateOf(initial ?: HaSubscription()) }
-    val clipboard = LocalClipboardManager.current
     var pickerTarget by remember(show) { mutableStateOf<String?>(null) }
     var attributeTarget by remember(show) { mutableStateOf<String?>(null) }
+    var placeholderEntityId by remember(show) { mutableStateOf("") }
+    var textTarget by remember(show) { mutableStateOf<String?>(null) }
     val entityMap = remember(entities) { entities.associateBy(HaEntity::entityId) }
-    val selectedEntities = remember(draft, entities) {
-        draft.dataEntityIds.mapNotNull(entityMap::get).distinctBy(HaEntity::entityId)
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    // 设备图标 / 岛图标共用「常驻岛」那套图片保存机制（同目录、同命名、同权限处理）。
+    val pickDeviceIcon = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) scope.launch {
+            val path = withContext(Dispatchers.IO) {
+                KeepIslandService.saveIcon(context, uri, draft.deviceIconPath).getOrNull()
+            }
+            if (path != null) draft = draft.copy(deviceIconPath = path)
+        }
     }
-    val placeholders = remember(selectedEntities) { HaTemplate.referencePlaceholders(selectedEntities) }
+    val pickIslandIcon = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) scope.launch {
+            val path = withContext(Dispatchers.IO) {
+                KeepIslandService.saveIcon(context, uri, draft.islandIconPath).getOrNull()
+            }
+            if (path != null) draft = draft.copy(islandIconPath = path)
+        }
+    }
     val conditionItems = HaCondition.entries
     val condition = draft.conditionType
     val canSave = draft.isValid
@@ -80,6 +104,10 @@ internal fun HomeAssistantSubscriptionSheet(
     fun entityLabel(id: String, attribute: String): String =
         entityMap[id]?.let { "${it.title} · ${attribute.ifBlank { HaEntity.ATTRIBUTE_STATE }}" }
             ?: stringResource(R.string.ha_entity_none)
+
+    @Composable
+    fun entityTitle(id: String): String =
+        entityMap[id]?.title ?: stringResource(R.string.ha_entity_none)
 
     fun pickEntity(target: String) { pickerTarget = target }
     fun pickAttribute(target: String) { attributeTarget = target }
@@ -100,15 +128,19 @@ internal fun HomeAssistantSubscriptionSheet(
         ) {
             item {
                 SmallTitle(stringResource(R.string.ha_subscription_name))
-                OutlinedHaTextField(
+                // 这个输入框直接落在 sheet 上（不在 Card 内）：底色取 Card 同色，
+                // 且不加左右内缩，宽度与下面的 Card 左右边缘完全对齐。
+                HaTextField(
                     value = draft.name,
                     onValueChange = { draft = draft.copy(name = it) },
                     label = stringResource(R.string.ha_subscription_name),
+                    containerColor = haSurfaceColor(),
+                    horizontalPadding = 0.dp,
                 )
             }
             item {
                 SmallTitle(stringResource(R.string.ha_trigger_entity))
-                Card(colors = haCardColors()) {
+                Card(modifier = Modifier.fillMaxWidth(), colors = haCardColors()) {
                     SettingsAction(
                         title = stringResource(R.string.ha_trigger_entity),
                         summary = entityLabel(draft.triggerEntityId, draft.triggerAttribute),
@@ -126,7 +158,7 @@ internal fun HomeAssistantSubscriptionSheet(
                         items = conditionItems.map { it.label() },
                         selectedIndex = conditionItems.indexOf(condition).coerceAtLeast(0),
                     ) { index -> draft = draft.copy(condition = conditionItems[index].id) }
-                    OutlinedHaTextField(
+                    HaTextField(
                         value = draft.value,
                         onValueChange = { draft = draft.copy(value = it) },
                         label = stringResource(R.string.ha_condition_value),
@@ -135,51 +167,105 @@ internal fun HomeAssistantSubscriptionSheet(
                 }
             }
             item {
-                SmallTitle(stringResource(R.string.ha_template_summary))
-                Card(colors = haCardColors()) {
-                    PreferenceDropdown(
-                        title = stringResource(R.string.ha_template_type),
-                        summary = if (draft.templateType == HaTemplateType.CHARGING) {
-                            stringResource(R.string.ha_template_charging)
-                        } else {
-                            stringResource(R.string.ha_template_custom)
-                        },
-                        icon = null,
-                        items = listOf(stringResource(R.string.ha_template_custom), stringResource(R.string.ha_template_charging)),
-                        selectedIndex = if (draft.templateType == HaTemplateType.CHARGING) 1 else 0,
-                    ) { index -> draft = draft.copy(templateType = if (index == 1) HaTemplateType.CHARGING else HaTemplateType.CUSTOM) }
-                    if (draft.templateType == HaTemplateType.CHARGING) {
-                        ChargingSourceRow(stringResource(R.string.ha_charging_power), entityLabel(draft.chargingPowerEntityId, draft.chargingPowerAttribute)) { pickEntity("charging_power") }
-                        ChargingSourceRow(stringResource(R.string.ha_charging_current), entityLabel(draft.chargingCurrentEntityId, draft.chargingCurrentAttribute)) { pickEntity("charging_current") }
-                        ChargingSourceRow(stringResource(R.string.ha_charging_voltage), entityLabel(draft.chargingVoltageEntityId, draft.chargingVoltageAttribute)) { pickEntity("charging_voltage") }
-                    } else {
-                        OutlinedHaTextField(value = draft.islandLeftTemplate, onValueChange = { draft = draft.copy(islandLeftTemplate = it) }, label = stringResource(R.string.ha_island_left_template))
-                        SourceRow(stringResource(R.string.ha_island_left_entity), entityLabel(draft.islandLeftEntityId, draft.islandLeftAttribute)) { pickEntity("island_left") }
-                        OutlinedHaTextField(value = draft.islandRightTemplate, onValueChange = { draft = draft.copy(islandRightTemplate = it) }, label = stringResource(R.string.ha_island_right_template))
-                        SourceRow(stringResource(R.string.ha_island_right_entity), entityLabel(draft.islandRightEntityId, draft.islandRightAttribute)) { pickEntity("island_right") }
+                SmallTitle(stringResource(R.string.ha_island_config))
+                Card(modifier = Modifier.fillMaxWidth(), colors = haCardColors()) {
+                    SwitchPreference(title = stringResource(R.string.ha_island_config), summary = null, checked = draft.islandEnabled, insideMargin = SettingsItemMargin, onCheckedChange = { draft = draft.copy(islandEnabled = it) })
+                    // 关掉超级岛时把它的整块配置一起收起（与渠道设置页同款出现/消失动画）。
+                    AnimatedVisibility(visible = draft.islandEnabled) {
+                        Column {
+                            SwitchPreference(title = stringResource(R.string.ha_island_first_float), summary = stringResource(R.string.ha_island_first_float_summary), checked = draft.islandFirstFloat, insideMargin = SettingsItemMargin, onCheckedChange = { draft = draft.copy(islandFirstFloat = it) })
+                            PreferenceDropdown(title = stringResource(R.string.ha_island_carousel_interval), summary = null, icon = null, items = listOf(1, 3, 5, 10, 15, 30).map { stringResource(R.string.ha_seconds, it) }, selectedIndex = listOf(1, 3, 5, 10, 15, 30).indexOf(draft.islandCarouselInterval).coerceAtLeast(0)) { draft = draft.copy(islandCarouselInterval = listOf(1, 3, 5, 10, 15, 30)[it]) }
+                            SwitchPreference(title = stringResource(R.string.ha_show_island_icon), summary = null, checked = draft.showIslandIcon, insideMargin = SettingsItemMargin, onCheckedChange = { draft = draft.copy(showIslandIcon = it) })
+                            // 岛图标来源：默认跟随实体（自动读 mdi 图标），也可以换成自定义图片。
+                            AnimatedVisibility(visible = draft.showIslandIcon) {
+                                Column {
+                                    PreferenceDropdown(
+                                        title = stringResource(R.string.ha_island_icon_source),
+                                        summary = if (draft.islandIconFollow) stringResource(R.string.ha_island_icon_follow) else stringResource(R.string.ha_island_icon_custom),
+                                        icon = null,
+                                        items = listOf(stringResource(R.string.ha_island_icon_follow), stringResource(R.string.ha_island_icon_custom)),
+                                        selectedIndex = if (draft.islandIconFollow) 0 else 1,
+                                    ) { index -> draft = draft.copy(islandIconFollow = index == 0) }
+                                    AnimatedVisibility(visible = !draft.islandIconFollow) {
+                                        Column {
+                                            SourceRow(stringResource(R.string.ha_island_icon_custom), iconFileLabel(draft.islandIconPath)) { pickIslandIcon.launch(arrayOf("image/*")) }
+                                        }
+                                    }
+                                }
+                            }
+                            // 岛左/岛右只填内容模板，取值直接用 `{实体.属性}` 占位符（配合「选取变量」复制）。
+                            SourceRow(stringResource(R.string.ha_island_left_content), draft.islandLeftTemplate) { textTarget = "island_left" }
+                            SourceRow(stringResource(R.string.ha_island_right_content), draft.islandRightTemplate) { textTarget = "island_right" }
+                        }
                     }
-                    Text(stringResource(R.string.ha_focus_content), modifier = Modifier.padding(12.dp), fontSize = MiuixTheme.textStyles.subtitle.fontSize)
-                    OutlinedHaTextField(value = draft.focusTitleTemplate, onValueChange = { draft = draft.copy(focusTitleTemplate = it) }, label = stringResource(R.string.ha_focus_title_template))
-                    SourceRow(stringResource(R.string.ha_focus_title_entity), entityLabel(draft.focusTitleEntityId, draft.focusTitleAttribute)) { pickEntity("focus_title") }
-                    OutlinedHaTextField(value = draft.focusContentTemplate, onValueChange = { draft = draft.copy(focusContentTemplate = it) }, label = stringResource(R.string.ha_focus_content_template))
-                    SourceRow(stringResource(R.string.ha_focus_content_entity), entityLabel(draft.focusContentEntityId, draft.focusContentAttribute)) { pickEntity("focus_content") }
-                    if (placeholders.isNotEmpty()) {
-                        LazyRow(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            items((HaTemplate.PLACEHOLDERS + placeholders).distinct(), key = { it }) { placeholder ->
-                                TextButton(text = placeholder, onClick = { clipboard.setText(AnnotatedString(placeholder)) })
+                }
+            }
+            item {
+                SmallTitle(stringResource(R.string.ha_focus_notification))
+                Card(modifier = Modifier.fillMaxWidth(), colors = haCardColors()) {
+                    SwitchPreference(title = stringResource(R.string.ha_focus_notification), summary = stringResource(R.string.ha_focus_notification_summary), checked = draft.focusEnabled, insideMargin = SettingsItemMargin, onCheckedChange = { draft = draft.copy(focusEnabled = it) })
+                    AnimatedVisibility(visible = draft.focusEnabled) {
+                        Column {
+                            PreferenceDropdown(
+                                title = stringResource(R.string.ha_template_type),
+                                summary = when (draft.templateType) {
+                                    HaTemplateType.CHARGING -> stringResource(R.string.ha_template_charging)
+                                    HaTemplateType.DEVICE -> stringResource(R.string.ha_template_device)
+                                    else -> stringResource(R.string.ha_template_custom)
+                                },
+                                icon = null,
+                                items = listOf(
+                                    stringResource(R.string.ha_template_custom),
+                                    stringResource(R.string.ha_template_charging),
+                                    stringResource(R.string.ha_template_device),
+                                ),
+                                selectedIndex = when (draft.templateType) {
+                                    HaTemplateType.CHARGING -> 1
+                                    HaTemplateType.DEVICE -> 2
+                                    else -> 0
+                                },
+                            ) { index ->
+                                draft = draft.copy(
+                                    templateType = when (index) {
+                                        1 -> HaTemplateType.CHARGING
+                                        2 -> HaTemplateType.DEVICE
+                                        else -> HaTemplateType.CUSTOM
+                                    },
+                                )
+                            }
+                            AnimatedVisibility(visible = draft.templateType == HaTemplateType.CHARGING) {
+                                Column {
+                                    ChargingSourceRow(stringResource(R.string.ha_charging_power), entityLabel(draft.chargingPowerEntityId, draft.chargingPowerAttribute)) { pickEntity("charging_power") }
+                                    ChargingSourceRow(stringResource(R.string.ha_charging_current), entityLabel(draft.chargingCurrentEntityId, draft.chargingCurrentAttribute)) { pickEntity("charging_current") }
+                                    ChargingSourceRow(stringResource(R.string.ha_charging_voltage), entityLabel(draft.chargingVoltageEntityId, draft.chargingVoltageAttribute)) { pickEntity("charging_voltage") }
+                                }
+                            }
+                            // 设备面板：3 行文本 + 2 个百分比实体 + 面板左侧的自定义图标（不影响超级岛图标）。
+                            AnimatedVisibility(visible = draft.templateType == HaTemplateType.DEVICE) {
+                                Column {
+                                    SourceRow(stringResource(R.string.ha_device_line_1), draft.deviceLine1) { textTarget = "device_line_1" }
+                                    SourceRow(stringResource(R.string.ha_device_line_2), draft.deviceLine2) { textTarget = "device_line_2" }
+                                    SourceRow(stringResource(R.string.ha_device_line_3), draft.deviceLine3) { textTarget = "device_line_3" }
+                                    SourceRow(stringResource(R.string.ha_device_metric_left), entityTitle(draft.deviceLeftEntityId)) { pickEntity("device_left") }
+                                    SourceRow(stringResource(R.string.ha_device_metric_right), entityTitle(draft.deviceRightEntityId)) { pickEntity("device_right") }
+                                    SourceRow(stringResource(R.string.ha_device_icon), iconFileLabel(draft.deviceIconPath)) { pickDeviceIcon.launch(arrayOf("image/*")) }
+                                }
+                            }
+                            // 焦点通知同样只填模板，实体取值走占位符。
+                            AnimatedVisibility(visible = draft.templateType == HaTemplateType.CUSTOM) {
+                                Column {
+                                    SourceRow(stringResource(R.string.ha_focus_title_template), draft.focusTitleTemplate) { textTarget = "focus_title" }
+                                    SourceRow(stringResource(R.string.ha_focus_content_template), draft.focusContentTemplate) { textTarget = "focus_content" }
+                                }
                             }
                         }
                     }
                 }
             }
             item {
-                SmallTitle(stringResource(R.string.ha_island_config))
-                Card(colors = haCardColors()) {
-                    SwitchPreference(title = stringResource(R.string.ha_normal_island), summary = null, checked = draft.islandEnabled, insideMargin = SettingsItemMargin, onCheckedChange = { draft = draft.copy(islandEnabled = it) })
-                    SwitchPreference(title = stringResource(R.string.ha_focus_notification), summary = stringResource(R.string.ha_focus_notification_summary), checked = draft.focusEnabled, insideMargin = SettingsItemMargin, onCheckedChange = { draft = draft.copy(focusEnabled = it) })
-                    SwitchPreference(title = stringResource(R.string.ha_island_first_float), summary = stringResource(R.string.ha_island_first_float_summary), checked = draft.islandFirstFloat, enabled = draft.islandEnabled, insideMargin = SettingsItemMargin, onCheckedChange = { draft = draft.copy(islandFirstFloat = it) })
-                    PreferenceDropdown(title = stringResource(R.string.ha_island_carousel_interval), summary = null, icon = null, items = listOf(1, 3, 5, 10, 15, 30).map { stringResource(R.string.ha_seconds, it) }, selectedIndex = listOf(1, 3, 5, 10, 15, 30).indexOf(draft.islandCarouselInterval).coerceAtLeast(0), enabled = draft.islandEnabled) { draft = draft.copy(islandCarouselInterval = listOf(1, 3, 5, 10, 15, 30)[it]) }
-                    SwitchPreference(title = stringResource(R.string.ha_show_island_icon), summary = null, checked = draft.showIslandIcon, enabled = draft.islandEnabled, insideMargin = SettingsItemMargin, onCheckedChange = { draft = draft.copy(showIslandIcon = it) })
+                SmallTitle(stringResource(R.string.ha_select_variable))
+                Card(modifier = Modifier.fillMaxWidth(), colors = haCardColors()) {
+                    SourceRow(stringResource(R.string.ha_select_variable), stringResource(R.string.ha_select_variable_summary)) { pickerTarget = "placeholder" }
                 }
             }
             item {
@@ -192,27 +278,44 @@ internal fun HomeAssistantSubscriptionSheet(
         }
     }
 
-    HaEntityPickerDialog(show = pickerTarget != null, entities = entities, selectedEntityId = selectedIdForTarget(draft, pickerTarget), status = status, onDismiss = { pickerTarget = null }, onSelected = { selected ->
-        draft = when (pickerTarget) {
+    HaEntityPickerDialog(
+        show = pickerTarget != null,
+        entities = entities,
+        selectedEntityId = if (pickerTarget == "placeholder") placeholderEntityId else selectedIdForTarget(draft, pickerTarget),
+        // 设备面板的两个进度源只接受百分比类型的实体。
+        percentOnly = pickerTarget == "device_left" || pickerTarget == "device_right",
+        status = status,
+        onDismiss = { pickerTarget = null },
+        onSelected = { selected ->
+        if (pickerTarget == "placeholder") {
+            placeholderEntityId = selected.entityId
+            pickerTarget = null
+            attributeTarget = "placeholder"
+        } else draft = when (pickerTarget) {
             "trigger" -> draft.copy(triggerEntityId = selected.entityId)
-            "island_left" -> draft.copy(islandLeftEntityId = selected.entityId)
-            "island_right" -> draft.copy(islandRightEntityId = selected.entityId)
-            "focus_title" -> draft.copy(focusTitleEntityId = selected.entityId)
-            "focus_content" -> draft.copy(focusContentEntityId = selected.entityId)
             "charging_power" -> draft.copy(chargingPowerEntityId = selected.entityId)
             "charging_current" -> draft.copy(chargingCurrentEntityId = selected.entityId)
             "charging_voltage" -> draft.copy(chargingVoltageEntityId = selected.entityId)
+            "device_left" -> draft.copy(deviceLeftEntityId = selected.entityId)
+            "device_right" -> draft.copy(deviceRightEntityId = selected.entityId)
             else -> draft
+        }
+        // 选完实体紧接着选属性（触发实体与充电三项）；百分比实体直接取 state，不需要再选属性。
+        val target = pickerTarget
+        if (target != null && target != "placeholder" && target != "device_left" && target != "device_right") {
+            attributeTarget = target
         }
         pickerTarget = null
     }, onRetry = onRetry)
-    HaAttributePickerDialog(show = attributeTarget != null, entity = entityMap[selectedIdForTarget(draft, attributeTarget)], selectedAttribute = selectedAttributeForTarget(draft, attributeTarget), onDismiss = { attributeTarget = null }, onSelected = { attribute ->
-        draft = when (attributeTarget) {
+    HaAttributePickerDialog(show = attributeTarget != null, entity = entityMap[if (attributeTarget == "placeholder") placeholderEntityId else selectedIdForTarget(draft, attributeTarget)], selectedAttribute = selectedAttributeForTarget(draft, attributeTarget), onDismiss = { attributeTarget = null }, onSelected = { attribute ->
+        if (attributeTarget == "placeholder") {
+            val placeholder = "{${placeholderEntityId}.${attribute.ifBlank { HaEntity.ATTRIBUTE_STATE }}}"
+            val clipboard = context.getSystemService(ClipboardManager::class.java)
+            clipboard?.setPrimaryClip(ClipData.newPlainText("Home Assistant", placeholder))
+            Toast.makeText(context, context.getString(R.string.ha_placeholder_copied), Toast.LENGTH_SHORT).show()
+            attributeTarget = null
+        } else draft = when (attributeTarget) {
             "trigger" -> draft.copy(triggerAttribute = attribute)
-            "island_left" -> draft.copy(islandLeftAttribute = attribute)
-            "island_right" -> draft.copy(islandRightAttribute = attribute)
-            "focus_title" -> draft.copy(focusTitleAttribute = attribute)
-            "focus_content" -> draft.copy(focusContentAttribute = attribute)
             "charging_power" -> draft.copy(chargingPowerAttribute = attribute)
             "charging_current" -> draft.copy(chargingCurrentAttribute = attribute)
             "charging_voltage" -> draft.copy(chargingVoltageAttribute = attribute)
@@ -220,25 +323,128 @@ internal fun HomeAssistantSubscriptionSheet(
         }
         attributeTarget = null
     })
+
+    HaTemplateTextDialog(
+        show = textTarget != null && textTarget in TEXT_TARGETS,
+        title = stringResource(
+            when (textTarget) {
+                "focus_title" -> R.string.ha_focus_title_template
+                "focus_content" -> R.string.ha_focus_content_template
+                "device_line_1" -> R.string.ha_device_line_1
+                "device_line_2" -> R.string.ha_device_line_2
+                else -> R.string.ha_device_line_3
+            },
+        ),
+        initialValue = when (textTarget) {
+            "focus_title" -> draft.focusTitleTemplate
+            "focus_content" -> draft.focusContentTemplate
+            "device_line_1" -> draft.deviceLine1
+            "device_line_2" -> draft.deviceLine2
+            else -> draft.deviceLine3
+        },
+        onDismiss = { textTarget = null },
+        onSave = { value ->
+            draft = when (textTarget) {
+                "focus_title" -> draft.copy(focusTitleTemplate = value)
+                "focus_content" -> draft.copy(focusContentTemplate = value)
+                "device_line_1" -> draft.copy(deviceLine1 = value)
+                "device_line_2" -> draft.copy(deviceLine2 = value)
+                else -> draft.copy(deviceLine3 = value)
+            }
+            textTarget = null
+        },
+    )
+
+    KeepIslandContentListDialog(
+        show = textTarget == "island_left",
+        title = stringResource(R.string.ha_island_left_content),
+        initialValues = draft.islandLeftTemplate.split("||"),
+        onDismiss = { textTarget = null },
+        onSave = { values ->
+            draft = draft.copy(islandLeftTemplate = values.joinToString(" || ") { it.trim() })
+            textTarget = null
+        },
+    )
+    KeepIslandContentListDialog(
+        show = textTarget == "island_right",
+        title = stringResource(R.string.ha_island_right_content),
+        initialValues = draft.islandRightTemplate.split("||"),
+        onDismiss = { textTarget = null },
+        onSave = { values ->
+            draft = draft.copy(islandRightTemplate = values.joinToString(" || ") { it.trim() })
+            textTarget = null
+        },
+    )
 }
 
 @Composable
-private fun OutlinedHaTextField(
+private fun HaTextField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    containerColor: Color = haSheetColor(),
+    horizontalPadding: Dp = 12.dp,
 ) {
     TextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp).border(BorderStroke(1.dp, MiuixTheme.colorScheme.outline), RoundedCornerShape(12.dp)),
+        // 统一宽度；水平内缩可调：Card 内的输入框内缩 12dp，直接落在 sheet 上的不内缩（与 Card 边缘对齐）。
+        modifier = Modifier.fillMaxWidth().padding(horizontal = horizontalPadding, vertical = 6.dp),
         label = label,
         useLabelAsPlaceholder = true,
         singleLine = true,
-        colors = haTextFieldColors(),
+        colors = haTextFieldColors(containerColor),
         keyboardOptions = keyboardOptions,
     )
+}
+
+@Composable
+private fun HaTemplateTextDialog(
+    show: Boolean,
+    title: String,
+    initialValue: String,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit,
+) {
+    var value by remember(show, initialValue) { mutableStateOf(initialValue) }
+    WindowDialog(
+        show = show,
+        title = title,
+        // 对话框走 sheet 的灰底，输入框用 Card 同色（白），两者必须有明确对比，否则看不清边界。
+        backgroundColor = haSheetColor(),
+        onDismissRequest = onDismiss,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            TextField(
+                value = value,
+                onValueChange = { value = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = stringResource(R.string.ha_template_input_hint),
+                useLabelAsPlaceholder = true,
+                minLines = 2,
+                maxLines = 4,
+                colors = haTextFieldColors(haSurfaceColor()),
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                TextButton(
+                    text = stringResource(R.string.cancel),
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f),
+                )
+                Button(
+                    onClick = { onSave(value) },
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColorsPrimary(),
+                ) {
+                    Text(stringResource(R.string.save))
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -249,24 +455,33 @@ private fun SourceRow(title: String, summary: String, onClick: () -> Unit) {
 @Composable
 private fun ChargingSourceRow(title: String, summary: String, onClick: () -> Unit) = SourceRow(title, summary, onClick)
 
+/** 走文本编辑对话框的目标：焦点通知的标题/内容，以及设备面板的 3 行文本。 */
+private val TEXT_TARGETS = setOf(
+    "focus_title",
+    "focus_content",
+    "device_line_1",
+    "device_line_2",
+    "device_line_3",
+)
+
+/** 已选图片显示文件名，未选时显示「点击选择文件」。 */
+@Composable
+private fun iconFileLabel(path: String): String =
+    path.takeIf(String::isNotBlank)?.substringAfterLast('/')
+        ?: stringResource(R.string.click_select_file)
+
 private fun selectedIdForTarget(s: HaSubscription, target: String?): String = when (target) {
     "trigger" -> s.triggerEntityId
-    "island_left" -> s.islandLeftEntityId
-    "island_right" -> s.islandRightEntityId
-    "focus_title" -> s.focusTitleEntityId
-    "focus_content" -> s.focusContentEntityId
     "charging_power" -> s.chargingPowerEntityId
     "charging_current" -> s.chargingCurrentEntityId
     "charging_voltage" -> s.chargingVoltageEntityId
+    "device_left" -> s.deviceLeftEntityId
+    "device_right" -> s.deviceRightEntityId
     else -> ""
 }
 
 private fun selectedAttributeForTarget(s: HaSubscription, target: String?): String = when (target) {
     "trigger" -> s.triggerAttribute
-    "island_left" -> s.islandLeftAttribute
-    "island_right" -> s.islandRightAttribute
-    "focus_title" -> s.focusTitleAttribute
-    "focus_content" -> s.focusContentAttribute
     "charging_power" -> s.chargingPowerAttribute
     "charging_current" -> s.chargingCurrentAttribute
     "charging_voltage" -> s.chargingVoltageAttribute

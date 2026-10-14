@@ -46,9 +46,17 @@ internal fun haCardColors() = CardDefaults.defaultColors(
     contentColor = haSurfaceContentColor(),
 )
 
+/**
+ * TextField 的底色直接交给 Miuix 自己画（默认的 `secondaryContainer` 是白底，会与 Card 融在一起）。
+ *
+ * - Card 内的输入框传 [haSheetColor]（灰色），与卡片底色区分开；
+ * - 直接放在 sheet 上的输入框（订阅名称）传 [haSurfaceColor]，与 Card 同色。
+ */
 @Composable
-internal fun haTextFieldColors() = TextFieldDefaults.textFieldColors(
-    backgroundColor = haSurfaceColor(),
+internal fun haTextFieldColors(
+    containerColor: Color = haSheetColor(),
+) = TextFieldDefaults.textFieldColors(
+    backgroundColor = containerColor,
     labelColor = MiuixTheme.colorScheme.onSurfaceVariantSummary,
 )
 

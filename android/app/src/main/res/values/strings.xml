@@ -1074,7 +1074,7 @@
     <string name="ext_home_assistant">Home Assistant</string>
     <string name="ext_home_assistant_summary">Subscribe to entity states over WebSocket</string>
     <string name="ext_home_assistant_enable">Home Assistant extension</string>
-    <string name="ext_home_assistant_enable_summary">Injects into SystemUI only (no background service) and posts islands when conditions match</string>
+    <string name="ext_home_assistant_enable_summary">Injects into SystemUI to handle subscription events; no background service</string>
     <string name="ha_server">Server address</string>
     <string name="ha_server_hint">Accepts http:// or https:// (ws:// also works); the port is used as entered</string>
     <string name="ha_token">Long-lived access token</string>
@@ -1136,8 +1136,7 @@
     <string name="ha_display_attribute">Display attribute</string>
     <string name="ha_display_entity_default">Use trigger entity</string>
     <string name="ha_reference_hint">Cross-entity placeholders use {entity_id.attribute}</string>
-    <string name="ha_island_config">Island and notification</string>
-    <string name="ha_normal_island">Normal island</string>
+    <string name="ha_island_config">Island</string>
     <string name="ha_focus_style">Focus style</string>
     <string name="ha_focus_style_notification">Standard notification (available now)</string>
     <string name="ha_display_mode">Display logic</string>
@@ -1146,6 +1145,17 @@
     <string name="ha_state_rotation">State rotation</string>
     <string name="ha_rotation_interval">State rotation interval</string>
     <string name="ha_show_island_icon">Show island icon</string>
+    <string name="ha_template_device">Device panel</string>
+    <string name="ha_device_line_1">Text line 1</string>
+    <string name="ha_device_line_2">Text line 2</string>
+    <string name="ha_device_line_3">Text line 3</string>
+    <string name="ha_device_metric_left">Left percentage entity</string>
+    <string name="ha_device_metric_right">Right percentage entity</string>
+    <string name="ha_device_icon">Device icon</string>
+    <string name="ha_percent_only">Only entities with a percentage unit can be selected</string>
+    <string name="ha_island_icon_source">Island icon</string>
+    <string name="ha_island_icon_follow">Follow entity</string>
+    <string name="ha_island_icon_custom">Custom</string>
     <string name="ha_template_type">Template type</string>
     <string name="ha_template_custom">Custom data source</string>
     <string name="ha_template_charging">Charging</string>
@@ -1164,5 +1174,12 @@
     <string name="ha_island_first_float">Expand island initially</string>
     <string name="ha_island_first_float_summary">Expand the island the first time it is posted</string>
     <string name="ha_island_carousel_interval">Island carousel interval</string>
+    <string name="ha_data_sources">Data sources</string>
+    <string name="ha_island_left_content">Island left content</string>
+    <string name="ha_island_right_content">Island right content</string>
+    <string name="ha_select_variable">Select variable</string>
+    <string name="ha_select_variable_summary">Select an entity and attribute, then copy its placeholder</string>
+    <string name="ha_placeholder_copied">Placeholder copied</string>
+    <string name="ha_template_input_hint">Enter content or use {entity.attribute}</string>
 
 </resources>

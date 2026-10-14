@@ -37,7 +37,10 @@ data class HaEntity(
                 friendlyName = attributes["friendly_name"].orEmpty(),
                 unit = attributes["unit_of_measurement"].orEmpty(),
                 attributes = attributes,
-            )
+            ).also {
+                // icon is intentionally retained in attributes; the SystemUI side logs the
+                // complete resolution chain when the subscription posts.
+            }
         }
 
         private fun stringify(value: Any): String = when (value) {
@@ -77,6 +80,8 @@ enum class HaCondition(val id: String, private val numeric: Boolean = false) {
 object HaTemplateType {
     const val CUSTOM = "custom"
     const val CHARGING = "charging"
+    /** 设备面板：RemoteViews 布局（3 行文本 + 2 个百分比进度）。 */
+    const val DEVICE = "device"
 }
 
 /** 一条 Home Assistant 订阅规则。 */
@@ -110,6 +115,16 @@ data class HaSubscription(
     val chargingCurrentAttribute: String = "",
     val chargingVoltageEntityId: String = "",
     val chargingVoltageAttribute: String = "",
+    // ---- 设备面板模板（DEVICE）：3 行自定义文本 + 2 个百分比实体 + 左侧自定义图标 ----
+    val deviceLine1: String = "{name}",
+    val deviceLine2: String = "{state}",
+    val deviceLine3: String = "",
+    val deviceLeftEntityId: String = "",
+    val deviceRightEntityId: String = "",
+    val deviceIconPath: String = "",
+    /** 超级岛图标来源：true = 跟随实体（自动读实体 icon），false = 用 [islandIconPath] 自定义图片。 */
+    val islandIconFollow: Boolean = true,
+    val islandIconPath: String = "",
     val showIslandIcon: Boolean = true,
     val enabled: Boolean = true,
 ) {
@@ -117,16 +132,27 @@ data class HaSubscription(
     val notifId: Int get() = HaNotifIds.of(id)
     val isValid: Boolean get() = triggerEntityId.isNotBlank()
     val dataEntityIds: Set<String>
-        get() = listOf(
-            triggerEntityId,
-            islandLeftEntityId,
-            islandRightEntityId,
-            focusTitleEntityId,
-            focusContentEntityId,
-            chargingPowerEntityId,
-            chargingCurrentEntityId,
-            chargingVoltageEntityId,
-        ).filter(String::isNotBlank).toSet()
+        get() {
+            // 触发实体、充电三项、设备面板的百分比实体由界面直接选择；其余取值全部写在内容模板里，靠扫描模板得到。
+            val explicit = listOf(
+                triggerEntityId,
+                chargingPowerEntityId,
+                chargingCurrentEntityId,
+                chargingVoltageEntityId,
+                deviceLeftEntityId,
+                deviceRightEntityId,
+            )
+            val referenced = HaTemplate.referencedEntityIds(
+                islandLeftTemplate,
+                islandRightTemplate,
+                focusTitleTemplate,
+                focusContentTemplate,
+                deviceLine1,
+                deviceLine2,
+                deviceLine3,
+            )
+            return (explicit + referenced).filter(String::isNotBlank).toSet()
+        }
     fun toJson() = JSONObject().apply {
         put("id", id)
         put("name", name)
@@ -157,6 +183,14 @@ data class HaSubscription(
         put("chargingCurrentAttribute", chargingCurrentAttribute)
         put("chargingVoltageEntityId", chargingVoltageEntityId)
         put("chargingVoltageAttribute", chargingVoltageAttribute)
+        put("deviceLine1", deviceLine1)
+        put("deviceLine2", deviceLine2)
+        put("deviceLine3", deviceLine3)
+        put("deviceLeftEntityId", deviceLeftEntityId)
+        put("deviceRightEntityId", deviceRightEntityId)
+        put("deviceIconPath", deviceIconPath)
+        put("islandIconFollow", islandIconFollow)
+        put("islandIconPath", islandIconPath)
         put("showIslandIcon", showIslandIcon)
         put("enabled", enabled)
     }
@@ -192,6 +226,14 @@ data class HaSubscription(
                 chargingCurrentAttribute = json.optString("chargingCurrentAttribute"),
                 chargingVoltageEntityId = json.optString("chargingVoltageEntityId"),
                 chargingVoltageAttribute = json.optString("chargingVoltageAttribute"),
+                deviceLine1 = json.optString("deviceLine1", "{name}"),
+                deviceLine2 = json.optString("deviceLine2", "{state}"),
+                deviceLine3 = json.optString("deviceLine3"),
+                deviceLeftEntityId = json.optString("deviceLeftEntityId"),
+                deviceRightEntityId = json.optString("deviceRightEntityId"),
+                deviceIconPath = json.optString("deviceIconPath"),
+                islandIconFollow = json.optBoolean("islandIconFollow", true),
+                islandIconPath = json.optString("islandIconPath"),
                 showIslandIcon = json.optBoolean("showIslandIcon", true),
                 enabled = json.optBoolean("enabled", true),
             )
@@ -215,9 +257,26 @@ object HaNotifIds {
 /** 支持 {name}/{value} 等内置变量，也支持 {实体id.属性} 的跨实体占位符。 */
 object HaTemplate {
     private val TOKEN = Regex("""\{([^{}]+)\}""")
+
+    /** 模板里 `{实体.属性}` 形式的实体 id（`{value}` / `{name}` 这类裸占位符不算）。 */
+    private val ENTITY_IN_TOKEN = Regex("""^([a-z_]+\.[a-z0-9_]+)(\..*)?$""")
+
     const val DEFAULT_TITLE = "{name}"
     const val DEFAULT_CONTENT = "{value}"
     val PLACEHOLDERS = listOf("{name}", "{state}", "{value}", "{unit}", "{entity}", "{raw}")
+
+    /**
+     * 扫描模板里被引用的实体 id —— 决定要向 Home Assistant 订阅哪些实体。
+     *
+     * 数据源不再由界面上的实体选择器提供，而是直接写在内容模板里（`{sensor.x.state}`），
+     * 所以必须反向把模板引用的实体收集出来，否则这些实体不会被订阅、取值为空。
+     */
+    fun referencedEntityIds(vararg templates: String): List<String> =
+        templates.flatMap { template ->
+            TOKEN.findAll(template).mapNotNull { match ->
+                ENTITY_IN_TOKEN.matchEntire(match.groupValues[1])?.groupValues?.get(1)
+            }
+        }.distinct()
 
     fun referencePlaceholders(entities: List<HaEntity>): List<String> = entities.flatMap { entity ->
         (listOf("state") + entity.attributes.keys).distinct().map { attribute -> "{${entity.entityId}.$attribute}" }
@@ -230,17 +289,11 @@ object HaTemplate {
         render(s.focusContentTemplate.ifBlank { DEFAULT_CONTENT }, entity, s.focusContentAttribute, entities)
 
     fun islandTexts(s: HaSubscription, entities: Map<String, HaEntity>, index: Int = 0): Pair<String, String> {
-        if (s.templateType == HaTemplateType.CHARGING) {
-            val power = sourceValue(entities, s.chargingPowerEntityId, s.chargingPowerAttribute)
-            val current = sourceValue(entities, s.chargingCurrentEntityId, s.chargingCurrentAttribute)
-            val voltage = sourceValue(entities, s.chargingVoltageEntityId, s.chargingVoltageAttribute)
-            return "充电" to listOf(power, current, voltage).filter(String::isNotBlank).joinToString(" · ")
-        }
         // 使用 `||` 分隔多个轮播项，便于在普通输入框中手动编辑。
         val leftTemplates = s.islandLeftTemplate.split("||").map(String::trim).filter(String::isNotBlank).ifEmpty { listOf("") }
         val rightTemplates = s.islandRightTemplate.split("||").map(String::trim).filter(String::isNotBlank).ifEmpty { listOf("") }
-        val left = renderSource(leftTemplates[index % leftTemplates.size], s.islandLeftEntityId, s.islandLeftAttribute, entities)
-        val right = renderSource(rightTemplates[index % rightTemplates.size], s.islandRightEntityId, s.islandRightAttribute, entities)
+        val left = renderSource(leftTemplates[index % leftTemplates.size], s.islandLeftEntityId, s.islandLeftAttribute, entities, s.triggerEntityId)
+        val right = renderSource(rightTemplates[index % rightTemplates.size], s.islandRightEntityId, s.islandRightAttribute, entities, s.triggerEntityId)
         return left to right
     }
 
@@ -251,12 +304,13 @@ object HaTemplate {
             val voltage = sourceValue(entities, s.chargingVoltageEntityId, s.chargingVoltageAttribute)
             return "充电" to listOf(power, current, voltage).filter(String::isNotBlank).joinToString(" · ")
         }
-        return renderSource(s.focusTitleTemplate, s.focusTitleEntityId, s.focusTitleAttribute, entities) to
-            renderSource(s.focusContentTemplate, s.focusContentEntityId, s.focusContentAttribute, entities)
+        return renderSource(s.focusTitleTemplate, s.focusTitleEntityId, s.focusTitleAttribute, entities, s.triggerEntityId) to
+            renderSource(s.focusContentTemplate, s.focusContentEntityId, s.focusContentAttribute, entities, s.triggerEntityId)
     }
 
-    private fun renderSource(template: String, entityId: String, attribute: String, entities: Map<String, HaEntity>): String {
-        val entity = entities[entityId] ?: entities.values.firstOrNull() ?: return ""
+    private fun renderSource(template: String, entityId: String, attribute: String, entities: Map<String, HaEntity>, fallbackEntityId: String = ""): String {
+        // 界面已不再提供「数据源实体」，裸占位符（{value}/{state}/{name}）回退到触发实体。
+        val entity = entities[entityId] ?: entities[fallbackEntityId] ?: entities.values.firstOrNull() ?: return ""
         return render(template, entity, attribute, entities)
     }
 
@@ -286,6 +340,27 @@ object HaTemplate {
 
     fun displayValue(entity: HaEntity, attribute: String): String =
         if (attribute.isBlank() || attribute == HaEntity.ATTRIBUTE_STATE) entity.displayValue else entity.valueOf(attribute)
+    /**
+     * 设备面板的 3 行自定义文本。
+     *
+     * 模板可以混用裸占位符（`{name}` / `{state}` / `{value}`，取触发实体）和全限定占位符
+     * （`{sensor.x.state}`），与超级岛/焦点通知的内容模板是同一套规则。
+     */
+    fun deviceLines(s: HaSubscription, entities: Map<String, HaEntity>): List<String> =
+        listOf(s.deviceLine1, s.deviceLine2, s.deviceLine3).map { template ->
+            if (template.isBlank()) "" else renderSource(template, "", "", entities, s.triggerEntityId)
+        }
+
+    /** 只有单位是 `%` 的实体才允许作为设备面板的进度源。 */
+    fun isPercent(entity: HaEntity): Boolean = entity.unit.trim() == "%"
+
+    /** 百分比实体的状态 → 0..100 的进度值；不是百分比或解析失败时返回 null。 */
+    fun percentOf(entity: HaEntity): Float? {
+        if (!isPercent(entity)) return null
+        val value = entity.state.trim().toFloatOrNull() ?: return null
+        return value.coerceIn(0f, 100f)
+    }
+
     fun signature(title: String, content: String): String = "$title\u0000$content"
     fun describe(condition: HaCondition, value: String): String = value
 }
