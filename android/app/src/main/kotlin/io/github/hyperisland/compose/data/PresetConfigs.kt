@@ -104,7 +104,11 @@ internal fun sortPresets(presets: List<ConfigPreset>, order: PresetSortOrder): L
 /**
  * 判断远端版本是否比本地缓存版本更新。
  *
- * 版本号按 `.` 分段做数值比较，非数字段取前导数字（如 `1.0.0-beta` 取 0），缺失段按 0；
+ * 版本号现在由服务端维护成一个正整数（新建 `1`，更新内容时 +1，上限 1000），
+ * 但这里仍按 `.` 分段做数值比较 —— 早期记录用的是 `1.0.0` 这类语义化写法，
+ * 分段比较让新旧两种形态天然可比（`2` > `1.0.0`，`1` == `1`），
+ * 不必为老数据留一条永远不会再触发的兼容分支。
+ * 非数字段取前导数字（如 `1.0.0-beta` 取 0），缺失段按 0；
  * 远端为空视为不更新，本地为空视为需要更新。
  */
 internal fun isRemoteVersionNewer(remote: String, local: String): Boolean {
@@ -205,12 +209,19 @@ internal object PresetStore {
         status: String,
         downloads: Long,
         rejectReason: String = "",
+        // 空串表示「这次没拿到版本号」（接口没返回 / 退回列表快照时该条目缺失），保持原值不动
+        version: String = "",
     ) {
         if (hubId.isBlank()) return
         val list = loadLocal(context)
         val updated = list.map { preset ->
             if (preset.hubId == hubId) {
-                preset.copy(hubStatus = status, downloads = downloads, hubRejectReason = rejectReason)
+                preset.copy(
+                    hubStatus = status,
+                    downloads = downloads,
+                    hubRejectReason = rejectReason,
+                    version = version.ifBlank { preset.version },
+                )
             } else {
                 preset
             }

@@ -82,7 +82,8 @@ internal object HubClient {
             .put("name", preset.title)
             .put("description", preset.content)
             .put("author", preset.author)
-            .put("version", preset.version.ifBlank { "1.0.0" })
+            // 刻意不传 version：版本号由服务端维护（新建 = 1，更新时内容变了才 +1），
+            // 客户端传什么都不作数。响应里会把服务端定下的值带回来。
             .put("payload", JSONObject().put("sections", sections))
         // 更新通道：configId 必须在服务端归一化之前从 body 顶层摘除，因此这里也只放在顶层。
         configId?.takeIf { it.isNotBlank() }?.let { body.put("configId", it) }

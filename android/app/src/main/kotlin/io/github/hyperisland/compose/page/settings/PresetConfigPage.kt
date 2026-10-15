@@ -325,6 +325,20 @@ private object PresetCloudState {
 }
 
 /**
+ * 一条本地预设的云端状态快照（自查接口 / 公开列表快照二选一得来）。
+ *
+ * 四个字段要一起比对才能判断「有没有需要写盘的变化」，所以打包成一个类型，
+ * 而不是继续往 `Triple` 上叠 —— 四个元素的元组在调用点全靠 `.first/.second`
+ * 定位，加一个字段就得全文改一遍。
+ */
+private data class HubStatusSnapshot(
+    val status: String,
+    val downloads: Long,
+    val rejectReason: String,
+    val version: String,
+)
+
+/**
  * 本地预设的云端状态查询节流。
  *
  * 条目状态（审核中 / 已发布 / 被拒）与下载量都靠自查接口拿，为不让每次进入页面都为它们
@@ -448,30 +462,38 @@ internal fun PresetConfigPage(
                 null
             }
             val resolved = when {
-                queried != null -> Triple(
+                queried != null -> HubStatusSnapshot(
                     queried.optString("status"),
                     queried.optLong("downloads", 0L),
                     // 未过审时服务端下发的是 JSON null，而 org.json 的 optString 会把 JSON null
                     // 变成字符串 "null" —— 那不是理由，必须当空串处理，否则会显示「原因: null」。
                     if (queried.isNull("rejectReason")) "" else queried.optString("rejectReason"),
+                    queried.optString("version"),
                 )
                 // 退回列表快照时拿不到拒绝原因，沿用本地已有的那份，不凭空清空。
-                listed != null -> Triple(HUB_STATUS_PUBLISHED, listed.downloads, preset.hubRejectReason)
+                listed != null -> HubStatusSnapshot(
+                    HUB_STATUS_PUBLISHED,
+                    listed.downloads,
+                    preset.hubRejectReason,
+                    listed.version,
+                )
                 else -> null
             } ?: continue
             if (
-                preset.hubStatus == resolved.first &&
-                preset.downloads == resolved.second &&
-                preset.hubRejectReason == resolved.third
+                preset.hubStatus == resolved.status &&
+                preset.downloads == resolved.downloads &&
+                preset.hubRejectReason == resolved.rejectReason &&
+                preset.version == resolved.version
             ) {
                 continue
             }
             PresetStore.updateLocalHub(
                 context,
                 preset.hubId,
-                resolved.first,
-                resolved.second,
-                resolved.third,
+                resolved.status,
+                resolved.downloads,
+                resolved.rejectReason,
+                resolved.version,
             )
             changed = true
         }
@@ -1316,24 +1338,21 @@ private fun ApplyPresetBottomSheet(
             uploading = true
             val deviceId = withContext(Dispatchers.IO) { PresetStore.deviceId(context) }
             val target = hubId.takeIf { it.isNotBlank() }
-            // 本地预设的 version 一直为空，上传时用 1.0.0 兜底；回填同样的值，
-            // 让本地记录的版本与服务端实际收到的一致。
-            val pushedVersion = effective.version.ifBlank { "1.0.0" }
             val message = runCatching {
-                HubClient.upload(effective.copy(version = pushedVersion), deviceId, target)
+                HubClient.upload(effective, deviceId, target)
             }.fold(
                 onSuccess = { response ->
                     response.optString("id").takeIf { it.isNotBlank() }?.let { onlineId ->
-                        // 保留当前（可能已编辑过的）内容，只补上在线 id、上传时的版本号与待审状态：
+                        // 保留当前（可能已编辑过的）内容，只补上在线 id、服务端定下的版本号与待审状态：
                         // 无论新建还是更新，服务端都会重新审核，所以卡片随即显示「审核中」水印，
                         // 上一次的拒绝原因也一并清掉（服务端已作废那次审核结论）。
-                        // 下载量归零也是这个原因——云端对未过审的条目一律报 0（见 API.md）。
+                        // 下载量原样带过去 —— 更新只是让这条配置回到待审，历史累计并没有清零，
+                        // 服务端也照旧认它（见 api/my-configs/[id].js）。
                         val updated = effective.copy(
                             hubId = onlineId,
-                            version = pushedVersion,
+                            version = response.optString("version").ifBlank { effective.version },
                             hubStatus = HUB_STATUS_PENDING,
                             hubRejectReason = "",
-                            downloads = 0L,
                         )
                         hubId = onlineId
                         editedPreset = updated
@@ -1613,7 +1632,7 @@ private fun ApplyPresetBottomSheet(
                     if (createdLabel.isNotBlank()) {
                         detailRows += Triple(stringResource(R.string.preset_field_time), createdLabel, null)
                     }
-                    // 状态与版本合成一行（如「已发布（1.0.0）」），只对本地预设显示：
+                    // 状态与版本合成一行（如「已发布（2）」），只对本地预设显示：
                     // 云端条目必然是已发布，显示状态没有信息量。
                     if (preset.local) {
                         val statusText = if (preset.hubId.isBlank()) {
