@@ -10,6 +10,8 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.net.ConnectivityManager
+import android.net.Network
 import android.os.Build
 import io.github.hyperisland.homeassistant.HaEntity
 import io.github.hyperisland.homeassistant.HomeAssistantIconResolver
@@ -69,6 +71,14 @@ object HomeAssistantIslandHook : BaseHook() {
     @Volatile private var runtimeSubscriptions: List<HaSubscription> = emptyList()
 
     @Volatile private var session: HaSession? = null
+
+    /** 是否有可用网络。由 [registerNetworkCallback] 的 Android 网络回调驱动，不做任何轮询。 */
+    @Volatile private var networkAvailable = false
+
+    /** 当前默认网络，用于分辨「先 onAvailable(新) 后 onLost(旧)」的网络切换。 */
+    @Volatile private var activeNetwork: Network? = null
+
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
     /** 订阅 id → 上次投递的内容签名；用于「内容没变就不更新」。 */
     private val lastSignature = ConcurrentHashMap<String, String>()
@@ -135,6 +145,14 @@ object HomeAssistantIslandHook : BaseHook() {
     private const val EXTRA_SUBSCRIPTION_ID = "ha_subscription_id"
     private const val ACTION_SWITCH_CHARGING_CHART = "io.github.hyperisland.action.HA_SWITCH_CHARGING_CHART"
 
+    /**
+     * 断网后多久撤岛（上限）。
+     *
+     * 实际用时取它与订阅自己的显示时长的**较小值**：用户设置成 10 秒时岛早就自己消失了，
+     * 这里跟随它即可；常驻（0）或大于 1 分钟的，统一 1 分钟收尾。
+     */
+    private const val OFFLINE_CLEANUP_MS = 60_000L
+
     override fun getTag() = TAG
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
@@ -189,6 +207,8 @@ object HomeAssistantIslandHook : BaseHook() {
         }
 
         readConfigFromPrefs()
+        // 先挂上网络回调再起会话：回调里也会尝试建会话，谁先到都不会漏。
+        registerNetworkCallback(context)
         applyConfig(reason = "init")
     }
 
@@ -231,9 +251,20 @@ object HomeAssistantIslandHook : BaseHook() {
         )
     }
 
+    /** 配置变更：先拆掉旧会话与岛，再按新配置重建。 */
     private fun applyConfig(reason: String) {
         stopSession()
         cancelAllIslands()
+        startSessionIfNeeded(reason)
+    }
+
+    /**
+     * 按当前配置建会话；已经有会话、配置不完整、或**当前没网**时什么都不做。
+     *
+     * 没网时直接返回是有意的：此时不该有任何连接尝试，等 Android 的网络回调通知我们恢复。
+     */
+    private fun startSessionIfNeeded(reason: String) {
+        if (session != null) return
 
         val enabled = runtimeEnabled
         val url = runtimeUrl
@@ -246,6 +277,11 @@ object HomeAssistantIslandHook : BaseHook() {
                         "token=${token.isNotBlank()} subscriptions=${subscriptions.size}"
                 }
             }
+            return
+        }
+        if (!networkAvailable) {
+            // 没网时不该有任何连接尝试：等 Android 的网络回调通知恢复。
+            moduleRef?.let { log(it) { "offline, skip session ($reason)" } }
             return
         }
 
@@ -261,6 +297,105 @@ object HomeAssistantIslandHook : BaseHook() {
     private fun stopSession() {
         session?.stop()
         session = null
+    }
+
+    /**
+     * 把「联网 / 断网」完全交给 Android 判定，而不是自己定时重试。
+     *
+     * 用 [ConnectivityManager.registerDefaultNetworkCallback] 订阅默认网络：
+     * - **有网** → 立刻建会话（回调是事件驱动的，不在任何轮询里）；
+     * - **断网 / 飞行模式 / 切换网络** → 直接把会话拆掉，[HaSession] 的退避重连随之停止，
+     *   不会出现「关着网还在每 20 秒重试一次」。
+     *
+     * [activeNetwork] 用来在「WiFi → 蜂窝」切换时分辨先后：新网络先 [onAvailable]、旧网络后
+     * [onLost] 时不能把新连接一起拆掉。
+     *
+     * 注册失败（权限/框架异常）时退化为「假设在线」，交由 [HaSession] 自己的退避重连接管。
+     */
+    private fun registerNetworkCallback(context: Context) {
+        if (networkCallback != null) return
+        val manager = context.getSystemService(ConnectivityManager::class.java) ?: run {
+            networkAvailable = true
+            return
+        }
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                val switched = activeNetwork != null && activeNetwork != network
+                activeNetwork = network
+                networkAvailable = true
+                // 网络回来了就别再撤岛（可能在断网清理的倒计时里）。
+                cancelAllOfflineCleanups()
+                if (switched) {
+                    // WiFi ↔ 蜂窝 这类换网：旧 TCP 必然已残废，直接重建，不必等心跳超时。
+                    moduleRef?.let { log(it) { "network switched → restart session" } }
+                    stopSession()
+                } else {
+                    moduleRef?.let { log(it) { "network available → start session" } }
+                }
+                // 只保证「会话存在」，不撤岛：网络抖动不该把岛上已有的内容清掉。
+                startSessionIfNeeded(reason = "network")
+            }
+
+            override fun onLost(network: Network) {
+                if (activeNetwork != network) return
+                activeNetwork = null
+                networkAvailable = false
+                moduleRef?.let { log(it) { "network lost → 暂停连接（停止重试，等系统回调）" } }
+                stopSession()
+                // 断网不当场撤岛（可能只是切了个 WiFi），但也不能一直挂着过期内容。
+                scheduleOfflineCleanup()
+            }
+        }
+        networkCallback = callback
+        runCatching { manager.registerDefaultNetworkCallback(callback, mainHandler) }
+            .onFailure {
+                networkCallback = null
+                networkAvailable = true
+                moduleRef?.let { module -> logError(module, "network callback unavailable: ${it.message}") }
+            }
+    }
+
+    /** 网络回调、轮播与各种重建都往主线程投，避免在这些路径上再开线程。 */
+    private val mainHandler = Handler(Looper.getMainLooper())
+
+    /** 断网后待执行的撤岛任务：订阅 id → Runnable。 */
+    private val offlineCleanupTasks = ConcurrentHashMap<String, Runnable>()
+
+    /**
+     * 断网倒计时撤岛。
+     *
+     * 断网瞬间不撤（可能只是切个 WiFi / 路由重启，岛上的内容还是有效的），
+     * 但太久没网就没有意义了：**到点按「订阅自己的显示时长」与 [OFFLINE_CLEANUP_MS] 取小者**撤岛。
+     * 用户设置的自动消失更短时跟随它 —— 那种情况下岛本来就已经自己消失了，这里只是把账清干净。
+     *
+     * 网络恢复（[ConnectivityManager.NetworkCallback.onAvailable]）或配置变更时任务会被取消。
+     */
+    private fun scheduleOfflineCleanup() {
+        val context = appContext ?: return
+        activeNotifIds.keys.toList().forEach { id ->
+            val subscription = runtimeSubscriptions.firstOrNull { it.id == id } ?: return@forEach
+            val delay = minOf(OFFLINE_CLEANUP_MS, islandTimeoutSecs(subscription) * 1_000L)
+            cancelOfflineCleanup(id)
+            val task = Runnable {
+                offlineCleanupTasks.remove(id)
+                // 倒计时期间网络回来了就不撤，交给正常链路。
+                if (networkAvailable) return@Runnable
+                val current = runtimeSubscriptions.firstOrNull { it.id == id } ?: return@Runnable
+                moduleRef?.let { log(it) { "offline too long → cancel island id=${current.triggerEntityId}" } }
+                cancelIsland(context, current)
+            }
+            offlineCleanupTasks[id] = task
+            mainHandler.postDelayed(task, delay)
+        }
+    }
+
+    private fun cancelOfflineCleanup(id: String) {
+        offlineCleanupTasks.remove(id)?.let(mainHandler::removeCallbacks)
+    }
+
+    private fun cancelAllOfflineCleanups() {
+        offlineCleanupTasks.values.forEach(mainHandler::removeCallbacks)
+        offlineCleanupTasks.clear()
     }
 
     private val sessionListener = object : HaSession.Listener {
@@ -390,9 +525,11 @@ object HomeAssistantIslandHook : BaseHook() {
             islandEnabled = subscription.islandEnabled,
             showIslandIcon = subscription.showIslandIcon,
             updatable = true,
-            focusRemoteViews = panelViews?.first,
-            focusNightRemoteViews = panelViews?.second,
-            focusIslandExpandRemoteViews = panelViews?.third,
+            focusRemoteViews = panelViews?.light,
+            focusNightRemoteViews = panelViews?.night,
+            focusIslandExpandRemoteViews = panelViews?.expand,
+            focusAodRemoteViews = panelViews?.aod,
+            focusFullAodRemoteViews = panelViews?.aod,
             clearBeforePost = false,
             sourcePackage = "io.github.hyperisland",
             sourceChannelId = HomeAssistantContract.SOURCE_CHANNEL_ID,
@@ -408,23 +545,42 @@ object HomeAssistantIslandHook : BaseHook() {
 
     /**
      * 焦点面板统一入口（自定义模板没有面板时返回 null）：
-     * 充电模板与设备面板模板各自返回 日间 / 夜间 / 展开 三份 RemoteViews。
+     * 充电模板与设备面板模板各自返回 日间 / 夜间 / 展开 / 息屏 四份 RemoteViews。
      */
     private fun panelRemoteViews(
         context: Context,
         subscription: HaSubscription,
-    ): Triple<RemoteViews, RemoteViews, RemoteViews>? = when {
+    ): HaPanelViews? = when {
         !subscription.focusEnabled -> null
         subscription.templateType == HaTemplateType.CHARGING -> chargingRemoteViews(context, subscription)
         subscription.templateType == HaTemplateType.DEVICE -> deviceRemoteViews(context, subscription)
         else -> null
     }
 
+    /**
+     * 一套焦点面板需要的四份 RemoteViews。
+     *
+     * 息屏那一份必须单独给：`miui.focus.rvAod` 缺省时系统会回退用日间那份渲染 AOD，
+     * 而 AOD 是黑底 —— 日间那份是给亮屏用的黑字，落到息屏就是一片黑（表现：亮屏正常、息屏变黑）。
+     *
+     * 各槽位会各序列化一次，所以能复用的（展开、息屏）就复用同一个实例。
+     */
+    private data class HaPanelViews(
+        /** 亮屏日间 → `miui.focus.rv`。 */
+        val light: RemoteViews,
+        /** 亮屏夜间 → `miui.focus.rvNight`。 */
+        val night: RemoteViews,
+        /** 展开态 → `miui.focus.rv.island.expand`。 */
+        val expand: RemoteViews,
+        /** 息屏 → `miui.focus.rvAod` / `miui.focus.rv.fullAod`。 */
+        val aod: RemoteViews,
+    )
+
     /** Home Assistant 充电模板使用与 KeepIsland 相同的 RemoteViews 布局。 */
     private fun chargingRemoteViews(
         context: Context,
         subscription: HaSubscription,
-    ): Triple<RemoteViews, RemoteViews, RemoteViews> {
+    ): HaPanelViews {
         val values = entityCache.toMap()
         fun value(id: String, attribute: String): String {
             val entity = values[id] ?: return ""
@@ -462,14 +618,19 @@ object HomeAssistantIslandHook : BaseHook() {
             HaChargingMode.VOLTAGE -> "电压"
         }
         val iconName = focusIconName(subscription, values)
-        fun build(primaryColor: Int, secondaryColor: Int, dark: Boolean): RemoteViews = RemoteViews(context.moduleContext().packageName, io.github.hyperisland.R.layout.focus_notification_charging).apply {
+        // 曲线位图只画两张（日/夜），夜间那张给夜间/展开/息屏三份复用 —— 同一个 Bitmap 实例
+        // 在同一 Binder 事务里只会序列化一次，能省掉三分之二体积。
+        val samples = history.toList()
+        val lightChart = chargingChart(samples, dark = false, mode = mode)
+        val darkChart = chargingChart(samples, dark = true, mode = mode)
+        fun build(primaryColor: Int, secondaryColor: Int, chart: Bitmap, dark: Boolean, interactive: Boolean = true): RemoteViews = RemoteViews(context.moduleContext().packageName, io.github.hyperisland.R.layout.focus_notification_charging).apply {
             setTextViewText(io.github.hyperisland.R.id.charging_primary, primary)
             setTextViewText(io.github.hyperisland.R.id.charging_details, "$current · $voltage")
             setTextViewText(io.github.hyperisland.R.id.charging_mode, modeLabel)
             setTextColor(io.github.hyperisland.R.id.charging_primary, primaryColor)
             setTextColor(io.github.hyperisland.R.id.charging_details, secondaryColor)
             setTextColor(io.github.hyperisland.R.id.charging_mode, secondaryColor)
-            setImageViewBitmap(io.github.hyperisland.R.id.charging_chart, chargingChart(history.toList(), dark, mode))
+            setImageViewBitmap(io.github.hyperisland.R.id.charging_chart, chart)
             // 焦点通知面板同样调用 MDI 图标：直接拿数据源实体的 `mdi:*` 渲染成位图。
             val glyph = iconName?.let {
                 HomeAssistantIconResolver.renderBitmap(it, context, if (dark) Color.WHITE else Color.BLACK)
@@ -480,14 +641,20 @@ object HomeAssistantIslandHook : BaseHook() {
             } else {
                 setViewVisibility(io.github.hyperisland.R.id.charging_icon, View.GONE)
             }
-            setOnClickPendingIntent(io.github.hyperisland.R.id.charging_mode, switchIntent)
-            setOnClickPendingIntent(io.github.hyperisland.R.id.charging_chart_container, switchIntent)
+            if (interactive) {
+                setOnClickPendingIntent(io.github.hyperisland.R.id.charging_mode, switchIntent)
+                setOnClickPendingIntent(io.github.hyperisland.R.id.charging_chart_container, switchIntent)
+            } else {
+                // 息屏（AOD）没有触摸，按 KeepIsland 同口径把模式按钮收起来。
+                setViewVisibility(io.github.hyperisland.R.id.charging_mode, View.GONE)
+            }
         }
-        // 只生成日间 / 夜间两张位图，展开态复用夜间那张：同一个 Bitmap 实例在同一 Binder
-        // 事务里只会序列化一次，能省掉三分之一体积。
-        val light = build(Color.BLACK, Color.DKGRAY, false)
-        val dark = build(Color.WHITE, Color.LTGRAY, true)
-        return Triple(light, dark, dark)
+        // 日间 / 夜间两份 + 息屏一份（展开复用夜间）：系统按 rv / rvNight / rv.island.expand / rvAod 取。
+        val light = build(Color.BLACK, Color.DKGRAY, lightChart, dark = false)
+        val dark = build(Color.WHITE, Color.LTGRAY, darkChart, dark = true)
+        // 息屏单独一份：AOD 不接受触摸，模式按钮收起（与 KeepIsland 充电面板同口径）。
+        val aod = build(Color.WHITE, Color.LTGRAY, darkChart, dark = true, interactive = false)
+        return HaPanelViews(light = light, night = dark, expand = dark, aod = aod)
     }
     private fun chargingChart(samples: List<HaChargingSample>, dark: Boolean, mode: HaChargingMode): Bitmap {
         // 位图会随通知 extras 走 Binder（nm.notify）：原设计 660x168 单张就 443KB，
@@ -570,7 +737,7 @@ object HomeAssistantIslandHook : BaseHook() {
     private fun deviceRemoteViews(
         context: Context,
         subscription: HaSubscription,
-    ): Triple<RemoteViews, RemoteViews, RemoteViews> {
+    ): HaPanelViews {
         val values = entityCache.toMap()
         val lines = HaTemplate.deviceLines(subscription, values)
         val left = values[subscription.deviceLeftEntityId]?.let(HaTemplate::percentOf)
@@ -638,10 +805,10 @@ object HomeAssistantIslandHook : BaseHook() {
                 setViewVisibility(io.github.hyperisland.R.id.device_logo, View.INVISIBLE)
             }
         }
-        // 日间 / 夜间两份（展开态复用夜间，与充电面板一致）：系统按 rv / rvNight 选，翻夜不用重建。
+        // 日间 / 夜间两份（展开与息屏复用夜间）：系统按 rv / rvNight / rvAod 选，翻夜与息屏都不用重建。
         val light = build(HaPanelPalette.LIGHT)
         val dark = build(HaPanelPalette.DARK)
-        return Triple(light, dark, dark)
+        return HaPanelViews(light = light, night = dark, expand = dark, aod = dark)
     }
 
     /**
@@ -991,6 +1158,7 @@ object HomeAssistantIslandHook : BaseHook() {
         subscription.displaySeconds.takeIf { it > 0 } ?: Int.MAX_VALUE
 
     private fun cancelIsland(context: Context, subscription: HaSubscription) {
+        cancelOfflineCleanup(subscription.id)
         val notifId = activeNotifIds.remove(subscription.id) ?: return
         lastSignature.remove(subscription.id)
         IslandDispatcher.cancel(context, notifId)
@@ -1004,6 +1172,8 @@ object HomeAssistantIslandHook : BaseHook() {
         activeNotifIds.forEach { (_, notifId) -> IslandDispatcher.cancel(context, notifId) }
         activeNotifIds.clear()
         lastSignature.clear()
+        // 岛都撤了，断网倒计时也就没有意义了；不清的话它会在之后把「重建起来的岛」误撤掉。
+        cancelAllOfflineCleanups()
         // 清掉匹配标记 = 所有取图请求立刻被 isSubscriptionShowing() 挡掉（见 panelLogo）。
         matchedSubscriptions.clear()
         entityCache.clear()
@@ -1030,7 +1200,7 @@ object HomeAssistantIslandHook : BaseHook() {
                 val icon = islandIcon(current, values)
                 val focusIcon = resolveEntityIcon(current, values, focusIconSources(current))
                 val panelViews = panelRemoteViews(context, current)
-                IslandDispatcher.post(context, IslandRequest(title = island.first, content = island.second, focusTitle = focus.first, focusContent = focus.second, icon = icon, focusIcon = focusIcon, notifId = current.notifId, timeoutSecs = islandTimeoutSecs(current), firstFloat = false, enableFloat = false, showNotification = current.focusEnabled, preserveStatusBarSmallIcon = false, islandOnly = !current.focusEnabled, islandEnabled = current.islandEnabled, showIslandIcon = current.showIslandIcon, updatable = true, isOngoing = true, focusRemoteViews = panelViews?.first, focusNightRemoteViews = panelViews?.second, focusIslandExpandRemoteViews = panelViews?.third, sourcePackage = "io.github.hyperisland", sourceChannelId = HomeAssistantContract.SOURCE_CHANNEL_ID))
+                IslandDispatcher.post(context, IslandRequest(title = island.first, content = island.second, focusTitle = focus.first, focusContent = focus.second, icon = icon, focusIcon = focusIcon, notifId = current.notifId, timeoutSecs = islandTimeoutSecs(current), firstFloat = false, enableFloat = false, showNotification = current.focusEnabled, preserveStatusBarSmallIcon = false, islandOnly = !current.focusEnabled, islandEnabled = current.islandEnabled, showIslandIcon = current.showIslandIcon, updatable = true, isOngoing = true, focusRemoteViews = panelViews?.light, focusNightRemoteViews = panelViews?.night, focusIslandExpandRemoteViews = panelViews?.expand, focusAodRemoteViews = panelViews?.aod, focusFullAodRemoteViews = panelViews?.aod, sourcePackage = "io.github.hyperisland", sourceChannelId = HomeAssistantContract.SOURCE_CHANNEL_ID))
                 carouselHandler.postDelayed(this, current.islandCarouselInterval.coerceAtLeast(1) * 1000L)
             }
         }

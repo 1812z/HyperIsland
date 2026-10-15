@@ -99,30 +99,54 @@ internal class HaSession(
 
     private fun runLoop() {
         while (!stopped.get()) {
-            val latch = CountDownLatch(1)
-            val socket = HaWebSocketClient(url, token, object : HaWebSocketClient.Listener {
-                override fun onAuthenticated() {
-                    reconnectAttempt = 0
-                    listener.onStatus(HaStatus.Connected)
-                    requestStatesAndSubscribe()
-                }
-
-                override fun onJson(message: JSONObject) {
-                    handleMessage(message)
-                }
-
-                override fun onFailure(message: String, authFailed: Boolean) {
-                    lastFailureMessage = message
-                    if (authFailed) {
-                        this@HaSession.authFailedMessage = message
+            var keepGoing = true
+            try {
+                keepGoing = runOnce()
+            } catch (_: InterruptedException) {
+                // stop() 会中断，交给下面的 stopped 判断收尾。
+            } catch (t: Throwable) {
+                // 兜住一切异常：这个线程一旦意外死掉，就再也不会有任何重连
+                // （表现 = 连接断了、界面还显示已连接、怎么等都不恢复）。
+                if (!stopped.get()) {
+                    runCatching {
+                        listener.onStatus(HaStatus.Failed, t.message ?: t.javaClass.simpleName)
                     }
-                    latch.countDown()
                 }
+            }
+            if (stopped.get() || !keepGoing) break
+            reconnectAttempt++
+            if (!sleepBackoff(reconnectAttempt)) break
+        }
+        if (stopped.get()) runCatching { listener.onStatus(HaStatus.Idle) }
+    }
 
-                override fun onStopped() {
-                    latch.countDown()
+    /** 跑一轮「连接 → 断开」；返回 false 表示不再重连（令牌被拒，或已经被 [stop]）。 */
+    private fun runOnce(): Boolean {
+        val latch = CountDownLatch(1)
+        val socket = HaWebSocketClient(url, token, object : HaWebSocketClient.Listener {
+            override fun onAuthenticated() {
+                reconnectAttempt = 0
+                listener.onStatus(HaStatus.Connected)
+                requestStatesAndSubscribe()
+            }
+
+            override fun onJson(message: JSONObject) {
+                handleMessage(message)
+            }
+
+            override fun onFailure(message: String, authFailed: Boolean) {
+                lastFailureMessage = message
+                if (authFailed) {
+                    this@HaSession.authFailedMessage = message
                 }
-            })
+                latch.countDown()
+            }
+
+            override fun onStopped() {
+                latch.countDown()
+            }
+        })
+        try {
             client = socket
             listener.onStatus(HaStatus.Connecting)
             socket.start()
@@ -131,23 +155,23 @@ internal class HaSession(
             } catch (_: InterruptedException) {
                 // stop() 会中断，直接走退出分支。
             }
-            socket.stop()
+        } finally {
+            // 异常路径也必须收干净：否则旧 socket 会一直挂着，泄漏 fd 与线程。
+            runCatching { socket.stop() }
             client = null
-            if (stopped.get()) break
-
-            val failure = authFailedMessage
-            if (failure != null) {
-                authFailedMessage = null
-                listener.onStatus(HaStatus.AuthFailed, failure)
-                break
-            }
-            reconnectAttempt++
-            // 把具体原因带给界面：否则用户只看到「连接失败」，无从判断是地址、端口还是证书问题。
-            listener.onStatus(HaStatus.Failed, lastFailureMessage)
-            lastFailureMessage = null
-            if (!sleepBackoff(reconnectAttempt)) break
         }
-        if (stopped.get()) listener.onStatus(HaStatus.Idle)
+        if (stopped.get()) return false
+
+        val failure = authFailedMessage
+        if (failure != null) {
+            authFailedMessage = null
+            listener.onStatus(HaStatus.AuthFailed, failure)
+            return false
+        }
+        // 把具体原因带给界面：否则用户只看到「连接失败」，无从判断是地址、端口还是证书问题。
+        listener.onStatus(HaStatus.Failed, lastFailureMessage)
+        lastFailureMessage = null
+        return true
     }
 
     @Volatile private var authFailedMessage: String? = null
@@ -260,12 +284,13 @@ internal class HaSession(
     }
 
     private fun sleepBackoff(attempt: Int): Boolean {
+        // 上限压到 20 秒：局域网内重试的代价只是一次 TCP 连接，
+        // 而 45 秒的间隔在用户侧看起来就是「断了不自动连」。
         val seconds = when {
             attempt <= 1 -> 3
             attempt == 2 -> 6
             attempt == 3 -> 12
-            attempt == 4 -> 24
-            else -> 45
+            else -> 20
         }
         var remaining = seconds * 1_000L
         while (remaining > 0 && !stopped.get()) {

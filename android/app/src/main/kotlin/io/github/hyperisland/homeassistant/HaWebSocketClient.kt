@@ -23,6 +23,12 @@ import javax.net.ssl.SSLSocketFactory
  * - 只实现必需子集：握手、文本帧、分片、ping/pong、close，不协商 permessage-deflate。
  *
  * 生命周期是「一次性」的：连上 → 读到断开 → 回调结束。重连与退避由 [HaSession] 负责。
+ *
+ * **必须有超时与心跳**：TCP 半开（WiFi 切换、路由器清 NAT 表、HA 重启）时读操作会**永远阻塞**，
+ * 连接既不断开也不报错，会话线程就卡死在 `latch.await()` 上 —— 表现是「界面还显示已连接，
+ * 但再也没有数据，也不会自动重连」。所以这里给读加 [READ_TIMEOUT_MS] 超时，并每
+ * [HEARTBEAT_INTERVAL_MS] 发一个 PING（RFC 6455 要求对端回 PONG）：健康连接永远不会触发超时，
+ * 失活连接最多 [READ_TIMEOUT_MS] 后必然抛异常并触发重连。
  */
 internal class HaWebSocketClient(
     private val rawUrl: String,
@@ -53,6 +59,7 @@ internal class HaWebSocketClient(
     @Volatile private var stopped = false
     @Volatile private var finished = false
     private var thread: Thread? = null
+    private var heartbeatThread: Thread? = null
 
     fun start() {
         if (thread != null) return
@@ -96,6 +103,9 @@ internal class HaWebSocketClient(
             connection.tcpNoDelay = true
             connection.connect(InetSocketAddress(resolved.host, resolved.port), CONNECT_TIMEOUT_MS)
             socket = connection
+            // 握手阶段同样要限时：服务端接了 TCP 却不回 101 时，裸读会永远阻塞，
+            // 会话线程就卡死在 latch.await() 上了（这正是「断了不重连」的成因之一）。
+            connection.soTimeout = HANDSHAKE_TIMEOUT_MS
 
             val input = BufferedInputStream(connection.getInputStream())
             val stream = BufferedOutputStream(connection.getOutputStream())
@@ -107,6 +117,10 @@ internal class HaWebSocketClient(
             // 表现就是「服务端关闭连接」。
             writeFrame(OPCODE_TEXT, authFrame().toByteArray(Charsets.UTF_8))
 
+            // 握手完成，进入长连接：放宽读超时到心跳窗口，并起心跳线程。
+            connection.soTimeout = READ_TIMEOUT_MS
+            startHeartbeat()
+
             readLoop(input)
             if (!stopped) fail("连接已断开", authFailed = false)
         } catch (t: Throwable) {
@@ -116,6 +130,8 @@ internal class HaWebSocketClient(
                 fail(describe(t, target), t is HaAuthException)
             }
         } finally {
+            heartbeatThread?.interrupt()
+            heartbeatThread = null
             runCatching { socket?.close() }
             socket = null
             output = null
@@ -178,7 +194,12 @@ internal class HaWebSocketClient(
             is javax.net.ssl.SSLException ->
                 "TLS 错误$where：${t.message.orEmpty()}（该端口可能不是 https，试试 http://）"
             is java.net.UnknownHostException -> "无法解析主机名$where：${t.message.orEmpty()}"
-            is java.net.SocketTimeoutException -> "连接超时$where"
+            is java.net.SocketTimeoutException ->
+                if (authenticated) {
+                    "心跳超时$where：${READ_TIMEOUT_MS / 1000} 秒内没收到服务端任何数据（连接已失活，自动重连）"
+                } else {
+                    "连接超时$where"
+                }
             is java.net.ConnectException -> "无法连接$where：${t.message.orEmpty()}"
             is IllegalArgumentException -> t.message ?: "地址不正确"
             else -> (t.message ?: t.javaClass.simpleName) + where
@@ -198,6 +219,41 @@ internal class HaWebSocketClient(
 
     private fun authFrame(): String =
         "{\"type\":\"auth\",\"access_token\":${org.json.JSONObject.quote(accessToken)}}"
+
+    /**
+     * 心跳线程：定期发 PING，服务端必须回 PONG（RFC 6455）。
+     *
+     * 它的价值不在 PONG 本身，而在于**让 [socket] 的读超时永远不会静默发生**：
+     * 连接健康时每个心跳间隔内都有帧进出，读不会超时；
+     * 连接已失活（半开）时读会在 [READ_TIMEOUT_MS] 后抛 `SocketTimeoutException`，
+     * 由 [run] 转成一次失败回调，交给 [HaSession] 退避重连。
+     *
+     * 写入失败（socket 已关）同样直接判失败，不必等读超时。
+     */
+    private fun startHeartbeat() {
+        if (heartbeatThread != null) return
+        heartbeatThread = Thread({
+            while (!stopped && !finished) {
+                try {
+                    Thread.sleep(HEARTBEAT_INTERVAL_MS)
+                } catch (_: InterruptedException) {
+                    break
+                }
+                if (stopped || finished) break
+                // 认证前不发心跳：协议层虽然已经可用，但还没确认令牌，先让认证流程自己超时。
+                if (!authenticated) continue
+                try {
+                    writeFrame(OPCODE_PING, HEARTBEAT_PAYLOAD)
+                } catch (t: Throwable) {
+                    fail("心跳发送失败：${t.message ?: t.javaClass.simpleName}", authFailed = false)
+                    break
+                }
+            }
+        }, HEARTBEAT_THREAD_NAME).apply {
+            isDaemon = true
+            start()
+        }
+    }
 
     private fun handshake(input: InputStream, stream: OutputStream, target: Target) {
         val random = ByteArray(16).also { SecureRandom().nextBytes(it) }
@@ -405,8 +461,24 @@ internal class HaWebSocketClient(
 
     private companion object {
         const val THREAD_NAME = "HyperIsland-HA-WS"
+        const val HEARTBEAT_THREAD_NAME = "HyperIsland-HA-Ping"
         const val WEBSOCKET_PATH = "/api/websocket"
         const val CONNECT_TIMEOUT_MS = 10_000
+
+        /** 握手（发请求 → 读到 101 + 空行）的最长等待。 */
+        const val HANDSHAKE_TIMEOUT_MS = 15_000
+
+        /**
+         * 长连接的读超时：超过这个时间没有任何字节进来就判定连接失活。
+         *
+         * 必须显著大于 [HEARTBEAT_INTERVAL_MS]，否则健康连接也会被误判。
+         */
+        const val READ_TIMEOUT_MS = 75_000
+
+        /** 心跳间隔；HA（aiohttp）会自动回 PONG。 */
+        const val HEARTBEAT_INTERVAL_MS = 25_000L
+
+        val HEARTBEAT_PAYLOAD = ByteArray(0)
         const val MAX_PAYLOAD_BYTES = 8 * 1024 * 1024
         const val MAX_HEADER_LINE = 8 * 1024
         const val OPCODE_CONTINUATION = 0x0
