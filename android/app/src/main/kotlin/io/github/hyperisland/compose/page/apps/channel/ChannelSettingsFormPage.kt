@@ -46,6 +46,7 @@ import io.github.hyperisland.compose.data.channel.OPTION_DEFAULT
 import io.github.hyperisland.compose.data.channel.OPTION_FOLLOW_DYNAMIC
 import io.github.hyperisland.compose.data.channel.OPTION_OFF
 import io.github.hyperisland.compose.data.channel.OPTION_ON
+import io.github.hyperisland.compose.data.channel.RENDERER_BASE_TEXT_PROGRESS
 import io.github.hyperisland.compose.data.channel.RENDERER_IMAGE_TEXT_BUTTONS
 import io.github.hyperisland.compose.data.channel.RENDERER_IMAGE_TEXT_PROGRESS
 import io.github.hyperisland.compose.data.channel.RENDERER_IMAGE_TEXT_RIGHT_BUTTON
@@ -192,6 +193,7 @@ internal fun ChannelSettingsFormPage(
                         RENDERER_IMAGE_TEXT_WRAP,
                         RENDERER_IMAGE_TEXT_RIGHT_BUTTON,
                         RENDERER_IMAGE_TEXT_PROGRESS,
+                        RENDERER_BASE_TEXT_PROGRESS,
                     ),
                     labels = optionalLabels(
                         isBatch,
@@ -200,6 +202,7 @@ internal fun ChannelSettingsFormPage(
                         stringResource(R.string.renderer_image_text_wrap),
                         stringResource(R.string.renderer_image_text_right_button),
                         stringResource(R.string.renderer_image_text_progress),
+                        stringResource(R.string.renderer_base_text_progress),
                     ),
                 ) { onStateChange(state.copy(renderer = it)) }
             }

@@ -142,6 +142,7 @@ internal val ConfigSectionGroups: List<ConfigSection> = listOf(
                     "pref_round_icon_radius",
                     "pref_round_icon",
                     "pref_island_icon_padding",
+                    "pref_island_icon_color_mode",
                 ),
             ),
             ConfigSection(

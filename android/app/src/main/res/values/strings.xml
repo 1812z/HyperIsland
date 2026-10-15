@@ -798,6 +798,8 @@
     <string name="icon_size">Icon size</string>
     <string name="round_icon_radius">Corner roundness</string>
     <string name="icon_padding">Icon padding</string>
+    <string name="icon_color">Icon color</string>
+    <string name="icon_color_summary">Only applies to pure white icons</string>
     <string name="outline_control">Outline controls</string>
     <string name="always_island_outline">Always show island outline</string>
     <string name="always_focus_outline">Always show Focus Notification outline</string>
@@ -917,6 +919,7 @@
     <string name="renderer_image_text_wrap">Cover Info+Auto Wrap</string>
     <string name="renderer_image_text_right_button">Image+Text+Right Text Button</string>
     <string name="renderer_image_text_progress">IM Image+Text+Progress</string>
+    <string name="renderer_base_text_progress">Text+Icon+Progress</string>
     <string name="channel_enable_island">Enable island</string>
     <string name="channel_icon_source">Icon style</string>
     <string name="icon_auto">Auto</string>

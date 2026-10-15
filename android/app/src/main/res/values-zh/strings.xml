@@ -923,6 +923,7 @@
     <string name="renderer_image_text_wrap">封面组件 + 自动换行</string>
     <string name="renderer_image_text_right_button">新图文组件 + 右侧文本按钮</string>
     <string name="renderer_image_text_progress">IM图文组件 + 进度条组件</string>
+    <string name="renderer_base_text_progress">文本组件 + 识别图形 + 进度条</string>
     <string name="channel_enable_island">启用岛</string>
     <string name="channel_icon_source">图标样式</string>
     <string name="icon_auto">自动</string>

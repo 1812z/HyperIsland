@@ -32,6 +32,7 @@ interface IslandTemplate {
             TemplatePlaceholder("raw_subtitle_or_title"),
             TemplatePlaceholder("pkg"),
             TemplatePlaceholder("channel_id"),
+            TemplatePlaceholder("progress_text"),
         )
 
     /** 焦点高级自定义可用的扩展占位符。 */
