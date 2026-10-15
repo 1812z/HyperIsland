@@ -198,6 +198,10 @@ internal object TextColorPolicy {
                     text
                 }
                 accessors.setOldAppearance.invoke(span, spanText, color)
+                // 同步“新文本”外观与前景色：倒计时数字更新时，进入动画用 span 的
+                // mNewTextColor/mForegroundColor 绘制新数字；只改旧外观会让更新的数字恢复原色。
+                accessors.setNewAppearance?.invoke(span, color)
+                accessors.foregroundField?.setInt(span, color)
             }
         }
         textView.invalidate()
@@ -229,6 +233,9 @@ internal object TextColorPolicy {
         val setOldAppearance = spanClass.methods.firstOrNull { method ->
             method.name == "setOldTextAppearance" && method.parameterTypes.size == 2
         } ?: return null
+        val setNewAppearance = spanClass.methods.firstOrNull { method ->
+            method.name == "setNewTextAppearance" && method.parameterTypes.size == 1
+        }
         val newColorField = runCatching {
             spanClass.getDeclaredField("mNewTextColor").apply { isAccessible = true }
         }.getOrNull()
@@ -241,6 +248,7 @@ internal object TextColorPolicy {
         return EffectAccessors(
             spanClass,
             setOldAppearance,
+            setNewAppearance,
             newColorField,
             oldColorField,
             foregroundField,
@@ -252,6 +260,7 @@ internal object TextColorPolicy {
     private data class EffectAccessors(
         val spanClass: Class<*>,
         val setOldAppearance: Method,
+        val setNewAppearance: Method?,
         val newColorField: Field?,
         val oldColorField: Field?,
         val foregroundField: Field?,

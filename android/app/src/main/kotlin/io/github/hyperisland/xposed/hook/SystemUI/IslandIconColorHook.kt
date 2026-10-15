@@ -5,7 +5,9 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffColorFilter
+import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.Animatable
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
@@ -68,8 +70,14 @@ object IslandIconColorHook : BaseHook() {
     )
     private val blackFilter = PorterDuffColorFilter(Color.BLACK, PorterDuff.Mode.SRC_IN)
     private val diagnosticCount = AtomicInteger(0)
-    private val statusBarTintListener: (Int) -> Unit = {
-        if (currentMode() != MODE_BLACK) reapplyTrackedIcons()
+    @Volatile private var lastStatusBarFilterState: Boolean? = null
+    private val statusBarTintListener: (Int) -> Unit = listener@{
+        if (currentMode() == MODE_BLACK || currentMode() == MODE_DEFAULT) return@listener
+        val shouldUseFilter = shouldUseBlackFilter()
+        if (lastStatusBarFilterState != shouldUseFilter) {
+            lastStatusBarFilterState = shouldUseFilter
+            reapplyTrackedIcons()
+        }
     }
 
     override fun getTag() = TAG
@@ -83,6 +91,7 @@ object IslandIconColorHook : BaseHook() {
     }
 
     override fun onConfigChanged() {
+        lastStatusBarFilterState = null
         reapplyTrackedIcons()
     }
 
@@ -164,7 +173,15 @@ object IslandIconColorHook : BaseHook() {
     }
 
     private fun applyToIcon(imageView: ImageView) {
-        if (currentMode() == MODE_DEFAULT) {
+        val mode = currentMode()
+        if (mode == MODE_DEFAULT) {
+            restoreIfNeeded(imageView)
+            return
+        }
+        // Do not inspect or draw the Drawable when the current status-bar mode says
+        // the icon should remain untouched. This is important for animated Drawables:
+        // an off-screen sampling draw can disturb their bounds/animation state.
+        if (!shouldUseBlackFilter(mode)) {
             restoreIfNeeded(imageView)
             return
         }
@@ -190,7 +207,7 @@ object IslandIconColorHook : BaseHook() {
         }
 
         val shouldInvert = isNearWhite(drawable)
-        if (shouldInvert && shouldUseBlackFilter()) {
+        if (shouldInvert) {
             synchronized(originalFilters) {
                 if (!originalFilters.containsKey(imageView) && imageView.colorFilter !== blackFilter) {
                     originalFilters[imageView] = imageView.colorFilter
@@ -202,7 +219,7 @@ object IslandIconColorHook : BaseHook() {
         }
     }
 
-    private fun shouldUseBlackFilter(): Boolean = when (currentMode()) {
+    private fun shouldUseBlackFilter(mode: String = currentMode()): Boolean = when (mode) {
         MODE_DEFAULT -> false
         MODE_FOLLOW_STATUS_BAR -> statusBarTintIsBlack()
         MODE_INVERT_STATUS_BAR -> !statusBarTintIsBlack()
@@ -227,6 +244,15 @@ object IslandIconColorHook : BaseHook() {
     }
 
     private fun isNearWhite(source: Drawable): Boolean {
+        // BitmapDrawable is the common notification-icon path. Inspect its pixels directly;
+        // never change bounds or draw it into an off-screen Canvas.
+        if (source is BitmapDrawable) {
+            return isNearWhite(source.bitmap)
+        }
+        // Animated/vector drawables are deliberately left alone unless SystemUI exposes a
+        // stable ConstantState clone. Sampling the live instance can disturb its animation
+        // bounds and cause the icon to render at the top-left after a tint update.
+        if (source is Animatable && source.constantState == null) return false
         val sourceState = source.constantState
         if (sourceState != null) {
             synchronized(whiteResults) {
@@ -270,6 +296,35 @@ object IslandIconColorHook : BaseHook() {
             }
         }
         return result
+    }
+
+    private fun isNearWhite(bitmap: Bitmap): Boolean {
+        val width = bitmap.width
+        val height = bitmap.height
+        if (width <= 0 || height <= 0) return false
+        val stepX = (width / ICON_SAMPLE_SIZE).coerceAtLeast(1)
+        val stepY = (height / ICON_SAMPLE_SIZE).coerceAtLeast(1)
+        var visible = 0
+        var white = 0
+        var y = 0
+        while (y < height) {
+            var x = 0
+            while (x < width) {
+                val pixel = bitmap.getPixel(x, y)
+                if (Color.alpha(pixel) >= 24) {
+                    visible++
+                    if (Color.red(pixel) >= WHITE_THRESHOLD &&
+                        Color.green(pixel) >= WHITE_THRESHOLD &&
+                        Color.blue(pixel) >= WHITE_THRESHOLD
+                    ) {
+                        white++
+                    }
+                }
+                x += stepX
+            }
+            y += stepY
+        }
+        return visible >= MIN_VISIBLE_PIXELS && white.toFloat() / visible >= MIN_WHITE_RATIO
     }
 
     private fun isSideModule(module: Any?): Boolean {
