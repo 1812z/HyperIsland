@@ -19,7 +19,6 @@ import ReleaseHistory from './.vitepress/components/ReleaseHistory.vue'
 - 修复${progress_text}占位符
 - 优化界面显示
 - 优化动画性能
-- 修复圆角导致卡顿问题
 
 
 # V3.1.10(2026-10-13)
