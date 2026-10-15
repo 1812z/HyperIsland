@@ -8,6 +8,20 @@ import ReleaseHistory from './.vitepress/components/ReleaseHistory.vue'
 
 <div class="changelog-source" hidden>
 
+# V3.2.0(2026-10-15)
+## 功能
+- 支持 HomeAssistant 数据上岛
+- 新增图标反色功能
+- 新增 ⽂本组件1 + 识别图形组件1 + 进度组件2 模板
+- 文本反色适配更多场景（如电话场景）
+
+## 优化 & 修复
+- 修复${progress_text}占位符
+- 优化界面显示
+- 优化动画性能
+- 修复圆角导致卡顿问题
+
+
 # V3.1.10(2026-10-13)
 ## 功能
 - 预设支持更新/编辑/查看状态等操作
