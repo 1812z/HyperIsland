@@ -21,8 +21,10 @@ import java.util.WeakHashMap
  * 此时子类根本不会调用 `setTextColor`，文字直接用布局默认色（白色）。所以不能靠拦截
  * `setTextColor` 来改色，必须在 holder 绑定后主动遍历它自己的模块子树并重刷颜色。
  *
- * 作用范围严格限定在焦点通知模块（按 getIsland/getDynamicIsland 等标记方法是否声明判定，
- * 岛/焦点卡片/fake 岛各布局变体都会命中，不依赖其返回值），不触碰超级岛、媒体通知与状态栏。
+ * 作用范围严格限定在**动态岛展开态**的焦点通知模块（getIsland/getDynamicIsland 等标记方法
+ * 返回 true；焦点通知卡片——即下拉通知中心里的那一条——返回 false，必须排除），不触碰超级岛、
+ * 媒体通知、通知中心与状态栏。带 `miui.focus.rv` 的自定义焦点通知（如来电）不走 ModuleViewHolder，
+ * 另经 FocusNotificationContent#setIslandExpandedView 覆盖。
  */
 object FocusNotificationTextColorHook : BaseHook() {
 
@@ -98,6 +100,45 @@ object FocusNotificationTextColorHook : BaseHook() {
                 logError(module, "failed to hook $DYNAMIC_ISLAND_EVENT_COORDINATOR_CLASS: ${error.message}")
             }
         }
+
+        runCatching {
+            val contentClass = classLoader.loadClass(FOCUS_CONTENT_CLASS)
+            if (hookedClasses.add(contentClass)) {
+                hookIslandExpandedView(module, contentClass)
+            }
+        }.onFailure { error ->
+            if (error !is ClassNotFoundException) {
+                logError(module, "failed to hook $FOCUS_CONTENT_CLASS: ${error.message}")
+            }
+        }
+    }
+
+    /**
+     * 自定义焦点通知（带 `miui.focus.rv` RemoteViews，如来电/通话中）不走
+     * [FOCUS_HOLDER_CLASS]（ModuleViewHolder），文字位于 app 下发的 RemoteViews 里。
+     * 这里只拦截“焦点岛展开视图”的设入点（`setIslandExpandedView`/`setIslandExpandedViewFake`）
+     * 并遍历其子树，绝不触碰下拉通知中心里的焦点通知卡片。
+     */
+    private fun hookIslandExpandedView(module: XposedModule, contentClass: Class<*>) {
+        contentClass.declaredMethods
+            .filter { method ->
+                (method.name == "setIslandExpandedView" ||
+                    method.name == "setIslandExpandedViewFake") &&
+                    method.parameterTypes.size == 1 &&
+                    View::class.java.isAssignableFrom(method.parameterTypes[0])
+            }
+            .forEach { method ->
+                method.isAccessible = true
+                module.hook(method).intercept { chain ->
+                    val result = chain.proceed()
+                    val view = chain.args.getOrNull(0) as? View
+                    if (view != null && TextColorPolicy.isConfigured(currentMode())) {
+                        scheduleViewWalk(view)
+                    }
+                    result
+                }
+                log(module) { "hooked ${contentClass.name}#${method.name}" }
+            }
     }
 
     private fun hookHolderLifecycle(module: XposedModule, holderClass: Class<*>) {
@@ -123,6 +164,11 @@ object FocusNotificationTextColorHook : BaseHook() {
     private fun scheduleWalk(holder: Any) {
         if (!TextColorPolicy.isConfigured(currentMode())) return
         val root = getHolderView(holder) ?: return
+        scheduleViewWalk(root)
+    }
+
+    /** 主线程去重遍历 [root] 子树并重刷灰度文本颜色。 */
+    private fun scheduleViewWalk(root: View) {
         val token = Any()
         synchronized(pendingWalks) { pendingWalks[root] = token }
         mainHandler.post {
@@ -250,22 +296,19 @@ object FocusNotificationTextColorHook : BaseHook() {
     // ---------------------------------------------------------------------------------------------
 
     /**
-     * 判定是否为焦点通知模块 holder。
+     * 判定是否为焦点通知模块的“岛”（展开态）holder。
      *
-     * 只按“是否声明了岛标记方法”判定，**不看返回值**：这些 getIsland/getDynamicIsland 等
-     * 方法在焦点模块各布局变体上都会声明（岛=false、焦点卡片=false、fake 岛=true），返回值
-     * 只代表布局朝向而非是否焦点模块。若要求返回 true，焦点卡片（如来电/通话中）会被整段跳过。
+     * getIsland/getDynamicIsland/getFakeDynamicIsland/isDynamicIsland 只有焦点模块各布局变体
+     * 才声明，且只有动态岛展开态变体返回 true；焦点通知卡片（下拉通知中心里的那一条）返回
+     * false。这里必须要求返回 true，否则会误改通知中心的文本颜色。
      */
     private fun isFocusHolder(holder: Any): Boolean =
         ISLAND_MARKER_METHODS.any { methodName ->
             runCatching {
-                holder.javaClass.methods.any { method ->
-                    method.name == methodName &&
-                        method.parameterTypes.isEmpty() &&
-                        (method.returnType == java.lang.Boolean.TYPE ||
-                            method.returnType == java.lang.Boolean::class.java)
-                }
-            }.getOrDefault(false)
+                holder.javaClass.methods.firstOrNull { method ->
+                    method.name == methodName && method.parameterTypes.isEmpty()
+                }?.invoke(holder) as? Boolean
+            }.getOrNull() == true
         }
 
     private fun getHolderView(holder: Any): View? = runCatching {
@@ -298,6 +341,8 @@ object FocusNotificationTextColorHook : BaseHook() {
 
     private const val FOCUS_HOLDER_CLASS =
         "miui.systemui.notification.focus.moduleV3.ModuleViewHolder"
+    private const val FOCUS_CONTENT_CLASS =
+        "com.android.systemui.plugins.miui.notification.FocusNotificationContent"
     private const val DYNAMIC_ISLAND_EVENT_COORDINATOR_CLASS =
         "miui.systemui.dynamicisland.event.DynamicIslandEventCoordinator"
 }
