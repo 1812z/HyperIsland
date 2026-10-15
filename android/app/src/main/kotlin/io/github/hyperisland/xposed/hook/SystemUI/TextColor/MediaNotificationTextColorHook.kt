@@ -6,7 +6,6 @@ import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
 import android.service.notification.StatusBarNotification
-import android.text.Spanned
 import android.view.Choreographer
 import android.view.View
 import android.view.ViewGroup
@@ -27,11 +26,6 @@ object MediaNotificationTextColorHook : BaseHook() {
 
     private const val TAG = "HyperIsland[MediaNotificationTextColor]"
     private const val KEY_TEXT_COLOR_MODE = "pref_media_notification_text_color_mode"
-
-    private const val MODE_DEFAULT = "default"
-    private const val MODE_BLACK = "black"
-    private const val MODE_FOLLOW_STATUS_BAR = "follow_status_bar"
-    private const val MODE_INVERT_STATUS_BAR = "invert_status_bar"
 
     private val hookedClasses = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>())
@@ -66,7 +60,9 @@ object MediaNotificationTextColorHook : BaseHook() {
 
     private val statusBarTintListener: (Int) -> Unit = {
         val mode = getConfiguredMode()
-        if (mode == MODE_FOLLOW_STATUS_BAR || mode == MODE_INVERT_STATUS_BAR) {
+        if (mode == TextColorPolicy.MODE_FOLLOW_STATUS_BAR ||
+            mode == TextColorPolicy.MODE_INVERT_STATUS_BAR
+        ) {
             if (islandAnimationRunning || tintRefreshScheduled) {
                 pendingTintRefresh = true
             } else {
@@ -347,44 +343,44 @@ object MediaNotificationTextColorHook : BaseHook() {
         }
     }
 
-    private fun applyExpandedMediaTextColor(textView: TextView, subtitle: Boolean) {
+private fun applyExpandedMediaTextColor(textView: TextView, subtitle: Boolean) {
         val originals = if (subtitle) subtitleColors else titleColors
+        var source = 0
         synchronized(originals) {
-            if (!originals.containsKey(textView)) {
+            val existing = originals[textView]
+            if (existing == null) {
                 if (originals.size >= MAX_TRACKED_VIEWS) return
-                originals[textView] = textView.textColors
+                val current = textView.textColors
+                originals[textView] = current
+                source = current.defaultColor
                 ensureAttachRefresh(textView, subtitle)
+            } else {
+                source = existing.defaultColor
             }
         }
-        val mode = getConfiguredMode()
-        if (mode == MODE_DEFAULT) return
-        val color = resolveTargetColor(mode, subtitle)
-        applyTextColor(textView, color)
+        val target = mapFromOriginal(source) ?: return
+        TextColorPolicy.apply(textView, target)
         synchronized(pendingPostViews) {
             if (pendingPostViews.containsKey(textView)) return
             val targetReference = WeakReference(textView)
             val refresh = Runnable {
-                val target = targetReference.get() ?: return@Runnable
-                pendingPostViews.remove(target)
-                val currentMode = getConfiguredMode()
-                if (currentMode != MODE_DEFAULT) {
-                    applyTextColor(target, resolveTargetColor(currentMode, subtitle))
-                }
+                val view = targetReference.get() ?: return@Runnable
+                pendingPostViews.remove(view)
+                mapFromOriginal(source)?.let { TextColorPolicy.apply(view, it) }
             }
             pendingPostViews[textView] = refresh
             if (!textView.post(refresh)) pendingPostViews.remove(textView)
         }
     }
 
-    private fun ensureAttachRefresh(textView: TextView, subtitle: Boolean) {
+private fun ensureAttachRefresh(textView: TextView, subtitle: Boolean) {
         if (!attachRefreshViews.add(textView)) return
+        val originals = if (subtitle) subtitleColors else titleColors
         textView.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
             override fun onViewAttachedToWindow(view: View) {
                 val target = view as? TextView ?: return
-                val mode = getConfiguredMode()
-                if (mode != MODE_DEFAULT) {
-                    applyTextColor(target, resolveTargetColor(mode, subtitle))
-                }
+                val source = synchronized(originals) { originals[target]?.defaultColor } ?: return
+                mapFromOriginal(source)?.let { TextColorPolicy.apply(target, it) }
             }
 
             override fun onViewDetachedFromWindow(view: View) {
@@ -396,36 +392,50 @@ object MediaNotificationTextColorHook : BaseHook() {
     }
 
     private fun refreshTrackedColors() {
-        val mode = getConfiguredMode()
-        if (mode == MODE_DEFAULT) return
-        trackedViews(titleColors).filter { it.isAttachedToWindow }
-            .forEach { applyTextColor(it, resolveTargetColor(mode, false)) }
-        trackedViews(subtitleColors).filter { it.isAttachedToWindow }
-            .forEach { applyTextColor(it, resolveTargetColor(mode, true)) }
+        if (!TextColorPolicy.isConfigured(getConfiguredMode())) return
+        refreshTracked(titleColors)
+        refreshTracked(subtitleColors)
+    }
+
+    private fun refreshTracked(originals: MutableMap<TextView, ColorStateList>) {
+        trackedViews(originals).filter { it.isAttachedToWindow }.forEach { textView ->
+            val source = synchronized(originals) { originals[textView]?.defaultColor } ?: return@forEach
+            mapFromOriginal(source)?.let { TextColorPolicy.apply(textView, it) }
+        }
     }
 
     private fun reapplyTrackedColors() {
         val mode = getConfiguredMode()
-        reapplyTrackedColors(titleColors, mode, false)
-        reapplyTrackedColors(subtitleColors, mode, true)
+        reapplyTrackedColors(titleColors, mode)
+        reapplyTrackedColors(subtitleColors, mode)
     }
 
     private fun reapplyTrackedColors(
         originals: MutableMap<TextView, ColorStateList>,
         mode: String,
-        subtitle: Boolean,
     ) {
         trackedViews(originals).forEach { textView ->
-            if (mode == MODE_DEFAULT) {
-                originals[textView]?.let { colors ->
-                    applyTextColor(textView, colors.defaultColor)
-                    textView.setTextColor(colors)
+            val colors = synchronized(originals) { originals[textView] }
+            if (mode == TextColorPolicy.MODE_DEFAULT || colors == null) {
+                colors?.let {
+                    TextColorPolicy.apply(textView, it.defaultColor)
+                    textView.setTextColor(it)
                 }
             } else {
-                applyTextColor(textView, resolveTargetColor(mode, subtitle))
+                mapFromOriginal(colors.defaultColor)?.let { TextColorPolicy.apply(textView, it) }
             }
         }
     }
+
+    private fun mapFromOriginal(color: Int): Int? = TextColorPolicy.map(
+        color = color,
+        mode = getConfiguredMode(),
+        regionDark = false,
+        statusBarTintBlack = statusBarTintBlack(),
+    )
+
+    private fun statusBarTintBlack(): Boolean =
+        StatusBarTextColorHook.getReadableTint() == Color.BLACK
 
     private fun trackedViews(colors: MutableMap<TextView, ColorStateList>): List<TextView> {
         return synchronized(colors) { colors.keys.toList() }
@@ -541,67 +551,13 @@ object MediaNotificationTextColorHook : BaseHook() {
         }.getOrDefault(false)
     }
 
-    private fun applyTextColor(textView: TextView, color: Int) {
-        val updateMethod = textView.javaClass.methods.firstOrNull { method ->
-            method.name == "updateTextWithNewAppearance" && method.parameterTypes.size == 2
+    private fun getConfiguredMode(): String =
+        when (val mode = ConfigManager.getString(KEY_TEXT_COLOR_MODE, TextColorPolicy.MODE_DEFAULT)) {
+            TextColorPolicy.MODE_BLACK,
+            TextColorPolicy.MODE_FOLLOW_STATUS_BAR,
+            TextColorPolicy.MODE_INVERT_STATUS_BAR -> mode
+            else -> TextColorPolicy.MODE_DEFAULT
         }
-        if (updateMethod == null) {
-            if (textView.currentTextColor != color) textView.setTextColor(color)
-            return
-        }
-
-        val text = textView.text as? Spanned
-        val classLoader = textView.javaClass.classLoader ?: return
-        val spanClass = runCatching {
-            classLoader.loadClass("miuix.colorful.texteffect.TimerTextEffectSpan")
-        }.getOrNull()
-        val appearanceMethod = spanClass?.methods?.firstOrNull { method ->
-            method.name == "setOldTextAppearance" && method.parameterTypes.size == 2
-        }
-        val spans = if (text != null && spanClass != null) {
-            text.getSpans(0, text.length, spanClass)
-        } else {
-            emptyArray()
-        }
-        if (appearanceMethod == null || spans.isEmpty() ||
-            runCatching { appearanceMethod.invoke(spans[0], text, color) }.isFailure
-        ) {
-            textView.setTextColor(color)
-            return
-        }
-        textView.setTextColor(color)
-        textView.invalidate()
-    }
-
-    private fun resolveTargetColor(mode: String, subtitle: Boolean): Int {
-        val primaryColor = when (mode) {
-            MODE_BLACK -> Color.BLACK
-            MODE_FOLLOW_STATUS_BAR -> StatusBarTextColorHook.getReadableTint()
-            MODE_INVERT_STATUS_BAR -> {
-                if (isLightColor(StatusBarTextColorHook.getReadableTint())) Color.BLACK else Color.WHITE
-            }
-            else -> Color.WHITE
-        }
-        return if (subtitle) resolveSubtitleColor(primaryColor) else primaryColor
-    }
-
-    private fun resolveSubtitleColor(primaryColor: Int): Int {
-        return if (isLightColor(primaryColor)) MEDIA_SUBTITLE_LIGHT else MEDIA_SUBTITLE_DARK
-    }
-
-    private fun getConfiguredMode(): String {
-        return when (val mode = ConfigManager.getString(KEY_TEXT_COLOR_MODE, MODE_DEFAULT)) {
-            MODE_BLACK, MODE_FOLLOW_STATUS_BAR, MODE_INVERT_STATUS_BAR -> mode
-            else -> MODE_DEFAULT
-        }
-    }
-
-    private fun isLightColor(color: Int): Boolean {
-        return Color.red(color) * 299 + Color.green(color) * 587 +
-            Color.blue(color) * 114 >= 128000
-    }
-
-    private fun Int.toColorHex(): String = "#%08X".format(this)
 
     private val MEDIA_TITLE_IDS = listOf("header_title", "title", "audio_title", "media_title")
     private val MEDIA_SUBTITLE_IDS = listOf(
@@ -613,8 +569,6 @@ object MediaNotificationTextColorHook : BaseHook() {
         "text",
         "text2",
     )
-    private const val MEDIA_SUBTITLE_DARK = 0xFF555555.toInt()
-    private const val MEDIA_SUBTITLE_LIGHT = 0xFFB3B3B3.toInt()
     private const val DYNAMIC_ISLAND_CONTENT_VIEW_CLASS =
         "miui.systemui.dynamicisland.window.content.DynamicIslandContentView"
     private const val DYNAMIC_ISLAND_WINDOW_VIEW_CLASS =

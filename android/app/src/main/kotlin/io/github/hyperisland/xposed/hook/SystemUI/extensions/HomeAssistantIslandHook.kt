@@ -1224,13 +1224,13 @@ object HomeAssistantIslandHook : BaseHook() {
         for (entity in candidates) {
             if (entity.icon.isBlank()) continue
             val result = HomeAssistantIconResolver.resolveWithDiagnostics(entity.icon, context)
-            moduleRef?.let { module ->
-                log(module) {
-                    "ha-icon resolve subscription=${subscription.id} entity=${entity.entityId} " +
-                        "input=${result.input} normalized=${result.normalized} enum=${result.matchedEnum} " +
-                        "pixels=${result.renderedPixels} reason=${result.reason}"
-                }
-            }
+//            moduleRef?.let { module ->
+//                log(module) {
+//                    "ha-icon resolve subscription=${subscription.id} entity=${entity.entityId} " +
+//                        "input=${result.input} normalized=${result.normalized} enum=${result.matchedEnum} " +
+//                        "pixels=${result.renderedPixels} reason=${result.reason}"
+//                }
+//            }
             if (result.icon != null) return result.icon
         }
         moduleRef?.let { module -> log(module) { "ha-icon resolve subscription=${subscription.id} result=no-icon-candidate" } }
