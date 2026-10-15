@@ -804,6 +804,8 @@
     <string name="icon_size">图标大小</string>
     <string name="round_icon_radius">圆角程度</string>
     <string name="icon_padding">图标边距</string>
+    <string name="icon_color">图标颜色</string>
+    <string name="icon_color_summary">仅适用于纯白图标</string>
     <string name="outline_control">轮廓控制</string>
     <string name="always_island_outline">常驻显示岛轮廓</string>
     <string name="always_focus_outline">常驻显示焦点通知轮廓</string>

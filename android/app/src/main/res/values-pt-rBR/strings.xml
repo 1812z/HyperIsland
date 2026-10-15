@@ -428,6 +428,8 @@
     <string name="icon_notification_large">Ícone grande de notificação</string>
     <string name="icon_notification_small">Ícone pequeno de notificação</string>
     <string name="icon_padding">Preenchimento do ícone (Padding)</string>
+    <string name="icon_color">Cor do ícone</string>
+    <string name="icon_color_summary">Aplica-se somente a ícones totalmente brancos</string>
     <string name="icon_size">Tamanho do ícone</string>
     <string name="ignore_ongoing">Ignorar notificações em andamento</string>
     <string name="import_channels">Importar configurações de canal</string>

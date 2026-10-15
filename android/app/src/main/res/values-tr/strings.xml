@@ -761,6 +761,8 @@
     <string name="icon_size">Simge boyutu</string>
     <string name="round_icon_radius">Köşe yuvarlaklığı</string>
     <string name="icon_padding">Simge dolgusu</string>
+    <string name="icon_color">Simge rengi</string>
+    <string name="icon_color_summary">Yalnızca tamamen beyaz simgelere uygulanır</string>
     <string name="outline_control">Dış hat denetimi</string>
     <string name="always_island_outline">Ada dış hattını hep göster</string>
     <string name="always_focus_outline">Odak bildirimi hattını hep göster</string>

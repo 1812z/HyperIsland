@@ -708,6 +708,8 @@
     <string name="icon_size">アイコンサイズ</string>
     <string name="round_icon_radius">角の丸み</string>
     <string name="icon_padding">アイコンの余白</string>
+    <string name="icon_color">アイコンの色</string>
+    <string name="icon_color_summary">純白のアイコンにのみ適用</string>
     <string name="outline_control">アウトライン制御</string>
     <string name="always_island_outline">アイランドのアウトラインを常に表示</string>
     <string name="always_focus_outline">フォーカス通知のアウトラインを常に表示</string>

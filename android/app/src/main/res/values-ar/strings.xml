@@ -436,6 +436,8 @@
     <string name="icon_notification_large">أيقونة الإشعار الكبيرة</string>
     <string name="icon_notification_small">أيقونة الإشعار الصغيرة</string>
     <string name="icon_padding">هامش داخلي الأيقونة</string>
+    <string name="icon_color">لون الأيقونة</string>
+    <string name="icon_color_summary">ينطبق فقط على الأيقونات البيضاء بالكامل</string>
     <string name="icon_size">حجم الأيقونة</string>
     <string name="ignore_ongoing">تجاهل الإشعارات المستمرة</string>
     <string name="import_channels">استيراد إعدادات القناة</string>

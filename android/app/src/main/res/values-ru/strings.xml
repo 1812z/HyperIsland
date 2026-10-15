@@ -708,6 +708,8 @@
     <string name="icon_size">Размер значка</string>
     <string name="round_icon_radius">Степень скругления</string>
     <string name="icon_padding">Отступ значка</string>
+    <string name="icon_color">Цвет значка</string>
+    <string name="icon_color_summary">Применяется только к полностью белым значкам</string>
     <string name="outline_control">Управление контуром</string>
     <string name="always_island_outline">Всегда показывать контур острова</string>
     <string name="always_focus_outline">Всегда показывать контур фокус-уведомления</string>

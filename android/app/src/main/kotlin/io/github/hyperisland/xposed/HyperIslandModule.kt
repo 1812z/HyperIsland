@@ -39,6 +39,7 @@ import io.github.hyperisland.xposed.hook.SystemUI.ProxySourceHeadsUpSuppressHook
 import io.github.hyperisland.xposed.hook.SystemUI.WifiTileDisconnectHook
 import io.github.hyperisland.xposed.hook.IslandBackgroundHook
 import io.github.hyperisland.xposed.hook.SystemUI.geometry.IslandDimenHook
+import io.github.hyperisland.xposed.hook.SystemUI.IslandIconColorHook
 import io.github.hyperisland.xposed.hook.IslandDispatcherHook
 import io.github.hyperisland.xposed.hook.IslandOuterGlowHook
 import io.github.hyperisland.xposed.hook.IslandTextColorHook
@@ -90,6 +91,7 @@ class HyperIslandModule : XposedModule() {
                 IslandTextSizeHook.init(this, param)
                 BigIslandMinWidthHook.init(this, param)
                 IslandIconHook.init(this, param)
+                IslandIconColorHook.init(this, param)
                 UnlockAllFocusHook.init(this, param)
                 FocusNotifStatusBarIconHook.init(this, param)
                 IslandOuterGlowHook.init(this, param)

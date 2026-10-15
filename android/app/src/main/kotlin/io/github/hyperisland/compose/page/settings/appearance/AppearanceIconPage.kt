@@ -34,13 +34,14 @@ internal fun AppearanceIconPage(prefs: FlutterPrefsRepository, onBack: () -> Uni
         }
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
-                val iconColor = rememberStringPreference(prefs, KEY_ICON_COLOR, "black")
-                val values = listOf("black", "follow_status_bar", "invert_status_bar")
+                val iconColor = rememberStringPreference(prefs, KEY_ICON_COLOR, "default")
+                val values = listOf("default", "black", "follow_status_bar", "invert_status_bar")
                 PreferenceDropdown(
                     title = stringResource(R.string.icon_color),
                     summary = stringResource(R.string.icon_color_summary),
                     icon = null,
                     items = listOf(
+                        stringResource(R.string.default_option),
                         stringResource(R.string.black),
                         stringResource(R.string.follow_status_bar),
                         stringResource(R.string.invert_status_bar),
@@ -49,7 +50,7 @@ internal fun AppearanceIconPage(prefs: FlutterPrefsRepository, onBack: () -> Uni
                 ) { index ->
                     val value = values[index]
                     iconColor.value = value
-                    if (value == "black") prefs.remove(KEY_ICON_COLOR)
+                    if (value == "default") prefs.remove(KEY_ICON_COLOR)
                     else prefs.putString(KEY_ICON_COLOR, value)
                 }
             }
