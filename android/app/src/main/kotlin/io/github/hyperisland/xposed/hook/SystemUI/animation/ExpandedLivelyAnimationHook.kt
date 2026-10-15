@@ -84,6 +84,9 @@ object ExpandedLivelyAnimationHook : BaseHook() {
                 }
             val containerY = prop("CONTAINER_TRANS_Y")
             val containerX = runCatching { prop("CONTAINER_X") }.getOrNull()
+            val springProperties = verticalGeometry + horizontalGeometry +
+                listOf(scaleX, scaleY, bigScale, containerY, transY, bigTransY, smallTransY)
+            val fadeProperties = listOf(expandedAlpha, expandedBlur)
             val copyState = state.getMethod("set", state)
             val stateConstructor = state.getConstructor()
             val add = state.getMethod("add", property, Float::class.javaPrimitiveType, LongArray::class.java)
@@ -143,9 +146,8 @@ object ExpandedLivelyAnimationHook : BaseHook() {
                         floatArrayOf(if (bounce) baseDamping - .20f * active.momentum else 1f,
                             response + if (active.expanding) 0f else .04f))
                     val sharedSpring = spring(active.bounce)
-                    (verticalGeometry + horizontalGeometry +
-                        listOf(scaleX, scaleY, bigScale, containerY, transY, bigTransY, smallTransY)).forEach {
-                        special.invoke(config, it, sharedSpring, floatArrayOf())
+                        springProperties.forEach {
+                            special.invoke(config, it, sharedSpring, floatArrayOf())
                     }
                     // X returns monotonically; X endpoint overshoot is flight-owned.
                     containerX?.let { special.invoke(config, it, spring(false), floatArrayOf()) }
@@ -153,7 +155,7 @@ object ExpandedLivelyAnimationHook : BaseHook() {
                     val fadeResponse = .30f
                     val fade = getStyle.invoke(null, -2, floatArrayOf(1f, fadeResponse))
                     val fadeDelay = if (active.expanding) 45L else 85L
-                    listOf(expandedAlpha, expandedBlur).forEach {
+                    fadeProperties.forEach {
                         delayedSpecial.invoke(config, it, fade,
                             fadeDelay,
                             floatArrayOf())

@@ -13,6 +13,7 @@ import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.lang.ref.WeakReference
+import java.lang.reflect.Method
 import java.util.Collections
 import java.util.WeakHashMap
 
@@ -34,6 +35,17 @@ object ExpandedLayoutHook : BaseHook() {
     private val originalPadding = WeakHashMap<View, Padding>()
     private data class FixedHeight(var original: Int, var applied: Int)
     private val fixedHeights = WeakHashMap<View, FixedHeight>()
+    private val excludedStates = setOf(
+        "AppExpanded", "MiniWindowExpanded", "SubAppExpanded", "SubMiniWindowExpanded",
+    )
+    private data class Accessors(
+        val state: Method?,
+        val lastState: Method?,
+        val animating: Method?,
+        val expanded: Method?,
+        val fakeExpanded: Method?,
+    )
+    private val accessors = WeakHashMap<Class<*>, Accessors>()
     private val mainHandler = Handler(Looper.getMainLooper())
     @Volatile private var enabled = false
     @Volatile private var contentTopGapDp = 0
@@ -153,15 +165,48 @@ object ExpandedLayoutHook : BaseHook() {
     }
 
     private fun stateName(owner: View, getter: String): String? = runCatching {
-        findMethod(owner.javaClass, getter)?.invoke(owner)?.javaClass?.simpleName
+        accessor(owner, getter)?.invoke(owner)?.javaClass?.simpleName
     }.getOrNull()
+
+    private fun accessor(owner: View, getter: String): Method? {
+        val clazz = owner.javaClass
+        val cached = accessors[clazz]
+        if (cached != null) {
+            return when (getter) {
+                "getState" -> cached.state
+                "getLastState" -> cached.lastState
+                "isAnimating" -> cached.animating
+                "getExpandedView" -> cached.expanded
+                "getFakeExpandedView" -> cached.fakeExpanded
+                else -> findMethod(clazz, getter)
+            }
+        }
+        if (accessors.size >= 64) return findMethod(clazz, getter)
+        val resolved = Accessors(
+            state = runCatching { findMethod(clazz, "getState") }.getOrNull(),
+            lastState = runCatching { findMethod(clazz, "getLastState") }.getOrNull(),
+            animating = runCatching { findMethod(clazz, "isAnimating") }.getOrNull(),
+            expanded = runCatching { findMethod(clazz, "getExpandedView") }.getOrNull(),
+            fakeExpanded = runCatching { findMethod(clazz, "getFakeExpandedView") }.getOrNull(),
+        )
+        accessors[clazz] = resolved
+        return when (getter) {
+            "getState" -> resolved.state
+            "getLastState" -> resolved.lastState
+            "isAnimating" -> resolved.animating
+            "getExpandedView" -> resolved.expanded
+            "getFakeExpandedView" -> resolved.fakeExpanded
+            else -> findMethod(clazz, getter)
+        }
+    }
 
     private fun supported(owner: View): Boolean {
         if (!enabled || owner.resources.configuration.smallestScreenWidthDp >= 600) return false
         // App and miniwindow coordinates belong to the system's window-animation pipeline.
-        return stateName(owner, "getState") !in setOf("AppExpanded", "MiniWindowExpanded",
-            "SubAppExpanded", "SubMiniWindowExpanded")
+        return isSupportedState(stateName(owner, "getState"))
     }
+
+    private fun isSupportedState(state: String?): Boolean = state !in excludedStates
 
     private fun watch(owner: View) {
         if (watches.containsKey(owner)) return
@@ -201,25 +246,34 @@ object ExpandedLayoutHook : BaseHook() {
     }
 
     private fun updateLayer(owner: View) {
-        applyContentGap(owner)
-        val expanding = stateName(owner, "getState") == "Expanded"
+        val state = stateName(owner, "getState")
+        if (!enabled || owner.resources.configuration.smallestScreenWidthDp >= 600 ||
+            !isSupportedState(state)
+        ) {
+            applyContentGap(owner)
+            restoreOwner(owner)
+            return
+        }
+        applyContentGap(owner, supportedOverride = true)
+        val expanding = state == "Expanded"
         val animating = runCatching {
-            findMethod(owner.javaClass, "isAnimating")?.invoke(owner) == true
+            accessor(owner, "isAnimating")?.invoke(owner) == true
         }.getOrDefault(false)
         val leaving = stateName(owner, "getLastState") == "Expanded" && animating
-        if (topGapDp >= 0 && supported(owner) && (expanding || leaving)) lift(owner) else restoreOwner(owner)
+        if (topGapDp >= 0 && (expanding || leaving)) lift(owner) else restoreOwner(owner)
     }
 
     private fun contentSlot(owner: View): View? = runCatching {
         val getter = if (owner.javaClass.simpleName == "DynamicIslandContentFakeView") {
             "getFakeExpandedView"
         } else "getExpandedView"
-        findMethod(owner.javaClass, getter)?.invoke(owner) as? View
+        val slot = accessor(owner, getter)?.invoke(owner) as? View
+        slot
     }.getOrNull()
 
-    private fun applyContentGap(owner: View) {
+    private fun applyContentGap(owner: View, supportedOverride: Boolean? = null) {
         val slot = contentSlot(owner) ?: return
-        if (!supported(owner) || contentTopGapDp == 0) {
+        if (supportedOverride != true && !supported(owner) || contentTopGapDp == 0) {
             restorePadding(slot)
             return
         }
