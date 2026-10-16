@@ -221,8 +221,8 @@ object MarqueeHook : BaseHook() {
         // 只有未覆盖超时（系统超时仍正常）且确实没有文本时才不建会话。
         val hasText = enabled && hasMarqueeText(bigIslandView)
         val sessionLoops = if (loops > 0 && !hasText && !effectiveOverride) 0 else loops
-        trace { "apply enabled=$enabled loops=$loops override=$effectiveOverride text=$hasText " +
-                "island=${System.identityHashCode(bigIslandView)}" }
+//        trace { "apply enabled=$enabled loops=$loops override=$effectiveOverride text=$hasText " +
+//                "island=${System.identityHashCode(bigIslandView)}" }
         islandMarqueeState[bigIslandView] = enabled
         configureAutoHideSession(
             bigIslandView,
