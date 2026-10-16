@@ -38,6 +38,13 @@ object IslandDispatcher {
     fun post(context: Context, request: IslandRequest): Boolean =
         IslandDispatcherNotifier.post(context, request)
 
+    /**
+     * 本次代发实际使用的通知 ID。取消 / 预清空同一条代发通知时必须用同一个 ID，
+     * 否则会清错槽位（可见代发与「仅上岛」的代发槽位不同，见 [IslandDispatcherNotifier.resolveNotificationId]）。
+     */
+    fun resolveNotificationId(request: IslandRequest): Int =
+        IslandDispatcherNotifier.resolveNotificationId(request)
+
     fun sendBroadcast(context: Context, request: IslandRequest) {
         IslandDispatcherBroadcaster.send(context, request)
     }

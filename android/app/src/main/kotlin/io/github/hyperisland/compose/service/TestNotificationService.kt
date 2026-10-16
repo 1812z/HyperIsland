@@ -66,9 +66,11 @@ internal object TestNotificationService {
 
     private fun sendWithReset(context: Context, request: IslandRequest) {
         val appContext = context.applicationContext
+        // 必须先算出这次代发实际落到的通知槽位再取消：可见代发与「仅上岛」的代发槽位不同，
+        // 用 request.notifId 会清错槽位（见 IslandDispatcher.resolveNotificationId）。
         val cancelIntent = Intent(IslandDispatcher.ACTION_CANCEL).apply {
             setPackage("com.android.systemui")
-            putExtra(IslandDispatcher.EXTRA_NOTIF_ID, request.notifId)
+            putExtra(IslandDispatcher.EXTRA_NOTIF_ID, IslandDispatcher.resolveNotificationId(request))
         }
         val postAfterCancel = object : BroadcastReceiver() {
             override fun onReceive(receiverContext: Context?, intent: Intent?) {

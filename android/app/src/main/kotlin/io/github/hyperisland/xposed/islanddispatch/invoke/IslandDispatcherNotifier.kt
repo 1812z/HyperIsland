@@ -33,8 +33,39 @@ internal object IslandDispatcherNotifier {
     private const val OWNER_MARKER = "io.github.hyperisland"
     private const val EFFECT_SRC = "outer_glow"
     private const val KEEP_ISLAND_NOTIF_ID = 0x4B494B49
+
+    /** 可见代发通知的独立 ID 段（0x70000000–0x7FFFFFFF），与岛载体/常驻岛/计数岛等互不重叠。 */
+    private const val VISIBLE_NOTIF_ID_BASE = 0x70000000
+    private const val VISIBLE_NOTIF_ID_MASK = 0x0fffffff
+
     private val channelLock = Any()
     @Volatile private var channelReady = false
+
+    /**
+     * 解析本次代发实际使用的通知 ID。
+     *
+     * 代发通知承担两种互斥角色，必须分槽位，否则不同来源会互相覆盖：
+     *  - **岛载体**（`showNotification = false`，如普通通知模板 focusNotif=off 的仅上岛代发）：
+     *    所有来源有意共用 [IslandDispatchContract.NOTIF_ID]，岛只做「最近一条」的内容更新，
+     *    这样多条源通知在系统侧只对应一个通知槽，不会互相抢占，也不会残留旧岛。
+     *  - **可见焦点通知**（`showNotification = true`，如测试岛预览、Toast 转发保留通知）：
+     *    用户能在通知中心看到它，必须独占槽位。若复用岛载体槽位，其它软件来源的仅上岛代发
+     *    就会把这条焦点通知整条替换掉（内容、图标、可见性全部被顶掉）。
+     *
+     * 因此仅当「会产生可见通知」且调用方没有显式指定 notifId 时，才按来源
+     * （包名 + 渠道）派生独立 ID：同一来源重复代发仍然落在同一槽位（岛在原地更新），
+     * 不同来源之间互不影响。显式指定 ID 的功能（常驻岛、人脸、心率、蓝牙、HA、计数岛等）保持原样。
+     *
+     * 派生结果是 (包名, 渠道) 的纯函数，App 进程与 SystemUI 进程算出的值一致。
+     */
+    fun resolveNotificationId(request: IslandRequest): Int = when {
+        request.notifId != IslandDispatchContract.NOTIF_ID -> request.notifId
+        !request.showNotification -> IslandDispatchContract.NOTIF_ID
+        else -> {
+            val key = "${request.sourcePackage ?: OWNER_MARKER}\u0000${request.sourceChannelId.orEmpty()}"
+            VISIBLE_NOTIF_ID_BASE or (key.hashCode() and VISIBLE_NOTIF_ID_MASK)
+        }
+    }
 
     fun post(context: Context, request: IslandRequest): Boolean {
         return try {
@@ -285,14 +316,15 @@ internal object IslandDispatcherNotifier {
                 notif.extras.putBoolean("hyperisland_preserve_status_bar_small_icon", true)
                 FocusNotifStatusBarIconHook.markDirectProxyPosted(request.timeoutSecs)
             }
-            IslandDispatchState.module?.log { "${IslandDispatchContract.TAG}: preserve marker=$shouldPreserveStatusBarSmallIcon title=${request.title} | notifId=${request.notifId} | showNotification=${request.showNotification}" }
+            val notificationId = resolveNotificationId(request)
+            IslandDispatchState.module?.log { "${IslandDispatchContract.TAG}: preserve marker=$shouldPreserveStatusBarSmallIcon title=${request.title} | notifId=$notificationId | showNotification=${request.showNotification}" }
 
             if (request.clearBeforePost) {
-                nm.cancel(request.notifId)
+                nm.cancel(notificationId)
             }
-            nm.notify(request.notifId, notif)
-            IslandDispatchState.module?.log { "count-trace nm.notify id=${request.notifId} updatable=${request.updatable} islandOnly=${request.islandOnly} title=${request.title} content=${request.content}" }
-            IslandDispatchState.postedIds.add(request.notifId)
+            nm.notify(notificationId, notif)
+            IslandDispatchState.module?.log { "count-trace nm.notify id=$notificationId updatable=${request.updatable} islandOnly=${request.islandOnly} title=${request.title} content=${request.content}" }
+            IslandDispatchState.postedIds.add(notificationId)
             request.sourcePackage?.let { pkg ->
                 MarqueeHook.markDirectProxyPosted(pkg, request.sourceChannelId ?: "toast")
             }
@@ -355,10 +387,11 @@ internal object IslandDispatcherNotifier {
         if (request.outerGlow) {
             notif.extras.putString("miui.effect.src", EFFECT_SRC)
         }
-        if (request.clearBeforePost) nm.cancel(request.notifId)
-        nm.notify(request.notifId, notif)
-        IslandDispatchState.postedIds.add(request.notifId)
-        IslandDispatchState.module?.log { "${IslandDispatchContract.TAG}: posted custom extras notifId=${request.notifId}" }
+        val notificationId = resolveNotificationId(request)
+        if (request.clearBeforePost) nm.cancel(notificationId)
+        nm.notify(notificationId, notif)
+        IslandDispatchState.postedIds.add(notificationId)
+        IslandDispatchState.module?.log { "${IslandDispatchContract.TAG}: posted custom extras notifId=$notificationId" }
     }
 
     fun ensureChannels(context: Context) {
