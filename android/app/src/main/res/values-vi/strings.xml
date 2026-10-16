@@ -295,7 +295,7 @@
     <string name="keep_island_show_icon_summary">Hiển thị biểu tượng ở bên trái HyperIsland thường trực</string>
     <string name="keep_island_custom_icon">Biểu tượng tùy chỉnh</string>
     <string name="keep_island_custom_icon_selected">Đã chọn, chạm để thay thế</string>
-    <string name="keep_island_placeholders">Các placeholder có sẵn</string>
+    <string name="keep_island_placeholders">Các biến giữ chỗ có sẵn</string>
     <string name="keep_island_placeholders_summary">Bạn có thể nhập trực tiếp văn bản hoặc biểu thức vào nội dung trái và phải, chạm vào mục để sao chép.</string>
     <string name="keep_island_placeholder_copied">Đã sao chép %1$s</string>
     <string name="keep_island_content_hint">Mặc định để trống. Nhập văn bản hoặc %1$s</string>
@@ -883,10 +883,10 @@
     <string name="onboarding_view_tutorial">Xem hướng dẫn</string>
     <string name="onboarding_focus_embedded">Cách 2: Mô-đun tích hợp</string>
     <string name="onboarding_focus_embedded_summary">Bật hai công tắc gỡ kiểm tra tích hợp chỉ với một chạm.</string>
-    <string name="onboarding_focus_embedded_enabled">Cả hai công tắc gỡ kiểm tra đã được bật. Vui lòng khởi động lại System UI và XMSF theo cách thủ công.</string>
+    <string name="onboarding_focus_embedded_enabled">Cả hai tùy chọn bỏ qua xác minh đã được bật. Vui lòng khởi động lại Giao diện hệ thống và XMSF theo cách thủ công.</string>
     <string name="onboarding_focus_enable">Bật ngay</string>
     <string name="onboarding_focus_enabled">Đã bật</string>
-    <string name="onboarding_focus_success">Đã bật. Vui lòng khởi động lại System UI và XMSF theo cách thủ công</string>
+    <string name="onboarding_focus_success">Đã bật. Vui lòng khởi động lại Giao diện hệ thống và XMSF theo cách thủ công</string>
     <string name="onboarding_focus_failed">thất bại to open: %1$s</string>
     <string name="onboarding_focus_wait">tiếp theo (%1$d giây)</string>
     <string name="onboarding_focus_notification">Thông báo nổi bật</string>
@@ -1105,7 +1105,7 @@
     <string name="ha_notification">Nội dung thông báo</string>
     <string name="ha_title_template">Tiêu đề</string>
     <string name="ha_content_template">nội dung</string>
-    <string name="ha_template_summary">Chọn nguồn dữ liệu theo cách thủ công. Mẫu tùy chỉnh hỗ trợ {name}, {state}, {value}, {unit} và các thuộc tính thực thể.</string>
+    <string name="ha_template_summary">Chọn nguồn dữ liệu theo cách thủ công. Mẫu tùy chỉnh hỗ trợ {name}, {state}, {value}, {unit} và các thuộc tính của thực thể.</string>
     <string name="ha_focus_notification">Thông báo nổi bật</string>
     <string name="ha_focus_notification_summary">Đồng thời gửi thông báo nổi bật, không chỉ hiển thị HyperIsland</string>
     <string name="ha_persistent">Tiếp tục hiển thị khi điều kiện khớp</string>
@@ -1127,7 +1127,7 @@
     <string name="ha_display_entity">Thực thể hiển thị</string>
     <string name="ha_display_attribute">Thuộc tính hiển thị</string>
     <string name="ha_display_entity_default">Dùng thực thể kích hoạt</string>
-    <string name="ha_reference_hint">Placeholder tham chiếu thực thể khác dùng định dạng {entity_id.attribute}</string>
+    <string name="ha_reference_hint">Biến giữ chỗ tham chiếu thực thể khác dùng định dạng {entity_id.attribute}</string>
     <string name="ha_island_config">HyperIsland</string>
     <string name="ha_focus_style">Focus kiểu</string>
     <string name="ha_focus_style_notification">Standard thông báo (khả dụng now)</string>
@@ -1177,9 +1177,9 @@
     <string name="ha_island_left_content">Nội dung bên trái HyperIsland</string>
     <string name="ha_island_right_content">Nội dung bên phải HyperIsland</string>
     <string name="ha_select_variable">chọn variable</string>
-    <string name="ha_select_variable_summary">Chọn một thực thể và thuộc tính, sau đó sao chép placeholder tương ứng</string>
-    <string name="ha_placeholder_copied">Đã sao chép placeholder</string>
-    <string name="ha_template_input_hint">Nhập nội dung hoặc dùng {entity.attribute}</string>
+    <string name="ha_select_variable_summary">Chọn một thực thể và thuộc tính, sau đó sao chép biến giữ chỗ tương ứng</string>
+    <string name="ha_placeholder_copied">Đã sao chép biến giữ chỗ</string>
+    <string name="ha_template_input_hint">Nhập nội dung hoặc dùng biến giữ chỗ {entity.attribute}</string>
     <string name="ha_display_keep">Luôn hiển thị</string>
     <string name="ha_display_custom">Tùy chỉnh</string>
     <string name="ha_display_seconds_hint">In giây, 1 - %1$d</string>
