@@ -11,6 +11,8 @@ data class IslandRequest(
     val title: String,
     val content: String,
     val icon: Icon? = null,
+    /** 焦点通知单独使用的图标；为空时沿用 [icon]（超级岛图标）。 */
+    val focusIcon: Icon? = null,
     /** Optional icon rendered in the right side of the expanded island. */
     val rightIcon: Icon? = null,
     val notifId: Int = IslandDispatchContract.NOTIF_ID,
@@ -63,6 +65,7 @@ data class IslandRequest(
         putString(KEY_TITLE, title)
         putString(KEY_CONTENT, content)
         putParcelable(KEY_ICON, icon)
+        putParcelable(KEY_FOCUS_ICON, focusIcon)
         putParcelable(KEY_RIGHT_ICON, rightIcon)
         putParcelable(KEY_AOD_ICON, aodIcon)
         putInt(KEY_NOTIF_ID, notifId)
@@ -113,6 +116,7 @@ data class IslandRequest(
         private const val KEY_TITLE = "title"
         private const val KEY_CONTENT = "content"
         private const val KEY_ICON = "icon"
+        private const val KEY_FOCUS_ICON = "focusIcon"
         private const val KEY_RIGHT_ICON = "rightIcon"
         private const val KEY_AOD_ICON = "aodIcon"
         private const val KEY_NOTIF_ID = "notifId"
@@ -163,6 +167,7 @@ data class IslandRequest(
             title = b.getString(KEY_TITLE, ""),
             content = b.getString(KEY_CONTENT, ""),
             icon = iconFromBundle(b),
+            focusIcon = iconFromBundle(b, KEY_FOCUS_ICON),
             rightIcon = iconFromBundle(b, KEY_RIGHT_ICON),
             aodIcon = iconFromBundle(b, KEY_AOD_ICON),
             notifId = b.getInt(KEY_NOTIF_ID, IslandDispatchContract.NOTIF_ID),

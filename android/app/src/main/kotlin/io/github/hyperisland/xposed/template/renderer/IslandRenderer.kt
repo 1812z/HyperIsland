@@ -4,6 +4,7 @@ import android.app.Notification
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
+import io.github.hyperisland.xposed.renderer.base_text_with_progress.BaseTextWithProgressRenderer
 import io.github.hyperisland.xposed.renderer.image_text_with_buttons.ImageTextWithButtonsRenderer
 import io.github.hyperisland.xposed.renderer.image_text_with_buttons_wrap.ImageTextWithButtonsWrapRenderer
 import io.github.hyperisland.xposed.renderer.image_text_with_progress.ImageTextWithProgressRenderer
@@ -162,6 +163,7 @@ fun resolveRenderer(id: String): IslandRenderer = when (id) {
     ImageTextWithButtonsWrapRenderer.RENDERER_ID -> ImageTextWithButtonsWrapRenderer
     ImageTextWithRightTextButtonRenderer.RENDERER_ID -> ImageTextWithRightTextButtonRenderer
     ImageTextWithProgressRenderer.RENDERER_ID -> ImageTextWithProgressRenderer
+    BaseTextWithProgressRenderer.RENDERER_ID -> BaseTextWithProgressRenderer
     else -> ImageTextWithButtonsRenderer
 }
 

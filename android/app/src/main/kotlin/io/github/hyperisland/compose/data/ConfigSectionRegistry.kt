@@ -142,6 +142,7 @@ internal val ConfigSectionGroups: List<ConfigSection> = listOf(
                     "pref_round_icon_radius",
                     "pref_round_icon",
                     "pref_island_icon_padding",
+                    "pref_island_icon_color_mode",
                 ),
             ),
             ConfigSection(
@@ -282,6 +283,11 @@ internal val ConfigSectionGroups: List<ConfigSection> = listOf(
                         keyPrefixes = listOf("pref_face_unlock_island"),
                     ),
                     ConfigSection(
+                        id = "ext_music_island_spectrum",
+                        titleRes = R.string.music_island,
+                        keyPrefixes = listOf("pref_music_island_spectrum"),
+                    ),
+                    ConfigSection(
                         id = "ext_lockscreen_negative_page",
                         titleRes = R.string.ext_lockscreen_negative_page,
                         keyPrefixes = listOf("pref_lockscreen_negative_page_"),
@@ -318,6 +324,17 @@ internal val ConfigSectionGroups: List<ConfigSection> = listOf(
                 exactKeys = listOf(
                     "pref_resume_notification",
                     "pref_download_show_task_icon",
+                ),
+            ),
+            ConfigSection(
+                id = "ext_home_assistant",
+                titleRes = R.string.ext_home_assistant,
+                // 不含 pref_home_assistant_token：访问令牌与 AI 密钥同级，绝不进预设导出。
+                exactKeys = listOf(
+                    "pref_home_assistant",
+                    "pref_home_assistant_url",
+                    "pref_home_assistant_subscriptions",
+                    "pref_home_assistant_display_seconds",
                 ),
             ),
         ),

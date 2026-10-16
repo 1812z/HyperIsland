@@ -279,11 +279,6 @@ internal object SoftGlassController {
             release(view)
             return@runCatching false
         }
-        if (managedViews.contains(view) && appliedConfigs[view] == config) {
-            diagnose("apply cached", view)
-            if (view.background != null) view.background = null
-            return@runCatching true
-        }
         val setMaterial = findMethod(
             view.javaClass,
             "setMiViewMaterialType",
@@ -291,6 +286,14 @@ internal object SoftGlassController {
         ) ?: return@runCatching false
         val setGlass = findMethod(view.javaClass, "setMiGlass", FloatArray::class.java)
             ?: return@runCatching false
+        if (managedViews.contains(view) && appliedConfigs[view] == config) {
+            // Same config, but the material must still be re-committed. Replacing the expanded
+            // notification child (new message) can reset the View's RenderNode material, which
+            // drops the edge-refraction/reflection channels until the next full apply. Re-apply
+            // the shader params without touching outline/stock state so the customized channels
+            // survive every content update.
+            diagnose("apply cached", view)
+        }
         if (!managedViews.contains(view)) {
             stockStates[view] = StockViewState(
                 background = view.background,
@@ -379,16 +382,17 @@ internal object SoftGlassController {
         }
     }
 
-    /** Temporary-hide is a window event, so pause every lease before Xiaomi requests shutdown. */
+    /** Temporary-hide is a window event; drop every lease but keep the sampler alive. */
     fun pauseWindow(root: View) {
         val views = synchronized(renderingViews) { renderingViews.toList() }
             .filter { findWindowView(it) === root }
         views.forEach { renderingViews.remove(it) }
-        if (views.isNotEmpty()) {
-            restoreWindowRadius(root)
-            closeRetainedPassBlur(root)
-            closeRetainedWindowBlur(root)
-        }
+        // Do not close the shared pass/window blur samplers here. The island can still be on
+        // screen during its hide animation (notably STATUS_BAR_DISAPPEARANCE, where the island is
+        // only logically hidden). Closing the sampler — or updateWindowBlur(false) zeroing the
+        // Bionics radius — makes a still-visible material transparent. With the lease gone,
+        // Xiaomi's own finalizeAnimFinished() closes the sampler once the animation truly ends,
+        // and that close is no longer intercepted.
     }
 
     fun release(

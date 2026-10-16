@@ -16,6 +16,7 @@ import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.lang.ref.WeakReference
+import java.lang.reflect.Method
 import java.util.Collections
 import java.util.WeakHashMap
 import kotlin.math.abs
@@ -49,6 +50,7 @@ object ExpandedPressTiltHook : BaseHook() {
         Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>()),
     )
     private val main = Handler(Looper.getMainLooper())
+    private val getterCache = WeakHashMap<Class<*>, MutableMap<String, Method?>>()
     @Volatile private var enabled = false
     private val detach = object : View.OnAttachStateChangeListener {
         override fun onViewAttachedToWindow(v: View) {}
@@ -264,5 +266,10 @@ object ExpandedPressTiltHook : BaseHook() {
         }
         return false
     }
-    private fun getter(view: View, name: String): Any? = runCatching { view.javaClass.getMethod(name).invoke(view) }.getOrNull()
+    private fun getter(view: View, name: String): Any? = runCatching {
+        val methods = getterCache.getOrPut(view.javaClass) { HashMap() }
+        val method = if (methods.containsKey(name)) methods[name]
+        else view.javaClass.getMethod(name).also { methods[name] = it }
+        method?.invoke(view)
+    }.getOrNull()
 }

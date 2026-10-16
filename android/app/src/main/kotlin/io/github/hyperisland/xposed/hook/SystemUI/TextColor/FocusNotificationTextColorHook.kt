@@ -1,8 +1,8 @@
 package io.github.hyperisland.xposed.hook
 
-import android.content.res.ColorStateList
 import android.graphics.Color
-import android.text.Spanned
+import android.os.Handler
+import android.os.Looper
 import android.view.Choreographer
 import android.view.View
 import android.view.ViewGroup
@@ -11,56 +11,51 @@ import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
-import java.lang.ref.WeakReference
-import java.lang.reflect.Method
 import java.util.Collections
 import java.util.WeakHashMap
 
-/** Overrides V3 focus-notification text colors. */
+/**
+ * 焦点通知文本颜色的“通用”实现，颜色计算复用 [TextColorPolicy]。
+ *
+ * 关键点：焦点通知模板里的颜色通常是**缺省**的（holder 的 `getXxxColor()` 返回 null），
+ * 此时子类根本不会调用 `setTextColor`，文字直接用布局默认色（白色）。所以不能靠拦截
+ * `setTextColor` 来改色，必须在 holder 绑定后主动遍历它自己的模块子树并重刷颜色。
+ *
+ * 作用范围严格限定在**动态岛展开态**的焦点通知模块（getIsland/getDynamicIsland 等标记方法
+ * 返回 true；焦点通知卡片——即下拉通知中心里的那一条——返回 false，必须排除），不触碰超级岛、
+ * 媒体通知、通知中心与状态栏。带 `miui.focus.rv` 的自定义焦点通知（如来电）不走 ModuleViewHolder，
+ * 另经 FocusNotificationContent#setIslandExpandedView 覆盖。
+ */
 object FocusNotificationTextColorHook : BaseHook() {
 
     private const val TAG = "HyperIsland[FocusNotificationTextColor]"
     private const val KEY_TEXT_COLOR_MODE = "pref_focus_notification_text_color_mode"
 
-    private const val MODE_DEFAULT = "default"
-    private const val MODE_BLACK = "black"
-    private const val MODE_FOLLOW_STATUS_BAR = "follow_status_bar"
-    private const val MODE_INVERT_STATUS_BAR = "invert_status_bar"
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     private val hookedClasses = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>())
     )
-    private val trackedHoldersLock = Any()
-    private val trackedHolders = mutableListOf<WeakReference<Any>>()
-    private val injectedFields = Collections.synchronizedMap(
-        WeakHashMap<Any, Set<String>>()
-    )
-    private val originalFieldColors = Collections.synchronizedMap(
-        WeakHashMap<Any, Map<String, Any?>>()
-    )
-    private val originalTextColors = Collections.synchronizedMap(
-        WeakHashMap<Any, List<OriginalTextColor>>()
-    )
-    private val originalButtonColors = Collections.synchronizedMap(
-        WeakHashMap<Any, List<OriginalButtonColor>>()
-    )
-    private val trackedButtonHoldersLock = Any()
-    private val trackedButtonHolders = mutableListOf<WeakReference<Any>>()
-    private val colorSetters = Collections.synchronizedMap(
-        WeakHashMap<Any, Map<String, Method>>()
-    )
-    private val attachRefreshViews = Collections.synchronizedSet(
+
+    /** 本 Hook 处理过的焦点 TextView（用于重刷）。弱引用键。 */
+    private val trackedViews = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<TextView, Boolean>())
     )
+
+    /** 模块根视图正在排队的一次遍历，避免一次 bind 重复遍历。弱引用键。 */
+    private val pendingWalks = Collections.synchronizedMap(WeakHashMap<View, Any>())
+
     @Volatile private var islandAnimationRunning = false
     @Volatile private var pendingTintRefresh = false
     @Volatile private var tintRefreshScheduled = false
 
     private val statusBarTintListener: (Int) -> Unit = {
-        if (islandAnimationRunning || tintRefreshScheduled) {
-            pendingTintRefresh = true
-        } else {
-            refreshInjectedTextColors()
+        if (isStatusBarMode()) {
+            if (islandAnimationRunning || tintRefreshScheduled) {
+                pendingTintRefresh = true
+            } else {
+                refreshTrackedColors()
+            }
         }
     }
 
@@ -75,42 +70,189 @@ object FocusNotificationTextColorHook : BaseHook() {
     }
 
     override fun onConfigChanged() {
-        val holders = snapshotTrackedHolders(trackedHolders, trackedHoldersLock)
-        holders.forEach(::reapplyHolderColors)
-        val buttonHolders = snapshotTrackedHolders(
-            trackedButtonHolders,
-            trackedButtonHoldersLock,
-        )
-        buttonHolders.forEach(::reapplyButtonColors)
+        refreshTrackedColors()
     }
+
+    // ---------------------------------------------------------------------------------------------
+    // Holder 生命周期：绑定后遍历它自己的模块子树
+    // ---------------------------------------------------------------------------------------------
 
     private fun hookClasses(module: XposedModule, classLoader: ClassLoader) {
         runCatching {
-            val holderClass = classLoader.loadClass(
-                "miui.systemui.notification.focus.moduleV3.ModuleViewHolder"
-            )
+            val holderClass = classLoader.loadClass(FOCUS_HOLDER_CLASS)
             if (hookedClasses.add(holderClass)) {
-                hookTextColorResolver(module, holderClass)
+                hookHolderLifecycle(module, holderClass)
+                hookTimerData(module, holderClass)
             }
         }.onFailure { error ->
             if (error !is ClassNotFoundException) {
-                logError(module, "failed to hook ModuleViewHolder: ${error.message}")
+                logError(module, "failed to hook $FOCUS_HOLDER_CLASS: ${error.message}")
             }
         }
 
         runCatching {
-            val coordinatorClass = classLoader.loadClass(
-                "miui.systemui.dynamicisland.event.DynamicIslandEventCoordinator"
-            )
+            val coordinatorClass = classLoader.loadClass(DYNAMIC_ISLAND_EVENT_COORDINATOR_CLASS)
             if (hookedClasses.add(coordinatorClass)) {
                 hookAnimationLifecycle(module, coordinatorClass)
             }
         }.onFailure { error ->
             if (error !is ClassNotFoundException) {
-                logError(module, "failed to hook DynamicIslandEventCoordinator: ${error.message}")
+                logError(module, "failed to hook $DYNAMIC_ISLAND_EVENT_COORDINATOR_CLASS: ${error.message}")
             }
         }
 
+        runCatching {
+            val contentClass = classLoader.loadClass(FOCUS_CONTENT_CLASS)
+            if (hookedClasses.add(contentClass)) {
+                hookIslandExpandedView(module, contentClass)
+            }
+        }.onFailure { error ->
+            if (error !is ClassNotFoundException) {
+                logError(module, "failed to hook $FOCUS_CONTENT_CLASS: ${error.message}")
+            }
+        }
+    }
+
+    /**
+     * 自定义焦点通知（带 `miui.focus.rv` RemoteViews，如来电/通话中）不走
+     * [FOCUS_HOLDER_CLASS]（ModuleViewHolder），文字位于 app 下发的 RemoteViews 里。
+     * 这里只拦截“焦点岛展开视图”的设入点（`setIslandExpandedView`/`setIslandExpandedViewFake`）
+     * 并遍历其子树，绝不触碰下拉通知中心里的焦点通知卡片。
+     */
+    private fun hookIslandExpandedView(module: XposedModule, contentClass: Class<*>) {
+        contentClass.declaredMethods
+            .filter { method ->
+                (method.name == "setIslandExpandedView" ||
+                    method.name == "setIslandExpandedViewFake") &&
+                    method.parameterTypes.size == 1 &&
+                    View::class.java.isAssignableFrom(method.parameterTypes[0])
+            }
+            .forEach { method ->
+                method.isAccessible = true
+                module.hook(method).intercept { chain ->
+                    val result = chain.proceed()
+                    val view = chain.args.getOrNull(0) as? View
+                    if (view != null && TextColorPolicy.isConfigured(currentMode())) {
+                        scheduleViewWalk(view)
+                    }
+                    result
+                }
+                log(module) { "hooked ${contentClass.name}#${method.name}" }
+            }
+    }
+
+    private fun hookHolderLifecycle(module: XposedModule, holderClass: Class<*>) {
+        holderClass.declaredMethods
+            .filter { method ->
+                (method.name == "bind" && method.parameterTypes.size == 2) ||
+                    (method.name == "initTextAndColor" && method.parameterTypes.size == 1)
+            }
+            .forEach { method ->
+                method.isAccessible = true
+                module.hook(method).intercept { chain ->
+                    val result = chain.proceed()
+                    val holder = chain.thisObject
+                    if (holder != null && isFocusHolder(holder)) {
+                        scheduleWalk(holder)
+                    }
+                    result
+                }
+                log(module) { "hooked ${holderClass.name}#${method.name}" }
+            }
+    }
+
+    private fun scheduleWalk(holder: Any) {
+        if (!TextColorPolicy.isConfigured(currentMode())) return
+        val root = getHolderView(holder) ?: return
+        scheduleViewWalk(root)
+    }
+
+    /** 主线程去重遍历 [root] 子树并重刷灰度文本颜色。 */
+    private fun scheduleViewWalk(root: View) {
+        val token = Any()
+        synchronized(pendingWalks) { pendingWalks[root] = token }
+        mainHandler.post {
+            val current = synchronized(pendingWalks) { pendingWalks[root] }
+            if (current !== token) return@post
+            synchronized(pendingWalks) { pendingWalks.remove(root) }
+            runCatching { applyTree(root) }
+        }
+    }
+
+    /** 遍历该焦点模块自己的视图子树，重刷灰度文本颜色。 */
+    private fun applyTree(view: View) {
+        if (view is TextView) {
+            applyFocusTextColor(view)
+        }
+        if (view is ViewGroup) {
+            for (index in 0 until view.childCount) {
+                applyTree(view.getChildAt(index))
+            }
+        }
+    }
+
+    private fun applyFocusTextColor(textView: TextView) {
+        trackedViews.add(textView)
+        TextColorPolicy.applyForTextView(
+            textView,
+            currentMode(),
+            regionDark = false,
+            statusBarTintBlack = statusBarTintBlack(),
+        )
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // 秒表（HyperChronometer）：不显式设色，单独兜底
+    // ---------------------------------------------------------------------------------------------
+
+    private fun hookTimerData(module: XposedModule, holderClass: Class<*>) {
+        holderClass.declaredMethods
+            .filter { method -> method.name == "setTimerData" && method.parameterTypes.size == 2 }
+            .forEach { method ->
+                method.isAccessible = true
+                module.hook(method).intercept { chain ->
+                    val result = chain.proceed()
+                    val holder = chain.thisObject
+                    if (holder != null && isFocusHolder(holder)) {
+                        runCatching {
+                            val root = getHolderView(holder)
+                            val viewId = chain.args.firstOrNull() as? Int ?: View.NO_ID
+                            val chronometer = (
+                                if (root != null && viewId != View.NO_ID) {
+                                    root.findViewById<View>(viewId) as? TextView
+                                } else {
+                                    null
+                                }
+                                ) ?: root?.let(TextColorPolicy::findHyperChronometer)
+                            if (chronometer != null) applyFocusTextColor(chronometer)
+                        }.onFailure { logError(module, "focus timer color failed: ${it.message}") }
+                    }
+                    result
+                }
+                log(module) { "hooked ${holderClass.name}#${method.name}" }
+            }
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // 配置变更 / 状态栏明暗变化重刷
+    // ---------------------------------------------------------------------------------------------
+
+    private fun refreshTrackedColors() {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            refreshTrackedColorsOnMain()
+        } else {
+            mainHandler.post { refreshTrackedColorsOnMain() }
+        }
+    }
+
+    private fun refreshTrackedColorsOnMain() {
+        val mode = currentMode()
+        val sbBlack = statusBarTintBlack()
+        val views = synchronized(trackedViews) { trackedViews.toList() }
+        views.forEach { textView ->
+            val original = TextColorPolicy.originalOf(textView) ?: return@forEach
+            runCatching { TextColorPolicy.retarget(textView, original, mode, false, sbBlack) }
+        }
     }
 
     private fun hookAnimationLifecycle(module: XposedModule, coordinatorClass: Class<*>) {
@@ -121,7 +263,6 @@ object FocusNotificationTextColorHook : BaseHook() {
                     islandAnimationRunning = true
                     chain.proceed()
                 }
-                log(module) { "hooked DynamicIslandEventCoordinator#onAnimationStart" }
             }
         coordinatorClass.declaredMethods
             .filter { method ->
@@ -131,13 +272,12 @@ object FocusNotificationTextColorHook : BaseHook() {
                 module.hook(method).intercept { chain ->
                     val result = chain.proceed()
                     islandAnimationRunning = false
-                    // Flush after collapse too; no further tint event is guaranteed.
                     pendingTintRefresh = true
                     schedulePendingTintRefresh()
                     result
                 }
-                log(module) { "hooked DynamicIslandEventCoordinator#${method.name}" }
             }
+        log(module) { "hooked ${coordinatorClass.name} animation lifecycle" }
     }
 
     private fun schedulePendingTintRefresh() {
@@ -147,434 +287,62 @@ object FocusNotificationTextColorHook : BaseHook() {
             tintRefreshScheduled = false
             if (islandAnimationRunning || !pendingTintRefresh) return@postFrameCallback
             pendingTintRefresh = false
-            refreshInjectedTextColors()
+            refreshTrackedColors()
         }
     }
 
-    private fun hookTextColorResolver(module: XposedModule, holderClass: Class<*>) {
-        holderClass.declaredMethods
-            .filter { method ->
-                method.name == "initTextAndColor" && method.parameterTypes.size == 1
-            }
-            .forEach { method ->
-                module.hook(method).intercept { chain ->
-                    val holder = chain.thisObject
-                    if (holder != null) clearInjectedColors(holder)
-                    val result = chain.proceed()
-                    if (holder != null && isDynamicIslandHolder(holder)) {
-                        trackHolder(trackedHolders, trackedHoldersLock, holder)
-                        applyOverrideColors(holder)
-                    }
-                    result
-                }
-                log(module) { "hooked ModuleViewHolder#initTextAndColor" }
-            }
+    // ---------------------------------------------------------------------------------------------
+    // 作用范围与工具
+    // ---------------------------------------------------------------------------------------------
 
-        holderClass.declaredMethods
-            .filter { method -> method.name == "bind" && method.parameterTypes.size == 2 }
-            .forEach { method ->
-                module.hook(method).intercept { chain ->
-                    val holder = chain.thisObject
-                    val result = chain.proceed()
-                    if (holder != null) {
-                        getHolderView(holder)?.post {
-                            captureAndApplyButtonColors(holder)
-                        }
-                    }
-                    result
-                }
-                log(module) { "hooked ModuleViewHolder#bind button text colors" }
-            }
-    }
-
-    private fun applyOverrideColors(holder: Any) {
-        val mode = getConfiguredMode()
-        if (mode == MODE_DEFAULT) return
-
-        val color = resolveTextColor(mode)
-        val injected = mutableSetOf<String>()
-        val originals = mutableMapOf<String, Any?>()
-        val setters = mutableMapOf<String, Method>()
-
-        captureOriginalTextColors(holder)
-
-        COLOR_FIELDS.forEach { field ->
-            val getter = holder.javaClass.methods.firstOrNull { method ->
-                method.name == "get$field" && method.parameterTypes.isEmpty()
-            } ?: return@forEach
-            val setter = holder.javaClass.methods.firstOrNull { method ->
-                method.name == "set$field" && method.parameterTypes.size == 1
-            } ?: return@forEach
-            originals[field] = runCatching { getter.invoke(holder) }.getOrNull()
-            if (runCatching { setter.invoke(holder, color) }.isSuccess) {
-                injected.add(field)
-                setters[field] = setter
-            }
-        }
-
-        if (injected.isNotEmpty()) {
-            injectedFields[holder] = injected
-            originalFieldColors[holder] = originals
-            colorSetters[holder] = setters
-        }
-    }
-
-    private fun isDynamicIslandHolder(holder: Any): Boolean {
-        return ISLAND_MARKER_METHODS.any { methodName ->
+    /**
+     * 判定是否为焦点通知模块的“岛”（展开态）holder。
+     *
+     * getIsland/getDynamicIsland/getFakeDynamicIsland/isDynamicIsland 只有焦点模块各布局变体
+     * 才声明，且只有动态岛展开态变体返回 true；焦点通知卡片（下拉通知中心里的那一条）返回
+     * false。这里必须要求返回 true，否则会误改通知中心的文本颜色。
+     */
+    private fun isFocusHolder(holder: Any): Boolean =
+        ISLAND_MARKER_METHODS.any { methodName ->
             runCatching {
                 holder.javaClass.methods.firstOrNull { method ->
                     method.name == methodName && method.parameterTypes.isEmpty()
                 }?.invoke(holder) as? Boolean
             }.getOrNull() == true
         }
-    }
 
-    private fun clearInjectedColors(holder: Any) {
-        val fields = injectedFields.remove(holder) ?: return
-        originalTextColors.remove(holder)?.forEach { original ->
-            original.view.get()?.setTextColor(original.colors)
-        }
-        val originals = originalFieldColors.remove(holder).orEmpty()
-        val setters = colorSetters.remove(holder).orEmpty()
-        fields.forEach { field ->
-            runCatching {
-                setters[field]?.invoke(holder, originals[field])
-            }
-        }
-    }
+    private fun getHolderView(holder: Any): View? = runCatching {
+        holder.javaClass.methods.firstOrNull { method ->
+            method.name == "getView" && method.parameterTypes.isEmpty()
+        }?.invoke(holder) as? View
+    }.getOrNull()
 
-    private fun captureOriginalTextColors(holder: Any) {
-        if (originalTextColors.containsKey(holder)) return
-        val root = runCatching {
-            holder.javaClass.methods.firstOrNull { method ->
-                method.name == "getView" && method.parameterTypes.isEmpty()
-            }?.invoke(holder) as? View
-        }.getOrNull() ?: return
-        val colors = mutableListOf<OriginalTextColor>()
-        collectTextColors(root, holder, colors)
-        if (colors.isNotEmpty()) originalTextColors[holder] = colors
-    }
-
-    private fun collectTextColors(view: View, holder: Any, colors: MutableList<OriginalTextColor>) {
-        if (view is TextView) {
-            val field = targetColorField(view)
-            if (field != null) {
-                colors.add(OriginalTextColor(WeakReference(view), view.textColors, field))
-                ensureAttachRefresh(view, holder)
-            }
-        }
-        if (view is ViewGroup) {
-            for (index in 0 until view.childCount) {
-                collectTextColors(view.getChildAt(index), holder, colors)
-            }
-        }
-    }
-
-    private fun ensureAttachRefresh(textView: TextView, holder: Any) {
-        if (!attachRefreshViews.add(textView)) return
-        val holderRef = WeakReference(holder)
-        textView.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
-            override fun onViewAttachedToWindow(view: View) {
-                val target = view as? TextView ?: return
-                val mode = getConfiguredMode()
-                if (mode != MODE_FOLLOW_STATUS_BAR && mode != MODE_INVERT_STATUS_BAR) return
-                if (islandAnimationRunning) {
-                    pendingTintRefresh = true
-                } else {
-                    val trackedHolder = holderRef.get()
-                    val color = resolveTextColor(mode)
-                    if (trackedHolder != null) applyHolderFieldColors(trackedHolder, color)
-                    applyTextColor(target, color)
-                }
-            }
-
-            override fun onViewDetachedFromWindow(view: View) = Unit
-        })
-    }
-
-    private fun reapplyHolderColors(holder: Any) {
-        runCatching {
-            val view = holder.javaClass.methods.firstOrNull { method ->
-                method.name == "getView" && method.parameterTypes.isEmpty()
-            }?.invoke(holder) as? View ?: return
-            view.post {
-                clearInjectedColors(holder)
-                applyOverrideColors(holder)
-                val fields = injectedFields[holder] ?: return@post
-                val mode = getConfiguredMode()
-                val color = resolveTextColor(mode)
-                applyVisibleTextColor(view, fields, color)
-            }
-        }
-    }
-
-    private fun refreshInjectedTextColors() {
-        val mode = getConfiguredMode()
-        if (mode != MODE_FOLLOW_STATUS_BAR && mode != MODE_INVERT_STATUS_BAR) return
-        val holders = snapshotTrackedHolders(trackedHolders, trackedHoldersLock)
-        holders.forEach { holder ->
-            val fields = injectedFields[holder] ?: return@forEach
-            val color = resolveTextColor(mode)
-            // Hidden real/fake holders also need fresh fields before reuse.
-            applyHolderFieldColors(holder, color)
-            val views = originalTextColors[holder].orEmpty().mapNotNull { original ->
-                original.view.get()?.takeIf { it.isAttachedToWindow }?.let { original to it }
-            }
-            if (views.isEmpty()) return@forEach
-            views.forEach { (original, textView) ->
-                if (original.field in fields) applyTextColor(textView, color)
-            }
-        }
-        val buttonHolders = snapshotTrackedHolders(
-            trackedButtonHolders,
-            trackedButtonHoldersLock,
-        )
-        buttonHolders.forEach(::applyButtonColors)
-    }
-
-    private fun captureAndApplyButtonColors(holder: Any) {
-        val root = getHolderView(holder) ?: return
-        val buttons = mutableListOf<TextView>()
-        collectButtonTextViews(root, buttons)
-        if (buttons.isEmpty()) return
-
-        trackHolder(trackedButtonHolders, trackedButtonHoldersLock, holder)
-        originalButtonColors[holder] = buttons.map { button ->
-            OriginalButtonColor(WeakReference(button), button.textColors)
-        }
-        applyButtonColors(holder)
-    }
-
-    private fun reapplyButtonColors(holder: Any) {
-        val mode = getConfiguredMode()
-        if (mode == MODE_DEFAULT) {
-            originalButtonColors[holder].orEmpty().forEach { original ->
-                original.view.get()?.setTextColor(original.colors)
-            }
-        } else {
-            applyButtonColors(holder)
-        }
-    }
-
-    private fun applyButtonColors(holder: Any) {
-        val mode = getConfiguredMode()
-        if (mode == MODE_DEFAULT) return
-        val primaryColor = resolveTextColor(mode)
-        originalButtonColors[holder].orEmpty().forEach { original ->
-            val button = original.view.get() ?: return@forEach
-            if (isLightColor(primaryColor)) {
-                button.setTextColor(original.colors)
-            } else {
-                applyTextColor(
-                    button,
-                    resolveDarkButtonTextColor(original.colors.defaultColor)
-                )
-            }
-        }
-    }
-
-    private fun collectButtonTextViews(view: View, buttons: MutableList<TextView>) {
-        if (view is TextView && resourceEntryName(view) == BUTTON_TITLE_ID) {
-            buttons.add(view)
-        }
-        if (view is ViewGroup) {
-            for (index in 0 until view.childCount) {
-                collectButtonTextViews(view.getChildAt(index), buttons)
-            }
-        }
-    }
-
-    private fun getHolderView(holder: Any): View? {
-        return runCatching {
-            holder.javaClass.methods.firstOrNull { method ->
-                method.name == "getView" && method.parameterTypes.isEmpty()
-            }?.invoke(holder) as? View
-        }.getOrNull()
-    }
-
-    private fun trackHolder(
-        holders: MutableList<WeakReference<Any>>,
-        lock: Any,
-        holder: Any,
-    ) {
-        synchronized(lock) {
-            val iterator = holders.iterator()
-            while (iterator.hasNext()) {
-                val tracked = iterator.next().get()
-                if (tracked == null) {
-                    iterator.remove()
-                } else if (tracked === holder) {
-                    return
-                }
-            }
-            holders.add(WeakReference(holder))
-        }
-    }
-
-    private fun snapshotTrackedHolders(
-        holders: MutableList<WeakReference<Any>>,
-        lock: Any,
-    ): List<Any> = synchronized(lock) {
-        buildList(holders.size) {
-            val iterator = holders.iterator()
-            while (iterator.hasNext()) {
-                val holder = iterator.next().get()
-                if (holder == null) {
-                    iterator.remove()
-                } else {
-                    add(holder)
-                }
-            }
-        }
-    }
-
-    private fun resourceEntryName(view: View): String? {
-        if (view.id == View.NO_ID) return null
-        return runCatching { view.resources.getResourceEntryName(view.id) }.getOrNull()
-    }
-
-    private fun applyHolderFieldColors(holder: Any, color: Int) {
-        val fields = injectedFields[holder] ?: return
-        val setters = colorSetters[holder].orEmpty()
-        fields.forEach { field ->
-            runCatching { setters[field]?.invoke(holder, color) }
-        }
-    }
-
-    private fun applyVisibleTextColor(view: View, fields: Set<String>, color: Int) {
-        if (view is TextView) {
-            val field = targetColorField(view)
-            if (field != null && field in fields) applyTextColor(view, color)
-        }
-        if (view is ViewGroup) {
-            for (index in 0 until view.childCount) {
-                applyVisibleTextColor(view.getChildAt(index), fields, color)
-            }
-        }
-    }
-
-    private fun applyTextColor(textView: TextView, color: Int) {
-        val updateMethod = textView.javaClass.methods.firstOrNull { method ->
-            method.name == "updateTextWithNewAppearance" && method.parameterTypes.size == 2
-        }
-        if (updateMethod == null) {
-            if (textView.currentTextColor == color) return
-            textView.setTextColor(color)
-            return
+    private fun currentMode(): String =
+        when (val mode = ConfigManager.getString(KEY_TEXT_COLOR_MODE, TextColorPolicy.MODE_DEFAULT)) {
+            TextColorPolicy.MODE_BLACK,
+            TextColorPolicy.MODE_FOLLOW_STATUS_BAR,
+            TextColorPolicy.MODE_INVERT_STATUS_BAR -> mode
+            else -> TextColorPolicy.MODE_DEFAULT
         }
 
-        // TimerTextEffectView wraps its text in TimerTextEffectSpan; the countdown
-        // HyperChronometer wraps it in HyperChronometerEffectSpan. Both render the
-        // color from the span, so the TextView color alone is not enough.
-        val text = textView.text as? Spanned
-        val classLoader = textView.javaClass.classLoader
-        var updatedSpan = false
-        if (text != null && classLoader != null) {
-            EFFECT_SPAN_CLASS_NAMES.forEach { spanClassName ->
-                val spanClass = runCatching { classLoader.loadClass(spanClassName) }.getOrNull()
-                    ?: return@forEach
-                val appearanceMethod = spanClass.methods.firstOrNull { method ->
-                    method.name == "setOldTextAppearance" && method.parameterTypes.size == 2
-                } ?: return@forEach
-                val spans = text.getSpans(0, text.length, spanClass)
-                if (spans.isEmpty()) return@forEach
-                if (runCatching { appearanceMethod.invoke(spans[0], text, color) }.isSuccess) {
-                    updatedSpan = true
-                }
-            }
-        }
-        if (textView.currentTextColor != color) textView.setTextColor(color)
-        if (updatedSpan) textView.invalidate()
+    private fun isStatusBarMode(): Boolean = currentMode().let {
+        it == TextColorPolicy.MODE_FOLLOW_STATUS_BAR || it == TextColorPolicy.MODE_INVERT_STATUS_BAR
     }
 
-    private fun resolveTextColor(mode: String): Int {
-        return when (mode) {
-            MODE_BLACK -> Color.BLACK
-            MODE_FOLLOW_STATUS_BAR -> StatusBarTextColorHook.getReadableTint()
-            MODE_INVERT_STATUS_BAR -> {
-                if (isLightColor(StatusBarTextColorHook.getReadableTint())) Color.BLACK else Color.WHITE
-            }
-            else -> Color.WHITE
-        }
-    }
-
-    private fun resolveDarkButtonTextColor(originalColor: Int): Int {
-        val luminance = colorLuminance(originalColor)
-        val gray = BUTTON_DARK_MIN +
-            ((BUTTON_DARK_MAX - BUTTON_DARK_MIN) * luminance / MAX_COLOR_LUMINANCE)
-        return Color.argb(Color.alpha(originalColor), gray, gray, gray)
-    }
-
-    private fun getConfiguredMode(): String {
-        return when (val mode = ConfigManager.getString(KEY_TEXT_COLOR_MODE, MODE_DEFAULT)) {
-            MODE_BLACK, MODE_FOLLOW_STATUS_BAR, MODE_INVERT_STATUS_BAR -> mode
-            else -> MODE_DEFAULT
-        }
-    }
-
-    private fun isLightColor(color: Int): Boolean {
-        return colorLuminance(color) >= 128000
-    }
-
-    private fun colorLuminance(color: Int): Int {
-        return Color.red(color) * 299 + Color.green(color) * 587 + Color.blue(color) * 114
-    }
-
-    private fun targetColorField(view: TextView): String? {
-        if (view.id == View.NO_ID) return null
-        val resourceName = runCatching {
-            view.resources.getResourceEntryName(view.id)
-        }.getOrNull() ?: return null
-        return TEXT_ID_TO_FIELD[resourceName]
-    }
-
-    private val COLOR_FIELDS = listOf(
-        "TitleColor",
-        "SubTitleColor",
-        "ExtraTitleColor",
-        "SpecialTitleColor",
-        "ContentColor",
-        "SubContentColor",
-    )
+    private fun statusBarTintBlack(): Boolean =
+        StatusBarTextColorHook.getReadableTint() == Color.BLACK
 
     private val ISLAND_MARKER_METHODS = listOf(
         "getIsland",
         "getDynamicIsland",
+        "getFakeDynamicIsland",
         "isDynamicIsland",
     )
 
-    private val TEXT_ID_TO_FIELD = mapOf(
-        "focus_title" to "TitleColor",
-        "focus_subtitle" to "SubTitleColor",
-        "focus_subtitle_divider" to "SubTitleColor",
-        "focus_extra_title" to "ExtraTitleColor",
-        "focus_extra_title_divider" to "ExtraTitleColor",
-        "focus_special_title" to "SpecialTitleColor",
-        "focus_content" to "ContentColor",
-        "focus_sub_content" to "SubContentColor",
-        "focus_sub_content_divider" to "SubContentColor",
-        "focus_function_icon_divider" to "SubContentColor",
-    )
-
-    private data class OriginalTextColor(
-        val view: WeakReference<TextView>,
-        val colors: ColorStateList,
-        val field: String,
-    )
-
-    private data class OriginalButtonColor(
-        val view: WeakReference<TextView>,
-        val colors: ColorStateList,
-    )
-
-    private val EFFECT_SPAN_CLASS_NAMES = listOf(
-        "miuix.colorful.texteffect.TimerTextEffectSpan",
-        "miuix.colorful.texteffect.HyperChronometerEffectSpan",
-    )
-
-    private const val BUTTON_TITLE_ID = "focus_button_title"
-    private const val BUTTON_DARK_MIN = 0x33
-    private const val BUTTON_DARK_MAX = 0x66
-    private const val MAX_COLOR_LUMINANCE = 255000
-
+    private const val FOCUS_HOLDER_CLASS =
+        "miui.systemui.notification.focus.moduleV3.ModuleViewHolder"
+    private const val FOCUS_CONTENT_CLASS =
+        "com.android.systemui.plugins.miui.notification.FocusNotificationContent"
+    private const val DYNAMIC_ISLAND_EVENT_COORDINATOR_CLASS =
+        "miui.systemui.dynamicisland.event.DynamicIslandEventCoordinator"
 }

@@ -94,6 +94,12 @@ internal fun DetailPage(
     actionDescription: String = "",
     onAction: (() -> Unit)? = null,
     snackbarHost: @Composable () -> Unit = {},
+    floatingActionButton: @Composable () -> Unit = {},
+    /**
+     * 列表底部留白。[PageList] 不使用 Scaffold 的底部内边距，所以右下角有悬浮按钮时
+     * 必须由调用方把这个值调大（FAB 高 60dp + 12dp 间距），否则最后一行会被按钮压住。
+     */
+    bottomContentPadding: Dp = 28.dp,
     content: LazyListScope.() -> Unit,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
@@ -122,12 +128,14 @@ internal fun DetailPage(
                     )
                 }
             },
+            floatingActionButton = floatingActionButton,
             snackbarHost = snackbarHost,
         ) { padding ->
             BarBackdropContent(modifier = Modifier.fillMaxSize()) {
                 PageList(
                     padding = padding,
                     scrollBehavior = scrollBehavior,
+                    bottomContentPadding = bottomContentPadding,
                     content = content,
                 )
             }

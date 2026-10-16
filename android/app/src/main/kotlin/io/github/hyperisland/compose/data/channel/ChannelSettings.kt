@@ -152,6 +152,7 @@ internal const val RENDERER_IMAGE_TEXT_BUTTONS = "image_text_with_buttons_4"
 internal const val RENDERER_IMAGE_TEXT_WRAP = "image_text_with_buttons_4_wrap"
 internal const val RENDERER_IMAGE_TEXT_RIGHT_BUTTON = "image_text_with_right_text_button"
 internal const val RENDERER_IMAGE_TEXT_PROGRESS = "image_text_with_progress"
+internal const val RENDERER_BASE_TEXT_PROGRESS = "base_text_with_progress"
 
 internal const val ICON_AUTO = "auto"
 internal const val ICON_NOTIFICATION_SMALL = "notif_small"

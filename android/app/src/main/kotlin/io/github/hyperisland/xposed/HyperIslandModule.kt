@@ -24,6 +24,8 @@ import io.github.hyperisland.xposed.hook.ActiveIslandDismissHook
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.BluetoothIslandHook
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.HeartRateIslandHook
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.ChargeIslandHook
+import io.github.hyperisland.xposed.hook.SystemUI.extensions.MusicIslandSpectrumHook
+import io.github.hyperisland.xposed.hook.SystemUI.extensions.HomeAssistantIslandHook
 import io.github.hyperisland.xposed.hook.DownloadHook
 import io.github.hyperisland.xposed.hook.FocusNotifStatusBarIconHook
 import io.github.hyperisland.xposed.hook.FocusNotificationTextColorHook
@@ -37,6 +39,7 @@ import io.github.hyperisland.xposed.hook.SystemUI.ProxySourceHeadsUpSuppressHook
 import io.github.hyperisland.xposed.hook.SystemUI.WifiTileDisconnectHook
 import io.github.hyperisland.xposed.hook.IslandBackgroundHook
 import io.github.hyperisland.xposed.hook.SystemUI.geometry.IslandDimenHook
+import io.github.hyperisland.xposed.hook.SystemUI.IslandIconColorHook
 import io.github.hyperisland.xposed.hook.IslandDispatcherHook
 import io.github.hyperisland.xposed.hook.IslandOuterGlowHook
 import io.github.hyperisland.xposed.hook.IslandTextColorHook
@@ -88,6 +91,7 @@ class HyperIslandModule : XposedModule() {
                 IslandTextSizeHook.init(this, param)
                 BigIslandMinWidthHook.init(this, param)
                 IslandIconHook.init(this, param)
+                IslandIconColorHook.init(this, param)
                 UnlockAllFocusHook.init(this, param)
                 FocusNotifStatusBarIconHook.init(this, param)
                 IslandOuterGlowHook.init(this, param)
@@ -135,6 +139,12 @@ class HyperIslandModule : XposedModule() {
                 if (ConfigManager.getBoolean("pref_charge_island", false)) {
                     ChargeIslandHook.init(this, param)
                 }
+                if (ConfigManager.getBoolean("pref_music_island_spectrum", false)) {
+                    MusicIslandSpectrumHook.init(this, param)
+                }
+                // Home Assistant 拓展：不建后台服务，只注入 SystemUI；启用与否在 Hook 内部按配置判断，
+                // 因此总开关无需重启 SystemUI。
+                HomeAssistantIslandHook.init(this, param)
             }
 
             "miui.systemui.plugin" ->

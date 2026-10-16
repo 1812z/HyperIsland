@@ -48,6 +48,18 @@ internal const val KEY_LOCKSCREEN_NEGATIVE_PAGE_DIM_ENABLED = "pref_lockscreen_n
 internal const val KEY_LOCKSCREEN_NEGATIVE_PAGE_DIM_AMOUNT = "pref_lockscreen_negative_page_dim_amount"
 internal const val KEY_LOCKSCREEN_NEGATIVE_PAGE_TITLE = "pref_lockscreen_negative_page_title"
 internal const val KEY_WIFI_TILE_DISCONNECT = "pref_wifi_tile_disconnect_only"
+internal const val KEY_MUSIC_ISLAND_SPECTRUM = "pref_music_island_spectrum"
+internal const val KEY_MUSIC_ISLAND_SPECTRUM_COLOR_MODE = "pref_music_island_spectrum_color_mode"
+internal const val KEY_MUSIC_ISLAND_SPECTRUM_GRADIENT_START = "pref_music_island_spectrum_gradient_start"
+internal const val KEY_MUSIC_ISLAND_SPECTRUM_GRADIENT_END = "pref_music_island_spectrum_gradient_end"
+internal const val KEY_MUSIC_ISLAND_SPECTRUM_BAR_COUNT = "pref_music_island_spectrum_bar_count"
+internal const val KEY_MUSIC_ISLAND_SPECTRUM_SMOOTHING = "pref_music_island_spectrum_smoothing"
+
+// Home Assistant 拓展（键名与 HomeAssistantContract 保持一致，此处只做页面侧引用）
+internal const val KEY_HOME_ASSISTANT = "pref_home_assistant"
+internal const val KEY_HOME_ASSISTANT_URL = "pref_home_assistant_url"
+internal const val KEY_HOME_ASSISTANT_TOKEN = "pref_home_assistant_token"
+internal const val KEY_HOME_ASSISTANT_SUBSCRIPTIONS = "pref_home_assistant_subscriptions"
 
 internal const val MODE_DEFAULT = "default"
 internal const val MODE_OUTLINE = "outline"
@@ -69,10 +81,18 @@ internal const val ANIMATION_LOCK = "lock"
 internal const val ANIMATION_LOCK_2 = "lock_2"
 internal const val HEART_RATE_READ_MODE_BROADCAST = "heart_rate_broadcast"
 
+internal const val SPECTRUM_COLOR_GRADIENT = "gradient"
+internal const val SPECTRUM_COLOR_FOLLOW_COVER = "follow_cover"
+
+internal const val SPECTRUM_SMOOTHING_LOW = "low"
+internal const val SPECTRUM_SMOOTHING_MEDIUM = "medium"
+internal const val SPECTRUM_SMOOTHING_HIGH = "high"
+
 internal const val DEFAULT_SMOOTHING = 0.8
 internal const val DEFAULT_ICON_OPACITY = 0.5
 internal const val DEFAULT_BLUETOOTH_DURATION = 2L
 internal const val DEFAULT_CHARGE_DURATION = 10L
+internal const val DEFAULT_SPECTRUM_BAR_COUNT = 5L
 
 internal const val PKG_SYSTEM_UI = "com.android.systemui"
 internal const val PKG_MILINK = "com.milink.service"
@@ -97,6 +117,7 @@ internal enum class HookExtensionDetail {
     Xmsf,
     ScreenRecorder,
     DownloadManager,
+    HomeAssistant,
 }
 
 internal enum class SystemUiExtensionDetail {
@@ -105,4 +126,5 @@ internal enum class SystemUiExtensionDetail {
     Charge,
     FaceUnlock,
     LockscreenNegativePage,
+    MusicIslandSpectrum,
 }

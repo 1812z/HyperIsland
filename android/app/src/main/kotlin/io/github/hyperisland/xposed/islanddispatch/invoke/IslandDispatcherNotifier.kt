@@ -63,6 +63,8 @@ internal object IslandDispatcherNotifier {
             }
 
             val appIcon = resolveIcon(request.icon, context)
+            // 焦点通知可以带自己的图标（Home Assistant 用它放实体解析出来的 MDI 图标）。
+            val focusIcon = request.focusIcon?.let { resolveIcon(it, context) } ?: appIcon
             val focusTitle = request.focusTitle ?: request.title
             val focusContent = request.focusContent ?: request.content
             val islandBuilder = HyperIslandNotification.Builder(
@@ -76,7 +78,7 @@ internal object IslandDispatcherNotifier {
                 islandBuilder.addPicture(HyperPicture("key_right_island_icon", it))
             }
             if (!request.islandOnly) {
-                islandBuilder.addPicture(HyperPicture("key_focus_icon", appIcon))
+                islandBuilder.addPicture(HyperPicture("key_focus_icon", focusIcon))
                 islandBuilder.setIconTextInfo(
                     picKey = "key_focus_icon",
                     title = focusTitle,
@@ -159,7 +161,7 @@ internal object IslandDispatcherNotifier {
                 val mainRemoteViews = request.focusRemoteViews
                     ?: createFocusTextRemoteViews(focusTitle, focusContent)
                 islandBuilder
-                    .setTickerIcon(appIcon)
+                    .setTickerIcon(focusIcon)
                     .setCustomRemoteView(mainRemoteViews)
                 if (request.islandEnabled) {
                     islandBuilder.setCustomTinyRemoteView(
@@ -186,7 +188,9 @@ internal object IslandDispatcherNotifier {
             val aodIconKey = "miui.focus.pic_aod"
             val pictures = notificationExtras.getBundle("miui.focus.pics") ?: Bundle()
             val aodIcon = when {
-                request.aodIcon == null || request.aodIcon === request.icon -> appIcon
+                request.aodIcon == null -> focusIcon
+                request.aodIcon === request.icon -> appIcon
+                request.aodIcon === request.focusIcon -> focusIcon
                 else -> request.aodIcon.toRounded(context)
             }
             pictures.putParcelable(aodIconKey, aodIcon)

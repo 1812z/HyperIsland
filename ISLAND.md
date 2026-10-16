@@ -877,6 +877,13 @@ Mini Window 手势
 
 ## 17. 生命周期、安全和性能约束
 
+### 媒体通知文本颜色
+
+- `MediaNotificationTextColorHook` 的安装数据缓存必须同时使用弱 View 键和弱岛数据值：岛数据的 `getView()` / `getFakeView()` 会持有 View，强 value 会反向保活弱 key，连带保留通知和整棵 View 树。
+- 安装数据只在 `updateExpandedView()` 调用期间暂存，在 `setContentView()` 消费或更新退出（含异常、复用不重新安装）时移除；缓存最多 128 项。
+- 延迟改色 Runnable 仅持有弱 TextView 引用，detach 时取消并移除待执行任务；原始颜色使用每类最多 128 项的弱键缓存，保留 detach/reattach 复用时的默认颜色还原能力。
+- SystemUI OOM 崩溃栈仅能证明堆耗尽，不能替代 heap dump 中的引用链与 retained size 分析；上述泄漏链的修复效果仍需实机长时间播放、切歌和展开/收起验证。
+
 ### 17.0 动态 Hook 安装与失败降级
 
 - 动态发现监听 ClassLoader 构造，不监听每次 `loadClass`。BaseDex/Path/DelegateLast 的嵌套构造按线程和实际加载器实例合并，仅在最外层构造成功后分发一次，避免尚未完成构造就探测插件类。

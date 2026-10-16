@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -17,6 +18,8 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -34,6 +37,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.hyperisland.R
@@ -205,6 +209,7 @@ internal fun OverviewPage(
         show = showCustomTest,
         enabled = state.status?.active == true,
         onDismiss = { showCustomTest = false },
+        // 发送后不关闭对话框，便于连续调整内容反复测试。
         onSend = { title, content, clearPrevious, enableFloat ->
             TestNotificationService.sendCustom(
                 context = context,
@@ -212,8 +217,8 @@ internal fun OverviewPage(
                 content = content,
                 clearPrevious = clearPrevious,
                 enableFloat = enableFloat,
+                expandFirst = enableFloat,
             )
-            showCustomTest = false
         },
     )
     RestartScopeDialog(
@@ -508,16 +513,27 @@ private fun CustomTestDialog(
     var content by remember(show) { mutableStateOf("") }
     var clearPrevious by remember(show) { mutableStateOf(true) }
     var enableFloat by remember(show) { mutableStateOf(true) }
+
     WindowDialog(
         show = show,
         title = stringResource(R.string.custom_test_notification),
         onDismissRequest = onDismiss,
+        // 横向内边距交给各行自行提供，行高亮才能横向铺满对话框（整行高亮）。
+        insideMargin = DpSize(0.dp, DialogContentPadding),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                // 输入法弹出后可用高度变小，允许滚动以免底部按钮被裁切。
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
             TextField(
                 value = title,
                 onValueChange = { title = it },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = DialogContentPadding),
                 label = stringResource(R.string.custom_test_title),
                 useLabelAsPlaceholder = true,
                 singleLine = true,
@@ -525,30 +541,37 @@ private fun CustomTestDialog(
             TextField(
                 value = content,
                 onValueChange = { content = it },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = DialogContentPadding),
                 label = stringResource(R.string.custom_test_content),
                 useLabelAsPlaceholder = true,
                 minLines = 2,
                 maxLines = 4,
             )
-            SwitchPreference(
-                checked = clearPrevious,
-                onCheckedChange = { clearPrevious = it },
-                title = stringResource(R.string.clear_previous_notification),
-                summary = stringResource(R.string.clear_previous_notification_summary),
-            )
-            SwitchPreference(
-                checked = enableFloat,
-                onCheckedChange = { enableFloat = it },
-                title = stringResource(R.string.expand_notification),
-                summary = stringResource(R.string.enable_float_summary),
-            )
+            // 两行紧贴，点按 / 悬停高亮覆盖整行。
+            Column(modifier = Modifier.fillMaxWidth()) {
+                SwitchPreference(
+                    checked = clearPrevious,
+                    onCheckedChange = { clearPrevious = it },
+                    title = stringResource(R.string.clear_previous_notification),
+                    summary = stringResource(R.string.clear_previous_notification_summary),
+                    insideMargin = SwitchRowMargin,
+                )
+                SwitchPreference(
+                    checked = enableFloat,
+                    onCheckedChange = { enableFloat = it },
+                    title = stringResource(R.string.expand_notification),
+                    summary = stringResource(R.string.enable_float_summary),
+                    insideMargin = SwitchRowMargin,
+                )
+            }
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = DialogContentPadding),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 TextButton(
-                    text = stringResource(R.string.cancel),
+                    text = stringResource(R.string.close),
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
                 )
@@ -566,6 +589,9 @@ private fun CustomTestDialog(
 }
 
 private const val SYSTEM_UI_PACKAGE = "com.android.systemui"
+private val DialogContentPadding = 24.dp
+private val SwitchRowMargin = PaddingValues(horizontal = DialogContentPadding, vertical = 14.dp)
+
 private const val DONATION_URL = "https://hyperisland.1812z.top/donors.html"
 private const val DOCUMENTATION_URL = "https://hyperisland.1812z.top/"
 private const val RESOURCES_URL = "https://hyperisland.1812z.top/downloads.html"
