@@ -613,8 +613,8 @@
     <string name="ai_json_left">Văn bản bên trái (người gửi)</string>
     <string name="ai_json_right">Văn bản bên phải (tóm tắt)</string>
     <string name="ai_thinking_error">Chế độ suy luận (thinking) của AI đang bật. Hãy thêm một trường tùy chỉnh để tắt chế độ suy luận</string>
-    <string name="ai_invalid_json">Định dạng phản hồi AI không hợp lệ. Cần JSON có trường left và right</string>
-    <string name="ai_empty_json">Phản hồi AI trống. Cần JSON có trường left và right</string>
+    <string name="ai_invalid_json">Định dạng phản hồi AI không hợp lệ. Cần JSON có các trường left và right</string>
+    <string name="ai_empty_json">Phản hồi AI trống. Cần JSON có các trường left và right</string>
     <string name="ai_notification_content">nội dung thông báo</string>
     <string name="ai_test_notification_title">kiểm tra thông báo</string>
     <string name="ai_notification_sent">Đã gửi thông báo</string>
@@ -729,7 +729,7 @@
     <string name="system_version">Phiên bản hệ thống</string>
     <string name="app_version">Phiên bản ứng dụng</string>
     <string name="xposed_framework">Khung Xposed</string>
-    <string name="device_model">thiết bị chế độl</string>
+    <string name="device_model">Mẫu thiết bị</string>
     <string name="unknown">Không xác định</string>
     <string name="click_select_file">Click to chọn file</string>
     <string name="delete">xóa</string>
@@ -844,7 +844,7 @@
     <string name="export_to_clipboard">Sao chép vào khay nhớ tạm</string>
     <string name="import_from_clipboard">Nhập từ khay nhớ tạm</string>
     <string name="material_config_copied">cấu hình đã sao chép</string>
-    <string name="material_import_success">nhập thành côngful, 5 cấu hìnhs in total</string>
+    <string name="material_import_success">Đã nhập thành công %1$d cấu hình (tổng cộng %2$d)</string>
     <string name="onboarding_app_name">HyperIsland</string>
     <string name="onboarding_welcome_title">Chào mừng đến với HyperIsland</string>
     <string name="onboarding_welcome_subtitle">Thiết lập trải nghiệm HyperIsland nhanh chóng và gọn gàng</string>
@@ -977,7 +977,7 @@
     <string name="expand_animation_bounce">Nảy</string>
     <string name="expand_animation_rebound">Hiệu ứng bật lại</string>
     <string name="expand_animation_press_tilt">Nghiêng khi nhấn</string>
-    <string name="expand_layout_section">mở rộnged layout</string>
+    <string name="expand_layout_section">Bố cục khi bung rộng</string>
     <string name="expand_layout_top_gap">phía trên spacing</string>
     <string name="expand_layout_content_top_gap">nội dung phía trên spacing</string>
     <string name="expand_animation_return_overshoot">Độ văng quá mức khi quay lại</string>
