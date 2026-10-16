@@ -626,6 +626,8 @@ android/app/src/main/kotlin/io/github/hyperisland/xposed/hook/SystemUI/IslandTra
 
 `animation/ExpandedPressTiltHook.kt` 为灵动类型的展开通知增加按压倾斜，配置键为 `pref_expand_animation_press_tilt`，默认关闭。采用控制中心 `RotationItemViewHolder.touchDown()` 同类的对侧支点和原生双轴旋转；边缘正中按压只启用一个轴，中心按压保留系统缩放。效果施加于整个 `DynamicIslandBackgroundView`（包含真实内容）及独立 fake root，不重复处理背景内的子 View；系统缩放、轮廓和位移弹簧保持原路径。原 RuntimeShader 曲面、外围衰减、矩形内外采样方案已被实机反馈否定（阴影收缩、缺口），现全部撤除，也不改写 RenderEffect。松手复位可随回弹开关轻微越界，拖动超过 touch slop 则退出倾斜。对象采用有数量上限的弱引用缓存，关闭配置、状态离开展开或 View detach 时恢复旋转、支点和相机距离。当前原生倾斜与阴影组合仍需实机确认，不含额外曲面弯曲。
 
+`animation/ExpandedMiniWindowFollowHook.kt` 为小白条下拉补充跟随位移，受「跟随效果」开关（`pref_expand_animation_gesture_follow`）控制。焦点通知下拉时在系统 `onTrackingFakeViewUpdate(float)` 的原生 top/bottom 位移与 alpha 渐隐之上，再把 fake root 的 `translationX`（左右，取 rawX 差值）与 `translationY`（上下，取该回调自带的累计下拉距离）叠加有界 tanh 跟随。fake root 的原始 `translationX/Y` 在首次接触时记录为 pristine base（弱引用缓存、有上限），松手/复位/detach 时回到 base，避免上一次斜向下拉中断后残留的左右位移被当成新的原点造成瞬移。热点（MOVE / onTrackingFakeViewUpdate）不反射，仅弱引用缓存与数值运算；仍需实机确认手势手感与原生 mini-window 过渡叠加效果。
+
 | 文件 | 关系 |
 | --- | --- |
 | `IslandOuterGlowHook.kt` | 使用 `getBigIslandView()` 获取具体大岛 View，可作为反射参考 |
