@@ -4,12 +4,14 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.LinearGradient
 import android.graphics.Paint
+import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Shader
 import android.media.audiofx.Visualizer
 import android.view.Choreographer
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewParent
 import android.widget.FrameLayout
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.BaseHook
@@ -19,15 +21,20 @@ import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.util.Collections
 import java.util.WeakHashMap
+import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.pow
 import kotlin.math.sqrt
 
 // ── 顶层诊断（有界：每个 key 只打首次）───────────────────────────────────────
+// 注意：message 必须是惰性 lambda。这些 diag 都位于帧回调 / FFT 回调的热路径上，
+// 若用普通字符串参数，Kotlin 会在每次调用前就构造好字符串（含 joinToString + "%.2f".format），
+// 即使 key 早已记录、日志根本不会输出，也会白白产生大量分配。
 private const val TAG = "HyperIsland[MusicSpectrum]"
 private val diagSeen = Collections.synchronizedSet(mutableSetOf<String>())
-private fun diag(key: String, message: String) {
-    if (diagSeen.add(key)) xlogWarn(TAG, message)
+private inline fun diag(key: String, message: () -> String) {
+    if (diagSeen.add(key)) xlogWarn(TAG, message())
 }
 
 // ── 共享常量 ─────────────────────────────────────────────────────────────────
@@ -48,6 +55,46 @@ private const val GAIN_RELEASE = 0.004f
 private const val MIN_GAIN = 1e-4f
 private const val MAX_GAIN = 1e3f
 private const val SILENCE_NANOS = 350_000_000L
+
+/** 电平低于该值即视为静止：用于决定帧循环是否可以停下来（静止后不再 invalidate）。 */
+private const val LEVEL_EPSILON = 0.01f
+
+/**
+ * 电平变化小于该值就不重绘。
+ *
+ * 这是播放态最关键的一条：FFT 采样只有 20Hz，而 vsync 有 120Hz，中间那些帧算出来的
+ * 目标值根本没变。旧实现每帧无条件 invalidate()，等于把「同一份数据」在一个被模糊 /
+ * 发光 / 圆角裁剪包裹的岛图层里重画 6 遍。按阈值过滤后，重绘次数直接对齐采样率。
+ * 阈值换算成像素远小于 1px（条高量程约 9px，0.005 × 9 ≈ 0.05px），肉眼不可见。
+ */
+private const val REDRAW_DELTA_EPSILON = 0.005f
+
+/**
+ * 120Hz 基准帧间隔。平滑参数（attack / releaseStep）是在 120Hz 下调出来的，
+ * 其它帧率或经过节流后必须按实际 dt 等比换算，否则 60Hz 设备衰减速度只有一半。
+ */
+private const val REFERENCE_FRAME_NANOS = 8_333_333L
+
+/**
+ * 目标动画帧率。FFT 采样本身只有 20Hz（见 `Visualizer.getMaxCaptureRate()`，单位是
+ * milliHertz），60fps 已经远超数据更新率，再高只是在重画同一份数据。
+ *
+ * 实现方式：仍然接收每个 vsync（动画必须对齐 vsync，否则会撕裂），但被跳过的 vsync
+ * 只做一次时间比较就返回，成本可忽略。
+ */
+private const val TARGET_FPS = 60
+
+/** 留 1ms 余量，避免 vsync 周期与阈值正好相等时因取整而掉到 30fps。 */
+private const val MIN_STEP_INTERVAL_NANOS = 1_000_000_000L / TARGET_FPS - 1_000_000L
+
+/** 单帧 dt 上限，避免主线程卡顿后一次补跳过大。 */
+private const val MAX_STEP_DELTA_NANOS = 100_000_000L
+
+/**
+ * 样式快照刷新间隔。配置读取会走 RemotePreferences 并伴随字段表排序分配，
+ * 必须远离「每帧 / 每回调」路径，所以统一节流到 500ms，视觉上无感知。
+ */
+private const val STYLE_TTL_NANOS = 500_000_000L
 
 // ── 配置键 ─────────────────────────────────────────────────────────────────
 private const val PREF_COLOR_MODE = "pref_music_island_spectrum_color_mode"
@@ -120,6 +167,12 @@ private object OfficialColors {
  * SpectrumView。`Visualizer(0)`（系统混音输出）是进程内全局唯一资源，不能每个 View
  * 各建一个，否则第二个创建失败（IllegalStateException: state 2）并干扰第一个的采样
  * 句柄。因此这里使用全局单例采样源 + 引用计数，所有 SpectrumView 共享同一份 FFT 数据。
+ *
+ * 资源占用约束（帧循环与采样都必须可停）：
+ * - 帧循环只在「实时模式且已附着」时运行；暂停态（pic=musicPause，realtime=false）完全不排帧。
+ * - 即使处于实时模式，只要超过 [SILENCE_NANOS] 没有采到非静音 FFT，电平衰减归零后也会停帧，
+ *   等采样线程重新采到声音再唤醒（[VisualizerSource.wakeClients]）。
+ * - 每帧 / 每回调都不得直读 ConfigManager，统一走 [StyleCache]。
  */
 object MusicIslandSpectrumHook : BaseHook() {
 
@@ -222,7 +275,7 @@ object MusicIslandSpectrumHook : BaseHook() {
             return
         }
 
-        diag("bind.spectrum", "spectrum bind pic=$pic type=$type container=${container.width}x${container.height} lottie=${lottieView?.width}x${lottieView?.height}")
+        diag("bind.spectrum") { "spectrum bind pic=$pic type=$type container=${container.width}x${container.height} lottie=${lottieView?.width}x${lottieView?.height}" }
 
         val spectrum = existing ?: createAndAttach(
             container,
@@ -273,6 +326,55 @@ object MusicIslandSpectrumHook : BaseHook() {
 
     internal data class Smoothing(val attack: Float, val releaseStep: Float)
 
+    /** 一帧绘制 / 采样所需的全部样式参数，低频刷新一次。 */
+    internal data class Style(
+        val barCount: Int,
+        val smoothing: Smoothing,
+        val topColor: Int,
+        val bottomColor: Int,
+    )
+
+    /**
+     * 样式快照缓存。
+     *
+     * 条数 / 平滑 / 渐变色原本在「每帧 × 每个 View」和「每次 FFT 回调」里直接读 ConfigManager：
+     * 每次 getInt/getString 都要遍历 TOAST_FIELDS / NOTIFICATION_FIELDS / CHANNEL_FIELDS 并做
+     * `sortedByDescending` 分配，再走 RemotePreferences。而帧回调与 Visualizer 回调都跑在
+     * SystemUI 主线程上，两个 SpectrumView 叠加后每秒上千次这种读取，正是暂停态 50% CPU 的主因。
+     * 这里统一按 [STYLE_TTL_NANOS] 节流，配置变更最多 500ms 后生效。
+     */
+    private object StyleCache {
+        private val lock = Any()
+
+        @Volatile private var cached = Style(
+            barCount = DEFAULT_BAR_COUNT,
+            smoothing = Smoothing(attack = 1f, releaseStep = DECAY_STEP),
+            topColor = TOP_COLOR,
+            bottomColor = BOTTOM_COLOR,
+        )
+
+        @Volatile private var lastRead = 0L
+
+        fun get(): Style {
+            val snapshot = cached
+            if (System.nanoTime() - lastRead < STYLE_TTL_NANOS) return snapshot
+            synchronized(lock) {
+                val now = System.nanoTime()
+                if (now - lastRead < STYLE_TTL_NANOS) return cached
+                val (top, bottom) = MusicIslandSpectrumHook.currentColors()
+                val fresh = Style(
+                    barCount = MusicIslandSpectrumHook.currentBarCount(),
+                    smoothing = MusicIslandSpectrumHook.currentSmoothing(),
+                    topColor = top,
+                    bottomColor = bottom,
+                )
+                cached = fresh
+                lastRead = now
+                return fresh
+            }
+        }
+    }
+
     private fun createAndAttach(
         container: ViewGroup,
         context: Context?,
@@ -305,23 +407,41 @@ object MusicIslandSpectrumHook : BaseHook() {
      * 全局唯一的 Visualizer 采样源。
      *
      * `Visualizer(SYSTEM_AUDIO_SESSION)` 对系统混音输出是进程内单例资源；fake 层与 stable
-     * 层各有一个 SpectrumView，必须共享这一个实例。用客户端引用计数管理 enable/release。
+     * 层各有一个 SpectrumView，必须共享这一个实例。用客户端集合（弱引用）管理 enable/release，
+     * 集合为空时立刻关闭并释放 Visualizer —— 这是暂停态「不再采样」的关键。
      */
     private object VisualizerSource {
         private val lock = Any()
+        private val clients = Collections.newSetFromMap(WeakHashMap<SpectrumView, Boolean>())
         private var visualizer: Visualizer? = null
-        private var clientCount = 0
-
-        val targetLevels = FloatArray(MAX_BAR_COUNT)
-        @Volatile var lastFftAt = 0L
-        private val fftScratch = FloatArray(MAX_BAR_COUNT)
         private var gain = MIN_GAIN
+        private val fftScratch = FloatArray(MAX_BAR_COUNT)
 
-        fun acquire(): Boolean {
+        /**
+         * 最近一次「非静音」FFT 的时间戳。
+         *
+         * 只在采到真实声音时更新：全零帧不会刷新它，于是 [SILENCE_NANOS] 之后自然判定为无声，
+         * 帧循环得以停下来。旧实现每个回调都刷新，导致播放态静音段也永远在跑帧。
+         */
+        @Volatile private var lastAudioAt = 0L
+
+        /** 目标电平快照。整体替换（而不是原地改写）发布，读方无锁也能拿到一致快照。 */
+        @Volatile private var levelSnapshot = FloatArray(MAX_BAR_COUNT)
+
+        fun levels(): FloatArray = levelSnapshot
+
+        fun isAudioActive(): Boolean {
+            val at = lastAudioAt
+            return at != 0L && System.nanoTime() - at < SILENCE_NANOS
+        }
+
+        fun acquire(view: SpectrumView): Boolean {
             synchronized(lock) {
-                clientCount++
-                if (visualizer != null) return true
-                visualizer = try {
+                if (visualizer != null) {
+                    clients.add(view)
+                    return true
+                }
+                val created = try {
                     Visualizer(SYSTEM_AUDIO_SESSION).also { instance ->
                         instance.captureSize = CAPTURE_SIZE
                         instance.setDataCaptureListener(
@@ -333,31 +453,37 @@ object MusicIslandSpectrumHook : BaseHook() {
                         instance.enabled = true
                     }
                 } catch (t: Throwable) {
-                    diag("visualizer.create.fail", "Visualizer create failed: ${t.javaClass.simpleName}: ${t.message}")
+                    diag("visualizer.create.fail") { "Visualizer create failed: ${t.javaClass.simpleName}: ${t.message}" }
                     null
                 }
-                if (visualizer == null) {
-                    // 创建失败：回滚计数，避免引用计数泄漏。
-                    if (clientCount > 0) clientCount--
-                    return false
-                }
-                diag("visualizer.created", "Visualizer created clients=$clientCount captureSize=$CAPTURE_SIZE rate=${Visualizer.getMaxCaptureRate()}")
+                if (created == null) return false
+                visualizer = created
+                clients.add(view)
+                diag("visualizer.created") { "Visualizer created clients=${clients.size} captureSize=$CAPTURE_SIZE rate=${Visualizer.getMaxCaptureRate()}" }
                 return true
             }
         }
 
-        fun release() {
+        fun release(view: SpectrumView) {
             synchronized(lock) {
-                if (clientCount > 0) clientCount--
-                if (clientCount == 0) {
-                    val v = visualizer
-                    visualizer = null
-                    v?.let {
-                        runCatching { it.enabled = false }
-                        runCatching { it.release() }
-                    }
-                    diag("visualizer.released", "Visualizer released")
+                clients.remove(view)
+                if (clients.isNotEmpty()) return
+                val v = visualizer
+                visualizer = null
+                lastAudioAt = 0L
+                v?.let {
+                    runCatching { it.enabled = false }
+                    runCatching { it.release() }
                 }
+                diag("visualizer.released") { "Visualizer released" }
+            }
+        }
+
+        /** 重新采到声音时唤醒处于休眠（已停帧）的客户端。 */
+        private fun wakeClients() {
+            synchronized(lock) {
+                if (clients.isEmpty()) return
+                for (client in clients) client.wakeFromAudio()
             }
         }
 
@@ -374,7 +500,19 @@ object MusicIslandSpectrumHook : BaseHook() {
                 fft: ByteArray,
                 samplingRate: Int,
             ) {
-                val barCount = MusicIslandSpectrumHook.currentBarCount()
+                // 静音快速路径：全零帧直接返回。既省掉逐 bin 开方，也不刷新 lastAudioAt，
+                // 让 SILENCE_NANOS 之后自动判定无声并停掉帧循环。
+                var silent = true
+                for (index in fft.indices) {
+                    if (fft[index].toInt() != 0) {
+                        silent = false
+                        break
+                    }
+                }
+                if (silent) return
+
+                val style = StyleCache.get()
+                val barCount = style.barCount
                 val binCount = fft.size / 2
                 if (binCount < barCount + 1) return
                 val maxBin = (binCount * MAX_BIN_FRACTION).toInt()
@@ -394,21 +532,24 @@ object MusicIslandSpectrumHook : BaseHook() {
                     scratch[bar] = peak
                     if (peak > frameMax) frameMax = peak
                 }
+                if (frameMax <= 0f) return
+
+                val snapshot = FloatArray(MAX_BAR_COUNT)
                 synchronized(lock) {
-                    lastFftAt = System.nanoTime()
-                    if (frameMax > 0f) {
-                        val implied = GAIN_TARGET / frameMax
-                        gain = (if (implied > gain) {
-                            min(gain + GAIN_ATTACK, implied)
-                        } else {
-                            max(gain - GAIN_RELEASE, implied)
-                        }).coerceIn(MIN_GAIN, MAX_GAIN)
-                    }
+                    val implied = GAIN_TARGET / frameMax
+                    gain = (if (implied > gain) {
+                        min(gain + GAIN_ATTACK, implied)
+                    } else {
+                        max(gain - GAIN_RELEASE, implied)
+                    }).coerceIn(MIN_GAIN, MAX_GAIN)
                     for (bar in 0 until barCount) {
-                        targetLevels[bar] = min(1f, scratch[bar] * gain)
+                        snapshot[bar] = min(1f, scratch[bar] * gain)
                     }
+                    lastAudioAt = System.nanoTime()
+                    levelSnapshot = snapshot
                 }
-                diag("fft.capture", "fft captured size=${fft.size} sr=$samplingRate barCount=$barCount frameMax=$frameMax gain=$gain")
+                diag("fft.capture") { "fft captured size=${fft.size} sr=$samplingRate barCount=$barCount frameMax=$frameMax gain=$gain" }
+                wakeClients()
             }
         }
 
@@ -421,6 +562,9 @@ object MusicIslandSpectrumHook : BaseHook() {
 
     /**
      * 对称竖条的实时频谱。每个实例从全局 [VisualizerSource] 读取数据并做本地平滑。
+     *
+     * 帧循环遵循「按需运行」：只有 realtime 且已附着才排帧；一旦电平静止（或非实时态）就
+     * 停止排帧并只画最后一帧，避免暂停 / 静音时仍然 120Hz 空转。
      */
     private class SpectrumView(context: Context) : View(context) {
 
@@ -428,51 +572,145 @@ object MusicIslandSpectrumHook : BaseHook() {
         private val barRect = RectF()
 
         // 每根条独立的渐变缓存：因为渐变要沿每根竖条的 top→bottom 铺，而每根条的高度
-        // 逐帧变化，所以渐变只能在 draw 时按当前条高动态构造；用缓存避免每帧重复 new。
-        private var barGradient: LinearGradient? = null
-        private var barGradientBar = -1
-        private var barGradientTop = -1f
-        private var barGradientBottom = -1f
-        private var barGradientColorTop = -1
-        private var barGradientColorBottom = -1
+        // 逐帧变化，所以渐变只能在 draw 时按当前条高动态构造。按 bar 分别缓存几何 + 颜色，
+        // 避免旧实现只缓存一根条、5 根条每帧反复 new LinearGradient。
+        private val gradCache = arrayOfNulls<LinearGradient>(MAX_BAR_COUNT)
+        private val gradTop = FloatArray(MAX_BAR_COUNT)
+        private val gradBottom = FloatArray(MAX_BAR_COUNT)
+        private val gradColorTop = IntArray(MAX_BAR_COUNT)
+        private val gradColorBottom = IntArray(MAX_BAR_COUNT)
 
         private val levels = FloatArray(MAX_BAR_COUNT)
         private val drawSnapshot = FloatArray(MAX_BAR_COUNT)
         private val levelsLock = Any()
 
+        /** 复用同一个 Rect，避免每帧做可见性判断时分配对象。 */
+        private val visibleRect = Rect()
+
         @Volatile private var realtime = false
         @Volatile private var attached = false
         private var acquired = false
 
+        /** 帧回调是否已入队；只在 realtime && attached 时为 true。 */
+        @Volatile private var framePending = false
+
+        /** 上一次推进电平的时间（vsync 时间戳），用于节流与 dt 换算。 */
+        private var lastStepNanos = 0L
+
+        /** 上一次 stepLevels 是否产生了值得重绘的变化。 */
+        private var levelsDirty = false
+
         private val frameCallback = object : Choreographer.FrameCallback {
             override fun doFrame(frameTimeNanos: Long) {
-                if (!attached) return
-                stepLevels()
-                invalidate()
-                Choreographer.getInstance().postFrameCallback(this)
+                framePending = false
+                if (!attached || !realtime) return
+                // 节流判断放在最前面：被跳过的 vsync 只做一次时间比较，不做可见性遍历。
+                val sinceLast = if (lastStepNanos == 0L) {
+                    Long.MAX_VALUE
+                } else {
+                    frameTimeNanos - lastStepNanos
+                }
+                if (sinceLast < MIN_STEP_INTERVAL_NANOS) {
+                    postFrame()
+                    return
+                }
+                lastStepNanos = frameTimeNanos
+                // 不可见时（fake 过渡层已隐藏、整岛淡出到 alpha=0、或被祖先裁剪掉）
+                // 不推进也不绘制，只保留循环等待重新可见；否则隐藏的 SpectrumView 会一直空烧。
+                // 保留循环而不是停掉，是为了让「重新可见」能自愈（alpha 变化没有回调可监听）。
+                if (!isRenderable()) {
+                    postFrame()
+                    return
+                }
+                val dtNanos = if (sinceLast == Long.MAX_VALUE) REFERENCE_FRAME_NANOS else sinceLast
+                val active = VisualizerSource.isAudioActive()
+                val keepRunning = stepLevels(
+                    active = active,
+                    dtNanos = dtNanos.coerceAtMost(MAX_STEP_DELTA_NANOS),
+                )
+                // 只有电平真的变了才重绘：避免为同一份采样数据反复刷整个岛图层。
+                if (levelsDirty) invalidate()
+                if (keepRunning) {
+                    postFrame()
+                } else {
+                    // 停帧：清掉计时，下次被唤醒时按基准 dt 立刻推进一帧。
+                    lastStepNanos = 0L
+                }
             }
         }
 
+        /** 是否真的会显示在屏幕上：不可见 / 祖先透明 / 被祖先裁剪掉时没必要推进与绘制。 */
+        private fun isRenderable(): Boolean {
+            if (!isShown || alpha == 0f) return false
+            // getGlobalVisibleRect 会连带计算与各级祖先裁剪区的交集，
+            // 能识别「可见但被裁到 0 面积」的隐藏层（isShown 判断不出来）。
+            if (!getGlobalVisibleRect(visibleRect) ||
+                visibleRect.width() <= 0 || visibleRect.height() <= 0
+            ) {
+                return false
+            }
+            var node: ViewParent? = parent
+            var depth = 0
+            while (depth < 8) {
+                val view = node as? View ?: return true
+                if (view.alpha == 0f) return false
+                node = view.parent
+                depth++
+            }
+            return true
+        }
+
+        /** 排帧：非实时态 / 未附着 / 已排队时不重复排。 */
+        private fun postFrame() {
+            if (framePending || !attached || !realtime) return
+            framePending = true
+            val posted = runCatching {
+                Choreographer.getInstance().postFrameCallback(frameCallback)
+            }.isSuccess
+            if (!posted) framePending = false
+        }
+
+        private fun cancelFrame() {
+            framePending = false
+            runCatching { Choreographer.getInstance().removeFrameCallback(frameCallback) }
+        }
+
+        /** 采样线程重新采到声音时调用：若当前处于休眠（已停帧）则重启帧循环。 */
+        fun wakeFromAudio() {
+            if (attached && realtime) postFrame()
+        }
+
         fun setRealtime(value: Boolean) {
+            val changed = realtime != value
             realtime = value
-            diag("setRealtime.$value", "setRealtime=$value attached=$attached")
-            if (!value) {
+            if (changed) {
+                diag("setRealtime.$value") { "setRealtime=$value attached=$attached" }
+            }
+            if (changed) lastStepNanos = 0L
+            if (!value && changed) {
                 synchronized(levelsLock) { levels.fill(0f) }
             }
             syncSource()
+            if (value) {
+                postFrame()
+            } else if (changed) {
+                // 暂停态：只补画一帧静态频谱，之后不再排帧。
+                invalidate()
+            }
         }
 
         override fun onAttachedToWindow() {
             super.onAttachedToWindow()
             attached = true
-            diag("view.attach", "spectrum view attached size=${width}x${height}")
+            lastStepNanos = 0L
+            diag("view.attach") { "spectrum view attached size=${width}x${height}" }
             syncSource()
-            Choreographer.getInstance().postFrameCallback(frameCallback)
+            postFrame()
         }
 
         override fun onDetachedFromWindow() {
             attached = false
-            Choreographer.getInstance().removeFrameCallback(frameCallback)
+            cancelFrame()
             syncSource()
             super.onDetachedFromWindow()
         }
@@ -480,21 +718,14 @@ object MusicIslandSpectrumHook : BaseHook() {
         private fun syncSource() {
             val shouldRun = realtime && attached
             if (shouldRun && !acquired) {
-                acquired = VisualizerSource.acquire()
+                acquired = VisualizerSource.acquire(this)
                 if (!acquired) {
-                    diag("source.acquire.fail", "VisualizerSource acquire failed")
+                    diag("source.acquire.fail") { "VisualizerSource acquire failed" }
                 }
             } else if (!shouldRun && acquired) {
                 acquired = false
-                VisualizerSource.release()
+                VisualizerSource.release(this)
             }
-        }
-
-        override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
-            super.onSizeChanged(w, h, oldw, oldh)
-            // 渐变不再铺满整 View，改在 draw 里按每根条的高度动态构造（见 drawBar）。
-            barGradient = null
-            barGradientBar = -1
         }
 
         override fun onDraw(canvas: Canvas) {
@@ -502,11 +733,12 @@ object MusicIslandSpectrumHook : BaseHook() {
             val width = width.toFloat()
             val height = height.toFloat()
             if (width <= 0f || height <= 0f) {
-                diag("draw.empty", "onDraw skipped width=$width height=$height")
+                diag("draw.empty") { "onDraw skipped width=$width height=$height" }
                 return
             }
 
-            val barCount = MusicIslandSpectrumHook.currentBarCount()
+            val style = StyleCache.get()
+            val barCount = style.barCount
             val centerY = height / 2f
             val maxHalfHeight = height / 2f * MAX_AMPLITUDE_FRACTION
             val minHalfHeight = height * MIN_BAR_HALF_FRACTION
@@ -519,8 +751,8 @@ object MusicIslandSpectrumHook : BaseHook() {
             val snapshot = drawSnapshot
             synchronized(levelsLock) { System.arraycopy(levels, 0, snapshot, 0, barCount) }
 
-            // 跟随官方封面动态色；或渐变模式使用自定义色。
-            val (topColor, bottomColor) = MusicIslandSpectrumHook.currentColors()
+            val topColor = style.topColor
+            val bottomColor = style.bottomColor
 
             for (bar in 0 until barCount) {
                 val level = snapshot[bar].coerceIn(0f, 1f)
@@ -532,57 +764,78 @@ object MusicIslandSpectrumHook : BaseHook() {
                 paint.shader = barShader(bar, top, bottom, topColor, bottomColor)
                 canvas.drawRoundRect(barRect, barWidth / 2f, barWidth / 2f, paint)
             }
-            diag("draw.ok", "onDraw width=$width height=$height barCount=$barCount barWidth=$barWidth topColor=#${Integer.toHexString(topColor)} bottomColor=#${Integer.toHexString(bottomColor)} levels=[${snapshot.take(barCount).joinToString { "%.2f".format(it) }}]")
+            diag("draw.ok") { "onDraw width=$width height=$height barCount=$barCount barWidth=$barWidth topColor=#${Integer.toHexString(topColor)} bottomColor=#${Integer.toHexString(bottomColor)} levels=[${snapshot.take(barCount).joinToString { "%.2f".format(it) }}]" }
         }
 
-        /** 每根条独立渐变：沿该条当前 top→bottom 铺 TOP_COLOR→BOTTOM_COLOR，缓存复用。 */
+        /** 每根条独立渐变：沿该条当前 top→bottom 铺 TOP_COLOR→BOTTOM_COLOR，按 bar 缓存复用。 */
         private fun barShader(bar: Int, top: Float, bottom: Float, topColor: Int, bottomColor: Int): LinearGradient? {
-            val g = barGradient
-            if (g != null && barGradientBar == bar &&
-                barGradientTop == top && barGradientBottom == bottom &&
-                barGradientColorTop == topColor && barGradientColorBottom == bottomColor
+            if (gradColorTop[bar] == topColor && gradColorBottom[bar] == bottomColor &&
+                gradTop[bar] == top && gradBottom[bar] == bottom
             ) {
-                return g
+                return gradCache[bar]
             }
             val created = if (bottom > top) {
                 LinearGradient(0f, top, 0f, bottom, topColor, bottomColor, Shader.TileMode.CLAMP)
             } else {
                 null
             }
-            barGradient = created
-            barGradientBar = bar
-            barGradientTop = top
-            barGradientBottom = bottom
-            barGradientColorTop = topColor
-            barGradientColorBottom = bottomColor
+            gradCache[bar] = created
+            gradTop[bar] = top
+            gradBottom[bar] = bottom
+            gradColorTop[bar] = topColor
+            gradColorBottom[bar] = bottomColor
             return created
         }
 
-        private fun stepLevels() {
+        /**
+         * 推进一帧电平平滑。
+         *
+         * @param active 采样是否活跃（决定目标值是真实电平还是 0）
+         * @param dtNanos 距上次推进的时长，用于把平滑参数从 [REFERENCE_FRAME_NANOS] 基准
+         *                换算到当前帧率，保证不同刷新率 / 节流后手感一致。
+         * @return 是否还需要下一帧（采样仍活跃，或电平尚未完全归零）。
+         */
+        private fun stepLevels(active: Boolean, dtNanos: Long): Boolean {
+            val style = StyleCache.get()
+            val barCount = style.barCount
+            val smoothing = style.smoothing
+            val scale = dtNanos.toFloat() / REFERENCE_FRAME_NANOS
+            // attack 是混合系数而非线性步长，按 (1-a)^scale 换算才能保证「每秒收敛量」一致。
+            val attack = if (smoothing.attack >= 1f) {
+                1f
+            } else {
+                1f - (1f - smoothing.attack).pow(scale)
+            }
+            val releaseStep = smoothing.releaseStep * scale
+            // 目标数组恒定非空（整体替换发布）；非活跃时直接按 0 处理，避免逐条装箱。
+            val targets = VisualizerSource.levels()
+            var changed = false
+            var settled = true
             synchronized(levelsLock) {
-                val barCount = MusicIslandSpectrumHook.currentBarCount()
-                val smoothing = MusicIslandSpectrumHook.currentSmoothing()
-                val active = realtime &&
-                    VisualizerSource.lastFftAt != 0L &&
-                    (System.nanoTime() - VisualizerSource.lastFftAt) < SILENCE_NANOS
                 for (bar in 0 until barCount) {
-                    val target = if (active) VisualizerSource.targetLevels[bar] else 0f
-                    if (target >= levels[bar]) {
+                    val target = if (active) targets[bar] else 0f
+                    val current = levels[bar]
+                    val next = if (target >= current) {
                         // 上升：按 attack 系数向 target 插值（attack=1f 时瞬时跟随，等价旧实现）。
-                        levels[bar] += (target - levels[bar]) * smoothing.attack
+                        current + (target - current) * attack
                     } else {
                         // 下降：按 releaseStep 绝对步长衰减（attack 越平滑，下降也相应变缓）。
-                        levels[bar] = max(0f, levels[bar] - smoothing.releaseStep)
+                        max(0f, current - releaseStep)
                     }
+                    if (abs(next - current) > REDRAW_DELTA_EPSILON) changed = true
+                    if (next > LEVEL_EPSILON) settled = false
+                    levels[bar] = next
                 }
                 // 多余条的残留高度清零，避免条数减少时尾部残留。
-                for (bar in barCount until MAX_BAR_COUNT) levels[bar] = 0f
-                if (levels.take(barCount).any { it > 0.01f }) {
-                    diag("levels.moving", "levels moving active=$active realtime=$realtime barCount=$barCount [${levels.take(barCount).joinToString { "%.2f".format(it) }}]")
-                } else if (realtime && active) {
-                    diag("levels.flat", "levels flat active=$active targets=[${VisualizerSource.targetLevels.take(barCount).joinToString { "%.2f".format(it) }}]")
+                for (bar in barCount until MAX_BAR_COUNT) {
+                    if (levels[bar] != 0f) {
+                        levels[bar] = 0f
+                        changed = true
+                    }
                 }
             }
+            levelsDirty = changed
+            return active || !settled
         }
     }
 }
