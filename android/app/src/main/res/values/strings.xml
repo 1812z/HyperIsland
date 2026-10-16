@@ -1078,6 +1078,8 @@
     <string name="ext_home_assistant_summary">Subscribe to entity states over WebSocket</string>
     <string name="ext_home_assistant_enable">Home Assistant extension</string>
     <string name="ext_home_assistant_enable_summary">Injects into SystemUI to handle subscription events; no background service</string>
+    <string name="ha_screen_off_power_save">Screen-off power saving</string>
+    <string name="ha_screen_off_power_save_summary">Disconnect the persistent connection after screen off</string>
     <string name="ha_server">Server address</string>
     <string name="ha_server_hint">Accepts http:// or https:// (ws:// also works); the port is used as entered</string>
     <string name="ha_token">Long-lived access token</string>

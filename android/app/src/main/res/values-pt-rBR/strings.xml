@@ -989,6 +989,8 @@
     <string name="ext_home_assistant_summary">Assine estados de entidades via WebSocket</string>
     <string name="ext_home_assistant_enable">Extensão Home Assistant</string>
     <string name="ext_home_assistant_enable_summary">Injeta apenas no SystemUI (sem serviço em segundo plano) e mostra a ilha quando a condição é atendida</string>
+    <string name="ha_screen_off_power_save">Economia com a tela desligada</string>
+    <string name="ha_screen_off_power_save_summary">Desconecta a conexão permanente após a tela desligar</string>
     <string name="ha_server">Endereço do servidor</string>
     <string name="ha_server_hint">Aceita http:// ou https:// (ws:// também); a porta é usada como informada</string>
     <string name="ha_token">Token de acesso de longa duração</string>

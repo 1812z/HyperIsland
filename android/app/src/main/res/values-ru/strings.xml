@@ -998,6 +998,8 @@
     <string name="ext_home_assistant_summary">Подписка на состояния сущностей по WebSocket</string>
     <string name="ext_home_assistant_enable">Расширение Home Assistant</string>
     <string name="ext_home_assistant_enable_summary">Внедряется только в SystemUI (без фоновой службы) и показывает остров при совпадении условия</string>
+    <string name="ha_screen_off_power_save">Экономия при выключенном экране</string>
+    <string name="ha_screen_off_power_save_summary">Отключать постоянное соединение после выключения экрана</string>
     <string name="ha_server">Адрес сервера</string>
     <string name="ha_server_hint">Поддерживается http:// и https:// (а также ws://). Порт используется как указано</string>
     <string name="ha_token">Долгосрочный токен доступа</string>

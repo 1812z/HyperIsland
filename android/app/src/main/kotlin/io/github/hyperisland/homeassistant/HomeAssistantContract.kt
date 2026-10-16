@@ -15,6 +15,7 @@ object HomeAssistantContract {
     const val EXTRA_URL = "url"
     const val EXTRA_TOKEN = "token"
     const val EXTRA_SUBSCRIPTIONS = "subscriptions"
+    const val EXTRA_SCREEN_OFF_POWER_SAVE = "screen_off_power_save"
 
     /** 总开关：关闭时 Hook 不建立任何连接。 */
     const val PREF_ENABLED = "pref_home_assistant"
@@ -27,6 +28,13 @@ object HomeAssistantContract {
 
     /** 订阅规则数组的 JSON 文本。 */
     const val PREF_SUBSCRIPTIONS = "pref_home_assistant_subscriptions"
+
+    /**
+     * 息屏省电：默认关闭。
+     *
+     * 开启后，息屏即停止接收 WS 事件，并在息屏满 1 分钟后断开常驻连接；亮屏立即恢复。
+     */
+    const val PREF_SCREEN_OFF_POWER_SAVE = "pref_home_assistant_screen_off_power_save"
 
     /** 代发通知的渠道标识，用于场景规则与回溯。 */
     const val SOURCE_CHANNEL_ID = "home_assistant"

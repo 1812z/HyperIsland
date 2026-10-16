@@ -420,6 +420,7 @@ object ConfigManager {
         "pref_home_assistant_url",
         "pref_home_assistant_token",
         "pref_home_assistant_subscriptions",
+        "pref_home_assistant_screen_off_power_save",
         "pref_home_assistant_display_seconds",
         "pref_hide_lockscreen_face_unlock_icon",
         "pref_lockscreen_negative_page_mode",

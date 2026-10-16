@@ -334,6 +334,7 @@ internal val ConfigSectionGroups: List<ConfigSection> = listOf(
                     "pref_home_assistant",
                     "pref_home_assistant_url",
                     "pref_home_assistant_subscriptions",
+                    "pref_home_assistant_screen_off_power_save",
                     "pref_home_assistant_display_seconds",
                 ),
             ),

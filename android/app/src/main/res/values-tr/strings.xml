@@ -1053,6 +1053,8 @@
     <string name="ext_home_assistant_summary">WebSocket üzerinden varlık durumlarına abone ol</string>
     <string name="ext_home_assistant_enable">Home Assistant eklentisi</string>
     <string name="ext_home_assistant_enable_summary">Yalnızca SystemUI\'ye enjekte edilir (arka plan servisi yok), koşul sağlanınca ada gönderilir</string>
+    <string name="ha_screen_off_power_save">Ekran kapalıyken tasarruf</string>
+    <string name="ha_screen_off_power_save_summary">Ekran kapandıktan sonra kalıcı bağlantıyı kes</string>
     <string name="ha_server">Sunucu adresi</string>
     <string name="ha_server_hint">http:// veya https:// kabul edilir (ws:// de olur); port olduğu gibi kullanılır</string>
     <string name="ha_token">Uzun ömürlü erişim jetonu</string>

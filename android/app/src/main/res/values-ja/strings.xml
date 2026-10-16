@@ -998,6 +998,8 @@
     <string name="ext_home_assistant_summary">WebSocket でエンティティの状態を購読</string>
     <string name="ext_home_assistant_enable">Home Assistant 拡張</string>
     <string name="ext_home_assistant_enable_summary">SystemUI にのみ注入（バックグラウンドサービスなし）、条件一致時にアイランドへ通知</string>
+    <string name="ha_screen_off_power_save">画面オフ時の省電力</string>
+    <string name="ha_screen_off_power_save_summary">画面オフ後に常時接続を切断します</string>
     <string name="ha_server">サーバーアドレス</string>
     <string name="ha_server_hint">http:// または https:// に対応（ws:// も可）。ポートはそのまま使用します</string>
     <string name="ha_token">長期アクセストークン</string>

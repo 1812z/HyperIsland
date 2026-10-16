@@ -30,6 +30,7 @@ import io.github.hyperisland.compose.component.SettingsItemMargin
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.rememberBooleanPreference
 import io.github.hyperisland.compose.page.settings.extensions.KEY_HOME_ASSISTANT
+import io.github.hyperisland.compose.page.settings.extensions.KEY_HOME_ASSISTANT_SCREEN_OFF_POWER_SAVE
 import io.github.hyperisland.compose.page.settings.extensions.KEY_HOME_ASSISTANT_SUBSCRIPTIONS
 import io.github.hyperisland.compose.page.settings.extensions.KEY_HOME_ASSISTANT_TOKEN
 import io.github.hyperisland.compose.page.settings.extensions.KEY_HOME_ASSISTANT_URL
@@ -78,6 +79,12 @@ internal fun HomeAssistantPage(
     }
 
     val enabled = rememberBooleanPreference(prefs, KEY_HOME_ASSISTANT, false)
+    // 息屏省电：默认关闭。开启后 Hook 会在息屏时停收 WS 事件，并在息屏满 1 分钟后断开连接。
+    val screenOffPowerSave = rememberBooleanPreference(
+        prefs,
+        KEY_HOME_ASSISTANT_SCREEN_OFF_POWER_SAVE,
+        false,
+    )
     // 地址 / 令牌用草稿态：输入过程中不落盘、也不重连，避免每敲一个字就断一次连接。
     var savedUrl by remember { mutableStateOf(prefs.getString(KEY_HOME_ASSISTANT_URL, "")) }
     var savedToken by remember { mutableStateOf(prefs.getString(KEY_HOME_ASSISTANT_TOKEN, "")) }
@@ -102,6 +109,7 @@ internal fun HomeAssistantPage(
         urlValue: String = savedUrl,
         tokenValue: String = savedToken,
         subscriptionList: List<HaSubscription> = subscriptions,
+        screenOffPowerSaveValue: Boolean = screenOffPowerSave.value,
     ) {
         context.sendBroadcast(
             Intent(HomeAssistantContract.ACTION_CONFIG_CHANGED).apply {
@@ -112,6 +120,10 @@ internal fun HomeAssistantPage(
                 putExtra(
                     HomeAssistantContract.EXTRA_SUBSCRIPTIONS,
                     HaSubscription.encode(subscriptionList),
+                )
+                putExtra(
+                    HomeAssistantContract.EXTRA_SCREEN_OFF_POWER_SAVE,
+                    screenOffPowerSaveValue,
                 )
             },
         )
@@ -208,6 +220,16 @@ internal fun HomeAssistantPage(
                 }
                 AnimatedVisibility(enabled.value) {
                     Column {
+                        PreferenceSwitch(
+                            title = stringResource(R.string.ha_screen_off_power_save),
+                            summary = stringResource(R.string.ha_screen_off_power_save_summary),
+                            icon = null,
+                            checked = screenOffPowerSave.value,
+                        ) { value ->
+                            screenOffPowerSave.value = value
+                            prefs.putBoolean(KEY_HOME_ASSISTANT_SCREEN_OFF_POWER_SAVE, value)
+                            notifyRuntime(screenOffPowerSaveValue = value)
+                        }
                         TextField(
                             value = draftUrl,
                             onValueChange = { draftUrl = it },

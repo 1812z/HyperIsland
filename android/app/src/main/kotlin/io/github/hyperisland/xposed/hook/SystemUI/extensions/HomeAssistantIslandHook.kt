@@ -70,6 +70,17 @@ object HomeAssistantIslandHook : BaseHook() {
     @Volatile private var runtimeToken = ""
     @Volatile private var runtimeSubscriptions: List<HaSubscription> = emptyList()
 
+    /**
+     * 息屏省电开关（默认关闭）。
+     *
+     * 开启后：息屏即丢弃 WS 事件，并在息屏满 [SCREEN_OFF_DISCONNECT_MS] 后断开常驻连接；
+     * 亮屏立即恢复。关闭时一切照旧，连接生命周期只跟随 SystemUI 进程与网络状态。
+     */
+    @Volatile private var runtimeScreenOffPowerSave = false
+
+    /** 当前屏幕是否亮着。初始化时用 PowerManager 取初值，之后由 [screenStateReceiver] 驱动。 */
+    @Volatile private var screenInteractive = true
+
     @Volatile private var session: HaSession? = null
 
     /** 是否有可用网络。由 [registerNetworkCallback] 的 Android 网络回调驱动，不做任何轮询。 */
@@ -153,6 +164,14 @@ object HomeAssistantIslandHook : BaseHook() {
      */
     private const val OFFLINE_CLEANUP_MS = 60_000L
 
+    /**
+     * 息屏省电：息屏多久后断开常驻连接。
+     *
+     * 息屏瞬间只是停收事件（连接还在），留 [SCREEN_OFF_DISCONNECT_MS] 的宽限期，
+     * 避免「看一眼锁屏时间又点亮」这种短促息屏把连接来回拆建。
+     */
+    private const val SCREEN_OFF_DISCONNECT_MS = 60_000L
+
     override fun getTag() = TAG
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
@@ -206,6 +225,11 @@ object HomeAssistantIslandHook : BaseHook() {
             context.registerReceiver(chargingModeReceiver, chargingFilter)
         }
 
+        // 息屏省电依赖屏幕状态：先取一次初值（SystemUI 可能在息屏后才被拉起），再挂广播。
+        screenInteractive = context.getSystemService(android.os.PowerManager::class.java)
+            ?.isInteractive ?: true
+        registerScreenStateReceiver(context)
+
         readConfigFromPrefs()
         // 先挂上网络回调再起会话：回调里也会尝试建会话，谁先到都不会漏。
         registerNetworkCallback(context)
@@ -223,8 +247,86 @@ object HomeAssistantIslandHook : BaseHook() {
             intent.getStringExtra(HomeAssistantContract.EXTRA_SUBSCRIPTIONS)?.let {
                 runtimeSubscriptions = HaSubscription.parseList(it)
             }
+            if (intent.hasExtra(HomeAssistantContract.EXTRA_SCREEN_OFF_POWER_SAVE)) {
+                runtimeScreenOffPowerSave = intent.getBooleanExtra(
+                    HomeAssistantContract.EXTRA_SCREEN_OFF_POWER_SAVE,
+                    runtimeScreenOffPowerSave,
+                )
+            }
             applyConfig(reason = "broadcast")
         }
+    }
+
+    /**
+     * 息屏 / 亮屏广播。
+     *
+     * 只在息屏省电开关打开时才做任何事，关闭时完全等价于不存在这个接收器。
+     * 广播本身没有额外开销（系统屏幕事件本来就会发），且不注册前台服务、不轮询。
+     */
+    private val screenStateReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            when (intent.action) {
+                Intent.ACTION_SCREEN_OFF -> onScreenOff()
+                Intent.ACTION_SCREEN_ON -> onScreenOn()
+            }
+        }
+    }
+
+    private fun registerScreenStateReceiver(context: Context) {
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_SCREEN_OFF)
+            addAction(Intent.ACTION_SCREEN_ON)
+        }
+        if (Build.VERSION.SDK_INT >= 33) {
+            context.registerReceiver(screenStateReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("UnspecifiedRegisterReceiverFlag")
+            context.registerReceiver(screenStateReceiver, filter)
+        }
+    }
+
+    /**
+     * 息屏：立即停收 WS 事件（[sessionListener.onStateChanged] 里丢弃），并安排到点断开连接。
+     *
+     * 不在这里直接断连是刻意的：短促息屏（看一眼锁屏又点亮）不该把连接来回拆建。
+     */
+    private fun onScreenOff() {
+        screenInteractive = false
+        if (!runtimeScreenOffPowerSave) return
+        moduleRef?.let {
+            log(it) { "screen off → 暂停 HA 事件，${SCREEN_OFF_DISCONNECT_MS / 1000}s 后断开连接" }
+        }
+        scheduleScreenOffDisconnect()
+    }
+
+    /** 亮屏：撤销待执行的断连并立即恢复连接。 */
+    private fun onScreenOn() {
+        screenInteractive = true
+        cancelScreenOffDisconnect()
+        if (!runtimeScreenOffPowerSave) return
+        moduleRef?.let { log(it) { "screen on → 恢复 HA 连接" } }
+        startSessionIfNeeded(reason = "screen_on")
+    }
+
+    /** 息屏省电的断连倒计时任务（至多一个）。 */
+    private var screenOffDisconnectTask: Runnable? = null
+
+    private fun scheduleScreenOffDisconnect() {
+        cancelScreenOffDisconnect()
+        val task = Runnable {
+            screenOffDisconnectTask = null
+            // 倒计时期间亮屏或用户关掉开关，都不该再断连。
+            if (screenInteractive || !runtimeScreenOffPowerSave) return@Runnable
+            moduleRef?.let { log(it) { "screen off too long → 断开 HA 常驻连接" } }
+            stopSession()
+        }
+        screenOffDisconnectTask = task
+        mainHandler.postDelayed(task, SCREEN_OFF_DISCONNECT_MS)
+    }
+
+    private fun cancelScreenOffDisconnect() {
+        screenOffDisconnectTask?.let(mainHandler::removeCallbacks)
+        screenOffDisconnectTask = null
     }
 
     private val chargingModeReceiver = object : BroadcastReceiver() {
@@ -249,12 +351,18 @@ object HomeAssistantIslandHook : BaseHook() {
         runtimeSubscriptions = HaSubscription.parseList(
             ConfigManager.getString(HomeAssistantContract.PREF_SUBSCRIPTIONS, ""),
         )
+        runtimeScreenOffPowerSave = ConfigManager.getBoolean(
+            HomeAssistantContract.PREF_SCREEN_OFF_POWER_SAVE,
+            false,
+        )
     }
 
     /** 配置变更：先拆掉旧会话与岛，再按新配置重建。 */
     private fun applyConfig(reason: String) {
         stopSession()
         cancelAllIslands()
+        // 配置变化时息屏倒计时一并作废：下面会按最新开关重新决定是否连接。
+        cancelScreenOffDisconnect()
         startSessionIfNeeded(reason)
     }
 
@@ -265,6 +373,12 @@ object HomeAssistantIslandHook : BaseHook() {
      */
     private fun startSessionIfNeeded(reason: String) {
         if (session != null) return
+
+        // 息屏省电：息屏期间不建立任何连接，等亮屏广播再恢复。
+        if (runtimeScreenOffPowerSave && !screenInteractive) {
+            moduleRef?.let { log(it) { "screen off & power save on, skip session ($reason)" } }
+            return
+        }
 
         val enabled = runtimeEnabled
         val url = runtimeUrl
@@ -430,6 +544,8 @@ object HomeAssistantIslandHook : BaseHook() {
                     "ha-icon event entity=${entity.entityId} icon=${entity.icon} state=${entity.state}"
                 }
             }
+            // 息屏省电：息屏期间丢弃所有 WS 事件（连接可能还活着，但不做任何渲染与投递）。
+            if (runtimeScreenOffPowerSave && !screenInteractive) return
             appContext?.let { handleStateChanged(it, entity) }
         }
 

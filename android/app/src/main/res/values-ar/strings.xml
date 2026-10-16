@@ -957,6 +957,8 @@
     <string name="ext_home_assistant_summary">الاشتراك في حالات الكيانات عبر WebSocket</string>
     <string name="ext_home_assistant_enable">إضافة Home Assistant</string>
     <string name="ext_home_assistant_enable_summary">يُحقن في SystemUI فقط (بدون خدمة خلفية) ويعرض الجزيرة عند تحقق الشرط</string>
+    <string name="ha_screen_off_power_save">توفير الطاقة عند إطفاء الشاشة</string>
+    <string name="ha_screen_off_power_save_summary">قطع الاتصال الدائم بعد إطفاء الشاشة</string>
     <string name="ha_server">عنوان الخادم</string>
     <string name="ha_server_hint">يدعم http:// أو https:// (يعمل ws:// أيضًا)، ويُستخدم المنفذ كما هو</string>
     <string name="ha_token">رمز وصول طويل الأمد</string>

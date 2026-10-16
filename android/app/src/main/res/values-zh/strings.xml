@@ -1084,6 +1084,8 @@
     <string name="ext_home_assistant_summary">通过 WebSocket 订阅实体状态</string>
     <string name="ext_home_assistant_enable">Home Assistant 拓展</string>
     <string name="ext_home_assistant_enable_summary">注入系统界面实现订阅事件，无需后台服务</string>
+    <string name="ha_screen_off_power_save">息屏省电</string>
+    <string name="ha_screen_off_power_save_summary">息屏后断开常驻连接</string>
     <string name="ha_server">服务器地址</string>
     <string name="ha_server_hint">支持 http:// 或 https://（也可填 ws://），端口按填写值连接</string>
     <string name="ha_token">长期访问令牌</string>
