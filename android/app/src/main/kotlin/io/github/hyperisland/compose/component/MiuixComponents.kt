@@ -324,14 +324,14 @@ internal fun SettingsAction(
 @Composable
 internal fun SettingsActionWithArrow(
     title: String,
-    icon: ImageVector,
+    icon: ImageVector? = null,
     summary: String? = null,
     onClick: () -> Unit,
 ) {
     BasicComponent(
         title = title,
         summary = summary,
-        startAction = { SettingsIcon(icon) },
+        startAction = icon?.let { image -> { SettingsIcon(image) } },
         endActions = {
             Icon(
                 imageVector = MiuixIcons.Basic.ArrowRight,

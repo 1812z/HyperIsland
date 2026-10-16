@@ -15,12 +15,6 @@ import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.rememberBooleanPreference
 import io.github.hyperisland.core.service.AppService
 import top.yukonga.miuix.kmp.basic.Card
-import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.AppRecording
-import top.yukonga.miuix.kmp.icon.extended.Hide
-import top.yukonga.miuix.kmp.icon.extended.Settings
-import top.yukonga.miuix.kmp.icon.extended.Show
-import top.yukonga.miuix.kmp.icon.extended.Update
 
 @Composable
 internal fun MiscPage(
@@ -40,19 +34,18 @@ internal fun MiscPage(
             Card(modifier = Modifier.fillMaxWidth()) {
                 SettingsActionWithArrow(
                     stringResource(R.string.open_onboarding),
-                    MiuixIcons.AppRecording,
-                    stringResource(R.string.open_onboarding_summary),
+                    summary = stringResource(R.string.open_onboarding_summary),
                 ) { onOpenOnboarding() }
                 PreferenceSwitch(
                     stringResource(R.string.show_welcome),
                     stringResource(R.string.show_welcome_summary),
-                    MiuixIcons.Show,
+                    null,
                     showWelcome.value,
                 ) { showWelcome.value = it; prefs.putBoolean(KEY_SHOW_WELCOME, it) }
                 PreferenceSwitch(
                     stringResource(R.string.hide_desktop_icon),
                     stringResource(R.string.hide_desktop_icon_summary),
-                    MiuixIcons.Hide,
+                    null,
                     hideDesktopIcon.value,
                 ) {
                     hideDesktopIcon.value = it
@@ -62,13 +55,13 @@ internal fun MiscPage(
                 PreferenceSwitch(
                     stringResource(R.string.check_update),
                     stringResource(R.string.check_update_summary),
-                    MiuixIcons.Update,
+                    null,
                     checkUpdate.value,
                 ) { checkUpdate.value = it; prefs.putBoolean(KEY_CHECK_UPDATE, it) }
                 PreferenceSwitch(
                     stringResource(R.string.debug_log),
                     stringResource(R.string.debug_log_summary),
-                    MiuixIcons.Settings,
+                    null,
                     debugLog.value,
                 ) { debugLog.value = it; prefs.putBoolean(KEY_DEBUG_LOG, it) }
             }

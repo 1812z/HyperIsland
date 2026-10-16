@@ -40,9 +40,19 @@
         android:supportsRtl="true"
         android:description="@string/module_description"
         android:icon="@drawable/ic_launcher">
+        <!--
+            自行处理配置变更，避免系统销毁重建 Activity：
+            - locale/layoutDirection：切换应用语言（LocaleManager.applicationLocales）时不再重建，
+              消除重建导致的闪黑；Compose 会经 LocalConfiguration 自动刷新文案。
+            - orientation/screenSize/...：横竖屏、多窗口尺寸变化时保留 Compose 内的导航栈，
+              否则重建会丢失 remember 状态并退回一级页面。
+            - uiMode/density/fontScale：深色模式、显示大小、字体大小变化同样原地刷新。
+            注意：本元素是 activity-alias 的属性子集之外的属性，其取值会被别名继承。
+        -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode|density|fontScale|locale|layoutDirection"
             android:theme="@style/ComposeTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
