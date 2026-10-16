@@ -46,3 +46,4 @@ opencode.json
 /docs/.vitepress/dist
 /android/.settings
 /tmp
+/.workbuddy-ai
