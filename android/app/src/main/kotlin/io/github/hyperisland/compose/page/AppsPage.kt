@@ -2,15 +2,21 @@ package io.github.hyperisland.compose.page
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -174,26 +180,16 @@ internal fun AppsPage(
         allApps.asSequence().filter { prefs.isToastEnabled(it.packageName) }.map { it.packageName }.toSet()
     }
     val activeEnabledPackages = if (selectedMode == 0) enabledPackages else toastEnabledPackages
-    val sortEnabledPackages = if (selectedMode == 0) {
-        notificationSortEnabledPackages
-    } else {
-        toastSortEnabledPackages
-    }
-    val filteredApps = remember(
-        allApps,
-        query,
-        showEnabledApps,
-        showDisabledApps,
-        showUserApps,
-        showSystemApps,
-        selectedMode,
-        configRevision,
-        sortEnabledPackages,
-    ) {
+
+    // 通知 / Toast 两套列表各自计算一次，供切换动画的两侧分别渲染。
+    fun computeFilteredApps(
+        modeEnabledPackages: Set<String>,
+        modeSortEnabledPackages: Set<String>,
+    ): List<InstalledApp> {
         val normalizedQuery = query.trim().lowercase()
-        allApps.asSequence()
+        return allApps.asSequence()
             .filter { app ->
-                val isEnabled = app.packageName in activeEnabledPackages
+                val isEnabled = app.packageName in modeEnabledPackages
                 (isEnabled && showEnabledApps || !isEnabled && showDisabledApps) &&
                     (app.isSystem && showSystemApps || !app.isSystem && showUserApps)
             }
@@ -202,10 +198,36 @@ internal fun AppsPage(
                     it.packageName.lowercase().contains(normalizedQuery)
             }
             .sortedWith(compareByDescending<InstalledApp> {
-                it.packageName in sortEnabledPackages
+                it.packageName in modeSortEnabledPackages
             }.thenBy { it.appName.lowercase() })
             .toList()
     }
+
+    val notificationApps = remember(
+        allApps,
+        query,
+        showEnabledApps,
+        showDisabledApps,
+        showUserApps,
+        showSystemApps,
+        enabledPackages,
+        notificationSortEnabledPackages,
+    ) {
+        computeFilteredApps(enabledPackages, notificationSortEnabledPackages)
+    }
+    val toastApps = remember(
+        allApps,
+        query,
+        showEnabledApps,
+        showDisabledApps,
+        showUserApps,
+        showSystemApps,
+        toastEnabledPackages,
+        toastSortEnabledPackages,
+    ) {
+        computeFilteredApps(toastEnabledPackages, toastSortEnabledPackages)
+    }
+    val filteredApps = if (selectedMode == 0) notificationApps else toastApps
     val allVisibleSelected = filteredApps.isNotEmpty() && filteredApps.all { it.packageName in selectedPackages }
 
     fun leaveSelectionMode() {
@@ -395,124 +417,155 @@ internal fun AppsPage(
             refreshTexts = listOf("", "", "", ""),
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
-                LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    start = 12.dp,
-                    top = padding.calculateTopPadding(),
-                    end = 12.dp,
-                    bottom = 28.dp + LocalRootBottomBarPadding.current,
-                ),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                item {
-                    SearchBar(
-                        inputField = {
-                            InputField(
-                                query = query,
-                                onQueryChange = { query = it },
-                                onSearch = {},
-                                expanded = searchExpanded,
-                                onExpandedChange = { searchExpanded = it },
-                                label = stringResource(R.string.search_apps),
-                            )
-                        },
-                        onExpandedChange = { searchExpanded = it },
-                        expanded = searchExpanded,
-                        outsideEndAction = {
-                            Text(
-                                modifier = Modifier
-                                    .padding(start = 12.dp)
-                                    .padding(end = 12.dp)
-                                    .clickable(
-                                        interactionSource = null,
-                                        indication = null
-                                    ) {
-                                        searchExpanded = false
-                                    },
-                                text = stringResource(R.string.cancel),
-                                color = MiuixTheme.colorScheme.primary
-                            )
-                        },
-                    ) {}
-                }
-                item {
-                    TabRow(
-                        tabs = listOf(
-                            stringResource(R.string.notification_mode),
-                            stringResource(R.string.toast_mode),
-                        ),
-                        selectedTabIndex = selectedMode,
-                        onTabSelected = {
-                            onSelectedModeChange(it)
-                            leaveSelectionMode()
-                        },
-                        modifier = Modifier.padding(horizontal = 4.dp),
-                    )
-                }
-                if (!initialLoading && filteredApps.isEmpty()) {
-                    item {
-                        Box(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 64.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                if (query.isEmpty()) stringResource(R.string.no_apps_found)
-                                else stringResource(R.string.no_matching_apps),
-                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                            )
-                        }
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // 头部（搜索栏 + Tab 栏）固定，不参与 mode 切换动画，也不随列表滚动。
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                start = 12.dp,
+                                end = 12.dp,
+                                top = padding.calculateTopPadding(),
+                                bottom = 8.dp,
+                            ),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        SearchBar(
+                            inputField = {
+                                InputField(
+                                    query = query,
+                                    onQueryChange = { query = it },
+                                    onSearch = {},
+                                    expanded = searchExpanded,
+                                    onExpandedChange = { searchExpanded = it },
+                                    label = stringResource(R.string.search_apps),
+                                )
+                            },
+                            onExpandedChange = { searchExpanded = it },
+                            expanded = searchExpanded,
+                            outsideEndAction = {
+                                Text(
+                                    modifier = Modifier
+                                        .padding(start = 12.dp)
+                                        .padding(end = 12.dp)
+                                        .clickable(
+                                            interactionSource = null,
+                                            indication = null
+                                        ) {
+                                            searchExpanded = false
+                                        },
+                                    text = stringResource(R.string.cancel),
+                                    color = MiuixTheme.colorScheme.primary
+                                )
+                            },
+                        ) {}
+                        TabRow(
+                            tabs = listOf(
+                                stringResource(R.string.notification_mode),
+                                stringResource(R.string.toast_mode),
+                            ),
+                            selectedTabIndex = selectedMode,
+                            onTabSelected = {
+                                onSelectedModeChange(it)
+                                leaveSelectionMode()
+                            },
+                            modifier = Modifier.padding(horizontal = 4.dp),
+                        )
                     }
-                } else {
-                    items(filteredApps, key = { it.packageName }) { app ->
-                        val enabled = if (selectedMode == 0) {
-                            app.packageName in enabledPackages
-                        } else {
-                            app.packageName in toastEnabledPackages
-                        }
-                        val icon by produceState<ImageBitmap?>(
-                            appsRepository.cachedIcon(app.packageName),
-                            app.packageName,
+                    AnimatedContent(
+                        targetState = selectedMode,
+                        transitionSpec = {
+                            val forward = targetState > initialState
+                            (
+                                slideInHorizontally(
+                                    tween(MODE_SWITCH_ENTER_DURATION_MILLIS, easing = FastOutSlowInEasing),
+                                ) { full -> if (forward) full - full / 6 else -(full - full / 6) } +
+                                    fadeIn(tween(MODE_SWITCH_ENTER_DURATION_MILLIS / 2))
+                                ) togetherWith (
+                                slideOutHorizontally(
+                                    tween(MODE_SWITCH_EXIT_DURATION_MILLIS, easing = FastOutSlowInEasing),
+                                ) { full -> if (forward) -full / 6 else full / 6 } +
+                                    fadeOut(tween(MODE_SWITCH_EXIT_DURATION_MILLIS / 2))
+                                )
+                        },
+                        modifier = Modifier.weight(1f).fillMaxWidth(),
+                        label = "appsModeContent",
+                    ) { mode ->
+                        val modeApps = if (mode == 0) notificationApps else toastApps
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(
+                                start = 12.dp,
+                                end = 12.dp,
+                                bottom = 28.dp + LocalRootBottomBarPadding.current,
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            if (value == null) {
-                                value = withContext(Dispatchers.IO) {
-                                    appsRepository.loadIcon(app.packageName)
+                            if (!initialLoading && modeApps.isEmpty()) {
+                                item {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 64.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Text(
+                                            if (query.isEmpty()) stringResource(R.string.no_apps_found)
+                                            else stringResource(R.string.no_matching_apps),
+                                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                        )
+                                    }
+                                }
+                            } else {
+                                items(modeApps, key = { it.packageName }) { app ->
+                                    val icon by produceState<ImageBitmap?>(
+                                        appsRepository.cachedIcon(app.packageName),
+                                        app.packageName,
+                                    ) {
+                                        if (value == null) {
+                                            value = withContext(Dispatchers.IO) {
+                                                appsRepository.loadIcon(app.packageName)
+                                            }
+                                        }
+                                    }
+                                    val enabled = if (mode == 0) {
+                                        app.packageName in enabledPackages
+                                    } else {
+                                        app.packageName in toastEnabledPackages
+                                    }
+                                    AppRow(
+                                        app = app,
+                                        enabled = enabled,
+                                        icon = icon,
+                                        selectionMode = selectionMode,
+                                        selected = app.packageName in selectedPackages,
+                                        onEnabledChange = { value ->
+                                            if (mode == 0) prefs.setAppEnabled(app.packageName, value)
+                                            else prefs.setToastEnabled(app.packageName, value)
+                                        },
+                                        onClick = {
+                                            if (selectionMode) {
+                                                selectedPackages = if (app.packageName in selectedPackages) {
+                                                    selectedPackages - app.packageName
+                                                } else {
+                                                    selectedPackages + app.packageName
+                                                }
+                                            } else {
+                                                if (mode == 0) {
+                                                    onOpenChannels(app)
+                                                } else {
+                                                    onOpenToastSettings(app)
+                                                }
+                                            }
+                                        },
+                                        onLongPress = {
+                                            selectionMode = true
+                                            selectedPackages = selectedPackages + app.packageName
+                                        },
+                                    )
                                 }
                             }
                         }
-                        AppRow(
-                            app = app,
-                            enabled = enabled,
-                            icon = icon,
-                            selectionMode = selectionMode,
-                            selected = app.packageName in selectedPackages,
-                            onEnabledChange = { value ->
-                                if (selectedMode == 0) prefs.setAppEnabled(app.packageName, value)
-                                else prefs.setToastEnabled(app.packageName, value)
-                            },
-                            onClick = {
-                                if (selectionMode) {
-                                    selectedPackages = if (app.packageName in selectedPackages) {
-                                        selectedPackages - app.packageName
-                                    } else {
-                                        selectedPackages + app.packageName
-                                    }
-                                } else {
-                                    if (selectedMode == 0) {
-                                        onOpenChannels(app)
-                                    } else {
-                                        onOpenToastSettings(app)
-                                    }
-                                }
-                            },
-                            onLongPress = {
-                                selectionMode = true
-                                selectedPackages = selectedPackages + app.packageName
-                            },
-                        )
                     }
                 }
-            }
                 AnimatedVisibility(
                     visible = showInitialLoadingIndicator,
                     modifier = Modifier.align(Alignment.Center),
@@ -604,3 +657,5 @@ private const val APP_LIST_PERMISSION = "com.android.permission.GET_INSTALLED_AP
 private const val INITIAL_LOADING_INDICATOR_DELAY_MILLIS = 300L
 private const val LOADING_ANIMATION_DURATION_MILLIS = 180
 private const val APP_ICON_FADE_DURATION_MILLIS = 120
+private const val MODE_SWITCH_ENTER_DURATION_MILLIS = 320
+private const val MODE_SWITCH_EXIT_DURATION_MILLIS = 240

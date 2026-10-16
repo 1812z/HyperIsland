@@ -120,6 +120,10 @@ dependencies {
     implementation("top.yukonga.miuix.kmp:miuix-preference-android:0.9.4")
     implementation("top.yukonga.miuix.kmp:miuix-icons-android:0.9.4")
     implementation("top.yukonga.miuix.kmp:miuix-blur-android:0.9.4")
+    // Home Assistant uses the Material Design Icons (MDI) naming scheme (`mdi:...`).
+    // The community MDI typeface is used instead of maintaining hand-drawn fallbacks.
+    implementation("com.mikepenz:iconics-core:5.4.0")
+    implementation("com.mikepenz:community-material-typeface:7.0.96.1-kotlin@aar")
     implementation("androidx.graphics:graphics-shapes:1.1.0")
     implementation("io.github.d4viddf:hyperisland_kit:0.4.4")
     implementation("com.github.aptabase:aptabase-kotlin:0.0.8")

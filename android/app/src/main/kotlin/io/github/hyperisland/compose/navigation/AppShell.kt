@@ -88,7 +88,9 @@ import io.github.hyperisland.compose.page.settings.extensions.FaceUnlockIslandPa
 import io.github.hyperisland.compose.page.settings.extensions.HeartRateIslandPage
 import io.github.hyperisland.compose.page.settings.extensions.HookExtensionDetail
 import io.github.hyperisland.compose.page.settings.extensions.HookExtensionPage
+import io.github.hyperisland.compose.page.settings.extensions.homeassistant.HomeAssistantPage
 import io.github.hyperisland.compose.page.settings.extensions.LockscreenNegativePage
+import io.github.hyperisland.compose.page.settings.extensions.MusicIslandSpectrumPage
 import io.github.hyperisland.compose.page.settings.extensions.ScreenRecorderHookPage
 import io.github.hyperisland.compose.page.settings.extensions.SecurityCenterHookPage
 import io.github.hyperisland.compose.page.settings.extensions.SystemSettingsHookPage
@@ -607,6 +609,10 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                     prefs = prefs,
                                     onBack = { extensionDetail = null },
                                 )
+                                HookExtensionDetail.HomeAssistant -> HomeAssistantPage(
+                                    prefs = prefs,
+                                    onBack = { extensionDetail = null },
+                                )
                                 null -> if (batchChannelTarget != null && visibleChannelApp != null) {
                                     BatchChannelSettingsPage(
                                         target = batchChannelTarget!!,
@@ -700,6 +706,7 @@ private fun ExtensionSubDetailPage(
         SystemUiExtensionDetail.Charge -> ChargeIslandPage(prefs, onBack)
         SystemUiExtensionDetail.FaceUnlock -> FaceUnlockIslandPage(prefs, onBack)
         SystemUiExtensionDetail.LockscreenNegativePage -> LockscreenNegativePage(prefs, onBack)
+        SystemUiExtensionDetail.MusicIslandSpectrum -> MusicIslandSpectrumPage(prefs, onBack)
         null -> Unit
     }
 }

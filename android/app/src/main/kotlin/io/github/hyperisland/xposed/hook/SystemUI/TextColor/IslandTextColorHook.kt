@@ -1,52 +1,37 @@
 package io.github.hyperisland.xposed.hook
 
 import android.graphics.Color
-import android.text.Spanned
 import android.widget.TextView
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.util.Collections
-import java.lang.reflect.Method
-import java.util.concurrent.ConcurrentHashMap
 import java.util.WeakHashMap
+import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Overrides Dynamic Island default text colors while preserving explicit highlight colors.
+ * 超级岛默认文本颜色。颜色计算复用 [TextColorPolicy]：只反转近似灰度的文本，
+ * 彩色（含模板高亮色）原样保留。
  */
 object IslandTextColorHook : BaseHook() {
 
     private const val TAG = "HyperIsland[IslandTextColor]"
     private const val KEY_TEXT_COLOR_MODE = "pref_island_text_color_mode"
 
-    private const val MODE_DEFAULT = "default"
-    private const val MODE_BLACK = "black"
-    private const val MODE_FOLLOW_BACKGROUND = "follow_background"
-    private const val MODE_INVERT_BACKGROUND = "invert_background"
-    private const val MODE_FOLLOW_STATUS_BAR = "follow_status_bar"
-    private const val MODE_INVERT_STATUS_BAR = "invert_status_bar"
-
     private val hookedClassLoaders = ConcurrentHashMap.newKeySet<Int>()
     private val defaultTextViews = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<TextView, Boolean>())
     )
-    private val resolvedTextEffectViews = Collections.synchronizedSet(
-        Collections.newSetFromMap(WeakHashMap<TextView, Boolean>())
-    )
-    private val textEffectAccessors = Collections.synchronizedMap(
-        WeakHashMap<TextView, TextEffectAccessors>()
-    )
+
     @Volatile private var isRegionDark = true
 
     private val rawStatusBarTintListener: (Int) -> Unit = {
-        val mode = ConfigManager.getString(KEY_TEXT_COLOR_MODE, MODE_DEFAULT)
-        if (mode == MODE_FOLLOW_STATUS_BAR) applyTextColorToTrackedViews()
+        if (currentMode() == TextColorPolicy.MODE_FOLLOW_STATUS_BAR) applyTextColorToTrackedViews()
     }
 
     private val readableStatusBarTintListener: (Int) -> Unit = {
-        val mode = ConfigManager.getString(KEY_TEXT_COLOR_MODE, MODE_DEFAULT)
-        if (mode == MODE_INVERT_STATUS_BAR) applyTextColorToTrackedViews()
+        if (currentMode() == TextColorPolicy.MODE_INVERT_STATUS_BAR) applyTextColorToTrackedViews()
     }
 
     override fun getTag() = TAG
@@ -108,16 +93,12 @@ object IslandTextColorHook : BaseHook() {
             .forEach { method ->
                 module.hook(method).intercept { chain ->
                     val result = chain.proceed()
-                    val mode = ConfigManager.getString(KEY_TEXT_COLOR_MODE, MODE_DEFAULT)
                     val textView = chain.args.getOrNull(2) as? TextView
                     if (usesHighlightColor(chain.args)) {
-                        if (textView != null) defaultTextViews.remove(textView)
-                    } else if (mode != MODE_DEFAULT) {
-                        val text = chain.args.getOrNull(3) as? String
-                        if (textView != null && text != null) {
-                            defaultTextViews.add(textView)
-                            applyTextColor(textView, resolveDefaultTextColor(mode))
-                        }
+                        if (textView != null) untrack(textView)
+                    } else if (currentMode() != TextColorPolicy.MODE_DEFAULT && textView != null) {
+                        defaultTextViews.add(textView)
+                        applyToView(textView)
                     }
                     result
                 }
@@ -152,90 +133,42 @@ object IslandTextColorHook : BaseHook() {
         return !highlightColor.isNullOrBlank()
     }
 
-    private fun resolveDefaultTextColor(mode: String): Int {
-        return when (mode) {
-            MODE_BLACK -> Color.BLACK
-            MODE_FOLLOW_BACKGROUND -> if (isRegionDark) Color.WHITE else Color.BLACK
-            MODE_INVERT_BACKGROUND -> if (isRegionDark) Color.BLACK else Color.WHITE
-            MODE_FOLLOW_STATUS_BAR -> StatusBarTextColorHook.getTint()
-            MODE_INVERT_STATUS_BAR -> invertReadableColor(StatusBarTextColorHook.getTint())
-            else -> Color.WHITE
-        }
+    private fun applyToView(textView: TextView) {
+        TextColorPolicy.applyForTextView(
+            textView,
+            currentMode(),
+            regionDark = isRegionDark,
+            statusBarTintBlack = statusBarTintBlack(),
+        )
     }
 
-    private fun invertReadableColor(color: Int): Int {
-        return if (isLightColor(color)) Color.BLACK else Color.WHITE
-    }
-
-    private fun isLightColor(color: Int): Boolean {
-        val red = Color.red(color)
-        val green = Color.green(color)
-        val blue = Color.blue(color)
-        return (red * 299 + green * 587 + blue * 114) >= 128000
+    private fun untrack(textView: TextView) {
+        defaultTextViews.remove(textView)
     }
 
     private fun applyTextColorToTrackedViews() {
-        val mode = ConfigManager.getString(KEY_TEXT_COLOR_MODE, MODE_DEFAULT)
-        if (mode == MODE_DEFAULT) return
-        val color = resolveDefaultTextColor(mode)
+        if (currentMode() == TextColorPolicy.MODE_DEFAULT) return
+        val mode = currentMode()
+        val sbBlack = statusBarTintBlack()
         val views = synchronized(defaultTextViews) { defaultTextViews.toList() }
         views.forEach { textView ->
-            applyTextColor(textView, color)
+            val original = TextColorPolicy.originalOf(textView) ?: return@forEach
+            runCatching {
+                TextColorPolicy.retarget(textView, original, mode, isRegionDark, sbBlack)
+            }
         }
     }
 
-    private fun applyTextColor(textView: TextView, color: Int) {
-        val accessors = resolveTextEffectAccessors(textView)
-        if (accessors == null) {
-            if (textView.currentTextColor == color) return
-            textView.setTextColor(color)
-            return
+    private fun currentMode(): String =
+        when (val mode = ConfigManager.getString(KEY_TEXT_COLOR_MODE, TextColorPolicy.MODE_DEFAULT)) {
+            TextColorPolicy.MODE_BLACK,
+            TextColorPolicy.MODE_FOLLOW_BACKGROUND,
+            TextColorPolicy.MODE_INVERT_BACKGROUND,
+            TextColorPolicy.MODE_FOLLOW_STATUS_BAR,
+            TextColorPolicy.MODE_INVERT_STATUS_BAR -> mode
+            else -> TextColorPolicy.MODE_DEFAULT
         }
 
-        val spanned = textView.text as? Spanned
-        val spans = if (spanned != null) {
-            spanned.getSpans(0, spanned.length, accessors.spanClass)
-        } else {
-            emptyArray()
-        }
-        if (spanned == null || spans.isEmpty()) {
-            textView.setTextColor(color)
-            return
-        }
-        if (runCatching {
-                accessors.setAppearance.invoke(spans[0], spanned, color)
-            }.isFailure
-        ) {
-            textView.setTextColor(color)
-            return
-        }
-        textView.setTextColor(color)
-        textView.invalidate()
-    }
-
-    private fun resolveTextEffectAccessors(textView: TextView): TextEffectAccessors? {
-        if (resolvedTextEffectViews.contains(textView)) return textEffectAccessors[textView]
-        resolvedTextEffectViews.add(textView)
-        textView.javaClass.methods.firstOrNull { method ->
-            method.name == "updateTextWithNewAppearance" && method.parameterTypes.size == 2
-        } ?: return null
-        val classLoader = textView.javaClass.classLoader ?: return null
-        val spanClass = runCatching {
-            classLoader.loadClass(
-                "miuix.colorful.texteffect.TimerTextEffectSpan"
-            )
-        }.getOrNull() ?: return null
-        val setAppearance = spanClass.methods.firstOrNull { method ->
-            method.name == "setOldTextAppearance" && method.parameterTypes.size == 2
-        } ?: return null
-        return TextEffectAccessors(spanClass, setAppearance).also { accessors ->
-            textEffectAccessors[textView] = accessors
-        }
-    }
-
-    private data class TextEffectAccessors(
-        val spanClass: Class<*>,
-        val setAppearance: Method,
-    )
-
+    private fun statusBarTintBlack(): Boolean =
+        StatusBarTextColorHook.getReadableTint() == Color.BLACK
 }

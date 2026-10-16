@@ -32,6 +32,12 @@ internal object HubClient {
 
     fun isHubId(id: String): Boolean = id.startsWith(ID_PREFIX)
 
+    /**
+     * 把本地记的云端原始 id（裸 uuid，见 `ConfigPreset.hubId`）还原成列表里带前缀的形式，
+     * 便于把「我上传的那条」与云端列表条目对上号。
+     */
+    fun cloudKey(rawId: String): String = ID_PREFIX + rawId
+
     /** 拉取全部已发布配置的列表元数据（不含正文）。列表不累加下载量。 */
     suspend fun listAll(): List<ConfigPreset> = withContext(Dispatchers.IO) {
         val result = mutableListOf<ConfigPreset>()
@@ -54,8 +60,20 @@ internal object HubClient {
         body.toDetailPreset()
     }
 
-    /** 上传本地配置。成功返回服务端响应 `{ id, status }`。 */
-    suspend fun upload(preset: ConfigPreset): JSONObject = withContext(Dispatchers.IO) {
+    /**
+     * 上传本地配置。
+     *
+     * [deviceId] 走 `X-Device-Id` 请求头：放 body 会被写进配置正文并随列表外泄，
+     * 放查询串会进访问日志与边缘缓存键，自定义头才是私有通道。服务端只存它的加盐哈希。
+     *
+     * [configId] 非空即更新既有配置（服务端校验归属，更新后同样要重新审核）；
+     * 为空则新建。成功返回服务端响应 `{ id, status, updated?, revision? }`。
+     */
+    suspend fun upload(
+        preset: ConfigPreset,
+        deviceId: String,
+        configId: String? = null,
+    ): JSONObject = withContext(Dispatchers.IO) {
         val sections = JSONObject()
         preset.sections.forEach { (id, value) -> sections.put(id, value) }
         // 显式构造 Hub 信封（形态 A）：`payload` 必须是 JSON 对象，不能依赖服务端自动包裹，
@@ -64,13 +82,29 @@ internal object HubClient {
             .put("name", preset.title)
             .put("description", preset.content)
             .put("author", preset.author)
-            .put("version", preset.version.ifBlank { "1.0.0" })
+            // 刻意不传 version：版本号由服务端维护（新建 = 1，更新时内容变了才 +1），
+            // 客户端传什么都不作数。响应里会把服务端定下的值带回来。
             .put("payload", JSONObject().put("sections", sections))
-        val (code, response) = request("POST", "/api/configs", body = body)
+        // 更新通道：configId 必须在服务端归一化之前从 body 顶层摘除，因此这里也只放在顶层。
+        configId?.takeIf { it.isNotBlank() }?.let { body.put("configId", it) }
+        val (code, response) = request("POST", "/api/configs", body = body, deviceId = deviceId)
         if (code != HttpURLConnection.HTTP_ACCEPTED) {
             throw HubException(code, response.optString("error"), response.opt("detail"))
         }
         response
+    }
+
+    /**
+     * 自查「自己上传的」配置走到哪一步了：审核中 / 已发布 / 已被拒绝（含拒绝原因）。
+     *
+     * [id] 是上传时服务端签发的原始 uuid（不带 [ID_PREFIX]），[deviceId] 走 `X-Device-Id` 头，
+     * 服务端据此校验归属——只有当初上传它的那台设备查得到。与公开详情不同，它**不累加下载量**，
+     * 也看得到尚未过审的条目（那几个状态在公开列表里根本不存在）。
+     */
+    suspend fun myConfig(id: String, deviceId: String): JSONObject = withContext(Dispatchers.IO) {
+        val (code, body) = request("GET", "/api/my-configs/$id", deviceId = deviceId)
+        if (code !in 200..299) throw HubException(code, body.optString("error"), body.opt("detail"))
+        body
     }
 
     private fun appendItems(root: JSONObject, into: MutableList<ConfigPreset>) {
@@ -84,6 +118,7 @@ internal object HubClient {
         method: String,
         path: String,
         body: JSONObject? = null,
+        deviceId: String? = null,
     ): Pair<Int, JSONObject> {
         val connection = (URL(BASE + path).openConnection() as HttpURLConnection).apply {
             requestMethod = method
@@ -91,6 +126,7 @@ internal object HubClient {
             readTimeout = READ_TIMEOUT
             setRequestProperty("Accept", "application/json")
             setRequestProperty("User-Agent", "HyperIsland/${BuildConfig.VERSION_NAME}")
+            if (deviceId != null) setRequestProperty("X-Device-Id", deviceId)
             if (body != null) {
                 doOutput = true
                 setRequestProperty("Content-Type", "application/json; charset=UTF-8")

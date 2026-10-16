@@ -67,6 +67,10 @@ private fun Context.openUrl(url: String) {
 
 private val referenceProjects = listOf(
     ReferenceProject(
+        name = "Miuix",
+        url = "https://github.com/compose-miuix-ui/miuix",
+    ),
+    ReferenceProject(
         name = "HyperIsland ToolKit",
         url = "https://github.com/D4vidDf/HyperIsland-ToolKit",
     ),
@@ -89,5 +93,13 @@ private val referenceProjects = listOf(
     ReferenceProject(
         name = "AndroidX Graphics Shapes",
         url = "https://github.com/androidx/androidx/tree/androidx-main/graphics/graphics-shapes",
+    ),
+    ReferenceProject(
+        name = "DexKit",
+        url = "https://github.com/LuckyPray/DexKit",
+    ),
+    ReferenceProject(
+        name = "Aptabase",
+        url = "https://github.com/aptabase/aptabase",
     ),
 )
