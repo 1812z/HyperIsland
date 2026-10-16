@@ -164,6 +164,14 @@ internal val ConfigSectionGroups: List<ConfigSection> = listOf(
                     "pref_expand_collapse_",
                 ),
             ),
+            ConfigSection(
+                id = "appearance_more_ui",
+                titleRes = R.string.appearance_more_ui,
+                exactKeys = listOf(
+                    "pref_island_mini_bar_behavior",
+                    "pref_notification_mini_bar_behavior",
+                ),
+            ),
         ),
     ),
     ConfigSection(

@@ -194,3 +194,8 @@ internal const val KEY_ALWAYS_FOCUS_OUTLINE = "pref_always_show_focus_outline"
 internal const val KEY_GLOW_RANGE = "pref_outer_glow_range"
 internal const val KEY_GLOW_SINGLE_COLOR = "pref_outer_glow_single_color"
 internal const val KEY_GLOW_BASE_COLOR = "pref_outer_glow_base_color"
+/** 焦点通知（岛内展开态）下拉小白条行为：system / hidden / removed（transparent 为旧值）。 */
+internal const val KEY_MINI_BAR_BEHAVIOR = "pref_island_mini_bar_behavior"
+/** 普通通知（通知栏 / 悬浮通知行）下拉小白条行为：同上。 */
+internal const val KEY_NOTIFICATION_MINI_BAR_BEHAVIOR = "pref_notification_mini_bar_behavior"
+internal const val MINI_BAR_BEHAVIOR_DEFAULT = "system"

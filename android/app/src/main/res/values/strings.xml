@@ -973,6 +973,16 @@
     <string name="color_code">Color code (#RRGGBB or #AARRGGBB)</string>
     <string name="appearance_animation">Animation</string>
     <string name="appearance_animation_summary">Adjust expand and collapse animations</string>
+    <string name="appearance_more_ui">More UI tweaks</string>
+    <string name="mini_bar_section">Notification pull bar</string>
+    <string name="mini_bar_focus_title">Focus notification pull bar</string>
+    <string name="mini_bar_focus_summary">Pull bar on the island\'s expanded focus notification</string>
+    <string name="mini_bar_normal_title">Normal notification pull bar</string>
+    <string name="mini_bar_normal_summary">Pull bar on shade and heads-up notifications</string>
+    <string name="mini_bar_behavior_hidden">Hide</string>
+    <string name="mini_bar_behavior_hidden_summary">Transparent only</string>
+    <string name="mini_bar_behavior_removed">Remove</string>
+    <string name="mini_bar_behavior_removed_summary">Not drawn and no longer responds</string>
     <string name="expand_collapse_custom">Customize expanded-state collapse animation</string>
     <string name="expand_collapse_custom_summary">Customize expanded-state collapse animation parameters</string>
     <string name="expand_collapse_transparency">Transparency</string>

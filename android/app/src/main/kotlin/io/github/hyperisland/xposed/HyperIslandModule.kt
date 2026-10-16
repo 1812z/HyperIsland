@@ -28,6 +28,8 @@ import io.github.hyperisland.xposed.hook.SystemUI.extensions.MusicIslandSpectrum
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.HomeAssistantIslandHook
 import io.github.hyperisland.xposed.hook.DownloadHook
 import io.github.hyperisland.xposed.hook.FocusNotifStatusBarIconHook
+import io.github.hyperisland.xposed.hook.IslandMiniBarHook
+import io.github.hyperisland.xposed.hook.NotificationMiniBarHook
 import io.github.hyperisland.xposed.hook.FocusNotificationTextColorHook
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.FaceUnlockStateHook
 import io.github.hyperisland.xposed.hook.SystemUI.lockscreen.LockscreenFaceUnlockUiHook
@@ -94,6 +96,8 @@ class HyperIslandModule : XposedModule() {
                 IslandIconColorHook.init(this, param)
                 UnlockAllFocusHook.init(this, param)
                 FocusNotifStatusBarIconHook.init(this, param)
+                IslandMiniBarHook.init(this, param)
+                NotificationMiniBarHook.init(this, param)
                 IslandOuterGlowHook.init(this, param)
                 IslandBackgroundHook.init(this, param)
                 IslandBlurHook.init(this, param)

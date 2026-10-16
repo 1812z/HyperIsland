@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.DropdownEntry
+import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
@@ -83,6 +85,54 @@ internal fun PreferenceDropdown(
         startAction = icon?.let { image -> { SettingsIcon(image) } },
         insideMargin = insideMargin,
         onSelectedIndexChange = onSelectedIndexChange,
+    )
+}
+
+/**
+ * 带选项副标题的下拉。[PreferenceDropdown] 的 `List<String>` 重载不支持副标题，
+ * 这里改走 miuix 的 `List<DropdownEntry>` 重载：其 `DropdownImpl` 会渲染每个
+ * [DropdownItem] 的 `summary`，行尾取值则取标记了 `selected` 的那一项文本。
+ *
+ * 单独命名而非重载：`List<String>` 与 `List<Pair<String, String?>>` 擦除后 JVM 签名相同，
+ * 重载会触发 Platform declaration clash。
+ *
+ * @param items 选项文本 to 选项副标题（无副标题传 null）。
+ */
+@Composable
+internal fun PreferenceDropdownWithSummary(
+    title: String,
+    summary: String?,
+    icon: ImageVector?,
+    items: List<Pair<String, String?>>,
+    selectedIndex: Int,
+    enabled: Boolean = true,
+    insideMargin: PaddingValues = SettingsItemMargin,
+    onSelectedIndexChange: (Int) -> Unit,
+) {
+    val entries = remember(items, selectedIndex, enabled, onSelectedIndexChange) {
+        listOf(
+            DropdownEntry(
+                items = items.mapIndexed { index, (text, itemSummary) ->
+                    DropdownItem(
+                        text = text,
+                        summary = itemSummary,
+                        selected = index == selectedIndex,
+                        enabled = enabled,
+                        onClick = { onSelectedIndexChange(index) },
+                    )
+                },
+            ),
+        )
+    }
+    WindowDropdownPreference(
+        entries = entries,
+        title = title,
+        summary = summary,
+        enabled = enabled,
+        startAction = icon?.let { image -> { SettingsIcon(image) } },
+        insideMargin = insideMargin,
+        showValue = true,
+        collapseOnSelection = true,
     )
 }
 

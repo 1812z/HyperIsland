@@ -979,6 +979,16 @@
     <string name="color_code">颜色编码（#RRGGBB 或 #AARRGGBB）</string>
     <string name="appearance_animation">动画</string>
     <string name="appearance_animation_summary">调整展开收起动画</string>
+    <string name="appearance_more_ui">更多界面修改</string>
+    <string name="mini_bar_section">通知小白条</string>
+    <string name="mini_bar_focus_title">焦点通知下拉小白条</string>
+    <string name="mini_bar_focus_summary">岛内焦点通知展开态的下拉横条</string>
+    <string name="mini_bar_normal_title">普通通知下拉小白条</string>
+    <string name="mini_bar_normal_summary">通知栏与悬浮通知的下拉横条</string>
+    <string name="mini_bar_behavior_hidden">隐藏</string>
+    <string name="mini_bar_behavior_hidden_summary">仅设为透明</string>
+    <string name="mini_bar_behavior_removed">移除</string>
+    <string name="mini_bar_behavior_removed_summary">完全不显示也不生效</string>
     <string name="expand_collapse_custom">展开态收起动画自定义</string>
     <string name="expand_collapse_custom_summary">自定义展开态收起动画参数</string>
     <string name="expand_collapse_transparency">透明度</string>
