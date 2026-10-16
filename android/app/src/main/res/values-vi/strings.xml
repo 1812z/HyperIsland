@@ -844,7 +844,7 @@
     <string name="export_to_clipboard">Sao chép vào khay nhớ tạm</string>
     <string name="import_from_clipboard">Nhập từ khay nhớ tạm</string>
     <string name="material_config_copied">cấu hình đã sao chép</string>
-    <string name="material_import_success">Đã nhập thành công %1$d cấu hình (tổng cộng %2$d)</string>
+    <string name="material_import_success">Nhập thành công 5 cấu hình</string>
     <string name="onboarding_app_name">HyperIsland</string>
     <string name="onboarding_welcome_title">Chào mừng đến với HyperIsland</string>
     <string name="onboarding_welcome_subtitle">Thiết lập trải nghiệm HyperIsland nhanh chóng và gọn gàng</string>
