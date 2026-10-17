@@ -17,14 +17,28 @@ interface ReleaseEntry {
 const changelogPath = fileURLToPath(new URL('../CHANGELOG.md', import.meta.url))
 const gradlePropertiesPath = fileURLToPath(new URL('../../android/gradle.properties', import.meta.url))
 
+// 版本标题有两种写法：# V3.2.1(2026-10-17) 与 # V3.1.9 (2026-10-11)，括号前空格可有可无
+const versionPattern = /^# V([^\s(]+)/
+// 日期单独提取，兼容括号内外任意空白与分隔符写法
+const datePattern = /(\d{4})-(\d{1,2})-(\d{1,2})/
+
+function normalizeDate(match: RegExpMatchArray | null): string {
+  if (!match) return ''
+  const [, year, month, day] = match
+  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
+}
+
 function loadReleaseHistory(): ReleaseEntry[] {
   const changelog = readFileSync(changelogPath, 'utf8')
-  const headingPattern = /^# V([^\s(]+)(?:\s+\(([^)]+)\))?.*$/gm
+  const headingPattern = /^# V[^\n]*$/gm
   const matches = [...changelog.matchAll(headingPattern)]
 
   return matches.map((match, index) => {
-    const version = match[1]
-    const bodyStart = match.index! + match[0].length
+    const heading = match[0]
+    const version = heading.match(versionPattern)?.[1]
+    if (!version) throw new Error(`docs/CHANGELOG.md 无法解析版本标题：${heading}`)
+
+    const bodyStart = match.index! + heading.length
     const bodyEnd = matches[index + 1]?.index ?? changelog.length
     const body = changelog.slice(bodyStart, bodyEnd)
     const sections: ReleaseSection[] = []
@@ -44,10 +58,7 @@ function loadReleaseHistory(): ReleaseEntry[] {
       }
     }
 
-    const normalizedDate = (match[2] ?? '')
-      .split('-')
-      .map((part, partIndex) => partIndex === 0 ? part : part.padStart(2, '0'))
-      .join('-')
+    const normalizedDate = normalizeDate(heading.match(datePattern))
 
     return {
       version,

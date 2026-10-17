@@ -61,7 +61,7 @@ function sectionTitle(title: string): string {
         </div>
         <div>
           <span>{{ labels.updatedAt }}</span>
-          <strong>{{ release.date }}</strong>
+          <strong>{{ release.date || '—' }}</strong>
         </div>
         <div>
           <span>{{ labels.downloadSource }}</span>
