@@ -4,6 +4,7 @@ import io.github.hyperisland.BuildConfig
 import io.github.hyperisland.compose.data.ConfigPreset
 import java.net.HttpURLConnection
 import java.net.URL
+import java.net.URLEncoder
 import java.time.Instant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -106,6 +107,30 @@ internal object HubClient {
         if (code !in 200..299) throw HubException(code, body.optString("error"), body.opt("detail"))
         body
     }
+
+    /**
+     * 拉取当前公告。
+     *
+     * 版本范围与系统版本的筛选全在服务端完成（见 Hub 的 `_lib/notice.js`），
+     * 这里不做任何本地判断：没有公告时服务端返回 `notice: null`，那是正常结果不是错误。
+     *
+     * [hyperOs] 传系统属性原文即可，取不到就传 "unknown" —— 服务端对未知版本一律放行，
+     * 所以在客户端"猜"一个版本号只会让筛选结果偏离预期。
+     */
+    suspend fun notice(appVersion: String, hyperOs: String): AppNotice? = withContext(Dispatchers.IO) {
+        val query = "/api/notice?app=" + encodeQuery(appVersion) + "&hyperos=" + encodeQuery(hyperOs)
+        val (code, body) = request("GET", query)
+        if (code !in 200..299) return@withContext null
+        val node = body.optJSONObject("notice") ?: return@withContext null
+        // optString 会把 JSON null 变成字符串 "null"，两个关键字段都必须先判空
+        if (node.isNull("hash") || node.isNull("content")) return@withContext null
+        val hash = node.optString("hash").trim()
+        val content = node.optString("content")
+        if (hash.isEmpty() || content.isBlank()) return@withContext null
+        AppNotice(hash = hash, content = content, hyperOs = node.optString("os").trim())
+    }
+
+    private fun encodeQuery(value: String): String = URLEncoder.encode(value, "UTF-8")
 
     private fun appendItems(root: JSONObject, into: MutableList<ConfigPreset>) {
         val items = root.optJSONArray("items") ?: return

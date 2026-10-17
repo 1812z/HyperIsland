@@ -411,7 +411,8 @@ internal fun PresetConfigPage(
     }
 
     var reload by remember { mutableIntStateOf(0) }
-    var sortOrder by remember { mutableStateOf(PresetSortOrder.Date) }
+    // 默认按下载量排序：云端预设里下载量最能反映「用的人多」，比按时间或名称更有参考价值。
+    var sortOrder by remember { mutableStateOf(PresetSortOrder.Downloads) }
     val localPresets = remember(reload, context) { PresetStore.loadLocal(context) }
     val cloudPresets = PresetCloudState.presets
 
@@ -1256,6 +1257,11 @@ private fun ApplyPresetBottomSheet(
     var downloadFailed by remember(preset) { mutableStateOf(false) }
     var downloadAttempt by remember(preset) { mutableIntStateOf(0) }
 
+    // 本机缓存正文的版本号：只有它落后于列表版本时才提供手动「更新配置」入口，
+    // 不再打开即自动替换（见 [hasUpdate] / updateContent）。
+    var cachedVersion by remember(preset) { mutableStateOf("") }
+    var updating by remember(preset) { mutableStateOf(false) }
+
     var uploading by remember(preset) { mutableStateOf(false) }
 
     // 云端在线 id：初始取本地记录，上传成功后立刻回填，同一次会话里再点上传即走更新。
@@ -1279,10 +1285,13 @@ private fun ApplyPresetBottomSheet(
     LaunchedEffect(preset, downloadAttempt) {
         if (!needsDownload) return@LaunchedEffect
         // 命中本地缓存就不再联网，避免每次点进来都下载。缓存序列化放到 IO 线程。
+        // 刻意不把列表版本传进去：缓存版本落后时保留旧正文，由用户点「更新配置」手动更新，
+        // 而不是一打开 sheet 就被静默换成新版本。
         val cached = withContext(Dispatchers.IO) {
-            PresetStore.cachedHubPreset(context, preset.id, preset.version)
+            PresetStore.cachedHubPreset(context, preset.id)
         }
         if (cached != null) {
+            cachedVersion = cached.version
             resolved = cached
             downloading = false
             return@LaunchedEffect
@@ -1315,6 +1324,10 @@ private fun ApplyPresetBottomSheet(
     }
     // 云端列表 / 详情返回的是 ISO8601 字符串，HubClient 已转为 epoch 毫秒；这里再转本地可读时间。
     val createdLabel = remember(preset.createdAt) { formatPresetTime(preset.createdAt) }
+    // 本机缓存正文落后于云端列表版本：只在详情里给一个手动更新入口，
+    // 不再自动把缓存换成新版本（用户可能就是想沿用旧配置）。
+    val hasUpdate = !preset.local && cachedVersion.isNotBlank() &&
+        isRemoteVersionNewer(preset.version, cachedVersion)
 
     fun openContent() {
         draft.clear()
@@ -1325,6 +1338,29 @@ private fun ApplyPresetBottomSheet(
         }
         savedMessage = false
         view = PresetSheetView.Content
+    }
+
+    /**
+     * 手动把云端预设更新到列表里的最新版本：重新下载正文并覆盖本地缓存。
+     *
+     * 缓存版本落后时不再自动更新（见 [hasUpdate]），必须由用户点「更新配置(旧→新)」触发，
+     * 避免只想看一眼旧配置却被静默换成新版本。
+     */
+    fun updateContent() {
+        if (updating) return
+        scope.launch {
+            updating = true
+            runCatching { HubClient.detail(preset) }
+                .onSuccess { detail ->
+                    withContext(Dispatchers.IO) { PresetStore.cacheHubPreset(context, detail) }
+                    resolved = detail
+                    cachedVersion = detail.version
+                    editedPreset = null
+                    downloadFailed = false
+                }
+                .onFailure { onSheetMessage(context.getString(R.string.preset_update_failed)) }
+            updating = false
+        }
     }
 
     /**
@@ -1620,7 +1656,7 @@ private fun ApplyPresetBottomSheet(
                 }
                 PresetSheetView.Detail -> {
                     // 详情卡片的条目：左列标签、右列内容、可选的强调色（只有状态 / 原因需要着色）。
-                    // 顺序固定为「介绍 → 时间 → 状态（含版本）→ 原因」，缺失的条目直接不进列表。
+                    // 顺序固定为「介绍 → 时间 → 版本 → 状态 → 原因」，缺失的条目直接不进列表。
                     val detailRows = ArrayList<Triple<String, String, Color?>>()
                     if (preset.content.isNotBlank()) {
                         detailRows += Triple(
@@ -1632,8 +1668,14 @@ private fun ApplyPresetBottomSheet(
                     if (createdLabel.isNotBlank()) {
                         detailRows += Triple(stringResource(R.string.preset_field_time), createdLabel, null)
                     }
-                    // 状态与版本合成一行（如「已发布（2）」），只对本地预设显示：
-                    // 云端条目必然是已发布，显示状态没有信息量。
+                    // 版本独立成一行，紧跟在时间下面；从未上传过的本地预设没有服务端版本，
+                    // 按「新建即 1」的约定显示 1。
+                    detailRows += Triple(
+                        stringResource(R.string.preset_field_version),
+                        effective.version.ifBlank { "1" },
+                        null,
+                    )
+                    // 状态只表示审核结论，版本已经单独成行，这里不再重复拼括号。
                     if (preset.local) {
                         val statusText = if (preset.hubId.isBlank()) {
                             stringResource(R.string.preset_status_not_uploaded)
@@ -1652,16 +1694,7 @@ private fun ApplyPresetBottomSheet(
                         }
                         detailRows += Triple(
                             stringResource(R.string.preset_field_status),
-                            // 版本号只有上传过才有值；没上传（或服务端没回）就只显示状态本身。
-                            if (preset.version.isNotBlank()) {
-                                stringResource(
-                                    R.string.preset_status_with_version,
-                                    statusText,
-                                    preset.version,
-                                )
-                            } else {
-                                statusText
-                            },
+                            statusText,
                             statusTint,
                         )
                         // 拒绝理由：只有「审核失败」且后台确实填了才显示，没填就整行不出现。
@@ -1785,6 +1818,34 @@ private fun ApplyPresetBottomSheet(
                             }
                             item {
                                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    // 缓存正文落后于云端版本：把「自动更新」改成显式手动更新。
+                                    // 大按钮压在下面 4 个操作按钮之上，文案形如「更新配置(1→2)」。
+                                    if (hasUpdate) {
+                                        Button(
+                                            onClick = ::updateContent,
+                                            enabled = !updating,
+                                            modifier = Modifier.fillMaxWidth(),
+                                            colors = ButtonDefaults.buttonColorsPrimary(),
+                                        ) {
+                                            if (updating) {
+                                                Text(stringResource(R.string.preset_downloading))
+                                            } else {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                                                ) {
+                                                    Text(stringResource(R.string.preset_update_config))
+                                                    Text("($cachedVersion")
+                                                    Icon(
+                                                        imageVector = MiuixIcons.Basic.ArrowRight,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(width = 12.dp, height = 12.dp),
+                                                    )
+                                                    Text("${preset.version})")
+                                                }
+                                            }
+                                        }
+                                    }
                                     // 「修改配置」：打开新建配置那套勾选界面，用当前配置的实时值
                                     // 整体覆盖这条预设包含的分节。只对本地预设开放。
                                     if (preset.local) {

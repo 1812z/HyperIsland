@@ -41,6 +41,7 @@ import io.github.hyperisland.compose.component.LocalRootBottomBarPadding
 import io.github.hyperisland.compose.component.LiquidGlassNavigationBar
 import io.github.hyperisland.compose.component.LiquidGlassNavigationItem
 import io.github.hyperisland.compose.component.LAYER_EXIT_DURATION
+import io.github.hyperisland.compose.component.NoticeDialogHost
 import io.github.hyperisland.compose.component.PredictiveNavigationBackHandler
 import io.github.hyperisland.compose.component.PredictiveNavigationBackdrop
 import io.github.hyperisland.compose.component.PredictiveNavigationLayer
@@ -98,13 +99,18 @@ import io.github.hyperisland.compose.page.settings.extensions.SystemUiHookPage
 import io.github.hyperisland.compose.page.settings.extensions.SystemUiExtensionDetail
 import io.github.hyperisland.compose.page.settings.extensions.XmsfHookPage
 import io.github.hyperisland.compose.service.UpdateService
+import io.github.hyperisland.compose.service.AppNotice
+import io.github.hyperisland.compose.service.HubClient
+import io.github.hyperisland.compose.service.NoticeService
 import io.github.hyperisland.compose.theme.PREF_BLUR_BARS
 import io.github.hyperisland.compose.theme.PREF_FLOATING_NAVIGATION_BAR
 import io.github.hyperisland.compose.theme.PREF_LIQUID_GLASS_NAVIGATION_BAR
 import io.github.hyperisland.compose.theme.DEFAULT_PREDICTIVE_BACK_TRANSLATION_PERCENT
 import io.github.hyperisland.compose.theme.PREF_PREDICTIVE_BACK_MAX_TRANSLATION
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.FloatingNavigationBar
 import top.yukonga.miuix.kmp.basic.FloatingNavigationBarItem
 import top.yukonga.miuix.kmp.basic.FloatingToolbarDefaults
@@ -139,6 +145,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     val rootSnackbarState = remember { SnackbarHostState() }
     val alreadyLatestMessage = stringResource(R.string.already_latest)
     var updateDialogState by remember { mutableStateOf<UpdateDialogState?>(null) }
+    var notice by remember { mutableStateOf<AppNotice?>(null) }
     var isCheckingUpdate by remember { mutableStateOf(false) }
     val floatingNavigationBar = rememberBooleanPreference(prefs, PREF_FLOATING_NAVIGATION_BAR, false)
     val liquidGlassNavigationBar = rememberBooleanPreference(
@@ -262,6 +269,19 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     LaunchedEffect(prefs) {
         if (prefs.getBoolean(PREF_CHECK_UPDATE_ON_LAUNCH, true)) {
             requestUpdateCheck(showUpToDate = false)
+        }
+    }
+
+    // 公告：每次冷启动拉一次。版本范围与系统版本由服务端筛（见 Hub 的 _lib/notice.js），
+    // 客户端只比对哈希 —— 关过的就不再弹，服务端改了正文（哈希变了）就再弹一次。
+    // 失败一律静默：公告是锦上添花，网络不通时不该在启动路径上留下任何痕迹。
+    LaunchedEffect(prefs) {
+        val fetched = runCatching {
+            val hyperOs = withContext(Dispatchers.IO) { NoticeService.hyperOsVersionName() }
+            HubClient.notice(BuildConfig.VERSION_NAME, hyperOs)
+        }.getOrNull()
+        if (fetched != null && !NoticeService.isDismissed(context, fetched.hash)) {
+            notice = fetched
         }
     }
 
@@ -690,6 +710,16 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
             }.onFailure {
                 updateDialogState = UpdateDialogState.Failure
             }
+        },
+    )
+
+    // 更新弹窗在场时先让位：两个 WindowDialog 同时弹会互相抢焦点，
+    // 而「有新版本」比公告更该被先看到。它关掉之后公告再出现，倒计时从头开始。
+    NoticeDialogHost(
+        notice = notice.takeIf { updateDialogState == null },
+        onConfirm = { shown ->
+            NoticeService.markDismissed(context, shown.hash)
+            notice = null
         },
     )
 }

@@ -1044,6 +1044,7 @@
     <string name="preset_field_time">时间</string>
     <string name="preset_field_author">作者</string>
     <string name="preset_field_status">状态</string>
+    <string name="preset_field_version">版本</string>
     <string name="preset_field_reject_reason">原因</string>
     <string name="preset_status_not_uploaded">未上传</string>
     <string name="preset_status_pending">审核中</string>
@@ -1071,6 +1072,8 @@
     <string name="preset_update_removed">该配置已在云端被移除，已转为全新的本地配置</string>
     <string name="preset_uploading">上传中…</string>
     <string name="preset_modify_config">修改配置</string>
+    <string name="preset_update_config">更新配置</string>
+    <string name="preset_update_failed">更新配置失败</string>
     <string name="preset_modify_success">已覆盖「%1$s」</string>
     <string name="preset_confirm">确认</string>
     <string name="preset_confirm_delete_title">是否删除</string>
@@ -1213,4 +1216,7 @@
     <string name="ha_display_custom">自定义</string>
     <string name="ha_display_seconds_hint">单位秒，可填 1 - %1$d</string>
 
+    <!-- 公告弹窗（服务端下发正文，客户端只负责展示与去重） -->
+    <string name="notice_title">公告</string>
+    <string name="notice_confirm_countdown">确认（%1$d）</string>
 </resources>

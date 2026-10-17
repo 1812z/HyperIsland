@@ -8,16 +8,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.service.AppUpdate
 import top.yukonga.miuix.kmp.basic.Button
@@ -60,7 +55,7 @@ internal fun UpdateDialogHost(
                             .height(1.dp)
                             .background(MiuixTheme.colorScheme.dividerLine),
                     )
-                    ReleaseNotes(available.update.changelog)
+                    MarkdownBody(available.update.changelog, maxHeight = 240.dp)
                 }
                 DialogActions(
                     onCancel = onDismiss,
@@ -92,40 +87,6 @@ internal fun UpdateDialogHost(
 }
 
 @Composable
-private fun ReleaseNotes(changelog: String) {
-    val lines = changelog.trim().lines()
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(max = 240.dp),
-        verticalArrangement = Arrangement.spacedBy(5.dp),
-    ) {
-        items(lines) { rawLine ->
-            val line = rawLine.trim()
-            when {
-                line.isEmpty() -> Spacer(Modifier.height(3.dp))
-                line.startsWith("#") -> Text(
-                    text = markdownPlainText(line.trimStart('#').trim()),
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MiuixTheme.colorScheme.onSurface,
-                )
-                line.startsWith("- ") || line.startsWith("* ") -> Text(
-                    text = "• ${markdownPlainText(line.drop(2))}",
-                    fontSize = 14.sp,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                )
-                else -> Text(
-                    text = markdownPlainText(line),
-                    fontSize = 14.sp,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                )
-            }
-        }
-    }
-}
-
-@Composable
 private fun DialogActions(
     onCancel: () -> Unit,
     onConfirm: () -> Unit,
@@ -148,13 +109,3 @@ private fun DialogActions(
         }
     }
 }
-
-private fun markdownPlainText(source: String): String = source
-    .replace(MARKDOWN_LINK) { match ->
-        "${match.groupValues[1]} (${match.groupValues[2]})"
-    }
-    .replace("**", "")
-    .replace("__", "")
-    .replace("`", "")
-
-private val MARKDOWN_LINK = Regex("""\[([^]]+)]\(([^)]+)\)""")

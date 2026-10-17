@@ -465,20 +465,14 @@ internal object PresetStore {
     /**
      * 读取已缓存的云端预设正文。命中即刷新访问时间（LRU），避免每次点进去都重新下载。
      *
-     * [remoteVersion] 为列表元数据中的版本号；若缓存版本更旧，则丢弃缓存并按未命中处理，
-     * 下次进入时重新联网下载正文。
+     * 刻意不按云端版本号淘汰缓存：缓存落后时保留旧正文，由用户在详情里手动点
+     * 「更新配置」升级（见 PresetConfigPage 的 `hasUpdate`），而不是点开就被静默替换成新版本。
      */
-    fun cachedHubPreset(context: Context, id: String, remoteVersion: String = ""): ConfigPreset? {
+    fun cachedHubPreset(context: Context, id: String): ConfigPreset? {
         val entries = loadHubCache(context).toMutableList()
         val index = entries.indexOfFirst { it.preset.id == id }
         if (index < 0) return null
-        val cached = entries[index]
-        if (isRemoteVersionNewer(remoteVersion, cached.preset.version)) {
-            entries.removeAt(index)
-            persistHubCache(context, entries)
-            return null
-        }
-        val touched = cached.copy(cachedAt = System.currentTimeMillis())
+        val touched = entries[index].copy(cachedAt = System.currentTimeMillis())
         entries[index] = touched
         persistHubCache(context, entries)
         return touched.preset
