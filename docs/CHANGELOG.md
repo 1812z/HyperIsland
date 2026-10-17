@@ -8,6 +8,18 @@ import ReleaseHistory from './.vitepress/components/ReleaseHistory.vue'
 
 <div class="changelog-source" hidden>
 
+# V3.2.1(2026-10-17)
+## 功能
+- 支持 HA 息屏省电
+- 完善小窗下拉动画
+- 通知小白条自定义
+
+## 优化 & 修复
+- 优化音乐岛频谱占用
+- 优化界面
+- 修复测试通知被错误替换
+
+
 # V3.2.0(2026-10-15)
 ## 功能
 - 支持 HomeAssistant 数据上岛
