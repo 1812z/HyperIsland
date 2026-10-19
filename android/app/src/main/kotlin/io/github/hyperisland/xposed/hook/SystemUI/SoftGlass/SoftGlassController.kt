@@ -64,6 +64,27 @@ internal object SoftGlassController {
         val isBionicsActive: Method,
     )
 
+    // 18.2 exposes updatePassWindowBlur(boolean); 18.3.2.57.0 appends the owning package
+    // (updatePassWindowBlur(boolean, String)). Resolve whichever shape the plugin provides.
+    private val passBlurMethods = Collections.synchronizedMap(
+        WeakHashMap<Class<*>, java.lang.ref.WeakReference<Method>>(),
+    )
+
+    private fun passBlurMethod(clazz: Class<*>): Method? {
+        synchronized(passBlurMethods) { passBlurMethods[clazz]?.get() }?.let { return it }
+        val booleanType = Boolean::class.javaPrimitiveType!!
+        val resolved = findMethod(clazz, "updatePassWindowBlur", booleanType)
+            ?: findMethod(clazz, "updatePassWindowBlur", booleanType, String::class.java)
+            ?: return null
+        synchronized(passBlurMethods) {
+            passBlurMethods[clazz] = java.lang.ref.WeakReference(resolved)
+        }
+        return resolved
+    }
+
+    private fun passBlurArgs(method: Method, enabled: Boolean, pkg: String?): Array<Any?> =
+        if (method.parameterTypes.size >= 2) arrayOf(enabled, pkg) else arrayOf(enabled)
+
     // Keep plugin generations isolated. Weak values are essential: Methods retain their Class.
     private val runtimes = WeakHashMap<Class<*>, java.lang.ref.WeakReference<RuntimeBinding>>()
     private val viewRuntimes = Collections.synchronizedMap(WeakHashMap<View, RuntimeBinding>())
@@ -209,16 +230,19 @@ internal object SoftGlassController {
                 result
             }
         }
-        findMethod(
-            windowClass,
-            "updatePassWindowBlur",
-            Boolean::class.javaPrimitiveType!!,
-        )?.let { method ->
+        passBlurMethod(windowClass)?.let { method ->
             module.hook(method).intercept { chain ->
                 val root = chain.thisObject as? View ?: return@intercept chain.proceed()
                 val requested = chain.args.getOrNull(0) as? Boolean ?: false
                 val keepForSoft = !requested && hasRenderingView(root)
-                val result = if (keepForSoft) chain.proceed(arrayOf(true)) else chain.proceed()
+                val result = if (keepForSoft) {
+                    // finalizeAnimFinished() closes the sampler as soon as the open/close
+                    // animation settles. Rewrite the request instead of patching afterwards:
+                    // the original body then keeps its cache, FPS and native flag consistent.
+                    chain.proceed(passBlurArgs(method, true, chain.args.getOrNull(1) as? String))
+                } else {
+                    chain.proceed()
+                }
                 if (requested || keepForSoft) {
                     retainedPassBlurRoots.add(root)
                 } else {
@@ -523,23 +547,15 @@ internal object SoftGlassController {
     private fun ensurePassWindowBlur(source: View) {
         val root = findWindowView(source) ?: return
         if (retainedPassBlurRoots.contains(root)) return
-        val method = findMethod(
-            root.javaClass,
-            "updatePassWindowBlur",
-            Boolean::class.javaPrimitiveType!!,
-        ) ?: return
-        runCatching { method.invoke(root, true) }
+        val method = passBlurMethod(root.javaClass) ?: return
+        runCatching { method.invoke(root, *passBlurArgs(method, true, null)) }
         retainedPassBlurRoots.add(root)
     }
 
     private fun closeRetainedPassBlur(root: View) {
         if (!retainedPassBlurRoots.remove(root)) return
-        val method = findMethod(
-            root.javaClass,
-            "updatePassWindowBlur",
-            Boolean::class.javaPrimitiveType!!,
-        ) ?: return
-        runCatching { method.invoke(root, false) }
+        val method = passBlurMethod(root.javaClass) ?: return
+        runCatching { method.invoke(root, *passBlurArgs(method, false, null)) }
     }
 
     private fun findWindowView(view: View): View? {
