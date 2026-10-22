@@ -622,7 +622,9 @@ android/app/src/main/kotlin/io/github/hyperisland/xposed/hook/SystemUI/IslandTra
 
 ### 其他相关 Hook
 
-外圈光效由官方 `LightBgView/LightBgShader` 写入独立上下效果 View，OS4 效果 View 位于窗口外置容器，不能继承岛背景旋转。按压倾斜现同步具体展开通知的两个效果 View，通过不含旋转的布局/位移坐标换算同一空间支点，不修改共享容器；复位/detach 恢复原旋转、支点、相机距离。`containerScheduleUpdate()` 只更新容器，漏掉 `updateBigIsland/updateExpanded` 中的光效几何入口，OuterGlow 在该调用后以同一属性快照和官方半径计算补调 `updateGlowEffectAnim`，不重复写内容缩放/透明度。防烧屏旧逻辑保持原样；倾斜与轮廓跟随需实机验证。
+外圈光效由官方 `LightBgView/LightBgShader` 写入独立上下效果 View，OS4 效果 View 位于窗口外置容器，不能继承岛背景旋转。按压倾斜现同步具体展开通知的两个效果 View，通过不含旋转的布局/位移坐标换算同一空间支点，不修改共享容器；复位/detach 恢复原旋转、支点、相机距离。`containerScheduleUpdate()` 只更新容器，漏掉 `updateBigIsland/updateExpanded` 中的光效几何入口，OuterGlow 在该调用后以同一属性快照和官方半径计算补调 `updateGlowEffectAnim`，不重复写内容缩放/透明度。
+
+防烧屏不再因光效开启而暂停。JADX 确认 `AvoidScreenBurnInHelper` 仅直接修改内容 `translationX/Y` 与背景 `actual*`，未更新外置光效。OuterGlow 在官方四向位移完成后把同一实际增量同步给所属大岛的上下效果 View（若效果已经是内容后代则不重复叠加），不移动共享容器。后续 `setGlowEffectPosition()` 使用所属真实 ContentView 的实际 translation 与其动画 delegate `snapshotProperties().containerX/containerTransY` 的差值修正四边坐标，保留光效尺寸/半径并随官方动画覆盖或复位自动消除偏移；fake owner 不走真实岛补偿。reset/fade 完整执行官方逻辑，reset 的位置交接通过正常光效几何入口处理，避免重复添加复位增量。不缓存累计偏移或 View 引用；双岛实例互相隔离。位移与倾斜/轮廓组合仍需实机验证。
 
 `animation/ExpandedPressTiltHook.kt` 为灵动类型的展开通知增加按压倾斜，配置键为 `pref_expand_animation_press_tilt`，默认关闭。采用控制中心 `RotationItemViewHolder.touchDown()` 同类的对侧支点和原生双轴旋转；边缘正中按压只启用一个轴，中心按压保留系统缩放。效果施加于整个 `DynamicIslandBackgroundView`（包含真实内容）及独立 fake root，不重复处理背景内的子 View；系统缩放、轮廓和位移弹簧保持原路径。原 RuntimeShader 曲面、外围衰减、矩形内外采样方案已被实机反馈否定（阴影收缩、缺口），现全部撤除，也不改写 RenderEffect。松手复位可随回弹开关轻微越界，拖动超过 touch slop 则退出倾斜。对象采用有数量上限的弱引用缓存，关闭配置、状态离开展开或 View detach 时恢复旋转、支点和相机距离。当前原生倾斜与阴影组合仍需实机确认，不含额外曲面弯曲。
 

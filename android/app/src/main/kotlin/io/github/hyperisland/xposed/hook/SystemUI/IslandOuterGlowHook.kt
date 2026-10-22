@@ -85,7 +85,6 @@ object IslandOuterGlowHook : BaseHook() {
     private val mediaGlowRequests = ConcurrentHashMap<String, MediaGlowRequest>()
 
     @Volatile private var recentOwnedTarget: OwnedGlowTarget? = null
-    @Volatile private var statusGlowShowing = false
 
     fun recordMediaGlowRequest(
         pkg: String,
@@ -235,15 +234,34 @@ object IslandOuterGlowHook : BaseHook() {
             }
             methods.forEach { method ->
                 module.hook(method).intercept { chain ->
-                    val mode = resolveGlowModeFromContentView(chain.args.getOrNull(0))
-                    if (mode == GLOW_MODE_STATUS && statusGlowShowing) {
-                        null
-                    } else {
-                        chain.proceed()
+                    val owner = chain.args.getOrNull(0) as? View
+                        ?: return@intercept chain.proceed()
+                    val x = owner.translationX
+                    val y = owner.translationY
+                    // Always run the official guard, including reset/fade strategies.
+                    val result = chain.proceed()
+                    runCatching {
+                        // Reset dispatches normal state/animation updates; those already
+                        // pass through setGlowEffectPosition. Do not apply that delta twice.
+                        val direction = (chain.args.getOrNull(1) as? Number)?.toInt()
+                        if (direction == null || direction !in 0..3) return@runCatching
+                        val dx = owner.translationX - x
+                        val dy = owner.translationY - y
+                        if (dx != 0f || dy != 0f) {
+                            val glow = invokeNoArg(owner, "getBigIslandView")
+                            for (getter in listOf("getMGlowEffectUpperView", "getMGlowEffectBottomView")) {
+                                val effect = glow?.let { invokeNoArg(it, getter) } as? View ?: continue
+                                // Older layouts may already inherit the owner's translation.
+                                if (isDescendantOf(effect, owner)) continue
+                                effect.translationX += dx
+                                effect.translationY += dy
+                            }
+                        }
                     }
+                    result
                 }
             }
-            if (methods.isNotEmpty()) log(module) { "hooked dynamic island avoid-screen-burn-in translation on ${clazz.name}" }
+            if (methods.isNotEmpty()) log(module) { "hooked glow follow for dynamic island avoid-screen-burn-in on ${clazz.name}" }
         } catch (_: Throwable) {
         }
     }
@@ -387,7 +405,6 @@ object IslandOuterGlowHook : BaseHook() {
                         }
                         isStateTag(stateObj, "Deleted") -> {
                             invokeGlowEffectMethod(invokeNoArg(stateObj, "getBigIslandView"), "stopGlowEffect")
-                            statusGlowShowing = false
                         }
                     }
                     result
@@ -437,11 +454,6 @@ object IslandOuterGlowHook : BaseHook() {
 
                     if (!usesOs4SharedGlowContainers) {
                         // OS3: 保留原有的一对一光效生命周期，不参与 OS4 的共享容器仲裁。
-                        if (isStart && mode == GLOW_MODE_STATUS && isOwnedGlowActiveForMode(mode)) {
-                            statusGlowShowing = true
-                        } else if (isStop && mode == GLOW_MODE_STATUS) {
-                            statusGlowShowing = false
-                        }
                         return@intercept chain.proceed()
                     }
 
@@ -461,7 +473,6 @@ object IslandOuterGlowHook : BaseHook() {
                         // 可见性，不调用 startGlowEffect，保留其他 View 正在播放的动画进度。
                         restoreSharedGlowContainersIfAnotherEffectIsRunning(chain.thisObject, module)
                     }
-                    statusGlowShowing = hasRunningOwnedStatusGlow()
                     result
                 }
             }
@@ -471,6 +482,7 @@ object IslandOuterGlowHook : BaseHook() {
     }
 
     private fun hookGlowCornerRadius(module: XposedModule, clazz: Class<*>) {
+        hookGlowTranslation(module, clazz)
         // The light shader has its own round-rect radius, independent of View Outline.
         // Both stable geometry and fake/gesture animation updates use this entry point.
         val methods = clazz.declaredMethods.filter {
@@ -507,6 +519,66 @@ object IslandOuterGlowHook : BaseHook() {
                 if (args == null) chain.proceed() else chain.proceed(args)
             }
         }
+    }
+
+    private fun hookGlowTranslation(module: XposedModule, clazz: Class<*>) {
+        runCatching {
+            val content = clazz.classLoader!!.loadClass(
+                "miui.systemui.dynamicisland.window.content.DynamicIslandContentView",
+            )
+            val delegateGetter = content.getMethod("getAnimatorDelegate")
+            val snapshot = delegateGetter.returnType.getDeclaredMethod("snapshotProperties").apply {
+                isAccessible = true
+            }
+            val xGetter = snapshot.returnType.getMethod("getContainerX")
+            val yGetter = snapshot.returnType.getMethod("getContainerTransY")
+            clazz.declaredMethods.filter {
+                it.name.substringBefore('$') == "setGlowEffectPosition" && it.parameterCount == 5 &&
+                    it.parameterTypes.all { type -> type == Float::class.javaPrimitiveType }
+            }.forEach { method ->
+                module.hook(method).intercept { chain ->
+                    val args = runCatching {
+                        val glow = chain.thisObject as? View ?: return@runCatching null
+                        var ancestor = glow.parent
+                        while (ancestor is View && !content.isInstance(ancestor)) ancestor = ancestor.parent
+                        val owner = ancestor as? View ?: return@runCatching null
+                        if (!content.isInstance(owner)) return@runCatching null
+                        val upper = invokeNoArg(glow, "getMGlowEffectUpperView") as? View
+                        val bottom = invokeNoArg(glow, "getMGlowEffectBottomView") as? View
+                        if ((upper != null && isDescendantOf(upper, owner)) ||
+                            (bottom != null && isDescendantOf(bottom, owner))) return@runCatching null
+                        val delegate = delegateGetter.invoke(owner) ?: return@runCatching null
+                        val props = snapshot.invoke(delegate)
+                        // The official coordinates contain the animation translation, but
+                        // not the guard's direct View translation. Recompute the residual
+                        // each time: animation/reset can overwrite either axis independently.
+                        val dx = owner.translationX - (xGetter.invoke(props) as Number).toFloat()
+                        val dy = owner.translationY - (yGetter.invoke(props) as Number).toFloat()
+                        if (!dx.isFinite() || !dy.isFinite() || (dx == 0f && dy == 0f)) {
+                            return@runCatching null
+                        }
+                        chain.args.toTypedArray().also {
+                            it[0] = (it[0] as Number).toFloat() + dx
+                            it[1] = (it[1] as Number).toFloat() + dy
+                            it[2] = (it[2] as Number).toFloat() + dx
+                            it[3] = (it[3] as Number).toFloat() + dy
+                        }
+                    }.getOrNull()
+                    if (args == null) chain.proceed() else chain.proceed(args)
+                }
+            }
+        }.onFailure { error ->
+            logFailureOnce(module, "glow-translation") { "glow translation hook unavailable: ${error.message}" }
+        }
+    }
+
+    private fun isDescendantOf(view: View, owner: View): Boolean {
+        var parent = view.parent
+        while (parent is View) {
+            if (parent === owner) return true
+            parent = parent.parent
+        }
+        return false
     }
 
     private fun hookFocusExtrasBridge(module: XposedModule, classLoader: ClassLoader) {
@@ -942,28 +1014,6 @@ object IslandOuterGlowHook : BaseHook() {
         return target.mode == mode
     }
 
-    private fun isOwnedGlowActiveForMode(mode: Int): Boolean {
-        if (mode == GLOW_MODE_AUTO) return false
-        val target = recentOwnedTarget ?: return false
-        if (System.currentTimeMillis() - target.createdAt > RECENT_TTL_MS) return false
-        if (target.mode != mode) return false
-        return resolveGlowColorConfig(mode, target).effectEnabled
-    }
-
-    private fun isBoundOwnedGlowActive(glowView: Any, mode: Int): Boolean {
-        val target = synchronized(glowTargets) { glowTargets[glowView] } ?: return false
-        return target.mode == mode && resolveGlowColorConfig(mode, target).effectEnabled
-    }
-
-    private fun hasRunningOwnedStatusGlow(): Boolean {
-        synchronized(runningGlowViews) {
-            return runningGlowViews.keys.any { glowView ->
-                readFieldValue(glowView, "enabledGlowEffect") == true &&
-                        isBoundOwnedGlowActive(glowView, GLOW_MODE_STATUS)
-            }
-        }
-    }
-
     private fun restoreSharedGlowContainersIfAnotherEffectIsRunning(
         stoppedView: Any,
         module: XposedModule,
@@ -1129,15 +1179,6 @@ object IslandOuterGlowHook : BaseHook() {
             cls.contains(BIG_VIEW_MARKER) -> GLOW_MODE_STATUS
             shouldApplyOwnedGlowForMode(GLOW_MODE_STATUS) -> GLOW_MODE_STATUS
             shouldApplyOwnedGlowForMode(GLOW_MODE_EXPAND) -> GLOW_MODE_EXPAND
-            else -> GLOW_MODE_AUTO
-        }
-    }
-
-    private fun resolveGlowModeFromContentView(view: Any?): Int {
-        val stateText = invokeNoArg(view ?: return GLOW_MODE_AUTO, "getState")?.toString()
-        return when {
-            stateText?.contains("BigIsland") == true || stateText?.contains("SmallIsland") == true -> GLOW_MODE_STATUS
-            stateText?.contains("Expand") == true -> GLOW_MODE_EXPAND
             else -> GLOW_MODE_AUTO
         }
     }
