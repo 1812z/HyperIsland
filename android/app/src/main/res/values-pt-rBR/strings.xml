@@ -478,6 +478,13 @@
     <string name="island_text_weight">Peso da fonte</string>
     <string name="island_text_width">Largura do texto da Ilha</string>
     <string name="island_time_width">Largura do texto de tempo</string>
+    <string name="island_text_section">Texto</string>
+    <string name="island_text_gravity_section">Posição</string>
+    <string name="island_left_text_gravity">Alinhamento do texto à esquerda da Ilha</string>
+    <string name="island_right_text_gravity">Alinhamento do texto à direita da Ilha</string>
+    <string name="text_align_center">Centralizar</string>
+    <string name="text_align_left">Alinhar à esquerda</string>
+    <string name="text_align_right">Alinhar à direita</string>
     <string name="island_welcome_title">Bem-vindo(a)</string>
     <string name="japanese">Japonês</string>
     <string name="keep_island_add_content">Adicionar conteúdo</string>

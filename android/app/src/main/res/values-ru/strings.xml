@@ -701,6 +701,13 @@
     <string name="island_text_weight">Насыщенность шрифта</string>
     <string name="island_text_width">Ширина текста острова</string>
     <string name="island_time_width">Ширина текста времени</string>
+    <string name="island_text_section">Текст</string>
+    <string name="island_text_gravity_section">Положение</string>
+    <string name="island_left_text_gravity">Расположение текста слева на острове</string>
+    <string name="island_right_text_gravity">Расположение текста справа на острове</string>
+    <string name="text_align_center">По центру</string>
+    <string name="text_align_left">По левому краю</string>
+    <string name="text_align_right">По правому краю</string>
     <string name="focus_text_color">Цвет текста уведомления о фокусе</string>
     <string name="media_text_color">Цвет текста медиа-уведомлений</string>
     <string name="black">черный</string>

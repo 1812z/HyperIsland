@@ -754,6 +754,13 @@
     <string name="island_text_weight">Yazı tipi kalınlığı</string>
     <string name="island_text_width">Ada metin genişliği</string>
     <string name="island_time_width">Zaman metni genişliği</string>
+    <string name="island_text_section">Metin</string>
+    <string name="island_text_gravity_section">Konum</string>
+    <string name="island_left_text_gravity">Ada sol metin hizalaması</string>
+    <string name="island_right_text_gravity">Ada sağ metin hizalaması</string>
+    <string name="text_align_center">Ortala</string>
+    <string name="text_align_left">Sola hizala</string>
+    <string name="text_align_right">Sağa hizala</string>
     <string name="focus_text_color">Odak bildirimi metin rengi</string>
     <string name="media_text_color">Medya bildirimi metin rengi</string>
     <string name="black">Siyah</string>

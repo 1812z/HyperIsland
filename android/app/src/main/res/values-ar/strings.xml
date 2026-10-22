@@ -488,6 +488,13 @@
     <string name="island_text_weight">سماكة الخط</string>
     <string name="island_text_width">عرض نص الجزيرة</string>
     <string name="island_time_width">عرض نص الوقت</string>
+    <string name="island_text_section">النص</string>
+    <string name="island_text_gravity_section">الموضع</string>
+    <string name="island_left_text_gravity">محاذاة النص الأيسر في الجزيرة</string>
+    <string name="island_right_text_gravity">محاذاة النص الأيمن في الجزيرة</string>
+    <string name="text_align_center">توسيط</string>
+    <string name="text_align_left">محاذاة لليسار</string>
+    <string name="text_align_right">محاذاة لليمين</string>
     <string name="island_welcome_title">مرحبًا</string>
     <string name="japanese">日本語</string>
     <string name="keep_island_add_content">إضافة محتوى</string>

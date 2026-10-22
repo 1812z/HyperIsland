@@ -701,6 +701,13 @@
     <string name="island_text_weight">フォントの太さ</string>
     <string name="island_text_width">アイランド文字の幅</string>
     <string name="island_time_width">時刻テキストの幅</string>
+    <string name="island_text_section">テキスト</string>
+    <string name="island_text_gravity_section">位置</string>
+    <string name="island_left_text_gravity">アイランド左側のテキスト配置</string>
+    <string name="island_right_text_gravity">アイランド右側のテキスト配置</string>
+    <string name="text_align_center">中央</string>
+    <string name="text_align_left">左寄せ</string>
+    <string name="text_align_right">右寄せ</string>
     <string name="focus_text_color">フォーカス通知のテキストの色</string>
     <string name="media_text_color">メディア通知のテキストの色</string>
     <string name="black">黒</string>

@@ -135,6 +135,8 @@ internal val ConfigSectionGroups: List<ConfigSection> = listOf(
                     "pref_island_text_weight_percent",
                     "pref_island_text_width_percent",
                     "pref_island_time_width_percent",
+                    "pref_island_left_text_gravity",
+                    "pref_island_right_text_gravity",
                 ),
             ),
             ConfigSection(
