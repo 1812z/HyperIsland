@@ -42,6 +42,7 @@ internal enum class SettingsDetail {
     HookExtension,
     Onboarding,
     Preset,
+    DebugTools,
 }
 
 @Composable

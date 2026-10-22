@@ -1230,4 +1230,17 @@
     <!-- 公告弹窗（服务端下发正文，客户端只负责展示与去重） -->
     <string name="notice_title">公告</string>
     <string name="notice_confirm_countdown">确认（%1$d）</string>
+    <!-- 调试工具 -->
+    <string name="debug_tools">调试工具</string>
+    <string name="debug_tools_description">仅限调试使用，普通用户请勿开启</string>
+    <string name="debug_mode">调试模式</string>
+    <string name="debug_mode_summary">开启后可用调试功能</string>
+    <string name="debug_island_section">超级岛</string>
+    <string name="debug_burn_in_shift">手动触发防烧屏</string>
+    <string name="debug_burn_in_shift_summary">让 SystemUI 把超级岛位移约 20px</string>
+    <string name="debug_burn_in_shift_toast">已发送防烧屏位移：%1$s</string>
+    <string name="debug_burn_in_direction_left">左</string>
+    <string name="debug_burn_in_direction_up">上</string>
+    <string name="debug_burn_in_direction_right">右</string>
+    <string name="debug_burn_in_direction_down">下</string>
 </resources>

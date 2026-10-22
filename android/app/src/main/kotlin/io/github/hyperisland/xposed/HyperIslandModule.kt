@@ -102,6 +102,7 @@ class HyperIslandModule : XposedModule() {
                 IslandMiniBarHook.init(this, param)
                 NotificationMiniBarHook.init(this, param)
                 IslandOuterGlowHook.init(this, param)
+                IslandBurnInDebugHook.init(this, param)
                 IslandBackgroundHook.init(this, param)
                 IslandBlurHook.init(this, param)
                 IslandTransitionVisualHook.init(this, param)

@@ -1224,4 +1224,17 @@
     <!-- 公告弹窗（服务端下发正文，客户端只负责展示与去重） -->
     <string name="notice_title">Announcement</string>
     <string name="notice_confirm_countdown">Confirm (%1$d)</string>
+    <!-- 调试工具 -->
+    <string name="debug_tools">Debug tools</string>
+    <string name="debug_tools_description">For debugging only. Do not enable as a regular user.</string>
+    <string name="debug_mode">Debug mode</string>
+    <string name="debug_mode_summary">Debug features become available when on.</string>
+    <string name="debug_island_section">Island</string>
+    <string name="debug_burn_in_shift">Trigger burn-in shift</string>
+    <string name="debug_burn_in_shift_summary">Lets SystemUI shift the island by about 20px.</string>
+    <string name="debug_burn_in_shift_toast">Burn-in shift sent: %1$s</string>
+    <string name="debug_burn_in_direction_left">left</string>
+    <string name="debug_burn_in_direction_up">up</string>
+    <string name="debug_burn_in_direction_right">right</string>
+    <string name="debug_burn_in_direction_down">down</string>
 </resources>

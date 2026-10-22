@@ -75,6 +75,7 @@ import io.github.hyperisland.compose.page.settings.IslandMaterialPage
 import io.github.hyperisland.compose.page.settings.DefaultConfigPage
 import io.github.hyperisland.compose.page.settings.AiConfigPage
 import io.github.hyperisland.compose.page.settings.BackupRestorePage
+import io.github.hyperisland.compose.page.settings.DebugToolsPage
 import io.github.hyperisland.compose.page.settings.FilterRulesPage
 import io.github.hyperisland.compose.page.settings.IslandOtherPage
 import io.github.hyperisland.compose.page.settings.KeepIslandPage
@@ -463,6 +464,14 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                         visibleDetail = SettingsDetail.References
                                         detailShown = true
                                     },
+                                    onOpenDebugTools = {
+                                        batchChannelTarget = null
+                                        batchToastPackages = null
+                                        visibleChannelApp = null
+                                        visibleToastApp = null
+                                        visibleDetail = SettingsDetail.DebugTools
+                                        detailShown = true
+                                    },
                                 )
                             }
                             }
@@ -558,6 +567,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                 SettingsDetail.Other -> IslandOtherPage(prefs, ::closeDetail)
                                 SettingsDetail.References -> ReferencesPage(::closeDetail)
                                 SettingsDetail.BackupRestore -> BackupRestorePage(::closeDetail)
+                                SettingsDetail.DebugTools -> DebugToolsPage(prefs = prefs, onBack = ::closeDetail)
                                 SettingsDetail.FilterRules -> FilterRulesPage(prefs, ::closeDetail)
                                 SettingsDetail.KeepIsland -> KeepIslandPage(prefs, ::closeDetail)
                                 SettingsDetail.HookExtension -> HookExtensionPage(

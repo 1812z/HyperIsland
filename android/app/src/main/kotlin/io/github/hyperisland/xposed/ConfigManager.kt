@@ -147,6 +147,9 @@ object ConfigManager {
 
     fun isDebugLogEnabled(): Boolean = getBoolean("pref_debug_log", false)
 
+    /** 调试模式总开关：关闭时调试类 Hook 一个都不注册。 */
+    fun isDebugModeEnabled(): Boolean = getBoolean("pref_debug_mode", false)
+
     /** 供同进程内其他组件（如 template）获取 module 引用以写日志。 */
     fun module(): XposedModule? = module
 
@@ -519,6 +522,7 @@ object ConfigManager {
         "pref_temp_hide_notification_center",
         "pref_temp_hide_foreground_app",
         "pref_blur_bars",
-        "pref_debug_log"
+        "pref_debug_log",
+        "pref_debug_mode"
     )
 }

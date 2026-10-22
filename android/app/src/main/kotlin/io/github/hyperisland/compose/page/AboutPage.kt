@@ -82,6 +82,7 @@ import top.yukonga.miuix.kmp.icon.extended.Info
 import top.yukonga.miuix.kmp.icon.extended.Link
 import top.yukonga.miuix.kmp.icon.extended.Community
 import top.yukonga.miuix.kmp.icon.extended.Update
+import top.yukonga.miuix.kmp.icon.extended.Tune
 import top.yukonga.miuix.kmp.icon.basic.ArrowRight
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
@@ -96,6 +97,7 @@ internal fun AboutPage(
     onCheckUpdate: () -> Unit,
     onOpenBackupRestore: () -> Unit,
     onOpenReferences: () -> Unit,
+    onOpenDebugTools: () -> Unit,
 ) {
     val context = LocalContext.current
     val listState = rememberLazyListState()
@@ -226,6 +228,11 @@ internal fun AboutPage(
                         },
                         enabled = !isCheckingUpdate,
                         onClick = onCheckUpdate,
+                    )
+                    SettingsActionWithArrow(
+                        title = stringResource(R.string.debug_tools),
+                        icon = MiuixIcons.Tune,
+                        onClick = onOpenDebugTools,
                     )
                 }
             }

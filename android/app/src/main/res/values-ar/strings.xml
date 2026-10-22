@@ -1031,4 +1031,17 @@
 
     <string name="notice_title">إعلان</string>
     <string name="notice_confirm_countdown">تأكيد (%1$d)</string>
+    <!-- 调试工具 -->
+    <string name="debug_tools">أدوات التصحيح</string>
+    <string name="debug_tools_description">للتصحيح فقط. لا يُنصح للمستخدمين العاديين بتفعيله.</string>
+    <string name="debug_mode">وضع التصحيح</string>
+    <string name="debug_mode_summary">تُتاح ميزات التصحيح عند التفعيل.</string>
+    <string name="debug_island_section">الجزيرة</string>
+    <string name="debug_burn_in_shift">تشغيل إزاحة منع الاحتراق يدويًا</string>
+    <string name="debug_burn_in_shift_summary">يجعل SystemUI يزيح الجزيرة بنحو 20px.</string>
+    <string name="debug_burn_in_shift_toast">أُرسلت الإزاحة: %1$s</string>
+    <string name="debug_burn_in_direction_left">يسار</string>
+    <string name="debug_burn_in_direction_up">أعلى</string>
+    <string name="debug_burn_in_direction_right">يمين</string>
+    <string name="debug_burn_in_direction_down">أسفل</string>
 </resources>

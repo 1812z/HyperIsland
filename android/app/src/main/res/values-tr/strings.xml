@@ -1127,4 +1127,17 @@
 
     <string name="notice_title">Duyuru</string>
     <string name="notice_confirm_countdown">Onayla (%1$d)</string>
+    <!-- 调试工具 -->
+    <string name="debug_tools">Hata ayıklama araçları</string>
+    <string name="debug_tools_description">Yalnızca hata ayıklama içindir. Normal kullanıcılar açmamalıdır.</string>
+    <string name="debug_mode">Hata ayıklama modu</string>
+    <string name="debug_mode_summary">Açıldığında hata ayıklama özellikleri kullanılabilir.</string>
+    <string name="debug_island_section">Ada</string>
+    <string name="debug_burn_in_shift">Yanma kaymasını elle tetikle</string>
+    <string name="debug_burn_in_shift_summary">SystemUI uygulamasının adayı yaklaşık 20px kaydırmasını sağlar.</string>
+    <string name="debug_burn_in_shift_toast">Yanma kayması gönderildi: %1$s</string>
+    <string name="debug_burn_in_direction_left">sol</string>
+    <string name="debug_burn_in_direction_up">yukarı</string>
+    <string name="debug_burn_in_direction_right">sağ</string>
+    <string name="debug_burn_in_direction_down">aşağı</string>
 </resources>

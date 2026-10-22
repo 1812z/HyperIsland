@@ -1072,4 +1072,17 @@
 
     <string name="notice_title">Объявление</string>
     <string name="notice_confirm_countdown">Подтвердить (%1$d)</string>
+    <!-- 调试工具 -->
+    <string name="debug_tools">Инструменты отладки</string>
+    <string name="debug_tools_description">Только для отладки. Обычным пользователям включать не нужно.</string>
+    <string name="debug_mode">Режим отладки</string>
+    <string name="debug_mode_summary">При включении становятся доступны функции отладки.</string>
+    <string name="debug_island_section">Островок</string>
+    <string name="debug_burn_in_shift">Вручную сдвинуть для защиты от выгорания</string>
+    <string name="debug_burn_in_shift_summary">Просит SystemUI сдвинуть островок примерно на 20px.</string>
+    <string name="debug_burn_in_shift_toast">Команда сдвига отправлена: %1$s</string>
+    <string name="debug_burn_in_direction_left">влево</string>
+    <string name="debug_burn_in_direction_up">вверх</string>
+    <string name="debug_burn_in_direction_right">вправо</string>
+    <string name="debug_burn_in_direction_down">вниз</string>
 </resources>

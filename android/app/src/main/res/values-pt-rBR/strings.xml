@@ -1063,4 +1063,17 @@
 
     <string name="notice_title">Aviso</string>
     <string name="notice_confirm_countdown">Confirmar (%1$d)</string>
+    <!-- 调试工具 -->
+    <string name="debug_tools">Ferramentas de depuração</string>
+    <string name="debug_tools_description">Apenas para depuração. Usuários comuns não devem ativar.</string>
+    <string name="debug_mode">Modo de depuração</string>
+    <string name="debug_mode_summary">Ativado, os recursos de depuração ficam disponíveis.</string>
+    <string name="debug_island_section">Ilha</string>
+    <string name="debug_burn_in_shift">Acionar deslocamento anti-burn-in</string>
+    <string name="debug_burn_in_shift_summary">Faz o SystemUI deslocar a ilha em cerca de 20px.</string>
+    <string name="debug_burn_in_shift_toast">Deslocamento anti-burn-in enviado: %1$s</string>
+    <string name="debug_burn_in_direction_left">esquerda</string>
+    <string name="debug_burn_in_direction_up">cima</string>
+    <string name="debug_burn_in_direction_right">direita</string>
+    <string name="debug_burn_in_direction_down">baixo</string>
 </resources>

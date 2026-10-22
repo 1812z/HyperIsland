@@ -1072,4 +1072,17 @@
 
     <string name="notice_title">お知らせ</string>
     <string name="notice_confirm_countdown">確認（%1$d）</string>
+    <!-- 调试工具 -->
+    <string name="debug_tools">デバッグツール</string>
+    <string name="debug_tools_description">デバッグ専用です。一般ユーザーは有効にしないでください。</string>
+    <string name="debug_mode">デバッグモード</string>
+    <string name="debug_mode_summary">オンにするとデバッグ機能が使えます。</string>
+    <string name="debug_island_section">アイランド</string>
+    <string name="debug_burn_in_shift">焼き付き防止の移動を手動実行</string>
+    <string name="debug_burn_in_shift_summary">SystemUI にアイランドを約 20px 移動させます。</string>
+    <string name="debug_burn_in_shift_toast">焼き付き防止の移動を送信しました：%1$s</string>
+    <string name="debug_burn_in_direction_left">左</string>
+    <string name="debug_burn_in_direction_up">上</string>
+    <string name="debug_burn_in_direction_right">右</string>
+    <string name="debug_burn_in_direction_down">下</string>
 </resources>
