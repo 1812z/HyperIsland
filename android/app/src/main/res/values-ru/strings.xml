@@ -722,6 +722,11 @@
     <string name="icon_color">Цвет значка</string>
     <string name="icon_color_summary">Применяется только к полностью белым значкам</string>
     <string name="outline_control">Управление контуром</string>
+    <string name="island_outline">Контур острова</string>
+    <string name="focus_outline">Контур фокус-уведомления</string>
+    <string name="outline_follow_system">Как в системе</string>
+    <string name="outline_force_show">Всегда показывать</string>
+    <string name="outline_force_hide">Всегда скрывать</string>
     <string name="always_island_outline">Всегда показывать контур острова</string>
     <string name="always_focus_outline">Всегда показывать контур фокус-уведомления</string>
     <string name="glow_range">Область свечения</string>

@@ -10,6 +10,7 @@ import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.hyperisland.xposed.hook.IslandBackgroundHook
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.IslandBlurRuntime
+import org.json.JSONObject
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
@@ -18,12 +19,12 @@ import java.lang.reflect.Method
 import java.util.Collections
 import java.util.WeakHashMap
 
-/** Keeps the island outline opaque by overriding luminance inputs before rendering. */
+/** Tri-state stock stroke control. Soft glass leaves outline handling to the system. */
 object IslandOutlineHook : BaseHook() {
 
     private const val TAG = "HyperIsland[IslandOutline]"
-    private const val KEY_ISLAND_OUTLINE = "pref_always_show_island_outline"
-    private const val KEY_FOCUS_OUTLINE = "pref_always_show_focus_outline"
+    private const val KEY_ISLAND_OUTLINE = "pref_island_outline_mode"
+    private const val KEY_FOCUS_OUTLINE = "pref_focus_outline_mode"
     private const val CONTENT_VIEW_CLASS =
         "miui.systemui.dynamicisland.window.content.DynamicIslandBaseContentView"
     private const val BACKGROUND_VIEW_CLASS =
@@ -38,8 +39,8 @@ object IslandOutlineHook : BaseHook() {
     private val invokingOriginal = ThreadLocal<Boolean>()
     private val capturingStockDrawable = ThreadLocal<Boolean>()
     private val capturedStockDrawable = ThreadLocal<Drawable>()
-    @Volatile private var alwaysShowIslandOutline = false
-    @Volatile private var alwaysShowFocusOutline = false
+    @Volatile private var islandMode = "system"
+    @Volatile private var focusMode = "system"
 
     override fun getTag() = TAG
 
@@ -104,7 +105,7 @@ object IslandOutlineHook : BaseHook() {
                         method,
                         chain.thisObject,
                         backgroundViewField,
-                        arrayOf(0f),
+                        arrayOf<Any?>(if (isEnabledForState(isExpanded(chain.thisObject, isExpandedMethod))) 0f else chain.args[0]),
                         outlineType(runCatching { stateField.get(chain.thisObject) }.getOrNull()),
                     )
                 }
@@ -137,7 +138,9 @@ object IslandOutlineHook : BaseHook() {
                     val args = chain.args.toTypedArray()
                     // Select the SystemUI drawable branch that owns the stroke. The
                     // captured drawable remains scoped to this exact state update.
-                    args[2] = false
+                    if (isEnabledForState(isExpandedForState(chain.thisObject, isExpandedMethod, args[0]))) {
+                        args[2] = false
+                    }
                     invokeAndRefreshOutline(
                         method,
                         chain.thisObject,
@@ -207,6 +210,16 @@ object IslandOutlineHook : BaseHook() {
         capturingStockDrawable.set(true)
         try {
             invokeWithArgs(method, contentView, args)
+            if (modeFor(type == OutlineType.EXPAND) == "hide") {
+                // setDrawable happens before SystemUI sets the stroke: strip it only after
+                // the complete state/luminance transaction. This OUTER stock shape also
+                // has a stroke_color solid fill (visible as the bounds outset). The actual
+                // black/material/image background is owned by the content/renderer.
+                (capturedStockDrawable.get() as? GradientDrawable)?.apply {
+                    setStroke(0, Color.TRANSPARENT)
+                    setColor(Color.TRANSPARENT)
+                }
+            }
             val backgroundView = runCatching { backgroundViewField.get(contentView) }.getOrNull()
             val handledByBlur = IslandBlurRuntime.outerBlurRegistry.updateStockOutline(
                 backgroundView,
@@ -235,7 +248,7 @@ object IslandOutlineHook : BaseHook() {
     }
 
     private fun shouldAlwaysShow(contentView: Any?, isExpandedMethod: Method): Boolean {
-        return isEnabledForState(isExpanded(contentView, isExpandedMethod))
+        return modeFor(isExpanded(contentView, isExpandedMethod)) != "system"
     }
 
     private fun shouldAlwaysShowForState(
@@ -243,7 +256,7 @@ object IslandOutlineHook : BaseHook() {
         isExpandedMethod: Method,
         state: Any?,
     ): Boolean {
-        return isEnabledForState(isExpandedForState(contentView, isExpandedMethod, state))
+        return modeFor(isExpandedForState(contentView, isExpandedMethod, state)) != "system"
     }
 
     private fun isExpanded(contentView: Any?, isExpandedMethod: Method): Boolean {
@@ -271,17 +284,34 @@ object IslandOutlineHook : BaseHook() {
     }
 
     private fun isEnabledForState(isExpanded: Boolean): Boolean {
-        return if (isExpanded) alwaysShowFocusOutline else alwaysShowIslandOutline
+        return modeFor(isExpanded) == "show"
     }
+
+    private fun modeFor(isExpanded: Boolean) = if (isExpanded) focusMode else islandMode
 
     override fun onConfigChanged() {
         loadConfig()
     }
 
     private fun loadConfig() {
-        alwaysShowIslandOutline = ConfigManager.getBoolean(KEY_ISLAND_OUTLINE, false)
-        alwaysShowFocusOutline = ConfigManager.getBoolean(KEY_FOCUS_OUTLINE, false)
+        islandMode = readMode(KEY_ISLAND_OUTLINE)
+        focusMode = readMode(KEY_FOCUS_OUTLINE)
+        val big = ConfigManager.getString("pref_island_material_big_config", "")
+        val expand = if (ConfigManager.getBoolean("pref_island_material_expand_follow_big", true)) {
+            big
+        } else {
+            ConfigManager.getString("pref_island_material_expand_config", "")
+        }
+        if (isSoftGlass(big)) islandMode = "system"
+        if (isSoftGlass(expand)) focusMode = "system"
     }
+
+    private fun isSoftGlass(raw: String): Boolean = runCatching {
+        JSONObject(raw).optString("type") == "soft_glass"
+    }.getOrDefault(false)
+
+    private fun readMode(key: String): String = ConfigManager.getString(key, "system")
+        .takeIf { it == "show" || it == "hide" } ?: "system"
 
     private fun invokeWithArgs(method: Method, receiver: Any?, args: Array<Any?>): Any? {
         invokingOriginal.set(true)

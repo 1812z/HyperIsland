@@ -147,6 +147,7 @@ internal fun TextColorPreference(
 
 internal fun usesCustomMaterial(raw: String): Boolean = materialType(raw) != "default"
 internal fun usesLiquidGlass(raw: String): Boolean = materialType(raw) == "liquid_glass"
+internal fun usesSoftGlass(raw: String): Boolean = materialType(raw) == "soft_glass"
 internal fun usesGlass(raw: String): Boolean = materialType(raw) in setOf("highlight_glass", "liquid_glass", "soft_glass")
 private fun materialType(raw: String): String = runCatching {
     JSONObject(raw).optString("type", "default")
@@ -196,8 +197,8 @@ internal const val KEY_ROUND_RADIUS = "pref_round_icon_radius"
 internal const val KEY_ROUND_ICON = "pref_round_icon"
 internal const val KEY_ICON_PADDING = "pref_island_icon_padding"
 internal const val KEY_ICON_COLOR = "pref_island_icon_color_mode"
-internal const val KEY_ALWAYS_ISLAND_OUTLINE = "pref_always_show_island_outline"
-internal const val KEY_ALWAYS_FOCUS_OUTLINE = "pref_always_show_focus_outline"
+internal const val KEY_ISLAND_OUTLINE_MODE = "pref_island_outline_mode"
+internal const val KEY_FOCUS_OUTLINE_MODE = "pref_focus_outline_mode"
 internal const val KEY_GLOW_RANGE = "pref_outer_glow_range"
 internal const val KEY_GLOW_SINGLE_COLOR = "pref_outer_glow_single_color"
 internal const val KEY_GLOW_BASE_COLOR = "pref_outer_glow_base_color"

@@ -775,6 +775,11 @@
     <string name="icon_color">Simge rengi</string>
     <string name="icon_color_summary">Yalnızca tamamen beyaz simgelere uygulanır</string>
     <string name="outline_control">Dış hat denetimi</string>
+    <string name="island_outline">Ada dış hattı</string>
+    <string name="focus_outline">Odak bildirimi dış hattı</string>
+    <string name="outline_follow_system">Sistemi izle</string>
+    <string name="outline_force_show">Her zaman göster</string>
+    <string name="outline_force_hide">Her zaman gizle</string>
     <string name="always_island_outline">Ada dış hattını hep göster</string>
     <string name="always_focus_outline">Odak bildirimi hattını hep göster</string>
     <string name="glow_range">Parlama aralığı</string>

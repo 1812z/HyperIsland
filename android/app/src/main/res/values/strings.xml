@@ -812,6 +812,11 @@
     <string name="icon_color">Icon color</string>
     <string name="icon_color_summary">Only applies to pure white icons</string>
     <string name="outline_control">Outline controls</string>
+    <string name="island_outline">Island outline</string>
+    <string name="focus_outline">Focus Notification outline</string>
+    <string name="outline_follow_system">Follow system</string>
+    <string name="outline_force_show">Force show</string>
+    <string name="outline_force_hide">Force hide</string>
     <string name="always_island_outline">Always show island outline</string>
     <string name="always_focus_outline">Always show Focus Notification outline</string>
     <string name="glow_range">Glow range</string>

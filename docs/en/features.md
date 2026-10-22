@@ -15,6 +15,10 @@ HyperIsland brings regular notifications, toasts, downloads, and screen-recordin
 | [Hook Extensions](#hook-extensions) | Download Manager, Screen Recording Island, and Heart Rate Island | Enhance supported system components and Bluetooth devices |
 | [Focus Notification Bypass](#focus-notification-bypass) | Remove system allowlist restrictions | Enable Focus Notifications for more apps |
 
+### Outline controls
+
+Under **Appearance → Outline**, configure **Island outline** (small and large islands) and **Focus Notification outline** independently: **Follow system** (default), **Force show**, or **Force hide**. Force show supports custom backgrounds and Gaussian, highlight, and liquid-glass materials. Soft glass does not support outline controls: using it for the large island disables Island outline; using it for Focus Notifications (including following the large island) disables Focus Notification outline. Saved outline modes are ignored while disabled and remain available when switching back. Force hide removes the stock outer outline and added strokes; material refraction and highlights remain controlled by material settings. Previous “Always show” switches are not migrated.
+
 ::: tip Recommended setup order
 Select apps first, configure their templates and display styles, then add filters, appearance changes, or advanced expressions only where needed.
 :::

@@ -722,6 +722,11 @@
     <string name="icon_color">アイコンの色</string>
     <string name="icon_color_summary">純白のアイコンにのみ適用</string>
     <string name="outline_control">アウトライン制御</string>
+    <string name="island_outline">アイランドのアウトライン</string>
+    <string name="focus_outline">フォーカス通知のアウトライン</string>
+    <string name="outline_follow_system">システムに従う</string>
+    <string name="outline_force_show">強制表示</string>
+    <string name="outline_force_hide">強制非表示</string>
     <string name="always_island_outline">アイランドのアウトラインを常に表示</string>
     <string name="always_focus_outline">フォーカス通知のアウトラインを常に表示</string>
     <string name="glow_range">グローの範囲</string>

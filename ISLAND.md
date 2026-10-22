@@ -881,6 +881,12 @@ Mini Window 手势
 
 ## 17. 生命周期、安全和性能约束
 
+### 轮廓三态与柔光互斥
+
+- `pref_island_outline_mode` / `pref_focus_outline_mode` 使用 `system`（默认）、`show`、`hide`，不读取旧版常驻显示布尔键。
+- stock `setDrawable()` 发生在 SystemUI `setStroke()` 之前，隐藏必须在完整 `updateDarkLightMode/updateMedianLuma` 事务结束后处理；外层 `dynamic_island_background_big_island_dark` 还含 `stroke_color` 填充，隐藏时一并透明化。不能清除真实内容背景或 Bionics 参数。
+- SOFT 不支持模块轮廓控制，不安装 Overlay 或额外生命周期监听。大岛为 SOFT 时禁用岛轮廓选项；焦点有效材质（含跟随大岛）为 SOFT 时禁用焦点轮廓选项。Hook 在配置加载时将对应模式视为 `system`，不覆盖保存值，避免禁用后旧的强制模式继续生效。
+
 ### 媒体通知文本颜色
 
 - `MediaNotificationTextColorHook` 的安装数据缓存必须同时使用弱 View 键和弱岛数据值：岛数据的 `getView()` / `getFakeView()` 会持有 View，强 value 会反向保活弱 key，连带保留通知和整棵 View 树。

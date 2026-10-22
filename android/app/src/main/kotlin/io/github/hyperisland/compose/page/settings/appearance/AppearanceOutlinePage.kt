@@ -13,6 +13,7 @@ import androidx.compose.ui.res.stringResource
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.ColorPaletteDialog
 import io.github.hyperisland.compose.component.PreferenceSwitch
+import io.github.hyperisland.compose.component.PreferenceDropdown
 import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.component.SettingsAction
 import io.github.hyperisland.compose.component.parseHexColor
@@ -26,25 +27,18 @@ import top.yukonga.miuix.kmp.icon.basic.ArrowRight
 
 @Composable
 internal fun AppearanceOutlinePage(prefs: FlutterPrefsRepository, onBack: () -> Unit) {
-    val smallBackground = rememberStringPreference(prefs, KEY_BG_SMALL, "")
-    val bigBackground = rememberStringPreference(prefs, KEY_BG_BIG, "")
-    val expandBackground = rememberStringPreference(prefs, KEY_BG_EXPAND, "")
+    val outlineValues = listOf("system", "show", "hide")
+    val outlineLabels = listOf(stringResource(R.string.outline_follow_system),
+        stringResource(R.string.outline_force_show), stringResource(R.string.outline_force_hide))
+    val islandOutline = rememberStringPreference(prefs, KEY_ISLAND_OUTLINE_MODE, "system")
+    val focusOutline = rememberStringPreference(prefs, KEY_FOCUS_OUTLINE_MODE, "system")
     val bigMaterial = rememberStringPreference(prefs, KEY_MATERIAL_BIG, "")
-    val smallMaterial = rememberStringPreference(prefs, KEY_MATERIAL_SMALL, "")
     val expandMaterial = rememberStringPreference(prefs, KEY_MATERIAL_EXPAND, "")
-    val smallFollowBig = rememberBooleanPreference(prefs, KEY_MATERIAL_SMALL_FOLLOW, true)
     val expandFollowBig = rememberBooleanPreference(prefs, KEY_MATERIAL_EXPAND_FOLLOW, true)
-    val resolvedSmallMaterial = if (smallFollowBig.value) bigMaterial.value else smallMaterial.value
-    val resolvedExpandMaterial = if (expandFollowBig.value) bigMaterial.value else expandMaterial.value
-    val legacyBlurSmall = rememberBooleanPreference(prefs, KEY_BLUR_SMALL, false)
-    val legacyBlurBig = rememberBooleanPreference(prefs, KEY_BLUR_BIG, false)
-    val legacyBlurExpand = rememberBooleanPreference(prefs, KEY_BLUR_EXPAND, false)
-    val hasCustomMaterial = listOf(bigMaterial.value, resolvedSmallMaterial, resolvedExpandMaterial)
-        .any(::usesCustomMaterial) || legacyBlurSmall.value || legacyBlurBig.value || legacyBlurExpand.value
-    val outlineEnabled = !hasCustomMaterial &&
-        listOf(smallBackground.value, bigBackground.value, expandBackground.value).all(String::isBlank)
-    val alwaysIslandOutline = rememberBooleanPreference(prefs, KEY_ALWAYS_ISLAND_OUTLINE, false)
-    val alwaysFocusOutline = rememberBooleanPreference(prefs, KEY_ALWAYS_FOCUS_OUTLINE, false)
+    val islandOutlineEnabled = !usesSoftGlass(bigMaterial.value)
+    val focusOutlineEnabled = !usesSoftGlass(
+        if (expandFollowBig.value) bigMaterial.value else expandMaterial.value,
+    )
     val glowSingleColor = rememberBooleanPreference(prefs, KEY_GLOW_SINGLE_COLOR, false)
     val glowBaseColor = rememberStringPreference(prefs, KEY_GLOW_BASE_COLOR, "")
     var colorDialog by remember { mutableStateOf(false) }
@@ -53,13 +47,17 @@ internal fun AppearanceOutlinePage(prefs: FlutterPrefsRepository, onBack: () -> 
         item {
             SectionTitle(stringResource(R.string.outline_control))
             Card(modifier = Modifier.fillMaxWidth()) {
-                PreferenceSwitch(stringResource(R.string.always_island_outline), null, null,
-                    alwaysIslandOutline.value, enabled = outlineEnabled) {
-                    alwaysIslandOutline.value = it; prefs.putBoolean(KEY_ALWAYS_ISLAND_OUTLINE, it)
+                PreferenceDropdown(stringResource(R.string.island_outline), null, null,
+                    outlineLabels, outlineValues.indexOf(islandOutline.value).coerceAtLeast(0),
+                    enabled = islandOutlineEnabled) {
+                    islandOutline.value = outlineValues[it]
+                    prefs.putString(KEY_ISLAND_OUTLINE_MODE, outlineValues[it])
                 }
-                PreferenceSwitch(stringResource(R.string.always_focus_outline), null, null,
-                    alwaysFocusOutline.value, enabled = outlineEnabled) {
-                    alwaysFocusOutline.value = it; prefs.putBoolean(KEY_ALWAYS_FOCUS_OUTLINE, it)
+                PreferenceDropdown(stringResource(R.string.focus_outline), null, null,
+                    outlineLabels, outlineValues.indexOf(focusOutline.value).coerceAtLeast(0),
+                    enabled = focusOutlineEnabled) {
+                    focusOutline.value = outlineValues[it]
+                    prefs.putString(KEY_FOCUS_OUTLINE_MODE, outlineValues[it])
                 }
             }
         }

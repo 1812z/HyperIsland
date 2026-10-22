@@ -818,6 +818,11 @@
     <string name="icon_color">图标颜色</string>
     <string name="icon_color_summary">仅适用于纯白图标</string>
     <string name="outline_control">轮廓控制</string>
+    <string name="island_outline">岛轮廓</string>
+    <string name="focus_outline">焦点通知轮廓</string>
+    <string name="outline_follow_system">跟随系统</string>
+    <string name="outline_force_show">强制显示</string>
+    <string name="outline_force_hide">强制隐藏</string>
     <string name="always_island_outline">常驻显示岛轮廓</string>
     <string name="always_focus_outline">常驻显示焦点通知轮廓</string>
     <string name="glow_range">光晕范围</string>
