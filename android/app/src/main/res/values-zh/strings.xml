@@ -1235,6 +1235,10 @@
     <string name="debug_tools_description">仅限调试使用，普通用户请勿开启</string>
     <string name="debug_mode">调试模式</string>
     <string name="debug_mode_summary">开启后可用调试功能</string>
+    <string name="hook_manager">Hook 管理</string>
+    <string name="hook_manager_description">开启开关即强制停用对应 Hook，仅在调试模式开启时生效。改动需重启系统界面后生效。</string>
+    <string name="hook_manager_loading">正在扫描 Hook…</string>
+    <string name="hook_manager_empty">没有找到可管理的 Hook</string>
     <string name="debug_island_section">超级岛</string>
     <string name="debug_burn_in_shift">手动触发防烧屏</string>
     <string name="debug_burn_in_shift_summary">让 SystemUI 把超级岛位移约 20px</string>

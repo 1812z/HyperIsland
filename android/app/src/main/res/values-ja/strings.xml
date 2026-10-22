@@ -1077,6 +1077,10 @@
     <string name="debug_tools_description">デバッグ専用です。一般ユーザーは有効にしないでください。</string>
     <string name="debug_mode">デバッグモード</string>
     <string name="debug_mode_summary">オンにするとデバッグ機能が使えます。</string>
+    <string name="hook_manager">フック管理</string>
+    <string name="hook_manager_description">スイッチをオンにするとそのフックを強制停止します。デバッグモードがオンのときだけ有効です。変更は SystemUI の再起動後に反映されます。</string>
+    <string name="hook_manager_loading">フックをスキャン中…</string>
+    <string name="hook_manager_empty">管理できるフックが見つかりません</string>
     <string name="debug_island_section">アイランド</string>
     <string name="debug_burn_in_shift">焼き付き防止の移動を手動実行</string>
     <string name="debug_burn_in_shift_summary">SystemUI にアイランドを約 20px 移動させます。</string>

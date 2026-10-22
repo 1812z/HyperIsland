@@ -1036,6 +1036,10 @@
     <string name="debug_tools_description">للتصحيح فقط. لا يُنصح للمستخدمين العاديين بتفعيله.</string>
     <string name="debug_mode">وضع التصحيح</string>
     <string name="debug_mode_summary">تُتاح ميزات التصحيح عند التفعيل.</string>
+    <string name="hook_manager">إدارة الخطافات</string>
+    <string name="hook_manager_description">تفعيل المفتاح يوقف الخطاف المقابل قسرًا. يسري فقط عند تفعيل وضع التصحيح. تُطبَّق التغييرات بعد إعادة تشغيل SystemUI.</string>
+    <string name="hook_manager_loading">جارٍ فحص الخطافات…</string>
+    <string name="hook_manager_empty">لا توجد خطافات قابلة للإدارة</string>
     <string name="debug_island_section">الجزيرة</string>
     <string name="debug_burn_in_shift">تشغيل إزاحة منع الاحتراق يدويًا</string>
     <string name="debug_burn_in_shift_summary">يجعل SystemUI يزيح الجزيرة بنحو 20px.</string>

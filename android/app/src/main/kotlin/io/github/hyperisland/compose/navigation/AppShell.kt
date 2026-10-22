@@ -567,7 +567,10 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                 SettingsDetail.Other -> IslandOtherPage(prefs, ::closeDetail)
                                 SettingsDetail.References -> ReferencesPage(::closeDetail)
                                 SettingsDetail.BackupRestore -> BackupRestorePage(::closeDetail)
-                                SettingsDetail.DebugTools -> DebugToolsPage(prefs = prefs, onBack = ::closeDetail)
+                                SettingsDetail.DebugTools -> DebugToolsPage(
+                                    prefs = prefs,
+                                    onBack = ::closeDetail,
+                                )
                                 SettingsDetail.FilterRules -> FilterRulesPage(prefs, ::closeDetail)
                                 SettingsDetail.KeepIsland -> KeepIslandPage(prefs, ::closeDetail)
                                 SettingsDetail.HookExtension -> HookExtensionPage(

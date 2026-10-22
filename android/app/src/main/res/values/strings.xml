@@ -1229,6 +1229,10 @@
     <string name="debug_tools_description">For debugging only. Do not enable as a regular user.</string>
     <string name="debug_mode">Debug mode</string>
     <string name="debug_mode_summary">Debug features become available when on.</string>
+    <string name="hook_manager">Hook manager</string>
+    <string name="hook_manager_description">Turning a switch on force-disables that hook. Only effective while Debug mode is on. Restart SystemUI for changes to apply.</string>
+    <string name="hook_manager_loading">Scanning hooks…</string>
+    <string name="hook_manager_empty">No manageable hooks found</string>
     <string name="debug_island_section">Island</string>
     <string name="debug_burn_in_shift">Trigger burn-in shift</string>
     <string name="debug_burn_in_shift_summary">Lets SystemUI shift the island by about 20px.</string>

@@ -326,6 +326,7 @@ internal fun SettingsActionWithArrow(
     title: String,
     icon: ImageVector? = null,
     summary: String? = null,
+    enabled: Boolean = true,
     onClick: () -> Unit,
 ) {
     BasicComponent(
@@ -337,10 +338,15 @@ internal fun SettingsActionWithArrow(
                 imageVector = MiuixIcons.Basic.ArrowRight,
                 contentDescription = null,
                 modifier = Modifier.size(width = 10.dp, height = 16.dp),
-                tint = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                tint = if (enabled) {
+                    MiuixTheme.colorScheme.onSurfaceVariantActions
+                } else {
+                    MiuixTheme.colorScheme.disabledOnSurface
+                },
             )
         },
         insideMargin = SettingsItemMargin,
+        enabled = enabled,
         onClick = onClick,
     )
 }

@@ -1132,6 +1132,10 @@
     <string name="debug_tools_description">Yalnızca hata ayıklama içindir. Normal kullanıcılar açmamalıdır.</string>
     <string name="debug_mode">Hata ayıklama modu</string>
     <string name="debug_mode_summary">Açıldığında hata ayıklama özellikleri kullanılabilir.</string>
+    <string name="hook_manager">Kanca yönetimi</string>
+    <string name="hook_manager_description">Anahtarı açmak ilgili kancayı zorla devre dışı bırakır. Yalnızca hata ayıklama modu açıkken geçerlidir. Değişiklikler SystemUI yeniden başlatıldıktan sonra uygulanır.</string>
+    <string name="hook_manager_loading">Kancalar taranıyor…</string>
+    <string name="hook_manager_empty">Yönetilebilir kanca bulunamadı</string>
     <string name="debug_island_section">Ada</string>
     <string name="debug_burn_in_shift">Yanma kaymasını elle tetikle</string>
     <string name="debug_burn_in_shift_summary">SystemUI uygulamasının adayı yaklaşık 20px kaydırmasını sağlar.</string>

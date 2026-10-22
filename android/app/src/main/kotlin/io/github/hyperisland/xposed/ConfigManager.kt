@@ -150,6 +150,21 @@ object ConfigManager {
     /** 调试模式总开关：关闭时调试类 Hook 一个都不注册。 */
     fun isDebugModeEnabled(): Boolean = getBoolean("pref_debug_mode", false)
 
+    /**
+     * 「Hook 管理」里被强制停用的 Hook 简单类名集合（逗号分隔的单个字符串）。
+     * 总开关关闭时由调用方忽略本集合，这里不重复判断。
+     */
+    fun disabledDebugHooks(): Set<String> =
+        getString("pref_debug_disabled_hooks", "")
+            .split(',')
+            .asSequence()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .toSet()
+
+    fun isDebugHookDisabled(name: String): Boolean =
+        name.isNotEmpty() && name in disabledDebugHooks()
+
     /** 供同进程内其他组件（如 template）获取 module 引用以写日志。 */
     fun module(): XposedModule? = module
 
@@ -523,6 +538,7 @@ object ConfigManager {
         "pref_temp_hide_foreground_app",
         "pref_blur_bars",
         "pref_debug_log",
-        "pref_debug_mode"
+        "pref_debug_mode",
+        "pref_debug_disabled_hooks"
     )
 }

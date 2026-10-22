@@ -76,11 +76,26 @@ abstract class BaseHook {
      */
     fun init(module: XposedModule, param: PackageLoadedParam) {
         ensureConfigManager(module)
+        if (isDisabledByDebugHookManager()) {
+            log(module) { "skipped: force-disabled by debug hook manager" }
+            return
+        }
         log(module) { "initializing for ${param.packageName}" }
         try {
             onInit(module, param)
         } catch (e: Throwable) {
             logError(module, "init failed: ${e.message}")
         }
+    }
+
+    /**
+     * 「调试模式 + Hook 管理」的统一拦截点：勾选的 Hook 连 onInit 都不进。
+     *
+     * 因为所有 Hook 都必须经过 [init]，新增 Hook 不需要在任何名单里登记就会自动受控；
+     * 总开关 `pref_debug_mode` 关闭时整份停用名单直接失效。
+     */
+    private fun isDisabledByDebugHookManager(): Boolean {
+        if (!ConfigManager.isDebugModeEnabled()) return false
+        return ConfigManager.isDebugHookDisabled(javaClass.simpleName)
     }
 }

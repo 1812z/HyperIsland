@@ -1077,6 +1077,10 @@
     <string name="debug_tools_description">Только для отладки. Обычным пользователям включать не нужно.</string>
     <string name="debug_mode">Режим отладки</string>
     <string name="debug_mode_summary">При включении становятся доступны функции отладки.</string>
+    <string name="hook_manager">Управление хуками</string>
+    <string name="hook_manager_description">Включение переключателя принудительно отключает соответствующий хук. Действует только при включённом режиме отладки. Изменения вступят в силу после перезапуска SystemUI.</string>
+    <string name="hook_manager_loading">Сканирование хуков…</string>
+    <string name="hook_manager_empty">Управляемых хуков не найдено</string>
     <string name="debug_island_section">Островок</string>
     <string name="debug_burn_in_shift">Вручную сдвинуть для защиты от выгорания</string>
     <string name="debug_burn_in_shift_summary">Просит SystemUI сдвинуть островок примерно на 20px.</string>
