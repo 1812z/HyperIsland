@@ -132,6 +132,9 @@ internal val ConfigSectionGroups: List<ConfigSection> = listOf(
                     "pref_island_text_color_mode",
                     "pref_focus_notification_text_color_mode",
                     "pref_media_notification_text_color_mode",
+                    "pref_island_text_weight_percent",
+                    "pref_island_text_width_percent",
+                    "pref_island_time_width_percent",
                 ),
             ),
             ConfigSection(

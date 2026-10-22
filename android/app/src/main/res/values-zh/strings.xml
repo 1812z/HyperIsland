@@ -793,6 +793,10 @@
     <string name="island_text_size">岛文字大小</string>
     <string name="island_text_area_height">文字区域高度</string>
     <string name="island_text_color">超级岛文本颜色</string>
+    <string name="island_font_section">字体</string>
+    <string name="island_text_weight">字体粗细</string>
+    <string name="island_text_width">超级岛文本宽度</string>
+    <string name="island_time_width">时间文本宽度</string>
     <string name="focus_text_color">焦点通知文本颜色</string>
     <string name="media_text_color">媒体通知文本颜色</string>
     <string name="black">黑色</string>

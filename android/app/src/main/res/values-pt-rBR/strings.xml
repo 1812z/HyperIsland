@@ -474,6 +474,10 @@
     <string name="island_text">Texto da Ilha</string>
     <string name="island_text_color">Cor do texto da Ilha</string>
     <string name="island_text_size">Tamanho do texto da Ilha</string>
+    <string name="island_font_section">Fonte</string>
+    <string name="island_text_weight">Peso da fonte</string>
+    <string name="island_text_width">Largura do texto da Ilha</string>
+    <string name="island_time_width">Largura do texto de tempo</string>
     <string name="island_welcome_title">Bem-vindo(a)</string>
     <string name="japanese">Japonês</string>
     <string name="keep_island_add_content">Adicionar conteúdo</string>

@@ -697,6 +697,10 @@
     <string name="island_text_size">Размер текста острова</string>
     <string name="island_text_area_height">Высота области текста</string>
     <string name="island_text_color">Цвет текста острова</string>
+    <string name="island_font_section">Шрифт</string>
+    <string name="island_text_weight">Насыщенность шрифта</string>
+    <string name="island_text_width">Ширина текста острова</string>
+    <string name="island_time_width">Ширина текста времени</string>
     <string name="focus_text_color">Цвет текста уведомления о фокусе</string>
     <string name="media_text_color">Цвет текста медиа-уведомлений</string>
     <string name="black">черный</string>
