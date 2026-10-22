@@ -8,6 +8,19 @@ import ReleaseHistory from './.vitepress/components/ReleaseHistory.vue'
 
 <div class="changelog-source" hidden>
 
+# V3.2.2(2026-10-23)
+## 功能
+- 新增高亮轮廓隐藏
+- 新增岛字体自定义参数
+- 新增岛文本居中/靠左/靠右
+
+## 优化 & 修复
+- 修复系统界面组件18.3.2.57.0柔光失效
+- 删除外圈光效启用时禁用防烧屏功能
+- 外圈光效适配状态栏防烧屏
+- 调试模式
+
+
 # V3.2.1(2026-10-17)
 ## 功能
 - 支持 HA 息屏省电
