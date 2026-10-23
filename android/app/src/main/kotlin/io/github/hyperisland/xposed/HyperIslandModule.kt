@@ -54,6 +54,7 @@ import io.github.hyperisland.xposed.hook.TempHiddenBehaviorHook
 import io.github.hyperisland.xposed.hook.IslandFontTuningHook
 import io.github.hyperisland.xposed.hook.IslandTextAlignHook
 import io.github.hyperisland.xposed.hook.TimerTextColorHook
+import io.github.hyperisland.xposed.hook.TimerWatcherCompatHook
 import io.github.hyperisland.xposed.hook.StatusBarTextColorHook
 import io.github.hyperisland.xposed.hook.ScreenRecorder.ScreenRecorderHook
 import io.github.hyperisland.xposed.hook.ToastUiInterceptHook
@@ -92,6 +93,7 @@ class HyperIslandModule : XposedModule() {
                 GenericProgressHook.init(this, param)
                 ProxySourceHeadsUpSuppressHook.init(this, param)
                 ActiveIslandDismissHook.init(this, param)
+                TimerWatcherCompatHook.init(this, param)
                 MarqueeHook.init(this, param)
                 IslandTextSizeHook.init(this, param)
                 BigIslandMinWidthHook.init(this, param)

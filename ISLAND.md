@@ -676,6 +676,12 @@ pref_island_bg_expand_path
 
 ## 13. 已知问题和常见错误
 
+### OS3 计时通知 TextWatcher 重入
+
+OS3 JADX 中 `IslandSameWidthDigitViewHolder$textWatcher$1.afterTextChanged()` 在 `timerInitialized` 且文本长度变化时同步发出 `UpdateDynamicIsland`；holder 的 `onDetach()` 会从 `sameWidthDigit` 移除该 watcher。如果事件同步触发重建，`TextView.sendAfterTextChanged()` 仍按进入时的监听器数量遍历，但列表已经缩短，可能出现 `Index 1 out of bounds for length 1`。跑马灯为同一 TextView 注册的额外 watcher 会形成多监听器场景；现有计时颜色 `setText` Hook 在 `chain.proceed()` 返回后执行，不能保护原方法内部的越界。
+
+`TimerWatcherCompatHook` 按具体 watcher 字段结构探测兼容路径，将该分支的原生更新事件合并到主线程下一任务，保留每次 tick 的原生文本写入、长度判断和最新通知数据；holder `onDetach()` 取消待执行事件。待执行任务弱引用 holder，最多 128 项，不捕获 Editable 或通知数据。该修复不按 SDK 号区分 OS3/OS4，不全局拦截 TextView、不吞掉 `setText` 异常。用户已反馈原 OS3 崩溃场景修复成功；计时文本长度变化（如 `59:59 → 1:00:00`）、展开/收起及跑马灯开启时的连续更新可作为后续回归场景，OS4 回归结果尚未反馈。
+
 ### 13.1 过渡出现黑块
 
 可能来源：
