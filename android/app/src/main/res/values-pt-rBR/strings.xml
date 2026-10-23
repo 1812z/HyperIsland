@@ -1072,6 +1072,8 @@
     <string name="hook_manager_description">Ativar o interruptor desativa à força o hook correspondente. Só vale com o modo de depuração ativado. As alterações passam a valer após reiniciar o SystemUI.</string>
     <string name="hook_manager_loading">Procurando hooks…</string>
     <string name="hook_manager_empty">Nenhum hook gerenciável encontrado</string>
+    <string name="hook_manager_search">Pesquisar hooks</string>
+    <string name="hook_manager_no_match">Nenhum hook correspondente</string>
     <string name="debug_island_section">Ilha</string>
     <string name="debug_burn_in_shift">Acionar deslocamento anti-burn-in</string>
     <string name="debug_burn_in_shift_summary">Faz o SystemUI deslocar a ilha em cerca de 20px.</string>

@@ -1086,6 +1086,8 @@
     <string name="hook_manager_description">スイッチをオンにするとそのフックを強制停止します。デバッグモードがオンのときだけ有効です。変更は SystemUI の再起動後に反映されます。</string>
     <string name="hook_manager_loading">フックをスキャン中…</string>
     <string name="hook_manager_empty">管理できるフックが見つかりません</string>
+    <string name="hook_manager_search">フックを検索</string>
+    <string name="hook_manager_no_match">一致するフックがありません</string>
     <string name="debug_island_section">アイランド</string>
     <string name="debug_burn_in_shift">焼き付き防止の移動を手動実行</string>
     <string name="debug_burn_in_shift_summary">SystemUI にアイランドを約 20px 移動させます。</string>

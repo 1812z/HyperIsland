@@ -1,5 +1,6 @@
 package io.github.hyperisland.compose.page.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -22,6 +23,8 @@ import io.github.hyperisland.data.HookCatalog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.InputField
+import top.yukonga.miuix.kmp.basic.SearchBar
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -31,6 +34,8 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
  *
  * 名单由 [HookCatalog] 直接扫 dex 得到，新增 Hook 不用改这里；
  * 实际拦截点在 `BaseHook.init`，总开关 `pref_debug_mode` 关闭则整份名单失效。
+ *
+ * 顶部搜索框只做本地过滤（不改名单），按原始类名做大小写不敏感的包含匹配。
  */
 @Composable
 internal fun HookManagerPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) {
@@ -42,6 +47,8 @@ internal fun HookManagerPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) 
     )
     var hooks by remember { mutableStateOf<List<String>?>(null) }
     var disabled by remember { mutableStateOf(readDisabledHooks(prefs)) }
+    var query by remember { mutableStateOf("") }
+    var searchExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         val loaded = withContext(Dispatchers.IO) { HookCatalog.load(context) }
@@ -54,25 +61,66 @@ internal fun HookManagerPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) 
         onBack = onBack,
     ) {
         item {
+            SearchBar(
+                inputField = {
+                    InputField(
+                        query = query,
+                        onQueryChange = { query = it },
+                        onSearch = {},
+                        expanded = searchExpanded,
+                        onExpandedChange = { searchExpanded = it },
+                        label = stringResource(R.string.hook_manager_search),
+                    )
+                },
+                onExpandedChange = { searchExpanded = it },
+                expanded = searchExpanded,
+                outsideEndAction = {
+                    Text(
+                        modifier = Modifier
+                            .padding(start = 12.dp)
+                            .padding(end = 12.dp)
+                            .clickable(
+                                interactionSource = null,
+                                indication = null,
+                            ) { searchExpanded = false },
+                        text = stringResource(R.string.cancel),
+                        color = MiuixTheme.colorScheme.primary,
+                    )
+                },
+            ) {}
+        }
+        item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 HintText(stringResource(R.string.hook_manager_description))
             }
         }
         item {
             val list = hooks
+            val keyword = query.trim()
             Card(modifier = Modifier.fillMaxWidth()) {
                 when {
                     list == null -> HintText(stringResource(R.string.hook_manager_loading))
                     list.isEmpty() -> HintText(stringResource(R.string.hook_manager_empty))
-                    else -> list.forEach { name ->
-                        PreferenceSwitch(
-                            title = name,
-                            summary = null,
-                            icon = null,
-                            checked = name in disabled,
-                            enabled = debugMode.value,
-                        ) { checked ->
-                            disabled = writeDisabledHook(prefs, name, checked)
+                    else -> {
+                        val filtered = if (keyword.isEmpty()) {
+                            list
+                        } else {
+                            list.filter { it.contains(keyword, ignoreCase = true) }
+                        }
+                        if (filtered.isEmpty()) {
+                            HintText(stringResource(R.string.hook_manager_no_match))
+                        } else {
+                            filtered.forEach { name ->
+                                PreferenceSwitch(
+                                    title = name,
+                                    summary = null,
+                                    icon = null,
+                                    checked = name in disabled,
+                                    enabled = debugMode.value,
+                                ) { checked ->
+                                    disabled = writeDisabledHook(prefs, name, checked)
+                                }
+                            }
                         }
                     }
                 }
