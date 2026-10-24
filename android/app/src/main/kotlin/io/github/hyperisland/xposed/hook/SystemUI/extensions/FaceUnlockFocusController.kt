@@ -15,6 +15,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
 import android.os.SystemClock
+import android.service.notification.StatusBarNotification
 import android.widget.RemoteViews
 import io.github.hyperisland.R
 import io.github.hyperisland.xposed.ConfigManager
@@ -34,6 +35,7 @@ object FaceUnlockFocusController {
     }
 
     private const val NOTIFICATION_ID = 0x48494641
+    internal const val EXTRA_FACE_SUCCESS_TOKEN = "hyperisland.face_success_token"
     private const val MIN_TERMINAL_VISIBLE_MS = 800L
     private const val TERMINAL_CANCEL_DELAY_MS = 1_200L
     private const val STATIC_SUCCESS_POST_DELAY_MS = 1_150L
@@ -65,6 +67,7 @@ object FaceUnlockFocusController {
     @Volatile private var currentState = FaceState.STOPPED
     @Volatile private var terminalCancel: Runnable? = null
     @Volatile private var staticSuccessPost: Runnable? = null
+    @Volatile private var activeFaceSuccessToken = 0L
     @Volatile private var animationGeneration = 0
     @Volatile private var animationSequence = 0L
     @Volatile private var keyguardShowing = false
@@ -163,7 +166,9 @@ object FaceUnlockFocusController {
                             terminalStartedAt = SystemClock.uptimeMillis()
                             postFaceNotification(appContext, state)
                             if (shouldKeepFaceSuccessUntilKeyguardHidden()) {
-                                scheduleStaticFaceSuccess(appContext)
+                                if (ConfigManager.getBoolean(PREF_FIRST_FLOAT, true)) {
+                                    scheduleStaticFaceSuccess(appContext)
+                                }
                             } else {
                                 scheduleTerminalRemoval(appContext)
                             }
@@ -396,7 +401,12 @@ object FaceUnlockFocusController {
             FaceState.STOPPED -> return
         }
         val firstFloat = ConfigManager.getBoolean(PREF_FIRST_FLOAT, true)
+        val keepSuccess = state == FaceState.SUCCESS && !firstFloat &&
+            shouldKeepFaceSuccessUntilKeyguardHidden()
+        val successToken = if (keepSuccess) ++animationSequence else 0L
+        activeFaceSuccessToken = successToken
         val extras = Bundle().apply {
+            putLong(EXTRA_FACE_SUCCESS_TOKEN, successToken)
             putParcelable("miui.focus.rv", remoteViews)
             putParcelable("miui.focus.rv.island.expand", remoteViews)
             putInt("face_id", R.id.face_unlock_animation_container)
@@ -415,7 +425,7 @@ object FaceUnlockFocusController {
                 title = "Face unlock",
                 content = "",
                 notifId = NOTIFICATION_ID,
-                isOngoing = state == FaceState.AUTHENTICATING,
+                isOngoing = state == FaceState.AUTHENTICATING || keepSuccess,
                 preserveStatusBarSmallIcon = false,
                 notificationExtras = extras,
                 notificationVisibility = android.app.Notification.VISIBILITY_SECRET,
@@ -571,11 +581,14 @@ object FaceUnlockFocusController {
             state == FaceState.AUTHENTICATING -> 60
             else -> 2
         }
+        val islandTimeout = if (
+            state == FaceState.SUCCESS && !firstFloat && shouldKeepFaceSuccessUntilKeyguardHidden()
+        ) PERSISTENT_TIMEOUT_SECONDS else duration
         val island = JSONObject()
             .put("business", FACE_RECOGNITION)
             .put("islandProperty", 0)
             .put("islandPriority", 0)
-            .put("islandTimeout", duration)
+            .put("islandTimeout", islandTimeout)
             .put("expandedTime", duration)
             .put("bigIslandArea", bigIslandArea)
             .put("smallIslandArea", JSONObject().put("picInfo", smallPicInfo))
@@ -807,6 +820,17 @@ object FaceUnlockFocusController {
         faceUnlockSucceeded &&
             ConfigManager.getBoolean(PREF_KEEP_UNTIL_KEYGUARD_HIDDEN, false)
 
+    internal fun shouldHoldFaceSuccess(sbn: StatusBarNotification): Boolean =
+        sbn.id == NOTIFICATION_ID && activeFaceSuccessToken != 0L &&
+            !sbn.notification.extras.getBoolean("miui.island.firstFloat", true) &&
+            sbn.notification.extras.getLong(EXTRA_FACE_SUCCESS_TOKEN) == activeFaceSuccessToken &&
+            sbn.notification.extras.getString("hyperisland.owner") == "io.github.hyperisland" &&
+            currentState == FaceState.SUCCESS && keyguardShowing && screenInteractive &&
+            !unlockCommitted && !usesLockAnimation() && shouldKeepFaceSuccessUntilKeyguardHidden()
+
+    internal fun shouldUseStaticManualExpansion(sbn: StatusBarNotification): Boolean =
+        shouldHoldFaceSuccess(sbn) && !ConfigManager.getBoolean(PREF_FIRST_FLOAT, true)
+
     private fun getModuleContext(context: Context): Context =
         cachedModuleContext ?: synchronized(this) {
             cachedModuleContext ?: context.moduleContext().also { cachedModuleContext = it }
@@ -867,6 +891,7 @@ object FaceUnlockFocusController {
     }
 
     private fun cancelNotification(context: Context) {
+        activeFaceSuccessToken = 0L
         IslandDispatcher.cancel(context, NOTIFICATION_ID)
     }
 

@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.BroadcastReceiver
 import android.content.Intent
 import android.content.IntentFilter
+import android.os.Bundle
+import android.service.notification.StatusBarNotification
 import android.view.Gravity
 import android.view.ViewGroup
 import android.widget.FrameLayout
@@ -91,8 +93,126 @@ object KeyguardUnlockStateHook : BaseHook() {
         islandIconViewHolderClassNames.forEach { className ->
             val clazz = runCatching { classLoader.loadClass(className) }.getOrNull() ?: return@forEach
             hookStaticFaceExpandGeometry(module, clazz)
+            hookFaceSuccessCleanup(module, clazz)
+        }
+        runCatching {
+            classLoader.loadClass("miui.systemui.notification.focus.FocusNotifPreHandler")
+        }.getOrNull()?.let { hookExpandedFaceSuccessCleanup(module, it) }
+    }
+
+    private fun hookFaceSuccessCleanup(module: XposedModule, clazz: Class<*>) {
+        val getPicInfo = runCatching { clazz.getMethod("getPicInfo") }.getOrNull() ?: return
+        val getPic = runCatching { getPicInfo.returnType.getMethod("getPic") }.getOrNull() ?: return
+        clazz.declaredMethods.filter {
+            it.name == "clearFaceRecognition" && it.parameterCount == 1 &&
+                it.parameterTypes[0].name ==
+                "com.android.systemui.plugins.miui.dynamicisland.DynamicIslandData"
+        }.forEach { method ->
+            val getExtras = runCatching {
+                method.parameterTypes[0].getMethod("getExtras")
+            }.getOrNull() ?: return@forEach
+            synchronized(hookedMethods) {
+                if (!hookedMethods.add(method)) return@forEach
+            }
+            method.isAccessible = true
+            module.hook(method).intercept { chain ->
+                val hold = runCatching {
+                    val data = chain.args.firstOrNull() ?: return@runCatching false
+                    val extras = getExtras.invoke(data) as? Bundle ?: return@runCatching false
+                    val sbn = extras.getParcelable("miui.sbn", StatusBarNotification::class.java)
+                        ?: return@runCatching false
+                    val picInfo = getPicInfo.invoke(chain.thisObject) ?: return@runCatching false
+                    getPic.invoke(picInfo) == "face_recognition_success_small" &&
+                        FaceUnlockFocusController.shouldHoldFaceSuccess(sbn)
+                }.onFailure {
+                    logError(module, "face success cleanup identity check failed: ${it.message}")
+                }.getOrDefault(false)
+                if (hold) {
+                    log(module) { "hold face success island: skip clearFaceRecognition" }
+                    null
+                } else {
+                    chain.proceed()
+                }
+            }
         }
     }
+
+    private fun hookExpandedFaceSuccessCleanup(module: XposedModule, clazz: Class<*>) {
+        clazz.declaredMethods.filter {
+            it.name == "playAnimation" && it.parameterCount == 5 &&
+                it.parameterTypes[1] == StatusBarNotification::class.java &&
+                it.parameterTypes[2] == String::class.java &&
+                it.parameterTypes[3].name == "com.airbnb.lottie.LottieAnimationView"
+        }.forEach { method ->
+            val binding = runCatching {
+                val lottie = method.parameterTypes[3]
+                val utils = clazz.classLoader.loadClass("miui.systemui.util.LottieResUtils")
+                val resource = utils.getMethod("getLottieRes", String::class.java, Int::class.javaPrimitiveType)
+                    .invoke(utils.getField("INSTANCE").get(null), "face_recognition_success", -1) as Int
+                require(resource != 0)
+                StaticFaceBinding(
+                    resource, utils.getField("IMAGE_ASSETS_FOLDER").get(null) as String,
+                    lottie.getMethod("setImageAssetsFolder", String::class.java),
+                    lottie.getMethod("setAnimation", Int::class.javaPrimitiveType),
+                    lottie.getMethod("pauseAnimation"),
+                    lottie.getMethod("setProgress", Float::class.javaPrimitiveType),
+                )
+            }.onFailure {
+                logError(module, "manual face success binding unavailable: ${it.message}")
+            }.getOrNull() ?: return@forEach
+            synchronized(hookedMethods) {
+                if (!hookedMethods.add(method)) return@forEach
+            }
+            method.isAccessible = true
+            module.hook(method).intercept { chain ->
+                val sbn = chain.args[1] as? StatusBarNotification
+                if (chain.args[2] != "face_recognition_success" || sbn == null ||
+                    !FaceUnlockFocusController.shouldUseStaticManualExpansion(sbn)
+                ) return@intercept chain.proceed()
+                val view = chain.args[3] ?: return@intercept chain.proceed()
+                val bound = runCatching {
+                    binding.assetsMethod.invoke(view, binding.assets)
+                    binding.animation.invoke(view, binding.resource)
+                    binding.pause.invoke(view)
+                    binding.progress.invoke(view, 1f)
+                }.onFailure {
+                    logError(module, "manual face success final frame failed: ${it.message}")
+                }.isSuccess
+                if (bound) null else chain.proceed()
+            }
+        }
+        clazz.declaredMethods.filter {
+            it.name == "clearFaceRecognition" && it.parameterCount == 4 &&
+                it.parameterTypes[0] == StatusBarNotification::class.java &&
+                it.parameterTypes[1] == String::class.java
+        }.forEach { method ->
+            synchronized(hookedMethods) {
+                if (!hookedMethods.add(method)) return@forEach
+            }
+            method.isAccessible = true
+            module.hook(method).intercept { chain ->
+                val sbn = chain.args[0] as? StatusBarNotification
+                if (chain.args[1] == "face_recognition_success" && sbn != null &&
+                    FaceUnlockFocusController.shouldHoldFaceSuccess(sbn)
+                ) {
+                    // Also guard callbacks from the old animated view after the static update.
+                    log(module) { "hold expanded face success: skip notification auto-cancel" }
+                    null
+                } else {
+                    chain.proceed()
+                }
+            }
+        }
+    }
+
+    private data class StaticFaceBinding(
+        val resource: Int,
+        val assets: String,
+        val assetsMethod: Method,
+        val animation: Method,
+        val pause: Method,
+        val progress: Method,
+    )
 
     private fun hookStaticFaceExpandGeometry(module: XposedModule, clazz: Class<*>) {
         clazz.declaredMethods

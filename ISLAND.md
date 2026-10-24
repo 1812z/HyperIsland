@@ -676,6 +676,14 @@ pref_island_bg_expand_path
 
 ## 13. 已知问题和常见错误
 
+### 默认人脸成功岛保留
+
+默认解锁样式的成功 Lottie 在结束、取消及 `IslandIconViewHolder.onHidden()` 时调用 `clearFaceRecognition(data)`，该方法发出 `DeletedDynamicIsland`。仅「关闭自动展开 + 保留」时，`KeyguardUnlockStateHook` 对模块通知 ID/owner、本次成功通知 token、成功图片及控制器仍在锁屏成功态的组合短路此方法；反射失败或身份不匹配时执行原方法。插件 `FocusNotificationController.setUpDynamicIslandDataBundle()` 会重建白名单 extras，必须通过 `miui.sbn` 取得原通知 owner/token。仅该分支的成功岛删除超时延长到 86400 秒兜底，`expandedTime` 保持 2 秒。
+
+不拦截整个 `onHidden()`、全局删除事件或窗口移除：新一次性岛仍可由 `ShowOnceIslandHandler` 以 `Deleted(deleteByAddNew=true)` 替换旧岛；锁屏消失或灭屏时先释放 token，再撤销模块通知，让系统清空临时展示槽并恢复其他岛。保留期间仍使用系统一次性岛槽，不改变其他岛的优先级和调度规则。需实机回归成功后停留锁屏、新一次性岛替换、音乐/计时岛恢复及灭屏重亮；机制核查所用 JADX 插件为 18.2.2.2.0，18.3.2.40.1 的行为仍需对应设备确认。
+
+展开内容另有 `FocusNotifPreHandler.clearFaceRecognition(sbn, ...)` 自动撤销路径，仅保护关闭自动展开的本轮成功通知。用户实测原地同步动画进度仍会在收起后重播，因此撤除 completion listener/composition 回调 Hook。「自动展开 + 保留」完整恢复旧流程：原动画不使用 token 保护、不延长 2 秒超时、不新增 ongoing 标记，1150ms 后以同一通知 ID 更新静态成功 RemoteViews/图片，保留原先静态几何修正；不额外调用窗口 collapse。此前混用动画销毁保护与静态更新、以及先 collapse 再更新的尝试已因时序/透明回归撤除。关闭自动展开时继续原地保留，不安排重发，手动展开的成功内容直接绑定末帧。未开启保留、识别中、失败及锁头样式不进入该重发路径。`hold` 普通日志受模块调试开关控制。需实机确认两种自动展开设置、退出锁屏、新岛替换与柔光交接。
+
 ### OS3 计时通知 TextWatcher 重入
 
 OS3 JADX 中 `IslandSameWidthDigitViewHolder$textWatcher$1.afterTextChanged()` 在 `timerInitialized` 且文本长度变化时同步发出 `UpdateDynamicIsland`；holder 的 `onDetach()` 会从 `sameWidthDigit` 移除该 watcher。如果事件同步触发重建，`TextView.sendAfterTextChanged()` 仍按进入时的监听器数量遍历，但列表已经缩短，可能出现 `Index 1 out of bounds for length 1`。跑马灯为同一 TextView 注册的额外 watcher 会形成多监听器场景；现有计时颜色 `setText` Hook 在 `chain.proceed()` 返回后执行，不能保护原方法内部的越界。
