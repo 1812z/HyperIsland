@@ -255,8 +255,9 @@
     <string name="export_channels">تصدير إعدادات القناة</string>
     <string name="export_channels_success">إعدادات القناة تم نسخها للحافظة</string>
     <string name="export_to_clipboard">تصدير للحافظة</string>
+    <string name="ext_animation_face">الوجه</string>
     <string name="ext_animation_style">نمط الحركة</string>
-    <string name="ext_animation_style_summary">نمط القفل يظهر قفل معطّل وقت القفل، وثم يدور عروة القفل اليمين عند أي وسيلة فتح تنجح</string>
+    <string name="ext_animation_style_summary">يُعرض فقط عند تفعيل فتح القفل بالوجه</string>
     <string name="ext_battery_level">البطارية</string>
     <string name="ext_battery_temperature">حرارة البطارية</string>
     <string name="ext_bluetooth_enable">تفعيل أيلاند البلوتوث</string>
@@ -287,9 +288,8 @@
     <string name="ext_face_enable">تفعيل أيلاند فتح القفل</string>
     <string name="ext_face_enable_summary">لازم تعيد تشغيل واجهة النظام بعد التبديل</string>
     <string name="ext_face_first_float">توسيع الجزيرة تلقائياً</string>
-    <string name="ext_face_first_float_summary">توسيع كإشعار مركّز</string>
-    <string name="ext_face_keep">الاحتفاظ بالجزيرة بعد فتح الوجه</string>
-    <string name="ext_face_keep_summary">فضّل يظهر على شاشة القفل بعد نجاح التعرف على الوجه، وثم أخفِه عند تظهر الشاشة الرئيسية. باقي وسايل الفتح مش بتتأثر</string>
+    <string name="ext_face_first_float_summary">توسيع كإشعار مركّز، مع منع النظام من اعتراض التوسيع في سلوك الإخفاء</string>
+    <string name="ext_face_keep">الاحتفاظ بالجزيرة بعد فتح القفل</string>
     <string name="ext_face_settings">إعدادات أيلاند فتح القفل</string>
     <string name="ext_face_summary">%1$s · يضيف أيلاند حالة الفتح على شاشة القفل</string>
     <string name="ext_hide_face_icon">إخفاء أيقونة فتح القفل بالوجه</string>
@@ -299,6 +299,7 @@
     <string name="ext_icon_style">نمط الأيقونة</string>
     <string name="ext_lock">قفل 1</string>
     <string name="ext_lock_2">قفل 2</string>
+    <string name="ext_lock_summary">يظهر القفل أثناء القفل، ويُشغّل حركة الفتح بعد أي وسيلة فتح ناجحة</string>
     <string name="ext_manage_devices">إدارة القائمة البيضاء</string>
     <string name="ext_no_paired_devices">لا توجد أجهزة مقترنة. اقترن جهاز في إعدادات بلوتوث النظام الأول</string>
     <string name="ext_opacity">الشفافية</string>

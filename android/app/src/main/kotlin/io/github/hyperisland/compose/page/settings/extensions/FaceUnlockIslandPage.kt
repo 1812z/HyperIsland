@@ -69,10 +69,14 @@ internal fun FaceUnlockIslandPage(prefs: FlutterPrefsRepository, onBack: () -> U
                 ) { value -> firstFloat.value = value; prefs.putBoolean(KEY_FACE_UNLOCK_FIRST_FLOAT, value) }
                 PreferenceDropdown(
                     title = stringResource(R.string.ext_animation_style),
-                    summary = stringResource(R.string.ext_animation_style_summary),
+                    summary = if (animation.value == MODE_DEFAULT) {
+                        stringResource(R.string.ext_animation_style_summary)
+                    } else {
+                        stringResource(R.string.ext_lock_summary)
+                    },
                     icon = null,
                     items = listOf(
-                        stringResource(R.string.default_option),
+                        stringResource(R.string.ext_animation_face),
                         stringResource(R.string.ext_lock),
                         stringResource(R.string.ext_lock_2),
                     ),
@@ -84,7 +88,7 @@ internal fun FaceUnlockIslandPage(prefs: FlutterPrefsRepository, onBack: () -> U
                 }
                 PreferenceSwitch(
                     title = stringResource(R.string.ext_face_keep),
-                    summary = stringResource(R.string.ext_face_keep_summary),
+                    summary = null,
                     icon = null,
                     checked = keep.value,
                     enabled = enabled.value,

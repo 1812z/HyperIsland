@@ -252,8 +252,9 @@
     <string name="export_channels">Exportar configurações de canal</string>
     <string name="export_channels_success">Configurações de canal copiadas para a área de transferência</string>
     <string name="export_to_clipboard">Exportar para a área de transferência</string>
+    <string name="ext_animation_face">Rosto</string>
     <string name="ext_animation_style">Estilo de animação</string>
-    <string name="ext_animation_style_summary">O estilo de cadeado mostra um cadeado fechado enquanto bloqueado e gira a haste para a direita ao desbloquear com sucesso</string>
+    <string name="ext_animation_style_summary">Exibido apenas quando o desbloqueio facial está ativado</string>
     <string name="ext_battery_level">Bateria</string>
     <string name="ext_battery_temperature">Temperatura da bateria</string>
     <string name="ext_bluetooth_enable">Ativar Ilha Bluetooth</string>
@@ -284,9 +285,8 @@
     <string name="ext_face_enable">Ativar Ilha de Desbloqueio</string>
     <string name="ext_face_enable_summary">É necessário reiniciar o System UI após alternar</string>
     <string name="ext_face_first_float">Ilha de expansão automática</string>
-    <string name="ext_face_first_float_summary">Expandir como notificação de foco</string>
-    <string name="ext_face_keep">Manter a Ilha após o Desbloqueio Facial</string>
-    <string name="ext_face_keep_summary">Continuar exibindo na tela de bloqueio após o reconhecimento facial e ocultar quando a área de trabalho aparecer. Outros métodos de desbloqueio não são afetados.</string>
+    <string name="ext_face_first_float_summary">Expandir como notificação de foco; bloqueie a interceptação da expansão pelo sistema em Comportamento de ocultação</string>
+    <string name="ext_face_keep">Manter a Ilha após o Desbloqueio</string>
     <string name="ext_face_settings">Configurações da Ilha de Desbloqueio</string>
     <string name="ext_face_summary">%1$s · Adiciona uma Ilha de status de desbloqueio à tela de bloqueio</string>
     <string name="ext_hide_face_icon">Ocultar ícone de Desbloqueio Facial</string>
@@ -296,6 +296,7 @@
     <string name="ext_icon_style">Estilo do ícone</string>
     <string name="ext_lock">Bloquear 1</string>
     <string name="ext_lock_2">Bloquear 2</string>
+    <string name="ext_lock_summary">O cadeado aparece enquanto bloqueado e reproduz a animação de desbloqueio após qualquer método de desbloqueio</string>
     <string name="ext_manage_devices">Gerenciar lista de permissões (Whitelist)</string>
     <string name="ext_no_paired_devices">Nenhum dispositivo emparelhado. Emparelhe um dispositivo primeiro nas configurações de Bluetooth do sistema.</string>
     <string name="ext_opacity">Opacidade</string>
