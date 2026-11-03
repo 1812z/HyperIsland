@@ -336,6 +336,7 @@ object ConfigManager {
     private val NOTIFICATION_FIELDS = linkedMapOf(
         "pref_media_island_enabled_" to "enabled",
         "pref_media_island_normal_notification_" to "normal_notification",
+        "pref_media_island_show_island_" to "show_island",
         "pref_media_outer_glow_" to "outer_glow",
         "pref_media_out_effect_color_" to "out_effect_color",
         "pref_media_island_outer_glow_" to "island_outer_glow",

@@ -67,8 +67,24 @@ internal fun MediaNotificationPage(
                     insideMargin = MEDIA_ITEM_MARGIN,
                 )
                 SwitchPreference(
+                    checked = draft.showIsland,
+                    onCheckedChange = {
+                        updateSettings(
+                            draft.copy(showIsland = it, normalNotification = if (it) false else draft.normalNotification),
+                        )
+                    },
+                    title = stringResource(R.string.media_show_island),
+                    summary = stringResource(R.string.media_show_island_summary),
+                    enabled = draft.enabled,
+                    insideMargin = MEDIA_ITEM_MARGIN,
+                )
+                SwitchPreference(
                     checked = draft.normalNotification,
-                    onCheckedChange = { updateSettings(draft.copy(normalNotification = it)) },
+                    onCheckedChange = {
+                        updateSettings(
+                            draft.copy(normalNotification = it, showIsland = if (it) false else draft.showIsland),
+                        )
+                    },
                     title = stringResource(R.string.normal_notification),
                     summary = stringResource(R.string.normal_notification_summary),
                     enabled = draft.enabled,

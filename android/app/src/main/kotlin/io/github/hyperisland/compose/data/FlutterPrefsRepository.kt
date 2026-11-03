@@ -22,6 +22,7 @@ import org.json.JSONObject
 internal data class MediaNotificationSettings(
     val enabled: Boolean = true,
     val normalNotification: Boolean = false,
+    val showIsland: Boolean = true,
     val outerGlow: String = "default",
     val outEffectColor: String = "",
     val islandOuterGlow: String = "default",
@@ -311,6 +312,8 @@ class FlutterPrefsRepository(context: Context) {
         MediaNotificationSettings(
             enabled = notification.optBoolean("enabled", true),
             normalNotification = notification.optBoolean("normal_notification", false),
+            showIsland = !notification.optBoolean("normal_notification", false) &&
+                notification.optBoolean("show_island", true),
             outerGlow = notification.optString("outer_glow", TRI_STATE_DEFAULT),
             outEffectColor = notification.optString("out_effect_color", ""),
             islandOuterGlow = notification.optString("island_outer_glow", TRI_STATE_DEFAULT),
@@ -324,6 +327,7 @@ class FlutterPrefsRepository(context: Context) {
                 ?: JSONObject().also { root.put("notification", it) }
             putIfNonDefault(notification, "enabled", value.enabled, true)
             putIfNonDefault(notification, "normal_notification", value.normalNotification, false)
+            putIfNonDefault(notification, "show_island", value.showIsland && !value.normalNotification, true)
             putIfNonDefault(notification, "outer_glow", value.outerGlow, TRI_STATE_DEFAULT)
             putIfNonDefault(notification, "out_effect_color", value.outEffectColor.trim(), "")
             putIfNonDefault(notification, "island_outer_glow", value.islandOuterGlow, TRI_STATE_DEFAULT)

@@ -448,7 +448,11 @@ private fun mediaSettingsSummary(settings: io.github.hyperisland.compose.data.Me
         "follow_dynamic" -> stringResource(R.string.follow_dynamic_color)
         else -> stringResource(R.string.default_option)
     }
-    return stringResource(R.string.media_settings_summary, enabled, normalNotification, glow)
+    val showIsland = stringResource(
+        if (settings.showIsland) R.string.enabled_option else R.string.disabled_option,
+    )
+    return stringResource(R.string.media_settings_summary, enabled, normalNotification, glow) +
+        " · " + stringResource(R.string.media_show_island) + ": " + showIsland
 }
 
 private fun importanceLabel(importance: Int): Int = when (importance) {

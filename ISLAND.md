@@ -676,6 +676,12 @@ pref_island_bg_expand_path
 
 ## 13. 已知问题和常见错误
 
+### 按应用隐藏音乐岛
+
+SystemUI 的 `com.android.systemui.statusbar.notification.mediaisland.MiuiIslandMediaControllerImpl.addDynamicIslandView(holder, fakeHolder, MediaData)` 独立创建、更新音乐岛，来源应用和通知身份分别为 `MediaData.packageName` / `notificationKey`，不经过插件的 `FocusNotificationController.addDynamicIslandView()`。
+
+`NotificationHook.kt` 在该音乐专用入口读取应用级 `notification.show_island`（默认 true，映射 `pref_media_island_show_island_<包名>`）。仅媒体通知总开关开启且未降级普通通知时执行隐藏；阻止本次音乐岛创建/更新，已有岛只在 `currentKey == notificationKey` 时调用该控制器的 `removeDynamicIslandView* (key, true)`。不改媒体字段、共享窗口或其他岛 View；开关在后续音乐岛创建/更新时生效。UI 开启显示超级岛与降级普通通知会互相关闭，旧配置冲突时普通通知优先。此路径已通过 JADX 核查当前 SystemUI 实现，尚未编译或实机验证。
+
 ### 默认人脸成功岛保留
 
 默认解锁样式的成功 Lottie 在结束、取消及 `IslandIconViewHolder.onHidden()` 时调用 `clearFaceRecognition(data)`，该方法发出 `DeletedDynamicIsland`。仅「关闭自动展开 + 保留」时，`KeyguardUnlockStateHook` 对模块通知 ID/owner、本次成功通知 token、成功图片及控制器仍在锁屏成功态的组合短路此方法；反射失败或身份不匹配时执行原方法。插件 `FocusNotificationController.setUpDynamicIslandDataBundle()` 会重建白名单 extras，必须通过 `miui.sbn` 取得原通知 owner/token。仅该分支的成功岛删除超时延长到 86400 秒兜底，`expandedTime` 保持 2 秒。

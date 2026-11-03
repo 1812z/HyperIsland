@@ -53,7 +53,7 @@ internal const val APP_CONFIG_PREFIX = "pref_app_config_"
 
 /**
  * 应用级配置按 `pref_app_config_<包名>` 内部子对象拆分，实现通知与 Toast 的区分：
- * - [Notification] 对应 `notification` / `channels` 子对象；
+ * - [Notification] 对应 `notification` / `channels` 子对象（含媒体通知 `show_island`）；
  * - [Toast] 对应 `toast` 子对象。
  */
 internal enum class AppConfigKind(

@@ -255,6 +255,7 @@ object GenericProgressHook : BaseHook() {
         }.onFailure { logError(module, "MiuiNotificationListener lifecycle hook failed: ${it.message}") }
 
         hookMediaNotificationFilter(module, classLoader)
+        hookMediaIslandVisibility(module, classLoader)
         HookUtils.hookDynamicClassLoaders(module, ClassLoader.getSystemClassLoader()) { pluginClassLoader ->
             hookMediaNotificationFilter(module, pluginClassLoader)
         }
@@ -906,6 +907,50 @@ object GenericProgressHook : BaseHook() {
             module = module,
         )
         log(module) { "media glow request: pkg=$pkg id=$notifId island=$islandOuterGlowRaw/$resolvedIslandOuterGlowMode focus=$outerGlowRaw/$resolvedOuterGlowMode big=${extras.getString("miui.bigIsland.effect.src")} effect=${extras.getString("miui.effect.src")} islandColor=$resolvedIslandOuterGlowColor focusColor=$resolvedOutEffectColor dynamicColor=$dynamicColor" }
+    }
+
+    private fun hookMediaIslandVisibility(module: XposedModule, classLoader: ClassLoader) {
+        try {
+            val controllerClass = classLoader.loadClass(
+                "com.android.systemui.statusbar.notification.mediaisland.MiuiIslandMediaControllerImpl",
+            )
+            val methods = controllerClass.declaredMethods.filter {
+                it.name == "addDynamicIslandView" && it.parameterCount == 3 &&
+                    it.parameterTypes.last().simpleName == "MediaData" &&
+                    it.returnType == Void.TYPE
+            }
+            check(methods.isNotEmpty()) { "media island add method not found" }
+            val currentKeyField = controllerClass.getDeclaredField("currentKey").apply { isAccessible = true }
+            // OS versions may append a Kotlin suffix to this method (for example $1).
+            val removeMethod = controllerClass.declaredMethods.first {
+                it.name.startsWith("removeDynamicIslandView") &&
+                    it.parameterTypes.contentEquals(arrayOf(String::class.java, Boolean::class.javaPrimitiveType!!))
+            }.apply { isAccessible = true }
+            methods.forEach { method ->
+                val mediaClass = method.parameterTypes.last()
+                val packageField = mediaClass.getDeclaredField("packageName").apply { isAccessible = true }
+                val keyField = mediaClass.getDeclaredField("notificationKey").apply { isAccessible = true }
+                module.hook(method).intercept { chain ->
+                    val media = chain.args.lastOrNull() ?: return@intercept chain.proceed()
+                    val pkg = packageField.get(media) as? String ?: return@intercept chain.proceed()
+                    val hide = isMediaEnabled(pkg) &&
+                        !ConfigManager.getBoolean("pref_media_island_normal_notification_$pkg", false) &&
+                        !ConfigManager.getBoolean("pref_media_island_show_island_$pkg", true)
+                    if (!hide) return@intercept chain.proceed()
+
+                    // Only remove this exact media notification's island, never the shared
+                    // window or another application's currently displayed music island.
+                    val key = keyField.get(media) as? String
+                    if (key != null && currentKeyField.get(chain.thisObject) == key) {
+                        removeMethod.invoke(chain.thisObject, key, true)
+                    }
+                    null
+                }
+            }
+            log(module) { "hooked per-app media island visibility" }
+        } catch (e: Throwable) {
+            logError(module, "media island visibility hook failed: ${e.message}")
+        }
     }
 
     private fun hookMediaNotificationFilter(module: XposedModule, classLoader: ClassLoader) {

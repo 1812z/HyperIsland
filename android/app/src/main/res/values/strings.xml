@@ -152,6 +152,8 @@
     <string name="channel_importance">Importance: %1$s  ·  %2$s</string>
     <string name="channel_settings">Channel settings</string>
     <string name="media_notification">Media notification</string>
+    <string name="media_show_island">Show Super Island</string>
+    <string name="media_show_island_summary">Hide the music island when disabled</string>
     <string name="channel_settings_unmodified">Not modified</string>
     <string name="media_notification_disabled_summary">Delete the entire media notification when disabled</string>
     <string name="normal_notification">Normal notification</string>

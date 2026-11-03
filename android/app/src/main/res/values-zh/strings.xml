@@ -158,6 +158,8 @@
     <string name="channel_importance">重要性：%1$s  ·  %2$s</string>
     <string name="channel_settings">渠道设置</string>
     <string name="media_notification">媒体通知</string>
+    <string name="media_show_island">显示超级岛</string>
+    <string name="media_show_island_summary">关闭后隐藏音乐岛</string>
     <string name="channel_settings_unmodified">未修改</string>
     <string name="media_notification_disabled_summary">关闭后直接删除整条媒体通知</string>
     <string name="normal_notification">普通通知</string>

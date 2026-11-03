@@ -285,6 +285,7 @@ internal object ConfigBackupService {
     private val notificationFields = mapOf(
         "enabled" to LegacyField("pref_media_island_enabled_", true),
         "normal_notification" to LegacyField("pref_media_island_normal_notification_", false),
+        "show_island" to LegacyField("pref_media_island_show_island_", true),
         "outer_glow" to LegacyField("pref_media_outer_glow_", "default"),
         "out_effect_color" to LegacyField("pref_media_out_effect_color_", ""),
         "island_outer_glow" to LegacyField("pref_media_island_outer_glow_", "default"),
