@@ -8,6 +8,16 @@ import ReleaseHistory from './.vitepress/components/ReleaseHistory.vue'
 
 <div class="changelog-source" hidden>
 
+# V3.2.3(2026-11-3)
+## 功能
+- 支持单独隐藏某个应用音乐岛
+
+## 优化 & 修复
+- 修复OS3计时组件
+- 优化 UI
+- 修复解锁岛弹出
+
+
 # V3.2.2(2026-10-23)
 ## 功能
 - 新增高亮轮廓隐藏
