@@ -384,4 +384,34 @@ export const donors: DonorItem[] = [
     date: '2026-10-15',
     message: '()'
   },
+  {
+    name: "永远",
+    amount: '7.78'
+    date: '2026-10-22',
+    message: 'LaLuneNoires'
+  },
+  {
+    name: "一场下了五千年的雨",
+    amount: '6.66'
+    date: '2026-10-22',
+    message: '爱你芥子哥哥'
+  },
+  {
+    name: "匿名",
+    amount: '8.88'
+    date: '2026-10-31',
+    message: '加油'
+  },
+  {
+    name: "雨森",
+    amount: '10',
+    date: '2026-11-4',
+    message: '感谢适配隐藏音乐岛 song7027'
+  },
+  {
+    name: "匿名",
+    amount: '5',
+    date: '2026-11-6',
+    message: '为世界献上爆炎和模块'
+  }
 ]
