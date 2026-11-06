@@ -994,6 +994,13 @@
     <string name="appearance_animation_summary">Adjust expand and collapse animations</string>
     <string name="appearance_more_ui">More UI tweaks</string>
     <string name="mini_bar_section">Notification pull bar</string>
+    <string name="island_behavior_section">Island behavior</string>
+    <string name="island_behavior_title">Dynamic Island behavior</string>
+    <string name="island_behavior_single">Single island</string>
+    <string name="island_indicator_color">Indicator color</string>
+    <string name="island_indicator_follow">Follow island background</string>
+    <string name="island_indicator_invert">Invert island background</string>
+    <string name="island_indicator_white">White</string>
     <string name="mini_bar_focus_title">Focus notification pull bar</string>
     <string name="mini_bar_focus_summary">Pull bar on the island\'s expanded focus notification</string>
     <string name="mini_bar_normal_title">Normal notification pull bar</string>

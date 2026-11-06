@@ -241,6 +241,14 @@ object IslandOutlineHook : BaseHook() {
 
     internal fun isOutlineEnabled(isExpanded: Boolean): Boolean = isEnabledForState(isExpanded)
 
+    /** Resolve the effective stroke decision without exposing a material-dependent Drawable. */
+    internal fun resolveOutlineVisibility(isExpanded: Boolean, systemVisible: Boolean): Boolean =
+        when (modeFor(isExpanded)) {
+            "show" -> true
+            "hide" -> false
+            else -> systemVisible
+        }
+
     internal fun hasOutline(drawable: Drawable?): Boolean = drawable is OutlineDrawable
 
     internal fun releaseOutline(drawable: Drawable?) {

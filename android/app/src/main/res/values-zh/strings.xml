@@ -1000,6 +1000,13 @@
     <string name="appearance_animation_summary">调整展开收起动画</string>
     <string name="appearance_more_ui">更多界面修改</string>
     <string name="mini_bar_section">通知小白条</string>
+    <string name="island_behavior_section">岛行为</string>
+    <string name="island_behavior_title">超级岛行为</string>
+    <string name="island_behavior_single">单岛样式</string>
+    <string name="island_indicator_color">指示器颜色</string>
+    <string name="island_indicator_follow">跟随岛背景</string>
+    <string name="island_indicator_invert">反跟随岛背景</string>
+    <string name="island_indicator_white">白色</string>
     <string name="mini_bar_focus_title">焦点通知下拉小白条</string>
     <string name="mini_bar_focus_summary">岛内焦点通知展开态的下拉横条</string>
     <string name="mini_bar_normal_title">普通通知下拉小白条</string>

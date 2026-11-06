@@ -2,6 +2,7 @@ package io.github.hyperisland.compose.service
 
 import android.content.Context
 import android.content.SharedPreferences
+import io.github.hyperisland.utils.IslandBehaviorConfig
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -44,7 +45,15 @@ internal object ConfigBackupService {
             }
             val value = settings.opt(key)
             if (value is Boolean || value is String || value is Number) {
-                values[key] = value
+                values[key] = when (key) {
+                    IslandBehaviorConfig.STYLE_KEY -> IslandBehaviorConfig.style(
+                        value as? String ?: throw InvalidConfigException(),
+                    )
+                    IslandBehaviorConfig.COLOR_KEY -> IslandBehaviorConfig.color(
+                        value as? String ?: throw InvalidConfigException(),
+                    )
+                    else -> value
+                }
             } else if (value != null && value !== JSONObject.NULL) {
                 throw InvalidConfigException()
             }

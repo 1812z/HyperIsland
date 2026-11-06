@@ -175,6 +175,8 @@ internal val ConfigSectionGroups: List<ConfigSection> = listOf(
                 exactKeys = listOf(
                     "pref_island_mini_bar_behavior",
                     "pref_notification_mini_bar_behavior",
+                    "pref_island_behavior_style",
+                    "pref_island_indicator_color",
                 ),
             ),
         ),

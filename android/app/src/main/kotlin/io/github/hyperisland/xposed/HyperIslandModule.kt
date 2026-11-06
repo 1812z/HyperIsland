@@ -9,6 +9,7 @@ import io.github.hyperisland.xposed.hook.SystemUI.geometry.IslandTextSizeHook
 import io.github.hyperisland.xposed.hook.SystemUI.geometry.IslandTopOffsetHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandTransitionVisualHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandSwipeActionHook
+import io.github.hyperisland.xposed.hook.SystemUI.SingleIslandDispatchHook
 import io.github.hyperisland.xposed.hook.SystemUI.animation.ExpandedCollapseAnimationHook
 import io.github.hyperisland.xposed.hook.SystemUI.animation.ExpandedLivelyAnimationHook
 import io.github.hyperisland.xposed.hook.SystemUI.animation.ExpandedPressTiltHook
@@ -138,6 +139,7 @@ class HyperIslandModule : XposedModule() {
                 ToastUiInterceptHook.init(this, param)
                 DynamicIslandVisibilityHook.init(this, param)
                 IslandSwipeActionHook.init(this, param)
+                SingleIslandDispatchHook.init(this, param)
                 KeepIslandHook.init(this, param)
                 if (ConfigManager.getBoolean("pref_wifi_tile_disconnect_only", false)) {
                     WifiTileDisconnectHook.init(this, param)

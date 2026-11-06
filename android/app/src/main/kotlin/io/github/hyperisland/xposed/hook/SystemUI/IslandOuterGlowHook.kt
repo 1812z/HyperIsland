@@ -37,6 +37,7 @@ object IslandOuterGlowHook : BaseHook() {
     private const val EXPANDED_VIEW_MARKER = "DynamicIslandExpandedView"
     private const val LIGHT_COLOR_ARRAY_SIZE = 33
     private const val RECENT_TTL_MS = 2500L
+    private const val MAX_RUNNING_GLOW_VIEWS = 128
 
     private const val GLOW_MODE_AUTO = 0
     private const val GLOW_MODE_STATUS = 1
@@ -68,6 +69,23 @@ object IslandOuterGlowHook : BaseHook() {
         val focusColor: String?,
         val updatedAt: Long,
     )
+
+    // Cache reflection per runtime; animation callbacks must not scan methods/fields.
+    private class SharedGlowAccess(clazz: Class<*>) {
+        val glowClass = clazz
+        val enabled = clazz.getDeclaredField("enabledGlowEffect").apply { isAccessible = true }
+        val alpha = clazz.getDeclaredField("alphaOfGlowEffect").apply { isAccessible = true }
+        val upperContainer = clazz.getDeclaredField("mGlowEffectUpperContainer").apply { isAccessible = true }
+        val bottomContainer = clazz.getDeclaredField("mGlowEffectBottomContainer").apply { isAccessible = true }
+        val upperEffect = clazz.getDeclaredField("mGlowEffectUpperView").apply { isAccessible = true }
+        val bottomEffect = clazz.getDeclaredField("mGlowEffectBottomView").apply { isAccessible = true }
+        val contentClass = clazz.classLoader!!.loadClass(
+            "miui.systemui.dynamicisland.window.content.DynamicIslandContentView",
+        )
+        val state = contentClass.getMethod("getState")
+        val bigIsland = contentClass.getMethod("getBigIslandView")
+        val expanded = contentClass.getMethod("getExpandedView")
+    }
 
     private val hookedGlowClassLoaders = ConcurrentHashMap.newKeySet<Int>()
     private val hookedAnimationClassLoaders = ConcurrentHashMap.newKeySet<Int>()
@@ -429,6 +447,11 @@ object IslandOuterGlowHook : BaseHook() {
                         it.parameterCount == 1 &&
                         it.parameterTypes[0] == Boolean::class.javaPrimitiveType
             }
+            val sharedAccess = if (usesOs4SharedGlowContainers) runCatching {
+                SharedGlowAccess(clazz).also { hookSharedGlowHandoff(module, clazz, it) }
+            }.onFailure { error ->
+                logFailureOnce(module, "glow-handoff") { "glow handoff hook unavailable: ${error.message}" }
+            }.getOrNull() else null
             val methods = clazz.declaredMethods.filter {
                 val isStart = it.name == "startGlowEffect" ||
                         it.name == "startGlowEffect\$miui_dynamicisland_release"
@@ -461,9 +484,14 @@ object IslandOuterGlowHook : BaseHook() {
                     if (isStart) {
                         if (readFieldValue(chain.thisObject, "enabledGlowEffect") == true) {
                             synchronized(runningGlowViews) {
-                                runningGlowViews[chain.thisObject] = true
+                                if (runningGlowViews.size < MAX_RUNNING_GLOW_VIEWS) {
+                                    runningGlowViews[chain.thisObject] = true
+                                }
                             }
                         }
+                        // A repeated start returns early in 18.3 even if another slot
+                        // has hidden the shared containers since the original start.
+                        sharedAccess?.let { restoreSharedGlowContainers(chain.thisObject, it, module) }
                     } else if (isStop || isDetach) {
                         synchronized(runningGlowViews) {
                             runningGlowViews.remove(chain.thisObject)
@@ -471,13 +499,85 @@ object IslandOuterGlowHook : BaseHook() {
                         // OS4: Big、Expanded 以及不同通知的光效共用 window 级上下容器。
                         // 任一旧 View 停止/销毁都会把整个容器设为 GONE。这里只恢复容器
                         // 可见性，不调用 startGlowEffect，保留其他 View 正在播放的动画进度。
-                        restoreSharedGlowContainersIfAnotherEffectIsRunning(chain.thisObject, module)
+                        sharedAccess?.let {
+                            restoreSharedGlowContainersIfAnotherEffectIsRunning(chain.thisObject, it, module)
+                        }
                     }
                     result
                 }
             }
             if (methods.isNotEmpty()) log(module) { "hooked glow view on ${clazz.name}" }
         } catch (_: Throwable) {
+        }
+    }
+
+    private fun hookSharedGlowHandoff(module: XposedModule, clazz: Class<*>, access: SharedGlowAccess) {
+        clazz.declaredMethods.filter {
+            it.name.substringBefore('$') == "setAlphaOfGlowEffect" &&
+                it.parameterTypes.contentEquals(arrayOf(Float::class.javaPrimitiveType))
+        }.forEach { method ->
+            module.hook(method).intercept { chain ->
+                val result = chain.proceed()
+                // The native updater writes the host alpha before the effect alpha.
+                // Retry here when BIG becomes visible after EXPAND stopped at alpha=0.
+                if ((chain.args[0] as Number).toFloat() > 0f) {
+                    restoreSharedGlowContainers(chain.thisObject, access, module)
+                }
+                result
+            }
+        }
+        // The fake layer can hide the real content until after the final alpha write.
+        // LightBgView already observes ancestor visibility to resume its shader; use
+        // that same handoff, without posting retries or restarting the animation.
+        val lightClass = clazz.getMethod("getMContainer").returnType
+        val visibility = lightClass.getDeclaredMethod(
+            "onVisibilityChanged", View::class.java, Int::class.javaPrimitiveType,
+        )
+        module.hook(visibility).intercept { chain ->
+            val result = chain.proceed()
+            val parent = (chain.thisObject as? View)?.parent
+            if (parent != null && clazz.isInstance(parent)) {
+                restoreSharedGlowContainers(parent, access, module)
+            }
+            result
+        }
+    }
+
+    private fun restoreSharedGlowContainers(glowView: Any, access: SharedGlowAccess, module: XposedModule) {
+        runCatching {
+            if (!access.glowClass.isInstance(glowView) || !access.enabled.getBoolean(glowView)) return@runCatching
+            val host = glowView as? View ?: return@runCatching
+            val alpha = access.alpha.getFloat(glowView)
+            if (!alpha.isFinite() || alpha <= 0f || !host.isShown || host.alpha <= 0f) return@runCatching
+            val upper = access.upperContainer.get(glowView) as? View ?: return@runCatching
+            val bottom = access.bottomContainer.get(glowView) as? View ?: return@runCatching
+            val upperEffect = access.upperEffect.get(glowView) as? View ?: return@runCatching
+            val bottomEffect = access.bottomEffect.get(glowView) as? View ?: return@runCatching
+            if (upper.visibility == View.VISIBLE && bottom.visibility == View.VISIBLE &&
+                upperEffect.visibility == View.VISIBLE && bottomEffect.visibility == View.VISIBLE &&
+                upperEffect.alpha == alpha && bottomEffect.alpha == alpha) return@runCatching
+            var owner = host.parent
+            while (owner is View && !access.contentClass.isInstance(owner)) owner = owner.parent
+            if (!access.contentClass.isInstance(owner)) return@runCatching
+            val activeSlot = when (access.state.invoke(owner)?.javaClass?.simpleName) {
+                "BigIsland", "ShowOnceBigIsland" -> access.bigIsland.invoke(owner)
+                "Expanded" -> access.expanded.invoke(owner)
+                else -> null
+            }
+            if (activeSlot !== glowView) return@runCatching
+            // Interrupted app animations may temporarily reparent the effect views.
+            if (upperEffect.parent !== upper || bottomEffect.parent !== bottom) return@runCatching
+            upper.visibility = View.VISIBLE
+            bottom.visibility = View.VISIBLE
+            upperEffect.visibility = View.VISIBLE
+            bottomEffect.visibility = View.VISIBLE
+            upperEffect.alpha = alpha
+            bottomEffect.alpha = alpha
+            upperEffect.invalidate()
+            bottomEffect.invalidate()
+            log(module) { "restored active shared glow: slot=${host.javaClass.simpleName} alpha=$alpha" }
+        }.onFailure { error ->
+            logFailureOnce(module, "glow-handoff-restore") { "glow handoff restore failed: ${error.message}" }
         }
     }
 
@@ -1016,9 +1116,9 @@ object IslandOuterGlowHook : BaseHook() {
 
     private fun restoreSharedGlowContainersIfAnotherEffectIsRunning(
         stoppedView: Any,
+        access: SharedGlowAccess,
         module: XposedModule,
     ) {
-        var restored = false
         synchronized(runningGlowViews) {
             val iterator = runningGlowViews.keys.iterator()
             while (iterator.hasNext()) {
@@ -1027,51 +1127,20 @@ object IslandOuterGlowHook : BaseHook() {
                     iterator.remove()
                     continue
                 }
-                val hostView = glowView as? View
-                val running = readFieldValue(glowView, "enabledGlowEffect") == true
-                // OS4 会留下 enabled=true 但所属岛已经 Hidden/Deleted 的 View。它不再是
-                // 可见光效消费者，不能因为别的 View 停止而复活 window 级共享容器。
-                val actuallyShown = hostView?.isShown == true && hostView.alpha > 0f
-                if (!running || !actuallyShown) {
+                if (readFieldValue(glowView, "enabledGlowEffect") != true) {
                     iterator.remove()
                     continue
                 }
-                val upper = invokeNoArg(glowView, "getMGlowEffectUpperContainer") as? View
-                val bottom = invokeNoArg(glowView, "getMGlowEffectBottomContainer") as? View
-                val upperEffect = invokeNoArg(glowView, "getMGlowEffectUpperView") as? View
-                val bottomEffect = invokeNoArg(glowView, "getMGlowEffectBottomView") as? View
-                upper?.visibility = View.VISIBLE
-                bottom?.visibility = View.VISIBLE
-                upperEffect?.visibility = View.VISIBLE
-                bottomEffect?.visibility = View.VISIBLE
-
-                // OS4 的 updater 会独立写外置效果 View 的 alpha。Expanded 停止后 Big
-                // 仍标记为 running，startGlowEffect 因而直接返回，无法把残留的 0 alpha
-                // 修正回来。Big 的稳定 alpha 与宿主 View 相同；Expanded 继续保留动画值。
-                val mode = resolveGlowModeFromGlowView(glowView)
-                val effectAlpha = if (mode == GLOW_MODE_STATUS) {
-                    hostView.alpha
-                } else {
-                    (invokeNoArg(glowView, "getAlphaOfGlowEffect\$miui_dynamicisland_release") as? Number)
-                        ?.toFloat()
+                // Keep transiently invisible consumers registered. The native alpha/
+                // visibility callbacks retry when their real content becomes visible.
+                if (!access.glowClass.isInstance(glowView)) continue
+                runCatching {
+                    if (access.upperContainer.get(glowView) === access.upperContainer.get(stoppedView) &&
+                        access.bottomContainer.get(glowView) === access.bottomContainer.get(stoppedView)) {
+                        restoreSharedGlowContainers(glowView, access, module)
+                    }
                 }
-                if (effectAlpha != null) {
-                    invokeFloatSetter(
-                        glowView,
-                        "setAlphaOfGlowEffect\$miui_dynamicisland_release",
-                        effectAlpha,
-                    ) || invokeFloatSetter(glowView, "setAlphaOfGlowEffect", effectAlpha)
-                    upperEffect?.alpha = effectAlpha
-                    bottomEffect?.alpha = effectAlpha
-                }
-                (invokeNoArg(glowView, "getMContainer") as? View)?.invalidate()
-                upperEffect?.invalidate()
-                bottomEffect?.invalidate()
-                restored = restored || upper != null || bottom != null
             }
-        }
-        if (restored) {
-            log(module) { "kept OS4 shared glow containers visible for another running effect" }
         }
     }
 

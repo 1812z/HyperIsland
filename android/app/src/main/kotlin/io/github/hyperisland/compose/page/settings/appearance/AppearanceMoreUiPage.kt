@@ -1,23 +1,36 @@
 package io.github.hyperisland.compose.page.settings.appearance
 
 import androidx.annotation.StringRes
+import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.PreferenceDropdownWithSummary
+import io.github.hyperisland.compose.component.PreferenceDropdown
 import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.rememberStringPreference
+import io.github.hyperisland.utils.IslandBehaviorConfig
 import top.yukonga.miuix.kmp.basic.Card
 
 /**
  * 「外观 → 其他 → 更多界面修改」。
  *
  * 收纳不属于尺寸 / 背景 / 文字 / 图标 / 描边 / 动画的零散界面改动。
- * 目前只有「通知小白条」，分两套互不相干的实现：
+ * 通知小白条分两套互不相干的实现；底部的「岛行为」管理单岛调度：
  * - 焦点通知：岛内展开态，`DynamicIslandBaseContentView.updateMiniBar()`；
  * - 普通通知：通知栏 / 悬浮通知行，`ExpandableNotificationRowInjector.updateMiniWindowBar()`。
  */
@@ -40,6 +53,60 @@ internal fun AppearanceMoreUiPage(prefs: FlutterPrefsRepository, onBack: () -> U
                         titleRes = R.string.mini_bar_normal_title,
                         summaryRes = R.string.mini_bar_normal_summary,
                     )
+                }
+            }
+        }
+        item {
+            IslandBehaviorSection(prefs)
+        }
+    }
+}
+
+@Composable
+private fun IslandBehaviorSection(prefs: FlutterPrefsRepository) {
+    val context = LocalContext.current
+    val restartMessage = stringResource(R.string.restart_scope_app)
+    val style = rememberStringPreference(prefs, IslandBehaviorConfig.STYLE_KEY, IslandBehaviorConfig.DEFAULT)
+    val color = rememberStringPreference(prefs, IslandBehaviorConfig.COLOR_KEY, IslandBehaviorConfig.FOLLOW_ISLAND)
+    Column {
+        SectionTitle(stringResource(R.string.island_behavior_section))
+        Card(modifier = Modifier.fillMaxWidth()) {
+            PreferenceDropdown(
+                title = stringResource(R.string.island_behavior_title),
+                summary = null,
+                icon = null,
+                items = listOf(stringResource(R.string.default_option), stringResource(R.string.island_behavior_single)),
+                selectedIndex = IslandBehaviorConfig.styles.indexOf(IslandBehaviorConfig.style(style.value)).coerceAtLeast(0),
+            ) { index ->
+                val next = IslandBehaviorConfig.styles[index]
+                if (next != IslandBehaviorConfig.style(style.value)) {
+                    prefs.setIslandBehaviorStyle(next)
+                    style.value = next
+                    Toast.makeText(context, restartMessage, Toast.LENGTH_SHORT).show()
+                }
+            }
+            AnimatedVisibility(
+                visible = IslandBehaviorConfig.style(style.value) == IslandBehaviorConfig.SINGLE,
+                enter = expandVertically(tween(260), expandFrom = Alignment.Top) +
+                    slideInVertically(tween(260)) { -it / 3 } + fadeIn(tween(180)),
+                exit = shrinkVertically(tween(220), shrinkTowards = Alignment.Top) +
+                    slideOutVertically(tween(220)) { -it / 3 } + fadeOut(tween(150)),
+            ) {
+                PreferenceDropdown(
+                    title = stringResource(R.string.island_indicator_color),
+                    summary = null,
+                    icon = null,
+                    items = listOf(
+                        stringResource(R.string.island_indicator_follow),
+                        stringResource(R.string.island_indicator_invert),
+                        stringResource(R.string.black),
+                        stringResource(R.string.island_indicator_white),
+                    ),
+                    selectedIndex = IslandBehaviorConfig.colors.indexOf(IslandBehaviorConfig.color(color.value)).coerceAtLeast(0),
+                ) { index ->
+                    val next = IslandBehaviorConfig.colors[index]
+                    prefs.setIslandIndicatorColor(next)
+                    color.value = next
                 }
             }
         }

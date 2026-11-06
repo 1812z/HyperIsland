@@ -2,6 +2,7 @@ package io.github.hyperisland.compose.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import io.github.hyperisland.utils.IslandBehaviorConfig
 import io.github.hyperisland.compose.data.channel.ChannelSettings
 import io.github.hyperisland.compose.data.channel.ChannelSettingsPatch
 import io.github.hyperisland.compose.data.channel.withPatch
@@ -143,6 +144,26 @@ class FlutterPrefsRepository(context: Context) {
 
     fun putString(key: String, value: String) {
         prefs.edit().putString(storageKey(key), value).apply()
+    }
+
+    internal fun islandBehaviorStyle(): String = IslandBehaviorConfig.style(
+        getString(IslandBehaviorConfig.STYLE_KEY, IslandBehaviorConfig.DEFAULT),
+    )
+
+    internal fun setIslandBehaviorStyle(value: String) {
+        val normalized = IslandBehaviorConfig.style(value)
+        if (normalized == IslandBehaviorConfig.DEFAULT) remove(IslandBehaviorConfig.STYLE_KEY)
+        else putString(IslandBehaviorConfig.STYLE_KEY, normalized)
+    }
+
+    internal fun islandIndicatorColor(): String = IslandBehaviorConfig.color(
+        getString(IslandBehaviorConfig.COLOR_KEY, IslandBehaviorConfig.FOLLOW_ISLAND),
+    )
+
+    internal fun setIslandIndicatorColor(value: String) {
+        val normalized = IslandBehaviorConfig.color(value)
+        if (normalized == IslandBehaviorConfig.FOLLOW_ISLAND) remove(IslandBehaviorConfig.COLOR_KEY)
+        else putString(IslandBehaviorConfig.COLOR_KEY, normalized)
     }
 
     fun getLong(key: String, default: Long = 0L): Long =
