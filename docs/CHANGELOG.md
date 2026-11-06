@@ -8,6 +8,14 @@ import ReleaseHistory from './.vitepress/components/ReleaseHistory.vue'
 
 <div class="changelog-source" hidden>
 
+# V3.2.4(2026-11-6)
+## 功能
+- 新增类ColorOS单岛样式
+
+## 优化 & 修复
+- 修复18.3及以上系统界面组件光效丢失问题
+
+
 # V3.2.3(2026-11-3)
 ## 功能
 - 支持单独隐藏某个应用音乐岛
