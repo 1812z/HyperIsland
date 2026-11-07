@@ -20,6 +20,7 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.drawable.Icon
 import android.hardware.display.DisplayManager
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
@@ -29,16 +30,22 @@ import android.view.Surface
 import android.view.View
 import android.widget.RemoteViews
 import io.github.hyperisland.R
+import io.github.hyperisland.utils.IslandBehaviorConfig
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.SystemUI.DynamicIslandVisibilityHook
 import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
 import io.github.hyperisland.xposed.islanddispatch.definition.IslandRequest
+import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.hyperisland.xposed.utils.moduleContext
 import io.github.hyperisland.xposed.utils.toRounded
+import io.github.libxposed.api.XposedInterface.HookHandle
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.io.File
+import java.lang.ref.WeakReference
+import java.util.Collections
 import java.util.Locale
+import java.util.WeakHashMap
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.roundToInt
 import org.json.JSONArray
@@ -96,6 +103,9 @@ object KeepIslandHook : BaseHook() {
         "io.github.hyperisland.action.REFRESH_KEEP_ISLAND"
 
     private const val RESTORE_DELAY_MS = 500L
+    private const val CLOSE_HANDOFF_TIMEOUT_MS = 2000L
+    private const val MAX_CLOSE_KEYS = 32
+    private const val ISLAND_PACKAGE = "miui.systemui.dynamicisland."
 
     private const val DATA_UPDATE_INTERVAL_MS = 1000L
 
@@ -112,6 +122,14 @@ object KeepIslandHook : BaseHook() {
     private var autoHideTrackingEnabled = false
 
     private var restoreRunnable: Runnable? = null
+    @Volatile
+    private var closeHandoff: CloseHandoff? = null
+    @Volatile
+    private var removedKeepSlot: RemovedKeepSlot? = null
+    private var closeHandoffTimeout: Runnable? = null
+    private val handoffTrackedKeys = ConcurrentHashMap.newKeySet<String>()
+    private val closeHookClasses = Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>())
+    private val immediateRemovalKey = ThreadLocal<String>()
 
     private var periodicDataUpdateRunnable: Runnable? = null
 
@@ -123,7 +141,11 @@ object KeepIslandHook : BaseHook() {
 
     private val dataChangedListener: () -> Unit = { scheduleContentUpdateFromDataChange() }
     private val islandVisibilityListener: (DynamicIslandVisibilityHook.Event) -> Unit = { event ->
-        handleIslandVisibilityEvent(event)
+        if (Looper.myLooper() == mainHandler.looper) {
+            handleIslandVisibilityEvent(event)
+        } else {
+            mainHandler.post { handleIslandVisibilityEvent(event) }
+        }
     }
 
     private var dataListenerRegistered = false
@@ -202,6 +224,244 @@ object KeepIslandHook : BaseHook() {
         log(module) { "onInit pkg=${param.packageName}" }
         registerIslandVisibilityListener()
         hookApplicationOnCreate(module, param)
+        if (IslandBehaviorConfig.style(ConfigManager.getString(
+                IslandBehaviorConfig.STYLE_KEY, IslandBehaviorConfig.DEFAULT,
+            )) == IslandBehaviorConfig.DEFAULT
+        ) {
+            hookAppCloseHandoff(module, param.defaultClassLoader)
+            HookUtils.hookDynamicClassLoaders(module, ClassLoader.getSystemClassLoader()) { loader ->
+                hookAppCloseHandoff(module, loader)
+            }
+        }
+    }
+
+    private class CloseHandoff(window: Any, val keepKey: String, val returningKeys: Set<String>) {
+        val window = WeakReference(window)
+    }
+
+    private class RemovedKeepSlot(window: Any, val key: String) {
+        val window = WeakReference(window)
+    }
+
+    private class AppCloseAccess(loader: ClassLoader) {
+        val controller = loader.loadClass(ISLAND_PACKAGE + "window.DynamicIslandWindowViewController")
+        private val window = loader.loadClass(ISLAND_PACKAGE + "window.DynamicIslandWindowView")
+        private val content = loader.loadClass(ISLAND_PACKAGE + "window.content.DynamicIslandContentView")
+        private val appExpanded = loader.loadClass(ISLAND_PACKAGE + "event.DynamicIslandState\$AppExpanded")
+        private val subAppExpanded = loader.loadClass(ISLAND_PACKAGE + "event.DynamicIslandState\$SubAppExpanded")
+        private val state = content.getMethod("getState")
+        private val islandData = content.getMethod("getCurrentIslandData")
+        val dataKey = islandData.returnType.getMethod("getKey")
+        val getWindow = controller.getMethod("getView")
+        val findView = window.getMethod("getViewFromList", String::class.java)
+        val sendEvent = controller.getMethod(
+            "sendWindowAnimEvent", String::class.java, Boolean::class.javaPrimitiveType,
+            Boolean::class.javaPrimitiveType, Bundle::class.java,
+        )
+        val removeIsland = controller.getMethod("removeDynamicIslandView", String::class.java)
+        val removeData = window.getMethod(
+            "removeDynamicIslandData", islandData.returnType,
+            Boolean::class.javaPrimitiveType, Boolean::class.javaPrimitiveType,
+        )
+        val exitApp = window.getMethod("appExit", content)
+        val enterApp = window.getMethod("appEnter", content)
+        val clearAfterDelete = window.getMethod(
+            "clearAfterDelete", islandData.returnType, String::class.java, Boolean::class.javaPrimitiveType,
+        )
+        private val coordinator = window.getMethod("getEventCoordinator")
+        private val inRebuild = coordinator.returnType.getMethod("getInConfigRebuild")
+        private val appIslands = window.getMethod("getCurrentAppExpandedState", String::class.java)
+        private val big = window.getMethod("getCurrentBigIslandState")
+        private val small = window.getMethod("getCurrentSmallIslandState")
+
+        fun key(view: Any?): String? = view?.let { islandData.invoke(it) }
+            ?.let { dataKey.invoke(it) as? String }
+
+        fun slots(window: Any) = listOfNotNull(big.invoke(window), small.invoke(window))
+
+        fun isRebuilding(window: Any): Boolean =
+            coordinator.invoke(window)?.let { inRebuild.invoke(it) == true } == true
+
+        fun isInApp(view: Any): Boolean {
+            val current = state.invoke(view)
+            return appExpanded.isInstance(current) || subAppExpanded.isInstance(current)
+        }
+
+        fun returningKeys(window: Any, pkg: String): Set<String> {
+            val candidates = appIslands.invoke(window, pkg) as? List<*> ?: return emptySet()
+            if (candidates.none { it != null && appExpanded.isInstance(state.invoke(it)) }) {
+                return emptySet()
+            }
+            return candidates.asSequence().mapNotNull(::key)
+                .filterNot(::isKeepIslandKey).take(MAX_CLOSE_KEYS).toSet()
+        }
+    }
+
+    private fun hookAppCloseHandoff(module: XposedModule, loader: ClassLoader) {
+        if (!HookUtils.isIslandLoaderReady(loader)) return
+        val access = runCatching { AppCloseAccess(loader) }.getOrElse {
+            logFailureOnce(module, "close-access") { "app-close handoff unavailable: ${it.message}" }
+            return
+        }
+        synchronized(closeHookClasses) {
+            if (closeHookClasses.size >= 32 || !closeHookClasses.add(access.controller)) return
+        }
+        val handles = mutableListOf<HookHandle>()
+        try {
+            handles += module.hook(access.removeData).intercept { chain ->
+                val immediate = immediateRemovalKey.get()
+                val removed = removedKeepSlot?.takeIf { it.window.get() === chain.thisObject }
+                if (immediate == null && removed == null) return@intercept chain.proceed()
+                val key = runCatching { chain.args[0]?.let { access.dataKey.invoke(it) } as? String }.getOrNull()
+                when {
+                    key != null && key == immediate -> chain.proceed(arrayOf(chain.args[0], chain.args[1], true))
+                    key != null && key == removed?.key -> {
+                        // The later dismiss notification may repeat removal. The native cleanup also
+                        // releases app-animation lifetimes, so skip it if the old slot is already gone.
+                        val absent = runCatching { access.findView.invoke(chain.thisObject, key) == null }
+                            .getOrDefault(false)
+                        if (absent) null else chain.proceed()
+                    }
+                    else -> chain.proceed()
+                }
+            }
+            handles += module.hook(access.exitApp).intercept { chain ->
+                val result = chain.proceed()
+                val handoff = closeHandoff
+                if (handoff != null && handoff.window.get() === chain.thisObject) {
+                    // Keep notification writes out of the native animation call stack.
+                    mainHandler.post { finishCloseHandoff(access, handoff, expired = false) }
+                }
+                result
+            }
+            handles += module.hook(access.enterApp).intercept { chain ->
+                val result = chain.proceed()
+                val view = chain.args[0]
+                if (autoHideTrackingEnabled && view != null) {
+                    runCatching {
+                        val key = access.key(view)
+                        if (key != null && key in handoffTrackedKeys && access.isInApp(view)) {
+                            onRealIslandLeft(key)
+                        }
+                    }.onFailure {
+                        logFailureOnce(module, "close-reentry") { "app-close reentry failed: ${it.message}" }
+                    }
+                }
+                result
+            }
+            handles += module.hook(access.clearAfterDelete).intercept { chain ->
+                val result = chain.proceed()
+                val key = chain.args[1] as? String
+                val window = chain.thisObject
+                if (key != null && window != null) {
+                    val handoff = closeHandoff
+                    if (handoff != null && handoff.keepKey == key && handoff.window.get() === window) {
+                        removedKeepSlot = RemovedKeepSlot(window, key)
+                    }
+                    if (key in handoffTrackedKeys) {
+                        runCatching {
+                            if (!access.isRebuilding(window)) onRealIslandLeft(key)
+                        }.onFailure {
+                            logFailureOnce(module, "close-delete") { "app-close deletion cleanup failed: ${it.message}" }
+                        }
+                    }
+                }
+                result
+            }
+            handles += module.hook(access.sendEvent).intercept { chain ->
+                val event = chain.args[0]
+                if (autoHideTrackingEnabled && posted && chain.args[1] == false &&
+                    (event == "request_close_position" || event == "close_app_start")
+                ) {
+                    val pkg = (chain.args[3] as? Bundle)?.getString("packageName")
+                    val controller = chain.thisObject
+                    if (!pkg.isNullOrEmpty() && controller != null) {
+                        val prepare = {
+                            runCatching { prepareCloseHandoff(access, controller, pkg) }
+                                .onFailure {
+                                    logFailureOnce(module, "close-prepare") { "app-close handoff failed: ${it.message}" }
+                                }
+                            Unit
+                        }
+                        if (Looper.myLooper() == mainHandler.looper) {
+                            prepare()
+                        } else {
+                            mainHandler.post { prepare() }
+                        }
+                    }
+                }
+                chain.proceed()
+            }
+        } catch (e: Throwable) {
+            handles.asReversed().forEach { runCatching { it.unhook() } }
+            synchronized(closeHookClasses) { closeHookClasses.remove(access.controller) }
+            logFailureOnce(module, "close-install") { "app-close handoff install failed: ${e.message}" }
+        }
+    }
+
+    private fun prepareCloseHandoff(access: AppCloseAccess, controller: Any, pkg: String) {
+        if (!autoHideTrackingEnabled || !posted || closeHandoff != null || appContext == null) return
+        if (!ConfigManager.getBoolean(PREF_KEY_AUTO_HIDE, true) || !profileBoolean(PREF_KEY, false) ||
+            !shouldPostKeepNotification()
+        ) return
+        val window = access.getWindow.invoke(controller) as? View ?: return
+        if (!window.isAttachedToWindow || window.resources.configuration.smallestScreenWidthDp >= 600) return
+        if (access.isRebuilding(window)) return
+        val keepKey = access.slots(window).firstNotNullOfOrNull { access.key(it)?.takeIf(::isKeepIslandKey) }
+            ?: return
+        val returningKeys = access.returningKeys(window, pkg)
+        if (returningKeys.isEmpty()) return
+
+        val handoff = CloseHandoff(window, keepKey, returningKeys)
+        closeHandoff = handoff
+        // A position request can be abandoned without a matching appExit callback.
+        val timeout = Runnable { finishCloseHandoff(access, handoff, expired = true) }
+        closeHandoffTimeout = timeout
+        mainHandler.postDelayed(timeout, CLOSE_HANDOFF_TIMEOUT_MS)
+        immediateRemovalKey.set(keepKey)
+        try {
+            access.removeIsland.invoke(controller, keepKey)
+            diag {
+                val removed = access.slots(window).none { access.key(it) == keepKey }
+                "app-close handoff prepared pkg=$pkg key=$keepKey removedBeforePrediction=$removed"
+            }
+        } finally {
+            immediateRemovalKey.remove()
+        }
+    }
+
+    private fun finishCloseHandoff(access: AppCloseAccess, handoff: CloseHandoff, expired: Boolean) {
+        if (closeHandoff !== handoff) return
+        val shown = runCatching {
+            handoff.window.get()?.let(access::slots).orEmpty()
+                .mapNotNull(access::key).filter(handoff.returningKeys::contains)
+        }.getOrDefault(emptyList())
+        if (shown.isEmpty() && !expired) return
+        clearCloseHandoff()
+        val context = appContext ?: return
+        if (shown.isNotEmpty() && autoHideTrackingEnabled) {
+            shown.forEach { key ->
+                if (handoffTrackedKeys.size < MAX_CLOSE_KEYS) {
+                    handoffTrackedKeys.add(key)
+                    markRealIslandVisible(context, key)
+                }
+            }
+        } else if (activeRealKeys.isEmpty()) {
+            evaluateKeepIsland()
+        }
+        diag { "app-close handoff finished expired=$expired visible=${shown.size}" }
+    }
+
+    private fun clearCloseHandoff() {
+        closeHandoffTimeout?.let(mainHandler::removeCallbacks)
+        closeHandoffTimeout = null
+        closeHandoff = null
+    }
+
+    private fun isKeepIslandKey(key: String): Boolean {
+        val parts = key.split('|', limit = 4)
+        return parts.getOrNull(1) == "com.android.systemui" &&
+                parts.getOrNull(2)?.toIntOrNull() == KEEP_ISLAND_NOTIF_ID
     }
 
     private fun hookApplicationOnCreate(module: XposedModule, param: PackageLoadedParam) {
@@ -274,8 +534,17 @@ object KeepIslandHook : BaseHook() {
     }
 
     private fun markRealIslandHidden(key: String) {
+        handoffTrackedKeys.remove(key)
         if (activeRealKeys.remove(key) && activeRealKeys.isEmpty()) {
             scheduleRestore()
+        }
+    }
+
+    private fun onRealIslandLeft(key: String) {
+        if (Looper.myLooper() == mainHandler.looper) {
+            markRealIslandHidden(key)
+        } else {
+            mainHandler.post { markRealIslandHidden(key) }
         }
     }
 
@@ -287,6 +556,11 @@ object KeepIslandHook : BaseHook() {
             activeRealKeys.clear()
         }
         autoHideTrackingEnabled = islandEnabled && autoHide && shouldPostKeepNotification()
+        if (!autoHideTrackingEnabled) {
+            clearCloseHandoff()
+            removedKeepSlot = null
+            handoffTrackedKeys.clear()
+        }
         if (shouldPostKeepNotification()) {
             cancelPendingRestore()
             if (!posted) {
@@ -313,7 +587,7 @@ object KeepIslandHook : BaseHook() {
     private fun shouldEnableIsland(context: Context): Boolean {
         if (!profileBoolean(PREF_KEY, false)) return false
         val hideForRealNotification = ConfigManager.getBoolean(PREF_KEY_AUTO_HIDE, true) &&
-                (activeRealKeys.isNotEmpty() || restoreRunnable != null)
+                (activeRealKeys.isNotEmpty() || restoreRunnable != null || closeHandoff != null)
         if (hideForRealNotification) return false
         val hideForLandscape = ConfigManager.getBoolean(PREF_KEY_HIDE_LANDSCAPE, false) &&
                 isLandscape(context)
