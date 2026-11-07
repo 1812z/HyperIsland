@@ -45,6 +45,13 @@ internal object SoftGlassController {
     private val retainedPassBlurRoots = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<View, Boolean>()),
     )
+    private val systemWindowBlurRoots = Collections.synchronizedSet(
+        Collections.newSetFromMap(WeakHashMap<View, Boolean>()),
+    )
+    private val systemPassBlurRoots = Collections.synchronizedSet(
+        Collections.newSetFromMap(WeakHashMap<View, Boolean>()),
+    )
+    private val samplerWrite = ThreadLocal<Method>()
     private val hookedStyleClasses = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>()),
     )
@@ -216,15 +223,14 @@ internal object SoftGlassController {
         )?.let { method ->
             module.hook(method).intercept { chain ->
                 val root = chain.thisObject as? View ?: return@intercept chain.proceed()
+                if (samplerWrite.get() == method) return@intercept chain.proceed()
                 val requested = chain.args.getOrNull(0) as? Boolean ?: false
                 val keepForSoft = !requested && hasRenderingView(root)
                 val result = if (keepForSoft) chain.proceed(arrayOf(true)) else chain.proceed()
                 appliedWindowRadii.remove(root)
+                recordSamplerRequest(root, requested, keepForSoft, systemWindowBlurRoots, retainedWindowBlurRoots)
                 if (requested || keepForSoft) {
-                    retainedWindowBlurRoots.add(root)
                     currentRenderingConfig(root)?.let { updateWindowRadius(root, it.blurRadius) }
-                } else {
-                    retainedWindowBlurRoots.remove(root)
                 }
                 diagnose("window-blur requested=$requested kept=$keepForSoft", root)
                 result
@@ -233,6 +239,7 @@ internal object SoftGlassController {
         passBlurMethod(windowClass)?.let { method ->
             module.hook(method).intercept { chain ->
                 val root = chain.thisObject as? View ?: return@intercept chain.proceed()
+                if (samplerWrite.get() == method) return@intercept chain.proceed()
                 val requested = chain.args.getOrNull(0) as? Boolean ?: false
                 val keepForSoft = !requested && hasRenderingView(root)
                 val result = if (keepForSoft) {
@@ -243,15 +250,29 @@ internal object SoftGlassController {
                 } else {
                     chain.proceed()
                 }
-                if (requested || keepForSoft) {
-                    retainedPassBlurRoots.add(root)
-                } else {
-                    retainedPassBlurRoots.remove(root)
-                }
+                recordSamplerRequest(root, requested, keepForSoft, systemPassBlurRoots, retainedPassBlurRoots)
                 diagnose("pass-blur requested=$requested kept=$keepForSoft", root)
                 result
             }
         }
+    }
+
+    private fun recordSamplerRequest(
+        root: View,
+        requested: Boolean,
+        kept: Boolean,
+        systemRoots: MutableSet<View>,
+        retainedRoots: MutableSet<View>,
+    ) {
+        if (requested) {
+            synchronized(systemRoots) {
+                if (systemRoots.size < 32) systemRoots.add(root)
+            }
+        } else {
+            systemRoots.remove(root)
+        }
+        // A native enable takes back ownership. Only a rewritten native disable is ours.
+        if (kept) retainedRoots.add(root) else retainedRoots.remove(root)
     }
 
     /** Observe stock cleanup and parameter rewrites without changing its window lifecycle. */
@@ -367,7 +388,7 @@ internal object SoftGlassController {
 
     /** Acquires the shared sampler before the real/fake slot submits its first visible frame. */
     fun beginRendering(view: View) {
-        if (!managedViews.contains(view) || !view.isAttachedToWindow) return
+        if (!managedViews.contains(view) || !view.isShown) return
         renderingViews.add(view)
         ensureWindowBlur(view)
         ensurePassWindowBlur(view)
@@ -511,27 +532,26 @@ internal object SoftGlassController {
 
     private fun hasRenderingView(root: View): Boolean {
         val views = synchronized(renderingViews) { renderingViews.toList() }
-        return views.any { findWindowView(it) === root }
+        return views.any { it.isShown && findWindowView(it) === root }
     }
 
     private fun currentRenderingConfig(root: View): SoftGlassConfig? {
         val views = synchronized(renderingViews) { renderingViews.toList() }
         return views.asSequence()
-            .filter { findWindowView(it) === root }
+            .filter { it.isShown && findWindowView(it) === root }
             .maxByOrNull(View::getAlpha)
             ?.let(appliedConfigs::get)
     }
 
     private fun ensureWindowBlur(source: View) {
         val root = findWindowView(source) ?: return
-        if (retainedWindowBlurRoots.contains(root)) return
+        if (root in retainedWindowBlurRoots || root in systemWindowBlurRoots) return
         val method = findMethod(
             root.javaClass,
             "updateWindowBlur",
             Boolean::class.javaPrimitiveType!!,
         ) ?: return
-        runCatching { method.invoke(root, true) }
-        retainedWindowBlurRoots.add(root)
+        if (writeSampler(method, root, arrayOf(true))) retainedWindowBlurRoots.add(root)
     }
 
     private fun closeRetainedWindowBlur(root: View) {
@@ -541,21 +561,30 @@ internal object SoftGlassController {
             "updateWindowBlur",
             Boolean::class.javaPrimitiveType!!,
         ) ?: return
-        runCatching { method.invoke(root, false) }
+        writeSampler(method, root, arrayOf(false))
     }
 
     private fun ensurePassWindowBlur(source: View) {
         val root = findWindowView(source) ?: return
-        if (retainedPassBlurRoots.contains(root)) return
+        if (root in retainedPassBlurRoots || root in systemPassBlurRoots) return
         val method = passBlurMethod(root.javaClass) ?: return
-        runCatching { method.invoke(root, *passBlurArgs(method, true, null)) }
-        retainedPassBlurRoots.add(root)
+        if (writeSampler(method, root, passBlurArgs(method, true, null))) retainedPassBlurRoots.add(root)
     }
 
     private fun closeRetainedPassBlur(root: View) {
         if (!retainedPassBlurRoots.remove(root)) return
         val method = passBlurMethod(root.javaClass) ?: return
-        runCatching { method.invoke(root, *passBlurArgs(method, false, null)) }
+        writeSampler(method, root, passBlurArgs(method, false, null))
+    }
+
+    private fun writeSampler(method: Method, root: View, args: Array<Any?>): Boolean {
+        val previous = samplerWrite.get()
+        samplerWrite.set(method)
+        return try {
+            runCatching { method.invoke(root, *args) }.isSuccess
+        } finally {
+            if (previous == null) samplerWrite.remove() else samplerWrite.set(previous)
+        }
     }
 
     private fun findWindowView(view: View): View? {

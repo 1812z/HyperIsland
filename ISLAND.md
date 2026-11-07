@@ -464,6 +464,8 @@ setVisibility(INVISIBLE) 后 fake root 才消失
 
 ### 7.5 SoftGlass 生命周期
 
+应用窗口退回小岛时，`FakeViewAnimHelper.animToFakeSmallIslandView()` 可在 Folme `onBegin` 才显示 SMALL 子槽。JADX MCP 核查 `18.3.2.5.0` 后，材质在 fake 的原生 alpha 写入后检查实际槽位。交叉淡入期间保留当前绘制的柔光，目标子槽可见且 alpha 达到旧槽后先提交目标，再释放旧材质。`fakeViewToHidden/Deleted` 清除 fake 材质选择，空槽期间不回填模块缓存的遮罩。真实层在 fake 隐藏后按已显示的真实槽提交，`AppExpanded` / `MiniWindowExpanded` 不作为真实展开槽。原生开启采样和模块为柔光保留采样分别记录，最后一个柔光槽退出时只关闭模块持有的采样。该修复尚待实机验证。
+
 SoftGlass 的 renderer 是系统 Bionics，但真实态和动画态不是同一个 View 生命周期。`DynamicIslandWindowView` 分别创建 `DynamicIslandContentView`（稳定真实内容）与 `DynamicIslandContentFakeView`（过渡动画内容），再由 `handleInitState(real, fake, params)` 建立关联。两者继承同一基类并可复用 `updateBackgroundBg(View, promoted)` 入口，只代表“材质写入 API 相同”，不代表 View 实例、创建时机、可见性或释放时机统一。
 
 已由 JADX 确认的关键顺序：
@@ -848,12 +850,12 @@ Mini Window 手势
 28. `finalizeAnimFinished()` 会按系统状态请求关闭 pass-window blur；模块不得事后校准或重建采样器。若仍有明确的 real/fake SOFT 渲染租约，只能在 `updatePassWindowBlur(false)` 源调用中把参数替换为 `true`，保证系统缓存、FPS 与 native flag 同步；无租约时必须放行关闭。
 29. `EXPAND state=BIG` 的隐藏准备回调不得改动当前 SMALL/BIG 的共享外层，也不得给 EXPAND 安装 Bionics；隐藏 EXPAND 的全尺寸 RenderNode 即使没有采样租约仍会污染同窗口 crop，形成永久白色模糊。
 30. SOFT 在稳定 SMALL/BIG 保留同一个 pass SurfaceTexture，但不读写 `lastPassWindowBlurEnabled`；隐藏材质必须释放，避免旧 crop。
-31. fake SMALL/BIG/EXPAND 是长期复用的附着 View，但模块只允许当前实际绘制槽位持有 Bionics 材质；隐藏槽位与 Gaussian 一样 release。
+31. fake SMALL/BIG/EXPAND 是长期复用的附着 View，但模块只允许当前实际绘制的一个槽位持有 Bionics 材质。隐藏槽位释放材质，交叉淡入按可见子槽 alpha 交接。
 32. pass-window 保活必须按包含父层 alpha/visibility 的实际绘制状态判断，不能按任意 managed View 判断；保活中的采样器必须保持 60 FPS，不能使用系统关闭态的 `-1`。
 33. `preparingTypeHolder=EXPAND` 标记的是 `updateExpandedView()` 在状态切换前发出的隐藏目标初始化。它不能按普通 stale 处理去覆盖当前外层，但也不能预热 Bionics；材质由后续 fake→真实交接或可见 `onPreDraw` 获取。
 34. 临时隐藏必须在 `onIslandTempHide(true)` 源事件暂停窗口全部 SOFT 租约并放行系统关闭；恢复时在真实 View 首次重新可见的 `onPreDraw` 边缘重新获取租约并清理系统写回的外层黑底。
 35. Bionics 材质所有权与采样器渲染租约必须分离：预备 View 可以先写材质，但只有实际 real/fake 槽能持有租约。仍有租约时在 `updateWindowBlur(false)` / `updatePassWindowBlur(false)` 源头把参数替换为 `true`；最后一个租约释放后完整放行系统关闭，禁止永久常驻采样器。
-36. fake 动画目标以 `FakeViewAnimator.fakeViewToSmallIsland/BigIsland/Expanded` 为权威来源；三种长期复用子槽中只允许该目标槽持有材质和采样租约，不能按子 View 的 `VISIBLE` 属性同时激活三槽。
+36. fake 动画目标由 `FakeViewAnimator.fakeViewToSmallIsland/BigIsland/Expanded` 决定；目标子槽实际接管绘制前，旧槽可继续使用已有材质。Hidden/Deleted 释放全部 fake 槽的材质和采样租约。
 37. active SOFT 租约还必须保护对应 View 的 `setMiViewMaterialType(..., 0)` 与 `setMiViewBlurModeCompat(..., 0)` 源写入；租约释放后不拦截，确保默认材质、隐藏态和删除态继续执行系统清理。
 38. OS3/OS4 不得用 Android SDK 号区分；只有 `EXPANDED_GLASS_TOKEN.getToBionicsParams()` 与 `MiBackgroundStyle.isBionicsActive()` 同时存在时才安装 Bionics 窗口/材质源 Hook，否则 SOFT 的真实态和 fake 过渡态都走高斯兜底。
 39. `restoreFakeViewBackground()` 只在当前 fake 目标确实可用 Bionics 时禁止原调用；OS3 或系统关闭 Bionics 时必须先执行系统恢复，再在同一调用中安装高斯兜底，不能直接清空共享 mask。

@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewTreeObserver
 import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.hyperisland.xposed.hook.IslandBackgroundHook
+import io.github.hyperisland.xposed.hook.SystemUI.IslandTransitionVisualHook
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.IslandBlurRuntime
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.SystemUiReflection.findField
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.SystemUiReflection.findMethod
@@ -193,6 +194,12 @@ object IslandBlurHook : BaseHook() {
                     }.getOrNull()
                     ?: lastIslandType
                 val materialBeforeUpdate = typeBeforeUpdate?.let(::materialForType)
+                if (view != null && typeBeforeUpdate != null &&
+                    materialBeforeUpdate?.type == MaterialType.SOFT &&
+                    contentViewBeforeUpdate is View && contentViewBeforeUpdate.javaClass.name == FAKE_CONTENT_VIEW_CLASS &&
+                    SoftGlassController.isSystemBionicsActive(view) &&
+                    IslandTransitionVisualHook.handleFakeSoftBackground(contentViewBeforeUpdate, view, typeBeforeUpdate.name)
+                ) return@intercept null
                 val preparingType = preparingTypeHolder.get()
                 val stateTypeBeforeUpdate = islandTypeHolder.get() ?: runCatching {
                     IslandStateResolver.fromState(stateField.get(contentViewBeforeUpdate))
