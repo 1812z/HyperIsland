@@ -386,19 +386,19 @@ export const donors: DonorItem[] = [
   },
   {
     name: "永远",
-    amount: '7.78'
+    amount: '7.78',
     date: '2026-10-22',
     message: 'LaLuneNoires'
   },
   {
     name: "一场下了五千年的雨",
-    amount: '6.66'
+    amount: '6.66',
     date: '2026-10-22',
     message: '爱你芥子哥哥'
   },
   {
     name: "匿名",
-    amount: '8.88'
+    amount: '8.88',
     date: '2026-10-31',
     message: '加油'
   },
