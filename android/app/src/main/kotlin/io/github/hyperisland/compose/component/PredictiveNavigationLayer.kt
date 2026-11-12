@@ -12,33 +12,38 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Stable
 internal class PredictiveNavigationLayerState internal constructor() {
-    var isBackActive by mutableStateOf(false)
-        private set
+    private enum class BackPhase { Idle, Tracking, Committing, RemovingLayer }
 
-    var isCommitting by mutableStateOf(false)
-        private set
+    private var backPhase by mutableStateOf(BackPhase.Idle)
+
+    val isBackActive: Boolean get() = backPhase != BackPhase.Idle
+    val isCommitting: Boolean get() = backPhase == BackPhase.Committing || isRemovingLayer
+    internal val isRemovingLayer: Boolean get() = backPhase == BackPhase.RemovingLayer
 
     val progress = Animatable(0f)
     val backdropIntensity = Animatable(0f)
     val backgroundDepth = Animatable(0f)
+    internal var isLayerComposed by mutableStateOf(false)
 
     private val motion = PredictiveBackMotionTracker()
 
@@ -63,12 +68,13 @@ internal class PredictiveNavigationLayerState internal constructor() {
     }
 
     internal suspend fun trackBack(progress: Float) {
+        if (isCommitting) return
         if (!isBackActive) {
             motion.reset(progress)
         } else {
             motion.update(progress)
         }
-        isBackActive = true
+        backPhase = BackPhase.Tracking
         this.progress.snapTo(progress)
         val smoothProgress = smootherStep(progress)
         backdropIntensity.snapTo(predictiveEffectIntensity(smoothProgress))
@@ -76,7 +82,7 @@ internal class PredictiveNavigationLayerState internal constructor() {
     }
 
     internal suspend fun cancelBack() {
-        if (isCommitting) return
+        if (backPhase != BackPhase.Tracking) return
         coroutineScope {
             launch {
                 progress.animateTo(
@@ -98,7 +104,7 @@ internal class PredictiveNavigationLayerState internal constructor() {
             }
         }
         motion.reset()
-        isBackActive = false
+        backPhase = BackPhase.Idle
     }
 
     internal suspend fun commitBack(
@@ -107,7 +113,8 @@ internal class PredictiveNavigationLayerState internal constructor() {
         onDismiss: () -> Unit,
     ) {
         if (isCommitting) return
-        isCommitting = true
+        // A back completion can arrive without any progress events.
+        backPhase = BackPhase.Committing
         try {
             val targetProgress = predictiveExitProgress(maxTranslationPercent)
             val duration = predictiveSettleDuration(
@@ -135,14 +142,15 @@ internal class PredictiveNavigationLayerState internal constructor() {
                 }
                 launch { additionalAnimation(duration, settleEasing) }
             }
+            backPhase = BackPhase.RemovingLayer
             onDismiss()
-            delay(PREDICTIVE_DISMISS_DURATION.toLong())
         } finally {
             withContext(NonCancellable) {
+                // Keep the foreground offscreen until its composition has been disposed.
+                if (isRemovingLayer) snapshotFlow { !isLayerComposed }.first { it }
                 progress.snapTo(0f)
                 motion.reset()
-                isBackActive = false
-                isCommitting = false
+                backPhase = BackPhase.Idle
             }
         }
     }
@@ -178,7 +186,7 @@ internal fun PredictiveNavigationBackHandler(
         }
     }
 
-    BackHandler(enabled = state.isBackActive && state.isCommitting) {
+    BackHandler(enabled = state.isCommitting) {
         // Consume additional back events until the committed transition finishes.
     }
 }
@@ -192,6 +200,7 @@ internal fun PredictiveNavigationLayer(
     backgroundState: PredictiveNavigationLayerState? = null,
     content: @Composable () -> Unit,
 ) {
+    if (state.isRemovingLayer) return
     AnimatedVisibility(
         visible = visible,
         modifier = modifier
@@ -212,6 +221,10 @@ internal fun PredictiveNavigationLayer(
             ) { it }
         },
     ) {
+        DisposableEffect(state) {
+            state.isLayerComposed = true
+            onDispose { state.isLayerComposed = false }
+        }
         content()
     }
 }

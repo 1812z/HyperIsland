@@ -27,7 +27,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
@@ -40,7 +39,8 @@ import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.BarBackdropContent
 import io.github.hyperisland.compose.component.BarBlurHost
-import io.github.hyperisland.compose.component.BlurredBar
+import io.github.hyperisland.compose.component.PageTopAppBar
+import io.github.hyperisland.compose.component.PageTopBarIconButton
 import io.github.hyperisland.compose.component.LocalBarBlurEnabled
 import io.github.hyperisland.compose.component.LocalRootBottomBarPadding
 import io.github.hyperisland.compose.component.SectionTitle
@@ -58,7 +58,6 @@ import top.yukonga.miuix.kmp.basic.DropdownDefaults
 import top.yukonga.miuix.kmp.basic.DropdownEntry
 import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.InputField
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.PullToRefresh
@@ -70,7 +69,6 @@ import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.TabRow
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.icon.extended.More
@@ -196,30 +194,27 @@ internal fun FilterRulesPage(
         ),
     )
 
-    BarBlurHost(enabled = LocalBarBlurEnabled.current) {
+    BarBlurHost(enabled = LocalBarBlurEnabled.current, captureForEffects = true) {
         Scaffold(
             topBar = {
-                BlurredBar(topGradient = true) {
-                    TopAppBar(
-                        title = stringResource(R.string.filter_rules),
-                        largeTitle = stringResource(R.string.filter_rules),
-                        color = Color.Transparent,
-                        scrollBehavior = scrollBehavior,
-                        navigationIcon = {
-                            IconButton(onClick = onBack) {
-                                Icon(MiuixIcons.Back, stringResource(R.string.back))
-                            }
-                        },
-                        actions = {
-                            OverlayIconCascadingDropdownMenu(
-                                entries = menuEntries,
-                                collapseOnSelection = false,
-                            ) {
-                                Icon(MiuixIcons.More, stringResource(R.string.list_actions))
-                            }
-                        },
-                    )
-                }
+                PageTopAppBar(
+                    title = stringResource(R.string.filter_rules),
+                    largeTitle = stringResource(R.string.filter_rules),
+                    scrollBehavior = scrollBehavior,
+                    navigationIcon = {
+                        PageTopBarIconButton(onClick = onBack) {
+                            Icon(MiuixIcons.Back, stringResource(R.string.back))
+                        }
+                    },
+                    actions = {
+                        OverlayIconCascadingDropdownMenu(
+                            entries = menuEntries,
+                            collapseOnSelection = false,
+                        ) {
+                            Icon(MiuixIcons.More, stringResource(R.string.list_actions))
+                        }
+                    },
+                )
             },
             snackbarHost = { SnackbarHost(snackbarState) },
         ) { padding ->

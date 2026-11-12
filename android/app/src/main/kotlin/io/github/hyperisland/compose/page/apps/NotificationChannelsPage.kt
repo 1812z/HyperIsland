@@ -33,7 +33,8 @@ import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.BarBackdropContent
 import io.github.hyperisland.compose.component.BarBlurHost
-import io.github.hyperisland.compose.component.BlurredBar
+import io.github.hyperisland.compose.component.PageTopAppBar
+import io.github.hyperisland.compose.component.PageTopBarIconButton
 import io.github.hyperisland.compose.component.LocalBarBlurEnabled
 import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
@@ -60,7 +61,6 @@ import top.yukonga.miuix.kmp.basic.SnackbarHostState
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.icon.extended.More
@@ -235,17 +235,15 @@ internal fun NotificationChannelsPage(
     )
 
     val pageBlurEnabled = LocalBarBlurEnabled.current
-    BarBlurHost(enabled = pageBlurEnabled) {
+    BarBlurHost(enabled = pageBlurEnabled, captureForEffects = true) {
         Scaffold(
             topBar = {
-                BlurredBar(topGradient = true) {
-                    TopAppBar(
+                PageTopAppBar(
                     title = app.appName,
                     largeTitle = app.appName,
-                    color = Color.Transparent,
                     scrollBehavior = scrollBehavior,
                     navigationIcon = {
-                        IconButton(onClick = onBack) {
+                        PageTopBarIconButton(onClick = onBack) {
                             Icon(MiuixIcons.Back, stringResource(R.string.back))
                         }
                     },
@@ -261,8 +259,7 @@ internal fun NotificationChannelsPage(
                             Icon(MiuixIcons.More, stringResource(R.string.list_actions))
                         }
                     },
-                    )
-                }
+                )
             },
             snackbarHost = { SnackbarHost(snackbarState) },
         ) { padding ->

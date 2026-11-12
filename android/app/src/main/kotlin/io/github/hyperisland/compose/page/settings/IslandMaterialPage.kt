@@ -34,7 +34,8 @@ import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.BarBackdropContent
 import io.github.hyperisland.compose.component.BarBlurHost
-import io.github.hyperisland.compose.component.BlurredBar
+import io.github.hyperisland.compose.component.PageTopAppBar
+import io.github.hyperisland.compose.component.PageTopBarIconButton
 import io.github.hyperisland.compose.component.ColorPaletteDialog
 import io.github.hyperisland.compose.component.LocalBarBlurEnabled
 import io.github.hyperisland.compose.component.PreferenceDropdown
@@ -58,7 +59,6 @@ import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.DropdownEntry
 import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SnackbarHost
@@ -66,7 +66,6 @@ import top.yukonga.miuix.kmp.basic.SnackbarHostState
 import top.yukonga.miuix.kmp.basic.TabRow
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.icon.extended.ChevronForward
@@ -161,35 +160,32 @@ internal fun IslandMaterialPage(
         ),
     )
 
-    BarBlurHost(enabled = LocalBarBlurEnabled.current) {
+    BarBlurHost(enabled = LocalBarBlurEnabled.current, captureForEffects = true) {
         Scaffold(
             topBar = {
-                BlurredBar(topGradient = true) {
-                    Column {
-                        TopAppBar(
-                            title = stringResource(R.string.material_customize),
-                            largeTitle = stringResource(R.string.material_customize),
-                            color = Color.Transparent,
-                            scrollBehavior = scrollBehavior,
-                            navigationIcon = {
-                                IconButton(onClick = onBack) {
-                                    Icon(MiuixIcons.Back, stringResource(R.string.back))
-                                }
-                            },
-                            actions = {
-                                IconButton(
-                                    onClick = { TestNotificationService.sendCustom(context, "", "", true, true) },
-                                ) {
-                                    Icon(
-                                        ImageVector.vectorResource(R.drawable.ic_test_notification),
-                                        stringResource(R.string.send_test_notification),
-                                    )
-                                }
-                                OverlayIconDropdownMenu(entry = menuEntry) {
-                                    Icon(MiuixIcons.More, stringResource(R.string.list_actions))
-                                }
-                            },
-                        )
+                PageTopAppBar(
+                    title = stringResource(R.string.material_customize),
+                    largeTitle = stringResource(R.string.material_customize),
+                    scrollBehavior = scrollBehavior,
+                    navigationIcon = {
+                        PageTopBarIconButton(onClick = onBack) {
+                            Icon(MiuixIcons.Back, stringResource(R.string.back))
+                        }
+                    },
+                    actions = {
+                        PageTopBarIconButton(
+                            onClick = { TestNotificationService.sendCustom(context, "", "", true, true) },
+                        ) {
+                            Icon(
+                                ImageVector.vectorResource(R.drawable.ic_test_notification),
+                                stringResource(R.string.send_test_notification),
+                            )
+                        }
+                        OverlayIconDropdownMenu(entry = menuEntry) {
+                            Icon(MiuixIcons.More, stringResource(R.string.list_actions))
+                        }
+                    },
+                    bottomContent = {
                         TabRow(
                             tabs = listOf(
                                 stringResource(R.string.material_big_tab),
@@ -202,8 +198,8 @@ internal fun IslandMaterialPage(
                             },
                             modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
                         )
-                    }
-                }
+                    },
+                )
             },
             snackbarHost = { SnackbarHost(snackbarState) },
         ) { padding ->

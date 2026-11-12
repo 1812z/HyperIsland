@@ -6,39 +6,51 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
 import top.yukonga.miuix.kmp.basic.Button
+import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.DropdownEntry
-import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.DropdownArrowEndAction
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.glass.GlassDropdownPreference
+import top.yukonga.miuix.kmp.glass.GlassDropdownPopup
+import top.yukonga.miuix.kmp.glass.GlassPopupItem
+import top.yukonga.miuix.kmp.glass.glassPopupAnchorValue
+import top.yukonga.miuix.kmp.glass.rememberGlassPopupAnchor
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Refresh
 import top.yukonga.miuix.kmp.preference.SliderPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
-import top.yukonga.miuix.kmp.preference.WindowDropdownPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.utils.MiuixPopupUtils.Companion.PopupLayout
 import top.yukonga.miuix.kmp.window.WindowDialog
 import java.util.Locale
 import kotlin.math.abs
@@ -75,25 +87,9 @@ internal fun PreferenceDropdown(
     selectedIndex: Int,
     enabled: Boolean = true,
     insideMargin: PaddingValues = SettingsItemMargin,
-    useGlass: Boolean = false,
     onSelectedIndexChange: (Int) -> Unit,
 ) {
-    if (useGlass) {
-        GlassDropdownPreference(
-            title = title,
-            summary = summary,
-            items = items,
-            selectedIndex = selectedIndex,
-            backdrop = LocalBarBlurBackdrop.current,
-            enabled = enabled,
-            renderInRootScaffold = false,
-            startAction = icon?.let { image -> { SettingsIcon(image) } },
-            insideMargin = insideMargin,
-            onSelectedIndexChange = onSelectedIndexChange,
-        )
-        return
-    }
-    WindowDropdownPreference(
+    PageDropdownPreference(
         title = title,
         summary = summary,
         items = items,
@@ -105,16 +101,32 @@ internal fun PreferenceDropdown(
     )
 }
 
-/**
- * 带选项副标题的下拉。[PreferenceDropdown] 的 `List<String>` 重载不支持副标题，
- * 这里改走 miuix 的 `List<DropdownEntry>` 重载：其 `DropdownImpl` 会渲染每个
- * [DropdownItem] 的 `summary`，行尾取值则取标记了 `selected` 的那一项文本。
- *
- * 单独命名而非重载：`List<String>` 与 `List<Pair<String, String?>>` 擦除后 JVM 签名相同，
- * 重载会触发 Platform declaration clash。
- *
- * @param items 选项文本 to 选项副标题（无副标题传 null）。
- */
+@Composable
+internal fun PageDropdownPreference(
+    title: String,
+    items: List<String>,
+    selectedIndex: Int,
+    summary: String? = null,
+    enabled: Boolean = true,
+    insideMargin: PaddingValues = SettingsItemMargin,
+    startAction: (@Composable () -> Unit)? = null,
+    onSelectedIndexChange: (Int) -> Unit,
+) {
+    GlassDropdownPreference(
+        title = title,
+        summary = summary,
+        items = items,
+        selectedIndex = selectedIndex,
+        backdrop = LocalBarBlurBackdrop.current,
+        enabled = enabled,
+        renderInRootScaffold = false,
+        startAction = startAction,
+        insideMargin = insideMargin,
+        onSelectedIndexChange = onSelectedIndexChange,
+    )
+}
+
+/** The glass preference accepts plain labels. Use its popup to retain per-option summaries. */
 @Composable
 internal fun PreferenceDropdownWithSummary(
     title: String,
@@ -126,31 +138,74 @@ internal fun PreferenceDropdownWithSummary(
     insideMargin: PaddingValues = SettingsItemMargin,
     onSelectedIndexChange: (Int) -> Unit,
 ) {
-    val entries = remember(items, selectedIndex, enabled, onSelectedIndexChange) {
-        listOf(
-            DropdownEntry(
-                items = items.mapIndexed { index, (text, itemSummary) ->
-                    DropdownItem(
-                        text = text,
-                        summary = itemSummary,
-                        selected = index == selectedIndex,
-                        enabled = enabled,
-                        onClick = { onSelectedIndexChange(index) },
-                    )
-                },
-            ),
-        )
+    val expanded = remember { mutableStateOf(false) }
+    var bounds by remember { mutableStateOf(Rect.Zero) }
+    val anchor = rememberGlassPopupAnchor()
+    val backdrop = LocalBarBlurBackdrop.current
+    val available = enabled && items.isNotEmpty()
+    val actionColor = if (available) {
+        MiuixTheme.colorScheme.onSurfaceVariantActions
+    } else {
+        MiuixTheme.colorScheme.disabledOnSecondaryVariant
     }
-    WindowDropdownPreference(
-        entries = entries,
+    LaunchedEffect(available) {
+        if (!available) expanded.value = false
+    }
+    BasicComponent(
+        modifier = Modifier.onGloballyPositioned { bounds = it.boundsInWindow() },
         title = title,
         summary = summary,
-        enabled = enabled,
         startAction = icon?.let { image -> { SettingsIcon(image) } },
+        endActions = {
+            Row(
+                modifier = Modifier.glassPopupAnchorValue(anchor),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                items.getOrNull(selectedIndex)?.first?.let { label ->
+                    Text(
+                        text = label,
+                        modifier = Modifier.padding(end = 8.dp).weight(1f, fill = false),
+                        fontSize = MiuixTheme.textStyles.body2.fontSize,
+                        color = actionColor,
+                        textAlign = TextAlign.End,
+                    )
+                }
+                DropdownArrowEndAction(actionColor = actionColor)
+            }
+        },
         insideMargin = insideMargin,
-        showValue = true,
-        collapseOnSelection = true,
+        enabled = available,
+        role = Role.DropdownList,
+        onClick = { expanded.value = true },
     )
+    PopupLayout(
+        visible = expanded,
+        enableWindowDim = false,
+        enableBackHandler = false,
+        renderInRootScaffold = false,
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            GlassDropdownPopup(
+                show = expanded.value && available,
+                onDismissRequest = { expanded.value = false },
+                anchorBounds = bounds,
+                anchor = anchor,
+                backdrop = backdrop,
+            ) {
+                items.forEachIndexed { index, (label, details) ->
+                    GlassPopupItem(
+                        text = label,
+                        summary = details,
+                        selected = index == selectedIndex,
+                        onClick = {
+                            expanded.value = false
+                            onSelectedIndexChange(index)
+                        },
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable

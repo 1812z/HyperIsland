@@ -20,6 +20,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.ColorPaletteDialog
+import io.github.hyperisland.compose.component.PageDropdownPreference
 import io.github.hyperisland.compose.component.DetailPage
 import io.github.hyperisland.compose.component.KeywordListDialog
 import io.github.hyperisland.compose.component.SectionTitle
@@ -35,7 +36,6 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.preference.ArrowPreference
-import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.window.WindowDialog
@@ -558,13 +558,12 @@ private fun <T> FormDropdown(
     labels: List<String>,
     onChange: (T?) -> Unit,
 ) {
-    OverlayDropdownPreference(
+    PageDropdownPreference(
         items = labels,
         selectedIndex = values.indexOf(value).coerceAtLeast(0),
         title = title,
         summary = summary,
         insideMargin = TOAST_ITEM_MARGIN,
-        renderInRootScaffold = false,
         onSelectedIndexChange = { onChange(values[it]) },
     )
 }

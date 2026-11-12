@@ -37,7 +37,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
@@ -49,7 +48,8 @@ import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.BarBackdropContent
 import io.github.hyperisland.compose.component.BarBlurHost
-import io.github.hyperisland.compose.component.BlurredBar
+import io.github.hyperisland.compose.component.PageTopAppBar
+import io.github.hyperisland.compose.component.PageTopBarIconButton
 import io.github.hyperisland.compose.component.LocalBarBlurEnabled
 import io.github.hyperisland.compose.component.LocalRootBottomBarPadding
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
@@ -65,7 +65,6 @@ import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.DropdownEntry
 import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
 import top.yukonga.miuix.kmp.basic.InputField
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
@@ -75,7 +74,6 @@ import top.yukonga.miuix.kmp.basic.SearchBar
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.TabRow
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.ChevronForward
 import top.yukonga.miuix.kmp.icon.extended.Close
@@ -337,75 +335,72 @@ internal fun AppsPage(
     )
 
     val pageBlurEnabled = LocalBarBlurEnabled.current
-    BarBlurHost(enabled = pageBlurEnabled) {
+    BarBlurHost(enabled = pageBlurEnabled, captureForEffects = true) {
         Scaffold(
-        topBar = {
-            BlurredBar(topGradient = true) {
-                TopAppBar(
-                title = if (selectionMode) {
-                    stringResource(R.string.selected_count, selectedPackages.size)
-                } else {
-                    stringResource(R.string.app_adaptation)
-                },
-                largeTitle = if (selectionMode) {
-                    stringResource(R.string.selected_count, selectedPackages.size)
-                } else {
-                    stringResource(R.string.app_adaptation)
-                },
-                color = Color.Transparent,
-                scrollBehavior = scrollBehavior,
-                navigationIcon = {
-                    if (selectionMode) {
-                        IconButton(onClick = ::leaveSelectionMode) {
-                            Icon(MiuixIcons.Close, stringResource(R.string.cancel_selection))
-                        }
-                    }
-                },
-                actions = {
-                    if (selectionMode) {
-                        IconButton(
-                            onClick = {
-                                selectedPackages = if (allVisibleSelected) {
-                                    selectedPackages - filteredApps.map { it.packageName }.toSet()
-                                } else {
-                                    selectedPackages + filteredApps.map { it.packageName }
-                                }
-                            },
-                        ) {
-                            Icon(
-                                MiuixIcons.SelectAll,
-                                stringResource(
-                                    if (allVisibleSelected) R.string.deselect_all else R.string.select_all,
-                                ),
-                            )
-                        }
+            topBar = {
+                PageTopAppBar(
+                    title = if (selectionMode) {
+                        stringResource(R.string.selected_count, selectedPackages.size)
                     } else {
-                        IconButton(
-                            onClick = {
-                                selectionMode = true
-                                selectedPackages = emptySet()
-                            },
-                            enabled = !initialLoading && !refreshing,
-                        ) {
-                            Icon(MiuixIcons.SelectAll, stringResource(R.string.multi_select))
-                        }
-                    }
-                    if (selectionMode) {
-                        OverlayIconDropdownMenu(entries = selectionMenuEntries) {
-                            Icon(MiuixIcons.More, stringResource(R.string.list_actions))
-                        }
+                        stringResource(R.string.app_adaptation)
+                    },
+                    largeTitle = if (selectionMode) {
+                        stringResource(R.string.selected_count, selectedPackages.size)
                     } else {
-                        OverlayIconCascadingDropdownMenu(
-                            entries = normalMenuEntries,
-                            collapseOnSelection = false,
-                        ) {
-                            Icon(MiuixIcons.More, stringResource(R.string.list_actions))
+                        stringResource(R.string.app_adaptation)
+                    },
+                    scrollBehavior = scrollBehavior,
+                    navigationIcon = {
+                        if (selectionMode) {
+                            PageTopBarIconButton(onClick = ::leaveSelectionMode) {
+                                Icon(MiuixIcons.Close, stringResource(R.string.cancel_selection))
+                            }
                         }
-                    }
-                },
-            )
-            }
-        },
+                    },
+                    actions = {
+                        if (selectionMode) {
+                            PageTopBarIconButton(
+                                onClick = {
+                                    selectedPackages = if (allVisibleSelected) {
+                                        selectedPackages - filteredApps.map { it.packageName }.toSet()
+                                    } else {
+                                        selectedPackages + filteredApps.map { it.packageName }
+                                    }
+                                },
+                            ) {
+                                Icon(
+                                    MiuixIcons.SelectAll,
+                                    stringResource(
+                                        if (allVisibleSelected) R.string.deselect_all else R.string.select_all,
+                                    ),
+                                )
+                            }
+                        } else {
+                            PageTopBarIconButton(
+                                onClick = {
+                                    selectionMode = true
+                                    selectedPackages = emptySet()
+                                },
+                                enabled = !initialLoading && !refreshing,
+                            ) {
+                                Icon(MiuixIcons.SelectAll, stringResource(R.string.multi_select))
+                            }
+                        }
+                        if (selectionMode) {
+                            OverlayIconDropdownMenu(entries = selectionMenuEntries) {
+                                Icon(MiuixIcons.More, stringResource(R.string.list_actions))
+                            }
+                        } else {
+                            OverlayIconCascadingDropdownMenu(
+                                entries = normalMenuEntries,
+                                collapseOnSelection = false,
+                            ) {
+                                Icon(MiuixIcons.More, stringResource(R.string.list_actions))
+                            }
+                        }
+                    },
+                )
+            },
         ) { padding ->
             BarBackdropContent(modifier = Modifier.fillMaxSize()) {
                 PullToRefresh(

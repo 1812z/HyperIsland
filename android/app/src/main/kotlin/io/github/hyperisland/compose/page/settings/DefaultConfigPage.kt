@@ -19,6 +19,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.ColorPaletteDialog
+import io.github.hyperisland.compose.component.PageDropdownPreference
 import io.github.hyperisland.compose.component.DetailPage
 import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.component.parseHexColor
@@ -36,7 +37,6 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.preference.ArrowPreference
-import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.window.WindowDialog
 
@@ -155,14 +155,13 @@ internal fun DefaultConfigPage(
                     summary = stringResource(R.string.marquee_channel_summary),
                     insideMargin = DEFAULT_ITEM_MARGIN,
                 )
-                OverlayDropdownPreference(
+                PageDropdownPreference(
                     items = marqueeAutoHideLabels,
                     selectedIndex = marqueeAutoHideValues.indexOf(settings.marqueeAutoHide).coerceAtLeast(0),
                     title = stringResource(R.string.marquee_auto_hide),
                     summary = stringResource(R.string.marquee_auto_hide_summary),
                     enabled = settings.marquee,
                     insideMargin = DEFAULT_ITEM_MARGIN,
-                    renderInRootScaffold = false,
                     onSelectedIndexChange = { index ->
                         update(settings.copy(marqueeAutoHide = marqueeAutoHideValues[index]))
                     },
@@ -181,13 +180,12 @@ internal fun DefaultConfigPage(
                     summary = stringResource(R.string.island_icon_summary),
                     insideMargin = DEFAULT_ITEM_MARGIN,
                 )
-                OverlayDropdownPreference(
+                PageDropdownPreference(
                     items = statusBarIconLabels,
                     selectedIndex = statusBarIconValues.indexOf(settings.statusBarIcon).coerceAtLeast(0),
                     title = stringResource(R.string.preserve_small_icon),
                     summary = statusBarIconSummary,
                     insideMargin = DEFAULT_ITEM_MARGIN,
-                    renderInRootScaffold = false,
                     onSelectedIndexChange = { index ->
                         update(settings.copy(statusBarIcon = statusBarIconValues[index]))
                     },
@@ -197,12 +195,11 @@ internal fun DefaultConfigPage(
         item {
             SectionTitle(stringResource(R.string.glow))
             Card {
-                OverlayDropdownPreference(
+                PageDropdownPreference(
                     items = glowModeLabels,
                     selectedIndex = glowModes.indexOf(settings.outerGlow).coerceAtLeast(0),
                     title = stringResource(R.string.focus_outer_glow),
                     insideMargin = DEFAULT_ITEM_MARGIN,
-                    renderInRootScaffold = false,
                     onSelectedIndexChange = { index ->
                         val mode = glowModes[index]
                         update(
@@ -233,12 +230,11 @@ internal fun DefaultConfigPage(
                         },
                     )
                 }
-                OverlayDropdownPreference(
+                PageDropdownPreference(
                     items = glowModeLabels,
                     selectedIndex = glowModes.indexOf(settings.islandOuterGlow).coerceAtLeast(0),
                     title = stringResource(R.string.island_outer_glow),
                     insideMargin = DEFAULT_ITEM_MARGIN,
-                    renderInRootScaffold = false,
                     onSelectedIndexChange = { index ->
                         val mode = glowModes[index]
                         update(

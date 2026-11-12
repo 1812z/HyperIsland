@@ -1,5 +1,6 @@
 package io.github.hyperisland.compose.component
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
@@ -28,12 +29,63 @@ import top.yukonga.miuix.kmp.basic.PullToRefresh
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.basic.SmallTitle
-import top.yukonga.miuix.kmp.basic.TopAppBar
+import top.yukonga.miuix.kmp.glass.GlassIconButton
+import top.yukonga.miuix.kmp.glass.GlassTopAppBar
+import top.yukonga.miuix.kmp.glass.GlassTopAppBarDefaults
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.icon.basic.ArrowRight
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
+
+@Composable
+internal fun PageTopAppBar(
+    title: String,
+    largeTitle: String = title,
+    subtitle: String = "",
+    scrollBehavior: ScrollBehavior? = null,
+    navigationIcon: @Composable () -> Unit = {},
+    actions: @Composable RowScope.() -> Unit = {},
+    bottomContent: @Composable () -> Unit = {},
+) {
+    val backdrop = LocalBarBlurBackdrop.current
+    val progressiveBlur = LocalBarBlurEnabled.current && backdrop != null
+    val band = GlassTopAppBarDefaults.bandBrush(MiuixTheme.colorScheme.surface)
+    GlassTopAppBar(
+        title = title,
+        largeTitle = largeTitle,
+        subtitle = subtitle,
+        // Keep the material visible at rest as well as during title collapse.
+        isContentScrolled = true,
+        modifier = if (progressiveBlur) Modifier.background(band) else Modifier,
+        progressiveBlur = progressiveBlur,
+        backdrop = backdrop,
+        bandBrush = band,
+        scrollBehavior = scrollBehavior,
+        navigationIcon = navigationIcon,
+        actions = actions,
+        bottomContent = bottomContent,
+    )
+}
+
+@Composable
+internal fun PageTopBarIconButton(
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    content: @Composable () -> Unit,
+) {
+    if (enabled) {
+        GlassIconButton(onClick = onClick, content = content)
+    } else {
+        IconButton(
+            onClick = onClick,
+            modifier = Modifier.size(GlassTopAppBarDefaults.ButtonSize),
+            enabled = false,
+        ) {
+            content()
+        }
+    }
+}
 
 @Composable
 internal fun CollapsingPage(
@@ -50,25 +102,22 @@ internal fun CollapsingPage(
 ) {
     val scrollBehavior = MiuixScrollBehavior()
     val blurEnabled = LocalBarBlurEnabled.current
-    BarBlurHost(enabled = blurEnabled) {
+    BarBlurHost(enabled = blurEnabled, captureForEffects = true) {
         Scaffold(
             topBar = {
-                BlurredBar(topGradient = true) {
-                    TopAppBar(
-                        title = title,
-                        largeTitle = title,
-                        subtitle = subtitle,
-                        color = Color.Transparent,
-                        scrollBehavior = scrollBehavior,
-                        actions = {
-                            if (actionIcon != null && onAction != null) {
-                                IconButton(onClick = onAction) {
-                                    Icon(actionIcon, actionDescription)
-                                }
+                PageTopAppBar(
+                    title = title,
+                    largeTitle = title,
+                    subtitle = subtitle,
+                    scrollBehavior = scrollBehavior,
+                    actions = {
+                        if (actionIcon != null && onAction != null) {
+                            PageTopBarIconButton(onClick = onAction) {
+                                Icon(actionIcon, actionDescription)
                             }
-                        },
-                    )
-                }
+                        }
+                    },
+                )
             },
             snackbarHost = snackbarHost,
         ) { padding ->
@@ -104,29 +153,25 @@ internal fun DetailPage(
 ) {
     val scrollBehavior = MiuixScrollBehavior()
     val blurEnabled = LocalBarBlurEnabled.current
-    BarBlurHost(enabled = blurEnabled) {
+    BarBlurHost(enabled = blurEnabled, captureForEffects = true) {
         Scaffold(
             topBar = {
-                BlurredBar(topGradient = true) {
-                    TopAppBar(
-                        title = title,
-                        largeTitle = title,
-                        color = Color.Transparent,
-                        scrollBehavior = scrollBehavior,
-                        navigationIcon = {
-                            IconButton(onClick = onBack) {
-                                Icon(MiuixIcons.Back, stringResource(R.string.back))
+                PageTopAppBar(
+                    title = title,
+                    scrollBehavior = scrollBehavior,
+                    navigationIcon = {
+                        PageTopBarIconButton(onClick = onBack) {
+                            Icon(MiuixIcons.Back, stringResource(R.string.back))
+                        }
+                    },
+                    actions = {
+                        if (actionIcon != null && onAction != null) {
+                            PageTopBarIconButton(onClick = onAction) {
+                                Icon(actionIcon, actionDescription)
                             }
-                        },
-                        actions = {
-                            if (actionIcon != null && onAction != null) {
-                                IconButton(onClick = onAction) {
-                                    Icon(actionIcon, actionDescription)
-                                }
-                            }
-                        },
-                    )
-                }
+                        }
+                    },
+                )
             },
             floatingActionButton = floatingActionButton,
             snackbarHost = snackbarHost,
@@ -166,23 +211,20 @@ internal fun DetailGridPage(
 ) {
     val scrollBehavior = MiuixScrollBehavior()
     val blurEnabled = LocalBarBlurEnabled.current
-    BarBlurHost(enabled = blurEnabled) {
+    BarBlurHost(enabled = blurEnabled, captureForEffects = true) {
         Scaffold(
             topBar = {
-                BlurredBar(topGradient = true) {
-                    TopAppBar(
-                        title = title,
-                        largeTitle = title,
-                        color = Color.Transparent,
-                        scrollBehavior = scrollBehavior,
-                        navigationIcon = {
-                            IconButton(onClick = onBack) {
-                                Icon(MiuixIcons.Back, stringResource(R.string.back))
-                            }
-                        },
-                        actions = actions,
-                    )
-                }
+                PageTopAppBar(
+                    title = title,
+                    largeTitle = title,
+                    scrollBehavior = scrollBehavior,
+                    navigationIcon = {
+                        PageTopBarIconButton(onClick = onBack) {
+                            Icon(MiuixIcons.Back, stringResource(R.string.back))
+                        }
+                    },
+                    actions = actions,
+                )
             },
             snackbarHost = snackbarHost,
         ) { padding ->

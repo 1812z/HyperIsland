@@ -34,6 +34,7 @@ miuix-ui = { module = "top.yukonga.miuix.kmp:miuix-ui-android", version.ref = "m
 miuix-preference = { module = "top.yukonga.miuix.kmp:miuix-preference-android", version.ref = "miuix" }
 miuix-icons = { module = "top.yukonga.miuix.kmp:miuix-icons-android", version.ref = "miuix" }
 miuix-blur = { module = "top.yukonga.miuix.kmp:miuix-blur-android", version.ref = "miuix" }
+miuix-glass = { module = "top.yukonga.miuix.kmp:miuix-glass-android", version.ref = "miuix" }
 
 iconics-core = { module = "com.mikepenz:iconics-core", version.ref = "iconics" }
 community-material-typeface = { module = "com.mikepenz:community-material-typeface", version.ref = "communityMaterialTypeface" }
@@ -46,7 +47,7 @@ libxposed-api = { module = "io.github.libxposed:api", version.ref = "libxposed" 
 libxposed-service = { module = "io.github.libxposed:service", version.ref = "libxposed" }
 
 [bundles]
-miuix = ["miuix-ui", "miuix-preference", "miuix-icons", "miuix-blur"]
+miuix = ["miuix-ui", "miuix-preference", "miuix-icons", "miuix-blur", "miuix-glass"]
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

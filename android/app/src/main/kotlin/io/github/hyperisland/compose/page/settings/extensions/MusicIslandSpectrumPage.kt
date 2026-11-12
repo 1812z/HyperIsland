@@ -104,6 +104,7 @@ internal fun MusicIslandSpectrumPage(prefs: FlutterPrefsRepository, onBack: () -
                             icon = null,
                             items = colorModeLabels,
                             selectedIndex = colorModeValues.indexOf(colorMode.value).coerceAtLeast(0),
+                            enabled = enabled.value,
                         ) { index ->
                             colorMode.value = colorModeValues[index]
                             prefs.putString(KEY_MUSIC_ISLAND_SPECTRUM_COLOR_MODE, colorModeValues[index])

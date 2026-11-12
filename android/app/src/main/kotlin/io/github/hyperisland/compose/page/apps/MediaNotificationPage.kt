@@ -13,6 +13,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.DetailPage
+import io.github.hyperisland.compose.component.PageDropdownPreference
 import io.github.hyperisland.compose.component.ColorPaletteDialog
 import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.component.parseHexColor
@@ -24,7 +25,6 @@ import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Refresh
 import top.yukonga.miuix.kmp.preference.ArrowPreference
-import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
 
 @Composable
@@ -97,14 +97,13 @@ internal fun MediaNotificationPage(
                 stringResource(R.string.glow_section, stringResource(R.string.focus_notification)),
             )
             Card {
-                OverlayDropdownPreference(
+                PageDropdownPreference(
                     items = outerGlowLabels,
                     selectedIndex = modes.indexOf(draft.outerGlow).coerceAtLeast(0),
                     title = stringResource(R.string.outer_glow),
                     onSelectedIndexChange = { index -> updateSettings(draft.copy(outerGlow = modes[index])) },
                     enabled = draft.enabled,
                     insideMargin = MEDIA_ITEM_MARGIN,
-                    renderInRootScaffold = false,
                 )
                 AnimatedVisibility(visible = draft.enabled && draft.outerGlow == TRI_STATE_ON) {
                     ArrowPreference(
@@ -124,7 +123,7 @@ internal fun MediaNotificationPage(
                 stringResource(R.string.glow_section, stringResource(R.string.enable_island)),
             )
             Card {
-                OverlayDropdownPreference(
+                PageDropdownPreference(
                     items = islandOuterGlowLabels,
                     selectedIndex = modes.indexOf(draft.islandOuterGlow).coerceAtLeast(0),
                     title = stringResource(R.string.outer_glow),
@@ -133,7 +132,6 @@ internal fun MediaNotificationPage(
                     },
                     enabled = draft.enabled,
                     insideMargin = MEDIA_ITEM_MARGIN,
-                    renderInRootScaffold = false,
                 )
                 AnimatedVisibility(visible = draft.enabled && draft.islandOuterGlow == TRI_STATE_ON) {
                     ArrowPreference(

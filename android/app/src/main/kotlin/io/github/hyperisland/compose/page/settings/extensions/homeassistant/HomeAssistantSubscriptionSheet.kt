@@ -6,7 +6,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -30,6 +32,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.BarBackdropContent
+import io.github.hyperisland.compose.component.BarBlurHost
 import io.github.hyperisland.compose.component.PreferenceDropdown
 import io.github.hyperisland.compose.component.SettingsAction
 import io.github.hyperisland.compose.component.SettingsItemMargin
@@ -44,6 +48,7 @@ import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
@@ -115,17 +120,9 @@ internal fun HomeAssistantSubscriptionSheet(
     fun pickEntity(target: String) { pickerTarget = target }
     fun pickAttribute(target: String) { attributeTarget = target }
 
-    WindowBottomSheet(
-        show = show,
-        title = stringResource(if (initial == null) R.string.ha_add else R.string.ha_edit),
-        backgroundColor = haSheetColor(),
-        insideMargin = DpSize(12.dp, 0.dp),
-        startAction = { IconButton(onClick = onDismiss) { Icon(MiuixIcons.Basic.Close, stringResource(R.string.close)) } },
-        endAction = { IconButton(onClick = { onSave(draft) }, enabled = canSave) { Icon(MiuixIcons.Basic.Check, stringResource(R.string.save)) } },
-        onDismissRequest = onDismiss,
-    ) {
+    val subscriptionContent: @Composable () -> Unit = {
         LazyColumn(
-            modifier = Modifier.fillMaxWidth().heightIn(max = 680.dp),
+            modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(top = 4.dp, bottom = haSheetBottomPadding(16.dp)),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -354,6 +351,28 @@ internal fun HomeAssistantSubscriptionSheet(
                     Button(onClick = onDismiss, modifier = Modifier.weight(1f), colors = haButtonColors()) { Text(stringResource(R.string.cancel)) }
                     if (initial != null) Button(onClick = { onDelete(draft) }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(color = haSurfaceColor(), contentColor = MiuixTheme.colorScheme.error)) { Text(stringResource(R.string.delete)) }
                     Button(onClick = { onSave(draft) }, enabled = canSave, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColorsPrimary()) { Text(stringResource(R.string.save)) }
+                }
+            }
+        }
+    }
+
+    WindowBottomSheet(
+        show = show,
+        title = stringResource(if (initial == null) R.string.ha_add else R.string.ha_edit),
+        backgroundColor = haSheetColor(),
+        insideMargin = DpSize(12.dp, 0.dp),
+        startAction = { IconButton(onClick = onDismiss) { Icon(MiuixIcons.Basic.Close, stringResource(R.string.close)) } },
+        endAction = { IconButton(onClick = { onSave(draft) }, enabled = canSave) { Icon(MiuixIcons.Basic.Check, stringResource(R.string.save)) } },
+        onDismissRequest = onDismiss,
+    ) {
+        Scaffold(
+            modifier = Modifier.fillMaxWidth().heightIn(max = 680.dp),
+            containerColor = haSheetColor(),
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        ) {
+            BarBlurHost(enabled = false, captureForEffects = true) {
+                BarBackdropContent(modifier = Modifier.fillMaxSize()) {
+                    subscriptionContent()
                 }
             }
         }
