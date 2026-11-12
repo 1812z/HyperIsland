@@ -101,13 +101,13 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.blur.Backdrop
 import top.yukonga.miuix.kmp.blur.blur
 import top.yukonga.miuix.kmp.blur.drawBackdrop
-import top.yukonga.miuix.kmp.blur.highlight.BloomStroke
-import top.yukonga.miuix.kmp.blur.highlight.Highlight
-import top.yukonga.miuix.kmp.blur.highlight.LightPosition
-import top.yukonga.miuix.kmp.blur.highlight.LightSource
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
-import top.yukonga.miuix.kmp.blur.sensor.rememberDeviceTilt
+import top.yukonga.miuix.kmp.material.EdgeLightSource
+import top.yukonga.miuix.kmp.material.EdgePeak
+import top.yukonga.miuix.kmp.material.EdgeStroke
+import top.yukonga.miuix.kmp.material.drawEdgeStroke
+import top.yukonga.miuix.kmp.material.sensor.rememberDeviceTilt
 import top.yukonga.miuix.kmp.theme.LocalContentColor
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import kotlin.math.PI
@@ -185,31 +185,19 @@ internal fun LiquidGlassNavigationBar(
 
 private val LocalLiquidTabScale = staticCompositionLocalOf { { 1f } }
 
-private val IndicatorSpecular = Highlight(
+private val IndicatorSpecular = EdgeStroke(
     width = 1.dp,
-    alpha = 1f,
-    style = BloomStroke(
-        color = Color.White.copy(alpha = 0.12f),
-        innerBlurRadius = 2.dp,
-        primaryLight = LightSource(
-            position = LightPosition(0.5f, -0.3f, -0.05f),
-            color = Color.White,
-            intensity = 1f,
-        ),
-        secondaryLight = LightSource(
-            position = LightPosition(0.5f, 0.8f, -0.5f),
-            color = Color.White,
-            intensity = 0.4f,
-        ),
-        dualPeak = true,
-    ),
+    bevel = 2.dp,
+    color = Color.White.copy(alpha = 0.12f),
+    primary = EdgeLightSource(x = 0.5f, y = -0.3f, z = -0.05f),
+    secondary = EdgeLightSource(x = 0.5f, y = 0.8f, z = -0.5f, intensity = 0.4f),
+    peak = EdgePeak.Dual,
 )
 
 @Composable
-private fun rememberGravityHighlight(base: Highlight, extraDegrees: Float): Highlight {
-    val style = base.style as BloomStroke
+private fun rememberGravityStroke(base: EdgeStroke, extraDegrees: Float): EdgeStroke {
     val tilt by rememberDeviceTilt()
-    val primary = remember(tilt, style.primaryLight, extraDegrees) {
+    return remember(tilt, base, extraDegrees) {
         val magnitudeSquared = tilt.gravityX * tilt.gravityX + tilt.gravityY * tilt.gravityY
         val (x, y) = if (magnitudeSquared > 0.01f) {
             val inverseMagnitude = 1f / sqrt(magnitudeSquared)
@@ -220,11 +208,8 @@ private fun rememberGravityHighlight(base: Highlight, extraDegrees: Float): High
         val radians = extraDegrees * PI / 180.0
         val rotatedX = cos(radians).toFloat() * x - sin(radians).toFloat() * y
         val rotatedY = sin(radians).toFloat() * x + cos(radians).toFloat() * y
-        style.primaryLight.copy(
-            position = LightPosition(0.5f + rotatedX, 0.7f + rotatedY, style.primaryLight.position.z),
-        )
+        base.copy(primary = base.primary.copy(x = 0.5f + rotatedX, y = 0.7f + rotatedY))
     }
-    return remember(base, primary) { base.copy(style = style.copy(primaryLight = primary)) }
 }
 
 @Composable
@@ -342,8 +327,8 @@ private fun FloatingLiquidBar(
             )
         }
     }
-    val baseHighlight = rememberGravityHighlight(IndicatorSpecular, -45f)
-    val pillHighlight = rememberGravityHighlight(IndicatorSpecular, 90f)
+    val baseStroke = rememberGravityStroke(IndicatorSpecular, -45f)
+    val pillStroke = rememberGravityStroke(IndicatorSpecular, 90f)
     val combinedBackdrop = rememberCombinedBackdrop(backdrop, tabsBackdrop)
 
     Box(modifier = modifier.width(IntrinsicSize.Min), contentAlignment = Alignment.CenterStart) {
@@ -377,7 +362,6 @@ private fun FloatingLiquidBar(
                         blur(4.dp.toPx(), 4.dp.toPx())
                         lens(24.dp.toPx(), 24.dp.toPx())
                     },
-                    highlight = { baseHighlight.copy(alpha = 0.75f) },
                     layerBlock = {
                         val width = size.width.coerceAtLeast(1f)
                         val scale = lerp(1f, 1f + 16.dp.toPx() / width, dragAnimation.pressProgress)
@@ -385,6 +369,7 @@ private fun FloatingLiquidBar(
                         scaleY = scale
                     },
                     onDrawSurface = { drawRect(containerColor) },
+                    onDrawFront = { drawEdgeStroke(pillShape, baseStroke, alpha = 0.75f) },
                 )
                 .then(interactiveHighlight.modifier)
                 .height(64.dp)
@@ -444,7 +429,6 @@ private fun FloatingLiquidBar(
                                 chromaticAberration = 0.5f,
                             )
                         },
-                        highlight = { pillHighlight.copy(alpha = dragAnimation.pressProgress) },
                         layerBlock = {
                             scaleX = dragAnimation.scaleX
                             scaleY = dragAnimation.scaleY
@@ -460,6 +444,9 @@ private fun FloatingLiquidBar(
                                 alpha = 1f - progress,
                             )
                             drawRect(Color.Black.copy(alpha = 0.03f * progress))
+                        },
+                        onDrawFront = {
+                            drawEdgeStroke(pillShape, pillStroke, alpha = dragAnimation.pressProgress)
                         },
                     )
                     .height(56.dp)

@@ -377,7 +377,6 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
             "pref_music_island_spectrum_gradient_start",
             "pref_music_island_spectrum_gradient_end",
             "pref_music_island_spectrum_bar_count",
-            "pref_music_island_spectrum_smoothing",
             "pref_home_assistant",
             "pref_home_assistant_url",
             "pref_home_assistant_token",

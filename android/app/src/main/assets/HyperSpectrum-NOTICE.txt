@@ -1,0 +1,4 @@
+HyperSpectrum
+Copyright 2026 wxxsfxyzm
+Licensed under the Apache License, Version 2.0.
+Audio capture, DSP and artwork color algorithms adapted from https://github.com/wxxsfxyzm/HyperSpectrum (28e902b).

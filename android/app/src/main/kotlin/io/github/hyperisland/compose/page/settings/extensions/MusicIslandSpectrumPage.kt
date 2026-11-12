@@ -46,21 +46,21 @@ internal fun MusicIslandSpectrumPage(prefs: FlutterPrefsRepository, onBack: () -
     val gradientStart = rememberStringPreference(prefs, KEY_MUSIC_ISLAND_SPECTRUM_GRADIENT_START, "")
     val gradientEnd = rememberStringPreference(prefs, KEY_MUSIC_ISLAND_SPECTRUM_GRADIENT_END, "")
     val barCount = rememberLongPreference(prefs, KEY_MUSIC_ISLAND_SPECTRUM_BAR_COUNT, DEFAULT_SPECTRUM_BAR_COUNT)
-    val smoothing = rememberStringPreference(prefs, KEY_MUSIC_ISLAND_SPECTRUM_SMOOTHING, SPECTRUM_SMOOTHING_HIGH)
 
     val showStartColorDialog = remember { mutableStateOf(false) }
     val showEndColorDialog = remember { mutableStateOf(false) }
 
-    val colorModeValues = listOf(SPECTRUM_COLOR_GRADIENT, SPECTRUM_COLOR_FOLLOW_COVER)
-    val colorModeLabels = listOf(
-        stringResource(R.string.ext_spectrum_color_gradient),
-        stringResource(R.string.ext_spectrum_color_follow_cover),
+    val colorModeValues = listOf(
+        SPECTRUM_COLOR_FOLLOW_COVER,
+        SPECTRUM_COLOR_HYPEROS,
+        SPECTRUM_COLOR_IOS,
+        SPECTRUM_COLOR_GRADIENT,
     )
-    val smoothingValues = listOf(SPECTRUM_SMOOTHING_LOW, SPECTRUM_SMOOTHING_MEDIUM, SPECTRUM_SMOOTHING_HIGH)
-    val smoothingLabels = listOf(
-        stringResource(R.string.ext_spectrum_smoothing_low),
-        stringResource(R.string.ext_spectrum_smoothing_medium),
-        stringResource(R.string.ext_spectrum_smoothing_high),
+    val colorModeLabels = listOf(
+        stringResource(R.string.ext_spectrum_color_follow_cover),
+        stringResource(R.string.ext_spectrum_color_hyperos),
+        stringResource(R.string.ext_spectrum_color_ios),
+        stringResource(R.string.ext_spectrum_color_gradient),
     )
 
     fun show(message: String) { scope.launch { snackbar.showSnackbar(message) } }
@@ -126,17 +126,6 @@ internal fun MusicIslandSpectrumPage(prefs: FlutterPrefsRepository, onBack: () -
                                     endIcon = MiuixIcons.ChevronForward,
                                 ) { showEndColorDialog.value = true }
                             }
-                        }
-
-                        PreferenceDropdown(
-                            title = stringResource(R.string.ext_spectrum_smoothing),
-                            summary = null,
-                            icon = null,
-                            items = smoothingLabels,
-                            selectedIndex = smoothingValues.indexOf(smoothing.value).coerceAtLeast(0),
-                        ) { index ->
-                            smoothing.value = smoothingValues[index]
-                            prefs.putString(KEY_MUSIC_ISLAND_SPECTRUM_SMOOTHING, smoothingValues[index])
                         }
 
                         PreferenceSlider(
