@@ -32,6 +32,7 @@ import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.glass.GlassDropdownPreference
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Refresh
 import top.yukonga.miuix.kmp.preference.SliderPreference
@@ -74,8 +75,24 @@ internal fun PreferenceDropdown(
     selectedIndex: Int,
     enabled: Boolean = true,
     insideMargin: PaddingValues = SettingsItemMargin,
+    useGlass: Boolean = false,
     onSelectedIndexChange: (Int) -> Unit,
 ) {
+    if (useGlass) {
+        GlassDropdownPreference(
+            title = title,
+            summary = summary,
+            items = items,
+            selectedIndex = selectedIndex,
+            backdrop = LocalBarBlurBackdrop.current,
+            enabled = enabled,
+            renderInRootScaffold = false,
+            startAction = icon?.let { image -> { SettingsIcon(image) } },
+            insideMargin = insideMargin,
+            onSelectedIndexChange = onSelectedIndexChange,
+        )
+        return
+    }
     WindowDropdownPreference(
         title = title,
         summary = summary,
