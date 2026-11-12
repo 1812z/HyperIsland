@@ -13,8 +13,11 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
@@ -50,17 +53,21 @@ internal fun PageTopAppBar(
 ) {
     val backdrop = LocalBarBlurBackdrop.current
     val progressiveBlur = LocalBarBlurEnabled.current && backdrop != null
+    val scrolled = remember(scrollBehavior) {
+        derivedStateOf { (scrollBehavior?.state?.contentOffset ?: 0f) < 0f }
+    }
     val band = GlassTopAppBarDefaults.bandBrush(MiuixTheme.colorScheme.surface)
     GlassTopAppBar(
         title = title,
         largeTitle = largeTitle,
         subtitle = subtitle,
-        // Keep the material visible at rest as well as during title collapse.
-        isContentScrolled = true,
-        modifier = if (progressiveBlur) Modifier.background(band) else Modifier,
+        isContentScrolled = scrolled.value,
+        // Keep the base gradient independent of the buttons' scroll-driven material.
+        modifier = Modifier.background(band),
         progressiveBlur = progressiveBlur,
         backdrop = backdrop,
-        bandBrush = band,
+        bandBrush = SolidColor(Color.Transparent),
+        bandOverhang = 0.dp,
         scrollBehavior = scrollBehavior,
         navigationIcon = navigationIcon,
         actions = actions,

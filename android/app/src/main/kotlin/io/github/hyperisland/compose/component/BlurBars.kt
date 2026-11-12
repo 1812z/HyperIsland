@@ -99,6 +99,13 @@ internal fun BarBackdropContent(
 }
 
 @Composable
+internal fun BlurredBar(content: @Composable () -> Unit) {
+    Box(modifier = Modifier.barBlurBackground(RectangleShape)) {
+        content()
+    }
+}
+
+@Composable
 internal fun Modifier.barBlurBackground(shape: Shape): Modifier {
     val backdrop = LocalBarBlurBackdrop.current
     val blurEnabled = LocalBarBlurEnabled.current
