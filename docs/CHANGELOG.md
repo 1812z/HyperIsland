@@ -8,6 +8,16 @@ import ReleaseHistory from './.vitepress/components/ReleaseHistory.vue'
 
 <div class="changelog-source" hidden>
 
+# V3.2.5(2026-11-12)
+## 功能
+- 新增音乐实时频谱多种取色方案
+
+## 优化 & 修复
+- 修复常驻岛宽度跳变
+- 优化音乐实时频谱声音采样
+- 优化UI界面，引入柔光材质
+
+
 # V3.2.4(2026-11-6)
 ## 功能
 - 新增类ColorOS单岛样式
