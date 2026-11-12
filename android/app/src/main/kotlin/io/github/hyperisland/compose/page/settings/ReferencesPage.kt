@@ -102,4 +102,12 @@ private val referenceProjects = listOf(
         name = "Aptabase",
         url = "https://github.com/aptabase/aptabase",
     ),
+    ReferenceProject(
+        name = "HyperLyric",
+        url = "https://github.com/limczhh/HyperLyric",
+    ),
+    ReferenceProject(
+        name = "HyperSpectrum",
+        url = "https://github.com/wxxsfxyzm/HyperSpectrum",
+    ),
 )
