@@ -122,6 +122,8 @@ jobs:
       # 仅编译 ARM64 架构
       - name: Build APK
         env:
+          GITHUB_ACTOR: ${{ secrets.MIUIX_PACKAGES_USER }}
+          GITHUB_TOKEN: ${{ secrets.MIUIX_PACKAGES_TOKEN }}
           KEYSTORE_PATH: release.jks
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}

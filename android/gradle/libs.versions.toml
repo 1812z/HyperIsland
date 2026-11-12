@@ -1,0 +1,54 @@
+[versions]
+# 注意：foojay-resolver-convention 只能声明在 settings.gradle.kts 的 plugins 块
+# （该脚本编译时 catalog 尚未建立），其版本不在本文件中管理。
+agp = "9.5.1"
+kotlin = "2.4.21"
+
+# AndroidX / Jetpack
+activityCompose = "1.13.0"
+navigationEvent = "1.2.0"
+graphicsShapes = "1.1.0"
+
+# Compose
+composeFoundation = "1.12.2"
+
+# UI
+miuix = "0.9.4-9d4b9c85-SNAPSHOT"
+iconics = "5.6.0"
+communityMaterialTypeface = "7.0.96.1-kotlin"
+
+# 功能库
+hyperislandKit = "0.4.5"
+aptabase = "0.0.8"
+dexkit = "2.3.0"
+libxposed = "102.0.0"
+
+[libraries]
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
+androidx-navigationevent = { module = "androidx.navigationevent:navigationevent-android", version.ref = "navigationEvent" }
+androidx-graphics-shapes = { module = "androidx.graphics:graphics-shapes", version.ref = "graphicsShapes" }
+
+jetbrains-compose-foundation = { module = "org.jetbrains.compose.foundation:foundation-android", version.ref = "composeFoundation" }
+
+miuix-ui = { module = "top.yukonga.miuix.kmp:miuix-ui-android", version.ref = "miuix" }
+miuix-preference = { module = "top.yukonga.miuix.kmp:miuix-preference-android", version.ref = "miuix" }
+miuix-icons = { module = "top.yukonga.miuix.kmp:miuix-icons-android", version.ref = "miuix" }
+miuix-blur = { module = "top.yukonga.miuix.kmp:miuix-blur-android", version.ref = "miuix" }
+
+iconics-core = { module = "com.mikepenz:iconics-core", version.ref = "iconics" }
+community-material-typeface = { module = "com.mikepenz:community-material-typeface", version.ref = "communityMaterialTypeface" }
+
+hyperisland-kit = { module = "io.github.d4viddf:hyperisland_kit", version.ref = "hyperislandKit" }
+aptabase-kotlin = { module = "com.github.aptabase:aptabase-kotlin", version.ref = "aptabase" }
+dexkit = { module = "org.luckypray:dexkit", version.ref = "dexkit" }
+
+libxposed-api = { module = "io.github.libxposed:api", version.ref = "libxposed" }
+libxposed-service = { module = "io.github.libxposed:service", version.ref = "libxposed" }
+
+[bundles]
+miuix = ["miuix-ui", "miuix-preference", "miuix-icons", "miuix-blur"]
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

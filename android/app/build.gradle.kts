@@ -5,8 +5,13 @@ val buildTime = providers.gradleProperty("buildTime")
     .getOrElse("dev")
 val appVersionName = providers.gradleProperty("appVersionName").get()
 val appVersionCode = providers.gradleProperty("appVersionCode").map(String::toInt).get()
+val nativeTapBuild = providers.gradleProperty("nativeTapBuild").getOrElse("")
+require(nativeTapBuild.isEmpty() || nativeTapBuild.matches(Regex("[0-9a-f]{64}"))) {
+    "nativeTapBuild must be the source_sha256 from the HyperSpectrum native build manifest"
+}
 
 plugins {
+    // 版本在根 build.gradle.kts（libs.versions.toml）统一声明
     id("com.android.application")
     id("org.jetbrains.kotlin.plugin.compose")
 }
@@ -70,6 +75,7 @@ android {
         versionCode = appVersionCode
         versionName = appVersionName
         buildConfigField("String", "BUILD_TIME", "\"$buildTime\"")
+        buildConfigField("String", "NATIVE_TAP_BUILD", "\"$nativeTapBuild\"")
 
         ndk {
             abiFilters += "arm64-v8a"
@@ -113,21 +119,17 @@ kotlin {
 }
 
 dependencies {
-    implementation("androidx.activity:activity-compose:1.13.0")
-    implementation("androidx.navigationevent:navigationevent-android:1.1.2")
-    implementation("org.jetbrains.compose.foundation:foundation-android:1.12.0")
-    implementation("top.yukonga.miuix.kmp:miuix-ui-android:0.9.4")
-    implementation("top.yukonga.miuix.kmp:miuix-preference-android:0.9.4")
-    implementation("top.yukonga.miuix.kmp:miuix-icons-android:0.9.4")
-    implementation("top.yukonga.miuix.kmp:miuix-blur-android:0.9.4")
-    // Home Assistant uses the Material Design Icons (MDI) naming scheme (`mdi:...`).
-    // The community MDI typeface is used instead of maintaining hand-drawn fallbacks.
-    implementation("com.mikepenz:iconics-core:5.4.0")
-    implementation("com.mikepenz:community-material-typeface:7.0.96.1-kotlin@aar")
-    implementation("androidx.graphics:graphics-shapes:1.1.0")
-    implementation("io.github.d4viddf:hyperisland_kit:0.4.4")
-    implementation("com.github.aptabase:aptabase-kotlin:0.0.8")
-    implementation("org.luckypray:dexkit:2.2.0")
-    compileOnly("io.github.libxposed:api:102.0.0")
-    implementation("io.github.libxposed:service:102.0.0")
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.navigationevent)
+    implementation(libs.jetbrains.compose.foundation)
+    implementation(libs.bundles.miuix)
+    implementation(libs.iconics.core)
+    // 需要 @aar 后缀强制按 AAR 解析，版本目录不支持该后缀，故只复用版本号
+    implementation("com.mikepenz:community-material-typeface:${libs.versions.communityMaterialTypeface.get()}@aar")
+    implementation(libs.androidx.graphics.shapes)
+    implementation(libs.hyperisland.kit)
+    implementation(libs.aptabase.kotlin)
+    implementation(libs.dexkit)
+    compileOnly(libs.libxposed.api)
+    implementation(libs.libxposed.service)
 }
