@@ -479,6 +479,7 @@ class XposedPrefsSyncApp : Application(), XposedServiceHelper.OnServiceListener 
             "pref_temp_hide_screen_locked",
             "pref_temp_hide_notification_center",
             "pref_temp_hide_foreground_app",
+            "pref_screenshot_temp_hide",
             "pref_blur_bars",
             "pref_debug_log",
             "pref_debug_mode",

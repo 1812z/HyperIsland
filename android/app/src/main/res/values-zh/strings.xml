@@ -49,6 +49,9 @@
     <string name="ext_screen_recorder_icon_screen_recorder">屏幕录制</string>
     <string name="ext_screen_recorder_compatibility_title">兼容性提醒</string>
     <string name="ext_screen_recorder_compatibility_summary">该功能可能仅支持部分版本的屏幕录制。点击下载 4.16.2.6.1 版本</string>
+    <string name="ext_screenshot">截屏</string>
+    <string name="ext_screenshot_temp_hide">截屏时隐藏超级岛</string>
+    <string name="ext_screenshot_temp_hide_summary">截屏期间临时隐藏超级岛，截屏完成后恢复显示</string>
     <string name="module_description">澎湃OS超级岛增强</string>
 
     <!-- 欢迎超级岛 -->

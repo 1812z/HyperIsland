@@ -49,6 +49,9 @@
     <string name="ext_screen_recorder_icon_screen_recorder">Screen recording</string>
     <string name="ext_screen_recorder_compatibility_title">Compatibility notice</string>
     <string name="ext_screen_recorder_compatibility_summary">This feature may only support some Screen Recorder versions. Tap to download version 4.16.2.6.1.</string>
+    <string name="ext_screenshot">Screenshot</string>
+    <string name="ext_screenshot_temp_hide">Hide Super Island on screenshot</string>
+    <string name="ext_screenshot_temp_hide_summary">Temporarily hide Super Island while a screenshot is taken</string>
     <string name="module_description">Xiaomi HyperIsland enhancements for HyperOS</string>
     <!-- 欢迎超级岛 -->
     <string name="island_welcome_title">Welcome</string>

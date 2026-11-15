@@ -334,6 +334,11 @@ internal val ConfigSectionGroups: List<ConfigSection> = listOf(
                 keyPrefixes = listOf("pref_screen_recorder_"),
             ),
             ConfigSection(
+                id = "ext_screenshot",
+                titleRes = R.string.ext_screenshot,
+                exactKeys = listOf("pref_screenshot_temp_hide"),
+            ),
+            ConfigSection(
                 id = "ext_download_manager",
                 titleRes = R.string.download_manager,
                 exactKeys = listOf(
