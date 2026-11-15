@@ -52,6 +52,7 @@
     <string name="ext_screenshot">Screenshot</string>
     <string name="ext_screenshot_temp_hide">Hide Super Island on screenshot</string>
     <string name="ext_screenshot_temp_hide_summary">Temporarily hide Super Island while a screenshot is taken</string>
+    <string name="ext_screenshot_lead">Capture delay</string>
     <string name="module_description">Xiaomi HyperIsland enhancements for HyperOS</string>
     <!-- 欢迎超级岛 -->
     <string name="island_welcome_title">Welcome</string>

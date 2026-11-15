@@ -13,6 +13,9 @@ import io.github.hyperisland.compose.component.PreferenceSwitch
 import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.rememberBooleanPreference
+import io.github.hyperisland.compose.page.settings.appearance.LongPreferenceSlider
+import io.github.hyperisland.compose.page.settings.appearance.SliderUnit
+import io.github.hyperisland.screenshot.ScreenshotContract
 import io.github.hyperisland.compose.service.XposedScopeService
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Card
@@ -75,6 +78,17 @@ internal fun ScreenshotHookPage(prefs: FlutterPrefsRepository, onBack: () -> Uni
                         }
                     }
                 }
+                LongPreferenceSlider(
+                    prefs = prefs,
+                    key = KEY_SCREENSHOT_LEAD_MS,
+                    titleRes = R.string.ext_screenshot_lead,
+                    minimum = ScreenshotContract.MIN_LEAD_MS.toLong(),
+                    maximum = ScreenshotContract.MAX_LEAD_MS.toLong(),
+                    default = ScreenshotContract.DEFAULT_LEAD_MS.toLong(),
+                    increment = 10,
+                    unit = SliderUnit.Milliseconds,
+                    showDefaultAsSystem = false,
+                )
             }
         }
     }

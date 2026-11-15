@@ -336,7 +336,10 @@ internal val ConfigSectionGroups: List<ConfigSection> = listOf(
             ConfigSection(
                 id = "ext_screenshot",
                 titleRes = R.string.ext_screenshot,
-                exactKeys = listOf("pref_screenshot_temp_hide"),
+                exactKeys = listOf(
+                    "pref_screenshot_temp_hide",
+                    "pref_screenshot_lead_ms",
+                ),
             ),
             ConfigSection(
                 id = "ext_download_manager",

@@ -54,6 +54,7 @@ internal const val KEY_MUSIC_ISLAND_SPECTRUM_GRADIENT_START = "pref_music_island
 internal const val KEY_MUSIC_ISLAND_SPECTRUM_GRADIENT_END = "pref_music_island_spectrum_gradient_end"
 internal const val KEY_MUSIC_ISLAND_SPECTRUM_BAR_COUNT = "pref_music_island_spectrum_bar_count"
 internal const val KEY_SCREENSHOT_TEMP_HIDE = "pref_screenshot_temp_hide"
+internal const val KEY_SCREENSHOT_LEAD_MS = "pref_screenshot_lead_ms"
 
 // Home Assistant 拓展（键名与 HomeAssistantContract 保持一致，此处只做页面侧引用）
 internal const val KEY_HOME_ASSISTANT = "pref_home_assistant"

@@ -52,6 +52,7 @@
     <string name="ext_screenshot">截屏</string>
     <string name="ext_screenshot_temp_hide">截屏时隐藏超级岛</string>
     <string name="ext_screenshot_temp_hide_summary">截屏期间临时隐藏超级岛，截屏完成后恢复显示</string>
+    <string name="ext_screenshot_lead">抓屏延迟</string>
     <string name="module_description">澎湃OS超级岛增强</string>
 
     <!-- 欢迎超级岛 -->

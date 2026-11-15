@@ -105,7 +105,8 @@ object ScreenshotSignalHook : BaseHook() {
      * 广播是异步的：如果“开始”还没被 SystemUI 处理完就抓屏，岛仍会被拍进去。这里挂在
      * 框架层的抓屏入口（`IWindowManager$Stub$Proxy.captureDisplay` / `SurfaceControl
      * .captureDisplay`）上，必要时自己补发“开始”，并补齐
-     * [ScreenshotContract.MIN_CAPTURE_LEAD_MS] 的最小提前量。
+     * [ScreenshotContract.PREF_LEAD_MS] 配置的提前量（默认
+     * [ScreenshotContract.DEFAULT_LEAD_MS]）。
      *
      * 1.6.3.41 的三条抓屏策略（`e1.b` / `e1.c` / `e1.d`）最终都会落到这两个 framework
      * 入口，无论走直接调用还是反射 invoke；`miui.util.ScreenshotUtils` 已被移除，探测不到
@@ -164,8 +165,11 @@ object ScreenshotSignalHook : BaseHook() {
         if (!enabled) return
         val started = lastRequestAtMs
         if (started == 0L) return
-        val remaining = ScreenshotContract.MIN_CAPTURE_LEAD_MS -
-            (android.os.SystemClock.uptimeMillis() - started)
+        val leadMs = ConfigManager.getInt(
+            ScreenshotContract.PREF_LEAD_MS,
+            ScreenshotContract.DEFAULT_LEAD_MS,
+        ).coerceIn(ScreenshotContract.MIN_LEAD_MS, ScreenshotContract.MAX_LEAD_MS)
+        val remaining = leadMs - (android.os.SystemClock.uptimeMillis() - started)
         if (remaining <= 0) return
         runCatching { Thread.sleep(remaining) }
         // 首次抓屏打一条可见日志：确认闸门真的生效、实际补了多少提前量。

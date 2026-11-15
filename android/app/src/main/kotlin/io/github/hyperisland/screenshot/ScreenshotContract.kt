@@ -74,16 +74,17 @@ object ScreenshotContract {
     const val FALLBACK_HIDE_TIMEOUT_MS = 2_000L
 
     /**
-     * 从“开始”广播发出到真正抓屏之间要求的最小间隔。
+     * 抓屏提前量（毫秒），用户可在「设置 → Hook 拓展 → 截屏」里调，默认 250。
      *
-     * 广播是异步的，若 SystemUI 还没处理完隐藏就可能已经抓完屏。截屏进程在真正调用
-     * `captureDisplay` 前补齐这个间隔，保证隐藏请求已经派发。
-     *
-     * 取 420ms：广播投递 + 主线程派发约 40–80ms，再给官方收起动作留一段余量。
-     * 注意这个时长**不能**单独解决挖孔位置的残留圆圈（240ms / 420ms 都能复现），
-     * 那部分由 SystemUI 侧的 alpha 兜底负责。
+     * 广播是异步的，抓屏前至少要等它被 SystemUI 处理完；调大更稳、但截图会更慢。
+     * 挖孔位置的残留圆圈**不是**靠它解决的（试过 240/420 都有），那是 SystemUI 侧 alpha 兜底的职责。
      */
-    const val MIN_CAPTURE_LEAD_MS = 420L
+    const val PREF_LEAD_MS = "pref_screenshot_lead_ms"
+
+    /** 提前量默认值与可选范围，滑块的 min/max 也用它。 */
+    const val DEFAULT_LEAD_MS = 250
+    const val MIN_LEAD_MS = 100
+    const val MAX_LEAD_MS = 1000
 
     /**
      * “开始”信号的有效期。超过这个时间再遇到抓屏调用，视作新的一次截屏重新发信号。
