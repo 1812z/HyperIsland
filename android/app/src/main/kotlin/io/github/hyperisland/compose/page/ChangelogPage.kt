@@ -1,8 +1,11 @@
 package io.github.hyperisland.compose.page
 
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -217,7 +220,11 @@ private fun ChangelogHeaderCard(downloadUrl: String) {
                 onClick = { context.openInBrowser(downloadUrl) },
                 colors = ButtonDefaults.buttonColorsPrimary(),
             ) {
-                Text(stringResource(R.string.changelog_download), fontSize = 14.sp)
+                Text(
+                    text = stringResource(R.string.changelog_download),
+                    fontSize = 14.sp,
+                    color = MiuixTheme.colorScheme.onPrimary,
+                )
             }
         }
     }
@@ -231,7 +238,14 @@ private fun ReleaseCard(
     onDownload: () -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 14.dp)
+                // 展开 / 收起时让卡片高度顺着动画长出来，而不是「啪」一下跳变。
+                // 展开后的 Markdown 比收起态高得多，没有这一步观感很生硬。
+                .animateContentSize(animationSpec = tween(durationMillis = 220)),
+        ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
@@ -250,10 +264,7 @@ private fun ReleaseCard(
                     }
                 }
                 Spacer(Modifier.width(10.dp))
-                AccentTextAction(
-                    text = stringResource(R.string.changelog_download),
-                    onClick = onDownload,
-                )
+                DownloadButton(onClick = onDownload)
             }
             if (expanded) {
                 Spacer(Modifier.height(10.dp))
@@ -287,6 +298,31 @@ private fun ReleaseCard(
                 }
             }
         }
+    }
+}
+
+/**
+ * 版本卡里的下载按钮：强调色实心 + 白字。
+ *
+ * 尺寸比对话框里那套默认按钮小一圈 —— 默认 `MinWidth 58dp / MinHeight 40dp`
+ * 再加 16dp 侧边距，会把版本卡头部撑得比正文还高，109 张卡叠起来尤其难看。
+ */
+@Composable
+private fun DownloadButton(onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        minWidth = 0.dp,
+        minHeight = 34.dp,
+        cornerRadius = 12.dp,
+        insideMargin = PaddingValues(horizontal = 14.dp, vertical = 7.dp),
+        colors = ButtonDefaults.buttonColorsPrimary(),
+    ) {
+        Text(
+            text = stringResource(R.string.changelog_download),
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            color = MiuixTheme.colorScheme.onPrimary,
+        )
     }
 }
 
