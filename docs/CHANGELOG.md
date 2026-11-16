@@ -8,6 +8,18 @@ import ReleaseHistory from './.vitepress/components/ReleaseHistory.vue'
 
 <div class="changelog-source" hidden>
 
+# V3.2.6(2026-11-16)
+## 功能
+- 新增单岛样式参数自定义
+- 新增截图隐藏超级岛
+- 蓝牙岛支持自定义弹出时机（连接 / 断开 / 电量更新）
+- 新增历史版本
+
+## 优化 & 修复
+- 同步最新OS4样式Miuix
+- 优化捐赠列表&更新日志
+
+
 # V3.2.5(2026-11-12)
 ## 功能
 - 新增音乐实时频谱多种取色方案
