@@ -53,6 +53,8 @@ internal const val KEY_MUSIC_ISLAND_SPECTRUM_COLOR_MODE = "pref_music_island_spe
 internal const val KEY_MUSIC_ISLAND_SPECTRUM_GRADIENT_START = "pref_music_island_spectrum_gradient_start"
 internal const val KEY_MUSIC_ISLAND_SPECTRUM_GRADIENT_END = "pref_music_island_spectrum_gradient_end"
 internal const val KEY_MUSIC_ISLAND_SPECTRUM_BAR_COUNT = "pref_music_island_spectrum_bar_count"
+internal const val KEY_SCREENSHOT_TEMP_HIDE = "pref_screenshot_temp_hide"
+internal const val KEY_SCREENSHOT_LEAD_MS = "pref_screenshot_lead_ms"
 
 // Home Assistant 拓展（键名与 HomeAssistantContract 保持一致，此处只做页面侧引用）
 internal const val KEY_HOME_ASSISTANT = "pref_home_assistant"
@@ -100,6 +102,7 @@ internal const val PKG_SECURITY_CENTER = "com.miui.securitycenter"
 internal const val PKG_XMSF = "com.xiaomi.xmsf"
 internal const val PKG_SCREEN_RECORDER = "com.miui.screenrecorder"
 internal const val PKG_DOWNLOAD_MANAGER = "com.android.providers.downloads"
+internal const val PKG_SCREENSHOT = "com.miui.screenshot"
 
 internal val RESTART_SCOPE_SYSTEM_UI = setOf(PKG_SYSTEM_UI, PKG_MILINK)
 internal val RESTART_SCOPE_ISLAND = setOf(PKG_SYSTEM_UI)
@@ -109,6 +112,14 @@ internal val RESTART_SCOPE_XMSF = setOf(PKG_XMSF)
 internal val RESTART_SCOPE_SCREEN_RECORDER = setOf(PKG_SCREEN_RECORDER)
 internal val RESTART_SCOPE_DOWNLOAD_MANAGER = setOf(PKG_DOWNLOAD_MANAGER)
 
+/**
+ * 截屏拓展横跨两个进程：信号源在 `com.miui.screenshot`，真正收起岛的执行端在 SystemUI。
+ *
+ * 关闭开关后已装的 Hook 撤不掉，只能靠重启彻底生效；打开开关时 SystemUI 侧的控制器实例
+ * 早在进程启动时就已创建，运行期补装拿不到它 —— 所以两个进程都要列进重启作用域。
+ */
+internal val RESTART_SCOPE_SCREENSHOT = setOf(PKG_SCREENSHOT, PKG_SYSTEM_UI)
+
 internal enum class HookExtensionDetail {
     SystemUi,
     SystemSettings,
@@ -116,6 +127,7 @@ internal enum class HookExtensionDetail {
     Xmsf,
     ScreenRecorder,
     DownloadManager,
+    Screenshot,
     HomeAssistant,
 }
 

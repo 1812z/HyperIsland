@@ -41,6 +41,7 @@ import top.yukonga.miuix.kmp.icon.extended.Community
 import top.yukonga.miuix.kmp.icon.extended.Download
 import top.yukonga.miuix.kmp.icon.extended.Home
 import top.yukonga.miuix.kmp.icon.extended.Layers
+import top.yukonga.miuix.kmp.icon.extended.ScreenCapture
 import top.yukonga.miuix.kmp.icon.extended.Settings
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -93,6 +94,12 @@ internal fun HookExtensionPage(
                 packages = listOf(PKG_SCREEN_RECORDER),
                 title = R.string.screen_recorder_dialog_title,
                 fallbackIcon = MiuixIcons.AppRecording,
+            ),
+            HookAppEntry(
+                detail = HookExtensionDetail.Screenshot,
+                packages = listOf(PKG_SCREENSHOT),
+                title = R.string.ext_screenshot,
+                fallbackIcon = MiuixIcons.ScreenCapture,
             ),
             HookAppEntry(
                 detail = HookExtensionDetail.DownloadManager,
