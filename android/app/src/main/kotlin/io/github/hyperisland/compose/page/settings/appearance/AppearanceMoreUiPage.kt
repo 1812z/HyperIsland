@@ -92,21 +92,54 @@ private fun IslandBehaviorSection(prefs: FlutterPrefsRepository) {
                 exit = shrinkVertically(tween(220), shrinkTowards = Alignment.Top) +
                     slideOutVertically(tween(220)) { -it / 3 } + fadeOut(tween(150)),
             ) {
-                PreferenceDropdown(
-                    title = stringResource(R.string.island_indicator_color),
-                    summary = null,
-                    icon = null,
-                    items = listOf(
-                        stringResource(R.string.island_indicator_follow),
-                        stringResource(R.string.island_indicator_invert),
-                        stringResource(R.string.black),
-                        stringResource(R.string.island_indicator_white),
-                    ),
-                    selectedIndex = IslandBehaviorConfig.colors.indexOf(IslandBehaviorConfig.color(color.value)).coerceAtLeast(0),
-                ) { index ->
-                    val next = IslandBehaviorConfig.colors[index]
-                    prefs.setIslandIndicatorColor(next)
-                    color.value = next
+                Column {
+                    PreferenceDropdown(
+                        title = stringResource(R.string.island_indicator_color),
+                        summary = null,
+                        icon = null,
+                        items = listOf(
+                            stringResource(R.string.island_indicator_follow),
+                            stringResource(R.string.island_indicator_invert),
+                            stringResource(R.string.black),
+                            stringResource(R.string.island_indicator_white),
+                        ),
+                        selectedIndex = IslandBehaviorConfig.colors.indexOf(IslandBehaviorConfig.color(color.value)).coerceAtLeast(0),
+                    ) { index ->
+                        val next = IslandBehaviorConfig.colors[index]
+                        prefs.setIslandIndicatorColor(next)
+                        color.value = next
+                    }
+                    // 指示器几何参数：间隙 / 角度 / 宽度，均独立可调。
+                    LongPreferenceSlider(
+                        prefs = prefs,
+                        key = IslandBehaviorConfig.INDICATOR_GAP_KEY,
+                        titleRes = R.string.island_indicator_gap,
+                        minimum = IslandBehaviorConfig.INDICATOR_GAP_MIN,
+                        maximum = IslandBehaviorConfig.INDICATOR_GAP_MAX,
+                        default = IslandBehaviorConfig.INDICATOR_GAP_DEFAULT,
+                        unit = SliderUnit.Dp,
+                        showDefaultAsSystem = false,
+                    )
+                    LongPreferenceSlider(
+                        prefs = prefs,
+                        key = IslandBehaviorConfig.INDICATOR_ANGLE_KEY,
+                        titleRes = R.string.island_indicator_angle,
+                        minimum = IslandBehaviorConfig.INDICATOR_ANGLE_MIN,
+                        maximum = IslandBehaviorConfig.INDICATOR_ANGLE_MAX,
+                        default = IslandBehaviorConfig.INDICATOR_ANGLE_DEFAULT,
+                        unit = SliderUnit.Degree,
+                        showDefaultAsSystem = false,
+                    )
+                    LongPreferenceSlider(
+                        prefs = prefs,
+                        key = IslandBehaviorConfig.INDICATOR_WIDTH_KEY,
+                        titleRes = R.string.island_indicator_width,
+                        minimum = IslandBehaviorConfig.INDICATOR_WIDTH_MIN,
+                        maximum = IslandBehaviorConfig.INDICATOR_WIDTH_MAX,
+                        default = IslandBehaviorConfig.INDICATOR_WIDTH_DEFAULT,
+                        unit = SliderUnit.Dp,
+                        showDefaultAsSystem = false,
+                    )
                 }
             }
         }

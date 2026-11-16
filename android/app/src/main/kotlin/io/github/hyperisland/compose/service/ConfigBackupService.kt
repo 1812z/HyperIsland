@@ -52,6 +52,16 @@ internal object ConfigBackupService {
                     IslandBehaviorConfig.COLOR_KEY -> IslandBehaviorConfig.color(
                         value as? String ?: throw InvalidConfigException(),
                     )
+                    // 指示器几何参数是连续值，越界会让滑条落空，导入时先收敛到合法区间。
+                    IslandBehaviorConfig.INDICATOR_GAP_KEY -> IslandBehaviorConfig.indicatorGap(
+                        (value as? Number)?.toLong() ?: throw InvalidConfigException(),
+                    )
+                    IslandBehaviorConfig.INDICATOR_ANGLE_KEY -> IslandBehaviorConfig.indicatorAngle(
+                        (value as? Number)?.toLong() ?: throw InvalidConfigException(),
+                    )
+                    IslandBehaviorConfig.INDICATOR_WIDTH_KEY -> IslandBehaviorConfig.indicatorWidth(
+                        (value as? Number)?.toLong() ?: throw InvalidConfigException(),
+                    )
                     else -> value
                 }
             } else if (value != null && value !== JSONObject.NULL) {

@@ -41,6 +41,9 @@ object SingleIslandDispatchHook : BaseHook() {
     private val hiddenFakeClips = WeakHashMap<View, OriginalClip>()
     @Volatile private var active = false
     @Volatile private var indicatorColor = IslandBehaviorConfig.FOLLOW_ISLAND
+    @Volatile private var indicatorGapDp = IslandBehaviorConfig.INDICATOR_GAP_DEFAULT.toFloat()
+    @Volatile private var indicatorAngleDeg = IslandBehaviorConfig.INDICATOR_ANGLE_DEFAULT.toFloat()
+    @Volatile private var indicatorWidthDp = IslandBehaviorConfig.INDICATOR_WIDTH_DEFAULT.toFloat()
 
     private class QueueEntry(target: View) {
         val target = WeakReference(target)
@@ -56,7 +59,7 @@ object SingleIslandDispatchHook : BaseHook() {
             )) != IslandBehaviorConfig.SINGLE) return
         if (active) return
         active = true
-        loadIndicatorColor()
+        loadIndicatorStyle()
         bind(module, param.defaultClassLoader)
         HookUtils.hookDynamicClassLoaders(module, ClassLoader.getSystemClassLoader()) {
             bind(module, it)
@@ -65,14 +68,23 @@ object SingleIslandDispatchHook : BaseHook() {
 
     override fun onConfigChanged() {
         if (!active) return
-        loadIndicatorColor()
+        loadIndicatorStyle()
         invalidateRings()
     }
 
-    private fun loadIndicatorColor() {
+    private fun loadIndicatorStyle() {
         indicatorColor = IslandBehaviorConfig.color(ConfigManager.getString(
             IslandBehaviorConfig.COLOR_KEY, IslandBehaviorConfig.FOLLOW_ISLAND,
         ))
+        indicatorGapDp = IslandBehaviorConfig.indicatorGap(ConfigManager.getInt(
+            IslandBehaviorConfig.INDICATOR_GAP_KEY, IslandBehaviorConfig.INDICATOR_GAP_DEFAULT.toInt(),
+        ).toLong()).toFloat()
+        indicatorAngleDeg = IslandBehaviorConfig.indicatorAngle(ConfigManager.getInt(
+            IslandBehaviorConfig.INDICATOR_ANGLE_KEY, IslandBehaviorConfig.INDICATOR_ANGLE_DEFAULT.toInt(),
+        ).toLong()).toFloat()
+        indicatorWidthDp = IslandBehaviorConfig.indicatorWidth(ConfigManager.getInt(
+            IslandBehaviorConfig.INDICATOR_WIDTH_KEY, IslandBehaviorConfig.INDICATOR_WIDTH_DEFAULT.toInt(),
+        ).toLong()).toFloat()
     }
 
     private fun invalidateRings() {
@@ -630,11 +642,13 @@ object SingleIslandDispatchHook : BaseHook() {
                 val bottom = (a.bottom.invoke(bg) as Number).toFloat()
                 val height = bottom - top
                 if (height <= 0 || right - left < height) return
-                val sweep = 100f
+                val sweep = indicatorAngleDeg
                 val radius = height * 0.55f
                 val cy = (top + bottom) / 2f
-                paint.strokeWidth = minOf(2f * bg.resources.displayMetrics.density, height * 0.07f)
-                val gap = paint.strokeWidth * 2f
+                val density = bg.resources.displayMetrics.density
+                // 宽度只受岛高约束，避免极短岛上糊成一团。
+                paint.strokeWidth = (indicatorWidthDp * density).coerceAtMost(height * 0.25f)
+                val gap = indicatorGapDp * density
                 // Move the arcs outward while retaining their slightly shorter height.
                 // At each side's midpoint, the clear gap excludes the stroke's inner half.
                 val outset = (gap + paint.strokeWidth / 2f - (radius - height / 2f)).coerceAtLeast(0f)

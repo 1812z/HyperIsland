@@ -783,6 +783,7 @@
     <string name="fps_value">%1$d fps</string>
     <string name="percent_value">%1$d%%</string>
     <string name="dp_value">%1$d dp</string>
+    <string name="degree_value">%1$d°</string>
     <string name="dp_decimal_value">%1$.1f dp</string>
     <string name="island_text">Island Text</string>
     <string name="island_text_size">Island Text Size</string>
@@ -999,6 +1000,9 @@
     <string name="island_indicator_follow">Follow island background</string>
     <string name="island_indicator_invert">Invert island background</string>
     <string name="island_indicator_white">White</string>
+    <string name="island_indicator_gap">Indicator gap</string>
+    <string name="island_indicator_angle">Indicator angle</string>
+    <string name="island_indicator_width">Indicator width</string>
     <string name="mini_bar_focus_title">Focus notification pull bar</string>
     <string name="mini_bar_focus_summary">Pull bar on the island\'s expanded focus notification</string>
     <string name="mini_bar_normal_title">Normal notification pull bar</string>

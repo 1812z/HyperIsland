@@ -789,6 +789,7 @@
     <string name="fps_value">%1$d fps</string>
     <string name="percent_value">%1$d%%</string>
     <string name="dp_value">%1$d dp</string>
+    <string name="degree_value">%1$d°</string>
     <string name="dp_decimal_value">%1$.1f dp</string>
     <string name="island_text">超级岛文字</string>
     <string name="island_text_size">岛文字大小</string>
@@ -1005,6 +1006,9 @@
     <string name="island_indicator_follow">跟随岛背景</string>
     <string name="island_indicator_invert">反跟随岛背景</string>
     <string name="island_indicator_white">白色</string>
+    <string name="island_indicator_gap">指示器间隙</string>
+    <string name="island_indicator_angle">指示器角度</string>
+    <string name="island_indicator_width">指示器宽度</string>
     <string name="mini_bar_focus_title">焦点通知下拉小白条</string>
     <string name="mini_bar_focus_summary">岛内焦点通知展开态的下拉横条</string>
     <string name="mini_bar_normal_title">普通通知下拉小白条</string>
