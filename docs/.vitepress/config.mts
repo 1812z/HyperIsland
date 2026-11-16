@@ -1,6 +1,5 @@
 import { defineConfig } from 'vitepress'
-import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
+import { loadAppVersion, loadReleaseHistory } from './data/releases.mjs'
 
 interface ReleaseSection {
   title: string
@@ -14,66 +13,13 @@ interface ReleaseEntry {
   sections: ReleaseSection[]
 }
 
-const changelogPath = fileURLToPath(new URL('../CHANGELOG.md', import.meta.url))
-const gradlePropertiesPath = fileURLToPath(new URL('../../android/gradle.properties', import.meta.url))
-
-// 版本标题有两种写法：# V3.2.1(2026-10-17) 与 # V3.1.9 (2026-10-11)，括号前空格可有可无
-const versionPattern = /^# V([^\s(]+)/
-// 日期单独提取，兼容括号内外任意空白与分隔符写法
-const datePattern = /(\d{4})-(\d{1,2})-(\d{1,2})/
-
-function normalizeDate(match: RegExpMatchArray | null): string {
-  if (!match) return ''
-  const [, year, month, day] = match
-  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`
-}
-
-function loadReleaseHistory(): ReleaseEntry[] {
-  const changelog = readFileSync(changelogPath, 'utf8')
-  const headingPattern = /^# V[^\n]*$/gm
-  const matches = [...changelog.matchAll(headingPattern)]
-
-  return matches.map((match, index) => {
-    const heading = match[0]
-    const version = heading.match(versionPattern)?.[1]
-    if (!version) throw new Error(`docs/CHANGELOG.md 无法解析版本标题：${heading}`)
-
-    const bodyStart = match.index! + heading.length
-    const bodyEnd = matches[index + 1]?.index ?? changelog.length
-    const body = changelog.slice(bodyStart, bodyEnd)
-    const sections: ReleaseSection[] = []
-    let current: ReleaseSection | undefined
-
-    for (const rawLine of body.split(/\r?\n/)) {
-      const line = rawLine.trim()
-      if (line.startsWith('## ')) {
-        current = { title: line.slice(3).trim(), items: [] }
-        sections.push(current)
-      } else if (line.startsWith('- ')) {
-        if (!current) {
-          current = { title: '更新内容', items: [] }
-          sections.push(current)
-        }
-        current.items.push(line.slice(2).trim())
-      }
-    }
-
-    const normalizedDate = normalizeDate(heading.match(datePattern))
-
-    return {
-      version,
-      date: normalizedDate,
-      downloadUrl: `https://github.com/1812z/HyperIsland/releases/download/v${version}/HyperIsland-v${version}.apk`,
-      sections
-    }
-  })
-}
-
+/**
+ * 解析实现全部在 `.vitepress/data/releases.mjs`：构建期的 JSON 产物
+ * （`scripts/gen-site-data.mjs`）和这里共用同一份代码，避免出现
+ * 「网页能显示、App 解析不出来」的两套正则漂移。
+ */
 function loadLatestRelease(): ReleaseEntry {
-  const properties = readFileSync(gradlePropertiesPath, 'utf8')
-  const version = properties.match(/^appVersionName=(.+)$/m)?.[1]?.trim()
-  if (!version) throw new Error('android/gradle.properties 中缺少 appVersionName')
-
+  const version = loadAppVersion()
   const release = loadReleaseHistory().find((item) => item.version === version)
   if (!release) throw new Error(`docs/CHANGELOG.md 中找不到 V${version} 的更新日志`)
   return release

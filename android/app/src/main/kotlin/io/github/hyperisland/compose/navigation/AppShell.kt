@@ -58,6 +58,8 @@ import io.github.hyperisland.compose.data.rememberBooleanPreference
 import io.github.hyperisland.compose.data.rememberLongPreference
 import io.github.hyperisland.compose.page.AppsPage
 import io.github.hyperisland.compose.page.AboutPage
+import io.github.hyperisland.compose.page.ChangelogPage
+import io.github.hyperisland.compose.page.DonorsPage
 import io.github.hyperisland.compose.page.apps.NotificationChannelsPage
 import io.github.hyperisland.compose.page.apps.channel.ChannelEditorPage
 import io.github.hyperisland.compose.page.apps.channel.BatchChannelSettingsPage
@@ -394,6 +396,16 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                         appsSelectedMode = 1
                                         scope.launch { pagerState.animateScrollToPage(1) }
                                     },
+                                    onOpenDonors = {
+                                        batchChannelTarget = null
+                                        batchToastPackages = null
+                                        visibleChannelApp = null
+                                        visibleToastApp = null
+                                        extensionDetail = null
+                                        extensionSubDetail = null
+                                        visibleDetail = SettingsDetail.Donors
+                                        detailShown = true
+                                    },
                                 )
                                 1 -> AppsPage(
                                     prefs = prefs,
@@ -471,6 +483,14 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                         visibleChannelApp = null
                                         visibleToastApp = null
                                         visibleDetail = SettingsDetail.DebugTools
+                                        detailShown = true
+                                    },
+                                    onOpenChangelog = {
+                                        batchChannelTarget = null
+                                        batchToastPackages = null
+                                        visibleChannelApp = null
+                                        visibleToastApp = null
+                                        visibleDetail = SettingsDetail.Changelog
                                         detailShown = true
                                     },
                                 )
@@ -567,6 +587,8 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                 )
                                 SettingsDetail.Other -> IslandOtherPage(prefs, ::closeDetail)
                                 SettingsDetail.References -> ReferencesPage(::closeDetail)
+                                SettingsDetail.Changelog -> ChangelogPage(::closeDetail)
+                                SettingsDetail.Donors -> DonorsPage(::closeDetail)
                                 SettingsDetail.BackupRestore -> BackupRestorePage(::closeDetail)
                                 SettingsDetail.DebugTools -> DebugToolsPage(
                                     prefs = prefs,

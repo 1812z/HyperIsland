@@ -59,6 +59,18 @@ Xposed 使用 libxposed 新 API（`io.github.libxposed.api`），不是旧 Xpose
 - 云端配置：`compose/service/HubClient.kt` 对接 `https://hyperisland-hub.1812z.top`（文档 `HyperIsland-Hub/API.md`）。列表 `GET /api/configs?page=N`（仅元数据）、详情 `GET /api/configs/{id}`（含 `payload.sections`，累加下载量）、上传 `POST /api/configs`（匿名，按 IP 每日限流）。上传必须显式构造 Hub 信封（形态 A，`payload` 为对象），不能只依赖服务端自动包裹。云端预设 id 加 `hub:` 前缀；应用云端预设时先查本地缓存再按需下载正文。审核令牌不下发客户端。
 - 云端正文缓存在 `HyperIslandPresets` 的 `hub_cache`（最多 100 份，LRU 淘汰），避免重复下载；缓存读写走 IO 线程。云端列表是进程级状态，软件启动后**首次进入页面**自动拉取一次，之后复用内存列表，仅下拉刷新才重新拉取。
 
+## 站点数据（更新日志 / 捐赠名单）
+
+App 内的更新日志与捐赠名单**不是网页套壳**：文档站在构建期把人工数据源编译成静态 JSON，App 拉 JSON 原生渲染。
+
+- 数据源只有两处：`docs/CHANGELOG.md`、`docs/.vitepress/data/donors.json`（网页与 App 共用同一份）
+- 生成：`node scripts/gen-site-data.mjs` → `docs/public/data/{changelog,donors}.json`，并同步一份到 `android/app/src/main/assets/site-data/` 作为首装离线基线（**这份要入库**，APK 打包依赖它）。最新版本取自 `changelog.releases[0]`，不再单独产出 `latest.json`
+- 必须挂在站点构建命令上：`docs:build` / `docs:dev` 已前置该脚本。`docs/public/data` 已 gitignore，不要本地生成后提交 —— 否则线上是旧 JSON，且过期了不报错
+- 解析唯一实现在 `docs/.vitepress/data/releases.mjs`，`config.mts` 与生成脚本共用；**禁止写第二套正则**（会变成「网页能显示、App 空白」）
+- App 侧：`compose/data/SiteDataModels.kt` + `compose/service/SiteDataClient.kt`，三层读取（assets 基线 → `filesDir` 缓存 → 网络），请求带 `?t=yyyyMMddHH` 穿透边缘缓存，6 小时内不重复回源
+- 页面 `compose/page/ChangelogPage.kt` / `DonorsPage.kt`，入口是 `SettingsDetail.Changelog` / `SettingsDetail.Donors`（关于页「更新日志 & 历史版本」、首页「捐赠列表」）
+- 加字段时三处一起改：生成脚本、`SiteDataModels`、`SiteDataClient` 的解析
+
 ## 新增配置项检查清单
 
 1. 在 `FlutterPrefsRepository.kt` 添加默认值、读取与写入

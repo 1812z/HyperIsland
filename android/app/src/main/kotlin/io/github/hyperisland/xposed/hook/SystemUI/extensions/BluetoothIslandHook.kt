@@ -35,6 +35,11 @@ object BluetoothIslandHook : BaseHook() {
     private const val PREF_OUTER_GLOW_COLOR = "pref_bluetooth_island_outer_glow_color"
     private const val PREF_WHITELIST_ENABLED = "pref_bluetooth_island_whitelist_enabled"
     private const val PREF_WHITELIST_ADDRESSES = "pref_bluetooth_island_whitelist_addresses"
+    private const val PREF_EVENTS = "pref_bluetooth_island_events"
+    private const val EVENT_CONNECT = "connect"
+    private const val EVENT_DISCONNECT = "disconnect"
+    private const val EVENT_UPDATE = "update"
+    private const val DEFAULT_EVENTS = "$EVENT_CONNECT,$EVENT_DISCONNECT,$EVENT_UPDATE"
     private const val NOTIF_ID = 0x48494254
     private const val ACTION_BATTERY_LEVEL_CHANGED = "android.bluetooth.device.action.BATTERY_LEVEL_CHANGED"
     private const val EXTRA_BATTERY_LEVEL = "android.bluetooth.device.extra.BATTERY_LEVEL"
@@ -106,6 +111,12 @@ object BluetoothIslandHook : BaseHook() {
                 // 白名单检查
                 val btAddr = getBluetoothDevice(intent)?.address
                 if (!isDeviceAllowedByWhitelist(btAddr)) return
+                if (!isEventEnabled(EVENT_UPDATE)) {
+                    moduleRef?.let {
+                        log(it) { "skip bluetooth battery island: update event disabled key=$key" }
+                    }
+                    return
+                }
                 val hasPendingNameRefresh = pendingNameRefreshes.containsKey(key)
                 if (showDeviceName && hasPendingNameRefresh) {
                     if (battery in 0..100) lastBattery = battery
@@ -159,6 +170,14 @@ object BluetoothIslandHook : BaseHook() {
                         "deviceName=$deviceName key=$key showDeviceName=$showDeviceName " +
                         "displayDurationSecs=$displayDurationSecs" }
             }
+            // 弹出时机由设置页多选控制；状态与缓存无论是否弹岛都要更新
+            if (!isEventEnabled(if (connected) EVENT_CONNECT else EVENT_DISCONNECT)) {
+                pendingNameRefreshes.remove(key)?.let { mainHandler.removeCallbacks(it) }
+                moduleRef?.let {
+                    log(it) { "skip bluetooth island: event disabled connected=$connected key=$key" }
+                }
+                return
+            }
             if (connected && battery !in 0..100 && !showDeviceName) {
                 moduleRef?.let {
                     log(it) { "skip bluetooth connected island: battery unknown deviceName=$deviceName key=$key" }
@@ -206,6 +225,18 @@ object BluetoothIslandHook : BaseHook() {
             PREF_DISPLAY_DURATION_SECONDS,
             DEFAULT_DISPLAY_DURATION_SECS,
         ).coerceIn(1, 86400)
+    }
+
+    /**
+     * 判断某个事件是否允许弹出岛。
+     *
+     * 空串表示用户在设置里把三个选项全部取消 —— 任何事件都不弹，不能回退成默认全开，
+     * 否则「全不选」会被误当成「没配置」。
+     */
+    private fun isEventEnabled(event: String): Boolean {
+        val raw = ConfigManager.getString(PREF_EVENTS, DEFAULT_EVENTS).trim()
+        if (raw.isEmpty()) return false
+        return raw.split(',').any { it.trim().equals(event, ignoreCase = true) }
     }
 
     private fun isDeviceAllowedByWhitelist(deviceAddress: String?): Boolean {

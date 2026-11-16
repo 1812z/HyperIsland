@@ -45,6 +45,7 @@ import io.github.hyperisland.XposedPrefsSyncApp
 import io.github.hyperisland.compose.component.CollapsingPage
 import io.github.hyperisland.compose.component.RestartScopeDialog
 import io.github.hyperisland.compose.component.SettingsAction
+import io.github.hyperisland.compose.component.SettingsActionWithArrow
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.service.HomeSystemInfo
 import io.github.hyperisland.compose.service.SystemInfoProvider
@@ -143,6 +144,7 @@ internal fun OverviewPage(
     isActive: Boolean,
     onOpenApps: () -> Unit,
     onOpenToastApps: () -> Unit,
+    onOpenDonors: () -> Unit,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -186,6 +188,12 @@ internal fun OverviewPage(
                     endIcon = MiuixIcons.Link,
                     endIconSize = 26.dp,
                     onClick = { context.openUrl(DONATION_URL) },
+                )
+                // 捐赠名单走站内原生列表（数据来自站点 JSON），不再跳网页
+                SettingsActionWithArrow(
+                    title = stringResource(R.string.donation_list),
+                    summary = stringResource(R.string.donation_list_entry_summary),
+                    onClick = onOpenDonors,
                 )
                 SettingsAction(
                     title = stringResource(R.string.documentation),

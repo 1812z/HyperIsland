@@ -43,6 +43,10 @@ internal enum class SettingsDetail {
     Onboarding,
     Preset,
     DebugTools,
+    /** 更新日志 & 历史版本（站点 JSON，原生渲染）。 */
+    Changelog,
+    /** 捐赠名单（站点 JSON，原生渲染）。 */
+    Donors,
 }
 
 @Composable

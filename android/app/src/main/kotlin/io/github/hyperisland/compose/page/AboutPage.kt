@@ -98,6 +98,7 @@ internal fun AboutPage(
     onOpenBackupRestore: () -> Unit,
     onOpenReferences: () -> Unit,
     onOpenDebugTools: () -> Unit,
+    onOpenChangelog: () -> Unit,
 ) {
     val context = LocalContext.current
     val listState = rememberLazyListState()
@@ -248,13 +249,11 @@ internal fun AboutPage(
                     ) {
                         context.openUrl(GITHUB_URL)
                     }
-                    SettingsAction(
-                        title = stringResource(R.string.changelog),
-                        icon = MiuixIcons.Info,
-                        endIcon = MiuixIcons.Link,
-                        endIconSize = 26.dp,
+                    SettingsActionWithArrow(
+                        title = stringResource(R.string.changelog_history),
+                        icon = MiuixIcons.Update,
                     ) {
-                        context.openUrl(CHANGELOG_URL)
+                        onOpenChangelog()
                     }
                     SettingsActionWithArrow(
                         title = stringResource(R.string.references),
@@ -651,7 +650,6 @@ private fun Context.openPrivacyPolicy() {
 }
 
 private const val GITHUB_URL = "https://github.com/1812z/HyperIsland"
-private const val CHANGELOG_URL = "https://hyperisland.1812z.top/CHANGELOG.html"
 private const val DEVELOPER_GITHUB_URL = "https://github.com/1812z"
 private const val TELEGRAM_URL = "https://t.me/HyperIsland_Module"
 private const val PRIVACY_POLICY_BASE_URL = "https://hyperisland.1812z.top"

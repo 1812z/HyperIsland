@@ -3,6 +3,7 @@ package io.github.hyperisland.compose.component
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -51,6 +52,27 @@ internal fun MarkdownBody(
         verticalArrangement = Arrangement.spacedBy(5.dp),
     ) {
         items(lines) { rawLine -> MarkdownLine(rawLine.trim()) }
+    }
+}
+
+/**
+ * 与 [MarkdownBody] 同一套渲染，但**自身不滚动**，高度随内容自然增长。
+ *
+ * 给「已经在一个滚动容器里」的场景用：更新日志页每个版本卡都能展开长正文，
+ * 卡内再放一个可滚动区域会和外层 LazyColumn 抢手势 —— 手势被内层吃掉，
+ * 页面看着像「滑不动」。这里只铺内容，滚动统一交给外层。
+ */
+@Composable
+internal fun MarkdownLines(
+    source: String,
+    modifier: Modifier = Modifier,
+) {
+    val lines = remember(source) { source.trim().lines() }
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(5.dp),
+    ) {
+        lines.forEach { line -> MarkdownLine(line.trim()) }
     }
 }
 

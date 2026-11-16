@@ -44,6 +44,8 @@ opencode.json
 /docs/.vitepress/cache
 /node_modules
 /docs/.vitepress/dist
+# 站点数据由 scripts/gen-site-data.mjs 在构建期生成，不入库（APK 用的那份在 assets 里）
+/docs/public/data
 /android/.settings
 /tmp
 /.workbuddy-ai

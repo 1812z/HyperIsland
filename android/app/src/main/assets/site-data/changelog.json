@@ -1,0 +1,2231 @@
+{
+  "schema": 1,
+  "generatedAt": "2026-11-16T04:30:24.000Z",
+  "latest": "3.2.6",
+  "releases": [
+    {
+      "version": "3.2.6",
+      "date": "2026-11-16",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v3.2.6/HyperIsland-v3.2.6.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "新增单岛样式参数自定义",
+            "新增截图隐藏超级岛",
+            "蓝牙岛支持自定义弹出时机（连接 / 断开 / 电量更新）"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": []
+        }
+      ]
+    },
+    {
+      "version": "3.2.5",
+      "date": "2026-11-12",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v3.2.5/HyperIsland-v3.2.5.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "新增音乐实时频谱多种取色方案"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "修复常驻岛宽度跳变",
+            "优化音乐实时频谱声音采样",
+            "优化UI界面，引入柔光材质"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "3.2.4",
+      "date": "2026-11-06",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v3.2.4/HyperIsland-v3.2.4.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "新增类ColorOS单岛样式"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "修复18.3及以上系统界面组件光效丢失问题"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "3.2.3",
+      "date": "2026-11-03",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v3.2.3/HyperIsland-v3.2.3.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "支持单独隐藏某个应用音乐岛"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "修复OS3计时组件",
+            "优化 UI",
+            "修复解锁岛弹出"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "3.2.2",
+      "date": "2026-10-23",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v3.2.2/HyperIsland-v3.2.2.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "新增高亮轮廓隐藏",
+            "新增岛字体自定义参数",
+            "新增岛文本居中/靠左/靠右"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "修复系统界面组件18.3.2.57.0柔光失效",
+            "删除外圈光效启用时禁用防烧屏功能",
+            "外圈光效适配状态栏防烧屏",
+            "调试模式"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "3.2.1",
+      "date": "2026-10-17",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v3.2.1/HyperIsland-v3.2.1.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "支持 HA 息屏省电",
+            "完善小窗下拉动画",
+            "通知小白条自定义"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "优化音乐岛频谱占用",
+            "优化界面",
+            "修复测试通知被错误替换"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "3.2.0",
+      "date": "2026-10-15",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v3.2.0/HyperIsland-v3.2.0.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "支持 HomeAssistant 数据上岛",
+            "新增图标反色功能",
+            "新增 ⽂本组件1 + 识别图形组件1 + 进度组件2 模板",
+            "文本反色适配更多场景（如电话场景）"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "修复${progress_text}占位符",
+            "优化界面显示",
+            "优化动画性能"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "3.1.10",
+      "date": "2026-10-13",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v3.1.10/HyperIsland-v3.1.10.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "预设支持更新/编辑/查看状态等操作"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "优化界面显示",
+            "修复测试通知"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "3.1.9",
+      "date": "2026-10-11",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v3.1.9/HyperIsland-v3.1.9.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "Hook 拓展：新增音乐岛实时频谱"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "优化媒体文本可能的占用异常",
+            "修复内容顶部间距重复叠加",
+            "修复全屏情况下可能导致柔光透明",
+            "修复多条通知（关闭焦点情况下）同时出现导致后续有通知就消失问题"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "3.1.8",
+      "date": "2026-10-07",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v3.1.8/HyperIsland-v3.1.8.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "外观/动画的灵动类型新增「按压倾斜」：展开通知按压侧透视下沉",
+            "外圈光效适配按压倾斜"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "修复焦点通知关闭时通知样式丢失",
+            "修复默认配置保存失败问题"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "3.1.7-Beta1",
+      "date": "2026-10-05",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v3.1.7-Beta1/HyperIsland-v3.1.7-Beta1.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "预设新增还原配置功能",
+            "预设空白项恢复默认配置"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "3.1.6",
+      "date": "2026-10-04",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v3.1.6/HyperIsland-v3.1.6.apk",
+      "sections": [
+        {
+          "title": "破坏性更新，状态栏图标配置支持3项开关，原配置已弃用",
+          "items": []
+        },
+        {
+          "title": "功能",
+          "items": [
+            "3.1.6汇总更新如下",
+            "新增预设中心",
+            "预设编辑支持全屏编辑器",
+            "状态栏图标现在支持：强制显示/隐藏/跟随系统"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "修复倒计时组件反色异常",
+            "优化设置跳转行为",
+            "修复通知计数岛时的焦点通知行为"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "3.1.6-Beta2",
+      "date": "2026-10-02",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v3.1.6-Beta2/HyperIsland-v3.1.6-Beta2.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "新增预设中心，上传后即可公开配置，注意应用预设会覆盖当前参数"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "3.1.5",
+      "date": "2026-10-01",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v3.1.5/HyperIsland-v3.1.5.apk",
+      "sections": [
+        {
+          "title": "破坏性更新，迁移 iOS 样式至外观/尺寸，支持精细化参数调节",
+          "items": []
+        },
+        {
+          "title": "功能",
+          "items": [
+            "新增竖向回弹动画",
+            "新增归位越界动画及自定义"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "优化日志管理",
+            "优化 Hook 加载速度与稳定性",
+            "优化动画曲线",
+            "修复动画类型读取错误",
+            "修复底栏无响应"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "3.1.4",
+      "date": "2026-09-30",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v3.1.4/HyperIsland-v3.1.4.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "新增动画样式：灵动、iOS样式",
+            "新增动画效果：回弹、跟手效果",
+            "新增动画曲线：抛物线动画、动画曲线自定义",
+            "新增展开态收起透明度、模糊度调整",
+            "新增圆角自定义"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "优化柔光玻璃兼容性",
+            "优化焦点文本颜色跟随",
+            "更新依赖"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "3.1.3",
+      "date": "2026-09-19",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v3.1.3/HyperIsland-v3.1.3.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "新增锁屏负一屏",
+            "解锁岛新增锁样式2",
+            "新增录屏 API 以对接侧边栏 [HyperDock](https://github.com/1812z/hyperdock)"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "优化 UI 界面",
+            "修复滚动计时",
+            "修复新版安全服务的剪贴板上岛"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "3.1.2",
+      "date": "2026-09-13",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v3.1.2/HyperIsland-v3.1.2.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "新增通知计数岛（显示通知数量及更新次数）"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "优化平板 UI 显示效果",
+            "优化部分 Hook",
+            "优化底栏效果",
+            "外圈光效支持特殊岛（勿扰/静音等）",
+            "修复滚动超时异常常驻"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "3.1.1-Beta5",
+      "date": "2026-09-12",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v3.1.1-Beta5/HyperIsland-v3.1.1-Beta5.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "新增临时关闭 WiFi 功能"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "修复低电量下屏幕录制异常",
+            "优化 Hook 拓展页面",
+            "更新翻译"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "3.1.1-Beta3",
+      "date": "2026-09-09",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v3.1.1-Beta3/HyperIsland-v3.1.1-Beta3.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "支持调节岛文字区域高度",
+            "新增负一屏显示融合设备中心"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "修复低电量下屏幕录制异常",
+            "优化剪贴板上岛"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "3.1.0",
+      "date": "2026-09-08",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v3.1.0/HyperIsland-v3.1.0.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "支持自动拦截悬浮通知",
+            "滑动条新增手动输入弹窗",
+            "新增阻止充电岛",
+            "下载管理上岛支持显示图标（仅单个任务时）",
+            "新增蓝牙广播心率岛"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "更新翻译",
+            "新增隐私政策",
+            "接入数据分析",
+            "修复广播异常",
+            "优化教程文档排版",
+            "优化初始引导",
+            "优化常驻岛占位符",
+            "修复录制弹窗横屏异常",
+            "修复下载状态同步问题"
+          ]
+        },
+        {
+          "title": "已知问题",
+          "items": [
+            "HyperOS4 设备除柔光玻璃和默认材质外，可能导致超级岛残缺，暂时无法定位问题，建议使用柔光玻璃材质"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "3.0.3",
+      "date": "2026-09-03",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v3.0.3/HyperIsland-v3.0.3.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "支持剪贴板权限提示上岛",
+            "设置入口栏目调节",
+            "常驻岛多场景设置"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "更新翻译",
+            "修复下拉小窗模糊残留",
+            "修复液态玻璃捕获导致的闪屏",
+            "修复录屏上岛无障碍冲突"
+          ]
+        },
+        {
+          "title": "已知问题",
+          "items": [
+            "HyperOS4 设备除柔光玻璃和默认材质外，可能导致超级岛残缺，暂时无法定位问题，建议使用柔光玻璃材质"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "3.0.2",
+      "date": "2026-08-30",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v3.0.2/HyperIsland-v3.0.2.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "支持动态照片录屏",
+            "录屏岛新增图标样式",
+            "新增液态玻璃底栏"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "更新翻译",
+            "修复资源 Hook",
+            "修复了一些 Bug"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "3.0.1",
+      "date": "2026-08-30",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v3.0.1/HyperIsland-v3.0.1.apk",
+      "sections": [
+        {
+          "title": "OS3/4 通用适配，如遇异常请提 Issue",
+          "items": []
+        },
+        {
+          "title": "破坏性更新，迁移至 MiuiX 实现，更新后不支持回退！！",
+          "items": []
+        },
+        {
+          "title": "功能",
+          "items": [
+            "设置入口支持位置调节",
+            "新增录屏上岛"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "修复柔光玻璃部分场景异常",
+            "优化预测性返回手势",
+            "更新翻译",
+            "修复焦点文本颜色跟随",
+            "支持计时组件文本颜色跟随",
+            "修复OS4平滑超级岛"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "3.0.0",
+      "date": "2026-08-29",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v3.0.0/HyperIsland-v3.0.0.apk",
+      "sections": [
+        {
+          "title": "OS3/4 通用适配，如遇异常请提 Issue",
+          "items": []
+        },
+        {
+          "title": "破坏性更新，迁移至 MiuiX 实现，更新后不支持回退！！",
+          "items": []
+        },
+        {
+          "title": "功能",
+          "items": [
+            "界面重构，更加美观简约",
+            "新增小岛图标自定义",
+            "新增适配柔光玻璃（OS4）",
+            "新增关于页面",
+            "适配 MiuiX 模糊+底栏",
+            "适配预测性返回手势",
+            "玻璃材质页面重新设计，支持快速分享及导入配置"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "字体改为百分比调节",
+            "支持双岛间距调节",
+            "优化设置项在不同系统上显示",
+            "更新翻译",
+            "移除了 Flutter"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.5.3",
+      "date": "2026-08-24",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.5.3/HyperIsland-v2.5.3.apk",
+      "sections": [
+        {
+          "title": "OS4 目前未适配，部分功能异常，请耐心等待",
+          "items": []
+        },
+        {
+          "title": "功能",
+          "items": [
+            "新增小岛宽度调节",
+            "新增岛文本大小调节"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "修复常驻岛秒显示跳秒",
+            "优化常驻岛息屏刷新策略",
+            "优化面板息屏显示布局",
+            "修复常驻岛占位符解析",
+            "优化动态取色，过暗或过亮恢复显示纯色",
+            "恢复小岛居中高度调节 Hook",
+            "更新翻译"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.5.2",
+      "date": "2026-08-15",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.5.2/HyperIsland-v2.5.2.apk",
+      "sections": [
+        {
+          "title": "OS4 目前未适配，部分功能异常，请耐心等待",
+          "items": []
+        },
+        {
+          "title": "功能",
+          "items": [
+            "外圈光效支持单色模式",
+            "外圈光效支持设置底色",
+            "通知圆角二次处理开关"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "优化 Max_Token 字段",
+            "修复动态取色颜色遗留问题",
+            "优化动态取色，避免过暗或过亮"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.5.1",
+      "date": "2026-08-14",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.5.1/HyperIsland-v2.5.1.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "支持调节图标边距"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "修复 AOD 图标",
+            "优化部分hook实现",
+            "优化图标圆角实现（仅支持超级岛圆角调节）",
+            "修复 HDR 光效残留",
+            "修复图标大小调节"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.5.0",
+      "date": "2026-08-13",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.5.0/HyperIsland-v2.5.0.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "超级岛缩小后支持清除通知",
+            "岛展开态缩小后支持清除通知或隐藏岛",
+            "支持调节岛图标大小"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "修复边缘高光锯齿",
+            "优化岛收起过渡动画遮罩"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.4.9",
+      "date": "2026-08-12",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.4.9/HyperIsland-v2.4.9.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "常驻岛面板支持自动反色"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "优化 AI 思考模式报错显示",
+            "优化模糊丢失2帧问题",
+            "修复文本反色导致的崩溃问题",
+            "优化岛过渡动画",
+            "修复常驻岛自动隐藏卡顿"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.4.8",
+      "date": "2026-08-10",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.4.8/HyperIsland-v2.4.8.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "AI 总结新增自定义字段"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "修复模糊异常",
+            "修复常驻岛隐藏冲突",
+            "修复常驻岛 UI 逻辑",
+            "修复常驻岛焦点字段",
+            "优化 Hook 性能",
+            "修复充电岛部分错误",
+            "修复系统界面崩溃问题",
+            "优化老版本系统宽度调节"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.4.7",
+      "date": "2026-08-08",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.4.7/HyperIsland-v2.4.7.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "常驻岛新增性能面板/充电面板/设备面板",
+            "常驻岛新增显示时机（可以当充电岛用了？）"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "优化 UI",
+            "修复背景尺寸错误",
+            "优化蓝牙岛日志",
+            "优化人脸岛成功解锁后不再弹出",
+            "优化常驻岛",
+            "新增多项占位符"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.4.6",
+      "date": "2026-08-08",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.4.6/HyperIsland-v2.4.6.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "HDR支持暗边高边缘",
+            "新增引用页面"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "描边支持平滑岛",
+            "修复岛跟随过程中黑色遮罩",
+            "修复岛变换过程中圆角过渡异常",
+            "修复岛跟随中高度异常",
+            "修复小岛高度图标居中"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.4.5",
+      "date": "2026-08-06",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.4.5/HyperIsland-v2.4.5.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "解锁岛支持常驻锁屏"
+          ]
+        },
+        {
+          "title": "修复",
+          "items": [
+            "优化文本颜色跟随",
+            "优化设置镂空图标",
+            "修复系统界面解锁焦点通知白名单（请勿和其他软件破解白名单一起使用）"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.4.4",
+      "date": "2026-08-04",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.4.4/HyperIsland-v2.4.4.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "设置图标支持镂空",
+            "常驻岛支持网络占位符",
+            "常驻岛支持轮播显示数据或文本",
+            "新增解锁岛，支持人脸样式和锁头样式"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "优化配置加载逻辑",
+            "修复模块启动瞬间卡顿问题",
+            "修复焦点通知背景间隙",
+            "优化通知渠道参数",
+            "修复常驻岛被全屏横屏逻辑拦截"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.4.3",
+      "date": "2026-07-31",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.4.3/HyperIsland-v2.4.3.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "图标圆角自定义"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "修复全屏模糊消失",
+            "新增过渡动画（由于部分动画在系统桌面，仍遗留部分遮罩）"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.4.2",
+      "date": "2026-07-30",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.4.2/HyperIsland-v2.4.2.apk",
+      "sections": [
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "修复媒体通知删除失效",
+            "优化字段储存",
+            "修复自动消失时间设置异常"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.4.1",
+      "date": "2026-07-27",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.4.1/HyperIsland-v2.4.1.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "支持前台应用强制显示超级岛"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "修复300+系统上最大宽度调节"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.4.0",
+      "date": "2026-07-25",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.4.0/HyperIsland-v2.4.0.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "文本颜色设置支持媒体卡片"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "优化自动超时选项",
+            "优化按钮文本反色效果",
+            "改善 HDR 效果"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.3.9",
+      "date": "2026-07-25",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.3.9/HyperIsland-v2.3.9.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "新增 HDR 高亮效果（测试",
+            "默认配置支持自动消失时间设置"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "恢复液态玻璃控制中心遮罩"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.3.8",
+      "date": "2026-07-24",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.3.8/HyperIsland-v2.3.8.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "模糊效果支持小岛/大岛/焦点分别开关"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "修复模糊异常",
+            "优化代码"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.3.7",
+      "date": "2026-07-24",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.3.7/HyperIsland-v2.3.7.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "新增液态玻璃效果"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "修复模糊形状问题"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.3.6",
+      "date": "2026-07-22",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.3.6/HyperIsland-v2.3.6.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "新增光效范围调节",
+            "常驻岛文本颜色支持左右分别开关"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "修复焦点通知光效",
+            "修复模糊和背景兼容性"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.3.5",
+      "date": "2026-07-21",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.3.5/HyperIsland-v2.3.5.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "新增背景实时模糊",
+            "新增常驻轮廓控制开关",
+            "常驻岛新增部分占位符",
+            "全屏隐藏行为支持横屏时禁用",
+            "新增焦点通知文本颜色设置"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "修复部分问题",
+            "更新翻译",
+            "优化数据源更新"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.3.3",
+      "date": "2026-07-15",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.3.3/HyperIsland-v2.3.3.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "常驻岛支持自定义图标",
+            "常驻岛支持自定义焦点通知内容",
+            "常驻岛新增天气、时间占位符",
+            "AI 总结支持自定义触发字数",
+            "新增滚动后隐藏岛（覆盖超时）选项"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "新增 ROOT 删除图片（备用）",
+            "修复部分岛滚动后清除失败问题",
+            "更新依赖",
+            "优化 UI"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.3.2",
+      "date": "2026-07-09",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.3.2/HyperIsland-v2.3.2.apk",
+      "sections": [
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "新增破解焦点引导页面",
+            "更新翻译",
+            "修复部分配置失效",
+            "修改滑动条步进"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.3.1",
+      "date": "2026-07-07",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.3.1/HyperIsland-v2.3.1.apk",
+      "sections": [
+        {
+          "title": "配置文件破坏性更新！",
+          "items": []
+        },
+        {
+          "title": "功能",
+          "items": [
+            "常驻岛支持数据信息自定义"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "优化配置文件",
+            "修复一些问题"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.3.0",
+      "date": "2026-06-28",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.3.0/HyperIsland-v2.3.0.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "背景支持 GIF 动态图片",
+            "新增岛开关，关闭后只显示焦点通知",
+            "AI 配置页面支持检索模型"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "Toast 拦截优化"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.2.9",
+      "date": "2026-06-28",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.2.9/HyperIsland-v2.2.9.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "支持 Toast 拦截黑白名单",
+            "文字滚动后支持自动隐藏超级岛",
+            "蓝牙岛显示时间自定义"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "优化 Toast 拦截页面",
+            "优化翻译文件"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.2.8",
+      "date": "2026-06-28",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.2.8/HyperIsland-v2.2.8.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "支持横屏常驻岛自动隐藏"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "修复设置图标显示异常",
+            "修复拦截隐藏导致的性能问题",
+            "更新翻译",
+            "优化部分页面",
+            "充电岛修复部分问题"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.2.7",
+      "date": "2026-06-25",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.2.7/HyperIsland-v2.2.7.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "支持自定义充电岛"
+          ]
+        },
+        {
+          "title": "优化",
+          "items": [
+            "升级依赖",
+            "修复通知环形进度"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.2.6",
+      "date": "2026-06-21",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.2.6/HyperIsland-v2.2.6.apk",
+      "sections": [
+        {
+          "title": "优化",
+          "items": [
+            "添加开关以完全禁用隐藏行为 Hook"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.2.5",
+      "date": "2026-06-21",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.2.5/HyperIsland-v2.2.5.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "支持超级岛文本颜色自动调整",
+            "常驻岛改为不可点击"
+          ]
+        },
+        {
+          "title": "修复&优化",
+          "items": [
+            "清理无效隐藏行为"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.2.4",
+      "date": "2026-06-19",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.2.4/HyperIsland-v2.2.4.apk",
+      "sections": [
+        {
+          "title": "修复&优化",
+          "items": [
+            "修复焦点通知关闭时部分字段失效",
+            "修复清理配置",
+            "修复一些页面问题"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.2.3",
+      "date": "2026-06-19",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.2.3/HyperIsland-v2.2.3.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "一键清理无用配置"
+          ]
+        },
+        {
+          "title": "修复&优化",
+          "items": [
+            "修复隐藏行为",
+            "修复应用列表一些问题"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.2.2",
+      "date": "2026-06-18",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.2.2/HyperIsland-v2.2.2.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "系统自动隐藏超级岛行为控制，可强制超级岛在锁屏/全屏等场景强制显示"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.2.1",
+      "date": "2026-06-18",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.2.1/HyperIsland-v2.2.1.apk",
+      "sections": [
+        {
+          "title": "修复&优化",
+          "items": [
+            "回复按钮改为跳转通知/打开APP"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.2.0",
+      "date": "2026-06-18",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.2.0/HyperIsland-v2.2.0.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "超级岛距离屏幕顶部距离调节",
+            "超级岛编译平滑自定义（感谢@Leaf-lsgtky）"
+          ]
+        },
+        {
+          "title": "修复",
+          "items": [
+            "修复消息滚动 Bug"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.1.11",
+      "date": "2026-06-11",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.1.11/HyperIsland-v2.1.11.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "蓝牙岛白名单"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.1.10",
+      "date": "2026-05-30",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.1.10/HyperIsland-v2.1.10.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "蓝牙电量显示"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.1.9",
+      "date": "2026-05-17",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.1.9/HyperIsland-v2.1.9.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "AOD 息屏支持显示通知文本"
+          ]
+        },
+        {
+          "title": "修复&优化",
+          "items": [
+            "UI 页面优化",
+            "优化 LSPosed 激活检测"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.1.8",
+      "date": "2026-05-16",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.1.8/HyperIsland-v2.1.8.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "过滤规则支持排除列表"
+          ]
+        },
+        {
+          "title": "修复&优化",
+          "items": [
+            "Toast 一键开关同步拦截",
+            "光效期间暂停防烧屏机制"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.1.7",
+      "date": "2026-05-14",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.1.7/HyperIsland-v2.1.7.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "应用新增媒体通知渠道设置",
+            "新增全局光效开关"
+          ]
+        },
+        {
+          "title": "修复&优化",
+          "items": [
+            "修复外圈光效动态取色",
+            "优化部分页面元素"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.1.6",
+      "date": "2026-05-12",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.1.6/HyperIsland-v2.1.6.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "新增设置页面入口hook",
+            "作用域申请提示"
+          ]
+        },
+        {
+          "title": "修复&优化",
+          "items": [
+            "修复长按阴影圆角",
+            "更换矢量图标",
+            "优化部分页面元素"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.1.5",
+      "date": "2026-05-11",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.1.5/HyperIsland-v2.1.5.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "新增引导页面",
+            "新增隐藏通知功能（仅支持焦点通知）"
+          ]
+        },
+        {
+          "title": "修复",
+          "items": [
+            "修复关闭焦点通知时的光效"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.1.4",
+      "date": "2026-05-11",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.1.4/HyperIsland-v2.1.4.apk",
+      "sections": [
+        {
+          "title": "优化",
+          "items": [
+            "隐藏滚动文字边缘黑块",
+            "常驻岛高亮颜色透明度调节",
+            "自动过滤Mipush的GroupSummary"
+          ]
+        },
+        {
+          "title": "修复",
+          "items": [
+            "修复图片拉伸",
+            "修复常驻岛消失问题",
+            "修复常驻岛小岛检测避让"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.1.3",
+      "date": "2026-05-10",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.1.3/HyperIsland-v2.1.3.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "添加勿扰模式检测",
+            "完善应用前台过滤规则",
+            "完善AI通知测试页面"
+          ]
+        },
+        {
+          "title": "修复",
+          "items": [
+            "修复翻译",
+            "修复思考模型无法使用问题"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.1.2",
+      "date": "2026-05-06",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.1.2/HyperIsland-v2.1.2.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "常驻岛高亮颜色自定义",
+            "主题自定义",
+            "日志开关"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.1.1",
+      "date": "2026-05-05",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.1.1/HyperIsland-v2.1.1.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "全新设置页面",
+            "常驻岛功能",
+            "超级岛最小宽度调节"
+          ]
+        },
+        {
+          "title": "优化&修复",
+          "items": [
+            "修复应用列表刷新异常问题"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.0.6",
+      "date": "2026-04-26",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.0.6/HyperIsland-v2.0.6.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "支持自定义大岛背景",
+            "支持自定义小岛背景",
+            "支持自定义展开态背景",
+            "支持岛高度调节"
+          ]
+        },
+        {
+          "title": "优化&修复",
+          "items": [
+            "更新了版本号"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.0.5",
+      "date": "2026-04-25",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.0.5/HyperIsland-v2.0.5.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "支持仅应用渠道导入导出配置"
+          ]
+        },
+        {
+          "title": "优化&修复",
+          "items": [
+            "优化性能",
+            "修复 BUG"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.0.4",
+      "date": "2026-04-23",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.0.4/HyperIsland-v2.0.4.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "通知自定义测试",
+            "黑白名单过滤"
+          ]
+        },
+        {
+          "title": "优化&修复",
+          "items": [
+            "开启欢迎岛光效",
+            "优化设置页面布局",
+            "修复 BUG"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.0.3",
+      "date": "2026-04-16",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.0.3/HyperIsland-v2.0.3.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "外圈光效支持超级岛",
+            "外圈光效颜色自定义",
+            "新增横屏/全屏检测行为"
+          ]
+        },
+        {
+          "title": "修复",
+          "items": [
+            "修复 Toast 拦截默认配置",
+            "修复 Toast 消息自定义时间"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.0.2",
+      "date": "2026-04-15",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.0.2/HyperIsland-v2.0.2.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "Toast 自定义完善",
+            "新增版本更新后提示重启作用域"
+          ]
+        },
+        {
+          "title": "修复",
+          "items": [
+            "修复消息滚动在焦点通知关闭情况下失效的问题"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.0.1",
+      "date": "2026-04-13",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.0.1/HyperIsland-v2.0.1.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "Toast 消息拦截并转为超级岛通知"
+          ]
+        },
+        {
+          "title": "优化",
+          "items": [
+            "修复了一些问题",
+            "添加了更多问题"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "2.0.0",
+      "date": "2026-04-11",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v2.0.0/HyperIsland-v2.0.0.apk",
+      "sections": [
+        {
+          "title": "破坏性变更",
+          "items": []
+        },
+        {
+          "title": "功能",
+          "items": [
+            "新增 IM图文组件 样式",
+            "新增表达式自定义，支持正则匹配",
+            "新增超级岛+焦点通知高级自定义选项",
+            "新增按钮颜色自定义"
+          ]
+        },
+        {
+          "title": "修复&优化",
+          "items": [
+            "优化代码结构",
+            "优化消息滚动",
+            "修复一些问题"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.9.12",
+      "date": "2026-04-09",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.9.12/HyperIsland-v1.9.12.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "新增外圈光效及动态取色默认配置",
+            "新增超级岛边框图标动态取色"
+          ]
+        },
+        {
+          "title": "修复&优化",
+          "items": [
+            "修复消息滚动配置在300系统读取失效问题",
+            "优化屎山",
+            "优化最大宽度调节"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.9.11",
+      "date": "2026-04-08",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.9.11/HyperIsland-v1.9.11.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "新增外圈光效（默认关闭）",
+            "新增窄字体开关"
+          ]
+        },
+        {
+          "title": "修复&优化",
+          "items": [
+            "修复测试通知无响应问题",
+            "优化震动效果"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.9.10",
+      "date": "2026-04-08",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.9.10/HyperIsland-v1.9.10.apk",
+      "sections": [
+        {
+          "title": "修复&优化",
+          "items": [
+            "修复 Marquee 消息滚动"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.9.9",
+      "date": "2026-04-05",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.9.9/HyperIsland-v1.9.9.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "超级岛最大宽度调节",
+            "新增 [使用文档](https://hyperisland.1812z.top/)"
+          ]
+        },
+        {
+          "title": "修复&优化",
+          "items": [
+            "修复高亮颜色设定无法还原问题",
+            "优化Hook",
+            "修复AI超时参数"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.9.8",
+      "date": "2026-04-04",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.9.8/HyperIsland-v1.9.8.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "超级岛边框颜色调节",
+            "超级岛左右文本颜色高亮"
+          ]
+        },
+        {
+          "title": "修复&优化",
+          "items": [
+            "修复消息滚动可能导致的黑块",
+            "修复消息滚动可能导致的错位",
+            "修复应用页面黑屏问题",
+            "优化应用&设置页面",
+            "更新翻译"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.9.7",
+      "date": "2026-04-02",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.9.7/HyperIsland-v1.9.7.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "新增 AI Temperature+Token调整",
+            "新增应用列表回到顶部按钮",
+            "新增震动交互反馈",
+            "新增欢迎语开关",
+            "渠道页面新增总开关"
+          ]
+        },
+        {
+          "title": "优化",
+          "items": [
+            "界面样式调整",
+            "缓存配置，优化性能"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.9.6",
+      "date": "2026-04-02",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.9.6/HyperIsland-v1.9.6.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "支持锁屏还原为原始通知，恢复系统的隐私策略",
+            "布局页面调整"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.9.5",
+      "date": "2026-03-31",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.9.5/HyperIsland-v1.9.5.apk",
+      "sections": [
+        {
+          "title": "⚠此版本及以后仅支持 API 101",
+          "items": []
+        },
+        {
+          "title": "优化",
+          "items": [
+            "支持隐藏桌面图标，隐藏后请通过 LSPosed 管理器打开",
+            "布局页面 优化&修复"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.9.4",
+      "date": "2026-03-30",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.9.4/HyperIsland-v1.9.4.apk",
+      "sections": [
+        {
+          "title": "⚠此版本及以后仅支持 API 101",
+          "items": []
+        },
+        {
+          "title": "优化",
+          "items": [
+            "ja tr Transaction",
+            "布局优化"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.9.3",
+      "date": "2026-03-30",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.9.3/HyperIsland-v1.9.3.apk",
+      "sections": [
+        {
+          "title": "⚠此版本及以后仅支持 API 101",
+          "items": []
+        },
+        {
+          "title": "功能",
+          "items": [
+            "支持隐藏大岛左侧图标"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.9.2",
+      "date": "2026-03-28",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.9.2/HyperIsland-v1.9.2.apk",
+      "sections": [
+        {
+          "title": "⚠此版本及以后仅支持 API 101",
+          "items": []
+        },
+        {
+          "title": "优化",
+          "items": [
+            "去除 URL 自动补全",
+            "优化提示词"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.9.1",
+      "date": "2026-03-28",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.9.1/HyperIsland-v1.9.1.apk",
+      "sections": [
+        {
+          "title": "⚠此版本及以后仅支持 API 101",
+          "items": []
+        },
+        {
+          "title": "功能",
+          "items": [
+            "AI 用户提示词",
+            "AI 超时自定义",
+            "AI URL自动补全"
+          ]
+        },
+        {
+          "title": "优化改进",
+          "items": [
+            "修复消息滚动黑块问题",
+            "迁移下载管理器焦点通知实现（请前往“应用”中打开下载管理器以继续使用）"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.9.0",
+      "date": "2026-03-28",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.9.0/HyperIsland-v1.9.0.apk",
+      "sections": [
+        {
+          "title": "⚠此版本及以后仅支持 API 101",
+          "items": []
+        },
+        {
+          "title": "功能",
+          "items": [
+            "自定义 AI 提示词"
+          ]
+        },
+        {
+          "title": "改进",
+          "items": [
+            "升级到 libxposed API 101",
+            "改进应用列表加载速度",
+            "优化 Hook 流程",
+            "优化配置管理系统"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.8.5",
+      "date": "2026-03-27",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.8.5/HyperIsland-v1.8.5.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "**样式**：支持模板和样式分别设置",
+            "**右侧按钮样式**：新增右侧按钮样式，适用于一个文本按钮情景"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.8.4",
+      "date": "2026-03-26",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.8.4/HyperIsland-v1.8.4.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "**超级岛AI总结**：AI总结通知内容并显示在超级岛，确保内容不超过超级岛宽度"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.8.3",
+      "date": "2026-03-25",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.8.3/HyperIsland-v1.8.3.apk",
+      "sections": [
+        {
+          "title": "修复",
+          "items": [
+            "**进度错误**：修复-1进度导致SystemUI崩溃"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.8.2",
+      "date": "2026-03-24",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.8.2/HyperIsland-v1.8.2.apk",
+      "sections": [
+        {
+          "title": "优化",
+          "items": [
+            "**下载Lite模板**： 完善内容",
+            "持续性通知禁用消息滚动",
+            "修复焦点通知关闭时消息滚动异常"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.8.1",
+      "date": "2026-03-24",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.8.1/HyperIsland-v1.8.1.apk",
+      "sections": [
+        {
+          "title": "修复",
+          "items": [
+            "**配置**：默认配置错误问题"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.8.0",
+      "date": "2026-03-24",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.8.0/HyperIsland-v1.8.0.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "**状态栏图标**：支持开启焦点通知时保留状态栏图标",
+            "**默认配置**：支持全局默认配置",
+            "**模板**：新增精简模板，减少上岛文字数量"
+          ]
+        },
+        {
+          "title": "优化",
+          "items": [
+            "**优化**：优化代码",
+            "**i18n**：更新翻译"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.7.10",
+      "date": "2026-03-23",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.7.10/HyperIsland-v1.7.10.apk",
+      "sections": [
+        {
+          "title": "修复",
+          "items": [
+            "**消息滚动**：状态错误问题"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.7.9",
+      "date": "2026-03-23",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.7.9/HyperIsland-v1.7.9.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "**焦点通知白名单**：支持去除白名单",
+            "**i18n**：更新翻译"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.7.7",
+      "date": "2026-03-21",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.7.7/HyperIsland-v1.7.7.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "**超级岛文本滚动**：优化代码和设置页面，支持分通知渠道设置"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.7.6",
+      "date": "2026-03-21",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.7.6/HyperIsland-v1.7.6.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "**焦点通知多行显示**：支持最多两行文本显示",
+            "**超级岛文本滚动**：支持自动滚动超长通知"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.7.5",
+      "date": "2026-03-21",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.7.5/HyperIsland-v1.7.5.apk",
+      "sections": [
+        {
+          "title": "优化",
+          "items": [
+            "**页面**：修复渠道设置页面在三导航设备上显示不全",
+            "**translation**：Japanese translation",
+            "**欢迎岛**：修复弹出问题"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.7.4",
+      "date": "2026-03-21",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.7.4/HyperIsland-v1.7.4.apk",
+      "sections": [
+        {
+          "title": "优化",
+          "items": [
+            "**ROOT提示**：优化无ROOT时提示",
+            "**媒体通知**：修复重复注入媒体通知"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.7.3",
+      "date": "2026-03-19",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.7.3/HyperIsland-v1.7.3.apk",
+      "sections": [
+        {
+          "title": "功能&优化",
+          "items": [
+            "**通知弹出黑名单**：支持指定应用不展开焦点通知",
+            "**系统代发通知**：现在会同步原始通知生成和清除",
+            "**系统代发支持按钮**：显示原通知最多2个按钮"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.7.2",
+      "date": "2026-03-19",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.7.2/HyperIsland-v1.7.2.apk",
+      "sections": [
+        {
+          "title": "BUG 修复",
+          "items": [
+            "**优化代码**：优化冗余代码",
+            "**系统版本检测**：不支持的系统给予强提醒"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.7.1",
+      "date": "2026-03-18",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.7.1/HyperIsland-v1.7.1.apk",
+      "sections": [
+        {
+          "title": "BUG 修复",
+          "items": [
+            "**重复通知处理**：跳过已经是超级岛的通知",
+            "**开机配置加载**：开机时配置未加载则重试"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.7.0",
+      "date": "2026-03-18",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.7.0/HyperIsland-v1.7.0.apk",
+      "sections": [
+        {
+          "title": "更新内容",
+          "items": [
+            "**i18n**：添加英语语言支持",
+            "**新增设置项**：语言/界面颜色/检查更新"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.6.11",
+      "date": "2026-03-18",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.6.11/HyperIsland-v1.6.11.apk",
+      "sections": [
+        {
+          "title": "更新内容",
+          "items": [
+            "**优化对话框**：统一设置对话框"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.6.10",
+      "date": "2026-03-18",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.6.10/HyperIsland-v1.6.10.apk",
+      "sections": [
+        {
+          "title": "更新内容",
+          "items": [
+            "**批量设置优化**：支持批量选择",
+            "**通知消失时间自定义**：支持大于等于1的整数自定义"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.6.8",
+      "date": "2026-03-17",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.6.8/HyperIsland-v1.6.8.apk",
+      "sections": [
+        {
+          "title": "✨ 新增",
+          "items": [
+            "**批量设置应用及应用渠道功能**：支持一次性配置多个应用的渠道设置，提高工作效率。"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.6.7",
+      "date": "2024-12-10",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.6.7/HyperIsland-v1.6.7.apk",
+      "sections": [
+        {
+          "title": "✨ 新增",
+          "items": [
+            "**在线检查更新功能**：应用可自动检查并提示新版本更新。",
+            "**备份和恢复功能**：支持应用数据的备份与恢复操作。",
+            "**代发通知点击功能**：增强通知交互能力。",
+            "**输入框焦点管理**：改进输入框的焦点处理逻辑。"
+          ]
+        },
+        {
+          "title": "🔄 变更",
+          "items": [
+            "**包名更换为 `io.github.hyperisland`**：统一项目包名标识。",
+            "**更新发布工作流**：支持在 GitHub Actions 中解码并使用 keystore 进行签名。"
+          ]
+        },
+        {
+          "title": "🛠 修复",
+          "items": [
+            "**修复组件变化导致的闪烁问题**：优化组件更新时的视觉效果。",
+            "**修复输入框焦点问题**：解决输入框焦点丢失的问题。"
+          ]
+        },
+        {
+          "title": "🗑 移除",
+          "items": [
+            "**删除通知权限**：不再需要通知权限。"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "1.6.0",
+      "date": "",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v1.6.0/HyperIsland-v1.6.0.apk",
+      "sections": [
+        {
+          "title": "✨ 新增",
+          "items": [
+            "**Flutter 应用初始化设置**：完整的项目初始化框架。",
+            "**Material Design UI**：采用 Material Design 设计规范。",
+            "**应用排除功能**：支持排除特定应用程序。",
+            "**本地存储的共享偏好设置**：使用 SharedPreferences 进行本地数据存储。",
+            "**文件选择器功能**：集成文件选择器组件。",
+            "**Markdown 渲染支持**：支持 Markdown 内容渲染。"
+          ]
+        },
+        {
+          "title": "🧰 功能特性",
+          "items": [
+            "**隐藏特定应用程序**：可隐藏不需要显示的应用。",
+            "**URL 启动器集成**：支持打开外部链接。",
+            "**获取应用包信息**：能够读取应用包的详细信息。",
+            "**HTTP 客户端用于网络请求**：集成网络请求能力。",
+            "**使用路径提供程序进行文件管理**：文件管理和访问。"
+          ]
+        }
+      ]
+    }
+  ]
+}

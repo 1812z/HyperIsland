@@ -208,6 +208,78 @@ internal fun PreferenceDropdownWithSummary(
     }
 }
 
+/**
+ * 多选下拉：点击行展开浮层，浮层内每项可独立勾选，点击不收起浮层。
+ * 调用方负责把选中项摘要写进 [summary]，行尾只保留下拉箭头。
+ */
+@Composable
+internal fun PreferenceMultiDropdown(
+    title: String,
+    summary: String?,
+    icon: ImageVector?,
+    items: List<String>,
+    selectedIndices: Set<Int>,
+    enabled: Boolean = true,
+    insideMargin: PaddingValues = SettingsItemMargin,
+    onToggleIndex: (Int) -> Unit,
+) {
+    val expanded = remember { mutableStateOf(false) }
+    var bounds by remember { mutableStateOf(Rect.Zero) }
+    val anchor = rememberGlassPopupAnchor()
+    val backdrop = LocalBarBlurBackdrop.current
+    val available = enabled && items.isNotEmpty()
+    val actionColor = if (available) {
+        MiuixTheme.colorScheme.onSurfaceVariantActions
+    } else {
+        MiuixTheme.colorScheme.disabledOnSecondaryVariant
+    }
+    LaunchedEffect(available) {
+        if (!available) expanded.value = false
+    }
+    BasicComponent(
+        modifier = Modifier.onGloballyPositioned { bounds = it.boundsInWindow() },
+        title = title,
+        summary = summary,
+        startAction = icon?.let { image -> { SettingsIcon(image) } },
+        endActions = {
+            Row(
+                modifier = Modifier.glassPopupAnchorValue(anchor),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                DropdownArrowEndAction(actionColor = actionColor)
+            }
+        },
+        insideMargin = insideMargin,
+        enabled = available,
+        role = Role.DropdownList,
+        onClick = { expanded.value = true },
+    )
+    PopupLayout(
+        visible = expanded,
+        enableWindowDim = false,
+        enableBackHandler = false,
+        renderInRootScaffold = false,
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            GlassDropdownPopup(
+                show = expanded.value && available,
+                onDismissRequest = { expanded.value = false },
+                anchorBounds = bounds,
+                anchor = anchor,
+                backdrop = backdrop,
+            ) {
+                items.forEachIndexed { index, label ->
+                    GlassPopupItem(
+                        text = label,
+                        selected = index in selectedIndices,
+                        onClick = { onToggleIndex(index) },
+                    )
+                }
+            }
+        }
+    }
+}
+
 @Composable
 internal fun PreferenceSlider(
     title: String,

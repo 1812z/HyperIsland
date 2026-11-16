@@ -23,6 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.ColorPaletteDialog
+import io.github.hyperisland.compose.component.PreferenceMultiDropdown
 import io.github.hyperisland.compose.component.PreferenceSwitch
 import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.component.SettingsAction
@@ -68,6 +69,31 @@ internal fun BluetoothIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Un
     }
     val outerGlow = rememberBooleanPreference(prefs, KEY_BLUETOOTH_OUTER_GLOW, false)
     val glowColor = rememberStringPreference(prefs, KEY_BLUETOOTH_OUTER_GLOW_COLOR, "")
+    val events = remember {
+        mutableStateOf(parseBluetoothEvents(prefs.getString(KEY_BLUETOOTH_EVENTS, DEFAULT_BLUETOOTH_EVENTS)))
+    }
+    val connectLabel = stringResource(R.string.ext_bluetooth_event_connect)
+    val disconnectLabel = stringResource(R.string.ext_bluetooth_event_disconnect)
+    val updateLabel = stringResource(R.string.ext_bluetooth_event_update)
+    val eventLabels = listOf(connectLabel, disconnectLabel, updateLabel)
+    val selectedEvents = BLUETOOTH_EVENT_KEYS.withIndex()
+        .filter { (_, key) -> key in events.value }
+        .map { it.index }
+        .toSet()
+    val eventsSummary = if (selectedEvents.isEmpty()) {
+        stringResource(R.string.ext_bluetooth_events_none)
+    } else {
+        selectedEvents.joinToString(", ") { eventLabels[it] }
+    }
+    fun toggleEvent(index: Int) {
+        val key = BLUETOOTH_EVENT_KEYS[index]
+        val next = events.value.toMutableSet().apply { if (!add(key)) remove(key) }
+        events.value = next
+        prefs.putString(
+            KEY_BLUETOOTH_EVENTS,
+            BLUETOOTH_EVENT_KEYS.filter { it in next }.joinToString(","),
+        )
+    }
     val showColorDialog = remember { mutableStateOf(false) }
     val showDurationDialog = remember { mutableStateOf(false) }
     val showDeviceDialog = remember { mutableStateOf(false) }
@@ -117,6 +143,14 @@ internal fun BluetoothIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Un
                         show(restartRequired)
                     }
                 }
+                PreferenceMultiDropdown(
+                    title = stringResource(R.string.ext_bluetooth_events),
+                    summary = eventsSummary,
+                    icon = null,
+                    items = eventLabels,
+                    selectedIndices = selectedEvents,
+                    onToggleIndex = { index -> toggleEvent(index) },
+                )
                 PreferenceSwitch(
                     title = stringResource(R.string.ext_show_device_name),
                     summary = stringResource(R.string.ext_show_device_name_summary),
@@ -284,3 +318,6 @@ private fun parseAddresses(raw: String): List<String> = runCatching {
     val array = JSONArray(raw)
     List(array.length()) { index -> array.optString(index) }.filter(String::isNotBlank)
 }.getOrDefault(emptyList())
+
+private fun parseBluetoothEvents(raw: String): Set<String> =
+    raw.split(',').map(String::trim).filter(String::isNotEmpty).toSet()

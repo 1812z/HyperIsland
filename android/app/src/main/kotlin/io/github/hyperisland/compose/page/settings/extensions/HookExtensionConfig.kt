@@ -18,6 +18,7 @@ internal const val KEY_BLUETOOTH_OUTER_GLOW = "pref_bluetooth_island_outer_glow"
 internal const val KEY_BLUETOOTH_OUTER_GLOW_COLOR = "pref_bluetooth_island_outer_glow_color"
 internal const val KEY_BLUETOOTH_WHITELIST_ENABLED = "pref_bluetooth_island_whitelist_enabled"
 internal const val KEY_BLUETOOTH_WHITELIST_ADDRESSES = "pref_bluetooth_island_whitelist_addresses"
+internal const val KEY_BLUETOOTH_EVENTS = "pref_bluetooth_island_events"
 internal const val KEY_HEART_RATE_ISLAND = "pref_heart_rate_island"
 internal const val KEY_HEART_RATE_READ_MODE = "pref_heart_rate_island_read_mode"
 internal const val KEY_HEART_RATE_DEVICE_ADDRESS = "pref_heart_rate_island_device_address"
@@ -82,6 +83,13 @@ internal const val DURATION_PERSISTENT = "persistent"
 internal const val ANIMATION_LOCK = "lock"
 internal const val ANIMATION_LOCK_2 = "lock_2"
 internal const val HEART_RATE_READ_MODE_BROADCAST = "heart_rate_broadcast"
+
+/** 蓝牙岛弹出时机，与 Hook 端 BluetoothIslandHook 的事件常量一一对应 */
+internal const val BT_EVENT_CONNECT = "connect"
+internal const val BT_EVENT_DISCONNECT = "disconnect"
+internal const val BT_EVENT_UPDATE = "update"
+internal val BLUETOOTH_EVENT_KEYS = listOf(BT_EVENT_CONNECT, BT_EVENT_DISCONNECT, BT_EVENT_UPDATE)
+internal const val DEFAULT_BLUETOOTH_EVENTS = "$BT_EVENT_CONNECT,$BT_EVENT_DISCONNECT,$BT_EVENT_UPDATE"
 
 internal const val SPECTRUM_COLOR_GRADIENT = "gradient"
 internal const val SPECTRUM_COLOR_FOLLOW_COVER = "follow_cover"
