@@ -94,6 +94,7 @@ import io.github.hyperisland.compose.page.settings.extensions.homeassistant.Home
 import io.github.hyperisland.compose.page.settings.extensions.LockscreenNegativePage
 import io.github.hyperisland.compose.page.settings.extensions.MusicIslandSpectrumPage
 import io.github.hyperisland.compose.page.settings.extensions.ScreenRecorderHookPage
+import io.github.hyperisland.compose.page.settings.extensions.ScreenshotHookPage
 import io.github.hyperisland.compose.page.settings.extensions.SecurityCenterHookPage
 import io.github.hyperisland.compose.page.settings.extensions.SystemSettingsHookPage
 import io.github.hyperisland.compose.page.settings.extensions.SystemUiHookPage
@@ -635,6 +636,10 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                     onBack = { extensionDetail = null },
                                 )
                                 HookExtensionDetail.ScreenRecorder -> ScreenRecorderHookPage(
+                                    prefs = prefs,
+                                    onBack = { extensionDetail = null },
+                                )
+                                HookExtensionDetail.Screenshot -> ScreenshotHookPage(
                                     prefs = prefs,
                                     onBack = { extensionDetail = null },
                                 )

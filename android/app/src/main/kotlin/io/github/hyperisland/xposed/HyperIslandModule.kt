@@ -26,7 +26,9 @@ import io.github.hyperisland.xposed.hook.SystemUI.extensions.BluetoothIslandHook
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.HeartRateIslandHook
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.ChargeIslandHook
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.MusicIslandSpectrumHook
+import io.github.hyperisland.xposed.hook.SystemUI.extensions.ScreenshotTempHideHook
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.HomeAssistantIslandHook
+import io.github.hyperisland.xposed.hook.Screenshot.ScreenshotSignalHook
 import io.github.hyperisland.xposed.hook.DownloadHook
 import io.github.hyperisland.xposed.hook.FocusNotifStatusBarIconHook
 import io.github.hyperisland.xposed.hook.IslandMiniBarHook
@@ -130,6 +132,10 @@ class HyperIslandModule : XposedModule() {
                 if (ConfigManager.getBoolean("pref_temp_hide_behavior_enabled", false)) {
                     TempHiddenBehaviorHook.init(this, param)
                 }
+                // Hook 拓展：截屏时隐藏超级岛（执行端）。
+                // 始终 init（只为注册配置监听），装不装 Hook 由它自己按开关决定：
+                // 开关关着时一个 Hook 都不注入，打开时再当场补装，省掉一次 SystemUI 重启。
+                ScreenshotTempHideHook.init(this, param)
                 if (ConfigManager.getBoolean("pref_smooth_island", false)) {
                     SmoothIslandHook.init(this, param)
                 }
@@ -179,6 +185,11 @@ class HyperIslandModule : XposedModule() {
                 if (ConfigManager.getBoolean("pref_screen_recorder_island", false)) {
                     ScreenRecorderHook.init(this, param)
                 }
+
+            // Hook 拓展：截屏时隐藏超级岛（信号源）。
+            // 开关判断放在 Hook 内部：init 本身只注册配置监听，未开启时不注入任何 Hook。
+            "com.miui.screenshot" ->
+                ScreenshotSignalHook.init(this, param)
 
             "com.miui.securitycenter" -> {
                 val enabled = ConfigManager.getBoolean("pref_clipboard_toast_conversion", false)
