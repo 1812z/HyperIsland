@@ -8,6 +8,18 @@ import ReleaseHistory from './.vitepress/components/ReleaseHistory.vue'
 
 <div class="changelog-source" hidden>
 
+# V3.3.0(2026-11-18)
+## 功能
+- 新增性能分析工具
+- 新增柔光材质下，浅色界面自动压暗岛
+
+## 优化 & 修复
+- 修复收起、展开柔光材质丢失问题
+- 优化配置记忆功能
+- 更新OS4界面
+- 优化性能
+
+
 # V3.2.6(2026-11-16)
 ## 功能
 - 新增单岛样式参数自定义
