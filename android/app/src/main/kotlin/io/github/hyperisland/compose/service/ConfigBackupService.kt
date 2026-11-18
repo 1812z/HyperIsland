@@ -3,6 +3,7 @@ package io.github.hyperisland.compose.service
 import android.content.Context
 import android.content.SharedPreferences
 import io.github.hyperisland.utils.IslandBehaviorConfig
+import io.github.hyperisland.utils.SoftGlassSceneBrightnessConfig
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -46,6 +47,9 @@ internal object ConfigBackupService {
             val value = settings.opt(key)
             if (value is Boolean || value is String || value is Number) {
                 values[key] = when (key) {
+                    SoftGlassSceneBrightnessConfig.BRIGHTNESS_KEY -> SoftGlassSceneBrightnessConfig.brightness(
+                        (value as? Number)?.toLong() ?: throw InvalidConfigException(),
+                    )
                     IslandBehaviorConfig.STYLE_KEY -> IslandBehaviorConfig.style(
                         value as? String ?: throw InvalidConfigException(),
                     )

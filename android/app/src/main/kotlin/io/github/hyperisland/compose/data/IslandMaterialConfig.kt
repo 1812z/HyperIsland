@@ -19,7 +19,7 @@ internal enum class IslandMaterialState { Big, Small, Expand }
 internal data class IslandMaterialConfig(
     val type: IslandMaterialType = IslandMaterialType.Default,
     val blur: Int = 35,
-    val softLight: Double = -1.0,
+    val softLight: Double = 0.0,
     val saturation: Double = 0.0,
     val brightness: Double = 0.0,
     val softDarker: Double = 0.0,
@@ -89,7 +89,7 @@ internal data class IslandMaterialConfig(
             return IslandMaterialConfig(
                 type = type,
                 blur = integer("blur", 35, 0..100),
-                softLight = soft("softLight", -1.0),
+                softLight = soft("softLight", 0.0),
                 saturation = if (softSchema >= 3) soft("saturation", 0.0) else 0.0,
                 brightness = if (softSchema >= 3) soft("brightness", 0.0) else 0.0,
                 softDarker = if (softSchema >= 3) soft("softDarker", 0.0) else 0.0,

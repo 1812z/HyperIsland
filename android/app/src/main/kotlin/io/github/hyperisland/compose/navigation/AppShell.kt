@@ -73,6 +73,7 @@ import io.github.hyperisland.compose.page.SettingsDetail
 import io.github.hyperisland.compose.page.SettingsPage
 import io.github.hyperisland.compose.page.settings.HideBehaviorPage
 import io.github.hyperisland.compose.page.settings.appearance.AppearancePage
+import io.github.hyperisland.compose.page.settings.appearance.SoftGlassSceneBrightnessPage
 import io.github.hyperisland.compose.page.settings.IslandMaterialPage
 import io.github.hyperisland.compose.page.settings.DefaultConfigPage
 import io.github.hyperisland.compose.page.settings.AiConfigPage
@@ -172,11 +173,12 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     var batchChannelTarget by remember { mutableStateOf<BatchChannelTarget?>(null) }
     var batchToastPackages by remember { mutableStateOf<Set<String>?>(null) }
     var materialShown by remember { mutableStateOf(false) }
+    var sceneBrightnessShown by remember { mutableStateOf(false) }
     var extensionDetail by remember { mutableStateOf<HookExtensionDetail?>(null) }
     var extensionSubDetail by remember { mutableStateOf<SystemUiExtensionDetail?>(null) }
     // Keep the last route composed until AnimatedVisibility finishes its exit transition.
     var renderedExtensionSubDetail by remember { mutableStateOf<SystemUiExtensionDetail?>(null) }
-    val nestedDetailShown = mediaShown || materialShown || visibleChannelEditor != null ||
+    val nestedDetailShown = mediaShown || materialShown || sceneBrightnessShown || visibleChannelEditor != null ||
         (visibleChannelApp != null && batchChannelTarget != null) || extensionDetail != null
     val extensionSubDetailShown = extensionSubDetail != null
     val detailNavigationState = rememberPredictiveNavigationLayerState()
@@ -337,6 +339,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
         onDismiss = {
             mediaShown = false
             materialShown = false
+            sceneBrightnessShown = false
             visibleChannelEditor = null
             if (visibleChannelApp != null) batchChannelTarget = null
             extensionDetail = null
@@ -566,10 +569,16 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                             when (visibleDetail) {
                                 SettingsDetail.Appearance -> AppearancePage(
                                     prefs = prefs,
-                                    materialVisible = materialShown,
+                                    materialVisible = materialShown || sceneBrightnessShown,
                                     onOpenMaterial = {
                                         mediaShown = false
+                                        sceneBrightnessShown = false
                                         materialShown = true
+                                    },
+                                    onOpenSceneBrightness = {
+                                        mediaShown = false
+                                        materialShown = false
+                                        sceneBrightnessShown = true
                                     },
                                     onBack = ::closeDetail,
                                 )
@@ -685,6 +694,11 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                         channel = visibleChannelEditor!!,
                                         prefs = prefs,
                                         onBack = { visibleChannelEditor = null },
+                                    )
+                                } else if (sceneBrightnessShown) {
+                                    SoftGlassSceneBrightnessPage(
+                                        prefs = prefs,
+                                        onBack = { sceneBrightnessShown = false },
                                     )
                                 } else if (materialShown) {
                                     IslandMaterialPage(

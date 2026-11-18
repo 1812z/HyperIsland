@@ -464,6 +464,8 @@ setVisibility(INVISIBLE) 后 fake root 才消失
 
 ### 7.5 SoftGlass 生命周期
 
+「柔光场景亮度」复用 `StatusBarTextColorHook` 的 readable tint 监听：开关启用且文字为黑色时，临时覆盖 Bionics 参数 23（`reflectionLighten`），默认调节值 -28；白字或关闭开关时恢复各状态的手动值。配置不回写材质 JSON。状态切换仅为 `SoftGlassController.appliedConfigs` 中已附着的真实/fake 槽重新提交 shader 参数，不调用 `apply()`，避免取消正在退场的材质租约或重建采样生命周期。
+
 实机补充：在没有其他柔光的应用界面容易发白，显示音量条、展开状态栏或回到有柔光的桌面后恢复。这支持共享采样冷启动异常的假设，不能据此判定系统拒绝渲染。上一轮放行原生 EXPAND 共享黑罩的尝试无效并出现遮罩重叠，已撤回。
 
 1px 常规模糊半径冷启动尝试经实机反馈无效，已删除；只读采样诊断保留。

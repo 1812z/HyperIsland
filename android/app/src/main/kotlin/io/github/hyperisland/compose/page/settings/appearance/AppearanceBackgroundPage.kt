@@ -38,6 +38,7 @@ import top.yukonga.miuix.kmp.icon.basic.ArrowRight
 internal fun AppearanceBackgroundPage(
     prefs: FlutterPrefsRepository,
     onOpenMaterial: () -> Unit,
+    onOpenSceneBrightness: () -> Unit,
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -126,6 +127,12 @@ internal fun AppearanceBackgroundPage(
                     summary = stringResource(R.string.material_customize_summary),
                     endIcon = MiuixIcons.Basic.ArrowRight,
                     onClick = onOpenMaterial,
+                )
+                SettingsAction(
+                    title = stringResource(R.string.soft_glass_scene_brightness),
+                    summary = null,
+                    endIcon = MiuixIcons.Basic.ArrowRight,
+                    onClick = onOpenSceneBrightness,
                 )
                 PreferenceSwitch(stringResource(R.string.glass_gyroscope), stringResource(R.string.glass_gyroscope_summary), null,
                     gyroscope.value, enabled = hasGlass) { gyroscope.value = it; prefs.putBoolean(KEY_GLASS_GYROSCOPE, it) }

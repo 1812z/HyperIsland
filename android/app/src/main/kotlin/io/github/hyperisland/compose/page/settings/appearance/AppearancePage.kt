@@ -54,6 +54,7 @@ internal fun AppearancePage(
     prefs: FlutterPrefsRepository,
     materialVisible: Boolean,
     onOpenMaterial: () -> Unit,
+    onOpenSceneBrightness: () -> Unit,
     onBack: () -> Unit,
 ) {
     var sectionTarget by rememberSaveable { mutableStateOf<AppearanceSection?>(null) }
@@ -178,7 +179,7 @@ internal fun AppearancePage(
             ) {
                 when (sectionTarget) {
                     AppearanceSection.Size -> AppearanceSizePage(prefs, ::closeSection)
-                    AppearanceSection.Background -> AppearanceBackgroundPage(prefs, onOpenMaterial, ::closeSection)
+                    AppearanceSection.Background -> AppearanceBackgroundPage(prefs, onOpenMaterial, onOpenSceneBrightness, ::closeSection)
                     AppearanceSection.Text -> AppearanceTextPage(prefs, ::closeSection)
                     AppearanceSection.Icon -> AppearanceIconPage(prefs, ::closeSection)
                     AppearanceSection.Outline -> AppearanceOutlinePage(prefs, ::closeSection)

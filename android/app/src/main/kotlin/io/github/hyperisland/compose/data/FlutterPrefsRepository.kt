@@ -3,6 +3,7 @@ package io.github.hyperisland.compose.data
 import android.content.Context
 import android.content.SharedPreferences
 import io.github.hyperisland.utils.IslandBehaviorConfig
+import io.github.hyperisland.utils.SoftGlassSceneBrightnessConfig
 import io.github.hyperisland.compose.data.channel.ChannelSettings
 import io.github.hyperisland.compose.data.channel.ChannelSettingsPatch
 import io.github.hyperisland.compose.data.channel.withPatch
@@ -137,6 +138,21 @@ class FlutterPrefsRepository(context: Context) {
 
     fun putBoolean(key: String, value: Boolean) {
         prefs.edit().putBoolean(storageKey(key), value).apply()
+    }
+
+    internal fun getSoftGlassSceneBrightness(): SoftGlassSceneBrightnessConfig = SoftGlassSceneBrightnessConfig(
+        enabled = getBoolean(SoftGlassSceneBrightnessConfig.ENABLED_KEY, false),
+        whiteSceneBrightness = SoftGlassSceneBrightnessConfig.brightness(
+            getLong(SoftGlassSceneBrightnessConfig.BRIGHTNESS_KEY, SoftGlassSceneBrightnessConfig.DEFAULT_BRIGHTNESS),
+        ),
+    )
+
+    internal fun setSoftGlassSceneDimmingEnabled(enabled: Boolean) {
+        putBoolean(SoftGlassSceneBrightnessConfig.ENABLED_KEY, enabled)
+    }
+
+    internal fun setSoftGlassWhiteSceneBrightness(value: Long) {
+        putLong(SoftGlassSceneBrightnessConfig.BRIGHTNESS_KEY, SoftGlassSceneBrightnessConfig.brightness(value))
     }
 
     fun getString(key: String, default: String = ""): String =

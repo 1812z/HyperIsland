@@ -118,6 +118,7 @@ internal val ConfigSectionGroups: List<ConfigSection> = listOf(
                 keyPrefixes = listOf(
                     "pref_island_bg_",
                     "pref_island_material_",
+                    "pref_soft_glass_scene_",
                     "pref_island_blur_",
                     "pref_island_glass_",
                     "pref_island_refraction_",

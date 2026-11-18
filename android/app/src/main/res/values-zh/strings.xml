@@ -892,6 +892,9 @@
     <string name="material_shape_edge_width">边缘过渡宽度</string>
     <string name="material_shape_edge_power">边缘锐度</string>
     <string name="material_refraction_brightness">折射亮度</string>
+    <string name="soft_glass_scene_brightness">柔光场景亮度</string>
+    <string name="soft_glass_scene_dimming">折射亮度压暗</string>
+    <string name="soft_glass_white_scene_edge_brightness">白色场景边缘亮度</string>
     <string name="material_reflection_strength">反射强度</string>
     <string name="material_directional_light">方向光强度</string>
     <string name="material_background_section">背景</string>

@@ -4,6 +4,9 @@ import io.github.hyperisland.xposed.diagnostics.profiledHook
 import io.github.hyperisland.xposed.diagnostics.IslandPerformanceMonitor
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.lifecycle.IslandStateResolver
 import io.github.hyperisland.xposed.utils.WeakMemberCache
+import io.github.hyperisland.xposed.ConfigManager
+import io.github.hyperisland.xposed.hook.StatusBarTextColorHook
+import io.github.hyperisland.utils.SoftGlassSceneBrightnessConfig
 
 import android.content.Context
 import android.graphics.Color
@@ -50,6 +53,8 @@ internal object SoftGlassController {
     )
     private val appliedConfigs = Collections.synchronizedMap(WeakHashMap<View, SoftGlassConfig>())
     private val retireHandler = Handler(Looper.getMainLooper())
+    @Volatile private var sceneReflectionLighten: Double? = null
+    private val sceneBrightnessRefresh = Runnable { refreshSceneBrightness() }
     private data class Retirement(
         val observer: WeakReference<ViewTreeObserver>,
         val listener: ViewTreeObserver.OnPreDrawListener,
@@ -799,6 +804,36 @@ internal object SoftGlassController {
         val clipToOutline: Boolean,
     )
 
+    fun requestSceneBrightnessRefresh() {
+        retireHandler.removeCallbacks(sceneBrightnessRefresh)
+        retireHandler.post(sceneBrightnessRefresh)
+    }
+
+    private fun refreshSceneBrightness() {
+        val scene = SoftGlassSceneBrightnessConfig(
+            enabled = ConfigManager.getBoolean(SoftGlassSceneBrightnessConfig.ENABLED_KEY, false),
+            whiteSceneBrightness = ConfigManager.getInt(
+                SoftGlassSceneBrightnessConfig.BRIGHTNESS_KEY,
+                SoftGlassSceneBrightnessConfig.DEFAULT_BRIGHTNESS.toInt(),
+            ).toLong(),
+        )
+        val nextOverride = scene.reflectionLightenOverride(StatusBarTextColorHook.getReadableTint() == Color.BLACK)
+        if (sceneReflectionLighten == nextOverride) return
+        sceneReflectionLighten = nextOverride
+        // Real and fake slots share this registry. Re-submit only the shader parameters,
+        // keeping their original configs and all rendering/sampling retirement leases intact.
+        val targets = synchronized(appliedConfigs) { appliedConfigs.entries.map { it.key to it.value } }
+        targets.forEach { (view, config) ->
+            if (!view.isAttachedToWindow || !isManaged(view)) return@forEach
+            val binding = runtimeFor(view) ?: return@forEach
+            runCatching {
+                findMethod(view.javaClass, "setMiGlass", FloatArray::class.java)
+                    ?.invoke(view, customizeParams(baseParams(binding), config))
+                view.invalidate()
+            }
+        }
+    }
+
     private fun baseParams(binding: RuntimeBinding?): FloatArray = binding?.params?.clone() ?: floatArrayOf(
         0f, 2f, .5f, .8f, .15f, 2.4f, .3f, .2f, 0f, 0f, 0f,
         .06f, .06f, .06f, .6f, .15f, .4f, 1.36f, 1f, 72f, 3.8f,
@@ -808,12 +843,13 @@ internal object SoftGlassController {
 
     private fun customizeParams(source: FloatArray, config: SoftGlassConfig): FloatArray {
         val params = source.clone()
-        fun scale(index: Int, configured: Double) {
+        fun scale(index: Int, configured: Double, divisor: Float = 100f) {
             val original = params[index]
             params[index] = if (original == 0f) configured.toFloat()
-            else original * (1f + configured.toFloat() / 100f)
+            else original * (1f + configured.toFloat() / divisor)
         }
-        scale(4, config.softLight)
+        // Match HyperLight's native light adjustment: original * (1 + value / 10).
+        scale(4, config.softLight, divisor = 10f)
         params[5] = (1f + config.saturation.toFloat() / 100f).coerceIn(.5f, 1.5f)
         scale(6, config.brightness)
         scale(7, config.darker)
@@ -821,7 +857,9 @@ internal object SoftGlassController {
         scale(19, config.shapeEdgeWidth)
         scale(20, config.shapeEdgePower)
         scale(21, config.edgeThickness)
-        scale(23, config.reflectionLighten)
+        // Keep the signed result: -10 disables the edge's added light, below it subtracts
+        // light in the native shader without changing the flat interior's color processing.
+        scale(23, sceneReflectionLighten ?: config.reflectionLighten, divisor = 10f)
         scale(24, config.reflection)
         scale(28, config.directionalLightIntensity)
         scale(32, config.refraction)

@@ -791,6 +791,9 @@
     <string name="material_shape_edge_width">Ширина перехода края</string>
     <string name="material_shape_edge_power">Резкость края</string>
     <string name="material_refraction_brightness">Яркость преломления</string>
+    <string name="soft_glass_scene_brightness">Яркость мягкого стекла по сценарию</string>
+    <string name="soft_glass_scene_dimming">Затемнять преломление</string>
+    <string name="soft_glass_white_scene_edge_brightness">Яркость краёв на светлом фоне</string>
     <string name="material_reflection_strength">Сила отражения</string>
     <string name="material_directional_light">Сила направленного света</string>
     <string name="material_background_section">Фон</string>

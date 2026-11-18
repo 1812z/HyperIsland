@@ -9,6 +9,7 @@ import android.view.View
 import android.view.ViewTreeObserver
 import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.hyperisland.xposed.hook.IslandBackgroundHook
+import io.github.hyperisland.xposed.hook.StatusBarTextColorHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandTransitionVisualHook
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.IslandBlurRuntime
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.SystemUiReflection.findField
@@ -78,6 +79,7 @@ object IslandBlurHook : BaseHook() {
     )
     private val mainHandler = Handler(Looper.getMainLooper())
     private val refreshRunnable = Runnable { refreshTrackedViews() }
+    private val sceneTintListener: (Int) -> Unit = { SoftGlassController.requestSceneBrightnessRefresh() }
     private val islandTypeHolder = ThreadLocal<IslandType>()
     private val preparingTypeHolder = ThreadLocal<IslandType>()
     private val configStore = IslandBlurRuntime.configStore
@@ -96,6 +98,8 @@ object IslandBlurHook : BaseHook() {
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
         if (param.packageName != "com.android.systemui") return
+        StatusBarTextColorHook.addReadableTintListener(sceneTintListener)
+        SoftGlassController.requestSceneBrightnessRefresh()
         configStore.reload()
         hookPlugin(module, param.defaultClassLoader)
         HookUtils.hookDynamicClassLoaders(module, ClassLoader.getSystemClassLoader()) { classLoader ->
@@ -105,6 +109,7 @@ object IslandBlurHook : BaseHook() {
 
     override fun onConfigChanged() {
         configStore.reload()
+        SoftGlassController.requestSceneBrightnessRefresh()
         mainHandler.post {
             refreshTrackedSoftGlassViews()
             outerBlurRegistry.onConfigChanged()

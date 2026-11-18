@@ -39,7 +39,7 @@ internal data class SoftGlassConfig(
             }
             return SoftGlassConfig(
                 blurRadius = blurRadius,
-                softLight = value("softLight", -1.0),
+                softLight = value("softLight", 0.0),
                 // Schema 2 was relative to Xiaomi's 2.4 island token. Reset it to the new
                 // neutral-centered scale instead of carrying the old over-saturation forward.
                 saturation = if (softSchema >= 3) value("saturation", 0.0) else 0.0,

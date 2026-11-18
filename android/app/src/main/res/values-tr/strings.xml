@@ -844,6 +844,9 @@
     <string name="material_shape_edge_width">Kenar geçiş genişliği</string>
     <string name="material_shape_edge_power">Kenar keskinliği</string>
     <string name="material_refraction_brightness">Kırılma parlaklığı</string>
+    <string name="soft_glass_scene_brightness">Yumuşak cam sahne parlaklığı</string>
+    <string name="soft_glass_scene_dimming">Kırılma parlaklığını azalt</string>
+    <string name="soft_glass_white_scene_edge_brightness">Açık sahnelerde kenar parlaklığı</string>
     <string name="material_reflection_strength">Yansıma şiddeti</string>
     <string name="material_directional_light">Yönlü ışık şiddeti</string>
     <string name="material_background_section">Arka plan</string>
