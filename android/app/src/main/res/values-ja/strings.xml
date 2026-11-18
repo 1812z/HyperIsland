@@ -792,6 +792,7 @@
     <string name="material_shape_edge_power">エッジのシャープさ</string>
     <string name="material_refraction_brightness">屈折の明るさ</string>
     <string name="soft_glass_scene_brightness">ソフトガラスのシーン別の明るさ</string>
+    <string name="soft_glass_scene_brightness_summary">ステータスバーに合わせて明るさ設定を自動で切り替えます</string>
     <string name="soft_glass_scene_dimming">屈折の明るさを抑える</string>
     <string name="soft_glass_white_scene_edge_brightness">明るいシーンでのエッジの明るさ</string>
     <string name="material_reflection_strength">反射の強さ</string>

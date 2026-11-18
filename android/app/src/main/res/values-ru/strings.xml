@@ -792,6 +792,7 @@
     <string name="material_shape_edge_power">Резкость края</string>
     <string name="material_refraction_brightness">Яркость преломления</string>
     <string name="soft_glass_scene_brightness">Яркость мягкого стекла по сценарию</string>
+    <string name="soft_glass_scene_brightness_summary">Автоматически переключает профили яркости вместе со строкой состояния</string>
     <string name="soft_glass_scene_dimming">Затемнять преломление</string>
     <string name="soft_glass_white_scene_edge_brightness">Яркость краёв на светлом фоне</string>
     <string name="material_reflection_strength">Сила отражения</string>

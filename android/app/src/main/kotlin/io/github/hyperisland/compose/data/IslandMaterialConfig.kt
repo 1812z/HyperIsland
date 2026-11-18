@@ -9,6 +9,9 @@ internal enum class IslandMaterialType(val value: String) {
     LiquidGlass("liquid_glass"),
     SoftGlass("soft_glass");
 
+    /** 默认类型即「不使用自定义材质」，没有可记忆的参数。 */
+    val isCustom: Boolean get() = this != Default
+
     companion object {
         fun fromValue(value: String?): IslandMaterialType = entries.firstOrNull { it.value == value } ?: Default
     }
@@ -44,7 +47,7 @@ internal data class IslandMaterialConfig(
     val blendOpacity: Int = 0,
     val highlight: Boolean = true,
 ) {
-    val isCustom: Boolean get() = type != IslandMaterialType.Default
+    val isCustom: Boolean get() = type.isCustom
 
     fun toJson(): JSONObject = JSONObject().apply {
         put("type", type.value)
@@ -120,6 +123,17 @@ internal data class IslandMaterialConfig(
         fun decode(raw: String): IslandMaterialConfig = runCatching {
             fromJson(JSONObject(raw))
         }.getOrDefault(IslandMaterialConfig())
+
+        /**
+         * 某个类型**首次**被选中时的起始参数，沿用历史切换行为：
+         * 柔光给纯默认；高斯 / 高光 / 液体给一组立刻可见的模糊底色；默认类型不带自定义参数。
+         *
+         * 已有记忆槽时不走这里（见 [MaterialDraftStore]），只有从没调过该材质才用种子值。
+         */
+        fun seed(type: IslandMaterialType): IslandMaterialConfig = when (type) {
+            IslandMaterialType.Default, IslandMaterialType.SoftGlass -> IslandMaterialConfig(type = type)
+            else -> IslandMaterialConfig(type = type, blur = 80, blendColor = "#FFFFFF", blendOpacity = 13)
+        }
     }
 }
 

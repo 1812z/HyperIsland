@@ -1,13 +1,20 @@
 package io.github.hyperisland.compose.service
 
+import android.content.Context
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.IslandMaterialConfig
 import io.github.hyperisland.compose.data.IslandMaterialSettings
 import io.github.hyperisland.compose.data.IslandMaterialState
 import io.github.hyperisland.compose.data.IslandMaterialType
+import io.github.hyperisland.compose.data.MaterialDraftStore
 import org.json.JSONObject
 
-internal class IslandMaterialService(private val prefs: FlutterPrefsRepository) {
+internal class IslandMaterialService(
+    private val prefs: FlutterPrefsRepository,
+    context: Context,
+) {
+    private val drafts = MaterialDraftStore(context)
+
     fun load(): IslandMaterialSettings = IslandMaterialSettings(
         big = IslandMaterialConfig.decode(prefs.getString(KEY_BIG)),
         small = IslandMaterialConfig.decode(prefs.getString(KEY_SMALL)),
@@ -32,6 +39,25 @@ internal class IslandMaterialService(private val prefs: FlutterPrefsRepository) 
         return updated
     }
 
+    /**
+     * 切换某个形态的材质类型，并让每种材质各自记住自己的参数。
+     *
+     * 真源始终只有一份（`pref_island_material_<state>_config`），语义完全不变，
+     * Hook 端与同步链路无需任何改动。切走时把当前参数写进本地草稿槽，
+     * 切回时优先读槽，只有从没调过该材质才用 [IslandMaterialConfig.seed]。
+     */
+    fun switchType(
+        settings: IslandMaterialSettings,
+        state: IslandMaterialState,
+        type: IslandMaterialType,
+    ): IslandMaterialSettings {
+        val current = settings.config(state)
+        if (current.type == type) return settings
+        drafts.save(state, current)
+        val restored = drafts.load(state, type) ?: IslandMaterialConfig.seed(type)
+        return save(settings, state, restored)
+    }
+
     fun setFollow(settings: IslandMaterialSettings, state: IslandMaterialState, follow: Boolean): IslandMaterialSettings {
         require(state != IslandMaterialState.Big)
         val updated = when (state) {
@@ -50,6 +76,8 @@ internal class IslandMaterialService(private val prefs: FlutterPrefsRepository) 
         IslandMaterialState.entries.forEach { state -> settings = save(settings, state, IslandMaterialConfig()) }
         settings = setFollow(settings, IslandMaterialState.Small, true)
         settings = setFollow(settings, IslandMaterialState.Expand, true)
+        // 恢复默认后旧草稿必须一起作废，否则下次切材质又会把自定义参数翻出来。
+        drafts.clear()
         return settings
     }
 
@@ -78,6 +106,8 @@ internal class IslandMaterialService(private val prefs: FlutterPrefsRepository) 
         settings = save(settings, IslandMaterialState.Expand, expand)
         settings = setFollow(settings, IslandMaterialState.Small, root.getBoolean("smallFollowBig"))
         settings = setFollow(settings, IslandMaterialState.Expand, root.getBoolean("expandFollowBig"))
+        // 导入是一整套材质参数，本地记忆槽跟着重来，否则切换材质会覆盖刚导入的值。
+        drafts.clear()
         return settings
     }
 
@@ -88,6 +118,8 @@ internal class IslandMaterialService(private val prefs: FlutterPrefsRepository) 
                 updated = save(updated, state, IslandMaterialConfig())
             }
         }
+        // 降级到 HyperOS 3 后柔光已不可选，残留的柔光槽没有意义。
+        drafts.clearType(IslandMaterialType.SoftGlass)
         return updated
     }
 

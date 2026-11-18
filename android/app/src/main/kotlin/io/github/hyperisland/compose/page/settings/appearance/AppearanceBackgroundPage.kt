@@ -70,6 +70,9 @@ internal fun AppearanceBackgroundPage(
         .any(::usesGlass) || legacyGlassSmall.value || legacyGlassBig.value || legacyGlassExpand.value
     val hasLiquidGlass = listOf(bigMaterial.value, resolvedSmallMaterial, resolvedExpandMaterial)
         .any(::usesLiquidGlass) || legacyLiquidSmall.value || legacyLiquidBig.value || legacyLiquidExpand.value
+    // 场景亮度只对柔光生效：三档材质都没用柔光时入口置灰，设备不支持柔光时整行隐藏。
+    val hasSoftGlass = listOf(bigMaterial.value, resolvedSmallMaterial, resolvedExpandMaterial).any(::usesSoftGlass)
+    val softGlassSupported = remember { isSoftGlassSupported() }
     val gyroscope = rememberBooleanPreference(prefs, KEY_GLASS_GYROSCOPE, true)
     val hdrHighlight = rememberBooleanPreference(prefs, KEY_GLASS_HDR, false)
     val captureFps = rememberLongPreference(prefs, KEY_CAPTURE_FPS, 20)
@@ -128,12 +131,15 @@ internal fun AppearanceBackgroundPage(
                     endIcon = MiuixIcons.Basic.ArrowRight,
                     onClick = onOpenMaterial,
                 )
-                SettingsAction(
-                    title = stringResource(R.string.soft_glass_scene_brightness),
-                    summary = null,
-                    endIcon = MiuixIcons.Basic.ArrowRight,
-                    onClick = onOpenSceneBrightness,
-                )
+                if (softGlassSupported) {
+                    SettingsAction(
+                        title = stringResource(R.string.soft_glass_scene_brightness),
+                        summary = stringResource(R.string.soft_glass_scene_brightness_summary),
+                        endIcon = if (hasSoftGlass) MiuixIcons.Basic.ArrowRight else null,
+                        enabled = hasSoftGlass,
+                        onClick = onOpenSceneBrightness,
+                    )
+                }
                 PreferenceSwitch(stringResource(R.string.glass_gyroscope), stringResource(R.string.glass_gyroscope_summary), null,
                     gyroscope.value, enabled = hasGlass) { gyroscope.value = it; prefs.putBoolean(KEY_GLASS_GYROSCOPE, it) }
                 PreferenceSwitch(stringResource(R.string.glass_hdr), stringResource(R.string.glass_hdr_summary), null,

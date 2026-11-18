@@ -89,7 +89,7 @@ internal fun IslandMaterialPage(
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
-    val service = remember(prefs) { IslandMaterialService(prefs) }
+    val service = remember(prefs, context) { IslandMaterialService(prefs, context) }
     val hyperOsMajor = remember { HyperOsVersionUtil.getMajorVersion() }
     var settings by remember { mutableStateOf(service.load()) }
     LaunchedEffect(hyperOsMajor) {
@@ -119,6 +119,13 @@ internal fun IslandMaterialPage(
     fun save(state: IslandMaterialState, config: IslandMaterialConfig) {
         val conflict = config.isCustom && service.hasBackgroundConflict(settings, state)
         settings = service.save(settings, state, config)
+        if (conflict) showMessage(conflictMessage)
+    }
+
+    fun switchType(state: IslandMaterialState, type: IslandMaterialType) {
+        if (settings.config(state).type == type) return
+        val conflict = type.isCustom && service.hasBackgroundConflict(settings, state)
+        settings = service.switchType(settings, state, type)
         if (conflict) showMessage(conflictMessage)
     }
 
@@ -244,6 +251,7 @@ internal fun IslandMaterialPage(
                         scrollBehavior = scrollBehaviors[page],
                         onFollowChange = { setFollow(state, it) },
                         onConfigChange = { save(state, it) },
+                        onTypeChange = { switchType(state, it) },
                         onPickColor = { colorState = state },
                     )
                 }
@@ -335,6 +343,7 @@ private fun MaterialStateContent(
     scrollBehavior: top.yukonga.miuix.kmp.basic.ScrollBehavior,
     onFollowChange: (Boolean) -> Unit,
     onConfigChange: (IslandMaterialConfig) -> Unit,
+    onTypeChange: (IslandMaterialType) -> Unit,
     onPickColor: () -> Unit,
 ) {
     val follow = settings.followsBig(state)
@@ -385,7 +394,7 @@ private fun MaterialStateContent(
                         icon = null,
                         items = types.map { materialTypeLabel(it) },
                         selectedIndex = types.indexOf(effective.type).coerceAtLeast(0),
-                    ) { index -> onConfigChange(config.withType(types[index])) }
+                    ) { index -> onTypeChange(types[index]) }
                 }
             }
         }
@@ -532,15 +541,6 @@ private fun materialTypeLabel(type: IslandMaterialType): String = stringResource
         IslandMaterialType.SoftGlass -> R.string.material_soft_glass
     },
 )
-
-private fun IslandMaterialConfig.withType(type: IslandMaterialType): IslandMaterialConfig {
-    if (type == this.type) return this
-    if (type == IslandMaterialType.SoftGlass) return IslandMaterialConfig(type = type)
-    if (this.type == IslandMaterialType.SoftGlass || this.type == IslandMaterialType.Default) {
-        return copy(type = type, blur = 80, blendColor = "#FFFFFF", blendOpacity = 13)
-    }
-    return copy(type = type)
-}
 
 private fun IslandMaterialSettings.containsSoftGlass(): Boolean =
     listOf(big, small, expand).any { it.type == IslandMaterialType.SoftGlass }

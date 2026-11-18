@@ -7,18 +7,8 @@ plugins {
 
 allprojects {
     repositories {
-        maven {
-            name = "GitHubPackagesMiuix"
-            url = uri("https://maven.pkg.github.com/compose-miuix-ui/miuix")
-            content { includeGroup("top.yukonga.miuix.kmp") }
-            mavenContent { snapshotsOnly() }
-            credentials {
-                username = providers.gradleProperty("gpr.user")
-                    .orElse(providers.environmentVariable("GITHUB_ACTOR")).orNull
-                password = providers.gradleProperty("gpr.key")
-                    .orElse(providers.environmentVariable("GITHUB_TOKEN")).orNull
-            }
-        }
+        // Miuix 自 0.9.x 起发布到 Maven Central（top.yukonga.miuix.kmp），
+        // 不再需要 GitHub Packages 及其 gpr.user / gpr.key 凭据。
         google()
         mavenCentral()
         maven { url = uri("https://jitpack.io") }

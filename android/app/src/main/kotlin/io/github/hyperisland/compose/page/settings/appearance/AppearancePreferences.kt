@@ -19,6 +19,7 @@ import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.rememberLongPreference
 import io.github.hyperisland.compose.data.rememberStringPreference
 import io.github.hyperisland.compose.service.TestNotificationService
+import io.github.hyperisland.utils.HyperOsVersionUtil
 import org.json.JSONObject
 
 @Composable
@@ -150,6 +151,9 @@ internal fun usesCustomMaterial(raw: String): Boolean = materialType(raw) != "de
 internal fun usesLiquidGlass(raw: String): Boolean = materialType(raw) == "liquid_glass"
 internal fun usesSoftGlass(raw: String): Boolean = materialType(raw) == "soft_glass"
 internal fun usesGlass(raw: String): Boolean = materialType(raw) in setOf("highlight_glass", "liquid_glass", "soft_glass")
+
+/** 柔光玻璃依赖澎湃 OS4 的系统仿生能力，OS3 上材质页已不下发该类型。 */
+internal fun isSoftGlassSupported(): Boolean = HyperOsVersionUtil.getMajorVersion() != 3
 private fun materialType(raw: String): String = runCatching {
     JSONObject(raw).optString("type", "default")
 }.getOrDefault("default")

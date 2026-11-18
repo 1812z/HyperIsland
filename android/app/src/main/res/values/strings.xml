@@ -887,6 +887,7 @@
     <string name="material_shape_edge_power">Edge sharpness</string>
     <string name="material_refraction_brightness">Refraction brightness</string>
     <string name="soft_glass_scene_brightness">Soft glass scene brightness</string>
+    <string name="soft_glass_scene_brightness_summary">Switches brightness profiles automatically with the status bar</string>
     <string name="soft_glass_scene_dimming">Dim refraction brightness</string>
     <string name="soft_glass_white_scene_edge_brightness">Edge brightness in light scenes</string>
     <string name="material_reflection_strength">Reflection strength</string>
