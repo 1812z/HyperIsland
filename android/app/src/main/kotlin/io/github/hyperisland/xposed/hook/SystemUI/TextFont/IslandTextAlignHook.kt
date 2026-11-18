@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
@@ -166,7 +168,7 @@ object IslandTextAlignHook : BaseHook() {
             }
             .forEach { method ->
                 method.isAccessible = true
-                module.hook(method).intercept { chain ->
+                module.profiledHook("IslandTextAlignHook", method).intercept { chain ->
                     val result = chain.proceed()
                     runCatching {
                         val holder = chain.thisObject ?: return@runCatching

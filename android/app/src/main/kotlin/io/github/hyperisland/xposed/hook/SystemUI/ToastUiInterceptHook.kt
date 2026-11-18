@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.content.Context
 import android.os.SystemClock
 import io.github.hyperisland.utils.getAppIcon
@@ -91,7 +93,7 @@ object ToastUiInterceptHook : BaseHook() {
             .filter { it.name == "showToast" && it.parameterTypes.any { p -> CharSequence::class.java.isAssignableFrom(p) } }
             .forEach { method ->
                 try {
-                    module.hook(method).intercept { chain ->
+                    module.profiledHook("ToastUiInterceptHook", method).intercept { chain ->
                         val pkg = chain.args.getOrNull(1) as? String ?: ""
                         val text = chain.args.getOrNull(3) as? CharSequence
                         val handled = handleToastEvent(module, classLoader, chain.thisObject, pkg, text)
@@ -118,7 +120,7 @@ object ToastUiInterceptHook : BaseHook() {
             .filter { it.name == "showToast" && it.parameterTypes.any { p -> CharSequence::class.java.isAssignableFrom(p) } }
             .forEach { method ->
                 try {
-                    module.hook(method).intercept { chain ->
+                    module.profiledHook("ToastUiInterceptHook", method).intercept { chain ->
                         val pkg = chain.args.getOrNull(1) as? String ?: ""
                         val text = chain.args.getOrNull(3) as? CharSequence
                         val handled = handleToastEvent(module, classLoader, chain.thisObject, pkg, text)

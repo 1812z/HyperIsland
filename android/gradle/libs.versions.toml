@@ -13,7 +13,7 @@ graphicsShapes = "1.1.0"
 composeFoundation = "1.12.2"
 
 # UI
-miuix = "0.9.4-d8efe187-SNAPSHOT"
+miuix = "0.9.5-beta01"
 iconics = "5.6.0"
 communityMaterialTypeface = "7.0.96.1-kotlin"
 

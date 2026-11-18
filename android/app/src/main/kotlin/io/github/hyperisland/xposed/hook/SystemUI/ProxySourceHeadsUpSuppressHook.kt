@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.content.Context
 import android.os.PowerManager
 import android.service.notification.StatusBarNotification
@@ -91,7 +93,7 @@ object ProxySourceHeadsUpSuppressHook : BaseHook() {
         os4OldInjectorField = findField(injectorClass, "oldInjector")
         os4ContextField = findField(oldInjectorClass, "context")
 
-        module.hook(method).intercept { chain ->
+        module.profiledHook("ProxySourceHeadsUpSuppressHook", method).intercept { chain ->
             val sbn = suppressibleSource(chain.args.firstOrNull())
             if (sbn != null && isOs4Interactive(chain.thisObject) == true) {
                 logSuppressed(module, sbn, "OS4")
@@ -115,7 +117,7 @@ object ProxySourceHeadsUpSuppressHook : BaseHook() {
             Boolean::class.javaPrimitiveType!!,
         )
 
-        module.hook(method).intercept { chain ->
+        module.profiledHook("ProxySourceHeadsUpSuppressHook", method).intercept { chain ->
             val sbn = suppressibleSource(chain.args.firstOrNull())
             if (sbn != null) {
                 logSuppressed(module, sbn, "OS3")

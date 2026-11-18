@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.app.Application
 import android.content.Context
 import io.github.hyperisland.xposed.ConfigManager
@@ -39,7 +41,7 @@ object TempHiddenBehaviorHook : BaseHook() {
             val method = param.defaultClassLoader
                 .loadClass("android.app.Application")
                 .getDeclaredMethod("onCreate")
-            module.hook(method).intercept { chain ->
+            module.profiledHook("TempHiddenBehaviorHook", method).intercept { chain ->
                 val result = chain.proceed()
                 val app = chain.thisObject as? Application
                 if (app != null && appContext == null) {
@@ -87,7 +89,7 @@ object TempHiddenBehaviorHook : BaseHook() {
                     it.returnType == Boolean::class.javaPrimitiveType
             }
             .forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("TempHiddenBehaviorHook", method).intercept { chain ->
                     val enabled = HideBehavior.FOREGROUND_APP.enabled()
                     log(module) { "${clazz.simpleName}.canEnterAppState enabled=$enabled blocked=${!enabled}" }
                     if (enabled) chain.proceed() else false
@@ -106,7 +108,7 @@ object TempHiddenBehaviorHook : BaseHook() {
         clazz.declaredMethods
             .filter { it.name == methodName && it.parameterCount == 1 && it.parameterTypes[0] == Boolean::class.javaPrimitiveType }
             .forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("TempHiddenBehaviorHook", method).intercept { chain ->
                     if (invokingWithFilteredArgs.get() == true) return@intercept chain.proceed()
                     // 模块自己发起的临时隐藏（例如截屏时隐藏超级岛）不受场景开关约束，直接放行。
                     if (TempHideOverride.isActive()) return@intercept chain.proceed()
@@ -131,7 +133,7 @@ object TempHiddenBehaviorHook : BaseHook() {
         clazz.declaredMethods
             .filter { it.name == "statusBarAppearance" && it.parameterCount == 1 && it.parameterTypes[0] == Boolean::class.javaPrimitiveType }
             .forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("TempHiddenBehaviorHook", method).intercept { chain ->
                     if (invokingWithFilteredArgs.get() == true) return@intercept chain.proceed()
                     // 模块自己发起的临时隐藏（例如截屏时隐藏超级岛）不受场景开关约束，直接放行。
                     if (TempHideOverride.isActive()) return@intercept chain.proceed()
@@ -168,7 +170,7 @@ object TempHiddenBehaviorHook : BaseHook() {
                     it.parameterTypes[1] == Float::class.javaPrimitiveType
             }
             .forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("TempHiddenBehaviorHook", method).intercept { chain ->
                     if (invokingWithFilteredArgs.get() == true) return@intercept chain.proceed()
                     // 模块自己发起的临时隐藏（例如截屏时隐藏超级岛）不受场景开关约束，直接放行。
                     if (TempHideOverride.isActive()) return@intercept chain.proceed()
@@ -194,7 +196,7 @@ object TempHiddenBehaviorHook : BaseHook() {
         clazz.declaredMethods
             .filter { it.name == "commandQueueDisable" && it.parameterCount == 1 && it.parameterTypes[0] == Int::class.javaPrimitiveType }
             .forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("TempHiddenBehaviorHook", method).intercept { chain ->
                     if (invokingWithFilteredArgs.get() == true) return@intercept chain.proceed()
                     // 模块自己发起的临时隐藏（例如截屏时隐藏超级岛）不受场景开关约束，直接放行。
                     if (TempHideOverride.isActive()) return@intercept chain.proceed()

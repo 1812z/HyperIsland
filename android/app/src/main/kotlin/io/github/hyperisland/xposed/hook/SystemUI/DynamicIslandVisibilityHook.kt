@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.os.Bundle
 import android.graphics.Region
 import android.service.notification.StatusBarNotification
@@ -81,7 +83,7 @@ object DynamicIslandVisibilityHook : BaseHook() {
                     method.parameterTypes[0] == Bundle::class.java
             }
             methods.forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("DynamicIslandVisibilityHook", method).intercept { chain ->
                     val bundle = chain.args.getOrNull(0) as? Bundle
                     if (bundle?.getString("action_key") == "action_back_island_width_changed") {
                         val region = bundle.getParcelable(
@@ -116,7 +118,7 @@ object DynamicIslandVisibilityHook : BaseHook() {
                     method.parameterTypes[2] == String::class.java
             }
             methods.forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("DynamicIslandVisibilityHook", method).intercept { chain ->
                     val added = chain.args.getOrNull(0) as? Boolean
                     val prop = chain.args.getOrNull(1) as? Int
                     val key = chain.args.getOrNull(2) as? String
@@ -153,7 +155,7 @@ object DynamicIslandVisibilityHook : BaseHook() {
                 }
                 .forEach { method ->
                     val visible = method.name == "showIslandLayout"
-                    module.hook(method).intercept { chain ->
+                    module.profiledHook("DynamicIslandVisibilityHook", method).intercept { chain ->
                         if (!statusBarCountAvailable) {
                             dispatchView(chain.thisObject, visible, method.name)
                         }
@@ -195,7 +197,7 @@ object DynamicIslandVisibilityHook : BaseHook() {
                     method.parameterTypes[0] == String::class.java
             }
             methods.forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("DynamicIslandVisibilityHook", method).intercept { chain ->
                     val transition = chain.args.getOrNull(0) as? String
                     val view = chain.args.getOrNull(1)
                     if (transition != null && view != null) {
@@ -227,7 +229,7 @@ object DynamicIslandVisibilityHook : BaseHook() {
             clazz.declaredMethods
                 .filter { it.name == "onStateChange" && it.parameterCount >= 1 }
                 .forEach { method ->
-                    module.hook(method).intercept { chain ->
+                    module.profiledHook("DynamicIslandVisibilityHook", method).intercept { chain ->
                         val result = chain.proceed()
                         dispatchLegacyState(chain.args.getOrNull(0))
                         result

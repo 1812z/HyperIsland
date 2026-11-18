@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.content.res.Resources
 import android.graphics.Color
 import android.graphics.Rect
@@ -115,7 +117,7 @@ object StatusBarTextColorHook : BaseHook() {
 
             dispatcherClass.declaredConstructors.forEach { constructor ->
                 constructor.isAccessible = true
-                module.hook(constructor).intercept { chain ->
+                module.profiledHook("StatusBarTextColorHook", constructor).intercept { chain ->
                     val result = chain.proceed()
                     val displayId = chain.args.firstOrNull { it is Int } as? Int
                     if (displayId == null || displayId == 0) {
@@ -130,7 +132,7 @@ object StatusBarTextColorHook : BaseHook() {
                 .filter { it.name == "applyIconTint" && it.parameterCount == 0 }
                 .forEach { method ->
                     method.isAccessible = true
-                    module.hook(method).intercept { chain ->
+                    module.profiledHook("StatusBarTextColorHook", method).intercept { chain ->
                         val result = chain.proceed()
                         val dispatcher = chain.thisObject
                         if (dispatcher === activeDispatcher.get() && !activeReceiverRegistered) {
@@ -299,7 +301,7 @@ object StatusBarTextColorHook : BaseHook() {
                 targetClass.declaredMethods
                     .filter { it.name == "onDarkChanged" || it.name == "onLightDarkTintChanged" }
                     .forEach { method ->
-                        module.hook(method).intercept { chain ->
+                        module.profiledHook("StatusBarTextColorHook", method).intercept { chain ->
                             val result = chain.proceed()
                             if (!IslandUiStateSource.isPanelInteractionActive()) {
                                 (chain.thisObject as? TextView)?.currentTextColor?.let { tint ->

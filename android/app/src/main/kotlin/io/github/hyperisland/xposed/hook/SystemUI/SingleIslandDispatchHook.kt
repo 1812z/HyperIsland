@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
@@ -262,23 +264,23 @@ object SingleIslandDispatchHook : BaseHook() {
             val handles = mutableListOf<HookHandle>()
             runCatching {
                 val a = Access(loader)
-                handles += module.hook(a.hasSmall).intercept { chain ->
+                handles += module.profiledHook("SingleIslandDispatchHook", a.hasSmall).intercept { chain ->
                     if (phone(chain.thisObject)) false else chain.proceed()
                 }
                 listOf(a.currentWidth, a.currentX).forEach { method ->
-                    handles += module.hook(method).intercept { chain ->
+                    handles += module.profiledHook("SingleIslandDispatchHook", method).intercept { chain ->
                         if (phone(chain.thisObject)) chain.proceed(arrayOf(false)) else chain.proceed()
                     }
                 }
                 // The stock setter also updates the background alpha. Never change fake root visibility.
-                handles += module.hook(a.setAlpha).intercept { chain ->
+                handles += module.profiledHook("SingleIslandDispatchHook", a.setAlpha).intercept { chain ->
                     val hide = runCatching { phone(chain.thisObject) && a.hideRoot(chain.thisObject!!) }
                         .getOrDefault(false)
                     val result = if (hide) chain.proceed(arrayOf(0f)) else chain.proceed()
                     guarded(module, "small-alpha") { chain.thisObject?.let { suppressRealSmall(it, a) } }
                     result
                 }
-                handles += module.hook(a.setState).intercept { chain ->
+                handles += module.profiledHook("SingleIslandDispatchHook", a.setState).intercept { chain ->
                     val result = chain.proceed()
                     guarded(module, "state") {
                         val view = chain.thisObject as? View ?: return@guarded
@@ -294,14 +296,14 @@ object SingleIslandDispatchHook : BaseHook() {
                     }
                     result
                 }
-                handles += module.hook(a.updateSmall).intercept { chain ->
+                handles += module.profiledHook("SingleIslandDispatchHook", a.updateSmall).intercept { chain ->
                     val result = chain.proceed()
                     guarded(module, "small-frame") {
                         a.updaterOwner(chain.thisObject!!)?.let { suppressRealSmall(it, a) }
                     }
                     result
                 }
-                handles += module.hook(a.darkLight).intercept { chain ->
+                handles += module.profiledHook("SingleIslandDispatchHook", a.darkLight).intercept { chain ->
                     val result = chain.proceed()
                     guarded(module, "ring-outline") {
                         chain.thisObject?.let { owner ->
@@ -324,31 +326,31 @@ object SingleIslandDispatchHook : BaseHook() {
                     result
                 }
                 listOf(a.setBackground, a.attached).forEach { method ->
-                    handles += module.hook(method).intercept { chain ->
+                    handles += module.profiledHook("SingleIslandDispatchHook", method).intercept { chain ->
                         val result = chain.proceed()
                         guarded(module, "attach") { chain.thisObject?.let { attachRing(it, a) } }
                         result
                     }
                 }
-                handles += module.hook(a.dualRegion).intercept { chain ->
+                handles += module.profiledHook("SingleIslandDispatchHook", a.dualRegion).intercept { chain ->
                     if (a.phoneCoordinator(chain.thisObject!!)) a.onlyBigRegion.invoke(chain.thisObject)
                     else chain.proceed()
                 }
                 // Small rectangles are still used by stock hit testing. Keep that invisible slot inert.
-                handles += module.hook(a.touchIntercept).intercept { chain ->
+                handles += module.profiledHook("SingleIslandDispatchHook", a.touchIntercept).intercept { chain ->
                     val previous = a.hitTesting.get()
                     a.hitTesting.set(true)
                     try { chain.proceed() } finally {
                         if (previous == null) a.hitTesting.remove() else a.hitTesting.set(previous)
                     }
                 }
-                handles += module.hook(a.smallRect).intercept { chain ->
+                handles += module.profiledHook("SingleIslandDispatchHook", a.smallRect).intercept { chain ->
                     if (!phone(chain.thisObject)) chain.proceed()
                     else if (a.hitTesting.get() == true) Rect()
                     else if (a.tempHidden(chain.thisObject!!)) chain.proceed()
                     else a.queueEntryRect(chain.thisObject!!)
                 }
-                handles += module.hook(a.controllerSmallRect).intercept { chain ->
+                handles += module.profiledHook("SingleIslandDispatchHook", a.controllerSmallRect).intercept { chain ->
                     val view = chain.args[0]
                     // Called for the predicted Small/Hidden destination, while view may still be AppExpanded.
                     if (phone(view) && !a.tempHidden(view!!)) {
@@ -357,13 +359,13 @@ object SingleIslandDispatchHook : BaseHook() {
                     }
                     else chain.proceed()
                 }
-                handles += module.hook(a.fakeCurrentSmallRect).intercept { chain ->
+                handles += module.profiledHook("SingleIslandDispatchHook", a.fakeCurrentSmallRect).intercept { chain ->
                     val view = chain.args[0]
                     if (phone(view) && !a.tempHidden(view!!)) a.queueEntryRect(view) else chain.proceed()
                 }
                 // A queued item has no visible island. Reuse native Hidden cleanup, never the big fake path.
                 listOf(a.fakeToSmall, a.fakeToBig).forEach { method ->
-                    handles += module.hook(method).intercept { chain ->
+                    handles += module.profiledHook("SingleIslandDispatchHook", method).intercept { chain ->
                         val view = chain.args[0]
                         val redirect = phone(view) && a.isQueued(view!!) && !a.tempHidden(view)
                         if (!redirect) return@intercept chain.proceed()
@@ -372,7 +374,7 @@ object SingleIslandDispatchHook : BaseHook() {
                         null
                     }
                 }
-                handles += module.hook(a.fakeToHidden).intercept { chain ->
+                handles += module.profiledHook("SingleIslandDispatchHook", a.fakeToHidden).intercept { chain ->
                     val result = chain.proceed()
                     guarded(module, "hidden-target") {
                         val view = chain.args[0]
@@ -380,7 +382,7 @@ object SingleIslandDispatchHook : BaseHook() {
                     }
                     result
                 }
-                handles += module.hook(a.appGeometry).intercept { chain ->
+                handles += module.profiledHook("SingleIslandDispatchHook", a.appGeometry).intercept { chain ->
                     val view = chain.args[4]
                     if (!phone(view) || !a.isQueued(view!!) || a.tempHidden(view)) {
                         return@intercept chain.proceed()
@@ -395,7 +397,7 @@ object SingleIslandDispatchHook : BaseHook() {
                     // Preserve native reset, surface scaling, outline setup and completion lifecycle.
                     chain.proceed(args)
                 }
-                handles += module.hook(a.fakeGeometry).intercept { chain ->
+                handles += module.profiledHook("SingleIslandDispatchHook", a.fakeGeometry).intercept { chain ->
                     val view = chain.args[6]
                     if (!phone(view) || !a.isQueued(view!!) || a.tempHidden(view)) {
                         return@intercept chain.proceed()
@@ -410,7 +412,7 @@ object SingleIslandDispatchHook : BaseHook() {
                     args[5] = target.height()
                     chain.proceed(args)
                 }
-                handles += module.hook(a.fakeUpdate).intercept { chain ->
+                handles += module.profiledHook("SingleIslandDispatchHook", a.fakeUpdate).intercept { chain ->
                     val result = chain.proceed()
                     guarded(module, "fake-frame") {
                         val view = a.animatorOwner(chain.thisObject!!)
@@ -418,7 +420,7 @@ object SingleIslandDispatchHook : BaseHook() {
                     }
                     result
                 }
-                handles += module.hook(a.fakeVisibility).intercept { chain ->
+                handles += module.profiledHook("SingleIslandDispatchHook", a.fakeVisibility).intercept { chain ->
                     val wasVisible = (chain.thisObject as? View)?.visibility == View.VISIBLE
                     val result = chain.proceed() // Includes alreadyCloseAppEnd and lifetime cleanup.
                     guarded(module, "handoff") {
@@ -433,14 +435,14 @@ object SingleIslandDispatchHook : BaseHook() {
                     }
                     result
                 }
-                handles += module.hook(a.closeEnd).intercept { chain ->
+                handles += module.profiledHook("SingleIslandDispatchHook", a.closeEnd).intercept { chain ->
                     val result = chain.proceed()
                     guarded(module, "queue-arrived") {
                         a.owner(chain.thisObject!!)?.let { finishQueueEntry(it, a) }
                     }
                     result
                 }
-                handles += module.hook(a.dispatch).intercept { chain ->
+                handles += module.profiledHook("SingleIslandDispatchHook", a.dispatch).intercept { chain ->
                     val result = chain.proceed()
                     guarded(module, "queue") {
                         val c = chain.thisObject ?: return@guarded

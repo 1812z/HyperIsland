@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.ColorFilter
@@ -95,7 +97,7 @@ object IslandOutlineHook : BaseHook() {
                     method.parameterTypes.contentEquals(arrayOf(Float::class.javaPrimitiveType))
             }
             .forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("IslandOutlineHook", method).intercept { chain ->
                     if (invokingOriginal.get() == true ||
                         !shouldAlwaysShow(chain.thisObject, isExpandedMethod)
                     ) {
@@ -125,7 +127,7 @@ object IslandOutlineHook : BaseHook() {
                     method.parameterTypes[2] == Boolean::class.javaPrimitiveType
             }
             .forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("IslandOutlineHook", method).intercept { chain ->
                     if (invokingOriginal.get() == true ||
                         !shouldAlwaysShowForState(
                             chain.thisObject,
@@ -155,7 +157,7 @@ object IslandOutlineHook : BaseHook() {
 
     private fun hookStockDrawable(module: XposedModule, backgroundViewClass: Class<*>) {
         val method = backgroundViewClass.getDeclaredMethod("setDrawable", Drawable::class.java)
-        module.hook(method).intercept { chain ->
+        module.profiledHook("IslandOutlineHook", method).intercept { chain ->
             if (capturingStockDrawable.get() == true) {
                 (chain.args.getOrNull(0) as? Drawable)?.let(capturedStockDrawable::set)
             }

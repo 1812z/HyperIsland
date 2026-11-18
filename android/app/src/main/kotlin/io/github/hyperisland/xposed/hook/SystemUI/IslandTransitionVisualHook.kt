@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.graphics.drawable.Drawable
 import android.os.Handler
 import android.os.Looper
@@ -38,6 +40,8 @@ object IslandTransitionVisualHook : BaseHook() {
     )
 
     private val mainHandler = Handler(Looper.getMainLooper())
+    // Tracking reset hides fake BEFORE making real visible, unlike the window-animation handoff.
+    private val trackingHandoff = ThreadLocal<View>()
     private val hookedFakeClasses = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>())
     )
@@ -113,6 +117,7 @@ object IslandTransitionVisualHook : BaseHook() {
             refreshFakeView(owner, access)
         }
         hookFakeVisibility(module, fakeClass, access)
+        hookTrackingHandoff(module, fakeClass, access)
         hookRestoreFakeBackground(module, fakeClass, access)
         hookSelfBlurSource(module, classLoader)
         hookDeclaredRefreshAfter(module, fakeClass, "onDetachedFromWindow") { owner ->
@@ -197,7 +202,7 @@ object IslandTransitionVisualHook : BaseHook() {
             .forEach { method ->
                 runCatching {
                     method.isAccessible = true
-                    module.hook(method).intercept { chain ->
+                    module.profiledHook("IslandTransitionVisualHook", method).intercept { chain ->
                         val view = chain.args.getOrNull(0) as? View
                         if (view != null && ownsSoftGlass(view)) {
                             // Keep SystemUI's own reflection/error handling and change only the
@@ -247,7 +252,7 @@ object IslandTransitionVisualHook : BaseHook() {
             }
             runCatching {
                 method.isAccessible = true
-                module.hook(method).intercept { chain ->
+                module.profiledHook("IslandTransitionVisualHook", method).intercept { chain ->
                     val fakeView = runCatching { getFakeView.invoke(chain.thisObject) as? View }.getOrNull()
                         ?: return@intercept chain.proceed()
                     synchronized(activeFakeTypes) {
@@ -303,7 +308,7 @@ object IslandTransitionVisualHook : BaseHook() {
         refresh: (Any) -> Unit,
     ) {
         method.isAccessible = true
-        module.hook(method).intercept { chain ->
+        module.profiledHook("IslandTransitionVisualHook", method).intercept { chain ->
             val result = chain.proceed()
             chain.thisObject?.let { owner ->
                 runCatching { refresh(owner) }.onFailure { error ->
@@ -350,7 +355,7 @@ object IslandTransitionVisualHook : BaseHook() {
         }.getOrNull() ?: return
         runCatching {
             method.isAccessible = true
-            module.hook(method).intercept { chain ->
+            module.profiledHook("IslandTransitionVisualHook", method).intercept { chain ->
                 val owner = chain.thisObject as? View ?: return@intercept chain.proceed()
                 val nextVisibility = chain.args.getOrNull(0) as? Int
                 val leaving = owner.visibility == View.VISIBLE && nextVisibility != View.VISIBLE
@@ -368,11 +373,45 @@ object IslandTransitionVisualHook : BaseHook() {
                         activeFakeTypes.remove(owner)
                     }
                 }
-                refreshFakeView(owner, access)
+                if (trackingHandoff.get() !== owner) refreshFakeView(owner, access)
                 result
             }
         }.onFailure { error ->
             logError(module, "failed to hook ${fakeClass.name}.setVisibility: ${error.message}")
+        }
+    }
+
+    private fun hookTrackingHandoff(
+        module: XposedModule,
+        fakeClass: Class<*>,
+        access: FakeViewAccess,
+    ) {
+        hookDeclaredRefreshAfter(module, fakeClass, "onTrackingFakeViewStart") { owner ->
+            synchronized(activeFakeTypes) {
+                if (owner in activeFakeTypes || activeFakeTypes.size < MAX_FAKE_SELECTIONS) {
+                    activeFakeTypes[owner] = "EXPAND"
+                }
+            }
+            refreshFakeView(owner, access)
+        }
+        val reset = findMethod(fakeClass, "updateExpandedFakeViewToReal") ?: return
+        module.profiledHook("IslandTransitionVisualHook", reset).intercept { chain ->
+            val owner = chain.thisObject as? View ?: return@intercept chain.proceed()
+            val previous = trackingHandoff.get()
+            trackingHandoff.set(owner)
+            try {
+                chain.proceed()
+            } finally {
+                // Native reset has now exposed real and its background. Acquire its material
+                // and sampler before refreshFakeView releases the outgoing fake slot.
+                runCatching { prepareRealSoftGlass(owner, access) }.onFailure {
+                    logError(module, "tracking handoff failed: ${it.message}")
+                }
+                if (previous == null) trackingHandoff.remove() else trackingHandoff.set(previous)
+                runCatching { refreshFakeView(owner, access) }.onFailure {
+                    logError(module, "tracking fake cleanup failed: ${it.message}")
+                }
+            }
         }
     }
 
@@ -440,7 +479,7 @@ object IslandTransitionVisualHook : BaseHook() {
         val scheduleUpdate = findMethod(backgroundClass, "scheduleUpdate")
         runCatching {
             method.isAccessible = true
-            module.hook(method).intercept { chain ->
+            module.profiledHook("IslandTransitionVisualHook", method).intercept { chain ->
                 val backgroundView = chain.thisObject
                 if (!opaqueHandoffBackgrounds.contains(backgroundView)) {
                     return@intercept chain.proceed()
@@ -541,7 +580,7 @@ object IslandTransitionVisualHook : BaseHook() {
             it.name == "restoreFakeViewBackground" && it.parameterCount == 0
         } ?: return
         method.isAccessible = true
-        module.hook(method).intercept { chain ->
+        module.profiledHook("IslandTransitionVisualHook", method).intercept { chain ->
             val owner = chain.thisObject as? View ?: return@intercept chain.proceed()
             val typeName = renderedFakeType(owner, access)
             val target = typeName?.let { access.viewFor(owner, it) }

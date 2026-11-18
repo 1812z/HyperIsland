@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.graphics.*
 import android.graphics.ImageDecoder
 import android.graphics.drawable.AnimatedImageDrawable
@@ -265,7 +267,7 @@ object IslandBackgroundHook : BaseHook() {
         try {
             val setDrawableMethod = bgViewClass.getDeclaredMethod("setDrawable", Drawable::class.java)
 
-            module.hook(setDrawableMethod).intercept { chain ->
+            module.profiledHook("IslandBackgroundHook", setDrawableMethod).intercept { chain ->
                 val bgView = chain.thisObject as? View
                 // updateDarkLightMode(state) receives the destination before the shared
                 // ContentView.state field is updated. Its ThreadLocal is authoritative here;
@@ -439,7 +441,7 @@ object IslandBackgroundHook : BaseHook() {
                 null
             }
 
-            module.hook(method).intercept { chain ->
+            module.profiledHook("IslandBackgroundHook", method).intercept { chain ->
                 val state = chain.args[0]
                 val stateName = state?.javaClass?.simpleName ?: ""
                 val stateFullName = state?.javaClass?.name ?: ""
@@ -501,7 +503,7 @@ object IslandBackgroundHook : BaseHook() {
         try {
             val alphaMethod = bgViewClass.getDeclaredMethod("alphaAnimation", Float::class.javaPrimitiveType)
 
-            module.hook(alphaMethod).intercept { chain ->
+            module.profiledHook("IslandBackgroundHook", alphaMethod).intercept { chain ->
                 val type = getCurrentIslandType()
 
                 if (type != null && shouldClearMaskForType(type)) {
@@ -827,7 +829,7 @@ object IslandBackgroundHook : BaseHook() {
                 Boolean::class.javaPrimitiveType
             )
 
-            module.hook(method).intercept { chain ->
+            module.profiledHook("IslandBackgroundHook", method).intercept { chain ->
                 val view = chain.args[0] as? View ?: return@intercept chain.proceed()
                 val viewType = getIslandTypeForView(view)
 
@@ -874,7 +876,7 @@ object IslandBackgroundHook : BaseHook() {
                 it.name == "containerScheduleUpdate" && it.parameterCount == 0
             } ?: return
             method.isAccessible = true
-            module.hook(method).intercept { chain ->
+            module.profiledHook("IslandBackgroundHook", method).intercept { chain ->
                 val result = chain.proceed()
                 runCatching { viewField.get(chain.thisObject) }
                     .getOrNull()
@@ -905,7 +907,7 @@ object IslandBackgroundHook : BaseHook() {
             .getOrNull() ?: return
         val maskMethod = runCatching { contentClass.getMethod("getMask") }.getOrNull()
         method.isAccessible = true
-        module.hook(method).intercept { chain ->
+        module.profiledHook("IslandBackgroundHook", method).intercept { chain ->
             val result = chain.proceed()
             // With mixed stock/custom states, wait for updateDarkLightMode where the state is
             // known. Clearing at inflation is safe only when every state owns the shared host.
@@ -946,7 +948,7 @@ object IslandBackgroundHook : BaseHook() {
             if (methods.isEmpty()) error("updateContainer(IslandAnimProperties) not found")
             methods.forEach { method ->
                 method.isAccessible = true
-                module.hook(method).intercept { chain ->
+                module.profiledHook("IslandBackgroundHook", method).intercept { chain ->
                     val result = chain.proceed()
                     runCatching { viewField.get(chain.thisObject) }
                         .getOrNull()

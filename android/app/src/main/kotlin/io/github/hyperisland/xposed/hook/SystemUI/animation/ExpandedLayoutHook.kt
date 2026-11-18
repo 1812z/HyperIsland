@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI.animation
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.os.Handler
 import android.os.Looper
 import android.view.View
@@ -96,7 +98,7 @@ object ExpandedLayoutHook : BaseHook() {
                 it.name == "updateDarkLightMode" && it.parameterCount == 4
             } ?: return
             if (!hooked.add(base)) return
-            module.hook(expandedY).intercept { chain ->
+            module.profiledHook("ExpandedLayoutHook", expandedY).intercept { chain ->
                 val original = chain.proceed()
                 val owner = chain.thisObject as? View ?: return@intercept original
                 // Read the computed margin, not cutoutY, a resource constant or a stored dp
@@ -109,7 +111,7 @@ object ExpandedLayoutHook : BaseHook() {
                     }
                 }.getOrDefault(original)
             }
-            module.hook(updateState).intercept { chain ->
+            module.profiledHook("ExpandedLayoutHook", updateState).intercept { chain ->
                 val owner = chain.thisObject as? View
                 runCatching { if (owner != null && supported(owner)) {
                     watch(owner)
@@ -132,7 +134,7 @@ object ExpandedLayoutHook : BaseHook() {
                     it.parameterTypes.getOrNull(1) == Int::class.javaPrimitiveType
             }
             if (updateExpandedSize != null) {
-                module.hook(updateExpandedSize).intercept { chain ->
+                module.profiledHook("ExpandedLayoutHook", updateExpandedSize).intercept { chain ->
                     val owner = chain.thisObject as? View
                     val result = chain.proceed()
                     runCatching {
@@ -148,7 +150,7 @@ object ExpandedLayoutHook : BaseHook() {
                     Class.forName("miui.systemui.dynamicisland.window.content.$name", false, loader)
                 }.getOrNull() ?: return@forEach
                 clazz.declaredMethods.filter { it.name == "updateExpandedView" }.forEach { method ->
-                    module.hook(method).intercept { chain ->
+                    module.profiledHook("ExpandedLayoutHook", method).intercept { chain ->
                         val result = chain.proceed()
                         runCatching { (chain.thisObject as? View)?.let { owner ->
                             watch(owner)

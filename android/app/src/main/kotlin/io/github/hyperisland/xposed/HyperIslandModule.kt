@@ -66,6 +66,7 @@ import io.github.hyperisland.xposed.hook.UnlockFocusAuthHook
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import io.github.libxposed.api.XposedModule
 import io.github.hyperisland.xposed.utils.HookUtils
+import io.github.hyperisland.xposed.diagnostics.IslandPerformanceMonitor
 
 /**
  * 模块主入口，继承 XposedModule。
@@ -81,6 +82,7 @@ class HyperIslandModule : XposedModule() {
         
         when (param.packageName) {
             "com.android.systemui" -> {
+                IslandPerformanceMonitor.init(this, param)
                 HookUtils.initializeLoaderDiagnostics(this, param.defaultClassLoader)
                 if (ConfigManager.getBoolean("pref_face_unlock_island", false)) {
                     FaceUnlockStateHook.init(this, param)

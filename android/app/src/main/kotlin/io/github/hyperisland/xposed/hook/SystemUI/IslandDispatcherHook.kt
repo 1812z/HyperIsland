@@ -1,8 +1,11 @@
 package io.github.hyperisland.xposed.hook
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.app.KeyguardManager
 import android.os.PowerManager
 import io.github.hyperisland.xposed.ConfigManager
+import io.github.hyperisland.xposed.diagnostics.IslandPerformanceMonitor
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.FaceUnlockFocusController
 import io.github.hyperisland.xposed.hook.SystemUI.extensions.KeyguardUnlockStateHook
 import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
@@ -32,11 +35,12 @@ object IslandDispatcherHook : BaseHook() {
             val method = param.defaultClassLoader
                 .loadClass("android.app.Application")
                 .getDeclaredMethod("onCreate")
-            module.hook(method).intercept { chain ->
+            module.profiledHook("IslandDispatcherHook", method).intercept { chain ->
                 val result = chain.proceed()
                 val app = chain.thisObject as? android.app.Application
                 if (app != null) {
                     IslandDispatcher.register(app, module)
+                    IslandPerformanceMonitor.registerReceiver(app)
                     ConfigManager.init(module)
                     if (ConfigManager.getBoolean("pref_face_unlock_island", false)) {
                         KeyguardUnlockStateHook.registerScreenReceiver(app)

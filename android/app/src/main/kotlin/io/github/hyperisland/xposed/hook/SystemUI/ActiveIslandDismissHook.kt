@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.os.Handler
 import android.os.Looper
 import android.service.notification.StatusBarNotification
@@ -167,7 +169,7 @@ object ActiveIslandDismissHook : BaseHook() {
                 return
             }
             clazz.declaredConstructors.forEach { constructor ->
-                module.hook(constructor).intercept { chain ->
+                module.profiledHook("ActiveIslandDismissHook", constructor).intercept { chain ->
                     val result = chain.proceed()
                     focusControllerRef = WeakReference(chain.thisObject)
                     result
@@ -176,7 +178,7 @@ object ActiveIslandDismissHook : BaseHook() {
             clazz.declaredMethods
                 .filter { it.name == "onNotificationPosted" && it.parameterCount >= 1 }
                 .forEach { method ->
-                    module.hook(method).intercept { chain ->
+                    module.profiledHook("ActiveIslandDismissHook", method).intercept { chain ->
                         val sbn = chain.args.getOrNull(0) as? StatusBarNotification
                         if (sbn != null) {
                             focusControllerRef = WeakReference(chain.thisObject)

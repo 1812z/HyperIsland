@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI.geometry
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.content.res.Resources
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.BaseHook
@@ -88,7 +90,7 @@ object BigIslandMinWidthHook : BaseHook() {
                         it.returnType == Float::class.javaPrimitiveType
                 }
                 if (calculateMaxWidthWithSmallMethod != null) {
-                    module.hook(calculateMaxWidthWithSmallMethod).intercept { chain ->
+                    module.profiledHook("BigIslandMinWidthHook", calculateMaxWidthWithSmallMethod).intercept { chain ->
                         val maxWidthDp = ConfigManager.getInt(KEY_MAX_WIDTH, 0)
                         if (maxWidthDp <= 0) {
                             return@intercept chain.proceed()
@@ -125,7 +127,7 @@ object BigIslandMinWidthHook : BaseHook() {
                     } else {
                         null
                     }
-                    module.hook(setMaxWidthMethod).intercept { chain ->
+                    module.profiledHook("BigIslandMinWidthHook", setMaxWidthMethod).intercept { chain ->
                         val maxWidthDp = ConfigManager.getInt(KEY_MAX_WIDTH, 0)
                         if (maxWidthDp <= 0) {
                             return@intercept chain.proceed()
@@ -169,7 +171,7 @@ object BigIslandMinWidthHook : BaseHook() {
             val getSmallIslandViewWidth = paramsClass.getMethod("getSmallIslandViewWidth")
             val getSpace = paramsClass.getMethod("getSpace")
 
-            module.hook(method).intercept { chain ->
+            module.profiledHook("BigIslandMinWidthHook", method).intercept { chain ->
                 val maxWidthDp = ConfigManager.getInt(KEY_MAX_WIDTH, 0)
                 if (maxWidthDp <= 0) {
                     return@intercept chain.proceed()

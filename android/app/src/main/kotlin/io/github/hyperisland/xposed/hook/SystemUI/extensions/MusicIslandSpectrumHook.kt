@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI.extensions
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.content.Context
 import android.graphics.drawable.Icon
 import android.media.session.MediaSession
@@ -81,7 +83,7 @@ object MusicIslandSpectrumHook : BaseHook() {
             val token = media.field("token")
             val artwork = media.field("artwork")
             val mediaId = media.field("mediaId")
-            module.hook(method).intercept { chain ->
+            module.profiledHook("MusicIslandSpectrumHook", method).intercept { chain ->
                 val result = chain.proceed()
                 runCatching {
                     val controller = chain.thisObject
@@ -107,7 +109,7 @@ object MusicIslandSpectrumHook : BaseHook() {
             it.name.startsWith("removeDynamicIslandView") &&
                 it.parameterTypes.contentEquals(arrayOf(String::class.java, Boolean::class.javaPrimitiveType))
         }.forEach { method ->
-            module.hook(method).intercept { chain ->
+            module.profiledHook("MusicIslandSpectrumHook", method).intercept { chain ->
                 val result = chain.proceed()
                 (chain.args.firstOrNull() as? String)?.let { key -> onMain { MusicSpectrum.removed(key) } }
                 result
@@ -130,7 +132,7 @@ object MusicIslandSpectrumHook : BaseHook() {
             val lifecycle = method.parameterCount == 0 &&
                 event in setOf("onShow", "onHidden", "onDetach", "playAnimation", "registerLottieCallback")
             if (!bind && !lifecycle) continue
-            module.hook(method).intercept { chain ->
+            module.profiledHook("MusicIslandSpectrumHook", method).intercept { chain ->
                 val result = chain.proceed()
                 val holder = chain.thisObject?.let(::WeakReference)
                 onMain {

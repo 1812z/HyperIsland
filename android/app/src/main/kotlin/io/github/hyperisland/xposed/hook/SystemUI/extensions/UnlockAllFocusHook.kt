@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI.extensions
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.content.Context
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.BaseHook
@@ -57,7 +59,7 @@ object UnlockAllFocusHook : BaseHook() {
             }
 
             methods.forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("UnlockAllFocusHook", method).intercept { chain ->
                     val result = chain.proceed()
                     val pluginClassLoader = (result as? Context)?.classLoader
                     if (pluginClassLoader != null) {
@@ -84,7 +86,7 @@ object UnlockAllFocusHook : BaseHook() {
                         it.returnType == Boolean::class.javaPrimitiveType
                 }
                 .forEach { method ->
-                    module.hook(method).intercept { true }
+                    module.profiledHook("UnlockAllFocusHook", method).intercept { true }
                     log(module) { "hooked ${method.name}(${method.parameterTypes.joinToString { it.simpleName }})" }
                     hooked = true
                 }
@@ -102,7 +104,7 @@ object UnlockAllFocusHook : BaseHook() {
                         it.returnType == Boolean::class.javaPrimitiveType
                 }
                 .forEach { method ->
-                    module.hook(method).intercept { true }
+                    module.profiledHook("UnlockAllFocusHook", method).intercept { true }
                     log(module) { "hooked SignatureChecker.${method.name}" }
                     hooked = true
                 }

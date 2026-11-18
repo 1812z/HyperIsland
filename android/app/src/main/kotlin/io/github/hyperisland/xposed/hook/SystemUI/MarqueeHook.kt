@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.service.notification.StatusBarNotification
 import android.os.SystemClock
 import android.view.Choreographer
@@ -506,7 +508,7 @@ object MarqueeHook : BaseHook() {
                 val clazz = classLoader.loadClass(className)
                 val updateMethod = clazz.declaredMethods.firstOrNull { it.name == "updateBigIslandView" }
                 if (updateMethod != null) {
-                    module.hook(updateMethod).intercept { chain ->
+                    module.profiledHook("MarqueeHook", updateMethod).intercept { chain ->
                         val islandView = chain.thisObject as? ViewGroup
                         val updateToken = Any()
                         if (islandView != null) {

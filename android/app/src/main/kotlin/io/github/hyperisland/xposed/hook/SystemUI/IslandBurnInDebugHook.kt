@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.app.Application
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -137,7 +139,7 @@ object IslandBurnInDebugHook : BaseHook() {
             val clazz = classLoader.loadClass(CONTENT_VIEW_CLASS)
             clazz.declaredConstructors.forEach { constructor ->
                 rememberHandle(
-                    module.hook(constructor).intercept { chain ->
+                    module.profiledHook("IslandBurnInDebugHook", constructor).intercept { chain ->
                         val result = chain.proceed()
                         (chain.thisObject as? View)?.let(::rememberContentView)
                         result
@@ -165,7 +167,7 @@ object IslandBurnInDebugHook : BaseHook() {
             shiftMethod = shift
             clazz.declaredConstructors.forEach { constructor ->
                 rememberHandle(
-                    module.hook(constructor).intercept { chain ->
+                    module.profiledHook("IslandBurnInDebugHook", constructor).intercept { chain ->
                         val result = chain.proceed()
                         val helper = chain.thisObject
                         if (helper != null) helperRef = WeakReference(helper)
@@ -174,7 +176,7 @@ object IslandBurnInDebugHook : BaseHook() {
                 )
             }
             rememberHandle(
-                module.hook(shift).intercept { chain ->
+                module.profiledHook("IslandBurnInDebugHook", shift).intercept { chain ->
                     val helper = chain.thisObject
                     if (helper != null) helperRef = WeakReference(helper)
                     (chain.args.getOrNull(0) as? View)?.let(::rememberContentView)

@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI.corner
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.graphics.Outline
 import android.graphics.Rect
 import android.view.View
@@ -24,7 +26,7 @@ object IslandCornerHook : BaseHook() {
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
         if (param.packageName != "com.android.systemui") return
         val setter = View::class.java.getDeclaredMethod("setOutlineProvider", ViewOutlineProvider::class.java)
-        module.hook(setter).intercept { chain ->
+        module.profiledHook("IslandCornerHook", setter).intercept { chain ->
             val view = chain.thisObject as? View ?: return@intercept chain.proceed()
             val provider = chain.args.firstOrNull() as? ViewOutlineProvider
                 ?: return@intercept chain.proceed()

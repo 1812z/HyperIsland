@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.app.Notification
 import android.app.PendingIntent
 import android.content.res.ColorStateList
@@ -141,7 +143,7 @@ object MediaNotificationTextColorHook : BaseHook() {
         coordinatorClass.declaredMethods
             .filter { method -> method.name == "onAnimationStart" }
             .forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("MediaNotificationTextColorHook", method).intercept { chain ->
                     islandAnimationRunning = true
                     chain.proceed()
                 }
@@ -152,7 +154,7 @@ object MediaNotificationTextColorHook : BaseHook() {
                 method.name == "onAnimationFinished" || method.name == "onAnimationCancel"
             }
             .forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("MediaNotificationTextColorHook", method).intercept { chain ->
                     val result = chain.proceed()
                     islandAnimationRunning = false
                     // Flush after collapse too; no further tint event is guaranteed.
@@ -181,7 +183,7 @@ object MediaNotificationTextColorHook : BaseHook() {
         }
         log { "$TAG [MediaTitleDiag] expanded install hook methods=${methods.size}" }
         methods.forEach { method ->
-            module.hook(method).intercept { chain ->
+            module.profiledHook("MediaNotificationTextColorHook", method).intercept { chain ->
                 val data = chain.args.firstOrNull()
                 val root = data?.let { invokeNoArg(it, "getView") as? View }
                 val reference = data?.let { WeakReference(it) }
@@ -214,7 +216,7 @@ object MediaNotificationTextColorHook : BaseHook() {
         }
         log { "$TAG [MediaTitleDiag] physical install hook methods=${methods.size}" }
         methods.forEach { method ->
-            module.hook(method).intercept { chain ->
+            module.profiledHook("MediaNotificationTextColorHook", method).intercept { chain ->
                 val root = chain.args.firstOrNull() as? View
                 val result = chain.proceed()
                 if (root != null) {
@@ -244,7 +246,7 @@ object MediaNotificationTextColorHook : BaseHook() {
             method.name == "handleContentViewUpdateOperate" && method.parameterTypes.size == 2
         }
         methods.forEach { method ->
-            module.hook(method).intercept { chain ->
+            module.profiledHook("MediaNotificationTextColorHook", method).intercept { chain ->
                 val contentView = chain.args.firstOrNull() as? View
                 val params = chain.args.getOrNull(1)
                 val data = params?.let { invokeNoArg(it, "getIslandData") }

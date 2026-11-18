@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI.corner
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.graphics.Canvas
 import android.graphics.Outline
 import android.graphics.Path
@@ -64,7 +66,7 @@ object IslandOfficialMaterialCornerHook : BaseHook() {
         if (param.packageName != "com.android.systemui") return
         // The small stock material host is a FrameLayout, rather than a plugin View class.
         val setter = View::class.java.getDeclaredMethod("setOutlineProvider", ViewOutlineProvider::class.java)
-        module.hook(setter).intercept { chain ->
+        module.profiledHook("IslandOfficialMaterialCornerHook", setter).intercept { chain ->
             val replacement = runCatching {
                 val view = chain.thisObject as? View ?: return@runCatching null
                 val name = view.resources.getResourceEntryName(view.id)
@@ -110,7 +112,7 @@ object IslandOfficialMaterialCornerHook : BaseHook() {
             val clazz = loader.loadClass(BACKGROUND)
             synchronized(hookedClasses) { if (!hookedClasses.add(clazz)) return@runCatching }
             val draw = clazz.getDeclaredMethod("onDraw", Canvas::class.java)
-            module.hook(draw).intercept { chain ->
+            module.profiledHook("IslandOfficialMaterialCornerHook", draw).intercept { chain ->
                 val canvas = chain.args[0] as? Canvas ?: return@intercept chain.proceed()
                 val clip = runCatching {
                     val host = chain.thisObject as? ViewGroup ?: return@runCatching null
@@ -150,7 +152,7 @@ object IslandOfficialMaterialCornerHook : BaseHook() {
             val clazz = loader.loadClass(CONTENT)
             synchronized(hookedClasses) { if (!hookedClasses.add(clazz)) return@runCatching }
             val update = clazz.getDeclaredMethod("updateBackgroundBg", View::class.java, Boolean::class.javaPrimitiveType!!)
-            module.hook(update).intercept { chain ->
+            module.profiledHook("IslandOfficialMaterialCornerHook", update).intercept { chain ->
                 val result = chain.proceed()
                 runCatching {
                     val view = chain.args[0] as? View ?: return@runCatching

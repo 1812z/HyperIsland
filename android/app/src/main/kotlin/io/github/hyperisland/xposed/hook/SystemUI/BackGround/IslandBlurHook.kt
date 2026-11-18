@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI.BackGround
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.graphics.Canvas
 import android.os.Handler
 import android.os.Looper
@@ -183,7 +185,7 @@ object IslandBlurHook : BaseHook() {
             )
             hookAnimationCompletion(module, classLoader)
             hookTempHiddenLifecycle(module, windowViewClass)
-            module.hook(updateMethod).intercept { chain ->
+            module.profiledHook("IslandBlurHook", updateMethod).intercept { chain ->
                 val view = chain.args.getOrNull(0) as? View
                 val contentViewBeforeUpdate = chain.thisObject
                 val viewTypeBeforeUpdate = view?.let(IslandStateResolver::forView)
@@ -230,14 +232,15 @@ object IslandBlurHook : BaseHook() {
                 var deferredSoftCommit = false
                 val result = if (view != null && materialBeforeUpdate?.type == MaterialType.SOFT) {
                     if (staleBeforeUpdate || hiddenPreparation) {
-                        // A hidden/non-current state must own neither a sampler lease nor a
-                        // Bionics RenderNode. In particular, updateExpandedView() prepares the
-                        // future EXPAND child while SMALL/BIG is still stable. Installing the
-                        // material here lets its full-size crop contaminate the compact island
-                        // even without a rendering lease. The fake-to-real handoff/onPreDraw
-                        // installs it again before EXPAND can submit its first visible frame.
+                        // Hidden preparation must not acquire a full-size RenderNode crop.
+                        // An already-managed outgoing card may still be drawing its collapse,
+                        // however: keep that material until its actual visibility edge.
                         cancelVisibleSoftCommit(view)
-                        SoftGlassController.release(view, restoreBackground = false)
+                        if (SoftGlassController.isManaged(view) && isActuallyVisible(view)) {
+                            SoftGlassController.retireAfterDraw(view)
+                        } else {
+                            SoftGlassController.release(view, restoreBackground = false)
+                        }
                         null
                     } else if (realOwner && !isActuallyVisible(view)) {
                         // ShowOnceBigIsland/tempShow is created in a secondary ContentView. Its
@@ -410,7 +413,7 @@ object IslandBlurHook : BaseHook() {
             Boolean::class.javaPrimitiveType,
             Boolean::class.javaPrimitiveType,
         )
-        module.hook(method).intercept { chain ->
+        module.profiledHook("IslandBlurHook", method).intercept { chain ->
             val state = chain.args.getOrNull(0)
             val type = IslandStateResolver.fromState(state)
             val noContent = IslandStateResolver.isNoContent(state)
@@ -563,7 +566,7 @@ object IslandBlurHook : BaseHook() {
                     method.parameterTypes[0] == Boolean::class.javaPrimitiveType
             }
             .forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("IslandBlurHook", method).intercept { chain ->
                     val result = chain.proceed()
                     if (chain.args.getOrNull(0) == false) {
                         val contentView = runCatching {
@@ -599,7 +602,10 @@ object IslandBlurHook : BaseHook() {
         val getter = findMethod(contentView.javaClass, getterName)
         val view = runCatching { getter?.invoke(contentView) as? View }.getOrNull()
         if (view == null) return
-        if (material.type == MaterialType.SOFT && SoftGlassController.isActive(view)) return
+        if (material.type == MaterialType.SOFT && SoftGlassController.isActive(view)) {
+            SoftGlassController.cancelRetirement(view)
+            return
+        }
         runCatching { updateMethod.invoke(contentView, view, false) }
     }
 
@@ -616,7 +622,7 @@ object IslandBlurHook : BaseHook() {
             methods
                 .forEach { method ->
                     method.isAccessible = true
-                    module.hook(method).intercept { chain ->
+                    module.profiledHook("IslandBlurHook", method).intercept { chain ->
                         preparingTypeHolder.set(IslandType.EXPAND)
                         try {
                             chain.proceed()
@@ -635,7 +641,7 @@ object IslandBlurHook : BaseHook() {
             .filter { it != activeType }
             .mapNotNull { IslandStateResolver.concreteView(contentView, it) }
             .filter(SoftGlassController::isManaged)
-            .forEach(SoftGlassController::suspend)
+            .forEach { SoftGlassController.retireAfterDraw(it) }
     }
 
     private fun releaseAllConcreteSoftGlass(
@@ -647,11 +653,7 @@ object IslandBlurHook : BaseHook() {
             .mapNotNull { IslandStateResolver.concreteView(contentView, it) }
             .filter(SoftGlassController::isManaged)
             .forEach { view ->
-                SoftGlassController.release(
-                    view,
-                    restoreBackground = false,
-                    releaseSampling = !preserveSystemSampling,
-                )
+                SoftGlassController.retireAfterDraw(view, preserveSystemSampling)
             }
     }
 
@@ -664,7 +666,7 @@ object IslandBlurHook : BaseHook() {
             "setDrawable",
             android.graphics.drawable.Drawable::class.java,
         )
-        module.hook(setDrawable).intercept { chain ->
+        module.profiledHook("IslandBlurHook", setDrawable).intercept { chain ->
             val backgroundView = chain.thisObject as? View ?: return@intercept chain.proceed()
             val transitionType = islandTypeHolder.get()
             val softConfigured = if (transitionType != null) {
@@ -681,7 +683,7 @@ object IslandBlurHook : BaseHook() {
             null
         }
         val method = backgroundClass.getDeclaredMethod("onDraw", Canvas::class.java)
-        module.hook(method).intercept { chain ->
+        module.profiledHook("IslandBlurHook", method).intercept { chain ->
             val backgroundView = chain.thisObject as? View ?: return@intercept chain.proceed()
             if (!configStore.anyBlurEnabled) return@intercept chain.proceed()
 
@@ -701,7 +703,7 @@ object IslandBlurHook : BaseHook() {
                 method.parameterCount == 2 &&
                 method.parameterTypes[0] == Boolean::class.javaPrimitiveType
         } ?: return
-        module.hook(tempHideMethod).intercept { chain ->
+        module.profiledHook("IslandBlurHook", tempHideMethod).intercept { chain ->
             val wasHidden = islandTempHidden
             val hidden = chain.args.getOrNull(0) as? Boolean
             when (hidden) {
@@ -738,7 +740,7 @@ object IslandBlurHook : BaseHook() {
         val method = backgroundClass.getDeclaredMethod("scheduleUpdate").apply {
             isAccessible = true
         }
-        module.hook(method).intercept { chain ->
+        module.profiledHook("IslandBlurHook", method).intercept { chain ->
             val backgroundView = chain.thisObject as? View
             if (backgroundView != null && shouldKeepBackgroundOpaque(backgroundView)) {
                 runCatching { backgroundAlphaField.setFloat(backgroundView, 1f) }
@@ -921,7 +923,7 @@ object IslandBlurHook : BaseHook() {
                     method.parameterTypes[0] == Boolean::class.javaPrimitiveType
             }
             .forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("IslandBlurHook", method).intercept { chain ->
                     val result = chain.proceed()
                     if (chain.args.getOrNull(0) == false) {
                         val contentView = runCatching { getView.invoke(chain.thisObject) }.getOrNull()
@@ -935,7 +937,7 @@ object IslandBlurHook : BaseHook() {
         controllerClass.declaredMethods
             .filter { it.name == "onPreDraw" && it.parameterCount == 0 }
             .forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("IslandBlurHook", method).intercept { chain ->
                     val result = chain.proceed()
                     val controller = chain.thisObject
                     val visible = runCatching {
@@ -1017,7 +1019,7 @@ object IslandBlurHook : BaseHook() {
                             } else {
                                 // SystemUI's own currentIslandVisible() is authoritative. A
                                 // sibling hidden by EXPAND must no longer submit a compact crop.
-                                SoftGlassController.release(concrete, restoreBackground = false)
+                                SoftGlassController.retireAfterDraw(concrete)
                             }
                         }
                     } else if (visible == true &&
@@ -1025,7 +1027,7 @@ object IslandBlurHook : BaseHook() {
                     ) {
                         // This is the source pre-draw edge for both first appearance and temporary
                         // hide recovery. Acquire before the frame instead of repairing afterwards.
-                        if (contentView != null && visibleConcrete != null && type != null &&
+                        if (contentView != null && visibleConcrete != null && type != null && type == stateType &&
                             materialForType(type).type == MaterialType.SOFT
                         ) {
                             commitVisibleSoftTarget(

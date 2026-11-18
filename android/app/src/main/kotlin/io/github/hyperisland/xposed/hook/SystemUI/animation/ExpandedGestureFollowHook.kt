@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI.animation
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.os.Handler
 import android.os.Looper
 import android.view.View
@@ -79,7 +81,7 @@ object ExpandedGestureFollowHook : BaseHook() {
                 val add = state.getDeclaredMethod("add", property, Float::class.javaPrimitiveType!!, LongArray::class.java)
                 val addInt = state.getDeclaredMethod("add", property, Int::class.javaPrimitiveType!!, LongArray::class.java)
                 if (hooked.add(state)) {
-                    module.hook(add).intercept { chain ->
+                    module.profiledHook("ExpandedGestureFollowHook", add).intercept { chain ->
                         val movement = offset.get() ?: return@intercept chain.proceed()
                         val shift = when (chain.args[0]) {
                             containerX -> movement.x
@@ -90,7 +92,7 @@ object ExpandedGestureFollowHook : BaseHook() {
                         args[1] = (args[1] as Number).toFloat() + shift
                         chain.proceed(args)
                     }
-                    module.hook(addInt).intercept { chain ->
+                    module.profiledHook("ExpandedGestureFollowHook", addInt).intercept { chain ->
                         val movement = offset.get() ?: return@intercept chain.proceed()
                         val shift = when (chain.args[0]) {
                             containerX -> movement.x
@@ -111,7 +113,7 @@ object ExpandedGestureFollowHook : BaseHook() {
                     }
                 }
                 if (!hooked.add(clazz)) return@runCatching
-                module.hook(swipe).intercept { chain ->
+                module.profiledHook("ExpandedGestureFollowHook", swipe).intercept { chain ->
                     val x = runCatching {
                         if (!enabled) return@runCatching null
                         val view = chain.args[0] as? View ?: return@runCatching null
@@ -159,7 +161,7 @@ object ExpandedGestureFollowHook : BaseHook() {
                     it.parameterTypes[0] == Float::class.javaPrimitiveType &&
                     it.parameterTypes[1] == Float::class.javaPrimitiveType
             } ?: return@runCatching
-            module.hook(method).intercept { chain ->
+            module.profiledHook("ExpandedGestureFollowHook", method).intercept { chain ->
                 if (!enabled) return@intercept chain.proceed()
                 val x = chain.args[0] as? Float ?: return@intercept chain.proceed()
                 val y = chain.args[1] as? Float ?: return@intercept chain.proceed()

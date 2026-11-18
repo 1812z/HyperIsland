@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI.geometry
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.content.res.Resources
 import android.view.ViewGroup
 import android.widget.ImageView
@@ -89,7 +91,7 @@ object IslandIconHook : BaseHook() {
                 method.name == "bind" && method.parameterCount == 2
             }
             for (method in bindMethods) {
-                module.hook(method).intercept { chain ->
+                module.profiledHook("IslandIconHook", method).intercept { chain ->
                     val result = chain.proceed()
                     chain.thisObject?.let { holder ->
                         iconHolders += holder
@@ -104,7 +106,7 @@ object IslandIconHook : BaseHook() {
                 method.name == "getWidth" && method.parameterCount == 0
             }
             if (getWidth != null) {
-                module.hook(getWidth).intercept { chain ->
+                module.profiledHook("IslandIconHook", getWidth).intercept { chain ->
                     val holder = chain.thisObject ?: return@intercept chain.proceed()
                     val originalWidth = synchronized(originalHolderWidths) {
                         originalHolderWidths[holder]

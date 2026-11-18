@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.app.Notification
 import android.os.Bundle
 import android.os.SystemClock
@@ -67,7 +69,7 @@ object FocusNotifStatusBarIconHook : BaseHook() {
             val entryClass = classLoader.loadClass(TARGET_ENTRY_CLASS)
             val builderClass = classLoader.loadClass(TARGET_STORE_BUILDER_CLASS)
             val toModelMethod = builderClass.getDeclaredMethod("toModel", entryClass)
-            module.hook(toModelMethod).intercept { chain ->
+            module.profiledHook("FocusNotifStatusBarIconHook", toModelMethod).intercept { chain ->
                 val result = chain.proceed()
                 val entry = chain.args[0] ?: return@intercept result
                 val model = result ?: return@intercept result
@@ -121,7 +123,7 @@ object FocusNotifStatusBarIconHook : BaseHook() {
         }
 
         try {
-            module.hook(method).intercept { chain ->
+            module.profiledHook("FocusNotifStatusBarIconHook", method).intercept { chain ->
                 val result = chain.proceed()
                 val fragment = chain.thisObject
                 if (isDirectProxyActive()) {

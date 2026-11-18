@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI.geometry
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.widget.TextView
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.BaseHook
@@ -67,7 +69,7 @@ object IslandTextSizeHook : BaseHook() {
                 clazz.declaredMethods
                     .filter { it.name in setOf("bind", "updatePartial") }
                     .forEach { method ->
-                        module.hook(method).intercept { chain ->
+                        module.profiledHook("IslandTextSizeHook", method).intercept { chain ->
                             val result = chain.proceed()
                             chain.thisObject?.let { holder ->
                                 trackedHolders += holder

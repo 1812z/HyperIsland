@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI.lockscreen
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.app.PendingIntent
 import android.os.SystemClock
 import android.graphics.Color
@@ -90,7 +92,7 @@ internal object LockscreenWidgetPageHook {
             val dependency = loader.loadClass("com.android.systemui.Dependency")
             dependency.declaredConstructors.forEach { constructor ->
                 constructor.isAccessible = true
-                module.hook(constructor).intercept { chain ->
+                module.profiledHook("LockscreenWidgetPageHook", constructor).intercept { chain ->
                     val result = chain.proceed()
                     dependencyRef = WeakReference(chain.thisObject)
                     result
@@ -112,14 +114,14 @@ internal object LockscreenWidgetPageHook {
                 ?.also { it.isAccessible = true }
             module.log { "$TAG: ActivityStarter overloads=${candidates.map { it.parameterCount }}" }
             startPendingIntentMethod?.let { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("LockscreenWidgetPageHook", method).intercept { chain ->
                     activityStarterRef = WeakReference(chain.thisObject)
                     chain.proceed()
                 }
             }
             starterClass.declaredConstructors.forEach { constructor ->
                 constructor.isAccessible = true
-                module.hook(constructor).intercept { chain ->
+                module.profiledHook("LockscreenWidgetPageHook", constructor).intercept { chain ->
                     val result = chain.proceed()
                     activityStarterRef = WeakReference(chain.thisObject)
                     result
@@ -137,7 +139,7 @@ internal object LockscreenWidgetPageHook {
             module.log { "$TAG: legacy PendingIntent.send candidates=${methods.size}" }
             methods.forEach { method ->
                     method.isAccessible = true
-                    module.hook(method).intercept { chain ->
+                    module.profiledHook("LockscreenWidgetPageHook", method).intercept { chain ->
                         // Fast path first: outside a widget click this must stay as cheap as
                         // possible, because every SystemUI notification click goes through here.
                         if (SystemClock.uptimeMillis() > widgetClickUntil) return@intercept chain.proceed()
@@ -178,7 +180,7 @@ internal object LockscreenWidgetPageHook {
             module.log { "$TAG: RemoteViews.startPendingIntent candidates=${methods.size}" }
             methods.forEach { method ->
                 method.isAccessible = true
-                module.hook(method).intercept { chain ->
+                module.profiledHook("LockscreenWidgetPageHook", method).intercept { chain ->
                     val active = SystemClock.uptimeMillis() <= widgetClickUntil
                     val pendingIntent = chain.args.getOrNull(1) as? PendingIntent
                     val activity = runCatching {
@@ -259,7 +261,7 @@ internal object LockscreenWidgetPageHook {
                 runCatching { clearBlendMethod?.invoke(null, scrim) }
             }
 
-            module.hook(method).intercept { chain ->
+            module.profiledHook("LockscreenWidgetPageHook", method).intercept { chain ->
                 val result = chain.proceed()
                 if (isWidgetMode()) {
                     // Keep updating on the way back as well. The helper reports the current
@@ -278,7 +280,7 @@ internal object LockscreenWidgetPageHook {
             }
             if (setTranslation != null) {
                 setTranslation.isAccessible = true
-                module.hook(setTranslation).intercept { chain ->
+                module.profiledHook("LockscreenWidgetPageHook", setTranslation).intercept { chain ->
                     val result = chain.proceed()
                     // Apply after stock translation so the system keeps ownership of its blur
                     // and animation, while this setting follows every actual position frame.
@@ -306,7 +308,7 @@ internal object LockscreenWidgetPageHook {
                 // CANCEL when a scroll crosses its boundary, so the picker only scrolls from a
                 // narrow strip. Mark the scope guards as consumed by the panel and let the child
                 // view receive the complete stream instead.
-                module.hook(method).intercept { chain ->
+                module.profiledHook("LockscreenWidgetPageHook", method).intercept { chain ->
                     if (pageRef?.get()?.isPickerVisible() == true) {
                         chain.args[4] = true
                         chain.args[5] = true
@@ -317,7 +319,7 @@ internal object LockscreenWidgetPageHook {
             }
             injector.declaredConstructors.forEach { constructor ->
                 constructor.isAccessible = true
-                module.hook(constructor).intercept { chain ->
+                module.profiledHook("LockscreenWidgetPageHook", constructor).intercept { chain ->
                     val result = chain.proceed()
                     panelRef = WeakReference(chain.thisObject)
                     result
@@ -510,7 +512,7 @@ internal object LockscreenWidgetPageHook {
         val onAttached = containerClass.declaredMethods
             .firstOrNull { it.name == "onAttachedToWindow" } ?: return
         onAttached.isAccessible = true
-        module.hook(onAttached).intercept { chain ->
+        module.profiledHook("LockscreenWidgetPageHook", onAttached).intercept { chain ->
             chain.proceed()
             (chain.thisObject as? ViewGroup)?.let { syncWidgetPage(module, it) }
         }
@@ -525,7 +527,7 @@ internal object LockscreenWidgetPageHook {
         val inflate = containerClass.declaredMethods
             .firstOrNull { it.name == "inflateLeftView" } ?: return
         inflate.isAccessible = true
-        module.hook(inflate).intercept { chain ->
+        module.profiledHook("LockscreenWidgetPageHook", inflate).intercept { chain ->
             val result = chain.proceed()
             (chain.thisObject as? ViewGroup)?.let { syncWidgetPage(module, it) }
             result
@@ -547,7 +549,7 @@ internal object LockscreenWidgetPageHook {
                 it.parameterTypes[1] == Float::class.javaPrimitiveType
         } ?: return
         method.isAccessible = true
-        module.hook(method).intercept { chain ->
+        module.profiledHook("LockscreenWidgetPageHook", method).intercept { chain ->
             if (isWidgetMode()) {
                 // AppWidgetService rejects every query before credential unlock. Consume the
                 // controller gesture in that state so a left swipe cannot enter the page.
@@ -563,7 +565,7 @@ internal object LockscreenWidgetPageHook {
     private fun hookControllerMistouchGuard(module: XposedModule, controllerClass: Class<*>) {
         controllerClass.declaredConstructors.forEach { constructor ->
             constructor.isAccessible = true
-            module.hook(constructor).intercept { chain ->
+            module.profiledHook("LockscreenWidgetPageHook", constructor).intercept { chain ->
                 val result = chain.proceed()
                 if (isWidgetMode()) {
                     (chain.thisObject as? Any)?.let { instance ->
@@ -585,7 +587,7 @@ internal object LockscreenWidgetPageHook {
             it.name == "onTouchMove" && it.parameterCount == 2
         } ?: return
         move.isAccessible = true
-        module.hook(move).intercept { chain ->
+        module.profiledHook("LockscreenWidgetPageHook", move).intercept { chain ->
             if (isWidgetMode() && chain.thisObject.javaClass.name.startsWith("com.android.keyguard.negative.")) {
                 runCatching {
                     val field = baseClass.getDeclaredField("mEnableErrorTips")
@@ -605,7 +607,7 @@ internal object LockscreenWidgetPageHook {
         val start = magazineClass.declaredMethods
             .firstOrNull { it.name == "startMagazineLeftActivity" } ?: return
         start.isAccessible = true
-        module.hook(start).intercept {
+        module.profiledHook("LockscreenWidgetPageHook", start).intercept {
             if (isWidgetMode()) null else it.proceed()
         }
     }
@@ -619,7 +621,7 @@ internal object LockscreenWidgetPageHook {
         val method = clazz.declaredMethods.firstOrNull { it.name == name && it.parameterCount == 0 }
             ?: return
         method.isAccessible = true
-        module.hook(method).intercept {
+        module.profiledHook("LockscreenWidgetPageHook", method).intercept {
             if (isWidgetMode()) value() else it.proceed()
         }
     }

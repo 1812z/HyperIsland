@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.graphics.Color
 import android.os.Bundle
 import io.github.hyperisland.xposed.logError
@@ -59,7 +61,7 @@ internal object IslandUiStateSource {
                 if (!hookedClasses.add(targetClass)) return@runCatching
                 targetClass.declaredConstructors.forEach { constructor ->
                     constructor.isAccessible = true
-                    module.hook(constructor).intercept { chain ->
+                    module.profiledHook("IslandUiStateSource", constructor).intercept { chain ->
                         val result = chain.proceed()
                         chain.args.firstOrNull { candidate ->
                             candidate != null && candidate.javaClass.methods.any(::isHandleDynamicIsland)
@@ -81,7 +83,7 @@ internal object IslandUiStateSource {
         runCatching {
             method.isAccessible = true
             runCatching { module.deoptimize(method) }
-            module.hook(method).intercept { chain ->
+            module.profiledHook("IslandUiStateSource", method).intercept { chain ->
                 (chain.args.firstOrNull() as? Bundle)?.let(::handleIslandAction)
                 chain.proceed()
             }
@@ -144,7 +146,7 @@ internal object IslandUiStateSource {
             if (!hookedClasses.add(coordinatorClass)) return
             coordinatorClass.declaredMethods.forEach { method ->
                 when (method.name) {
-                    "onAnimationStart" -> module.hook(method).intercept { chain ->
+                    "onAnimationStart" -> module.profiledHook("IslandUiStateSource", method).intercept { chain ->
                         if (!islandAnimationRunning) {
                             islandAnimationRunning = true
                             notifyStateChanged()
@@ -152,7 +154,7 @@ internal object IslandUiStateSource {
                         chain.proceed()
                     }
                     "onAnimationFinished", "onAnimationCancel" ->
-                        module.hook(method).intercept { chain ->
+                        module.profiledHook("IslandUiStateSource", method).intercept { chain ->
                             val result = chain.proceed()
                             if (islandAnimationRunning) {
                                 islandAnimationRunning = false
@@ -177,7 +179,7 @@ internal object IslandUiStateSource {
             controllerClass.declaredMethods
                 .filter { it.name == "notificationPanelExpandHeightChanged" }
                 .forEach { method ->
-                    module.hook(method).intercept { chain ->
+                    module.profiledHook("IslandUiStateSource", method).intercept { chain ->
                         val active = (chain.args.firstOrNull() as? Float)?.let { it > 0f }
                         if (active != null && notificationPanelHeightActive != active) {
                             notificationPanelHeightActive = active

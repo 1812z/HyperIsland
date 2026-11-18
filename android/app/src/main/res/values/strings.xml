@@ -1271,6 +1271,24 @@
     <!-- 调试工具 -->
     <string name="debug_tools">Debug tools</string>
     <string name="debug_tools_description">For debugging only. Do not enable as a regular user.</string>
+    <string name="debug_performance">Island performance analysis</string>
+    <string name="debug_performance_entry_summary">Record frame delays and Hook costs in SystemUI</string>
+    <string name="debug_performance_description">Start recording, return to the island and reproduce the problem, then stop recording here. Recording automatically stops after 60 seconds. Refresh to retrieve the latest result.</string>
+    <string name="debug_performance_start">Start recording (60 seconds)</string>
+    <string name="debug_performance_stop">Stop and view report</string>
+    <string name="debug_performance_refresh">Refresh status and report</string>
+    <string name="debug_performance_export">Export JSON report</string>
+    <string name="debug_performance_exported">Performance report exported</string>
+    <string name="debug_performance_export_error">Could not export the report</string>
+    <string name="debug_performance_unavailable">SystemUI did not respond. Enable debug mode, confirm the module is active, and restart SystemUI after updating.</string>
+    <string name="debug_performance_result">Recording result</string>
+    <string name="debug_performance_recording">Recording</string>
+    <string name="debug_performance_idle">Stopped</string>
+    <string name="debug_performance_summary">%1$s · %2$.1f s\nIsland frame samples: %3$d\nDelayed samples: %4$d · Estimated missed vsyncs: %5$d\nLongest gap: %6$.2f ms · Longest callback delay: %7$.2f ms\nInstrumented methods: %8$d</string>
+    <string name="debug_performance_no_frames">No visible island frames captured. Reproduce the problem while recording; a zero count does not establish smooth rendering.</string>
+    <string name="debug_performance_hot_hooks">Hooks by main thread cost</string>
+    <string name="debug_performance_hook_summary">%1$d calls · Main thread: %2$.2f ms\nLongest callback: %3$.2f ms · Longest complete call: %4$.2f ms</string>
+    <string name="debug_performance_limits">Frame gaps and delays indicate UI thread scheduling, not GPU frame completion. Callback cost excludes chain.proceed; nested work can overlap and asynchronous work is outside the measurement. Correlation does not prove which Hook caused a delay. Compare reports with a suspected Hook disabled in Hook Manager after restarting SystemUI. Reports contain bounded recent slow calls and animation events; no notification content is recorded.</string>
     <string name="debug_mode">Debug mode</string>
     <string name="debug_mode_summary">Debug features become available when on.</string>
     <string name="hook_manager">Hook manager</string>

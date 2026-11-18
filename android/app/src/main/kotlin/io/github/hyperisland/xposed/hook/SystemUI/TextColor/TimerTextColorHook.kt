@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.graphics.Color
 import android.view.View
 import android.widget.TextView
@@ -88,7 +90,7 @@ object TimerTextColorHook : BaseHook() {
                     TextView::class.java.isAssignableFrom(method.parameterTypes[2])
             }
             .forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("TimerTextColorHook", method).intercept { chain ->
                     val result = chain.proceed()
                     val timerView = chain.args.getOrNull(2) as? TextView
                     if (timerView != null) {
@@ -113,7 +115,7 @@ object TimerTextColorHook : BaseHook() {
         holderClass.declaredMethods
             .filter { method -> method.name == "bind" && method.parameterTypes.size == 2 }
             .forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("TimerTextColorHook", method).intercept { chain ->
                     val result = chain.proceed()
                     runCatching {
                         val chronometer = chronometerField.get(chain.thisObject) as? TextView
@@ -143,7 +145,7 @@ object TimerTextColorHook : BaseHook() {
                     CharSequence::class.java.isAssignableFrom(method.parameterTypes[0])
             }
             .forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("TimerTextColorHook", method).intercept { chain ->
                     val result = chain.proceed()
                     (chain.thisObject as? TextView)?.let(::applyTrackedTimer)
                     result
@@ -158,7 +160,7 @@ object TimerTextColorHook : BaseHook() {
                 method.name == "updateDarkLightMode" && method.parameterTypes.size >= 3
             }
             .forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("TimerTextColorHook", method).intercept { chain ->
                     val useDarkText = chain.args.getOrNull(2) as? Boolean
                     val result = chain.proceed()
                     if (useDarkText != null) {

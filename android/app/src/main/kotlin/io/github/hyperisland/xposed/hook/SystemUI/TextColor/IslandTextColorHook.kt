@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.graphics.Color
 import android.widget.TextView
 import io.github.hyperisland.xposed.ConfigManager
@@ -91,7 +93,7 @@ object IslandTextColorHook : BaseHook() {
                 method.parameterTypes.size == 4 && TextView::class.java.isAssignableFrom(method.parameterTypes[2])
             }
             .forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("IslandTextColorHook", method).intercept { chain ->
                     val result = chain.proceed()
                     val textView = chain.args.getOrNull(2) as? TextView
                     if (usesHighlightColor(chain.args)) {
@@ -110,7 +112,7 @@ object IslandTextColorHook : BaseHook() {
         contentViewClass.declaredMethods
             .filter { method -> method.name == "updateDarkLightMode" && method.parameterTypes.size >= 3 }
             .forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("IslandTextColorHook", method).intercept { chain ->
                     (chain.args.getOrNull(2) as? Boolean)?.let { useDarkText ->
                         val nextIsRegionDark = !useDarkText
                         val changed = isRegionDark != nextIsRegionDark

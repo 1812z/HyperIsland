@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI.lockscreen
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
@@ -75,7 +77,7 @@ internal object LockscreenActivityReturn {
             val injectorClass = loader.loadClass("com.android.keyguard.injector.KeyguardPanelViewInjector")
             val setTranslation = method(injectorClass, "setLeftViewTranslation", 2)
             val getRoot = method(helperClass, "getViewRootImpl", 0)
-            module.hook(getRoot).intercept { chain ->
+            module.profiledHook("LockscreenActivityReturn", getRoot).intercept { chain ->
                 val helper = chain.thisObject
                 if (helper != null) {
                     helperRef = WeakReference(helper)
@@ -84,7 +86,7 @@ internal object LockscreenActivityReturn {
                 }
                 chain.proceed()
             }
-            module.hook(positionMethod).intercept { chain ->
+            module.profiledHook("LockscreenActivityReturn", positionMethod).intercept { chain ->
                 val current = session
                 val target = current?.target?.get()
                 val leash = target?.let { field(it.javaClass, "leash")?.get(it) }
@@ -94,12 +96,12 @@ internal object LockscreenActivityReturn {
                     chain.proceed(args)
                 } else chain.proceed()
             }
-            module.hook(setTranslation).intercept { chain ->
+            module.profiledHook("LockscreenActivityReturn", setTranslation).intercept { chain ->
                 // The stock closedAnim continues ticking, but must not independently move the
                 // negative page or fade its keyguard components while our finger owns the leash.
                 if (session?.target?.get() != null) null else chain.proceed()
             }
-            module.hook(finishMethod).intercept { chain ->
+            module.profiledHook("LockscreenActivityReturn", finishMethod).intercept { chain ->
                 val current = session
                 val reason = chain.args.getOrNull(1)
                 if (current != null && reason.toString().contains("FINISH_UNOCCLUDE")) {
@@ -108,7 +110,7 @@ internal object LockscreenActivityReturn {
                     null
                 } else chain.proceed()
             }
-            module.hook(resetLeashMethod).intercept { chain ->
+            module.profiledHook("LockscreenActivityReturn", resetLeashMethod).intercept { chain ->
                 if (session?.target?.get() === chain.args.getOrNull(0) && session != null) {
                     null
                 } else chain.proceed()

@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI.extensions
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.content.Context
 import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.hyperisland.xposed.utils.HookUtils
@@ -156,7 +158,7 @@ object FaceUnlockStateHook : BaseHook() {
                     if (!hookedMethods.add(method)) return@forEach
                 }
                 method.isAccessible = true
-                module.hook(method).intercept { chain ->
+                module.profiledHook("FaceUnlockStateHook", method).intercept { chain ->
                     val result = chain.proceed()
                     val errorCode = chain.args.firstOrNull { it is Int } as? Int
                     val state = when (errorCode) {
@@ -233,7 +235,7 @@ object FaceUnlockStateHook : BaseHook() {
                     if (!hookedMethods.add(method)) return@forEach
                 }
                 method.isAccessible = true
-                module.hook(method).intercept { chain ->
+                module.profiledHook("FaceUnlockStateHook", method).intercept { chain ->
                     val dispatchBeforeProceed =
                         state == FaceUnlockFocusController.FaceState.SUCCESS ||
                             method.name in sessionStartMethods
@@ -276,7 +278,7 @@ object FaceUnlockStateHook : BaseHook() {
                     if (!hookedMethods.add(method)) return@forEach
                 }
                 method.isAccessible = true
-                module.hook(method).intercept { chain ->
+                module.profiledHook("FaceUnlockStateHook", method).intercept { chain ->
                     val result = chain.proceed()
                     if (isFaceCallback(
                             chain.args,
@@ -298,7 +300,7 @@ object FaceUnlockStateHook : BaseHook() {
                     if (!hookedMethods.add(method)) return@forEach
                 }
                 method.isAccessible = true
-                module.hook(method).intercept { chain ->
+                module.profiledHook("FaceUnlockStateHook", method).intercept { chain ->
                     val result = chain.proceed()
                     when (chain.args.firstOrNull { it is Int } as? Int) {
                         FACE_RUNNING_STATE_STOPPED -> dispatch(
@@ -332,7 +334,7 @@ object FaceUnlockStateHook : BaseHook() {
                     if (!hookedMethods.add(method)) return@forEach
                 }
                 method.isAccessible = true
-                module.hook(method).intercept { chain ->
+                module.profiledHook("FaceUnlockStateHook", method).intercept { chain ->
                     val result = chain.proceed()
                     if (!isFaceCallback(chain.args) && !isFaceAuthenticationCallback(clazz)) {
                         return@intercept result

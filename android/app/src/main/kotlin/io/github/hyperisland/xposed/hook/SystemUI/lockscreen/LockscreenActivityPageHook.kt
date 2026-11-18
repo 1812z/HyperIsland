@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI.lockscreen
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.content.BroadcastReceiver
 import android.content.ComponentName
 import android.content.Context
@@ -73,7 +75,7 @@ internal object LockscreenActivityPageHook {
         hookBooleanResult(module, moveController, "isSupportSwipeToLaunchMagazine")
 
         findMethod(magazineController, "getPreLeftScreenIntent", 0).let { method ->
-            module.hook(method).intercept {
+            module.profiledHook("LockscreenActivityPageHook", method).intercept {
                 page.createIntent().apply {
                     LockscreenActivityReturn.attachController(this)
                 }
@@ -81,7 +83,7 @@ internal object LockscreenActivityPageHook {
         }
 
         findMethod(magazineHelper, "checkIsMagazineRemoteAnimation", 1).let { method ->
-            module.hook(method).intercept { chain ->
+            module.profiledHook("LockscreenActivityPageHook", method).intercept { chain ->
                 if (remoteTargetPackage(chain.args.getOrNull(0)) == page.packageName) {
                     val target = chain.args[0]!!
                     if (findField(target.javaClass, "mode")?.getInt(target) == 1) {
@@ -137,7 +139,7 @@ internal object LockscreenActivityPageHook {
                     logError(module, "failed to hide magazine layers: ${error.message}")
                 }
             }
-            module.hook(findMethod(moveHelperClass, "setTranslation", 5)).intercept { chain ->
+            module.profiledHook("LockscreenActivityPageHook", findMethod(moveHelperClass, "setTranslation", 5)).intercept { chain ->
                 hideMagazineLayers(chain.thisObject)
                 try {
                     chain.proceed()
@@ -147,7 +149,7 @@ internal object LockscreenActivityPageHook {
                     hideMagazineLayers(chain.thisObject)
                 }
             }
-            module.hook(blurMethod).intercept { chain ->
+            module.profiledHook("LockscreenActivityPageHook", blurMethod).intercept { chain ->
                 val translation = (chain.args.getOrNull(0) as? Number)?.toFloat() ?: 0f
                 try {
                     // Preserve the stock front-scrim cleanup at zero and outside right-swipe.
@@ -182,7 +184,7 @@ internal object LockscreenActivityPageHook {
             val moveField = findField(injectorClass, "keyguardMoveHelper") ?: error("move helper missing")
             val getWidth = findMethod(classLoader.loadClass(KEYGUARD_MOVE_HELPER), "getScreenWidth", 0)
 
-            module.hook(findMethod(helperClass, "setLeashPositionOnRtFrameCallback", 2)).intercept { chain ->
+            module.profiledHook("LockscreenActivityPageHook", findMethod(helperClass, "setLeashPositionOnRtFrameCallback", 2)).intercept { chain ->
                 if (!entryFadeAvailable) return@intercept chain.proceed()
                 runCatching {
                     if (exitFadeLeash?.get() === chain.args[0] && entryFadeWidth > 0f) {
@@ -250,11 +252,11 @@ internal object LockscreenActivityPageHook {
                 }
                 chain.proceed()
             }
-            module.hook(findMethod(helperClass, "resetWhenBackToKeyguard", 0)).intercept { chain ->
+            module.profiledHook("LockscreenActivityPageHook", findMethod(helperClass, "resetWhenBackToKeyguard", 0)).intercept { chain ->
                 restoreEntryFade()
                 chain.proceed()
             }
-            module.hook(findMethod(helperClass, "setState", 1)).intercept { chain ->
+            module.profiledHook("LockscreenActivityPageHook", findMethod(helperClass, "setState", 1)).intercept { chain ->
                 val state = chain.args[0].toString()
                 if (state == "FINISHED_HIDE_MAGAZINE" || state == "BACK_TO_KEYGUARD" ||
                     (state == "UNOCCLUDE_ANIMATING" && exitFadeLeash?.get() == null)
@@ -263,7 +265,7 @@ internal object LockscreenActivityPageHook {
                 // restoring here would recreate the exact last-frame blur flash being fixed.
                 chain.proceed()
             }
-            module.hook(findMethod(helperClass, "resetStatus", 1)).intercept { chain ->
+            module.profiledHook("LockscreenActivityPageHook", findMethod(helperClass, "resetStatus", 1)).intercept { chain ->
                 val result = chain.proceed()
                 if (chain.args[0].toString().contains("FINISH_UNOCCLUDE")) {
                     if (exitFadeProgress >= 0.999f) restoreEntryFade()
@@ -277,7 +279,7 @@ internal object LockscreenActivityPageHook {
             val showing = findField(controllerClass, "keyguardShowing") ?: error("keyguard showing missing")
             controllerClass.declaredMethods.filter { it.name == "updateVisibility" }.forEach { method ->
                 method.isAccessible = true
-                module.hook(method).intercept { chain ->
+                module.profiledHook("LockscreenActivityPageHook", method).intercept { chain ->
                     if (chain.thisObject != null && !showing.getBoolean(chain.thisObject)) restoreEntryFade()
                     chain.proceed()
                 }
@@ -329,7 +331,7 @@ internal object LockscreenActivityPageHook {
     }
 
     private fun hookBooleanResult(module: XposedModule, clazz: Class<*>, name: String) {
-        module.hook(findMethod(clazz, name, 0)).intercept { true }
+        module.profiledHook("LockscreenActivityPageHook", findMethod(clazz, name, 0)).intercept { true }
     }
 
     private fun remoteTargetPackage(target: Any?): String? {

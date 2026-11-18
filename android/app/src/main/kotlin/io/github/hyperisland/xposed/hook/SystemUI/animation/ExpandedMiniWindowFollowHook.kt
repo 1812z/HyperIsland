@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI.animation
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
@@ -79,7 +81,7 @@ internal object ExpandedMiniWindowFollowHook {
             val start = clazz.getDeclaredMethod("onTrackingFakeViewStart")
             val update = clazz.getDeclaredMethod("onTrackingFakeViewUpdate", Float::class.javaPrimitiveType!!)
             val reset = clazz.getDeclaredMethod("onTrackingFakeViewReset")
-            module.hook(touch).intercept { chain ->
+            module.profiledHook("ExpandedMiniWindowFollowHook", touch).intercept { chain ->
                 val view = chain.thisObject as? View ?: return@intercept chain.proceed()
                 val event = chain.args[0] as? MotionEvent ?: return@intercept chain.proceed()
                 runCatching {
@@ -97,7 +99,7 @@ internal object ExpandedMiniWindowFollowHook {
                 }
                 result
             }
-            module.hook(start).intercept { chain ->
+            module.profiledHook("ExpandedMiniWindowFollowHook", start).intercept { chain ->
                 val result = chain.proceed()
                 runCatching {
                     val view = chain.thisObject as? View ?: return@runCatching
@@ -113,7 +115,7 @@ internal object ExpandedMiniWindowFollowHook {
                 }
                 result
             }
-            module.hook(update).intercept { chain ->
+            module.profiledHook("ExpandedMiniWindowFollowHook", update).intercept { chain ->
                 runCatching {
                     val view = chain.thisObject as? View ?: return@runCatching
                     if (!ExpandedGestureFollowHook.isEnabled()) {
@@ -128,7 +130,7 @@ internal object ExpandedMiniWindowFollowHook {
                 }
                 chain.proceed()
             }
-            module.hook(reset).intercept { chain ->
+            module.profiledHook("ExpandedMiniWindowFollowHook", reset).intercept { chain ->
                 runCatching { (chain.thisObject as? View)?.let(::clear) }
                 chain.proceed()
             }

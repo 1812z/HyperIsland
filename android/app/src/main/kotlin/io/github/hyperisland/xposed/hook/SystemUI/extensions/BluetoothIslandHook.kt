@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI.extensions
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.bluetooth.BluetoothDevice
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -61,7 +63,7 @@ object BluetoothIslandHook : BaseHook() {
             val method = param.defaultClassLoader
                 .loadClass("android.app.Application")
                 .getDeclaredMethod("onCreate")
-            module.hook(method).intercept { chain ->
+            module.profiledHook("BluetoothIslandHook", method).intercept { chain ->
                 val result = chain.proceed()
                 val app = chain.thisObject as? android.app.Application
                 if (app != null) registerReceiver(app, module)

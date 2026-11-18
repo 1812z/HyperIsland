@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.content.Context
 import android.net.wifi.WifiManager
 import io.github.hyperisland.xposed.ConfigManager
@@ -116,12 +118,12 @@ object WifiTileDisconnectHook : BaseHook() {
         }
 
         if (restrictStateClass != null) {
-            module.hook(newStateMethod).intercept { chain ->
+            module.profiledHook("WifiTileDisconnectHook", newStateMethod).intercept { chain ->
                 runCatching { restrictStateCtor?.newInstance() }.getOrNull() ?: chain.proceed()
             }
         }
 
-        module.hook(clickMethod).intercept { chain ->
+        module.profiledHook("WifiTileDisconnectHook", clickMethod).intercept { chain ->
             val handled = runCatching {
                 handleWifiClick(module, chain.thisObject)
             }.getOrElse {
@@ -131,7 +133,7 @@ object WifiTileDisconnectHook : BaseHook() {
             if (handled) null else chain.proceed()
         }
 
-        module.hook(updateMethod).intercept { chain ->
+        module.profiledHook("WifiTileDisconnectHook", updateMethod).intercept { chain ->
             val result = chain.proceed()
             runCatching {
                 overrideState(chain.thisObject, chain.args.getOrNull(0))

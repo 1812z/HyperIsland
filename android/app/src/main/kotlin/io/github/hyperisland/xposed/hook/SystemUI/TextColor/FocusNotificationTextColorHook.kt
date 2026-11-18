@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.graphics.Color
 import android.os.Handler
 import android.os.Looper
@@ -129,7 +131,7 @@ object FocusNotificationTextColorHook : BaseHook() {
             }
             .forEach { method ->
                 method.isAccessible = true
-                module.hook(method).intercept { chain ->
+                module.profiledHook("FocusNotificationTextColorHook", method).intercept { chain ->
                     val result = chain.proceed()
                     val view = chain.args.getOrNull(0) as? View
                     if (view != null && TextColorPolicy.isConfigured(currentMode())) {
@@ -149,7 +151,7 @@ object FocusNotificationTextColorHook : BaseHook() {
             }
             .forEach { method ->
                 method.isAccessible = true
-                module.hook(method).intercept { chain ->
+                module.profiledHook("FocusNotificationTextColorHook", method).intercept { chain ->
                     val result = chain.proceed()
                     val holder = chain.thisObject
                     if (holder != null && isFocusHolder(holder)) {
@@ -210,7 +212,7 @@ object FocusNotificationTextColorHook : BaseHook() {
             .filter { method -> method.name == "setTimerData" && method.parameterTypes.size == 2 }
             .forEach { method ->
                 method.isAccessible = true
-                module.hook(method).intercept { chain ->
+                module.profiledHook("FocusNotificationTextColorHook", method).intercept { chain ->
                     val result = chain.proceed()
                     val holder = chain.thisObject
                     if (holder != null && isFocusHolder(holder)) {
@@ -259,7 +261,7 @@ object FocusNotificationTextColorHook : BaseHook() {
         coordinatorClass.declaredMethods
             .filter { method -> method.name == "onAnimationStart" }
             .forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("FocusNotificationTextColorHook", method).intercept { chain ->
                     islandAnimationRunning = true
                     chain.proceed()
                 }
@@ -269,7 +271,7 @@ object FocusNotificationTextColorHook : BaseHook() {
                 method.name == "onAnimationFinished" || method.name == "onAnimationCancel"
             }
             .forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("FocusNotificationTextColorHook", method).intercept { chain ->
                     val result = chain.proceed()
                     islandAnimationRunning = false
                     pendingTintRefresh = true

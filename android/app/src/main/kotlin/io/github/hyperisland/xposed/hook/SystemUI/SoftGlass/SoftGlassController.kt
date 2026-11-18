@@ -1,5 +1,8 @@
 package io.github.hyperisland.xposed.hook.SystemUI.SoftGlass
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.lifecycle.IslandStateResolver
+
 import android.content.Context
 import android.graphics.Color
 import android.graphics.Outline
@@ -7,6 +10,10 @@ import android.graphics.drawable.Drawable
 import android.util.TypedValue
 import android.view.View
 import android.view.ViewOutlineProvider
+import android.view.ViewTreeObserver
+import android.os.Handler
+import android.os.Looper
+import java.lang.ref.WeakReference
 import io.github.hyperisland.xposed.log
 import io.github.hyperisland.xposed.logWarn
 import io.github.libxposed.api.XposedModule
@@ -38,6 +45,13 @@ internal object SoftGlassController {
         WeakHashMap<View, View.OnAttachStateChangeListener>(),
     )
     private val appliedConfigs = Collections.synchronizedMap(WeakHashMap<View, SoftGlassConfig>())
+    private val retireHandler = Handler(Looper.getMainLooper())
+    private data class Retirement(
+        val observer: WeakReference<ViewTreeObserver>,
+        val listener: ViewTreeObserver.OnPreDrawListener,
+        val timeout: Runnable,
+    )
+    private val retirements = WeakHashMap<View, Retirement>()
     private val appliedWindowRadii = Collections.synchronizedMap(WeakHashMap<View, Int>())
     private val retainedWindowBlurRoots = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<View, Boolean>()),
@@ -195,7 +209,7 @@ internal object SoftGlassController {
     private fun hookRuntimeLifetime(module: XposedModule, contentClass: Class<*>, binding: RuntimeBinding) {
         val method = findMethod(contentClass, "updateBackgroundBg", View::class.java,
             Boolean::class.javaPrimitiveType!!) ?: return
-        module.hook(method).intercept { chain ->
+        module.profiledHook("SoftGlassController", method).intercept { chain ->
             val target = chain.args.getOrNull(0) as? View
             runCatching {
                 if (target != null) synchronized(viewRuntimes) {
@@ -221,7 +235,7 @@ internal object SoftGlassController {
             "updateWindowBlur",
             Boolean::class.javaPrimitiveType!!,
         )?.let { method ->
-            module.hook(method).intercept { chain ->
+            module.profiledHook("SoftGlassController", method).intercept { chain ->
                 val root = chain.thisObject as? View ?: return@intercept chain.proceed()
                 if (samplerWrite.get() == method) return@intercept chain.proceed()
                 val requested = chain.args.getOrNull(0) as? Boolean ?: false
@@ -237,7 +251,7 @@ internal object SoftGlassController {
             }
         }
         passBlurMethod(windowClass)?.let { method ->
-            module.hook(method).intercept { chain ->
+            module.profiledHook("SoftGlassController", method).intercept { chain ->
                 val root = chain.thisObject as? View ?: return@intercept chain.proceed()
                 if (samplerWrite.get() == method) return@intercept chain.proceed()
                 val requested = chain.args.getOrNull(0) as? Boolean ?: false
@@ -284,7 +298,7 @@ internal object SoftGlassController {
             View::class.java,
             Int::class.javaPrimitiveType!!,
         )?.let { method ->
-            module.hook(method).intercept { chain ->
+            module.profiledHook("SoftGlassController", method).intercept { chain ->
                 val view = chain.args.getOrNull(0) as? View
                 val type = chain.args.getOrNull(1) as? Int
                 if (view != null && type != 1 && renderingViews.contains(view)) {
@@ -303,7 +317,7 @@ internal object SoftGlassController {
             View::class.java,
             FloatArray::class.java,
         )?.let { method ->
-            module.hook(method).intercept { chain ->
+            module.profiledHook("SoftGlassController", method).intercept { chain ->
                 val view = chain.args.getOrNull(0) as? View
                 val config = view?.let(appliedConfigs::get)
                 if (view != null && config != null && managedViews.contains(view)) {
@@ -318,6 +332,7 @@ internal object SoftGlassController {
     }
 
     fun apply(view: View, config: SoftGlassConfig): Boolean = runCatching {
+        cancelRetirement(view)
         val binding = runtimeFor(view) ?: return@runCatching false
         if (!isSystemBionicsActive(view)) {
             diagnose("apply inactive", view)
@@ -389,6 +404,7 @@ internal object SoftGlassController {
     /** Acquires the shared sampler before the real/fake slot submits its first visible frame. */
     fun beginRendering(view: View) {
         if (!managedViews.contains(view) || !view.isShown) return
+        cancelRetirement(view)
         renderingViews.add(view)
         ensureWindowBlur(view)
         ensurePassWindowBlur(view)
@@ -416,7 +432,7 @@ internal object SoftGlassController {
             View::class.java,
             Int::class.javaPrimitiveType!!,
         )?.let { method ->
-            module.hook(method).intercept { chain ->
+            module.profiledHook("SoftGlassController", method).intercept { chain ->
                 val view = chain.args.getOrNull(0) as? View
                 val mode = chain.args.getOrNull(1) as? Int
                 if (view != null && mode != 1 && renderingViews.contains(view)) {
@@ -445,6 +461,7 @@ internal object SoftGlassController {
         restoreBackground: Boolean = true,
         releaseSampling: Boolean = true,
     ) {
+        cancelRetirement(view)
         if (!managedViews.remove(view)) return
         val root = findWindowView(view)
         renderingViews.remove(view)
@@ -470,6 +487,7 @@ internal object SoftGlassController {
     }
 
     private fun forget(view: View) {
+        cancelRetirement(view)
         viewRuntimes.remove(view)
         val root = findWindowView(view)
         managedViews.remove(view)
@@ -483,6 +501,80 @@ internal object SoftGlassController {
             closeRetainedPassBlur(root)
             closeRetainedWindowBlur(root)
         }
+    }
+
+    /** Logical destination changes before Folme finishes drawing the outgoing expanded slot. */
+    fun retireAfterDraw(view: View, preserveSystemSampling: Boolean = false) {
+        if (Looper.myLooper() != Looper.getMainLooper()) {
+            val ref = WeakReference(view)
+            retireHandler.post { ref.get()?.let { retireAfterDraw(it, preserveSystemSampling) } }
+            return
+        }
+        if (!isManaged(view)) return
+        if (!isDrawing(view)) {
+            release(view, restoreBackground = false, releaseSampling = !preserveSystemSampling)
+            return
+        }
+        if (retirements.containsKey(view)) return
+        if (retirements.size >= 128) {
+            release(view, restoreBackground = false, releaseSampling = !preserveSystemSampling)
+            return
+        }
+        val ref = WeakReference(view)
+        val listener = ViewTreeObserver.OnPreDrawListener {
+            ref.get()?.let { target ->
+                if (isCurrentRealSlot(target)) {
+                    cancelRetirement(target)
+                } else if (!isDrawing(target)) {
+                    release(target, restoreBackground = false, releaseSampling = !preserveSystemSampling)
+                }
+            }
+            true
+        }
+        val timeout = Runnable {
+            ref.get()?.let { target ->
+                // Bound a cancelled animation's lease even if no more traversals occur.
+                release(target, restoreBackground = false, releaseSampling = !preserveSystemSampling)
+            }
+        }
+        val observer = view.viewTreeObserver
+        if (!observer.isAlive) return
+        observer.addOnPreDrawListener(listener)
+        retirements[view] = Retirement(WeakReference(observer), listener, timeout)
+        retireHandler.postDelayed(timeout, 3_000L)
+        diagnose("retire-after-draw", view)
+    }
+
+    fun cancelRetirement(view: View) {
+        val pending = retirements.remove(view) ?: return
+        pending.observer.get()?.takeIf { it.isAlive }?.removeOnPreDrawListener(pending.listener)
+        retireHandler.removeCallbacks(pending.timeout)
+    }
+
+    private fun isDrawing(view: View): Boolean {
+        if (!view.isAttachedToWindow || view.windowVisibility != View.VISIBLE) return false
+        var current: View? = view
+        while (current != null) {
+            if (current.visibility != View.VISIBLE || current.alpha <= 0.01f) return false
+            current = current.parent as? View
+        }
+        return true
+    }
+
+    private fun isCurrentRealSlot(view: View): Boolean {
+        val type = IslandStateResolver.forView(view) ?: return false
+        var owner = view.parent as? View
+        while (owner != null) {
+            if (owner.javaClass.name ==
+                "miui.systemui.dynamicisland.window.content.DynamicIslandContentView"
+            ) {
+                val state = runCatching { findMethod(owner.javaClass, "getState")?.invoke(owner) }.getOrNull()
+                if (state?.javaClass?.simpleName in setOf("AppExpanded", "MiniWindowExpanded")) return false
+                return IslandStateResolver.fromState(state) == type && isDrawing(view)
+            }
+            owner = owner.parent as? View
+        }
+        return false
     }
 
     private fun clearMaterial(view: View) {

@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.app.Application
 import android.app.ActivityManager
 import android.app.KeyguardManager
@@ -308,7 +310,7 @@ object KeepIslandHook : BaseHook() {
         }
         val handles = mutableListOf<HookHandle>()
         try {
-            handles += module.hook(access.removeData).intercept { chain ->
+            handles += module.profiledHook("KeepIslandHook", access.removeData).intercept { chain ->
                 val immediate = immediateRemovalKey.get()
                 val removed = removedKeepSlot?.takeIf { it.window.get() === chain.thisObject }
                 if (immediate == null && removed == null) return@intercept chain.proceed()
@@ -325,7 +327,7 @@ object KeepIslandHook : BaseHook() {
                     else -> chain.proceed()
                 }
             }
-            handles += module.hook(access.exitApp).intercept { chain ->
+            handles += module.profiledHook("KeepIslandHook", access.exitApp).intercept { chain ->
                 val result = chain.proceed()
                 val handoff = closeHandoff
                 if (handoff != null && handoff.window.get() === chain.thisObject) {
@@ -334,7 +336,7 @@ object KeepIslandHook : BaseHook() {
                 }
                 result
             }
-            handles += module.hook(access.enterApp).intercept { chain ->
+            handles += module.profiledHook("KeepIslandHook", access.enterApp).intercept { chain ->
                 val result = chain.proceed()
                 val view = chain.args[0]
                 if (autoHideTrackingEnabled && view != null) {
@@ -349,7 +351,7 @@ object KeepIslandHook : BaseHook() {
                 }
                 result
             }
-            handles += module.hook(access.clearAfterDelete).intercept { chain ->
+            handles += module.profiledHook("KeepIslandHook", access.clearAfterDelete).intercept { chain ->
                 val result = chain.proceed()
                 val key = chain.args[1] as? String
                 val window = chain.thisObject
@@ -368,7 +370,7 @@ object KeepIslandHook : BaseHook() {
                 }
                 result
             }
-            handles += module.hook(access.sendEvent).intercept { chain ->
+            handles += module.profiledHook("KeepIslandHook", access.sendEvent).intercept { chain ->
                 val event = chain.args[0]
                 if (autoHideTrackingEnabled && posted && chain.args[1] == false &&
                     (event == "request_close_position" || event == "close_app_start")
@@ -469,7 +471,7 @@ object KeepIslandHook : BaseHook() {
             val method = param.defaultClassLoader
                 .loadClass("android.app.Application")
                 .getDeclaredMethod("onCreate")
-            module.hook(method).intercept { chain ->
+            module.profiledHook("KeepIslandHook", method).intercept { chain ->
                 val result = chain.proceed()
                 val app = chain.thisObject as? Application
                 if (app != null) {

@@ -65,6 +65,9 @@ internal fun DebugToolsPage(
     )
     var shiftCount by remember { mutableIntStateOf(0) }
     var showHookManager by remember { mutableStateOf(false) }
+    var showPerformance by remember { mutableStateOf(false) }
+    var displayedPerformance by remember { mutableStateOf(false) }
+    val showingSubpage = showHookManager || showPerformance
     val hookManagerNavigation = rememberPredictiveNavigationLayerState()
     val predictiveBackMaxTranslation = rememberLongPreference(
         prefs,
@@ -74,16 +77,16 @@ internal fun DebugToolsPage(
     val blurBarsEnabled = LocalBarBlurEnabled.current
 
     PredictiveNavigationBackHandler(
-        visible = showHookManager,
-        enabled = showHookManager,
+        visible = showingSubpage,
+        enabled = showingSubpage,
         state = hookManagerNavigation,
         maxTranslationPercent = predictiveBackMaxTranslation.value,
-        onDismiss = { showHookManager = false },
+        onDismiss = { showHookManager = false; showPerformance = false },
     )
 
     BarBlurHost(
         enabled = blurBarsEnabled,
-        captureForEffects = hookManagerNavigation.requiresBackdropCapture(showHookManager),
+        captureForEffects = hookManagerNavigation.requiresBackdropCapture(showingSubpage),
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             BarBackdropContent(modifier = Modifier.fillMaxSize()) {
@@ -115,7 +118,7 @@ internal fun DebugToolsPage(
                                     title = stringResource(R.string.hook_manager),
                                     icon = null,
                                     enabled = debugMode.value,
-                                    onClick = { showHookManager = true },
+                                    onClick = { displayedPerformance = false; showHookManager = true },
                                 )
                             }
                         }
@@ -132,6 +135,12 @@ internal fun DebugToolsPage(
                         item {
                             SectionTitle(stringResource(R.string.debug_island_section))
                             Card(modifier = Modifier.fillMaxWidth()) {
+                                SettingsActionWithArrow(
+                                    title = stringResource(R.string.debug_performance),
+                                    summary = stringResource(R.string.debug_performance_entry_summary),
+                                    enabled = debugMode.value,
+                                    onClick = { displayedPerformance = true; showPerformance = true },
+                                )
                                 SettingsAction(
                                     title = stringResource(R.string.debug_burn_in_shift),
                                     icon = null,
@@ -160,14 +169,15 @@ internal fun DebugToolsPage(
                 modifier = Modifier.fillMaxSize(),
             )
             PredictiveNavigationLayer(
-                visible = showHookManager,
+                visible = showingSubpage,
                 state = hookManagerNavigation,
                 maxTranslationPercent = predictiveBackMaxTranslation.value,
             ) {
-                HookManagerPage(
-                    prefs = prefs,
-                    onBack = { showHookManager = false },
-                )
+                if (displayedPerformance) {
+                    IslandPerformancePage(prefs = prefs, onBack = { showPerformance = false })
+                } else {
+                    HookManagerPage(prefs = prefs, onBack = { showHookManager = false })
+                }
             }
         }
     }

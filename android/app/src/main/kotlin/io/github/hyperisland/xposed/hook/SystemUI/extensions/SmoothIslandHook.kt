@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI.extensions
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Outline
@@ -133,7 +135,7 @@ object SmoothIslandHook : BaseHook() {
                 Int::class.javaPrimitiveType!!,
                 Float::class.javaPrimitiveType!!,
             )
-            module.hook(method).intercept { chain ->
+            module.profiledHook("SmoothIslandHook", method).intercept { chain ->
                 if (!enabled) return@intercept chain.proceed()
                 val left = chain.args.getOrNull(0) as? Int ?: return@intercept chain.proceed()
                 val top = chain.args.getOrNull(1) as? Int ?: return@intercept chain.proceed()
@@ -180,7 +182,7 @@ object SmoothIslandHook : BaseHook() {
         if (outlineLifecycleHooked) return
         try {
             val invalidateOutline = View::class.java.getDeclaredMethod("invalidateOutline")
-            module.hook(invalidateOutline).intercept { chain ->
+            module.profiledHook("SmoothIslandHook", invalidateOutline).intercept { chain ->
                 withActiveOutlineTarget(chain.thisObject as? View) { chain.proceed() }
             }
         } catch (_: Throwable) {
@@ -190,7 +192,7 @@ object SmoothIslandHook : BaseHook() {
                 "setOutlineProvider",
                 ViewOutlineProvider::class.java,
             )
-            module.hook(setOutlineProvider).intercept { chain ->
+            module.profiledHook("SmoothIslandHook", setOutlineProvider).intercept { chain ->
                 val view = chain.thisObject as? View
                 val provider = chain.args.getOrNull(0) as? ViewOutlineProvider
                 val result = withActiveOutlineTarget(view) { chain.proceed() }
@@ -228,7 +230,7 @@ object SmoothIslandHook : BaseHook() {
                 val clazz = Class.forName(className, false, classLoader)
                 if (!hookedProviderClasses.add(clazz)) return@forEach
                 val method = clazz.getDeclaredMethod("getOutline", View::class.java, Outline::class.java)
-                module.hook(method).intercept { chain ->
+                module.profiledHook("SmoothIslandHook", method).intercept { chain ->
                     val target = chain.args.getOrNull(0) as? View
                     withActiveOutlineTarget(target) {
                         val result = chain.proceed()
@@ -257,7 +259,7 @@ object SmoothIslandHook : BaseHook() {
                 isAccessible = true
             }
             val onDraw = backgroundViewClass.getDeclaredMethod("onDraw", Canvas::class.java)
-            module.hook(onDraw).intercept { chain ->
+            module.profiledHook("SmoothIslandHook", onDraw).intercept { chain ->
                 if (!enabled) return@intercept chain.proceed()
                 val view = chain.thisObject
                 val canvas = chain.args.getOrNull(0) as? Canvas

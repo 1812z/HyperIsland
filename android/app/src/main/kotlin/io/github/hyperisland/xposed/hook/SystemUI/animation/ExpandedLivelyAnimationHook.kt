@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI.animation
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.view.View
 import io.github.hyperisland.data.ExpandedCollapsePreferences
 import io.github.hyperisland.xposed.ConfigManager
@@ -106,7 +108,7 @@ object ExpandedLivelyAnimationHook : BaseHook() {
             }
             if (sources.isEmpty()) return
             if (!hooked.add(delegate)) return
-            module.hook(execute).intercept { chain ->
+            module.profiledHook("ExpandedLivelyAnimationHook", execute).intercept { chain ->
                 val active = transition.get() ?: return@intercept chain.proceed()
                 // Preserve the system's no-animation path (rotation, initialization, etc.).
                 if (chain.args[3] == true) return@intercept chain.proceed()
@@ -165,7 +167,7 @@ object ExpandedLivelyAnimationHook : BaseHook() {
                 if (prepared) chain.proceed(args) else chain.proceed()
             }
             sources.forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("ExpandedLivelyAnimationHook", method).intercept { chain ->
                     val view = chain.args.firstOrNull() as? View
                     // Phone notification morphs only. App launch/miniwindows retain their own
                     // fake-view window animation and do not enter these four source methods.

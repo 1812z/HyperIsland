@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.graphics.Typeface
 import android.os.Handler
 import android.os.Looper
@@ -154,7 +156,7 @@ object IslandFontTuningHook : BaseHook() {
                     method.parameterTypes.size == 2
             }
             .forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("IslandFontTuningHook", method).intercept { chain ->
                     val result = chain.proceed()
                     runCatching {
                         val holder = chain.thisObject ?: return@runCatching
@@ -181,7 +183,7 @@ object IslandFontTuningHook : BaseHook() {
                     TextView::class.java.isAssignableFrom(method.parameterTypes[1])
             }
             .forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("IslandFontTuningHook", method).intercept { chain ->
                     val result = chain.proceed()
                     runCatching {
                         (chain.args.getOrNull(1) as? TextView)?.let(::onTextBound)
@@ -203,7 +205,7 @@ object IslandFontTuningHook : BaseHook() {
                     TextView::class.java.isAssignableFrom(method.parameterTypes[0])
             }
             .forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("IslandFontTuningHook", method).intercept { chain ->
                     val result = chain.proceed()
                     runCatching {
                         (chain.args.getOrNull(0) as? TextView)?.let(::onTimerBound)

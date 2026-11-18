@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI.extensions
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.app.Application
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -186,7 +188,7 @@ object ScreenshotTempHideHook : BaseHook() {
             val method = param.defaultClassLoader
                 .loadClass("android.app.Application")
                 .getDeclaredMethod("onCreate")
-            module.hook(method).intercept { chain ->
+            module.profiledHook("ScreenshotTempHideHook", method).intercept { chain ->
                 val result = chain.proceed()
                 val app = chain.thisObject as? Application
                 if (app != null) registerReceiver(app.applicationContext, module)
@@ -254,7 +256,7 @@ object ScreenshotTempHideHook : BaseHook() {
             hideMethod.isAccessible = true
             controllerHideMethod = hideMethod
             // 系统在状态栏消失 / 恢复时也会走它，顺手再兜一次控制器实例。
-            module.hook(hideMethod).intercept { chain ->
+            module.profiledHook("ScreenshotTempHideHook", hideMethod).intercept { chain ->
                 capture(chain.thisObject)
                 chain.proceed()
             }
@@ -271,7 +273,7 @@ object ScreenshotTempHideHook : BaseHook() {
         clazz.declaredMethods.filter { candidate ->
             candidate.name == "start" && candidate.parameterCount == 0
         }.forEach { start ->
-            module.hook(start).intercept { chain ->
+            module.profiledHook("ScreenshotTempHideHook", start).intercept { chain ->
                 val result = chain.proceed()
                 capture(chain.thisObject)
                 result
@@ -280,7 +282,7 @@ object ScreenshotTempHideHook : BaseHook() {
         }
         runCatching {
             clazz.declaredConstructors.forEach { constructor ->
-                module.hook(constructor).intercept { chain ->
+                module.profiledHook("ScreenshotTempHideHook", constructor).intercept { chain ->
                     val result = chain.proceed()
                     capture(chain.thisObject)
                     result
@@ -347,7 +349,7 @@ object ScreenshotTempHideHook : BaseHook() {
             log(module) { "onIslandTempHide not found; island alpha fallback disabled" }
             return
         }
-        module.hook(method).intercept { chain ->
+        module.profiledHook("ScreenshotTempHideHook", method).intercept { chain ->
             (chain.thisObject as? View)?.let { islandViewRef = WeakReference(it) }
             chain.proceed()
         }

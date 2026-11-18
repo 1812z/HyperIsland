@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI.lockscreen
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.view.View
 import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.libxposed.api.XposedModule
@@ -40,7 +42,7 @@ object LockscreenFaceUnlockUiHook : BaseHook() {
         }
 
         visibilityMethod.isAccessible = true
-        module.hook(visibilityMethod).intercept { chain ->
+        module.profiledHook("LockscreenFaceUnlockUiHook", visibilityMethod).intercept { chain ->
             val requestedVisibility = chain.args[0] as? Int
             val result = chain.proceed()
             if (
@@ -59,7 +61,7 @@ object LockscreenFaceUnlockUiHook : BaseHook() {
                 Boolean::class.javaPrimitiveType!!,
             )
             markMethod.isAccessible = true
-            module.hook(markMethod).intercept { chain ->
+            module.profiledHook("LockscreenFaceUnlockUiHook", markMethod).intercept { chain ->
                 val result = chain.proceed()
                 if (chain.args[0] == true) {
                     (chain.thisObject as? View)?.visibility = View.GONE

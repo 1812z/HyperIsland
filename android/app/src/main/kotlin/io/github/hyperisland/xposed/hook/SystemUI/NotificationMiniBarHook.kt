@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.view.View
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.utils.HookUtils
@@ -78,7 +80,7 @@ object NotificationMiniBarHook : BaseHook() {
             return
         }
         runCatching {
-            module.hook(mainMethod).intercept { chain ->
+            module.profiledHook("NotificationMiniBarHook", mainMethod).intercept { chain ->
                 val result = chain.proceed()
                 runCatching { applyBehavior(chain.thisObject) }
                     .onFailure { logError(module, "apply behavior failed — ${it.message}") }
@@ -88,7 +90,7 @@ object NotificationMiniBarHook : BaseHook() {
             clazz.declaredMethods
                 .firstOrNull { it.name == "updateFreeformTipView" && it.parameterCount == 0 }
                 ?.let { method ->
-                    module.hook(method).intercept { chain ->
+                    module.profiledHook("NotificationMiniBarHook", method).intercept { chain ->
                         val result = chain.proceed()
                         if (cachedBehavior == BEHAVIOR_REMOVED) {
                             runCatching {

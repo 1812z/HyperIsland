@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI.animation
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import io.github.hyperisland.data.ExpandedCollapsePreferences as Keys
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.BaseHook
@@ -72,7 +74,7 @@ object ExpandedCollapseAnimationHook : BaseHook() {
                 val property = Class.forName("miuix.animation.property.FloatProperty", false, loader)
                 val add = state.getDeclaredMethod("add", property, floatType, LongArray::class.java)
                 if (hookedClasses.add(state)) {
-                    module.hook(add).intercept { chain ->
+                    module.profiledHook("ExpandedCollapseAnimationHook", add).intercept { chain ->
                         val active = gesture.get() ?: return@intercept chain.proceed()
                         val cfg = active.config
                         val value = when (chain.args[0]) {
@@ -86,7 +88,7 @@ object ExpandedCollapseAnimationHook : BaseHook() {
                     }
                 }
                 if (!hookedClasses.add(clazz)) continue
-                module.hook(calculate).intercept { chain ->
+                module.profiledHook("ExpandedCollapseAnimationHook", calculate).intercept { chain ->
                     val result = chain.proceed()
                     // Stock alpha goes 1 -> .2. Normalize that same curve, without coupling
                     // the configured alpha and blur (stock uses blur = 1 - alpha).
@@ -96,7 +98,7 @@ object ExpandedCollapseAnimationHook : BaseHook() {
                     result
                 }
                 methods.forEach { method ->
-                    module.hook(method).intercept { chain ->
+                    module.profiledHook("ExpandedCollapseAnimationHook", method).intercept { chain ->
                         val snapshot = config
                         if (!snapshot.enabled) return@intercept chain.proceed()
                         val previous = gesture.get()

@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI.lockscreen
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.app.Activity
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -74,7 +76,7 @@ object LockscreenDeviceCenterHook : BaseHook() {
         val onCreate = activityClass.getDeclaredMethod("onCreate", Bundle::class.java).apply {
             isAccessible = true
         }
-        module.hook(onCreate).intercept { chain ->
+        module.profiledHook("LockscreenDeviceCenterHook", onCreate).intercept { chain ->
             val activity = chain.thisObject as? Activity
             if (activity?.isLockscreenLaunch() == true) {
                 sanitizeDeviceCenterWindow(activity)
@@ -105,7 +107,7 @@ object LockscreenDeviceCenterHook : BaseHook() {
      */
     private fun hookRetainedFinish(module: XposedModule, activityClass: Class<*>) {
         val finishMethod = findOverrideInSuperclasses(activityClass, "finish", 0) ?: return
-        module.hook(finishMethod).intercept { chain ->
+        module.profiledHook("LockscreenDeviceCenterHook", finishMethod).intercept { chain ->
             val activity = chain.thisObject as? Activity
             if (
                 activity == null ||
@@ -135,7 +137,7 @@ object LockscreenDeviceCenterHook : BaseHook() {
             "dispatchTouchEvent",
             MotionEvent::class.java,
         ).apply { isAccessible = true }
-        module.hook(dispatchTouchEvent).intercept { chain ->
+        module.profiledHook("LockscreenDeviceCenterHook", dispatchTouchEvent).intercept { chain ->
             val activity = chain.thisObject as? Activity
             val event = chain.args.getOrNull(0) as? MotionEvent
             if (
@@ -170,7 +172,7 @@ object LockscreenDeviceCenterHook : BaseHook() {
             }
             .forEach { method ->
                 method.isAccessible = true
-                module.hook(method).intercept { chain ->
+                module.profiledHook("LockscreenDeviceCenterHook", method).intercept { chain ->
                     val view = chain.thisObject as? View
                     val state = view?.let { findDeferredLongPressState(it, activityClass) }
                     if (view != null && state != null) {
@@ -333,7 +335,7 @@ object LockscreenDeviceCenterHook : BaseHook() {
 
     private fun hookSwipeVisualReset(module: XposedModule, activityClass: Class<*>) {
         val onStart = findMethodInHierarchy(activityClass, "onStart", 0) ?: return
-        module.hook(onStart).intercept { chain ->
+        module.profiledHook("LockscreenDeviceCenterHook", onStart).intercept { chain ->
             val activity = chain.thisObject as? Activity
             if (activity != null && activityClass.isInstance(activity)) {
                 resetSwipeVisual(activity)
@@ -380,7 +382,7 @@ object LockscreenDeviceCenterHook : BaseHook() {
 
     private fun hookNewIntent(module: XposedModule, activityClass: Class<*>) {
         val onNewIntent = findMethodInHierarchy(activityClass, "onNewIntent", 1) ?: return
-        module.hook(onNewIntent).intercept { chain ->
+        module.profiledHook("LockscreenDeviceCenterHook", onNewIntent).intercept { chain ->
             val activity = chain.thisObject as? Activity
             val newIntent = chain.args.getOrNull(0) as? Intent
             if (activity != null && activityClass.isInstance(activity) && newIntent != null) {
@@ -406,7 +408,7 @@ object LockscreenDeviceCenterHook : BaseHook() {
 
     private fun hookActivityCleanup(module: XposedModule, activityClass: Class<*>) {
         val onDestroy = findMethodInHierarchy(activityClass, "onDestroy", 0) ?: return
-        module.hook(onDestroy).intercept { chain ->
+        module.profiledHook("LockscreenDeviceCenterHook", onDestroy).intercept { chain ->
             val activity = chain.thisObject as? Activity
             if (activity != null && activityClass.isInstance(activity)) {
                 resetSwipeVisual(activity)

@@ -18,7 +18,11 @@ plugins {
 
 android {
     namespace = "io.github.hyperisland"
-    compileSdk = 37
+    compileSdk {
+        version = release(37) {
+            minorApiLevel = 2
+        }
+    }
     ndkVersion = "28.2.13676358"
 
     buildFeatures {
@@ -119,6 +123,8 @@ kotlin {
 }
 
 dependencies {
+    testImplementation("junit:junit:4.13.2")
+    testImplementation(libs.libxposed.api)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.navigationevent)
     implementation(libs.jetbrains.compose.foundation)

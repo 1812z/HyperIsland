@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI.extensions
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -185,7 +187,7 @@ object HomeAssistantIslandHook : BaseHook() {
             val method = param.defaultClassLoader
                 .loadClass("android.app.Application")
                 .getDeclaredMethod("onCreate")
-            module.hook(method).intercept { chain ->
+            module.profiledHook("HomeAssistantIslandHook", method).intercept { chain ->
                 val result = chain.proceed()
                 val application = chain.thisObject as? android.app.Application
                 if (application != null && appContext == null) initialize(application)

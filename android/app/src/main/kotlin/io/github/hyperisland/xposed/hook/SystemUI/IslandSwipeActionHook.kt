@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.app.Notification
 import android.os.Bundle
 import android.os.Handler
@@ -66,7 +68,7 @@ object IslandSwipeActionHook : BaseHook() {
                         it.parameterTypes[0] == String::class.java
                 }
                 .forEach { method ->
-                    module.hook(method).intercept { chain ->
+                    module.profiledHook("IslandSwipeActionHook", method).intercept { chain ->
                         val reason = chain.args.getOrNull(0) as? String
                         val action = expandedAction()
                         val view = if (reason == "swipe up" && action != ACTION_NONE) {
@@ -112,7 +114,7 @@ object IslandSwipeActionHook : BaseHook() {
             clazz.declaredMethods
                 .filter { it.name == "dispatchEvent" && it.parameterCount == 2 }
                 .forEach { method ->
-                    module.hook(method).intercept { chain ->
+                    module.profiledHook("IslandSwipeActionHook", method).intercept { chain ->
                         val eventName = chain.args.getOrNull(0)?.javaClass?.simpleName
                         val action = bigAction()
                         var targetView: Any? = null
@@ -136,7 +138,7 @@ object IslandSwipeActionHook : BaseHook() {
                         it.parameterTypes[0] == Bundle::class.java
                 }
                 .forEach { method ->
-                    module.hook(method).intercept { chain ->
+                    module.profiledHook("IslandSwipeActionHook", method).intercept { chain ->
                         val result = chain.proceed()
                         pendingExpandedByCoordinator.remove(chain.thisObject)?.let {
                             execute(it, "expanded_complete")
@@ -147,7 +149,7 @@ object IslandSwipeActionHook : BaseHook() {
             clazz.declaredMethods
                 .filter { it.name == "onStateChange" && it.parameterCount == 2 }
                 .forEach { method ->
-                    module.hook(method).intercept { chain ->
+                    module.profiledHook("IslandSwipeActionHook", method).intercept { chain ->
                         val result = chain.proceed()
                         val transition = chain.args.getOrNull(0) as? String
                         val view = chain.args.getOrNull(1)

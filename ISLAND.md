@@ -464,6 +464,10 @@ setVisibility(INVISIBLE) 后 fake root 才消失
 
 ### 7.5 SoftGlass 生命周期
 
+本次 JADX MCP 打开的组件版本为 `18.2.2.2.0`。再次核查下拉取消：`onTrackingFakeViewEnd()` 的 Folme 复位结束后进入 `updateExpandedFakeViewToReal()`，内部先 `fake.setVisibility(INVISIBLE)`，再 `real.setVisibility(VISIBLE)` 和显示真实背景。普通窗口动画的 `setVisibility()` 交接不能覆盖这个顺序。模块在整个原生复位调用期间保留 fake 材质，方法返回后提交真实材质和采样，再释放 fake；不改系统可见性与结束回调。下拉开始同时重新标记 EXPAND，避免上轮 Hidden 槽选择遗留。
+
+普通焦点收起时，`IslandPropertyUpdater.updateExpanded()` 仍按动画参数更新展开槽的 alpha/scale/translation，逻辑状态切换并不代表该槽已停止绘制。旧材质改为在真实槽与祖先不可见或 alpha 接近零后的 pre-draw 中释放；新状态重新接管会撤销待释放操作。清理监听持有弱引用，最多 128 个，detach 或 3 秒兜底清理，防止取消动画遗留采样租约。该修复已针对原生调用顺序实现，仍须实机验证下拉取消、正常收起、快速反复展开收起及不同材质组合。
+
 应用窗口退回小岛时，`FakeViewAnimHelper.animToFakeSmallIslandView()` 可在 Folme `onBegin` 才显示 SMALL 子槽。JADX MCP 核查 `18.3.2.5.0` 后，材质在 fake 的原生 alpha 写入后检查实际槽位。交叉淡入期间保留当前绘制的柔光，目标子槽可见且 alpha 达到旧槽后先提交目标，再释放旧材质。`fakeViewToHidden/Deleted` 清除 fake 材质选择，空槽期间不回填模块缓存的遮罩。真实层在 fake 隐藏后按已显示的真实槽提交，`AppExpanded` / `MiniWindowExpanded` 不作为真实展开槽。原生开启采样和模块为柔光保留采样分别记录，最后一个柔光槽退出时只关闭模块持有的采样。该修复尚待实机验证。
 
 SoftGlass 的 renderer 是系统 Bionics，但真实态和动画态不是同一个 View 生命周期。`DynamicIslandWindowView` 分别创建 `DynamicIslandContentView`（稳定真实内容）与 `DynamicIslandContentFakeView`（过渡动画内容），再由 `handleInitState(real, fake, params)` 建立关联。两者继承同一基类并可复用 `updateBackgroundBg(View, promoted)` 入口，只代表“材质写入 API 相同”，不代表 View 实例、创建时机、可见性或释放时机统一。
@@ -973,3 +977,9 @@ Mini Window 手势
 - 稳定小岛/大岛使用 Dispatcher 已插值的原始 ARGB，并按屏幕中心固定锚点判断 `tintAreas`。
 - 展开态、媒体、焦点和展开计时器使用岛原生 `action_update_light` 的黑白端点，不显示中间色。
 - 岛动画、通知栏和控制中心展开期间冻结颜色；关闭后等待 LightBar 恢复，再合并为一次最终刷新。
+
+## 12. 超级岛性能诊断
+
+「关于 → 调试工具 → 超级岛性能分析」通过签名权限保护的命令广播和 ResultReceiver，在 SystemUI 内按需采集最多 60 秒。SystemUI Hook 创建入口统一使用 `diagnostics/profiledHook` 保持原 API 的优先级、异常与参数语义；未采集时仅检查会话引用，采集时分别记录回调自耗时与包含原链的总耗时，Trace 启用时写入 HI 标记。临时原生状态/动画观察 Hook 仅在采集期间挂载，停止或关闭调试模式后卸载。新 SystemUI Hook 也应使用该入口。
+
+帧回调只统计已观察到、可见的真实/fake 内容，按当前显示刷新率估计 missed vsync，并记录主线程回调迟到。延迟帧附带相邻采样间隔内的主要 Hook；只表示时间关联，不是因果判定或 GPU 耗时。同步直接嵌套工作可重叠，异步任务不在回调耗时内。报告限制 192 个方法、最近 96 条慢事件与 96 条生命周期事件，溢出写入 truncatedHooks；记录覆盖的方法/所属 Hook，未观察到岛时明确为零样本。JSON 仅保存在进程内，由用户主动导出，不进入配置同步、预设或备份。

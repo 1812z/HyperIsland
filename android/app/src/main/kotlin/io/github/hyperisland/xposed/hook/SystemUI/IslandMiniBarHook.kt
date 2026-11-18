@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.view.View
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.utils.HookUtils
@@ -71,7 +73,7 @@ object IslandMiniBarHook : BaseHook() {
             return
         }
         runCatching {
-            module.hook(method).intercept { chain ->
+            module.profiledHook("IslandMiniBarHook", method).intercept { chain ->
                 val result = chain.proceed()
                 runCatching { applyBehavior(chain.thisObject as? View) }
                     .onFailure { logError(module, "apply behavior failed — ${it.message}") }

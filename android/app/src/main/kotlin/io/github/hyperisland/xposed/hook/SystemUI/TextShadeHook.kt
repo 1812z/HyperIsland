@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.view.View
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.utils.HookUtils
@@ -82,7 +84,7 @@ object TextShadeHook : BaseHook() {
                 method.parameterTypes.all { it == Boolean::class.javaPrimitiveType }
         } ?: return
 
-        module.hook(method).intercept { chain ->
+        module.profiledHook("TextShadeHook", method).intercept { chain ->
             if (shouldHideBigIslandTextShade()) {
                 hideTextShade(chain.thisObject)
             }
@@ -103,7 +105,7 @@ object TextShadeHook : BaseHook() {
     ) {
         val methods = clazz.declaredMethods.filter { it.name == methodName }
         for (method in methods) {
-            module.hook(method).intercept { chain ->
+            module.profiledHook("TextShadeHook", method).intercept { chain ->
                 val result = chain.proceed()
                 if (shouldHideBigIslandTextShade()) {
                     hideTextShade(chain.thisObject)

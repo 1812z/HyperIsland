@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -108,7 +110,7 @@ object IslandIconColorHook : BaseHook() {
                 it.name == "bind" && it.parameterCount == 2
             }
             bindMethods.forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("IslandIconColorHook", method).intercept { chain ->
                     val result = chain.proceed()
                     val holder = chain.thisObject
                     if (holder != null) {

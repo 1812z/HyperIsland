@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI.geometry
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.content.Context
 import android.content.res.Resources
 import android.util.TypedValue
@@ -60,7 +62,7 @@ object IslandTopOffsetHook : BaseHook() {
         try {
             val clazz = classLoader.loadClass(CONTENT_VIEW_CLASS)
             val setCutoutY = clazz.getDeclaredMethod("setCutoutY", Float::class.javaPrimitiveType)
-            module.hook(setCutoutY).intercept { chain ->
+            module.profiledHook("IslandTopOffsetHook", setCutoutY).intercept { chain ->
                 val view = chain.thisObject ?: return@intercept chain.proceed()
                 val originalCutoutY = (chain.args.getOrNull(0) as? Number)?.toFloat()
                     ?: return@intercept chain.proceed()

@@ -1293,4 +1293,22 @@
     <string name="debug_burn_in_direction_up">上</string>
     <string name="debug_burn_in_direction_right">右</string>
     <string name="debug_burn_in_direction_down">下</string>
+    <string name="debug_performance">超级岛性能分析</string>
+    <string name="debug_performance_entry_summary">记录系统界面中的帧延迟与 Hook 耗时</string>
+    <string name="debug_performance_description">开始采集后返回超级岛复现问题，再回到此处停止并查看报告。最长采集 60 秒，之后自动停止；点击刷新可获取最新结果。</string>
+    <string name="debug_performance_start">开始采集（60 秒）</string>
+    <string name="debug_performance_stop">停止并查看报告</string>
+    <string name="debug_performance_refresh">刷新状态与报告</string>
+    <string name="debug_performance_export">导出 JSON 报告</string>
+    <string name="debug_performance_exported">性能报告已导出</string>
+    <string name="debug_performance_export_error">性能报告导出失败</string>
+    <string name="debug_performance_unavailable">系统界面未响应。请开启调试模式、确认模块已激活；更新安装后需重启系统界面。</string>
+    <string name="debug_performance_result">采集结果</string>
+    <string name="debug_performance_recording">正在采集</string>
+    <string name="debug_performance_idle">已停止</string>
+    <string name="debug_performance_summary">%1$s · %2$.1f 秒\n可见超级岛帧样本：%3$d\n延迟样本：%4$d · 估算错过刷新次数：%5$d\n最长帧间隔：%6$.2f ms · 最长回调迟到：%7$.2f ms\n已接入计时的方法：%8$d</string>
+    <string name="debug_performance_no_frames">尚未捕获可见超级岛帧，请在采集期间复现问题；零样本不代表没有卡顿。</string>
+    <string name="debug_performance_hot_hooks">Hook 主线程耗时排行</string>
+    <string name="debug_performance_hook_summary">调用 %1$d 次 · 主线程累计 %2$.2f ms\n单次回调最长 %3$.2f ms · 完整调用最长 %4$.2f ms</string>
+    <string name="debug_performance_limits">帧间隔和迟到反映主线程调度，不是 GPU 完成时间。回调耗时扣除了 chain.proceed，直接嵌套调用可能重叠，异步任务不在测量内。时间相关性不能直接证明哪个 Hook 导致卡顿；可在 Hook 管理中停用疑似 Hook、重启系统界面后对比采集。报告保留数量有限的近期慢调用与动画事件，不记录通知正文。</string>
 </resources>

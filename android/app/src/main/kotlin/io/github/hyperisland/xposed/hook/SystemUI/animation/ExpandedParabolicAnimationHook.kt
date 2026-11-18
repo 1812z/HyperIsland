@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI.animation
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
@@ -96,7 +98,7 @@ internal object ExpandedParabolicAnimationHook {
                 it.name in setOf("expandedToBigIslandAnimation", "expandedToSmallIslandAnimation") && it.parameterCount == 1
             }
             methods.forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("ExpandedParabolicAnimationHook", method).intercept { chain ->
                     val view = chain.args[0] as? View ?: return@intercept chain.proceed()
                     var host: View? = view
                     var direction: Direction? = null
@@ -120,7 +122,7 @@ internal object ExpandedParabolicAnimationHook {
             // Keep the UP-only velocity snapshot through that reset; DOWN/CANCEL,
             // detach, consumption and the 250ms expiry own its lifetime instead.
             clazz.declaredMethods.filter { it.name == "resetSwipe" && it.parameterCount == 1 }.forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("ExpandedParabolicAnimationHook", method).intercept { chain ->
                     var host = chain.args[0] as? View
                     while (host != null) {
                         val release = releases[host]
@@ -159,7 +161,7 @@ internal object ExpandedParabolicAnimationHook {
             synchronized(hooked) { if (hooked.contains(clazz)) return@runCatching }
             // Capture before SystemUI dispatches UP and commits its asynchronous state change.
             val method = clazz.getMethod("dispatchTouchEvent", MotionEvent::class.java)
-            module.hook(method).intercept { chain ->
+            module.profiledHook("ExpandedParabolicAnimationHook", method).intercept { chain ->
                 runCatching {
                     val window = chain.thisObject as? View ?: return@runCatching
                     if (!clazz.isInstance(window)) return@runCatching
@@ -206,7 +208,7 @@ internal object ExpandedParabolicAnimationHook {
         if (settersInstalled) return
         listOf("setTranslationX", "setTranslationY").forEach { name ->
             val setter = View::class.java.getDeclaredMethod(name, Float::class.javaPrimitiveType!!)
-            module.hook(setter).intercept { chain ->
+            module.profiledHook("ExpandedParabolicAnimationHook", setter).intercept { chain ->
                 if (writing.get() == true) return@intercept chain.proceed()
                 val target = chain.thisObject as? View ?: return@intercept chain.proceed()
                 val flight = targetFlights[target] ?: return@intercept chain.proceed()

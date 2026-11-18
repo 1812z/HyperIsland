@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.os.Handler
 import android.os.Looper
 import android.text.Editable
@@ -63,7 +65,7 @@ object TimerWatcherCompatHook : BaseHook() {
             val onDetach = holderClass.getDeclaredMethod("onDetach")
             if (!hookedClasses.add(watcherClass)) return
 
-            module.hook(afterChanged).intercept { chain ->
+            module.profiledHook("TimerWatcherCompatHook", afterChanged).intercept { chain ->
                 val watcher = chain.thisObject ?: return@intercept chain.proceed()
                 val holder = holderField.get(watcher) ?: return@intercept chain.proceed()
                 val length = (chain.args.firstOrNull() as? Editable)?.length ?: 0
@@ -99,7 +101,7 @@ object TimerWatcherCompatHook : BaseHook() {
                 }
                 null
             }
-            module.hook(onDetach).intercept { chain ->
+            module.profiledHook("TimerWatcherCompatHook", onDetach).intercept { chain ->
                 synchronized(pending) { pending.remove(chain.thisObject) }
                     ?.let(mainHandler::removeCallbacks)
                 chain.proceed()

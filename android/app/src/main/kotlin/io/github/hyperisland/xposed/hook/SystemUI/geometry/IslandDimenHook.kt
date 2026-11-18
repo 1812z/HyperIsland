@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI.geometry
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.util.TypedValue
 import android.view.View
 import io.github.hyperisland.xposed.ConfigManager
@@ -53,7 +55,7 @@ object IslandDimenHook : BaseHook() {
                 clazz.getDeclaredMethod("getSmallIslandView"),
                 clazz.getDeclaredMethod("getFakeSmallIsland"),
             )
-            module.hook(calculateBigIslandY).intercept { chain ->
+            module.profiledHook("IslandDimenHook", calculateBigIslandY).intercept { chain ->
                 val result = chain.proceed()
                 chain.thisObject?.let { contentView ->
                     syncSmallIslandHeights(contentView, getIslandViewHeight, smallViewGetters)

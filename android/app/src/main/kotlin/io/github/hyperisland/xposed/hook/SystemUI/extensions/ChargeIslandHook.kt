@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI.extensions
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.animation.ValueAnimator
 import android.content.Context
 import android.os.Bundle
@@ -79,7 +81,7 @@ object ChargeIslandHook : BaseHook() {
     private fun hookApplicationOnCreate(module: XposedModule, classLoader: ClassLoader) {
         runCatching {
             val method = classLoader.loadClass("android.app.Application").getDeclaredMethod("onCreate")
-            module.hook(method).intercept { chain ->
+            module.profiledHook("ChargeIslandHook", method).intercept { chain ->
                 val result = chain.proceed()
                 (chain.thisObject as? Context)?.let {
                     runCatching { IslandDataManager.register(it) }
@@ -113,7 +115,7 @@ object ChargeIslandHook : BaseHook() {
                     if (!hookedMethods.add(method)) return@forEach
                 }
                 method.isAccessible = true
-                module.hook(method).intercept { chain ->
+                module.profiledHook("ChargeIslandHook", method).intercept { chain ->
                     val model = chain.proceed()
                     if (ConfigManager.getBoolean(PREF_ENABLED, false)) {
                         val modes = setOf(
@@ -152,7 +154,7 @@ object ChargeIslandHook : BaseHook() {
                     }
                     if (!shouldHook) return@forEach
                     method.isAccessible = true
-                    module.hook(method).intercept { chain ->
+                    module.profiledHook("ChargeIslandHook", method).intercept { chain ->
                         val result = chain.proceed()
                         val key = callString(chain.args.getOrNull(1), "getKey")
                         if (key == "charge") {
@@ -188,7 +190,7 @@ object ChargeIslandHook : BaseHook() {
                 if (!hookedMethods.add(method)) return@forEach
             }
             method.isAccessible = true
-            module.hook(method).intercept { chain ->
+            module.profiledHook("ChargeIslandHook", method).intercept { chain ->
                 val result = chain.proceed()
                 if (ConfigManager.getBoolean(PREF_ENABLED, false)) {
                     val duration = resolveChargeAnimationDurationMillis() ?: return@intercept result
@@ -215,7 +217,7 @@ object ChargeIslandHook : BaseHook() {
                 if (!hookedMethods.add(method)) return@forEach
             }
             method.isAccessible = true
-            module.hook(method).intercept { chain ->
+            module.profiledHook("ChargeIslandHook", method).intercept { chain ->
                 val bundle = chain.args.getOrNull(0) as? Bundle
                 if (ConfigManager.getBoolean(PREF_ENABLED, false) && bundle?.getString("notifyId") == "charge") {
                     if (ConfigManager.getBoolean(PREF_BLOCKED, false)) {

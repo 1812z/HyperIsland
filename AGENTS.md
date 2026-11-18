@@ -17,7 +17,7 @@ yarn docs:dev
 yarn docs:build
 ```
 
-环境：JDK 21、Gradle 9.6.1、AGP 9.3.1、Kotlin 2.4.10、compileSdk/targetSdk 37、minSdk 33。版本号在 `android/gradle.properties` 的 `appVersionName` / `appVersionCode` 中维护。
+环境：JDK 21、Gradle 9.6.1、AGP 9.3.1、Kotlin 2.4.10、compileSdk 37.2（需安装对应 SDK Platform）、targetSdk 37、minSdk 33。版本号在 `android/gradle.properties` 的 `appVersionName` / `appVersionCode` 中维护。
 
 ## 架构
 

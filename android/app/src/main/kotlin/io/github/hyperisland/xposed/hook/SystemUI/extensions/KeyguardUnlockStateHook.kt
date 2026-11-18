@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI.extensions
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.content.Context
 import android.content.BroadcastReceiver
 import android.content.Intent
@@ -115,7 +117,7 @@ object KeyguardUnlockStateHook : BaseHook() {
                 if (!hookedMethods.add(method)) return@forEach
             }
             method.isAccessible = true
-            module.hook(method).intercept { chain ->
+            module.profiledHook("KeyguardUnlockStateHook", method).intercept { chain ->
                 val hold = runCatching {
                     val data = chain.args.firstOrNull() ?: return@runCatching false
                     val extras = getExtras.invoke(data) as? Bundle ?: return@runCatching false
@@ -164,7 +166,7 @@ object KeyguardUnlockStateHook : BaseHook() {
                 if (!hookedMethods.add(method)) return@forEach
             }
             method.isAccessible = true
-            module.hook(method).intercept { chain ->
+            module.profiledHook("KeyguardUnlockStateHook", method).intercept { chain ->
                 val sbn = chain.args[1] as? StatusBarNotification
                 if (chain.args[2] != "face_recognition_success" || sbn == null ||
                     !FaceUnlockFocusController.shouldUseStaticManualExpansion(sbn)
@@ -190,7 +192,7 @@ object KeyguardUnlockStateHook : BaseHook() {
                 if (!hookedMethods.add(method)) return@forEach
             }
             method.isAccessible = true
-            module.hook(method).intercept { chain ->
+            module.profiledHook("KeyguardUnlockStateHook", method).intercept { chain ->
                 val sbn = chain.args[0] as? StatusBarNotification
                 if (chain.args[1] == "face_recognition_success" && sbn != null &&
                     FaceUnlockFocusController.shouldHoldFaceSuccess(sbn)
@@ -222,7 +224,7 @@ object KeyguardUnlockStateHook : BaseHook() {
                     if (!hookedMethods.add(method)) return@forEach
                 }
                 method.isAccessible = true
-                module.hook(method).intercept { chain ->
+                module.profiledHook("KeyguardUnlockStateHook", method).intercept { chain ->
                     val result = chain.proceed()
                     val picInfo = runCatching {
                         clazz.getMethod("getPicInfo").invoke(chain.thisObject)
@@ -296,7 +298,7 @@ object KeyguardUnlockStateHook : BaseHook() {
             if (!hookedMethods.add(method)) return
         }
         method.isAccessible = true
-        module.hook(method).intercept { chain ->
+        module.profiledHook("KeyguardUnlockStateHook", method).intercept { chain ->
             val context = clazz.classLoader?.let(HookUtils::getContext)
             if (before) context?.let { callback(it, chain.args) }
             val result = chain.proceed()

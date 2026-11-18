@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.R
 import android.app.KeyguardManager
 import android.app.Notification
@@ -210,7 +212,7 @@ object GenericProgressHook : BaseHook() {
         runCatching {
             val listener = classLoader.loadClass("android.service.notification.NotificationListenerService")
             val connected = listener.getDeclaredMethod("onListenerConnected")
-            module.hook(connected).intercept { chain ->
+            module.profiledHook("NotificationHook", connected).intercept { chain ->
                 val result = chain.proceed()
                 runCatching {
                     val active = listener.getMethod("getActiveNotifications").invoke(chain.thisObject) as? Array<*>
@@ -227,7 +229,7 @@ object GenericProgressHook : BaseHook() {
             val rankingMap = classLoader.loadClass("android.service.notification.NotificationListenerService\$RankingMap")
             val listenerClass = classLoader.loadClass("com.android.systemui.statusbar.notification.MiuiNotificationListener")
             val connected = listenerClass.getDeclaredMethod("onListenerConnected")
-            module.hook(connected).intercept { chain ->
+            module.profiledHook("NotificationHook", connected).intercept { chain ->
                 val result = chain.proceed()
                 runCatching {
                     val active = listenerClass.getMethod("getActiveNotifications").invoke(chain.thisObject) as? Array<*>
@@ -238,7 +240,7 @@ object GenericProgressHook : BaseHook() {
                 result
             }
             val posted = listenerClass.getDeclaredMethod("onNotificationPosted", StatusBarNotification::class.java, rankingMap)
-            module.hook(posted).intercept { chain ->
+            module.profiledHook("NotificationHook", posted).intercept { chain ->
                 (chain.args.firstOrNull() as? StatusBarNotification)?.let { sbn ->
                     NotificationCountTracker.posted(sbn, loadChannelTemplate(sbn.packageName, sbn.notification?.channelId.orEmpty()))
                 }
@@ -246,7 +248,7 @@ object GenericProgressHook : BaseHook() {
                 result
             }
             val removed = listenerClass.getDeclaredMethod("onNotificationRemoved", StatusBarNotification::class.java, rankingMap, Int::class.javaPrimitiveType!!)
-            module.hook(removed).intercept { chain ->
+            module.profiledHook("NotificationHook", removed).intercept { chain ->
                 val result = chain.proceed()
                 handleNotificationRemoved(chain.args[0] as? StatusBarNotification, module, classLoader)
                 result
@@ -264,7 +266,7 @@ object GenericProgressHook : BaseHook() {
         try {
             val clazz = classLoader.loadClass("com.miui.systemui.notification.MiuiBaseNotifUtil")
             val method = clazz.getDeclaredMethod("generateInnerNotifBean", StatusBarNotification::class.java)
-            module.hook(method).intercept { chain ->
+            module.profiledHook("NotificationHook", method).intercept { chain ->
                 val sbn = chain.args[0] as? StatusBarNotification
                 if (sbn != null) handleSbn(sbn, module, classLoader)
                 chain.proceed()
@@ -930,7 +932,7 @@ object GenericProgressHook : BaseHook() {
                 val mediaClass = method.parameterTypes.last()
                 val packageField = mediaClass.getDeclaredField("packageName").apply { isAccessible = true }
                 val keyField = mediaClass.getDeclaredField("notificationKey").apply { isAccessible = true }
-                module.hook(method).intercept { chain ->
+                module.profiledHook("NotificationHook", method).intercept { chain ->
                     val media = chain.args.lastOrNull() ?: return@intercept chain.proceed()
                     val pkg = packageField.get(media) as? String ?: return@intercept chain.proceed()
                     val hide = isMediaEnabled(pkg) &&
@@ -976,7 +978,7 @@ object GenericProgressHook : BaseHook() {
                 logError(module, "FocusNotificationPluginImpl.onNotificationPosted hook failed: method not found")
                 return
             }
-            module.hook(method).intercept { chain ->
+            module.profiledHook("NotificationHook", method).intercept { chain ->
                 val sbn = chain.args.firstOrNull() as? StatusBarNotification
                 val shouldFilter = runCatching {
                     val notification = sbn?.notification ?: return@runCatching false

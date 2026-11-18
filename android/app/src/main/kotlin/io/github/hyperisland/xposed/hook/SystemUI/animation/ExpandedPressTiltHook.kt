@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI.animation
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.animation.ValueAnimator
 import android.os.Handler
 import android.os.Looper
@@ -80,7 +82,7 @@ object ExpandedPressTiltHook : BaseHook() {
         }.getOrNull() ?: return
         if (!hooked.add(clazz)) return
         runCatching {
-            module.hook(clazz.getMethod("dispatchTouchEvent", MotionEvent::class.java)).intercept { chain ->
+            module.profiledHook("ExpandedPressTiltHook", clazz.getMethod("dispatchTouchEvent", MotionEvent::class.java)).intercept { chain ->
                 val window = chain.thisObject as? View
                 val event = chain.args[0] as? MotionEvent
                 if (window != null && event != null && (enabled || presses.containsKey(window))) {

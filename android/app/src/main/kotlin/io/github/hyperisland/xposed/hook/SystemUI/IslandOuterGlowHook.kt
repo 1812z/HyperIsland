@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.graphics.Color
 import android.os.Bundle
 import android.view.View
@@ -183,7 +185,7 @@ object IslandOuterGlowHook : BaseHook() {
                 "getContainerClipTop", "getContainerClipEnd", "getContainerClipBottom")
                 .map { snapshot.returnType.getMethod(it) }
             if (!hookedGeometryClasses.add(delegate)) return@runCatching
-            module.hook(update).intercept { chain ->
+            module.profiledHook("IslandOuterGlowHook", update).intercept { chain ->
                 val result = chain.proceed()
                 // Gesture/clip-only frames bypass updateBigIsland/updateExpanded,
                 // where the official glow normally receives its new aperture.
@@ -219,7 +221,7 @@ object IslandOuterGlowHook : BaseHook() {
             val method = clazz.declaredMethods.firstOrNull {
                 it.name == "readRawString" && it.parameterCount == 1
             } ?: return
-            module.hook(method).intercept { chain ->
+            module.profiledHook("IslandOuterGlowHook", method).intercept { chain ->
                 val result = chain.proceed()
                 val source = result as? String ?: return@intercept result
                 if (!source.contains("uniform vec3 uLightColors[11]") ||
@@ -251,7 +253,7 @@ object IslandOuterGlowHook : BaseHook() {
                 it.name == "updateViewForAvoidingScreenBurnIn" && it.parameterCount == 2
             }
             methods.forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("IslandOuterGlowHook", method).intercept { chain ->
                     val owner = chain.args.getOrNull(0) as? View
                         ?: return@intercept chain.proceed()
                     val x = owner.translationX
@@ -292,7 +294,7 @@ object IslandOuterGlowHook : BaseHook() {
             val method = clazz.declaredMethods.firstOrNull {
                 it.name == "getFEATURE_DYNAMIC_ISLAND_SHADER" && it.parameterCount == 0
             } ?: return
-            module.hook(method).intercept { true }
+            module.profiledHook("IslandOuterGlowHook", method).intercept { true }
             log(module) { "hooked shader feature flag on ${clazz.name}" }
         } catch (_: Throwable) {
         }
@@ -305,7 +307,7 @@ object IslandOuterGlowHook : BaseHook() {
             val clazz = classLoader.loadClass(ANIMATION_CONTROLLER_CLASS)
             val methods = clazz.declaredMethods.filter { it.name == "onStateChange" && it.parameterCount >= 1 }
             methods.forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("IslandOuterGlowHook", method).intercept { chain ->
                     val stateObj = chain.args.getOrNull(0)
                     val mode = resolveStrictGlowMode(stateObj)
                     val extras = extractExtrasFromAnimationState(stateObj)
@@ -464,7 +466,7 @@ object IslandOuterGlowHook : BaseHook() {
                         (usesOs4SharedGlowContainers && isDetach && it.parameterCount == 0)
             }
             methods.forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("IslandOuterGlowHook", method).intercept { chain ->
                     val mode = resolveGlowModeFromGlowView(chain.thisObject)
                     val isStart = method.name.startsWith("startGlowEffect")
                     val isStop = method.name.startsWith("stopGlowEffect")
@@ -516,7 +518,7 @@ object IslandOuterGlowHook : BaseHook() {
             it.name.substringBefore('$') == "setAlphaOfGlowEffect" &&
                 it.parameterTypes.contentEquals(arrayOf(Float::class.javaPrimitiveType))
         }.forEach { method ->
-            module.hook(method).intercept { chain ->
+            module.profiledHook("IslandOuterGlowHook", method).intercept { chain ->
                 val result = chain.proceed()
                 // The native updater writes the host alpha before the effect alpha.
                 // Retry here when BIG becomes visible after EXPAND stopped at alpha=0.
@@ -533,7 +535,7 @@ object IslandOuterGlowHook : BaseHook() {
         val visibility = lightClass.getDeclaredMethod(
             "onVisibilityChanged", View::class.java, Int::class.javaPrimitiveType,
         )
-        module.hook(visibility).intercept { chain ->
+        module.profiledHook("IslandOuterGlowHook", visibility).intercept { chain ->
             val result = chain.proceed()
             val parent = (chain.thisObject as? View)?.parent
             if (parent != null && clazz.isInstance(parent)) {
@@ -591,7 +593,7 @@ object IslandOuterGlowHook : BaseHook() {
                     it.parameterTypes.all { type -> type == Float::class.javaPrimitiveType }
         }
         methods.forEach { method ->
-            module.hook(method).intercept { chain ->
+            module.profiledHook("IslandOuterGlowHook", method).intercept { chain ->
                 val args = runCatching {
                     val view = chain.thisObject as? View ?: return@runCatching null
                     // Identify the concrete slot, not the recent notification request:
@@ -636,7 +638,7 @@ object IslandOuterGlowHook : BaseHook() {
                 it.name.substringBefore('$') == "setGlowEffectPosition" && it.parameterCount == 5 &&
                     it.parameterTypes.all { type -> type == Float::class.javaPrimitiveType }
             }.forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("IslandOuterGlowHook", method).intercept { chain ->
                     val args = runCatching {
                         val glow = chain.thisObject as? View ?: return@runCatching null
                         var ancestor = glow.parent
@@ -692,7 +694,7 @@ object IslandOuterGlowHook : BaseHook() {
                         it.parameterTypes.firstOrNull()?.name == "android.service.notification.StatusBarNotification"
             }
             methods.forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("IslandOuterGlowHook", method).intercept { chain ->
                     val result = chain.proceed()
                     val sbn = chain.args.firstOrNull() as? android.service.notification.StatusBarNotification
                         ?: return@intercept result

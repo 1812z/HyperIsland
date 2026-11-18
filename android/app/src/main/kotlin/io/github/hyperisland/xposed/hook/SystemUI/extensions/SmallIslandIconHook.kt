@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook.SystemUI.extensions
 
+import io.github.hyperisland.xposed.diagnostics.profiledHook
+
 import android.view.View
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.BaseHook
@@ -70,7 +72,7 @@ object SmallIslandIconHook : BaseHook() {
                 method.name == "bind" && method.parameterCount == 2
             }
             bindMethods.forEach { method ->
-                module.hook(method).intercept { chain ->
+                module.profiledHook("SmallIslandIconHook", method).intercept { chain ->
                     val result = chain.proceed()
                     runCatching {
                         val holder = chain.thisObject
