@@ -464,6 +464,20 @@ setVisibility(INVISIBLE) 后 fake root 才消失
 
 ### 7.5 SoftGlass 生命周期
 
+实机补充：在没有其他柔光的应用界面容易发白，显示音量条、展开状态栏或回到有柔光的桌面后恢复。这支持共享采样冷启动异常的假设，不能据此判定系统拒绝渲染。上一轮放行原生 EXPAND 共享黑罩的尝试无效并出现遮罩重叠，已撤回。
+
+1px 常规模糊半径冷启动尝试经实机反馈无效，已删除；只读采样诊断保留。
+
+2026-11-18 直接通过 ADB 对照：用户确认焦点展开且发白后保存窗口、SurfaceFlinger 与原始 logcat；用户只按一次音量键并确认立即恢复，再保存同类快照。两次超级岛均为 `VRI-DynamicIslandWindow#8823`、`1080×2400`。发白前 `15:47:45.869` 的 `checkSurTexSize` 已请求 `270×600`，随后 RenderThread 仍打印 `cropRB:270 35`；发白快照中该进程的 passBlur 缓冲区只有 `270×35`。`15:49:27.871` 音量窗口记录 `mMiBlurUsed:true`，`15:49:27.876` 请求 `270×600`，之后出现新的大尺寸 passBlur 缓冲区。此证据支持目标尺寸更新后生产端未及时提供新缓冲区的排查方向，但不能把音量窗口的新纹理直接当成超级岛已切换纹理的证明。`mBgChanged:0` 不能单独证明停止采样；收起 BIG 时的 mode=0 也不能证明 EXPAND 被关闭。
+
+100ms 有限强制刷新经实机反馈仍无效，已撤销刷新调用与窗口监听。进一步通过 `cmd window dump-visible-window-views` 导出并按手机实际 `ViewHierarchyEncoder` 格式解码：发白与用户只按一次音量键恢复后的 383 个相同 View，全部导出的 `blur:*` 字段一致；可见 EXPAND 已为 view mode=1、material type=1，根窗口 pass=true、background mode=1、柔光半径35/350。该对照不涵盖未导出的 shader 数组及 GPU 内部状态，不能据此宣称根因已完全定位。
+
+通过本机 framework 与 libhwui 核查，系统支持 `dumpsys gfxinfo com.android.systemui blur_blend 1/0` 临时开启/关闭 Java 与 native 模糊日志，无需编译模块。采集前 blur_blend=false，采集后已恢复 false；不改持久系统属性。3秒发白连续采样中，VRI 的期望纹理尺寸为270×600、SurfaceTexture标识稳定，而渲染侧仍报告270×35，未观察到新的 setTextureAvailable 通知。后续连续记录中用户报告通知自动消失后重新展开恢复，且日志出现 NotificationShade，因此这段不能当作第二次“只按音量键”的对照。
+
+已确认一处模块与原生的开启时序冲突：模块为稳定 SOFT 保留 pass blur 时，把 native false 改为 true；原生下一次 true 因 `lastPassWindowBlurEnabled=true` 被缓存吞掉，随后记账却把通道交给原生。当前改为仅在 `requested=true && retainedPassBlurRoots.contains(root) && !systemPassBlurRoots.contains(root)` 时，先通过同一个原生入口发送 false 归还模块保留的租约，再执行系统本来的 true。内部关闭使用 samplerWrite 跳过本模块的 keep-alive 拦截，其他纹理使用者继续由 ViewRootImpl 原生引用登记保护；关闭调用失败仍执行原开启。不对原生已持有的通道重复关开，不加定时器，不修改材质参数或遮罩。这是交接时的租约归还，不能扩展成逐帧或事后重建任意系统采样器；是否消除发白仍待实机验证。
+
+性能采集 `sampling-state` 保留窗口原生 mode/radius/pass 状态，并增加 ViewRootImpl 的期望纹理尺寸、mMiBlurUsed、纹理可见性及 SF 状态。期望尺寸不代表生产端已产出同尺寸像素；未知字段记 null。`pass-ownership-return` 记录归还调用，调用成功不等于 GPU 已恢复。采集期间观察其他窗口开启模糊的请求，停止采集即卸载临时观察 Hook。
+
 本次 JADX MCP 打开的组件版本为 `18.2.2.2.0`。再次核查下拉取消：`onTrackingFakeViewEnd()` 的 Folme 复位结束后进入 `updateExpandedFakeViewToReal()`，内部先 `fake.setVisibility(INVISIBLE)`，再 `real.setVisibility(VISIBLE)` 和显示真实背景。普通窗口动画的 `setVisibility()` 交接不能覆盖这个顺序。模块在整个原生复位调用期间保留 fake 材质，方法返回后提交真实材质和采样，再释放 fake；不改系统可见性与结束回调。下拉开始同时重新标记 EXPAND，避免上轮 Hidden 槽选择遗留。
 
 普通焦点收起时，`IslandPropertyUpdater.updateExpanded()` 仍按动画参数更新展开槽的 alpha/scale/translation，逻辑状态切换并不代表该槽已停止绘制。旧材质改为在真实槽与祖先不可见或 alpha 接近零后的 pre-draw 中释放；新状态重新接管会撤销待释放操作。清理监听持有弱引用，最多 128 个，detach 或 3 秒兜底清理，防止取消动画遗留采样租约。该修复已针对原生调用顺序实现，仍须实机验证下拉取消、正常收起、快速反复展开收起及不同材质组合。

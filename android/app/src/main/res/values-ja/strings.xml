@@ -788,6 +788,9 @@
     <string name="material_refraction_section">屈折</string>
     <string name="material_refraction">屈折</string>
     <string name="material_edge_thickness">エッジの太さ</string>
+    <string name="material_shape_edge_width">エッジの遷移幅</string>
+    <string name="material_shape_edge_power">エッジのシャープさ</string>
+    <string name="material_refraction_brightness">屈折の明るさ</string>
     <string name="material_reflection_strength">反射の強さ</string>
     <string name="material_directional_light">指向性ライトの強さ</string>
     <string name="material_background_section">背景</string>

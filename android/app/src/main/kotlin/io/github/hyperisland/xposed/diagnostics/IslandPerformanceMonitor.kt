@@ -15,6 +15,7 @@ import io.github.hyperisland.BuildConfig
 import io.github.hyperisland.data.IslandPerformanceContract as Contract
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.BaseHook
+import io.github.hyperisland.xposed.hook.SystemUI.SoftGlass.SoftGlassController
 import io.github.hyperisland.xposed.islanddispatch.definition.IslandDispatchContract
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedInterface.HookHandle
@@ -58,6 +59,7 @@ internal object IslandPerformanceMonitor : BaseHook(), Choreographer.FrameCallba
         var maxGap = 0L
         var maxDelay = 0L
         var lastBudget = 0L
+        var lastSamplingSnapshot = 0L
         var truncatedHooks = 0
         var observers = 0
         val frameHooks = linkedMapOf<String, Long>()
@@ -209,6 +211,45 @@ internal object IslandPerformanceMonitor : BaseHook(), Choreographer.FrameCallba
                 }.onFailure { event("observer-unavailable:${clazz.simpleName}.${method.name}") }
             }
         }
+        observeExternalBlur(module, loader)
+    }
+
+    private fun observeExternalBlur(module: XposedModule, loader: ClassLoader) {
+        val compat = runCatching { Class.forName("miui.systemui.util.MiBlurCompat", false, loader) }
+            .getOrNull() ?: return
+        if (observedClasses.size >= 64 || !observedClasses.add(compat)) return
+        runCatching { compat.declaredMethods }.getOrDefault(emptyArray())
+            .filter { it.name in setOf("setMiBackgroundBlurModeCompat", "setPassWindowBlurEnabledCompat") }
+            .forEach { method ->
+                runCatching {
+                    method.isAccessible = true
+                    observerHandles.add(module.hook(method).intercept { chain ->
+                        val result = chain.proceed()
+                        val target = chain.args.getOrNull(0) as? View
+                        val requested = chain.args.getOrNull(1)
+                        if (currentSession != null && target != null && target.isShown &&
+                            (requested == true || requested == 1) && !isIslandView(target)
+                        ) {
+                            // Record activation in the same report as the failed island. This
+                            // observes other windows without changing any of their blur settings.
+                            val identity = "${target.javaClass.simpleName}@${System.identityHashCode(target)}"
+                            event("external-blur:${method.name}:$identity")
+                            SoftGlassController.recordSamplingState("external-blur:$identity")
+                        }
+                        result
+                    })
+                    currentSession?.observers = observerHandles.size
+                }.onFailure { event("observer-unavailable:${compat.simpleName}.${method.name}") }
+            }
+    }
+
+    private fun isIslandView(view: View): Boolean {
+        var current: View? = view
+        while (current != null) {
+            if (current.javaClass.name.startsWith("miui.systemui.dynamicisland.")) return true
+            current = current.parent as? View
+        }
+        return false
     }
 
     private fun rememberView(view: View) {
@@ -261,6 +302,10 @@ internal object IslandPerformanceMonitor : BaseHook(), Choreographer.FrameCallba
         previousVsync = frameTimeNanos
         previousBudget = budget
         previousVisible = visible != null
+        if (visible != null && now - session.lastSamplingSnapshot >= 500_000_000L) {
+            session.lastSamplingSnapshot = now
+            SoftGlassController.recordSamplingState("capture-frame")
+        }
         if (currentSession === session) Choreographer.getInstance().postFrameCallback(this)
     }
 
@@ -301,6 +346,23 @@ internal object IslandPerformanceMonitor : BaseHook(), Choreographer.FrameCallba
             if (currentSession !== session) return
             appendBounded(session.events, JSONObject().put("atMs", ms(System.nanoTime() - session.start))
                 .put("event", name.take(160)).put("durationMs", ms(duration)))
+        }
+    }
+
+    fun samplingEvent(reason: String, root: View, mode: Int?, radius: Int?, pass: Boolean?, nativeState: Map<String, Any?>) {
+        val session = currentSession ?: return
+        synchronized(lock) {
+            if (currentSession !== session) return
+            appendBounded(session.events, JSONObject()
+                .put("atMs", ms(System.nanoTime() - session.start)).put("event", "sampling-state")
+                .put("reason", reason.take(160)).put("root", System.identityHashCode(root))
+                .put("width", root.width).put("height", root.height)
+                .put("attached", root.isAttachedToWindow).put("hardwareAccelerated", root.isHardwareAccelerated)
+                .put("backgroundMode", mode ?: JSONObject.NULL).put("backgroundRadius", radius ?: JSONObject.NULL)
+                .put("passWindowEnabled", pass ?: JSONObject.NULL)
+                .put("nativeState", JSONObject().apply {
+                    nativeState.forEach { (key, value) -> put(key, value ?: JSONObject.NULL) }
+                }))
         }
     }
 

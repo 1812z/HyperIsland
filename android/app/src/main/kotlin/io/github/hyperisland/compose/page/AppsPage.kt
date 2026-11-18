@@ -47,7 +47,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.BarBackdropContent
+import io.github.hyperisland.compose.component.BarBlurHost
+import io.github.hyperisland.compose.component.LocalBarBlurBackdrop
+import io.github.hyperisland.compose.component.LocalBarBlurEnabled
 import io.github.hyperisland.compose.component.LocalRootBottomBarPadding
+import io.github.hyperisland.compose.component.PageTabRow
+import io.github.hyperisland.compose.component.PageTopAppBar
+import io.github.hyperisland.compose.component.PageTopBarIconButton
+import io.github.hyperisland.compose.component.glassPill
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.InstalledApp
 import io.github.hyperisland.compose.data.InstalledAppsRepository
@@ -61,7 +69,6 @@ import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.DropdownEntry
 import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
 import top.yukonga.miuix.kmp.basic.InputField
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
@@ -69,7 +76,6 @@ import top.yukonga.miuix.kmp.basic.PullToRefresh
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SearchBar
 import top.yukonga.miuix.kmp.basic.Switch
-import top.yukonga.miuix.kmp.basic.TabRow
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -77,7 +83,12 @@ import top.yukonga.miuix.kmp.icon.extended.ChevronForward
 import top.yukonga.miuix.kmp.icon.extended.Close
 import top.yukonga.miuix.kmp.icon.extended.More
 import top.yukonga.miuix.kmp.icon.extended.SelectAll
-import top.yukonga.miuix.kmp.menu.OverlayIconCascadingDropdownMenu
+import top.yukonga.miuix.kmp.glass.GlassIconButton
+import top.yukonga.miuix.kmp.glass.GlassIconDropdownMenu
+import top.yukonga.miuix.kmp.glass.GlassTopAppBarDefaults
+import top.yukonga.miuix.kmp.glass.glassPopupAnchor
+import top.yukonga.miuix.kmp.glass.glassPopupAnchorContent
+import top.yukonga.miuix.kmp.glass.rememberGlassPopupAnchor
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -94,6 +105,8 @@ internal fun AppsPage(
     val appsRepository = remember(context) { InstalledAppsRepository(context.applicationContext) }
     val scope = rememberCoroutineScope()
     val scrollBehavior = MiuixScrollBehavior()
+    val appMenuExpanded = remember { mutableStateOf(false) }
+    val appMenuAnchor = rememberGlassPopupAnchor()
     var allApps by remember { mutableStateOf(appsRepository.cachedApps()) }
     var initialLoading by remember { mutableStateOf(allApps.isEmpty()) }
     var showInitialLoadingIndicator by remember { mutableStateOf(false) }
@@ -331,10 +344,11 @@ internal fun AppsPage(
         ),
     )
 
+    BarBlurHost(enabled = LocalBarBlurEnabled.current, captureForEffects = true) {
+    Box(modifier = Modifier.fillMaxSize()) {
     Scaffold(
         topBar = {
-            val actionSize = 44.dp
-            TopAppBar(
+            PageTopAppBar(
                 title = if (selectionMode) {
                     stringResource(R.string.selected_count, selectedPackages.size)
                 } else {
@@ -343,20 +357,14 @@ internal fun AppsPage(
                 scrollBehavior = scrollBehavior,
                 navigationIcon = {
                     if (selectionMode) {
-                        IconButton(
-                            onClick = ::leaveSelectionMode,
-                            modifier = Modifier.size(actionSize),
-                            backgroundColor = Color.Transparent,
-                        ) {
+                        PageTopBarIconButton(onClick = ::leaveSelectionMode) {
                             Icon(MiuixIcons.Close, stringResource(R.string.cancel_selection))
                         }
                     }
                 },
                 actions = {
                     if (selectionMode) {
-                        IconButton(
-                            modifier = Modifier.size(actionSize),
-                            backgroundColor = Color.Transparent,
+                        PageTopBarIconButton(
                             onClick = {
                                 selectedPackages = if (allVisibleSelected) {
                                     selectedPackages - filteredApps.map { it.packageName }.toSet()
@@ -373,9 +381,7 @@ internal fun AppsPage(
                             )
                         }
                     } else {
-                        IconButton(
-                            modifier = Modifier.size(actionSize),
-                            backgroundColor = Color.Transparent,
+                        PageTopBarIconButton(
                             onClick = {
                                 selectionMode = true
                                 selectedPackages = emptySet()
@@ -385,45 +391,28 @@ internal fun AppsPage(
                             Icon(MiuixIcons.SelectAll, stringResource(R.string.multi_select))
                         }
                     }
-                    OverlayIconCascadingDropdownMenu(
-                        entries = if (selectionMode) selectionMenuEntries else normalMenuEntries,
-                        modifier = Modifier.size(actionSize),
-                        backgroundColor = Color.Transparent,
-                        minWidth = actionSize,
-                        minHeight = actionSize,
-                        collapseOnSelection = false,
-                        renderInRootScaffold = false,
+                    GlassIconButton(
+                        onClick = { appMenuExpanded.value = true },
+                        modifier = Modifier
+                            .padding(start = 8.dp)
+                            .glassPopupAnchor(
+                                anchor = appMenuAnchor,
+                                cornerRadius = GlassTopAppBarDefaults.ButtonSize / 2,
+                            ),
                     ) {
                         Icon(
                             MiuixIcons.More,
                             stringResource(R.string.list_actions),
                             tint = MiuixTheme.colorScheme.onSurface,
+                            modifier = Modifier.glassPopupAnchorContent(appMenuAnchor),
                         )
                     }
                 },
-            )
-        },
-    ) { padding ->
-        PullToRefresh(
-            isRefreshing = refreshing,
-            onRefresh = { loadApps(forceRefresh = true) },
-            topAppBarScrollBehavior = scrollBehavior,
-            contentPadding = PaddingValues(top = padding.calculateTopPadding()),
-            modifier = Modifier.fillMaxSize(),
-            refreshTexts = listOf("", "", "", ""),
-        ) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    // 头部（搜索栏 + Tab 栏）固定，不参与 mode 切换动画，也不随列表滚动。
+                bottomContent = {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(
-                                start = 12.dp,
-                                end = 12.dp,
-                                top = padding.calculateTopPadding(),
-                                bottom = 8.dp,
-                            ),
+                            .padding(start = 12.dp, end = 12.dp, bottom = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         SearchBar(
@@ -435,6 +424,12 @@ internal fun AppsPage(
                                     expanded = searchExpanded,
                                     onExpandedChange = { searchExpanded = it },
                                     label = stringResource(R.string.search_apps),
+                                    color = Color.Transparent,
+                                    modifier = Modifier.glassPill(
+                                        backdrop = LocalBarBlurBackdrop.current,
+                                        // InputField 最小高度 45dp，半径取半高才是真胶囊。
+                                        cornerRadius = 23.dp,
+                                    ),
                                 )
                             },
                             onExpandedChange = { searchExpanded = it },
@@ -455,19 +450,35 @@ internal fun AppsPage(
                                 )
                             },
                         ) {}
-                        TabRow(
+                        PageTabRow(
                             tabs = listOf(
                                 stringResource(R.string.notification_mode),
                                 stringResource(R.string.toast_mode),
                             ),
-                            selectedTabIndex = selectedMode,
-                            onTabSelected = {
+                            selectedIndex = selectedMode,
+                            onSelect = {
                                 onSelectedModeChange(it)
                                 leaveSelectionMode()
                             },
+                            scrollBehavior = scrollBehavior,
                             modifier = Modifier.padding(horizontal = 4.dp),
                         )
                     }
+                },
+            )
+        },
+    ) { padding ->
+        BarBackdropContent(modifier = Modifier.fillMaxSize()) {
+        PullToRefresh(
+            isRefreshing = refreshing,
+            onRefresh = { loadApps(forceRefresh = true) },
+            topAppBarScrollBehavior = scrollBehavior,
+            contentPadding = PaddingValues(top = padding.calculateTopPadding()),
+            modifier = Modifier.fillMaxSize(),
+            refreshTexts = listOf("", "", "", ""),
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                Column(modifier = Modifier.fillMaxSize()) {
                     AnimatedContent(
                         targetState = selectedMode,
                         transitionSpec = {
@@ -492,6 +503,9 @@ internal fun AppsPage(
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(
                                 start = 12.dp,
+                                // 头部（搜索栏 + tab）已搬进顶栏，内容需要自己让开顶栏高度，
+                                // 否则列表会顶到屏幕最上方、被标题和搜索栏盖住。
+                                top = padding.calculateTopPadding(),
                                 end = 12.dp,
                                 bottom = 28.dp + LocalRootBottomBarPadding.current,
                             ),
@@ -572,6 +586,23 @@ internal fun AppsPage(
                 }
             }
         }
+        }
+    }
+    GlassIconDropdownMenu(
+        show = appMenuExpanded.value,
+        onDismissRequest = { appMenuExpanded.value = false },
+        anchor = appMenuAnchor,
+        anchorContent = {
+            Icon(
+                MiuixIcons.More,
+                stringResource(R.string.list_actions),
+                tint = MiuixTheme.colorScheme.onSurface,
+            )
+        },
+        entries = if (selectionMode) selectionMenuEntries else normalMenuEntries,
+        backdrop = LocalBarBlurBackdrop.current,
+    )
+    }
     }
 }
 

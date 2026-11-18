@@ -883,6 +883,9 @@
     <string name="material_refraction_section">Refraction</string>
     <string name="material_refraction">Refraction</string>
     <string name="material_edge_thickness">Edge thickness</string>
+    <string name="material_shape_edge_width">Edge transition width</string>
+    <string name="material_shape_edge_power">Edge sharpness</string>
+    <string name="material_refraction_brightness">Refraction brightness</string>
     <string name="material_reflection_strength">Reflection strength</string>
     <string name="material_directional_light">Directional light strength</string>
     <string name="material_background_section">Background</string>

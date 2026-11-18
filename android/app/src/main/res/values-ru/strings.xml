@@ -788,6 +788,9 @@
     <string name="material_refraction_section">Преломление</string>
     <string name="material_refraction">Преломление</string>
     <string name="material_edge_thickness">Толщина края</string>
+    <string name="material_shape_edge_width">Ширина перехода края</string>
+    <string name="material_shape_edge_power">Резкость края</string>
+    <string name="material_refraction_brightness">Яркость преломления</string>
     <string name="material_reflection_strength">Сила отражения</string>
     <string name="material_directional_light">Сила направленного света</string>
     <string name="material_background_section">Фон</string>

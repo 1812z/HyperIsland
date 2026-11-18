@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,6 +28,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
@@ -41,9 +43,12 @@ import io.github.hyperisland.compose.component.BarBackdropContent
 import io.github.hyperisland.compose.component.BarBlurHost
 import io.github.hyperisland.compose.component.PageTopAppBar
 import io.github.hyperisland.compose.component.PageTopBarIconButton
+import io.github.hyperisland.compose.component.LocalBarBlurBackdrop
 import io.github.hyperisland.compose.component.LocalBarBlurEnabled
 import io.github.hyperisland.compose.component.LocalRootBottomBarPadding
+import io.github.hyperisland.compose.component.PageTabRow
 import io.github.hyperisland.compose.component.SectionTitle
+import io.github.hyperisland.compose.component.glassPill
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.InstalledApp
 import io.github.hyperisland.compose.data.InstalledAppsRepository
@@ -66,13 +71,17 @@ import top.yukonga.miuix.kmp.basic.SearchBar
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
 import top.yukonga.miuix.kmp.basic.Switch
-import top.yukonga.miuix.kmp.basic.TabRow
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.icon.extended.More
-import top.yukonga.miuix.kmp.menu.OverlayIconCascadingDropdownMenu
+import top.yukonga.miuix.kmp.glass.GlassIconButton
+import top.yukonga.miuix.kmp.glass.GlassIconDropdownMenu
+import top.yukonga.miuix.kmp.glass.GlassTopAppBarDefaults
+import top.yukonga.miuix.kmp.glass.glassPopupAnchor
+import top.yukonga.miuix.kmp.glass.glassPopupAnchorContent
+import top.yukonga.miuix.kmp.glass.rememberGlassPopupAnchor
 import top.yukonga.miuix.kmp.popup.WindowDropdownPopup
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -85,6 +94,8 @@ internal fun FilterRulesPage(
     val appsRepository = remember(context) { InstalledAppsRepository(context.applicationContext) }
     val scope = rememberCoroutineScope()
     val scrollBehavior = MiuixScrollBehavior()
+    val menuExpanded = remember { mutableStateOf(false) }
+    val menuAnchor = rememberGlassPopupAnchor()
     val snackbarState = remember { SnackbarHostState() }
     var apps by remember { mutableStateOf(appsRepository.cachedApps()) }
     var initialLoading by remember { mutableStateOf(apps.isEmpty()) }
@@ -195,6 +206,7 @@ internal fun FilterRulesPage(
     )
 
     BarBlurHost(enabled = LocalBarBlurEnabled.current, captureForEffects = true) {
+        Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             topBar = {
                 PageTopAppBar(
@@ -207,11 +219,73 @@ internal fun FilterRulesPage(
                         }
                     },
                     actions = {
-                        OverlayIconCascadingDropdownMenu(
-                            entries = menuEntries,
-                            collapseOnSelection = false,
+                        GlassIconButton(
+                            onClick = { menuExpanded.value = true },
+                            modifier = Modifier.glassPopupAnchor(
+                                anchor = menuAnchor,
+                                cornerRadius = GlassTopAppBarDefaults.ButtonSize / 2,
+                            ),
                         ) {
-                            Icon(MiuixIcons.More, stringResource(R.string.list_actions))
+                            Icon(
+                                MiuixIcons.More,
+                                stringResource(R.string.list_actions),
+                                tint = MiuixTheme.colorScheme.onSurface,
+                                modifier = Modifier.glassPopupAnchorContent(menuAnchor),
+                            )
+                        }
+                    },
+                    bottomContent = {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 12.dp, end = 12.dp, bottom = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            SearchBar(
+                                inputField = {
+                                    InputField(
+                                        query = query,
+                                        onQueryChange = { query = it },
+                                        onSearch = {},
+                                        expanded = searchExpanded,
+                                        onExpandedChange = { searchExpanded = it },
+                                        label = stringResource(R.string.search_apps),
+                                        color = Color.Transparent,
+                                        modifier = Modifier.glassPill(
+                                            backdrop = LocalBarBlurBackdrop.current,
+                                            // InputField 最小高度 45dp，半径取半高才是真胶囊。
+                                            cornerRadius = 23.dp,
+                                        ),
+                                    )
+                                },
+                                onExpandedChange = { searchExpanded = it },
+                                expanded = searchExpanded,
+                                outsideEndAction = {
+                                    Text(
+                                        modifier = Modifier
+                                            .padding(start = 12.dp)
+                                            .padding(end = 12.dp)
+                                            .clickable(
+                                                interactionSource = null,
+                                                indication = null
+                                            ) {
+                                                searchExpanded = false
+                                            },
+                                        text = stringResource(R.string.cancel),
+                                        color = MiuixTheme.colorScheme.primary
+                                    )
+                                },
+                            ) {}
+                            PageTabRow(
+                                tabs = listOf(
+                                    stringResource(R.string.filter_foreground_tab),
+                                    stringResource(R.string.filter_exclusion_tab),
+                                ),
+                                selectedIndex = selectedTab,
+                                onSelect = { selectedTab = it },
+                                scrollBehavior = scrollBehavior,
+                                modifier = Modifier.padding(horizontal = 4.dp),
+                            )
                         }
                     },
                 )
@@ -238,54 +312,12 @@ internal fun FilterRulesPage(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         item {
-                            TabRow(
-                                tabs = listOf(
-                                    stringResource(R.string.filter_foreground_tab),
-                                    stringResource(R.string.filter_exclusion_tab),
-                                ),
-                                selectedTabIndex = selectedTab,
-                                onTabSelected = { selectedTab = it },
-                                modifier = Modifier.padding(horizontal = 4.dp),
-                            )
-                        }
-                        item {
                             SectionTitle(
                                 stringResource(
                                     if (selectedTab == 0) R.string.filter_foreground_description
                                     else R.string.filter_exclusion_description,
                                 ),
                             )
-                        }
-                        item {
-                            SearchBar(
-                                inputField = {
-                                    InputField(
-                                        query = query,
-                                        onQueryChange = { query = it },
-                                        onSearch = {},
-                                        expanded = searchExpanded,
-                                        onExpandedChange = { searchExpanded = it },
-                                        label = stringResource(R.string.search_apps),
-                                    )
-                                },
-                                onExpandedChange = { searchExpanded = it },
-                                expanded = searchExpanded,
-                                outsideEndAction = {
-                                    Text(
-                                        modifier = Modifier
-                                            .padding(start = 12.dp)
-                                            .padding(end = 12.dp)
-                                            .clickable(
-                                                interactionSource = null,
-                                                indication = null
-                                            ) {
-                                                searchExpanded = false
-                                            },
-                                        text = stringResource(R.string.cancel),
-                                        color = MiuixTheme.colorScheme.primary
-                                    )
-                                },
-                            ) {}
                         }
                         if (initialLoading) {
                             item {
@@ -338,6 +370,21 @@ internal fun FilterRulesPage(
                     }
                 }
             }
+        }
+        GlassIconDropdownMenu(
+            show = menuExpanded.value,
+            onDismissRequest = { menuExpanded.value = false },
+            anchor = menuAnchor,
+            anchorContent = {
+                Icon(
+                    MiuixIcons.More,
+                    stringResource(R.string.list_actions),
+                    tint = MiuixTheme.colorScheme.onSurface,
+                )
+            },
+            entries = menuEntries,
+            backdrop = LocalBarBlurBackdrop.current,
+        )
         }
     }
 }

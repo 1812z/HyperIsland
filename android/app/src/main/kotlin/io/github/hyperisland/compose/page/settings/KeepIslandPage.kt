@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.ColorPaletteDialog
 import io.github.hyperisland.compose.component.DetailPage
+import io.github.hyperisland.compose.component.PageTabRow
 import io.github.hyperisland.compose.component.PreferenceDropdown
 import io.github.hyperisland.compose.component.PreferenceSwitch
 import io.github.hyperisland.compose.component.SectionTitle
@@ -80,7 +81,6 @@ import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
-import top.yukonga.miuix.kmp.basic.TabRow
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.ChevronForward
@@ -179,6 +179,19 @@ internal fun KeepIslandPage(
         title = stringResource(R.string.always_on_island),
         onBack = onBack,
         snackbarHost = { SnackbarHost(snackbarState) },
+        topBarContent = { behavior ->
+            PageTabRow(
+                tabs = listOf(
+                    stringResource(R.string.keep_island_tab_default),
+                    stringResource(R.string.keep_island_tab_charging),
+                    stringResource(R.string.keep_island_tab_locked),
+                ),
+                selectedIndex = selectedScene.ordinal,
+                onSelect = { selectedScene = KeepIslandScene.entries[it] },
+                scrollBehavior = behavior,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
+            )
+        },
     ) {
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
@@ -228,17 +241,6 @@ internal fun KeepIslandPage(
                     ) { update(settings.copy(hideLandscape = it)) }
                 }
             }
-        }
-        item {
-            TabRow(
-                tabs = listOf(
-                    stringResource(R.string.keep_island_tab_default),
-                    stringResource(R.string.keep_island_tab_charging),
-                    stringResource(R.string.keep_island_tab_locked),
-                ),
-                selectedTabIndex = selectedScene.ordinal,
-                onTabSelected = { selectedScene = KeepIslandScene.entries[it] },
-            )
         }
         item {
             AnimatedContent(

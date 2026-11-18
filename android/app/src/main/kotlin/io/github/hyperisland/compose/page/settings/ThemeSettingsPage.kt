@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,6 +27,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.DetailPage
+import io.github.hyperisland.compose.component.PageTabRow
 import io.github.hyperisland.compose.component.PreferenceSwitch
 import io.github.hyperisland.compose.component.PreferenceSlider
 import io.github.hyperisland.compose.component.SettingsActionWithArrow
@@ -46,7 +48,6 @@ import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.ColorPalette
-import top.yukonga.miuix.kmp.basic.TabRow
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -78,23 +79,27 @@ internal fun ThemeSettingsPage(prefs: FlutterPrefsRepository, onBack: () -> Unit
     var showColorDialog by remember { mutableStateOf(false) }
     var selectedColor by remember { mutableStateOf(Color.Red) }
 
-    DetailPage(title = stringResource(R.string.theme), onBack = onBack) {
-        item {
-            TabRow(
+    DetailPage(
+        title = stringResource(R.string.theme),
+        onBack = onBack,
+        topBarContent = { behavior ->
+            PageTabRow(
                 tabs = listOf(
                     stringResource(R.string.follow_system),
                     stringResource(R.string.light),
                     stringResource(R.string.dark),
                 ),
-                selectedTabIndex = themeModes.indexOf(selectedMode.value).coerceAtLeast(0),
-                onTabSelected = { index ->
+                selectedIndex = themeModes.indexOf(selectedMode.value).coerceAtLeast(0),
+                onSelect = { index ->
                     val mode = themeModes[index]
                     selectedMode.value = mode
                     prefs.putString(PREF_THEME_MODE, mode)
                 },
-                modifier = Modifier.fillMaxWidth(),
+                scrollBehavior = behavior,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
             )
-        }
+        },
+    ) {
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(

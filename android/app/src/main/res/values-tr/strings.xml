@@ -841,6 +841,9 @@
     <string name="material_refraction_section">Kırılma</string>
     <string name="material_refraction">Kırılma</string>
     <string name="material_edge_thickness">Kenar kalınlığı</string>
+    <string name="material_shape_edge_width">Kenar geçiş genişliği</string>
+    <string name="material_shape_edge_power">Kenar keskinliği</string>
+    <string name="material_refraction_brightness">Kırılma parlaklığı</string>
     <string name="material_reflection_strength">Yansıma şiddeti</string>
     <string name="material_directional_light">Yönlü ışık şiddeti</string>
     <string name="material_background_section">Arka plan</string>

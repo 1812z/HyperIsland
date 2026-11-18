@@ -889,6 +889,9 @@
     <string name="material_refraction_section">折射</string>
     <string name="material_refraction">折射</string>
     <string name="material_edge_thickness">边缘厚度</string>
+    <string name="material_shape_edge_width">边缘过渡宽度</string>
+    <string name="material_shape_edge_power">边缘锐度</string>
+    <string name="material_refraction_brightness">折射亮度</string>
     <string name="material_reflection_strength">反射强度</string>
     <string name="material_directional_light">方向光强度</string>
     <string name="material_background_section">背景</string>

@@ -27,6 +27,9 @@ internal data class IslandMaterialConfig(
     val burn: Double = 0.0,
     val softRefraction: Double = 0.0,
     val softEdgeThickness: Double = 0.8,
+    val softShapeEdgeWidth: Double = 0.0,
+    val softShapeEdgePower: Double = 0.0,
+    val softReflectionLighten: Double = 0.0,
     val softReflection: Double = 0.0,
     val directionalLightIntensity: Double = 1.0,
     val backgroundSaturation: Double = 0.0,
@@ -55,6 +58,9 @@ internal data class IslandMaterialConfig(
         put("burn", burn)
         put("softRefraction", softRefraction)
         put("softEdgeThickness", softEdgeThickness)
+        put("softShapeEdgeWidth", softShapeEdgeWidth)
+        put("softShapeEdgePower", softShapeEdgePower)
+        put("softReflectionLighten", softReflectionLighten)
         put("softReflection", softReflection)
         put("directionalLightIntensity", directionalLightIntensity)
         put("backgroundSaturation", backgroundSaturation)
@@ -91,6 +97,9 @@ internal data class IslandMaterialConfig(
                 burn = soft("burn", 0.0),
                 softRefraction = soft("softRefraction", 0.0),
                 softEdgeThickness = soft("softEdgeThickness", 0.8),
+                softShapeEdgeWidth = soft("softShapeEdgeWidth", 0.0),
+                softShapeEdgePower = soft("softShapeEdgePower", 0.0),
+                softReflectionLighten = soft("softReflectionLighten", 0.0),
                 softReflection = soft("softReflection", 0.0),
                 directionalLightIntensity = soft("directionalLightIntensity", 1.0),
                 backgroundSaturation = soft("backgroundSaturation", 0.0),

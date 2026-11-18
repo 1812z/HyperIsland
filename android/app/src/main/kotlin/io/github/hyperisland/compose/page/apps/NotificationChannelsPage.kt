@@ -35,6 +35,7 @@ import io.github.hyperisland.compose.component.BarBackdropContent
 import io.github.hyperisland.compose.component.BarBlurHost
 import io.github.hyperisland.compose.component.PageTopAppBar
 import io.github.hyperisland.compose.component.PageTopBarIconButton
+import io.github.hyperisland.compose.component.LocalBarBlurBackdrop
 import io.github.hyperisland.compose.component.LocalBarBlurEnabled
 import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
@@ -65,7 +66,12 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.icon.extended.More
 import top.yukonga.miuix.kmp.icon.extended.Settings
-import top.yukonga.miuix.kmp.menu.OverlayIconDropdownMenu
+import top.yukonga.miuix.kmp.glass.GlassIconButton
+import top.yukonga.miuix.kmp.glass.GlassIconDropdownMenu
+import top.yukonga.miuix.kmp.glass.GlassTopAppBarDefaults
+import top.yukonga.miuix.kmp.glass.glassPopupAnchor
+import top.yukonga.miuix.kmp.glass.glassPopupAnchorContent
+import top.yukonga.miuix.kmp.glass.rememberGlassPopupAnchor
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
@@ -87,6 +93,8 @@ internal fun NotificationChannelsPage(
     val scope = rememberCoroutineScope()
     val snackbarState = remember { SnackbarHostState() }
     val scrollBehavior = MiuixScrollBehavior()
+    val menuExpanded = remember { mutableStateOf(false) }
+    val menuAnchor = rememberGlassPopupAnchor()
     val darkTheme = MiuixTheme.colorScheme.background.luminance() < 0.5f
     var channels by remember(app.packageName) { mutableStateOf(emptyList<NotificationChannelInfo>()) }
     var enabledChannelIds by remember(app.packageName) { mutableStateOf(prefs.enabledChannelIds(app.packageName)) }
@@ -236,6 +244,7 @@ internal fun NotificationChannelsPage(
 
     val pageBlurEnabled = LocalBarBlurEnabled.current
     BarBlurHost(enabled = pageBlurEnabled, captureForEffects = true) {
+        Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             topBar = {
                 PageTopAppBar(
@@ -255,8 +264,21 @@ internal fun NotificationChannelsPage(
                                 prefs.setAppEnabled(app.packageName, enabled)
                             },
                         )
-                        OverlayIconDropdownMenu(entry = menuEntry) {
-                            Icon(MiuixIcons.More, stringResource(R.string.list_actions))
+                        GlassIconButton(
+                            onClick = { menuExpanded.value = true },
+                            modifier = Modifier
+                                .padding(start = 8.dp)
+                                .glassPopupAnchor(
+                                    anchor = menuAnchor,
+                                    cornerRadius = GlassTopAppBarDefaults.ButtonSize / 2,
+                                ),
+                        ) {
+                            Icon(
+                                MiuixIcons.More,
+                                stringResource(R.string.list_actions),
+                                tint = MiuixTheme.colorScheme.onSurface,
+                                modifier = Modifier.glassPopupAnchorContent(menuAnchor),
+                            )
                         }
                     },
                 )
@@ -396,6 +418,21 @@ internal fun NotificationChannelsPage(
             }
                 }
             }
+        }
+        GlassIconDropdownMenu(
+            show = menuExpanded.value,
+            onDismissRequest = { menuExpanded.value = false },
+            anchor = menuAnchor,
+            anchorContent = {
+                Icon(
+                    MiuixIcons.More,
+                    stringResource(R.string.list_actions),
+                    tint = MiuixTheme.colorScheme.onSurface,
+                )
+            },
+            entries = listOf(menuEntry),
+            backdrop = LocalBarBlurBackdrop.current,
+        )
         }
     }
 

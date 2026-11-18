@@ -34,9 +34,11 @@ import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.BarBackdropContent
 import io.github.hyperisland.compose.component.BarBlurHost
+import io.github.hyperisland.compose.component.PageTabRow
 import io.github.hyperisland.compose.component.PageTopAppBar
 import io.github.hyperisland.compose.component.PageTopBarIconButton
 import io.github.hyperisland.compose.component.ColorPaletteDialog
+import io.github.hyperisland.compose.component.LocalBarBlurBackdrop
 import io.github.hyperisland.compose.component.LocalBarBlurEnabled
 import io.github.hyperisland.compose.component.PreferenceDropdown
 import io.github.hyperisland.compose.component.PreferenceSlider
@@ -63,14 +65,18 @@ import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
-import top.yukonga.miuix.kmp.basic.TabRow
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.glass.GlassIconButton
+import top.yukonga.miuix.kmp.glass.GlassIconDropdownMenu
+import top.yukonga.miuix.kmp.glass.GlassTopAppBarDefaults
+import top.yukonga.miuix.kmp.glass.glassPopupAnchor
+import top.yukonga.miuix.kmp.glass.glassPopupAnchorContent
+import top.yukonga.miuix.kmp.glass.rememberGlassPopupAnchor
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.icon.extended.ChevronForward
 import top.yukonga.miuix.kmp.icon.extended.More
-import top.yukonga.miuix.kmp.menu.OverlayIconDropdownMenu
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.window.WindowDialog
@@ -93,7 +99,11 @@ internal fun IslandMaterialPage(
     }
     val scope = rememberCoroutineScope()
     val pagerState = rememberPagerState(pageCount = { IslandMaterialState.entries.size })
-    val scrollBehavior = MiuixScrollBehavior()
+    // 每个 tab 各自持有滚动行为（顺序同 IslandMaterialState.entries：Big / Small / Expand）。
+    // 共用一个会让 A 页滚下去的 contentOffset 残留到 B 页，切到位于顶部的 tab 时顶栏仍有玻璃底、仍是收起态。
+    // 顶栏 / 分段条读「当前页」那一个，每页列表各挂各的连接，互不干扰。
+    val scrollBehaviors = listOf(MiuixScrollBehavior(), MiuixScrollBehavior(), MiuixScrollBehavior())
+    val activeScrollBehavior = scrollBehaviors[pagerState.currentPage.coerceIn(scrollBehaviors.indices)]
     val snackbarState = remember { SnackbarHostState() }
     var resetDialog by remember { mutableStateOf(false) }
     var colorState by remember { mutableStateOf<IslandMaterialState?>(null) }
@@ -121,6 +131,8 @@ internal fun IslandMaterialPage(
     val clipboard = remember(context) {
         context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     }
+    val menuExpanded = remember { mutableStateOf(false) }
+    val menuAnchor = rememberGlassPopupAnchor()
     val menuEntry = DropdownEntry(
         items = listOf(
             DropdownItem(
@@ -161,12 +173,13 @@ internal fun IslandMaterialPage(
     )
 
     BarBlurHost(enabled = LocalBarBlurEnabled.current, captureForEffects = true) {
+        Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             topBar = {
                 PageTopAppBar(
                     title = stringResource(R.string.material_customize),
                     largeTitle = stringResource(R.string.material_customize),
-                    scrollBehavior = scrollBehavior,
+                    scrollBehavior = activeScrollBehavior,
                     navigationIcon = {
                         PageTopBarIconButton(onClick = onBack) {
                             Icon(MiuixIcons.Back, stringResource(R.string.back))
@@ -181,21 +194,35 @@ internal fun IslandMaterialPage(
                                 stringResource(R.string.send_test_notification),
                             )
                         }
-                        OverlayIconDropdownMenu(entry = menuEntry) {
-                            Icon(MiuixIcons.More, stringResource(R.string.list_actions))
+                        GlassIconButton(
+                            onClick = { menuExpanded.value = true },
+                            modifier = Modifier
+                                .padding(start = 8.dp)
+                                .glassPopupAnchor(
+                                    anchor = menuAnchor,
+                                    cornerRadius = GlassTopAppBarDefaults.ButtonSize / 2,
+                                ),
+                        ) {
+                            Icon(
+                                MiuixIcons.More,
+                                stringResource(R.string.list_actions),
+                                tint = MiuixTheme.colorScheme.onSurface,
+                                modifier = Modifier.glassPopupAnchorContent(menuAnchor),
+                            )
                         }
                     },
                     bottomContent = {
-                        TabRow(
+                        PageTabRow(
                             tabs = listOf(
                                 stringResource(R.string.material_big_tab),
                                 stringResource(R.string.material_small_tab),
                                 stringResource(R.string.material_expand_tab),
                             ),
-                            selectedTabIndex = pagerState.currentPage,
-                            onTabSelected = { page ->
+                            selectedIndex = pagerState.currentPage,
+                            onSelect = { page ->
                                 scope.launch { pagerState.animateScrollToPage(page) }
                             },
+                            scrollBehavior = activeScrollBehavior,
                             modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
                         )
                     },
@@ -214,13 +241,28 @@ internal fun IslandMaterialPage(
                         settings = settings,
                         hyperOsMajor = hyperOsMajor,
                         topPadding = padding.calculateTopPadding(),
-                        scrollBehavior = scrollBehavior,
+                        scrollBehavior = scrollBehaviors[page],
                         onFollowChange = { setFollow(state, it) },
                         onConfigChange = { save(state, it) },
                         onPickColor = { colorState = state },
                     )
                 }
             }
+        }
+        GlassIconDropdownMenu(
+            show = menuExpanded.value,
+            onDismissRequest = { menuExpanded.value = false },
+            anchor = menuAnchor,
+            anchorContent = {
+                Icon(
+                    MiuixIcons.More,
+                    stringResource(R.string.list_actions),
+                    tint = MiuixTheme.colorScheme.onSurface,
+                )
+            },
+            entries = listOf(menuEntry),
+            backdrop = LocalBarBlurBackdrop.current,
+        )
         }
     }
 
@@ -355,6 +397,7 @@ private fun MaterialStateContent(
                         title = stringResource(R.string.material_blur),
                         value = config.blur,
                         range = 0..100,
+                        defaultValue = DEFAULT_MATERIAL.blur,
                     ) { onConfigChange(config.copy(blur = it)) }
                 }
             }
@@ -362,12 +405,12 @@ private fun MaterialStateContent(
                 item {
                     SectionTitle(stringResource(R.string.glass_customize))
                     Card(modifier = Modifier.fillMaxWidth()) {
-                        IntegerMaterialSlider(stringResource(R.string.glass_edge_width), config.edgeThickness, 4..40) { onConfigChange(config.copy(edgeThickness = it)) }
-                        IntegerMaterialSlider(stringResource(R.string.glass_refraction), config.refraction, 0..40) { onConfigChange(config.copy(refraction = it)) }
-                        IntegerMaterialSlider(stringResource(R.string.glass_highlight), config.reflectionStrength, 0..100) { onConfigChange(config.copy(reflectionStrength = it)) }
-                        IntegerMaterialSlider(stringResource(R.string.glass_shadow), config.darker, 0..100) { onConfigChange(config.copy(darker = it)) }
-                        IntegerMaterialSlider(stringResource(R.string.glass_light_direction), config.lightDirection, 0..359) { onConfigChange(config.copy(lightDirection = it)) }
-                        IntegerMaterialSlider(stringResource(R.string.glass_dispersion), config.dispersion, 0..100) { onConfigChange(config.copy(dispersion = it)) }
+                        IntegerMaterialSlider(stringResource(R.string.glass_edge_width), config.edgeThickness, 4..40, DEFAULT_MATERIAL.edgeThickness) { onConfigChange(config.copy(edgeThickness = it)) }
+                        IntegerMaterialSlider(stringResource(R.string.glass_refraction), config.refraction, 0..40, DEFAULT_MATERIAL.refraction) { onConfigChange(config.copy(refraction = it)) }
+                        IntegerMaterialSlider(stringResource(R.string.glass_highlight), config.reflectionStrength, 0..100, DEFAULT_MATERIAL.reflectionStrength) { onConfigChange(config.copy(reflectionStrength = it)) }
+                        IntegerMaterialSlider(stringResource(R.string.glass_shadow), config.darker, 0..100, DEFAULT_MATERIAL.darker) { onConfigChange(config.copy(darker = it)) }
+                        IntegerMaterialSlider(stringResource(R.string.glass_light_direction), config.lightDirection, 0..359, DEFAULT_MATERIAL.lightDirection) { onConfigChange(config.copy(lightDirection = it)) }
+                        IntegerMaterialSlider(stringResource(R.string.glass_dispersion), config.dispersion, 0..100, DEFAULT_MATERIAL.dispersion) { onConfigChange(config.copy(dispersion = it)) }
                     }
                 }
             }
@@ -375,28 +418,31 @@ private fun MaterialStateContent(
                 item {
                     SectionTitle(stringResource(R.string.material_lighting_section))
                     Card(modifier = Modifier.fillMaxWidth()) {
-                        DecimalMaterialSlider(stringResource(R.string.material_soft_light), config.softLight) { onConfigChange(config.copy(softLight = it)) }
-                        DecimalMaterialSlider(stringResource(R.string.material_saturation), config.saturation) { onConfigChange(config.copy(saturation = it)) }
-                        DecimalMaterialSlider(stringResource(R.string.material_brightness), config.brightness) { onConfigChange(config.copy(brightness = it)) }
-                        DecimalMaterialSlider(stringResource(R.string.material_darker), config.softDarker) { onConfigChange(config.copy(softDarker = it)) }
-                        DecimalMaterialSlider(stringResource(R.string.material_transparency), config.transparency) { onConfigChange(config.copy(transparency = it)) }
-                        DecimalMaterialSlider(stringResource(R.string.material_burn), config.burn) { onConfigChange(config.copy(burn = it)) }
+                        DecimalMaterialSlider(stringResource(R.string.material_soft_light), config.softLight, DEFAULT_MATERIAL.softLight) { onConfigChange(config.copy(softLight = it)) }
+                        DecimalMaterialSlider(stringResource(R.string.material_saturation), config.saturation, DEFAULT_MATERIAL.saturation) { onConfigChange(config.copy(saturation = it)) }
+                        DecimalMaterialSlider(stringResource(R.string.material_brightness), config.brightness, DEFAULT_MATERIAL.brightness) { onConfigChange(config.copy(brightness = it)) }
+                        DecimalMaterialSlider(stringResource(R.string.material_darker), config.softDarker, DEFAULT_MATERIAL.softDarker) { onConfigChange(config.copy(softDarker = it)) }
+                        DecimalMaterialSlider(stringResource(R.string.material_transparency), config.transparency, DEFAULT_MATERIAL.transparency) { onConfigChange(config.copy(transparency = it)) }
+                        DecimalMaterialSlider(stringResource(R.string.material_burn), config.burn, DEFAULT_MATERIAL.burn) { onConfigChange(config.copy(burn = it)) }
                     }
                 }
                 item {
                     SectionTitle(stringResource(R.string.material_refraction_section))
                     Card(modifier = Modifier.fillMaxWidth()) {
-                        DecimalMaterialSlider(stringResource(R.string.material_refraction), config.softRefraction) { onConfigChange(config.copy(softRefraction = it)) }
-                        DecimalMaterialSlider(stringResource(R.string.material_edge_thickness), config.softEdgeThickness) { onConfigChange(config.copy(softEdgeThickness = it)) }
-                        DecimalMaterialSlider(stringResource(R.string.material_reflection_strength), config.softReflection) { onConfigChange(config.copy(softReflection = it)) }
-                        DecimalMaterialSlider(stringResource(R.string.material_directional_light), config.directionalLightIntensity) { onConfigChange(config.copy(directionalLightIntensity = it)) }
+                        DecimalMaterialSlider(stringResource(R.string.material_refraction), config.softRefraction, DEFAULT_MATERIAL.softRefraction) { onConfigChange(config.copy(softRefraction = it)) }
+                        DecimalMaterialSlider(stringResource(R.string.material_edge_thickness), config.softEdgeThickness, DEFAULT_MATERIAL.softEdgeThickness) { onConfigChange(config.copy(softEdgeThickness = it)) }
+                        DecimalMaterialSlider(stringResource(R.string.material_shape_edge_width), config.softShapeEdgeWidth, DEFAULT_MATERIAL.softShapeEdgeWidth) { onConfigChange(config.copy(softShapeEdgeWidth = it)) }
+                        DecimalMaterialSlider(stringResource(R.string.material_shape_edge_power), config.softShapeEdgePower, DEFAULT_MATERIAL.softShapeEdgePower) { onConfigChange(config.copy(softShapeEdgePower = it)) }
+                        DecimalMaterialSlider(stringResource(R.string.material_refraction_brightness), config.softReflectionLighten, DEFAULT_MATERIAL.softReflectionLighten) { onConfigChange(config.copy(softReflectionLighten = it)) }
+                        DecimalMaterialSlider(stringResource(R.string.material_reflection_strength), config.softReflection, DEFAULT_MATERIAL.softReflection) { onConfigChange(config.copy(softReflection = it)) }
+                        DecimalMaterialSlider(stringResource(R.string.material_directional_light), config.directionalLightIntensity, DEFAULT_MATERIAL.directionalLightIntensity) { onConfigChange(config.copy(directionalLightIntensity = it)) }
                     }
                 }
                 item {
                     SectionTitle(stringResource(R.string.material_background_section))
                     Card(modifier = Modifier.fillMaxWidth()) {
-                        DecimalMaterialSlider(stringResource(R.string.material_background_saturation), config.backgroundSaturation) { onConfigChange(config.copy(backgroundSaturation = it)) }
-                        DecimalMaterialSlider(stringResource(R.string.material_background_brightness), config.backgroundBrightness) { onConfigChange(config.copy(backgroundBrightness = it)) }
+                        DecimalMaterialSlider(stringResource(R.string.material_background_saturation), config.backgroundSaturation, DEFAULT_MATERIAL.backgroundSaturation) { onConfigChange(config.copy(backgroundSaturation = it)) }
+                        DecimalMaterialSlider(stringResource(R.string.material_background_brightness), config.backgroundBrightness, DEFAULT_MATERIAL.backgroundBrightness) { onConfigChange(config.copy(backgroundBrightness = it)) }
                     }
                 }
             }
@@ -428,6 +474,7 @@ private fun IntegerMaterialSlider(
     title: String,
     value: Int,
     range: IntRange,
+    defaultValue: Int,
     onChangeFinished: (Int) -> Unit,
 ) {
     var draft by remember(value) { mutableFloatStateOf(value.toFloat()) }
@@ -438,6 +485,12 @@ private fun IntegerMaterialSlider(
         valueText = draft.toInt().toString(),
         valueRange = range.first.toFloat()..range.last.toFloat(),
         steps = (range.last - range.first - 1).coerceAtLeast(0),
+        // 与公共组件一致：值不等于默认值时露出「恢复默认」按钮。
+        resetVisible = value != defaultValue,
+        onReset = {
+            draft = defaultValue.toFloat()
+            onChangeFinished(defaultValue)
+        },
         onValueChange = { draft = it.toInt().toFloat() },
         onValueChangeFinished = { onChangeFinished(draft.toInt()) },
     )
@@ -447,6 +500,7 @@ private fun IntegerMaterialSlider(
 private fun DecimalMaterialSlider(
     title: String,
     value: Double,
+    defaultValue: Double,
     onChangeFinished: (Double) -> Unit,
 ) {
     var draft by remember(value) { mutableFloatStateOf(value.toFloat()) }
@@ -457,6 +511,12 @@ private fun DecimalMaterialSlider(
         valueText = decimalDisplay(draft),
         valueRange = -50f..50f,
         steps = 999,
+        // 与公共组件一致：值不等于默认值时露出「恢复默认」按钮。
+        resetVisible = value != defaultValue,
+        onReset = {
+            draft = defaultValue.toFloat()
+            onChangeFinished(defaultValue)
+        },
         onValueChange = { draft = (it * 10).toInt() / 10f },
         onValueChangeFinished = { onChangeFinished(((draft * 10).toInt() / 10.0)) },
     )
@@ -489,6 +549,14 @@ private fun decimalDisplay(value: Float): String {
     val hundredths = String.format(Locale.ROOT, "%.2f", value)
     return if (hundredths.endsWith("0")) String.format(Locale.ROOT, "%.1f", value) else hundredths
 }
+
+/**
+ * 各滑条「恢复默认」的目标值。
+ *
+ * 直接取 [IslandMaterialConfig] 的字段默认值，避免在调用点再抄一遍字面量——
+ * 将来改默认值时只需改数据类，滑条与序列化两边自动一致。
+ */
+private val DEFAULT_MATERIAL = IslandMaterialConfig()
 
 private fun Color.toRgbHex(): String = "#%06X".format(toArgb() and 0xFFFFFF)
 

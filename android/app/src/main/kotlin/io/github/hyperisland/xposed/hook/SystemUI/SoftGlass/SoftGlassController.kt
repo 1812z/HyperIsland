@@ -1,11 +1,14 @@
 package io.github.hyperisland.xposed.hook.SystemUI.SoftGlass
 
 import io.github.hyperisland.xposed.diagnostics.profiledHook
+import io.github.hyperisland.xposed.diagnostics.IslandPerformanceMonitor
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.lifecycle.IslandStateResolver
+import io.github.hyperisland.xposed.utils.WeakMemberCache
 
 import android.content.Context
 import android.graphics.Color
 import android.graphics.Outline
+import android.graphics.Rect
 import android.graphics.drawable.Drawable
 import android.util.TypedValue
 import android.view.View
@@ -18,6 +21,7 @@ import io.github.hyperisland.xposed.log
 import io.github.hyperisland.xposed.logWarn
 import io.github.libxposed.api.XposedModule
 import java.lang.reflect.Method
+import java.lang.reflect.Field
 import java.util.Collections
 import java.util.WeakHashMap
 
@@ -53,6 +57,12 @@ internal object SoftGlassController {
     )
     private val retirements = WeakHashMap<View, Retirement>()
     private val appliedWindowRadii = Collections.synchronizedMap(WeakHashMap<View, Int>())
+    private val samplingGetters = WeakMemberCache<Method>(maxClasses = 32, maxMembers = 4) { type, name ->
+        findMethod(type, name)
+    }
+    private val samplingFields = WeakMemberCache<Field>(maxClasses = 32, maxMembers = 8) { type, name ->
+        runCatching { type.getDeclaredField(name).apply { isAccessible = true } }.getOrNull()
+    }
     private val retainedWindowBlurRoots = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<View, Boolean>()),
     )
@@ -246,6 +256,7 @@ internal object SoftGlassController {
                 if (requested || keepForSoft) {
                     currentRenderingConfig(root)?.let { updateWindowRadius(root, it.blurRadius) }
                 }
+                recordSamplingState("window-blur:$requested/$keepForSoft", root)
                 diagnose("window-blur requested=$requested kept=$keepForSoft", root)
                 result
             }
@@ -256,6 +267,18 @@ internal object SoftGlassController {
                 if (samplerWrite.get() == method) return@intercept chain.proceed()
                 val requested = chain.args.getOrNull(0) as? Boolean ?: false
                 val keepForSoft = !requested && hasRenderingView(root)
+                if (requested && root in retainedPassBlurRoots && root !in systemPassBlurRoots) {
+                    // We replaced a previous native close with true to keep compact SOFT alive.
+                    // Return that lease BEFORE the native enable: otherwise Xiaomi's cached
+                    // lastPassWindowBlurEnabled=true swallows its normal sampler-open edge.
+                    // samplerWrite bypasses our keep-alive interceptor; the original enable
+                    // below still runs, even if returning our old lease fails.
+                    val returned = writeSampler(
+                        method, root, passBlurArgs(method, false, chain.args.getOrNull(1) as? String),
+                    )
+                    diagnose("pass-ownership-return accepted=$returned", root)
+                    recordSamplingState("pass-ownership-return:$returned", root)
+                }
                 val result = if (keepForSoft) {
                     // finalizeAnimFinished() closes the sampler as soon as the open/close
                     // animation settles. Rewrite the request instead of patching afterwards:
@@ -265,6 +288,7 @@ internal object SoftGlassController {
                     chain.proceed()
                 }
                 recordSamplerRequest(root, requested, keepForSoft, systemPassBlurRoots, retainedPassBlurRoots)
+                recordSamplingState("pass-blur:$requested/$keepForSoft", root)
                 diagnose("pass-blur requested=$requested kept=$keepForSoft", root)
                 result
             }
@@ -409,6 +433,9 @@ internal object SoftGlassController {
         ensureWindowBlur(view)
         ensurePassWindowBlur(view)
         appliedConfigs[view]?.let { updateWindowRadius(view, it.blurRadius) }
+        findWindowView(view)?.let { root ->
+            recordSamplingState("begin-rendering:${view.javaClass.simpleName}", root)
+        }
         diagnose("begin-rendering", view)
     }
 
@@ -635,6 +662,41 @@ internal object SoftGlassController {
             ?.let(appliedConfigs::get)
     }
 
+    private fun samplingValue(root: View, name: String): Any? = runCatching {
+        samplingGetters.get(root.javaClass, name)?.invoke(root)
+    }.getOrNull()
+
+    private fun nativeSamplingState(root: View): Map<String, Any?> {
+        val owner = samplingValue(root, "getViewRootImpl") ?: return emptyMap()
+        fun read(name: String): Any? = runCatching { samplingFields.get(owner.javaClass, name)?.get(owner) }.getOrNull()
+        val rect = read("mDispRect") as? Rect
+        val texturePresent = samplingFields.get(owner.javaClass, "mSurTex")?.let { field ->
+            runCatching { field.get(owner) != null }.getOrNull()
+        }
+        return mapOf(
+            "requestedTextureWidth" to rect?.width(), "requestedTextureHeight" to rect?.height(),
+            "renderBlurUsed" to read("mMiBlurUsed"), "textureVisible" to read("mTextureVis"),
+            "sfState" to read("mLastSfState"), "texturePresent" to texturePresent,
+        )
+    }
+
+    /** Called on lifecycle edges and external blur activation, only while a report is recording. */
+    fun recordSamplingState(reason: String, root: View? = null) {
+        if (IslandPerformanceMonitor.currentSession == null) return
+        val roots = if (root != null) listOf(root) else {
+            synchronized(renderingViews) { renderingViews.toList() }.mapNotNull(::findWindowView).distinct()
+        }
+        roots.forEach { target ->
+            IslandPerformanceMonitor.samplingEvent(
+                reason, target,
+                samplingValue(target, "getMiBackgroundBlurMode") as? Int,
+                samplingValue(target, "getMiBackgroundBlurRadius") as? Int,
+                samplingValue(target, "getPassWindowBlurEnabled") as? Boolean,
+                nativeSamplingState(target),
+            )
+        }
+    }
+
     private fun ensureWindowBlur(source: View) {
         val root = findWindowView(source) ?: return
         if (root in retainedWindowBlurRoots || root in systemWindowBlurRoots) return
@@ -755,7 +817,11 @@ internal object SoftGlassController {
         params[5] = (1f + config.saturation.toFloat() / 100f).coerceIn(.5f, 1.5f)
         scale(6, config.brightness)
         scale(7, config.darker)
+        // BionicsToken.toBionicsParams: shapeEdgePx, shapeEdgePow, reflectionLighten.
+        scale(19, config.shapeEdgeWidth)
+        scale(20, config.shapeEdgePower)
         scale(21, config.edgeThickness)
+        scale(23, config.reflectionLighten)
         scale(24, config.reflection)
         scale(28, config.directionalLightIntensity)
         scale(32, config.refraction)

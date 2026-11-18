@@ -16,11 +16,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.GraphicsLayerScope
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import io.github.hyperisland.R
@@ -32,12 +38,18 @@ import top.yukonga.miuix.kmp.basic.PullToRefresh
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.basic.SmallTitle
+import top.yukonga.miuix.kmp.blur.Backdrop
 import top.yukonga.miuix.kmp.glass.GlassIconButton
+import top.yukonga.miuix.kmp.glass.GlassSegmentedTabRow
 import top.yukonga.miuix.kmp.glass.GlassTopAppBar
 import top.yukonga.miuix.kmp.glass.GlassTopAppBarDefaults
+import top.yukonga.miuix.kmp.glass.glassPanel
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.icon.basic.ArrowRight
+import top.yukonga.miuix.kmp.material.GlassEdgeStrokes
+import top.yukonga.miuix.kmp.material.GlassMaterials
+import top.yukonga.miuix.kmp.material.GlassShape
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 
@@ -52,7 +64,10 @@ internal fun PageTopAppBar(
     bottomContent: @Composable () -> Unit = {},
 ) {
     val backdrop = LocalBarBlurBackdrop.current
-    val progressiveBlur = LocalBarBlurEnabled.current && backdrop != null
+    // 只看 backdrop 是否存在：页面都用 `captureForEffects = true` 建立了 backdrop，
+    // tab / 搜索框 / 玻璃按钮也只是判空。若这里再叠 `LocalBarBlurEnabled`（界面模糊开关），
+    // 会出现「tab 和按钮是玻璃、顶栏却是纯色渐变」的割裂观感。
+    val progressiveBlur = backdrop != null
     val scrolled = remember(scrollBehavior) {
         derivedStateOf { (scrollBehavior?.state?.contentOffset ?: 0f) < 0f }
     }
@@ -62,8 +77,9 @@ internal fun PageTopAppBar(
         largeTitle = largeTitle,
         subtitle = subtitle,
         isContentScrolled = scrolled.value,
-        // Keep the base gradient independent of the buttons' scroll-driven material.
-        modifier = Modifier.background(band),
+        // 柔光可用时不要再叠一层顶栏底色（band 顶部 alpha 0.9，会把柔光整个盖掉，
+        // 观感就是一块「纯色渐变」）；只有拿不到 backdrop 时才用渐变兜底保证标题可读。
+        modifier = if (progressiveBlur) Modifier else Modifier.background(band),
         progressiveBlur = progressiveBlur,
         backdrop = backdrop,
         bandBrush = SolidColor(Color.Transparent),
@@ -79,19 +95,103 @@ internal fun PageTopAppBar(
 internal fun PageTopBarIconButton(
     onClick: () -> Unit,
     enabled: Boolean = true,
+    modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
     if (enabled) {
-        GlassIconButton(onClick = onClick, content = content)
+        GlassIconButton(onClick = onClick, modifier = modifier, content = content)
     } else {
         IconButton(
             onClick = onClick,
-            modifier = Modifier.size(GlassTopAppBarDefaults.ButtonSize),
+            modifier = modifier.size(GlassTopAppBarDefaults.ButtonSize),
             enabled = false,
         ) {
             content()
         }
     }
+}
+
+/**
+ * 页面内的分段切换条（OS4 柔光样式）。
+ *
+ * 玻璃表面采样的是一个**纯色** [Backdrop]，而不是页面自己的 `LayerBackdrop`。原因是库的硬约束
+ * （见 `Modifier.glass` 的 KDoc）：玻璃表面不能位于它所用 backdrop 的录制子树内，否则会形成
+ * 采样环并直接崩溃。本应用的页面整体都被 `BarBackdropContent` 包住，列表项 / 固定头部里的控件
+ * 必然与录制子树重叠，所以这里只给玻璃一个稳定的纯色采样源。
+ *
+ * 放在 `PageTopAppBar` 的 `bottomContent` 里时，`GlassTopAppBar` 会用顶栏自己的 backdrop 覆盖
+ * 传入值（顶栏在录制子树之外，合法），此时才是真正的页面采样。
+ *
+ * [scrollBehavior] 用于驱动材质浮现：页面停在顶部时是实色轨道，下滑 32dp 后柔光浮现；传 null
+ * 则材质常驻。
+ */
+@Composable
+internal fun PageTabRow(
+    tabs: List<String>,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    scrollBehavior: ScrollBehavior? = null,
+) {
+    val tint = MiuixTheme.colorScheme.surface
+    val backdrop = remember(tint) { TintBackdrop(tint) }
+    val surfaceAlpha = GlassTopAppBarDefaults.collapseRamp(scrollBehavior)
+    GlassSegmentedTabRow(
+        tabs = tabs,
+        selectedIndex = selectedIndex,
+        onSelect = onSelect,
+        backdrop = backdrop,
+        surfaceAlpha = surfaceAlpha.value,
+        modifier = modifier,
+    )
+}
+
+/**
+ * 纯色 [Backdrop]：只提供一层稳定底色，不录制页面内容，因此不会被采样环牵连。
+ *
+ * 声明 `isCoordinatesDependent = false`：它的输出与绘制位置无关，不需要任何布局坐标。
+ */
+private class TintBackdrop(private val color: Color) : Backdrop {
+
+    override val isCoordinatesDependent: Boolean = false
+
+    override fun DrawScope.drawBackdrop(
+        density: Density,
+        coordinates: LayoutCoordinates?,
+        layerBlock: (GraphicsLayerScope.() -> Unit)?,
+        downscaleFactor: Float,
+    ) {
+        drawRect(color)
+    }
+}
+
+/**
+ * 顶栏内胶囊控件的玻璃底（搜索框等）。
+ *
+ * 与顶栏分段条同款材质：`puredThinGlass` + 主题描边，`shading = false`（主体由材质层提供）。
+ * 调用方需把控件自身背景设为 [Color.Transparent]，否则会盖住这层玻璃。
+ *
+ * 只能在 [BarBackdropContent] 之外使用（顶栏或固定头部），在录制子树内会形成采样环。
+ */
+@Composable
+internal fun Modifier.glassPill(
+    backdrop: Backdrop?,
+    cornerRadius: Dp = 999.dp,
+): Modifier {
+    val isDark = MiuixTheme.colorScheme.background.luminance() < 0.5f
+    val shape = remember(cornerRadius) { GlassShape(cornerRadius, smoothing = 0f) }
+    val fallbackFill = if (isDark) Color.White.copy(alpha = 0.08f) else Color.White
+    return this
+        .clip(shape)
+        .glassPanel(
+            backdrop = backdrop,
+            shape = shape,
+            material = GlassMaterials.puredThinGlass(isDark),
+            stroke = GlassEdgeStrokes.forTheme(isDark),
+            shadow = null,
+            shading = false,
+            fallback = Modifier.clip(shape).background(fallbackFill),
+        )
 }
 
 @Composable
@@ -156,6 +256,13 @@ internal fun DetailPage(
      * 必须由调用方把这个值调大（FAB 高 60dp + 12dp 间距），否则最后一行会被按钮压住。
      */
     bottomContentPadding: Dp = 28.dp,
+    /**
+     * 顶栏下方固定内容（如分段切换条）。
+     *
+     * 必须挂在顶栏内而不是列表首项：页面内容整体位于 [BarBackdropContent] 的录制子树中，
+     * 玻璃控件若跟着列表一起被录制，就会采样到自己（采样环）。顶栏在录制子树之外。
+     */
+    topBarContent: @Composable (ScrollBehavior) -> Unit = {},
     content: LazyListScope.() -> Unit,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
@@ -178,6 +285,7 @@ internal fun DetailPage(
                             }
                         }
                     },
+                    bottomContent = { topBarContent(scrollBehavior) },
                 )
             },
             floatingActionButton = floatingActionButton,
