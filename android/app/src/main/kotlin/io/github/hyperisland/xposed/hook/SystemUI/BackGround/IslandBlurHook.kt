@@ -45,6 +45,7 @@ object IslandBlurHook : BaseHook() {
     private const val ANIMATION_DELEGATE_CLASS =
         "miui.systemui.dynamicisland.anim.DynamicIslandAnimationDelegate"
     private const val NO_CONTENT_CLEANUP_TIMEOUT_MS = 700L
+    private val RENDER_ORDER = arrayOf(IslandType.EXPAND, IslandType.BIG, IslandType.SMALL)
     private val hookedContentClasses = Collections.synchronizedSet(
         Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>())
     )
@@ -62,6 +63,9 @@ object IslandBlurHook : BaseHook() {
     )
     private val controllerTargets = Collections.synchronizedMap(
         WeakHashMap<Any, WeakReference<View>>()
+    )
+    private val pendingVisibilityChecks = Collections.synchronizedSet(
+        Collections.newSetFromMap(WeakHashMap<Any, Boolean>())
     )
     private val pendingNoContentCleanups = Collections.synchronizedMap(
         WeakHashMap<Any, PendingNoContentCleanup>()
@@ -180,6 +184,7 @@ object IslandBlurHook : BaseHook() {
             hookContentVisibility(
                 module,
                 classLoader,
+                stateField,
                 backgroundViewField,
                 outerDrawableField,
             )
@@ -908,6 +913,7 @@ object IslandBlurHook : BaseHook() {
     private fun hookContentVisibility(
         module: XposedModule,
         classLoader: ClassLoader,
+        stateField: java.lang.reflect.Field,
         backgroundViewField: java.lang.reflect.Field,
         outerDrawableField: java.lang.reflect.Field,
     ) {
@@ -916,6 +922,20 @@ object IslandBlurHook : BaseHook() {
         }.getOrNull() ?: return
         val currentIslandVisible = findMethod(controllerClass, "currentIslandVisible") ?: return
         val getView = findMethod(controllerClass, "getView") ?: return
+        val contentClass = Class.forName(
+            "miui.systemui.dynamicisland.window.content.DynamicIslandContentView", false, classLoader,
+        )
+        val small = findMethod(contentClass, "getSmallIslandView")
+        val big = findMethod(contentClass, "getBigIslandView")
+        val expanded = findMethod(contentClass, "getExpandedView")
+        val isAnimating = findMethod(contentClass, "isAnimating")
+        fun concreteView(owner: Any, type: IslandType): View? = runCatching {
+            when (type) {
+                IslandType.SMALL -> small
+                IslandType.BIG -> big
+                IslandType.EXPAND -> expanded
+            }?.invoke(owner) as? View
+        }.getOrNull()
         controllerClass.declaredMethods
             .filter { method ->
                 method.name == "onViewAttached" &&
@@ -930,6 +950,7 @@ object IslandBlurHook : BaseHook() {
                         finishNoContentCleanup(contentView, "no-content-detached")
                         controllerVisibility.remove(chain.thisObject)
                         controllerTargets.remove(chain.thisObject)
+                        pendingVisibilityChecks.remove(chain.thisObject)
                     }
                     result
                 }
@@ -938,6 +959,9 @@ object IslandBlurHook : BaseHook() {
             .filter { it.name == "onPreDraw" && it.parameterCount == 0 }
             .forEach { method ->
                 module.profiledHook("IslandBlurHook", method).intercept { chain ->
+                    if (!configStore.anyMaterialEnabled && pendingNoContentCleanups.isEmpty() &&
+                        pendingSoftCommits.isEmpty() && outerBlurRegistry.isEmpty() && !tempHideRecoveryPending
+                    ) return@intercept chain.proceed()
                     val result = chain.proceed()
                     val controller = chain.thisObject
                     val visible = runCatching {
@@ -952,54 +976,50 @@ object IslandBlurHook : BaseHook() {
                     val stateType = contentView?.let { owner ->
                         runCatching {
                             IslandStateResolver.fromState(
-                                findField(owner.javaClass, "state")?.get(owner),
+                                stateField.get(owner),
                             )
                         }.getOrNull() ?: contentLastTypes[owner]
                     }
                     val stateConcrete = if (contentView != null && stateType != null) {
-                        IslandStateResolver.concreteView(contentView, stateType)
+                        concreteView(contentView, stateType)
                     } else {
                         null
                     }
-                    val rendered = if (stateConcrete != null && isActuallyVisible(stateConcrete)) {
-                        stateType?.let { it to stateConcrete }
-                    } else if (contentView != null) {
-                        sequenceOf(IslandType.EXPAND, IslandType.BIG, IslandType.SMALL)
-                            .mapNotNull { candidate ->
-                                IslandStateResolver.concreteView(contentView, candidate)
-                                    ?.takeIf(::isActuallyVisible)
-                                    ?.let { candidate to it }
-                            }
-                            .firstOrNull()
-                    } else {
-                        null
+                    var type = stateType
+                    var concrete = stateConcrete
+                    var visibleConcrete = stateConcrete?.takeIf(::isActuallyVisible)
+                    if (visibleConcrete == null && contentView != null) {
+                        for (candidate in RENDER_ORDER) {
+                            if (candidate == stateType) continue
+                            val child = concreteView(contentView, candidate) ?: continue
+                            if (!isActuallyVisible(child)) continue
+                            type = candidate
+                            concrete = child
+                            visibleConcrete = child
+                            break
+                        }
                     }
-                    val type = rendered?.first ?: stateType
-                    val concrete = rendered?.second ?: stateConcrete
-                    val visibleConcrete = concrete?.takeIf(::isActuallyVisible)
-                    val previousTarget = if (visibleConcrete != null) {
-                        controllerTargets.put(controller, WeakReference(visibleConcrete))?.get()
-                    } else {
-                        controllerTargets[controller]?.get()
-                    }
+                    val previousTarget = controllerTargets[controller]?.get()
                     val targetChanged = visibleConcrete != null && previousTarget !== visibleConcrete
+                    if (targetChanged && visibleConcrete != null) {
+                        controllerTargets[controller] = WeakReference(visibleConcrete)
+                    }
                     val noContent = contentView != null && pendingNoContentCleanups.containsKey(contentView)
-                    val contentAnimating = contentView?.let { owner ->
-                        runCatching {
-                            findMethod(owner.javaClass, "isAnimating")?.invoke(owner) as? Boolean
-                        }.getOrNull()
-                    } == true
-                    if (visible == false && noContent && !contentAnimating && !islandTempHidden) {
+                    if (visible == false && noContent && !islandTempHidden && runCatching {
+                            isAnimating?.invoke(contentView) as? Boolean
+                        }.getOrNull() != true && pendingVisibilityChecks.size < 128 &&
+                        pendingVisibilityChecks.add(controller)
+                    ) {
                         // Covers direct removal where Folme never starts and has no completion
                         // callback. Allow two frames for a deferred Folme start before release.
                         mainHandler.postDelayed({
+                            pendingVisibilityChecks.remove(controller)
                             if (!pendingNoContentCleanups.containsKey(contentView)) return@postDelayed
                             val visibleNow = runCatching {
                                 currentIslandVisible.invoke(controller) as? Boolean
                             }.getOrNull()
                             val animatingNow = runCatching {
-                                findMethod(contentView.javaClass, "isAnimating")
-                                    ?.invoke(contentView) as? Boolean
+                                isAnimating?.invoke(contentView) as? Boolean
                             }.getOrNull() == true
                             if (visibleNow == false && !animatingNow && !islandTempHidden) {
                                 finishNoContentCleanup(contentView, "no-content-not-rendered")
@@ -1046,7 +1066,7 @@ object IslandBlurHook : BaseHook() {
     }
 
     private fun isActuallyVisible(view: View): Boolean {
-        if (!view.isShown || view.windowVisibility != View.VISIBLE || view.alpha <= 0.01f) {
+        if (view.windowVisibility != View.VISIBLE) {
             return false
         }
         var current: View? = view

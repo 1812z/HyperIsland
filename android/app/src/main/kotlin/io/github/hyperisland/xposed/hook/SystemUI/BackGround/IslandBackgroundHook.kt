@@ -11,6 +11,7 @@ import android.view.View
 import android.view.ViewGroup
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.IslandBlurRuntime
+import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.MaskBlurCleanup
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.model.IslandType as BlurIslandType
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.model.MaterialType
 import io.github.hyperisland.xposed.hook.SystemUI.IslandOutlineHook
@@ -91,6 +92,7 @@ object IslandBackgroundHook : BaseHook() {
         val stateField: Field?,
         val containerMethod: Method,
         val maskMethod: Method?,
+        val cleanup: MaskBlurCleanup,
     )
 
     /** 真实外层背景和过渡假视图使用不同 bounds，不能共享同一个 drawable。 */
@@ -147,21 +149,10 @@ object IslandBackgroundHook : BaseHook() {
     @Volatile
     private var cachedCornerRadius: Float? = null
 
-    /** 缓存 MiBlurCompat 反射对象，避免每次调用 clearMaskForView 都做类加载+方法查找 */
-    @Volatile
-    private var miBlurCompatClass: Class<*>? = null
-    @Volatile
-    private var setBlurModeMethod: Method? = null
-    @Volatile
-    private var clearBlendMethod: Method? = null
-    @Volatile
-    private var setBackgroundBlurModeMethod: Method? = null
-    @Volatile
-    private var clearBionicsMaterialMethod: Method? = null
-    @Volatile
-    private var clearBlurBlendEffectMethod: Method? = null
-    @Volatile
-    private var commonUtilsInstance: Any? = null
+    // Hook closures retain their own binding. Registries must not pin plugin generations.
+    private val maskCleanups = Collections.synchronizedMap(
+        WeakHashMap<Class<*>, WeakReference<MaskBlurCleanup>>()
+    )
 
     /** 缓存 bgViewClass 的 Field/Method，避免热路径反复反射查找 */
     private val stokeWidthFieldCache = ConcurrentHashMap<Class<*>, Field?>()
@@ -617,81 +608,37 @@ object IslandBackgroundHook : BaseHook() {
      * ★ 反射对象缓存，避免每次调用都做类加载+方法查找。
      */
     private fun disableBlurAndClearBlend(view: View) {
-        try {
-            val cl = view.javaClass.classLoader ?: return
+        maskCleanupFor(view)?.clear(view)
+    }
 
-            // 确保 MiBlurCompat 反射对象已缓存
-            if (miBlurCompatClass == null || miBlurCompatClass?.classLoader != cl) {
-                val blurClass = sequenceOf(
-                    "miui.systemui.util.MiBlurCompat",
-                    "miui.util.MiBlurCompat",
-                ).mapNotNull { name ->
-                    runCatching { cl.loadClass(name) }.getOrNull()
-                }.firstOrNull() ?: return
-                miBlurCompatClass = blurClass
-                setBlurModeMethod = blurClass.getDeclaredMethod(
-                    "setMiViewBlurModeCompat", View::class.java, Int::class.javaPrimitiveType
-                )
-                clearBlendMethod = blurClass.getDeclaredMethod(
-                    "clearMiBackgroundBlendColorCompat", View::class.java
-                )
-                setBackgroundBlurModeMethod = runCatching {
-                    blurClass.getDeclaredMethod(
-                        "setMiBackgroundBlurModeCompat",
-                        View::class.java,
-                        Int::class.javaPrimitiveType,
-                    ).apply { isAccessible = true }
-                }.getOrNull()
-
-                val backgroundStyleClass = runCatching {
-                    cl.loadClass("miui.systemui.util.MiBackgroundStyle")
-                }.getOrNull()
-                clearBionicsMaterialMethod = backgroundStyleClass?.let { clazz ->
-                    runCatching {
-                        clazz.getDeclaredMethod("clearBionicsMaterial", View::class.java).apply {
-                            isAccessible = true
-                        }
-                    }.getOrNull()
+    private fun maskCleanupFor(view: View): MaskBlurCleanup? {
+        var ancestor: View? = view
+        while (ancestor != null) {
+            var type: Class<*>? = ancestor.javaClass
+            while (type != null) {
+                maskCleanups[type]?.get()?.let { cleanup ->
+                    return cleanup
                 }
-
-                val commonUtilsClass = runCatching {
-                    cl.loadClass("miui.systemui.util.CommonUtils")
-                }.getOrNull()
-                commonUtilsInstance = commonUtilsClass?.let { clazz ->
-                    runCatching { clazz.getField("INSTANCE").get(null) }.getOrNull()
-                }
-                clearBlurBlendEffectMethod = commonUtilsClass?.let { clazz ->
-                    runCatching {
-                        clazz.getDeclaredMethod("clearMiBlurBlendEffect", View::class.java).apply {
-                            isAccessible = true
-                        }
-                    }.getOrNull()
-                }
+                type = type.superclass
             }
+            ancestor = ancestor.parent as? View
+        }
+        return null
+    }
 
-            // OS4's bionics material is independent from View.background and blend colors.
-            try {
-                clearBionicsMaterialMethod?.invoke(null, view)
-            } catch (_: Exception) {}
+    private fun bindMaskCleanup(contentClass: Class<*>): MaskBlurCleanup {
+        synchronized(maskCleanups) {
+            maskCleanups[contentClass]?.get()?.let { return it }
+            val cleanup = MaskBlurCleanup.resolve(contentClass)
+            maskCleanups.entries.removeAll { it.value.get() == null }
+            if (maskCleanups.size < 32) maskCleanups[contentClass] = WeakReference(cleanup)
+            return cleanup
+        }
+    }
 
-            try {
-                clearBlurBlendEffectMethod?.invoke(commonUtilsInstance, view)
-            } catch (_: Exception) {}
-
-            try {
-                setBackgroundBlurModeMethod?.invoke(null, view, 0)
-            } catch (_: Exception) {}
-
-            // 1. 设 blur mode = 0（禁用模糊）
-            try {
-                setBlurModeMethod?.invoke(null, view, 0)
-            } catch (_: Exception) {}
-
-            // 2. 清除 blend colors
-            try {
-                clearBlendMethod?.invoke(null, view)
-            } catch (_: Exception) {}
-        } catch (_: Exception) {}
+    private fun clearMaskForView(view: View, cleanup: MaskBlurCleanup) {
+        view.background = null
+        cleanup.clear(view)
     }
 
     private fun anyBlurEnabled(): Boolean {
@@ -823,6 +770,7 @@ object IslandBackgroundHook : BaseHook() {
      */
     private fun hookUpdateBackgroundBg(module: XposedModule, contentViewClass: Class<*>) {
         try {
+            val cleanup = bindMaskCleanup(contentViewClass)
             val method = contentViewClass.getDeclaredMethod(
                 "updateBackgroundBg",
                 View::class.java,
@@ -834,7 +782,7 @@ object IslandBackgroundHook : BaseHook() {
                 val viewType = getIslandTypeForView(view)
 
                 if (viewType != null && hasBgFileForType(viewType)) {
-                    clearMaskForView(view)
+                    clearMaskForView(view, cleanup)
                     return@intercept null
                 }
 
@@ -842,7 +790,7 @@ object IslandBackgroundHook : BaseHook() {
                     // The native BlurDrawable lives on DynamicIslandBackgroundView.
                     // Any stock background on this content view is above it and would
                     // make the blur appear opaque until another feature clears it.
-                    clearMaskForView(view)
+                    clearMaskForView(view, cleanup)
                     return@intercept null
                 }
 
@@ -982,13 +930,13 @@ object IslandBackgroundHook : BaseHook() {
         val container = runCatching { access.containerMethod.invoke(contentView) as? View }
             .getOrNull()
         if (container == null || !shouldClearSharedMask(type)) return
-        clearSharedContainer(container, type)
+        clearMaskForView(container, access.cleanup)
 
         // OS3 did not use island_mask as the final per-frame visual writer. OS4 does, and its
         // gradient/bionics state is independent from View.background, so clear all three states.
         runCatching { access.maskMethod?.invoke(contentView) as? View }
             .getOrNull()
-            ?.let(::clearMaskForView)
+            ?.let { clearMaskForView(it, access.cleanup) }
     }
 
 
@@ -1014,7 +962,7 @@ object IslandBackgroundHook : BaseHook() {
         } else {
             null
         }
-        return ManagedLayerAccess(stateMethod, stateField, containerMethod, maskMethod)
+        return ManagedLayerAccess(stateMethod, stateField, containerMethod, maskMethod, bindMaskCleanup(contentViewClass))
     }
 
     /**
@@ -1437,13 +1385,6 @@ object IslandBackgroundHook : BaseHook() {
         drawableFieldCache.clear()
         backgroundAlphaFieldCache.clear()
         scheduleUpdateMethodCache.clear()
-        miBlurCompatClass = null
-        setBlurModeMethod = null
-        clearBlendMethod = null
-        setBackgroundBlurModeMethod = null
-        clearBionicsMaterialMethod = null
-        clearBlurBlendEffectMethod = null
-        commonUtilsInstance = null
     }
 
     /**

@@ -983,3 +983,11 @@ Mini Window 手势
 「关于 → 调试工具 → 超级岛性能分析」通过签名权限保护的命令广播和 ResultReceiver，在 SystemUI 内按需采集最多 60 秒。SystemUI Hook 创建入口统一使用 `diagnostics/profiledHook` 保持原 API 的优先级、异常与参数语义；未采集时仅检查会话引用，采集时分别记录回调自耗时与包含原链的总耗时，Trace 启用时写入 HI 标记。临时原生状态/动画观察 Hook 仅在采集期间挂载，停止或关闭调试模式后卸载。新 SystemUI Hook 也应使用该入口。
 
 帧回调只统计已观察到、可见的真实/fake 内容，按当前显示刷新率估计 missed vsync，并记录主线程回调迟到。延迟帧附带相邻采样间隔内的主要 Hook；只表示时间关联，不是因果判定或 GPU 耗时。同步直接嵌套工作可重叠，异步任务不在回调耗时内。报告限制 192 个方法、最近 96 条慢事件与 96 条生命周期事件，溢出写入 truncatedHooks；记录覆盖的方法/所属 Hook，未观察到岛时明确为零样本。JSON 仅保存在进程内，由用户主动导出，不进入配置同步、预设或备份。
+
+### 热路径优化（根据两次实机采集定位）
+
+背景遮罩清理的 MiBlur/Bionics API 现在在 Hook 安装时按所属插件内容 Class 解析，并由各运行时自己的 Hook 闭包持有。共享 FrameLayout 的 framework ClassLoader 无法代表插件加载器，不得在 updateContainer 中按其加载器重复查找插件 API。每帧仍清理系统写回的背景、Bionics、blur mode 和 blend，不以 background == null 推断其他通道已经清理。
+
+onPreDraw 预先解析 state 字段和三态具体 View/getter/isAnimating；可见性保留原有祖先 alpha/visibility 检查，只遍历一次；只有目标发生变化时才创建 WeakReference，隐藏完成复查最多同时排队一次。保留真实/fake 交接、暂时隐藏恢复和收起后材质释放。
+
+OuterGlow 的位移/圆角合并为一个位置拦截器。原生位置方法在光效关闭时仍可被调用；报告旧版同一行累计了两个拦截器的调用次数。enabledGlowEffect 明确为 false 且没有待提交/绑定的模块光效时，模块跳过自定义几何处理，仍执行原生方法。只有本模块改过颜色的 View 才执行还原 shader；颜色恢复成功后清除标记。反射成员和缺失结果按实际 Class 隔离缓存，成员弱引用、Class 数与成员数均有上限。上述减少重复工作的效果需要用相同设备、材质和复现步骤重新采集比较，不依据调用次数或包含原链的 totalMs 直接判定卡顿来源。

@@ -10,6 +10,7 @@ import io.github.hyperisland.utils.resolveDynamicHighlightColor
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.SystemUI.corner.IslandCornerHook
 import io.github.hyperisland.xposed.utils.HookUtils
+import io.github.hyperisland.xposed.utils.WeakMemberCache
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.lang.reflect.Field
@@ -102,6 +103,27 @@ object IslandOuterGlowHook : BaseHook() {
     private val glowTargets = WeakHashMap<Any, OwnedGlowTarget>()
     private val runningGlowViews = WeakHashMap<Any, Boolean>()
     private val defaultGlowRanges = WeakHashMap<Any, Float>()
+    private val customizedGlowViews = Collections.synchronizedSet(
+        Collections.newSetFromMap(WeakHashMap<Any, Boolean>())
+    )
+    private val noArgMethods = WeakMemberCache<Method> { type, name ->
+        var current: Class<*>? = type
+        var found: Method? = null
+        while (current != null && found == null) {
+            found = runCatching { current.getDeclaredMethod(name).apply { isAccessible = true } }.getOrNull()
+            current = current.superclass
+        }
+        found
+    }
+    private val fields = WeakMemberCache<Field> { type, name ->
+        var current: Class<*>? = type
+        var found: Field? = null
+        while (current != null && found == null) {
+            found = runCatching { current.getDeclaredField(name).apply { isAccessible = true } }.getOrNull()
+            current = current.superclass
+        }
+        found
+    }
     private val mediaGlowRequests = ConcurrentHashMap<String, MediaGlowRequest>()
 
     @Volatile private var recentOwnedTarget: OwnedGlowTarget? = null
@@ -583,96 +605,86 @@ object IslandOuterGlowHook : BaseHook() {
         }
     }
 
+    private data class GlowTranslationAccess(
+        val content: Class<*>,
+        val delegate: Method,
+        val snapshot: Method,
+        val x: Method,
+        val y: Method,
+    )
+
     private fun hookGlowCornerRadius(module: XposedModule, clazz: Class<*>) {
-        hookGlowTranslation(module, clazz)
-        // The light shader has its own round-rect radius, independent of View Outline.
-        // Both stable geometry and fake/gesture animation updates use this entry point.
+        val translation = resolveGlowTranslation(module, clazz)
         val methods = clazz.declaredMethods.filter {
-            it.name.substringBefore('$') == "setGlowEffectPosition" &&
-                    it.parameterCount == 5 &&
-                    it.parameterTypes.all { type -> type == Float::class.javaPrimitiveType }
+            it.name.substringBefore('$') == "setGlowEffectPosition" && it.parameterCount == 5 &&
+                it.parameterTypes.all { type -> type == Float::class.javaPrimitiveType }
         }
         methods.forEach { method ->
+            // Both transforms share one interceptor and at most one argument array. Native
+            // coordinates are still updated when disabled; only our extra work is skipped.
             module.profiledHook("IslandOuterGlowHook", method).intercept { chain ->
-                val args = runCatching {
-                    val view = chain.thisObject as? View ?: return@runCatching null
-                    // Identify the concrete slot, not the recent notification request:
-                    // BIG and EXPAND can both receive updates during their handoff.
+                val view = chain.thisObject as? View ?: return@intercept chain.proceed()
+                if (canSkipGlowGeometry(view)) return@intercept chain.proceed()
+                var args = translation?.let { translatedGlowArgs(view, chain.args, it) }
+                val radius = runCatching {
                     val expanded = when {
                         view.javaClass.name.contains(EXPANDED_VIEW_MARKER) -> true
                         view.javaClass.name.contains(BIG_VIEW_MARKER) -> false
                         else -> return@runCatching null
                     }
-                    val radius = IslandCornerHook.configuredPx(view, expanded)
-                        ?: return@runCatching null
-                    val left = (chain.args[0] as Number).toFloat()
-                    val top = (chain.args[1] as Number).toFloat()
-                    val right = (chain.args[2] as Number).toFloat()
-                    val bottom = (chain.args[3] as Number).toFloat()
-                    val width = right - left
-                    val height = bottom - top
-                    if (!width.isFinite() || !height.isFinite() || width < 0f || height < 0f) {
-                        return@runCatching null
-                    }
-                    chain.args.toTypedArray().also {
-                        it[4] = radius.coerceAtMost(minOf(width, height) / 2f)
-                    }
+                    val configured = IslandCornerHook.configuredPx(view, expanded) ?: return@runCatching null
+                    val width = (chain.args[2] as Number).toFloat() - (chain.args[0] as Number).toFloat()
+                    val height = (chain.args[3] as Number).toFloat() - (chain.args[1] as Number).toFloat()
+                    if (!width.isFinite() || !height.isFinite() || width < 0f || height < 0f) return@runCatching null
+                    configured.coerceAtMost(minOf(width, height) / 2f)
                 }.getOrNull()
+                if (radius != null && radius != (chain.args[4] as? Number)?.toFloat()) {
+                    if (args == null) args = chain.args.toTypedArray()
+                    args[4] = radius
+                }
                 if (args == null) chain.proceed() else chain.proceed(args)
             }
         }
     }
 
-    private fun hookGlowTranslation(module: XposedModule, clazz: Class<*>) {
+    private fun resolveGlowTranslation(module: XposedModule, clazz: Class<*>): GlowTranslationAccess? =
         runCatching {
             val content = clazz.classLoader!!.loadClass(
                 "miui.systemui.dynamicisland.window.content.DynamicIslandContentView",
             )
-            val delegateGetter = content.getMethod("getAnimatorDelegate")
-            val snapshot = delegateGetter.returnType.getDeclaredMethod("snapshotProperties").apply {
-                isAccessible = true
-            }
-            val xGetter = snapshot.returnType.getMethod("getContainerX")
-            val yGetter = snapshot.returnType.getMethod("getContainerTransY")
-            clazz.declaredMethods.filter {
-                it.name.substringBefore('$') == "setGlowEffectPosition" && it.parameterCount == 5 &&
-                    it.parameterTypes.all { type -> type == Float::class.javaPrimitiveType }
-            }.forEach { method ->
-                module.profiledHook("IslandOuterGlowHook", method).intercept { chain ->
-                    val args = runCatching {
-                        val glow = chain.thisObject as? View ?: return@runCatching null
-                        var ancestor = glow.parent
-                        while (ancestor is View && !content.isInstance(ancestor)) ancestor = ancestor.parent
-                        val owner = ancestor as? View ?: return@runCatching null
-                        if (!content.isInstance(owner)) return@runCatching null
-                        val upper = invokeNoArg(glow, "getMGlowEffectUpperView") as? View
-                        val bottom = invokeNoArg(glow, "getMGlowEffectBottomView") as? View
-                        if ((upper != null && isDescendantOf(upper, owner)) ||
-                            (bottom != null && isDescendantOf(bottom, owner))) return@runCatching null
-                        val delegate = delegateGetter.invoke(owner) ?: return@runCatching null
-                        val props = snapshot.invoke(delegate)
-                        // The official coordinates contain the animation translation, but
-                        // not the guard's direct View translation. Recompute the residual
-                        // each time: animation/reset can overwrite either axis independently.
-                        val dx = owner.translationX - (xGetter.invoke(props) as Number).toFloat()
-                        val dy = owner.translationY - (yGetter.invoke(props) as Number).toFloat()
-                        if (!dx.isFinite() || !dy.isFinite() || (dx == 0f && dy == 0f)) {
-                            return@runCatching null
-                        }
-                        chain.args.toTypedArray().also {
-                            it[0] = (it[0] as Number).toFloat() + dx
-                            it[1] = (it[1] as Number).toFloat() + dy
-                            it[2] = (it[2] as Number).toFloat() + dx
-                            it[3] = (it[3] as Number).toFloat() + dy
-                        }
-                    }.getOrNull()
-                    if (args == null) chain.proceed() else chain.proceed(args)
-                }
-            }
+            val delegate = content.getMethod("getAnimatorDelegate")
+            val snapshot = delegate.returnType.getDeclaredMethod("snapshotProperties").apply { isAccessible = true }
+            GlowTranslationAccess(content, delegate, snapshot,
+                snapshot.returnType.getMethod("getContainerX"), snapshot.returnType.getMethod("getContainerTransY"))
         }.onFailure { error ->
             logFailureOnce(module, "glow-translation") { "glow translation hook unavailable: ${error.message}" }
+        }.getOrNull()
+
+    private fun translatedGlowArgs(
+        glow: View,
+        source: List<Any?>,
+        access: GlowTranslationAccess,
+    ): Array<Any?>? = runCatching {
+        var ancestor = glow.parent
+        while (ancestor is View && !access.content.isInstance(ancestor)) ancestor = ancestor.parent
+        val owner = ancestor as? View ?: return@runCatching null
+        if (!access.content.isInstance(owner)) return@runCatching null
+        val upper = invokeNoArg(glow, "getMGlowEffectUpperView") as? View
+        val bottom = invokeNoArg(glow, "getMGlowEffectBottomView") as? View
+        if ((upper != null && isDescendantOf(upper, owner)) ||
+            (bottom != null && isDescendantOf(bottom, owner))) return@runCatching null
+        val delegate = access.delegate.invoke(owner) ?: return@runCatching null
+        val props = access.snapshot.invoke(delegate)
+        val dx = owner.translationX - (access.x.invoke(props) as Number).toFloat()
+        val dy = owner.translationY - (access.y.invoke(props) as Number).toFloat()
+        if (!dx.isFinite() || !dy.isFinite() || (dx == 0f && dy == 0f)) return@runCatching null
+        source.toTypedArray().also {
+            it[0] = (it[0] as Number).toFloat() + dx
+            it[1] = (it[1] as Number).toFloat() + dy
+            it[2] = (it[2] as Number).toFloat() + dx
+            it[3] = (it[3] as Number).toFloat() + dy
         }
-    }
+    }.getOrNull()
 
     private fun isDescendantOf(view: View, owner: View): Boolean {
         var parent = view.parent
@@ -681,6 +693,13 @@ object IslandOuterGlowHook : BaseHook() {
             parent = parent.parent
         }
         return false
+    }
+
+    private fun canSkipGlowGeometry(view: Any?): Boolean {
+        if (view == null || readFieldValue(view, "enabledGlowEffect") != false) return false
+        // An owned request is assigned before native start, so first-frame preparation survives.
+        if (shouldApplyOwnedGlowForMode(GLOW_MODE_STATUS) || shouldApplyOwnedGlowForMode(GLOW_MODE_EXPAND)) return false
+        return synchronized(glowTargets) { !glowTargets.containsKey(view) }
     }
 
     private fun hookFocusExtrasBridge(module: XposedModule, classLoader: ClassLoader) {
@@ -915,6 +934,10 @@ object IslandOuterGlowHook : BaseHook() {
         val base = obtainDefaultLightColors(shaderClass) ?: readInstanceLightColors(shader) ?: return
         cacheDefaultLightColors(shaderClass, base)
         val singleColorEnabled = ConfigManager.getBoolean("pref_outer_glow_single_color", false)
+        synchronized(customizedGlowViews) {
+            if (customizedGlowViews.size >= MAX_RUNNING_GLOW_VIEWS && glowView !in customizedGlowViews) return
+            customizedGlowViews.add(glowView)
+        }
         val targetColors = when {
             !cfg.effectEnabled || cfg.colorArgb == null -> base
             singleColorEnabled -> rebuildSingleColorArray(base, cfg.colorArgb)
@@ -943,13 +966,15 @@ object IslandOuterGlowHook : BaseHook() {
     }
 
     private fun restoreDefaultGlowColor(glowView: Any) {
+        if (glowView !in customizedGlowViews) return
         val shader = resolveLightBgShader(glowView) ?: return
         val runtimeShader = resolveRuntimeShader(shader) ?: return
         val shaderClass = shader.javaClass
         val colors = obtainDefaultLightColors(shaderClass) ?: readInstanceLightColors(shader) ?: return
         cacheDefaultLightColors(shaderClass, colors)
-        setRuntimeShaderLightColors(runtimeShader, colors)
-        setRuntimeShaderFloat(runtimeShader, "uUseBaseColor", 0f)
+        val colorsRestored = setRuntimeShaderLightColors(runtimeShader, colors)
+        val baseRestored = setRuntimeShaderFloat(runtimeShader, "uUseBaseColor", 0f)
+        if (colorsRestored && baseRestored) customizedGlowViews.remove(glowView)
     }
 
     private fun resolveMediaGlowRequest(stateObj: Any?, extras: Bundle?): MediaGlowRequest? {
@@ -1554,25 +1579,10 @@ object IslandOuterGlowHook : BaseHook() {
     }
 
     private fun findNoArgMethod(clazz: Class<*>, name: String): Method? {
-        var current: Class<*>? = clazz
-        while (current != null) {
-            current.declaredMethods.firstOrNull { it.name == name && it.parameterCount == 0 }?.let { return it }
-            current = current.superclass
-        }
-        return null
+        return noArgMethods.get(clazz, name)
     }
 
     private fun readFieldValue(instance: Any, fieldName: String): Any? {
-        var current: Class<*>? = instance.javaClass
-        while (current != null) {
-            try {
-                val field = current.getDeclaredField(fieldName)
-                field.isAccessible = true
-                return field.get(instance)
-            } catch (_: NoSuchFieldException) {
-                current = current.superclass
-            }
-        }
-        return null
+        return fields.get(instance.javaClass, fieldName)?.get(instance)
     }
 }
