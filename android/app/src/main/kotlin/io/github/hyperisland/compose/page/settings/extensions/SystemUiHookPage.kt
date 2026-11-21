@@ -64,6 +64,7 @@ internal fun SystemUiHookPage(
         mutableFloatStateOf(prefs.getDouble(KEY_SMALL_ICON_OPACITY, DEFAULT_ICON_OPACITY).toFloat())
     }
     val wifiTileDisconnect = rememberBooleanPreference(prefs, KEY_WIFI_TILE_DISCONNECT, false)
+    val disableBleUnlockToast = rememberBooleanPreference(prefs, KEY_DISABLE_BLE_UNLOCK_TOAST, false)
 
     val applySmoothIsland: (Boolean) -> Unit = { value ->
         if (actions.request(value, listOf(PKG_SYSTEM_UI), scopeFailed)) {
@@ -188,6 +189,18 @@ internal fun SystemUiHookPage(
                     if (actions.request(value, listOf(PKG_SYSTEM_UI), scopeFailed)) {
                         wifiTileDisconnect.value = value
                         prefs.putBoolean(KEY_WIFI_TILE_DISCONNECT, value)
+                        actions.show(restartRequired)
+                    }
+                }
+                PreferenceSwitch(
+                    title = stringResource(R.string.ext_disable_ble_unlock_toast),
+                    summary = null,
+                    icon = null,
+                    checked = disableBleUnlockToast.value,
+                ) { value ->
+                    if (actions.request(value, listOf(PKG_SYSTEM_UI), scopeFailed)) {
+                        disableBleUnlockToast.value = value
+                        prefs.putBoolean(KEY_DISABLE_BLE_UNLOCK_TOAST, value)
                         actions.show(restartRequired)
                     }
                 }

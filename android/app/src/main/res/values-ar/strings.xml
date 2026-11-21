@@ -354,6 +354,7 @@
     <string name="ext_show_device_name_summary">عند الاتصال، أظهر اسم الجهاز على الايمن الأول، ثم أظهر حالة الاتصال</string>
     <string name="ext_small_icon">تعديل أيقونة الجزيرة الصغير</string>
     <string name="ext_small_icon_disabled">معطّل · ضبط سلوك أيقونة الجزيرة</string>
+    <string name="ext_disable_ble_unlock_toast">تعطيل إشعار فتح القفل عبر Bluetooth</string>
     <string name="ext_small_icon_enabled">مفعّل · ضبط سلوك أيقونة الجزيرة</string>
     <string name="ext_smoothing">قوة التنعيم</string>
     <string name="ext_system_settings">إعدادات النظام</string>

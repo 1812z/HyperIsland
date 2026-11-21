@@ -362,6 +362,7 @@
     <string name="ext_small_icon">Настройка значка малого Острова</string>
     <string name="ext_small_icon_enabled">Включено · Настройка поведения значка Острова</string>
     <string name="ext_small_icon_disabled">Отключено · Настройка поведения значка Острова</string>
+    <string name="ext_disable_ble_unlock_toast">Отключить уведомление о разблокировке Bluetooth</string>
     <string name="ext_opacity">Непрозрачность</string>
     <string name="ext_wifi_tile_disconnect">Плитка Wi-Fi: только отключение</string>
     <string name="ext_wifi_tile_disconnect_summary">Нажатие на плитку Wi-Fi только разрывает соединение, не выключая Wi-Fi и не переподключаясь автоматически; плитка становится серой. Повторное нажатие восстанавливает автоподключение</string>

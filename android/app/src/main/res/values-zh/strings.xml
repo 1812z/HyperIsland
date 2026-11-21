@@ -422,6 +422,7 @@
     <string name="ext_small_icon">小岛图标调节</string>
     <string name="ext_small_icon_enabled">已开启 · 调节小岛图标行为</string>
     <string name="ext_small_icon_disabled">已关闭 · 调节小岛图标行为</string>
+    <string name="ext_disable_ble_unlock_toast">禁用蓝牙设备解锁 Toast</string>
     <string name="ext_opacity">不透明度</string>
     <string name="ext_wifi_tile_disconnect">WiFi 磁贴仅断开</string>
     <string name="ext_wifi_tile_disconnect_summary">点击 WiFi 磁贴仅断开连接，不关闭 WiFi、不会自动重连，磁贴变为灰色；再次点击恢复自动连接</string>

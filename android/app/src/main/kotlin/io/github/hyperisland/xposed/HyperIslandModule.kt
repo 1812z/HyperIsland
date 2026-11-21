@@ -42,6 +42,7 @@ import io.github.hyperisland.xposed.hook.PermissionManager.ClipboardToastHook
 import io.github.hyperisland.xposed.hook.SystemUI.GenericProgressHook
 import io.github.hyperisland.xposed.hook.SystemUI.ProxySourceHeadsUpSuppressHook
 import io.github.hyperisland.xposed.hook.SystemUI.WifiTileDisconnectHook
+import io.github.hyperisland.xposed.hook.SystemUI.BluetoothUnlockToastHook
 import io.github.hyperisland.xposed.hook.IslandBackgroundHook
 import io.github.hyperisland.xposed.hook.SystemUI.geometry.IslandDimenHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandIconColorHook
@@ -151,6 +152,10 @@ class HyperIslandModule : XposedModule() {
                 KeepIslandHook.init(this, param)
                 if (ConfigManager.getBoolean("pref_wifi_tile_disconnect_only", false)) {
                     WifiTileDisconnectHook.init(this, param)
+                }
+                // 蓝牙解锁提示：与其它拓展一致，关闭时连 init 都不进（零注入、零监听）。
+                if (ConfigManager.getBoolean("pref_disable_bluetooth_unlock_toast", false)) {
+                    BluetoothUnlockToastHook.init(this, param)
                 }
                 if (ConfigManager.getBoolean("pref_bluetooth_island", false)) {
                     BluetoothIslandHook.init(this, param)

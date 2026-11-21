@@ -348,6 +348,7 @@
     <string name="ext_show_device_name_summary">Ao conectar, mostra o nome do dispositivo à direita primeiro e, em seguida, o status da conexão</string>
     <string name="ext_small_icon">Ajuste do ícone da Ilha Pequena</string>
     <string name="ext_small_icon_disabled">Desativado · Ajustar o comportamento do ícone da Ilha</string>
+    <string name="ext_disable_ble_unlock_toast">Desativar o aviso de desbloqueio por Bluetooth</string>
     <string name="ext_small_icon_enabled">Ativado · Ajustar o comportamento do ícone da Ilha</string>
     <string name="ext_smoothing">Força de suavização</string>
     <string name="ext_system_settings">Configurações do sistema</string>

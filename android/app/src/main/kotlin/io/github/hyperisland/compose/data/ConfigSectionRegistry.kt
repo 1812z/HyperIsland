@@ -282,6 +282,11 @@ internal val ConfigSectionGroups: List<ConfigSection> = listOf(
                         exactKeys = listOf("pref_wifi_tile_disconnect_only"),
                     ),
                     ConfigSection(
+                        id = "ext_ble_unlock_toast",
+                        titleRes = R.string.ext_disable_ble_unlock_toast,
+                        exactKeys = listOf("pref_disable_bluetooth_unlock_toast"),
+                    ),
+                    ConfigSection(
                         id = "ext_bluetooth_island",
                         titleRes = R.string.bluetooth_island,
                         keyPrefixes = listOf("pref_bluetooth_island"),

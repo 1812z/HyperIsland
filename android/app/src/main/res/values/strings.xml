@@ -416,6 +416,7 @@
     <string name="ext_small_icon">Small island icon adjustment</string>
     <string name="ext_small_icon_enabled">Enabled · Adjust island icon behavior</string>
     <string name="ext_small_icon_disabled">Disabled · Adjust island icon behavior</string>
+    <string name="ext_disable_ble_unlock_toast">Disable Bluetooth unlock toast</string>
     <string name="ext_opacity">Opacity</string>
     <string name="ext_wifi_tile_disconnect">WiFi tile disconnect only</string>
     <string name="ext_wifi_tile_disconnect_summary">Tap the WiFi tile to disconnect without turning off WiFi or auto-reconnecting; the tile turns grey. Tap again to restore auto-connect</string>
