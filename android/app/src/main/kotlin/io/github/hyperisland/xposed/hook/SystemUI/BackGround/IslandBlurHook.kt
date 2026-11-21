@@ -92,6 +92,9 @@ object IslandBlurHook : BaseHook() {
     private var islandTempHidden = false
 
     @Volatile
+    private var notificationPanelTempHide = false
+
+    @Volatile
     private var tempHideRecoveryPending = false
 
     override fun getTag() = TAG
@@ -717,18 +720,34 @@ object IslandBlurHook : BaseHook() {
             val wasHidden = islandTempHidden
             val hidden = chain.args.getOrNull(0) as? Boolean
             when (hidden) {
-                true -> if (!wasHidden) {
-                    tempHideRecoveryPending = false
-                    (chain.thisObject as? View)?.let(SoftGlassController::pauseWindow)
-                    enterTempHidden()
+                true -> {
+                    val panelHide = when ((chain.args.getOrNull(1) as? Enum<*>)?.name) {
+                        "NOTIFICATION_APPEARANCE", "NOTIFICATION_SWIPE_TO_APPEARANCE",
+                        "SHOW_NOTIFICATION_ICONS" -> true
+                        else -> false
+                    }
+                    if (!wasHidden || panelHide || notificationPanelTempHide) {
+                        (chain.thisObject as? View)?.let { root ->
+                            SoftGlassController.pauseWindow(root, afterDraw = panelHide)
+                        }
+                    }
+                    notificationPanelTempHide = panelHide
+                    if (!wasHidden) {
+                        tempHideRecoveryPending = false
+                        enterTempHidden()
+                    }
                 }
-                false, null -> Unit
+                false -> if (notificationPanelTempHide) {
+                    (chain.thisObject as? View)?.let(SoftGlassController::cancelWindowPauses)
+                }
+                null -> Unit
             }
             val result = chain.proceed()
             if (hidden == false && wasHidden) {
                 // The false callback precedes restoration of visible geometry. Keep
                 // the reusable drawable protected until a real target can be drawn.
                 islandTempHidden = false
+                notificationPanelTempHide = false
                 tempHideRecoveryPending = true
                 mainHandler.removeCallbacks(refreshRunnable)
                 mainHandler.post(refreshRunnable)
@@ -1040,7 +1059,11 @@ object IslandBlurHook : BaseHook() {
                         }
                         if (concrete != null && SoftGlassController.isManaged(concrete)) {
                             if (islandTempHidden) {
-                                SoftGlassController.pauseRendering(concrete)
+                                if (notificationPanelTempHide) {
+                                    SoftGlassController.pauseAfterDraw(concrete)
+                                } else {
+                                    SoftGlassController.pauseRendering(concrete)
+                                }
                             } else {
                                 // SystemUI's own currentIslandVisible() is authoritative. A
                                 // sibling hidden by EXPAND must no longer submit a compact crop.

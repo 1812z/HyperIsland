@@ -508,6 +508,8 @@ Bionics 目标之外还有互相独立的背景写入者：
 
 稳定 SMALL/BIG 的原生 Bionics 同时依赖 root background blur 与 pass SurfaceTexture。`updateWindowBlur(false)`、`updatePassWindowBlur(false)`、`finalizeAnimFinished()` 属于系统采样生命周期；在没有确认当前真实/fake 槽确实提交可见 Bionics 帧前，不应长期拦截关闭或重建纹理。模糊强度由 `setMiGlassBlurRadius(small, big)` 控制，系统默认是 `50/500`。
 
+通知栏展开、下拉阈值和隐藏通知图标会派发窗口级临时隐藏事件。手机版对 properties=0 的一次性岛单独计算隐藏条件，仍可见的 `ShowOnceBigIsland` 保留柔光租约。普通岛则由 `bigIslandToTempHiddenAnimation()` / `smallIslandToTempHiddenAnimation()` 将当前真实槽向挖孔收缩并淡出。通知栏触发的暂停复用目标级 pre-draw 监听，在真实/fake 槽或祖先不可见、透明度接近零后才撤掉采样和材质写入保护。普通岛仍处于逻辑 BIG/SMALL 时也能完成暂停。面板收回时取消本窗口尚未执行的暂停，已隐藏的槽继续按可见恢复流程获取租约。用户已确认一次性岛黑底消失，普通岛退场动画仍待实机复测。
+
 ## 8. 圆角
 
 ### 8.1 小岛和大岛
@@ -873,7 +875,7 @@ Mini Window 手势
 31. fake SMALL/BIG/EXPAND 是长期复用的附着 View，但模块只允许当前实际绘制的一个槽位持有 Bionics 材质。隐藏槽位释放材质，交叉淡入按可见子槽 alpha 交接。
 32. pass-window 保活必须按包含父层 alpha/visibility 的实际绘制状态判断，不能按任意 managed View 判断；保活中的采样器必须保持 60 FPS，不能使用系统关闭态的 `-1`。
 33. `preparingTypeHolder=EXPAND` 标记的是 `updateExpandedView()` 在状态切换前发出的隐藏目标初始化。它不能按普通 stale 处理去覆盖当前外层，但也不能预热 Bionics；材质由后续 fake→真实交接或可见 `onPreDraw` 获取。
-34. 临时隐藏必须在 `onIslandTempHide(true)` 源事件暂停窗口全部 SOFT 租约并放行系统关闭；恢复时在真实 View 首次重新可见的 `onPreDraw` 边缘重新获取租约并清理系统写回的外层黑底。
+34. `onIslandTempHide(true)` 是临时隐藏的起点。通知栏场景等普通岛结束可见绘制后再暂停 SOFT 租约，仍可见的一次性岛继续使用柔光。恢复时取消尚未执行的暂停，在真实 View 首次重新可见的 `onPreDraw` 边缘重新获取已暂停的租约并清理系统写回的外层黑底。
 35. Bionics 材质所有权与采样器渲染租约必须分离：预备 View 可以先写材质，但只有实际 real/fake 槽能持有租约。仍有租约时在 `updateWindowBlur(false)` / `updatePassWindowBlur(false)` 源头把参数替换为 `true`；最后一个租约释放后完整放行系统关闭，禁止永久常驻采样器。
 36. fake 动画目标由 `FakeViewAnimator.fakeViewToSmallIsland/BigIsland/Expanded` 决定；目标子槽实际接管绘制前，旧槽可继续使用已有材质。Hidden/Deleted 释放全部 fake 槽的材质和采样租约。
 37. active SOFT 租约还必须保护对应 View 的 `setMiViewMaterialType(..., 0)` 与 `setMiViewBlurModeCompat(..., 0)` 源写入；租约释放后不拦截，确保默认材质、隐藏态和删除态继续执行系统清理。
@@ -1007,3 +1009,5 @@ Mini Window 手势
 onPreDraw 预先解析 state 字段和三态具体 View/getter/isAnimating；可见性保留原有祖先 alpha/visibility 检查，只遍历一次；只有目标发生变化时才创建 WeakReference，隐藏完成复查最多同时排队一次。保留真实/fake 交接、暂时隐藏恢复和收起后材质释放。
 
 OuterGlow 的位移/圆角合并为一个位置拦截器。原生位置方法在光效关闭时仍可被调用；报告旧版同一行累计了两个拦截器的调用次数。enabledGlowEffect 明确为 false 且没有待提交/绑定的模块光效时，模块跳过自定义几何处理，仍执行原生方法。只有本模块改过颜色的 View 才执行还原 shader；颜色恢复成功后清除标记。反射成员和缺失结果按实际 Class 隔离缓存，成员弱引用、Class 数与成员数均有上限。上述减少重复工作的效果需要用相同设备、材质和复现步骤重新采集比较，不依据调用次数或包含原链的 totalMs 直接判定卡顿来源。
+
+一次性岛下拉采集中，`handleContentViewUpdateOperate()` 的媒体文字改色 Hook 24 次累计主线程自耗时 62.11 ms，单次最高 5.52 ms。先确认媒体数据再解析真实/fake 展开根节点，反射 getter 按 Class 弱缓存。最大帧间隔 341.16 ms 对应的已统计 Hook 自耗时仅 0.25 ms，采集无法归因其余时间或确认 GPU 耗时。

@@ -39,6 +39,10 @@ internal object SoftGlassController {
     private const val TAG = "HyperIsland[SoftGlass]"
     private const val WINDOW_VIEW_CLASS =
         "miui.systemui.dynamicisland.window.DynamicIslandWindowView"
+    private const val CONTENT_VIEW_CLASS =
+        "miui.systemui.dynamicisland.window.content.DynamicIslandContentView"
+    private const val FAKE_CONTENT_VIEW_CLASS =
+        "miui.systemui.dynamicisland.window.content.DynamicIslandContentFakeView"
     private const val SYSTEM_SMALL_BLUR_RADIUS = 50
     private const val SYSTEM_BIG_BLUR_RADIUS = 500
     private val managedViews = Collections.synchronizedSet(
@@ -59,6 +63,7 @@ internal object SoftGlassController {
         val observer: WeakReference<ViewTreeObserver>,
         val listener: ViewTreeObserver.OnPreDrawListener,
         val timeout: Runnable,
+        val pauseOnly: Boolean,
     )
     private val retirements = WeakHashMap<View, Retirement>()
     private val appliedWindowRadii = Collections.synchronizedMap(WeakHashMap<View, Int>())
@@ -446,6 +451,7 @@ internal object SoftGlassController {
 
     /** Temporarily removes only the sampler lease, retaining the prepared View material. */
     fun pauseRendering(view: View) {
+        cancelTemporaryPause(view)
         if (!renderingViews.remove(view)) return
         val root = findWindowView(view) ?: return
         if (!hasRenderingView(root)) {
@@ -475,17 +481,51 @@ internal object SoftGlassController {
         }
     }
 
-    /** Temporary-hide is a window event; drop every lease but keep the sampler alive. */
-    fun pauseWindow(root: View) {
+    /** The shade's logical hide precedes the outgoing slot's last visible frame. */
+    fun pauseWindow(root: View, afterDraw: Boolean) {
         val views = synchronized(renderingViews) { renderingViews.toList() }
-            .filter { findWindowView(it) === root }
-        views.forEach { renderingViews.remove(it) }
-        // Do not close the shared pass/window blur samplers here. The island can still be on
-        // screen during its hide animation (notably STATUS_BAR_DISAPPEARANCE, where the island is
-        // only logically hidden). Closing the sampler — or updateWindowBlur(false) zeroing the
-        // Bionics radius — makes a still-visible material transparent. With the lease gone,
-        // Xiaomi's own finalizeAnimFinished() closes the sampler once the animation truly ends,
-        // and that close is no longer intercepted.
+        views.forEach { view ->
+            if (findWindowView(view) !== root) return@forEach
+            if (afterDraw) {
+                pauseAfterDraw(view)
+            } else {
+                cancelTemporaryPause(view)
+                renderingViews.remove(view)
+            }
+        }
+    }
+
+    fun cancelWindowPauses(root: View) {
+        retirements.keys.toList().forEach { view ->
+            if (findWindowView(view) === root) cancelTemporaryPause(view)
+        }
+    }
+
+    fun pauseAfterDraw(view: View) {
+        if (view !in renderingViews || isVisibleShowOnce(view)) return
+        scheduleRetirement(view, preserveSystemSampling = false, pauseOnly = true)
+    }
+
+    /** The notification panel can hide ordinary islands while a show-once slot still draws. */
+    private fun isVisibleShowOnce(view: View): Boolean {
+        if (!view.isShown || view.windowVisibility != View.VISIBLE) return false
+        var owner = view.parent as? View
+        while (owner != null) {
+            val current = owner
+            val real = when (current.javaClass.name) {
+                CONTENT_VIEW_CLASS -> current
+                FAKE_CONTENT_VIEW_CLASS -> runCatching {
+                    findMethod(current.javaClass, "getRealView")?.invoke(current) as? View
+                }.getOrNull() ?: return false
+                else -> {
+                    owner = current.parent as? View
+                    continue
+                }
+            }
+            val state = runCatching { findMethod(real.javaClass, "getState")?.invoke(real) }.getOrNull()
+            return state?.javaClass?.simpleName == "ShowOnceBigIsland"
+        }
+        return false
     }
 
     fun release(
@@ -493,7 +533,7 @@ internal object SoftGlassController {
         restoreBackground: Boolean = true,
         releaseSampling: Boolean = true,
     ) {
-        cancelRetirement(view)
+        cancelRetirement(view, includeTemporaryPause = true)
         if (!managedViews.remove(view)) return
         val root = findWindowView(view)
         renderingViews.remove(view)
@@ -519,7 +559,7 @@ internal object SoftGlassController {
     }
 
     private fun forget(view: View) {
-        cancelRetirement(view)
+        cancelRetirement(view, includeTemporaryPause = true)
         viewRuntimes.remove(view)
         val root = findWindowView(view)
         managedViews.remove(view)
@@ -537,28 +577,42 @@ internal object SoftGlassController {
 
     /** Logical destination changes before Folme finishes drawing the outgoing expanded slot. */
     fun retireAfterDraw(view: View, preserveSystemSampling: Boolean = false) {
+        scheduleRetirement(view, preserveSystemSampling, pauseOnly = false)
+    }
+
+    private fun scheduleRetirement(view: View, preserveSystemSampling: Boolean, pauseOnly: Boolean) {
         if (Looper.myLooper() != Looper.getMainLooper()) {
             val ref = WeakReference(view)
-            retireHandler.post { ref.get()?.let { retireAfterDraw(it, preserveSystemSampling) } }
+            retireHandler.post { ref.get()?.let { scheduleRetirement(it, preserveSystemSampling, pauseOnly) } }
             return
         }
         if (!isManaged(view)) return
+        fun finish(target: View) {
+            if (pauseOnly) {
+                pauseRendering(target)
+            } else {
+                release(target, restoreBackground = false, releaseSampling = !preserveSystemSampling)
+            }
+        }
         if (!isDrawing(view)) {
-            release(view, restoreBackground = false, releaseSampling = !preserveSystemSampling)
+            finish(view)
             return
         }
-        if (retirements.containsKey(view)) return
+        retirements[view]?.let { pending ->
+            if (pauseOnly || !pending.pauseOnly) return
+            cancelRetirement(view, includeTemporaryPause = true)
+        }
         if (retirements.size >= 128) {
-            release(view, restoreBackground = false, releaseSampling = !preserveSystemSampling)
+            finish(view)
             return
         }
         val ref = WeakReference(view)
         val listener = ViewTreeObserver.OnPreDrawListener {
             ref.get()?.let { target ->
-                if (isCurrentRealSlot(target)) {
+                if (!pauseOnly && isCurrentRealSlot(target)) {
                     cancelRetirement(target)
                 } else if (!isDrawing(target)) {
-                    release(target, restoreBackground = false, releaseSampling = !preserveSystemSampling)
+                    finish(target)
                 }
             }
             true
@@ -566,22 +620,30 @@ internal object SoftGlassController {
         val timeout = Runnable {
             ref.get()?.let { target ->
                 // Bound a cancelled animation's lease even if no more traversals occur.
-                release(target, restoreBackground = false, releaseSampling = !preserveSystemSampling)
+                finish(target)
             }
         }
         val observer = view.viewTreeObserver
         if (!observer.isAlive) return
         observer.addOnPreDrawListener(listener)
-        retirements[view] = Retirement(WeakReference(observer), listener, timeout)
+        retirements[view] = Retirement(WeakReference(observer), listener, timeout, pauseOnly)
         retireHandler.postDelayed(timeout, 3_000L)
-        diagnose("retire-after-draw", view)
+        diagnose(if (pauseOnly) "pause-after-draw" else "retire-after-draw", view)
     }
 
-    fun cancelRetirement(view: View) {
-        val pending = retirements.remove(view) ?: return
+    private fun cancelTemporaryPause(view: View) {
+        if (retirements[view]?.pauseOnly == true) cancelRetirement(view, includeTemporaryPause = true)
+    }
+
+    private fun cancelRetirement(view: View, includeTemporaryPause: Boolean) {
+        val pending = retirements[view] ?: return
+        if (pending.pauseOnly && !includeTemporaryPause) return
+        retirements.remove(view)
         pending.observer.get()?.takeIf { it.isAlive }?.removeOnPreDrawListener(pending.listener)
         retireHandler.removeCallbacks(pending.timeout)
     }
+
+    fun cancelRetirement(view: View) = cancelRetirement(view, includeTemporaryPause = false)
 
     private fun isDrawing(view: View): Boolean {
         if (!view.isAttachedToWindow || view.windowVisibility != View.VISIBLE) return false
@@ -597,9 +659,7 @@ internal object SoftGlassController {
         val type = IslandStateResolver.forView(view) ?: return false
         var owner = view.parent as? View
         while (owner != null) {
-            if (owner.javaClass.name ==
-                "miui.systemui.dynamicisland.window.content.DynamicIslandContentView"
-            ) {
+            if (owner.javaClass.name == CONTENT_VIEW_CLASS) {
                 val state = runCatching { findMethod(owner.javaClass, "getState")?.invoke(owner) }.getOrNull()
                 if (state?.javaClass?.simpleName in setOf("AppExpanded", "MiniWindowExpanded")) return false
                 return IslandStateResolver.fromState(state) == type && isDrawing(view)

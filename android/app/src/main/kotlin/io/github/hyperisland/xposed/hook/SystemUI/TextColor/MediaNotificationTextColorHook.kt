@@ -16,9 +16,11 @@ import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.log
 import io.github.hyperisland.xposed.logError
 import io.github.hyperisland.xposed.utils.HookUtils
+import io.github.hyperisland.xposed.utils.WeakMemberCache
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.lang.ref.WeakReference
+import java.lang.reflect.Method
 import java.util.Collections
 import java.util.WeakHashMap
 import java.util.concurrent.atomic.AtomicInteger
@@ -55,6 +57,9 @@ object MediaNotificationTextColorHook : BaseHook() {
         resolveInternalViewIds("text", "text2")
     }
     private val expandedProbeCount = AtomicInteger()
+    private val getters = WeakMemberCache<Method> { type, name ->
+        runCatching { type.getMethod(name) }.getOrNull()
+    }
 
     @Volatile private var islandAnimationRunning = false
     @Volatile private var pendingTintRefresh = false
@@ -247,11 +252,11 @@ object MediaNotificationTextColorHook : BaseHook() {
         }
         methods.forEach { method ->
             module.profiledHook("MediaNotificationTextColorHook", method).intercept { chain ->
-                val contentView = chain.args.firstOrNull() as? View
-                val params = chain.args.getOrNull(1)
-                val data = params?.let { invokeNoArg(it, "getIslandData") }
                 val result = chain.proceed()
-                if (data != null) {
+                val params = chain.args.getOrNull(1) ?: return@intercept result
+                val data = invokeNoArg(params, "getIslandData") ?: return@intercept result
+                handleExpandedIslandData(data) {
+                    val contentView = chain.args.firstOrNull() as? View
                     val fakeView = contentView?.let { invokeNoArg(it, "getFakeView") as? View }
                     val expandedView = contentView
                         ?.let { invokeNoArg(it, "getExpandedView") as? View }
@@ -259,10 +264,7 @@ object MediaNotificationTextColorHook : BaseHook() {
                     val fakeExpandedView = fakeView
                         ?.let { invokeNoArg(it, "getFakeExpandedView") as? View }
                         ?: fakeView
-                    handleExpandedIslandData(
-                        data,
-                        listOfNotNull(expandedView, fakeExpandedView),
-                    )
+                    listOfNotNull(expandedView, fakeExpandedView)
                 }
                 result
             }
@@ -281,11 +283,9 @@ object MediaNotificationTextColorHook : BaseHook() {
         return null
     }
 
-    private fun handleExpandedIslandData(data: Any, installedRoots: List<View> = emptyList()) {
+    private inline fun handleExpandedIslandData(data: Any, installedRoots: () -> List<View> = { emptyList() }) {
         runCatching {
             val extras = invokeNoArg(data, "getExtras") as? Bundle
-            val realRoot = invokeNoArg(data, "getView") as? View
-            val fakeRoot = invokeNoArg(data, "getFakeView") as? View
             val hasMediaPendingIntent = extras
                 ?.getParcelable<PendingIntent>("miui.pending.intent") != null
             val sbn = extras?.getParcelable<StatusBarNotification>("miui.sbn")
@@ -293,19 +293,23 @@ object MediaNotificationTextColorHook : BaseHook() {
             if (!hasMediaPendingIntent && !sbnMedia) return
 
             val notification = sbn?.notification
-            val roots = (listOfNotNull(realRoot, fakeRoot) + installedRoots).distinct()
+            val realRoot = invokeNoArg(data, "getView") as? View
+            val fakeRoot = invokeNoArg(data, "getFakeView") as? View
+            val roots = (listOfNotNull(realRoot, fakeRoot) + installedRoots()).distinct()
             if (roots.isEmpty()) return
             val shouldLogProbe = expandedProbeCount.getAndIncrement() < MAX_EXPANDED_PROBES
             if (shouldLogProbe) {
-                val titleProbe = roots.firstNotNullOfOrNull { root ->
-                    findExpandedMediaTitle(root, notification)
-                }
-                log { "$TAG [MediaTitleDiag] expanded install probe " +
+                log {
+                    val titleProbe = roots.firstNotNullOfOrNull { root ->
+                        findExpandedMediaTitle(root, notification)
+                    }
+                    "$TAG [MediaTitleDiag] expanded install probe " +
                         "data=${data.javaClass.name}, " +
                         "pkg=${sbn?.packageName ?: extras?.getString("miui.pkg.name")}, " +
                         "pendingIntent=$hasMediaPendingIntent, sbnMedia=$sbnMedia, " +
                         "root=${realRoot?.javaClass?.name}, titleId=${titleProbe?.let(::resourceEntryName)}, " +
-                        "textViewIds=${roots.flatMap(::collectTextViewResourceNames).distinct()}" }
+                        "textViewIds=${roots.flatMap(::collectTextViewResourceNames).distinct()}"
+                }
             }
 
             var matched = 0
@@ -334,8 +338,10 @@ object MediaNotificationTextColorHook : BaseHook() {
                         "titles=$matched, subtitles=$subtitleMatched" }
             }
             if (matched == 0 && shouldLogProbe) {
-                val ids = roots.flatMap(::collectTextViewResourceNames).distinct()
-                log { "$TAG [MediaTitleDiag] expanded title not found, textViewIds=$ids" }
+                log {
+                    val ids = roots.flatMap(::collectTextViewResourceNames).distinct()
+                    "$TAG [MediaTitleDiag] expanded title not found, textViewIds=$ids"
+                }
             }
         }.onFailure { error ->
             logError(
@@ -531,11 +537,8 @@ private fun ensureAttachRefresh(textView: TextView, subtitle: Boolean) {
         return runCatching { view.resources.getResourceEntryName(view.id) }.getOrNull()
     }
 
-    private fun invokeNoArg(target: Any, methodName: String): Any? {
-        return target.javaClass.methods.firstOrNull { method ->
-            method.name == methodName && method.parameterTypes.isEmpty()
-        }?.invoke(target)
-    }
+    private fun invokeNoArg(target: Any, methodName: String): Any? =
+        getters.get(target.javaClass, methodName)?.invoke(target)
 
     private fun isMediaNotification(notification: Notification): Boolean {
         val extras = notification.extras
@@ -545,12 +548,8 @@ private fun ensureAttachRefresh(textView: TextView, subtitle: Boolean) {
         ) {
             return true
         }
-        return runCatching {
-            val mediaMethod = notification.javaClass.methods.firstOrNull { method ->
-                method.name == "isMediaNotification" && method.parameterTypes.isEmpty()
-            } ?: return@runCatching false
-            mediaMethod.invoke(notification) == true
-        }.getOrDefault(false)
+        return runCatching { invokeNoArg(notification, "isMediaNotification") == true }
+            .getOrDefault(false)
     }
 
     private fun getConfiguredMode(): String =
