@@ -5,11 +5,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.PreferenceSwitch
 import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.rememberBooleanPreference
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 
 @Composable
@@ -27,7 +27,7 @@ internal fun XmsfHookPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) {
     ) {
         item {
             SectionTitle(stringResource(R.string.config))
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(
                     title = stringResource(R.string.ext_unlock_auth),
                     summary = stringResource(R.string.ext_unlock_auth_summary),

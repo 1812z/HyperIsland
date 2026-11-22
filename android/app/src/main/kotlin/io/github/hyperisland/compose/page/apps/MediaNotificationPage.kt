@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.DetailPage
 import io.github.hyperisland.compose.component.PageDropdownPreference
 import io.github.hyperisland.compose.component.ColorPaletteDialog
@@ -21,7 +22,6 @@ import io.github.hyperisland.compose.component.toArgbHex
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.InstalledApp
 import io.github.hyperisland.compose.data.MediaNotificationSettings
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Refresh
 import top.yukonga.miuix.kmp.preference.ArrowPreference
@@ -58,7 +58,7 @@ internal fun MediaNotificationPage(
     ) {
         item {
             SectionTitle(stringResource(R.string.media_notification))
-            Card {
+            AppCard {
                 SwitchPreference(
                     checked = draft.enabled,
                     onCheckedChange = { updateSettings(draft.copy(enabled = it)) },
@@ -96,7 +96,7 @@ internal fun MediaNotificationPage(
             SectionTitle(
                 stringResource(R.string.glow_section, stringResource(R.string.focus_notification)),
             )
-            Card {
+            AppCard {
                 PageDropdownPreference(
                     items = outerGlowLabels,
                     selectedIndex = modes.indexOf(draft.outerGlow).coerceAtLeast(0),
@@ -122,7 +122,7 @@ internal fun MediaNotificationPage(
             SectionTitle(
                 stringResource(R.string.glow_section, stringResource(R.string.enable_island)),
             )
-            Card {
+            AppCard {
                 PageDropdownPreference(
                     items = islandOuterGlowLabels,
                     selectedIndex = modes.indexOf(draft.islandOuterGlow).coerceAtLeast(0),

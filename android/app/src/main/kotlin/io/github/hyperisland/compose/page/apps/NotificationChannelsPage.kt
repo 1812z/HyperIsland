@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.BarBackdropContent
 import io.github.hyperisland.compose.component.BarBlurHost
@@ -49,7 +50,6 @@ import kotlinx.coroutines.withContext
 import org.json.JSONException
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Button
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.DropdownEntry
 import top.yukonga.miuix.kmp.basic.DropdownItem
@@ -308,7 +308,7 @@ internal fun NotificationChannelsPage(
                 item {
                     Column {
                         SectionTitle(stringResource(R.string.media_notification))
-                        Card {
+                        AppCard {
                             ArrowPreference(
                                 title = stringResource(R.string.media_notification),
                                 summary = mediaSettingsSummary(mediaSettings),
@@ -330,7 +330,7 @@ internal fun NotificationChannelsPage(
                     }
                 } else if (channels.isEmpty()) {
                     item {
-                        Card {
+                        AppCard {
                             BasicComponent(
                                 title = stringResource(R.string.no_channels_found),
                                 summary = stringResource(R.string.no_channels_found_summary),
@@ -359,7 +359,7 @@ internal fun NotificationChannelsPage(
                                     )
                                 },
                             )
-                            Card {
+                            AppCard {
                                 channels.forEach { channel ->
                                     val channelEnabled = appEnabled &&
                                         (enabledChannelIds.isEmpty() || channel.id in enabledChannelIds)

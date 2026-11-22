@@ -25,6 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.ColorPaletteDialog
 import io.github.hyperisland.compose.component.DetailPage
@@ -62,7 +63,6 @@ import io.github.hyperisland.compose.data.channel.TEMPLATE_NOTIFICATION_COUNT
 import io.github.hyperisland.compose.data.channel.TEMPLATE_PROGRESS
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
@@ -159,7 +159,7 @@ internal fun ChannelSettingsFormPage(
     DetailPage(title = title, onBack = onBack) {
         headerText?.let { message ->
             item {
-                Card(modifier = Modifier.fillMaxWidth()) {
+                AppCard(modifier = Modifier.fillMaxWidth()) {
                     Text(
                         text = message,
                         modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
@@ -170,7 +170,7 @@ internal fun ChannelSettingsFormPage(
         }
         item {
             SectionTitle(stringResource(R.string.channel_template_section))
-            Card {
+            AppCard {
                 FormDropdown(
                     title = stringResource(R.string.channel_template),
                     value = state.template,
@@ -209,7 +209,7 @@ internal fun ChannelSettingsFormPage(
         }
         item {
             SectionTitle(stringResource(R.string.island))
-            Card {
+            AppCard {
                 // 计数岛模板必须显示计数岛，不提供「启用超级岛」开关（与下方开关同款出现/消失动画）。
                 AnimatedVisibility(visible = !isCountTemplate) {
                     if (isBatch) {
@@ -311,7 +311,7 @@ internal fun ChannelSettingsFormPage(
             AnimatedVisibility(visible = islandVisible) {
                 Column {
                     SectionTitle(stringResource(R.string.appearance))
-                    Card {
+                    AppCard {
                         FormDropdown(
                             title = stringResource(R.string.island_outer_glow),
                             value = state.islandOuterGlow,
@@ -378,7 +378,7 @@ internal fun ChannelSettingsFormPage(
         }
         item {
             SectionTitle(stringResource(R.string.focus_notification))
-            Card {
+            AppCard {
                 TriField(stringResource(R.string.focus_notification), state.focus, triValues, triLabels(defaults.focusNotification)) { value ->
                     onStateChange(
                         if (value == OPTION_OFF) {
@@ -453,7 +453,7 @@ internal fun ChannelSettingsFormPage(
         }
         item {
             SectionTitle(stringResource(R.string.filter_rules))
-            Card {
+            AppCard {
                 FormDropdown(
                     title = stringResource(R.string.filter_mode),
                     summary = when (state.filterMode) {
@@ -487,7 +487,7 @@ internal fun ChannelSettingsFormPage(
         }
         item {
             SectionTitle(stringResource(R.string.channel_aod_section))
-            Card {
+            AppCard {
                 TriField(
                     title = stringResource(R.string.aod_text),
                     value = state.aodText,

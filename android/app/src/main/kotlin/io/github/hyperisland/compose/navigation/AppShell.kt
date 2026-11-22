@@ -76,6 +76,7 @@ import io.github.hyperisland.compose.page.settings.IslandMaterialPage
 import io.github.hyperisland.compose.page.settings.DefaultConfigPage
 import io.github.hyperisland.compose.page.settings.AiConfigPage
 import io.github.hyperisland.compose.page.settings.BackupRestorePage
+import io.github.hyperisland.compose.page.settings.BlurEffectSettingsPage
 import io.github.hyperisland.compose.page.settings.DebugToolsPage
 import io.github.hyperisland.compose.page.settings.FilterRulesPage
 import io.github.hyperisland.compose.page.settings.IslandOtherPage
@@ -134,6 +135,8 @@ import top.yukonga.miuix.kmp.icon.extended.Settings
 
 private data class RootDestination(@StringRes val title: Int, val icon: ImageVector)
 
+private enum class ThemeSubpage { BlurEffects, Wallpaper }
+
 @Composable
 internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     val context = LocalContext.current
@@ -170,12 +173,13 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     var batchToastPackages by remember { mutableStateOf<Set<String>?>(null) }
     var materialShown by remember { mutableStateOf(false) }
     var sceneBrightnessShown by remember { mutableStateOf(false) }
-    var wallpaperShown by remember { mutableStateOf(false) }
+    var themeSubpage by remember { mutableStateOf(ThemeSubpage.Wallpaper) }
+    var themeSubpageShown by remember { mutableStateOf(false) }
     var extensionDetail by remember { mutableStateOf<HookExtensionDetail?>(null) }
     var extensionSubDetail by remember { mutableStateOf<SystemUiExtensionDetail?>(null) }
     // Keep the last route composed until AnimatedVisibility finishes its exit transition.
     var renderedExtensionSubDetail by remember { mutableStateOf<SystemUiExtensionDetail?>(null) }
-    val nestedDetailShown = mediaShown || materialShown || sceneBrightnessShown || wallpaperShown ||
+    val nestedDetailShown = mediaShown || materialShown || sceneBrightnessShown || themeSubpageShown ||
         visibleChannelEditor != null || (visibleChannelApp != null && batchChannelTarget != null) ||
         extensionDetail != null
     val extensionSubDetailShown = extensionSubDetail != null
@@ -289,6 +293,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
 
     fun closeDetail() {
         detailShown = false
+        themeSubpageShown = false
         batchChannelTarget = null
         batchToastPackages = null
     }
@@ -336,7 +341,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
             mediaShown = false
             materialShown = false
             sceneBrightnessShown = false
-            wallpaperShown = false
+            themeSubpageShown = false
             visibleChannelEditor = null
             if (visibleChannelApp != null) batchChannelTarget = null
             extensionDetail = null
@@ -580,7 +585,14 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                 SettingsDetail.Theme -> ThemeSettingsPage(
                                     prefs = prefs,
                                     onBack = ::closeDetail,
-                                    onOpenWallpaper = { wallpaperShown = true },
+                                    onOpenBlurSettings = {
+                                        themeSubpage = ThemeSubpage.BlurEffects
+                                        themeSubpageShown = true
+                                    },
+                                    onOpenWallpaper = {
+                                        themeSubpage = ThemeSubpage.Wallpaper
+                                        themeSubpageShown = true
+                                    },
                                 )
                                 SettingsDetail.HideBehavior -> HideBehaviorPage(prefs, ::closeDetail)
                                 SettingsDetail.DefaultConfig -> DefaultConfigPage(prefs, ::closeDetail)
@@ -694,7 +706,16 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                         onBack = { visibleChannelEditor = null },
                                     )
                                 } else if (visibleDetail == SettingsDetail.Theme) {
-                                    WallpaperSettingsPage(prefs = prefs, onBack = { wallpaperShown = false })
+                                    when (themeSubpage) {
+                                        ThemeSubpage.BlurEffects -> BlurEffectSettingsPage(
+                                            prefs = prefs,
+                                            onBack = { themeSubpageShown = false },
+                                        )
+                                        ThemeSubpage.Wallpaper -> WallpaperSettingsPage(
+                                            prefs = prefs,
+                                            onBack = { themeSubpageShown = false },
+                                        )
+                                    }
                                 } else if (sceneBrightnessShown) {
                                     SoftGlassSceneBrightnessPage(
                                         prefs = prefs,

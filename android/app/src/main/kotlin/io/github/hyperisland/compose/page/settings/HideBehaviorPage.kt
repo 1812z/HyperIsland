@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.DetailPage
 import io.github.hyperisland.compose.component.PreferenceSwitch
 import io.github.hyperisland.compose.component.SectionTitle
@@ -17,7 +18,6 @@ import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.rememberBooleanPreference
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -50,7 +50,7 @@ internal fun HideBehaviorPage(prefs: FlutterPrefsRepository, onBack: () -> Unit)
         snackbarHost = { SnackbarHost(snackbarState) },
     ) {
         item {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = stringResource(R.string.hide_behavior_description),
                     modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
@@ -61,7 +61,7 @@ internal fun HideBehaviorPage(prefs: FlutterPrefsRepository, onBack: () -> Unit)
         }
         item {
             SectionTitle(stringResource(R.string.hide_behavior))
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(
                     title = stringResource(R.string.hide_behavior_master),
                     summary = stringResource(R.string.hide_behavior_master_summary),

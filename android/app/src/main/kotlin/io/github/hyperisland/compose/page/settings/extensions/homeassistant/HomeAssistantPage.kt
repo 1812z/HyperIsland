@@ -21,6 +21,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.DetailPage
 import io.github.hyperisland.compose.component.PreferenceDropdown
@@ -42,7 +43,6 @@ import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.FloatingActionButton
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -192,7 +192,7 @@ internal fun HomeAssistantPage(
     ) {
         item {
             SectionTitle(stringResource(R.string.config))
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(
                     title = stringResource(R.string.ext_home_assistant_enable),
                     summary = stringResource(R.string.ext_home_assistant_enable_summary),
@@ -313,7 +313,7 @@ internal fun HomeAssistantPage(
 
         item {
             SectionTitle(stringResource(R.string.ha_subscriptions))
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 if (subscriptions.isEmpty()) {
                     Text(
                         text = stringResource(R.string.ha_subscriptions_empty),

@@ -50,6 +50,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.ColorPaletteDialog
 import io.github.hyperisland.compose.component.DetailPage
 import io.github.hyperisland.compose.component.PageTabRow
@@ -75,7 +76,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.BasicComponent
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -194,7 +194,7 @@ internal fun KeepIslandPage(
         },
     ) {
         item {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = stringResource(R.string.keep_island_subtitle),
                     modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
@@ -205,7 +205,7 @@ internal fun KeepIslandPage(
         }
         item {
             SectionTitle(stringResource(R.string.keep_island_global_settings))
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(
                     title = stringResource(R.string.keep_island_master_enable),
                     summary = stringResource(R.string.keep_island_master_enable_summary),
@@ -416,7 +416,7 @@ private fun KeepIslandSceneContent(
 
     Column(modifier = Modifier.fillMaxWidth()) {
         if (scene != KeepIslandScene.Default) {
-            Card(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
+            AppCard(modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)) {
                 PreferenceSwitch(
                     title = stringResource(R.string.keep_island_follow_default),
                     summary = stringResource(R.string.keep_island_follow_default_summary),
@@ -443,7 +443,7 @@ private fun KeepIslandSceneContent(
         }
         if (!followsAnotherScene) {
             SectionTitle(stringResource(R.string.keep_island_island_config))
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(
                     title = stringResource(R.string.keep_island_enable),
                     summary = null,
@@ -544,7 +544,7 @@ private fun KeepIslandSceneContent(
                 }
             }
             SectionTitle(stringResource(R.string.keep_island_custom_icon))
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 BasicComponent(
                     title = stringResource(R.string.keep_island_custom_icon),
                     summary = stringResource(
@@ -582,7 +582,7 @@ private fun KeepIslandSceneContent(
                 )
             }
             SectionTitle(stringResource(R.string.keep_island_focus_config))
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(
                     title = stringResource(R.string.keep_island_clickable),
                     summary = stringResource(R.string.keep_island_clickable_summary),
@@ -662,7 +662,7 @@ private fun PlaceholderGroupCard(
     group: PlaceholderGroup,
     onCopy: (PlaceholderItem) -> Unit,
 ) {
-    Card(
+    AppCard(
         modifier = Modifier.fillMaxWidth(),
         insideMargin = PaddingValues(14.dp),
     ) {
@@ -677,7 +677,7 @@ private fun PlaceholderGroupCard(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             group.items.forEach { placeholder ->
-                Card(
+                AppCard(
                     cornerRadius = 10.dp,
                     insideMargin = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                     colors = CardDefaults.defaultColors(

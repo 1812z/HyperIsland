@@ -5,18 +5,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.PreferenceDropdown
 import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.rememberStringPreference
-import top.yukonga.miuix.kmp.basic.Card
 
 @Composable
 internal fun AppearanceTextPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) {
     AppearanceDetailPage(title = stringResource(R.string.appearance_text), onBack = onBack) {
         item { SectionTitle(stringResource(R.string.island_text_section)) }
         item {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 LongPreferenceSlider(prefs, KEY_TEXT_SCALE, R.string.island_text_size, 10, 200, 100, unit = SliderUnit.Percent)
                 LongPreferenceSlider(prefs, KEY_TEXT_AREA_HEIGHT, R.string.island_text_area_height, 0, 100, 0)
                 TextColorPreference(prefs, KEY_TEXT_COLOR, R.string.island_text_color, includeBackground = true)
@@ -26,7 +26,7 @@ internal fun AppearanceTextPage(prefs: FlutterPrefsRepository, onBack: () -> Uni
         }
         item { SectionTitle(stringResource(R.string.island_font_section)) }
         item {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 LongPreferenceSlider(
                     prefs, KEY_TEXT_WEIGHT_PERCENT, R.string.island_text_weight,
                     minimum = 50, maximum = 200, default = 100, unit = SliderUnit.Percent,
@@ -43,7 +43,7 @@ internal fun AppearanceTextPage(prefs: FlutterPrefsRepository, onBack: () -> Uni
         }
         item { SectionTitle(stringResource(R.string.island_text_gravity_section)) }
         item {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 TextGravityPreference(
                     prefs, KEY_LEFT_TEXT_GRAVITY, R.string.island_left_text_gravity,
                 )

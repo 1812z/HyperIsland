@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.DetailPage
 import io.github.hyperisland.compose.component.SectionTitle
@@ -31,7 +32,6 @@ import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
@@ -188,7 +188,7 @@ internal fun BackupRestorePage(onBack: () -> Unit) {
     ) {
         item {
             SectionTitle(stringResource(R.string.config))
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 BackupRow(
                     title = stringResource(R.string.backup_export_file),
                     summary = stringResource(R.string.backup_export_file_summary),
@@ -224,7 +224,7 @@ internal fun BackupRestorePage(onBack: () -> Unit) {
         }
         item {
             SectionTitle(stringResource(R.string.backup_cleanup_section))
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 BackupRow(
                     title = stringResource(R.string.backup_clean_uninstalled),
                     summary = stringResource(R.string.backup_clean_uninstalled_summary),

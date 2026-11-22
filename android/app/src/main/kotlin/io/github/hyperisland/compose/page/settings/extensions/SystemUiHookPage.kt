@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.PreferenceSlider
 import io.github.hyperisland.compose.component.PreferenceSwitch
@@ -22,7 +23,6 @@ import io.github.hyperisland.compose.component.SettingsAction
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.rememberBooleanPreference
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -82,7 +82,7 @@ internal fun SystemUiHookPage(
     ) {
         item {
             SectionTitle(stringResource(R.string.config))
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(
                     title = stringResource(R.string.smooth_island),
                     summary = stringResource(R.string.smooth_island_summary),
@@ -208,7 +208,7 @@ internal fun SystemUiHookPage(
         }
         item {
             SectionTitle(stringResource(R.string.ext_island_features))
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 SettingsAction(
                     title = stringResource(R.string.bluetooth_island),
                     summary = stringResource(

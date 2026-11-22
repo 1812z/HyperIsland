@@ -19,6 +19,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.ColorPaletteDialog
 import io.github.hyperisland.compose.component.PageDropdownPreference
@@ -32,7 +33,6 @@ import io.github.hyperisland.compose.data.toast.ToastSettingsPatch
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
@@ -142,7 +142,7 @@ internal fun ToastSettingsFormPage(
     DetailPage(title = title, onBack = onBack) {
         headerText?.let { message ->
             item {
-                Card(modifier = Modifier.fillMaxWidth()) {
+                AppCard(modifier = Modifier.fillMaxWidth()) {
                     Text(
                         text = message,
                         modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
@@ -153,7 +153,7 @@ internal fun ToastSettingsFormPage(
         }
         item {
             SectionTitle(stringResource(R.string.toast_adaptation))
-            Card {
+            AppCard {
                 BooleanField(
                     title = stringResource(R.string.toast_forward),
                     summary = stringResource(R.string.toast_forward_summary),
@@ -189,7 +189,7 @@ internal fun ToastSettingsFormPage(
             AnimatedVisibility(visible = forwardOptionsVisible) {
                 Column {
                     SectionTitle(stringResource(R.string.island))
-                    Card {
+                    AppCard {
                         BooleanField(
                             title = stringResource(R.string.island_icon),
                             summary = stringResource(R.string.island_icon_summary),
@@ -261,7 +261,7 @@ internal fun ToastSettingsFormPage(
             AnimatedVisibility(visible = forwardOptionsVisible) {
                 Column {
                     SectionTitle(stringResource(R.string.highlight_color))
-                    Card {
+                    AppCard {
                         FormDropdown(
                             title = stringResource(R.string.dynamic_highlight_color),
                             summary = stringResource(R.string.dynamic_highlight_color_summary),
@@ -306,7 +306,7 @@ internal fun ToastSettingsFormPage(
             AnimatedVisibility(visible = forwardOptionsVisible) {
                 Column {
                     SectionTitle(stringResource(R.string.glow))
-                    Card {
+                    AppCard {
                         FormDropdown(
                             title = stringResource(R.string.focus_notification),
                             value = state.outerGlow,
@@ -349,7 +349,7 @@ internal fun ToastSettingsFormPage(
             AnimatedVisibility(visible = filterVisible) {
                 Column {
                     SectionTitle(stringResource(R.string.filter_rules))
-                    Card {
+                    AppCard {
                         FormDropdown(
                             title = stringResource(R.string.filter_mode),
                             summary = when (state.filterMode) {
@@ -382,7 +382,7 @@ internal fun ToastSettingsFormPage(
                         )
                     }
                     AnimatedVisibility(visible = state.filterMode == FILTER_WHITELIST) {
-                        Card {
+                        AppCard {
                             BasicComponent(
                                 title = stringResource(R.string.keyword_filter_priority),
                                 insideMargin = TOAST_ITEM_MARGIN,

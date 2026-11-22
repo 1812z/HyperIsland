@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.DetailPage
 import io.github.hyperisland.compose.component.PageTabRow
@@ -30,13 +31,9 @@ import io.github.hyperisland.compose.data.rememberLongPreference
 import io.github.hyperisland.compose.data.rememberStringPreference
 import io.github.hyperisland.compose.theme.DEFAULT_PREDICTIVE_BACK_TRANSLATION_PERCENT
 import io.github.hyperisland.compose.theme.LocalUiGlassSettings
-import io.github.hyperisland.compose.theme.MAX_UI_GLASS_BLUR_RADIUS
-import io.github.hyperisland.compose.theme.MAX_UI_GLASS_TRANSPARENCY
 import io.github.hyperisland.compose.theme.NavigationBarStyle
 import io.github.hyperisland.compose.theme.PREF_NAVIGATION_BAR_STYLE
-import io.github.hyperisland.compose.theme.PREF_UI_GLASS_BLUR_RADIUS
 import io.github.hyperisland.compose.theme.PREF_UI_GLASS_ENABLED
-import io.github.hyperisland.compose.theme.PREF_UI_GLASS_TRANSPARENCY
 import io.github.hyperisland.compose.theme.rememberNavigationBarStyle
 import io.github.hyperisland.compose.theme.PREF_MONET_ENABLED
 import io.github.hyperisland.compose.theme.PREF_THEME_MODE
@@ -45,7 +42,6 @@ import io.github.hyperisland.compose.theme.PREF_PREDICTIVE_BACK_MAX_TRANSLATION
 import kotlin.math.roundToInt
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.ColorPalette
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
@@ -61,6 +57,7 @@ import top.yukonga.miuix.kmp.icon.extended.Tune
 internal fun ThemeSettingsPage(
     prefs: FlutterPrefsRepository,
     onBack: () -> Unit,
+    onOpenBlurSettings: () -> Unit,
     onOpenWallpaper: () -> Unit,
 ) {
     val themeModes = remember { listOf("system", "light", "dark") }
@@ -99,7 +96,7 @@ internal fun ThemeSettingsPage(
         },
     ) {
         item {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(
                     title = stringResource(R.string.monet_color),
                     summary = stringResource(R.string.monet_color_summary),
@@ -122,7 +119,7 @@ internal fun ThemeSettingsPage(
             }
         }
         item {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 PreferenceDropdown(
                     title = stringResource(R.string.navigation_bar_style),
                     summary = null,
@@ -146,34 +143,11 @@ internal fun ThemeSettingsPage(
                     glass.enabled = enabled
                     prefs.putBoolean(PREF_UI_GLASS_ENABLED, enabled)
                 }
-                AnimatedVisibility(visible = glass.enabled) {
-                    Column {
-                        PreferenceSlider(
-                            title = stringResource(R.string.ui_glass_transparency),
-                            icon = null,
-                            value = glass.transparency.toFloat(),
-                            valueText = "${glass.transparency}%",
-                            valueRange = 0f..MAX_UI_GLASS_TRANSPARENCY.toFloat(),
-                            steps = MAX_UI_GLASS_TRANSPARENCY.toInt() - 1,
-                            onValueChange = { glass.transparency = it.roundToInt().toLong() },
-                            onValueChangeFinished = {
-                                prefs.putLong(PREF_UI_GLASS_TRANSPARENCY, glass.transparency)
-                            },
-                        )
-                        PreferenceSlider(
-                            title = stringResource(R.string.ui_glass_blur_radius),
-                            icon = null,
-                            value = glass.blurRadius.toFloat(),
-                            valueText = "${glass.blurRadius} dp",
-                            valueRange = 0f..MAX_UI_GLASS_BLUR_RADIUS.toFloat(),
-                            steps = MAX_UI_GLASS_BLUR_RADIUS.toInt() - 1,
-                            onValueChange = { glass.blurRadius = it.roundToInt().toLong() },
-                            onValueChangeFinished = {
-                                prefs.putLong(PREF_UI_GLASS_BLUR_RADIUS, glass.blurRadius)
-                            },
-                        )
-                    }
-                }
+                SettingsActionWithArrow(
+                    title = stringResource(R.string.blur_effect_settings),
+                    icon = MiuixIcons.Tune,
+                    onClick = onOpenBlurSettings,
+                )
                 PreferenceSlider(
                     value = predictiveBackMaxTranslation.value.toFloat(),
                     onValueChange = { value ->
@@ -202,7 +176,7 @@ internal fun ThemeSettingsPage(
             }
         }
         item {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 SettingsActionWithArrow(
                     title = stringResource(R.string.wallpaper),
                     icon = MiuixIcons.Image,

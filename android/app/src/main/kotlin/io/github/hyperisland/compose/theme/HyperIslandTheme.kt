@@ -70,10 +70,12 @@ internal fun HyperIslandTheme(
             navigationBarStyle = systemBarStyle,
         )
     }
-    val glassSettings = rememberUiGlassSettings(repository)
+    val glassSettings = rememberGlassSettings(repository, GlassPreferences.Interface)
+    val cardGlassSettings = rememberGlassSettings(repository, GlassPreferences.Cards)
     val wallpaper = rememberAppWallpaper(repository)
     CompositionLocalProvider(
         LocalUiGlassSettings provides glassSettings,
+        LocalCardGlassSettings provides cardGlassSettings,
         LocalAppWallpaper provides wallpaper,
     ) {
         MiuixTheme(controller = controller, content = content)

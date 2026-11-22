@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.BackgroundPickerDialog
 import io.github.hyperisland.compose.component.GlassSamplingDialog
 import io.github.hyperisland.compose.component.PreferenceSwitch
@@ -28,7 +29,6 @@ import io.github.hyperisland.compose.service.IslandBackgroundType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -107,7 +107,7 @@ internal fun AppearanceBackgroundPage(
     ) {
         item {
             SectionTitle(stringResource(R.string.island_background))
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 BackgroundRow(stringResource(R.string.small_background), smallBackground.value,
                     !usesCustomMaterial(resolvedSmallMaterial) && !legacyBlurSmall.value) {
                     backgroundDialog = IslandBackgroundType.Small; selectedBackgroundUri = null
@@ -124,7 +124,7 @@ internal fun AppearanceBackgroundPage(
         }
         item {
             SectionTitle(stringResource(R.string.glass_effect))
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 SettingsAction(
                     title = stringResource(R.string.material_customize),
                     summary = stringResource(R.string.material_customize_summary),

@@ -7,6 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.DetailPage
 import io.github.hyperisland.compose.component.PreferenceSwitch
 import io.github.hyperisland.compose.component.SectionTitle
@@ -14,7 +15,6 @@ import io.github.hyperisland.compose.component.SettingsActionWithArrow
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.rememberBooleanPreference
 import io.github.hyperisland.core.service.AppService
-import top.yukonga.miuix.kmp.basic.Card
 
 @Composable
 internal fun MiscPage(
@@ -31,7 +31,7 @@ internal fun MiscPage(
     DetailPage(title = stringResource(R.string.misc), onBack = onBack) {
         item {
             SectionTitle(stringResource(R.string.misc))
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 SettingsActionWithArrow(
                     stringResource(R.string.open_onboarding),
                     summary = stringResource(R.string.open_onboarding_summary),

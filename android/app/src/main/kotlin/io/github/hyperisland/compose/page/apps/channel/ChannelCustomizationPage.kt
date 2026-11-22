@@ -24,6 +24,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AppBottomSheet
 import io.github.hyperisland.compose.component.ColorPaletteDialog
 import io.github.hyperisland.compose.component.DetailPage
@@ -37,7 +38,6 @@ import org.json.JSONObject
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
@@ -92,7 +92,7 @@ internal fun ChannelCustomizationPage(
     ) {
         item {
             SectionTitle(stringResource(R.string.channel_expression_reference))
-            Card {
+            AppCard {
                 BasicComponent(
                     title = stringResource(R.string.channel_expression_reference),
                     summary = stringResource(R.string.channel_expression_reference_summary),
@@ -102,7 +102,7 @@ internal fun ChannelCustomizationPage(
         }
         item {
             SectionTitle(stringResource(R.string.channel_customization_fields))
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 fields.forEach { field ->
                     when (field.type) {
                         "select" -> PreferenceDropdown(
@@ -208,7 +208,7 @@ internal fun ChannelCustomizationPage(
             if (placeholders.isNotEmpty()) {
                 item { SectionTitle(stringResource(R.string.channel_available_placeholders)) }
                 item {
-                    Card {
+                    AppCard {
                         placeholders.forEach { key ->
                             val expression = "\${$key}"
                             BasicComponent(
@@ -225,7 +225,7 @@ internal fun ChannelCustomizationPage(
             if (functions.isNotEmpty()) {
                 item { SectionTitle(stringResource(R.string.channel_expression_functions)) }
                 item {
-                    Card {
+                    AppCard {
                         functions.forEach { example ->
                             BasicComponent(
                                 title = example,

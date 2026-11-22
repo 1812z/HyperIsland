@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.ColorPaletteDialog
 import io.github.hyperisland.compose.component.PreferenceDropdown
 import io.github.hyperisland.compose.component.PreferenceSlider
@@ -27,7 +28,6 @@ import io.github.hyperisland.compose.data.rememberStringPreference
 import io.github.hyperisland.compose.service.XposedScopeService
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -73,7 +73,7 @@ internal fun MusicIslandSpectrumPage(prefs: FlutterPrefsRepository, onBack: () -
     ) {
         item {
             SectionTitle(stringResource(R.string.config))
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(
                     title = stringResource(R.string.ext_spectrum_enable),
                     summary = stringResource(R.string.ext_spectrum_enable_summary),
@@ -97,7 +97,7 @@ internal fun MusicIslandSpectrumPage(prefs: FlutterPrefsRepository, onBack: () -
             AnimatedVisibility(enabled.value) {
                 Column {
                     SectionTitle(stringResource(R.string.ext_spectrum_style))
-                    Card(modifier = Modifier.fillMaxWidth()) {
+                    AppCard(modifier = Modifier.fillMaxWidth()) {
                         PreferenceDropdown(
                             title = stringResource(R.string.ext_spectrum_color),
                             summary = null,

@@ -11,6 +11,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.unit.dp
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.PreferenceSlider
 import top.yukonga.miuix.kmp.basic.Button
@@ -29,7 +30,6 @@ import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.rememberBooleanPreference
 import io.github.hyperisland.compose.data.rememberStringPreference
 import io.github.hyperisland.data.ExpandedCollapsePreferences as Keys
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.icon.basic.ArrowRight
@@ -57,7 +57,7 @@ internal fun AppearanceAnimationPage(prefs: FlutterPrefsRepository, onBack: () -
     }
     AppearanceDetailPage(title = stringResource(R.string.appearance_animation), onBack = onBack) {
         item {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 PreferenceDropdown(
                     title = stringResource(R.string.expand_animation_type),
                     summary = stringResource(R.string.expand_animation_type_summary),
@@ -168,7 +168,7 @@ internal fun AppearanceAnimationPage(prefs: FlutterPrefsRepository, onBack: () -
             }
         }
         item {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(
                     stringResource(R.string.expand_collapse_custom),
                     stringResource(R.string.expand_collapse_custom_summary),
@@ -184,14 +184,14 @@ internal fun AppearanceAnimationPage(prefs: FlutterPrefsRepository, onBack: () -
             AnimatedVisibility(enabled.value) {
                 Column {
                     SectionTitle(stringResource(R.string.expand_collapse_transparency))
-                    Card(modifier = Modifier.fillMaxWidth()) {
+                    AppCard(modifier = Modifier.fillMaxWidth()) {
                         LongPreferenceSlider(prefs, Keys.TRANSPARENCY_START, R.string.animation_start_degree,
                             0, 100, Keys.DEFAULT_START_PERCENT, unit = SliderUnit.Percent, showDefaultAsSystem = false)
                         LongPreferenceSlider(prefs, Keys.TRANSPARENCY_END, R.string.animation_end_degree,
                             0, 100, Keys.DEFAULT_END_PERCENT, unit = SliderUnit.Percent, showDefaultAsSystem = false)
                     }
                     SectionTitle(stringResource(R.string.expand_collapse_blur))
-                    Card(modifier = Modifier.fillMaxWidth()) {
+                    AppCard(modifier = Modifier.fillMaxWidth()) {
                         LongPreferenceSlider(prefs, Keys.BLUR_START, R.string.animation_start_degree,
                             0, 100, Keys.DEFAULT_START_PERCENT, unit = SliderUnit.Percent, showDefaultAsSystem = false)
                         LongPreferenceSlider(prefs, Keys.BLUR_END, R.string.animation_end_degree,

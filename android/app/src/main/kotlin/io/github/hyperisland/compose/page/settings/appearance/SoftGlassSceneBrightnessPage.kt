@@ -20,12 +20,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.PreferenceSlider
 import io.github.hyperisland.compose.component.PreferenceSwitch
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.utils.SoftGlassSceneBrightnessConfig
 import kotlin.math.roundToInt
-import top.yukonga.miuix.kmp.basic.Card
 
 @Composable
 internal fun SoftGlassSceneBrightnessPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) {
@@ -43,7 +43,7 @@ internal fun SoftGlassSceneBrightnessPage(prefs: FlutterPrefsRepository, onBack:
     }
     AppearanceDetailPage(title = stringResource(R.string.soft_glass_scene_brightness), onBack = onBack) {
         item {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(
                     title = stringResource(R.string.soft_glass_scene_dimming),
                     summary = null,

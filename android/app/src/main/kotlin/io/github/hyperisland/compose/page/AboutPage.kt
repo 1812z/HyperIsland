@@ -59,13 +59,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.hyperisland.BuildConfig
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.LocalRootBottomBarPadding
 import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.component.SettingsAction
 import io.github.hyperisland.compose.component.SettingsActionWithArrow
-import io.github.hyperisland.compose.theme.AppWallpaperBackground
+import io.github.hyperisland.compose.component.WallpaperCardHost
 import io.github.hyperisland.compose.theme.LocalAppWallpaper
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.Icon
@@ -153,10 +153,8 @@ internal fun AboutPage(
     }
 
     val captureLogoBackground = if (logoBackdrop != null) Modifier.layerBackdrop(logoBackdrop) else Modifier
-    Box(modifier = Modifier.fillMaxSize()) {
-        if (hasWallpaper) {
-            AppWallpaperBackground(Modifier.matchParentSize().then(captureLogoBackground))
-        } else {
+    WallpaperCardHost(modifier = Modifier.fillMaxSize(), wallpaperModifier = captureLogoBackground) {
+        if (!hasWallpaper) {
             AnimatedAboutBackground(
                 animationTime = animationTime,
                 colors = gradientColors,
@@ -193,7 +191,7 @@ internal fun AboutPage(
             }
             item {
                 SectionTitle(stringResource(R.string.about_discussion))
-                Card(modifier = Modifier.fillMaxWidth()) {
+                AppCard(modifier = Modifier.fillMaxWidth()) {
                     SettingsAction(
                         title = stringResource(R.string.telegram),
                         icon = MiuixIcons.Community,
@@ -207,7 +205,7 @@ internal fun AboutPage(
             }
             item {
                 SectionTitle(stringResource(R.string.about_module))
-                Card(modifier = Modifier.fillMaxWidth()) {
+                AppCard(modifier = Modifier.fillMaxWidth()) {
                     SettingsActionWithArrow(
                         title = stringResource(R.string.backup_restore),
                         icon = MiuixIcons.Backup,
@@ -241,7 +239,7 @@ internal fun AboutPage(
             }
             item {
                 SectionTitle(stringResource(R.string.about_project))
-                Card(modifier = Modifier.fillMaxWidth()) {
+                AppCard(modifier = Modifier.fillMaxWidth()) {
                     SettingsAction(
                         title = stringResource(R.string.github),
                         icon = MiuixIcons.Info,
@@ -401,7 +399,7 @@ private fun BackgroundBlendedArtwork(
 @Composable
 private fun DeveloperCard(modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    Card(
+    AppCard(
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.defaultColors(),
         onClick = { context.openUrl(DEVELOPER_GITHUB_URL) },

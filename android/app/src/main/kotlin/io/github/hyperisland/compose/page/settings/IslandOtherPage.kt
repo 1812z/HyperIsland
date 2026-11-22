@@ -10,6 +10,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.DetailPage
 import io.github.hyperisland.compose.component.PreferenceDropdown
 import io.github.hyperisland.compose.component.PreferenceSlider
@@ -20,7 +21,6 @@ import io.github.hyperisland.compose.data.rememberBooleanPreference
 import io.github.hyperisland.compose.data.rememberLongPreference
 import io.github.hyperisland.compose.data.rememberStringPreference
 import top.yukonga.miuix.kmp.basic.BasicComponent
-import top.yukonga.miuix.kmp.basic.Card
 
 @Composable
 internal fun IslandOtherPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) {
@@ -47,7 +47,7 @@ internal fun IslandOtherPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) 
 
     DetailPage(title = stringResource(R.string.other), onBack = onBack) {
         item {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 BasicComponent(
                     title = stringResource(R.string.filter_rules_order),
                     summary = stringResource(R.string.filter_rules_order_summary),
@@ -56,7 +56,7 @@ internal fun IslandOtherPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) 
         }
         item {
             SectionTitle(stringResource(R.string.filter_rules_title))
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 PreferenceDropdown(
                     stringResource(R.string.dnd_behavior),
                     dndSummary(dnd.value),
@@ -90,7 +90,7 @@ internal fun IslandOtherPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) 
         }
         item {
             SectionTitle(stringResource(R.string.swipe_actions))
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 PreferenceDropdown(
                     stringResource(R.string.expanded_collapse_action),
                     null,
@@ -115,7 +115,7 @@ internal fun IslandOtherPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) 
         }
         item {
             SectionTitle(stringResource(R.string.marquee))
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSlider(
                     title = stringResource(R.string.marquee_speed),
                     icon = null,

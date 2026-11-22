@@ -18,6 +18,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.ColorPaletteDialog
 import io.github.hyperisland.compose.component.PageDropdownPreference
@@ -33,7 +34,6 @@ import io.github.hyperisland.compose.data.channel.STATUS_BAR_ICON_SYSTEM
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
@@ -91,7 +91,7 @@ internal fun DefaultConfigPage(
     ) {
         item {
             SectionTitle(stringResource(R.string.behavior))
-            Card {
+            AppCard {
                 SwitchPreference(
                     checked = settings.firstFloat,
                     onCheckedChange = { update(settings.copy(firstFloat = it)) },
@@ -147,7 +147,7 @@ internal fun DefaultConfigPage(
         }
         item {
             SectionTitle(stringResource(R.string.appearance))
-            Card {
+            AppCard {
                 SwitchPreference(
                     checked = settings.marquee,
                     onCheckedChange = { update(settings.copy(marquee = it)) },
@@ -194,7 +194,7 @@ internal fun DefaultConfigPage(
         }
         item {
             SectionTitle(stringResource(R.string.glow))
-            Card {
+            AppCard {
                 PageDropdownPreference(
                     items = glowModeLabels,
                     selectedIndex = glowModes.indexOf(settings.outerGlow).coerceAtLeast(0),

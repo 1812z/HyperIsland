@@ -77,6 +77,7 @@ import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.NavigationEventHandler
 import androidx.navigationevent.findViewTreeNavigationEventDispatcherOwner
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AppBottomSheet
 import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.ConfigSectionTree
@@ -117,7 +118,6 @@ import org.json.JSONArray
 import org.json.JSONObject
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.DropdownEntry
@@ -886,7 +886,7 @@ internal fun PresetEntryCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(
+    AppCard(
         modifier = modifier.fillMaxWidth(),
         showIndication = true,
         onClick = onClick,
@@ -935,7 +935,7 @@ internal fun PresetConfigCard(
     wide: Boolean = false,
     badge: PresetCardBadge? = null,
 ) {
-    Card(
+    AppCard(
         modifier = modifier
             .fillMaxWidth()
             .height(if (wide) PresetCardHeight + PresetCardWideExtraHeight else PresetCardHeight),
@@ -1227,7 +1227,7 @@ private fun NewPresetBottomSheet(
             }
             item {
                 SmallTitle(stringResource(R.string.config))
-                Card(modifier = Modifier.fillMaxWidth(), colors = presetCardColors()) {
+                AppCard(modifier = Modifier.fillMaxWidth(), colors = presetCardColors()) {
                     ConfigSectionTree(
                         sections = sectionTree,
                         selectedLeafIds = selectedLeafIds,
@@ -1591,7 +1591,7 @@ private fun ApplyPresetBottomSheet(
                             )
                         }
                         item(key = "card_$sectionId") {
-                            Card(modifier = Modifier.fillMaxWidth(), colors = presetCardColors()) {
+                            AppCard(modifier = Modifier.fillMaxWidth(), colors = presetCardColors()) {
                                 Column {
                                     values.keys().forEach { key ->
                                         val draftRef = draftKey(sectionId, key)
@@ -1774,7 +1774,7 @@ private fun ApplyPresetBottomSheet(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         item {
-                            Card(modifier = Modifier.fillMaxWidth(), colors = presetCardColors()) {
+                            AppCard(modifier = Modifier.fillMaxWidth(), colors = presetCardColors()) {
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -1846,7 +1846,7 @@ private fun ApplyPresetBottomSheet(
                         else -> {
                             if (sectionTree.isNotEmpty()) {
                                 item {
-                                    Card(modifier = Modifier.fillMaxWidth(), colors = presetCardColors()) {
+                                    AppCard(modifier = Modifier.fillMaxWidth(), colors = presetCardColors()) {
                                         ConfigSectionTree(
                                             sections = sectionTree,
                                             selectedLeafIds = selectedIds,

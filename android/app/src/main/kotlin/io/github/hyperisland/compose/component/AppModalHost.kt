@@ -169,8 +169,10 @@ private fun AppModalSurface(
         Modifier
     }
 
-    content(backdrop, capture, isTopmost) {
-        if (!show) mounted = false
-        onDismissFinished?.invoke()
+    CompositionLocalProvider(LocalWallpaperCardBackdrop provides null) {
+        content(backdrop, capture, isTopmost) {
+            if (!show) mounted = false
+            onDismissFinished?.invoke()
+        }
     }
 }

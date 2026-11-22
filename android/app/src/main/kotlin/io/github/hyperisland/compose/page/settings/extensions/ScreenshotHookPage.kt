@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.PreferenceSwitch
 import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
@@ -18,7 +19,6 @@ import io.github.hyperisland.compose.page.settings.appearance.SliderUnit
 import io.github.hyperisland.screenshot.ScreenshotContract
 import io.github.hyperisland.compose.service.XposedScopeService
 import kotlinx.coroutines.launch
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 
 /**
@@ -47,7 +47,7 @@ internal fun ScreenshotHookPage(prefs: FlutterPrefsRepository, onBack: () -> Uni
     ) {
         item {
             SectionTitle(stringResource(R.string.config))
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(
                     title = stringResource(R.string.ext_screenshot_temp_hide),
                     summary = stringResource(R.string.ext_screenshot_temp_hide_summary),

@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.hyperisland.R
 import io.github.hyperisland.XposedPrefsSyncApp
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.CollapsingPage
 import io.github.hyperisland.compose.component.RestartScopeDialog
@@ -58,7 +59,6 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
@@ -181,7 +181,7 @@ internal fun OverviewPage(
         }
         item { InfoCard(state.systemInfo, state.status) }
         item {
-            Card {
+            AppCard {
                 SettingsAction(
                     title = stringResource(R.string.support_development),
                     summary = stringResource(R.string.support_development_summary),
@@ -287,7 +287,7 @@ private fun HomeStatusAlertCard(alert: HomeStatusAlert) {
         isLight -> WarningContentLight
         else -> WarningContentDark
     }
-    Card(
+    AppCard(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.defaultColors(
             color = backgroundColor,
@@ -386,7 +386,7 @@ private fun StatusCard(
     val active = status?.active == true
     val statusColor = if (active) ActiveColor else InactiveColor
     val statusBackground = if (active) ActiveBackground else InactiveBackground
-    Card(
+    AppCard(
         modifier = modifier,
         colors = CardDefaults.defaultColors(color = statusBackground),
         pressFeedbackType = PressFeedbackType.Tilt,
@@ -437,7 +437,7 @@ private fun StatCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    Card(
+    AppCard(
         modifier = modifier.fillMaxWidth(),
         pressFeedbackType = PressFeedbackType.Tilt,
         onClick = onClick,
@@ -484,7 +484,7 @@ private fun InfoCard(info: HomeSystemInfo?, status: ModuleState?) {
             )
         }
         ?: unknown
-    Card {
+    AppCard {
         Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             InfoText(stringResource(R.string.system_version), info?.systemVersion.orEmpty().ifBlank { unknown })
             InfoText(stringResource(R.string.app_version), appVersion)

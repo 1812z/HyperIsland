@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.ColorPaletteDialog
 import io.github.hyperisland.compose.component.PreferenceSwitch
 import io.github.hyperisland.compose.component.PreferenceDropdown
@@ -21,7 +22,6 @@ import io.github.hyperisland.compose.component.toArgbHex
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.rememberBooleanPreference
 import io.github.hyperisland.compose.data.rememberStringPreference
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.basic.ArrowRight
 
@@ -46,7 +46,7 @@ internal fun AppearanceOutlinePage(prefs: FlutterPrefsRepository, onBack: () -> 
     AppearanceDetailPage(title = stringResource(R.string.appearance_outline), onBack = onBack) {
         item {
             SectionTitle(stringResource(R.string.outline_control))
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 PreferenceDropdown(stringResource(R.string.island_outline), null, null,
                     outlineLabels, outlineValues.indexOf(islandOutline.value).coerceAtLeast(0),
                     enabled = islandOutlineEnabled) {
@@ -63,7 +63,7 @@ internal fun AppearanceOutlinePage(prefs: FlutterPrefsRepository, onBack: () -> 
         }
         item {
             SectionTitle(stringResource(R.string.outer_glow))
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 LongPreferenceSlider(prefs, KEY_GLOW_RANGE, R.string.glow_range, 0, 100, 0, unit = SliderUnit.Percent)
                 PreferenceSwitch(stringResource(R.string.single_color_glow), null, null, glowSingleColor.value) {
                     glowSingleColor.value = it; prefs.putBoolean(KEY_GLOW_SINGLE_COLOR, it)

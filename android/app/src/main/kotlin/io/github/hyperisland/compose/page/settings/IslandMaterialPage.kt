@@ -32,6 +32,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.BarBackdropContent
 import io.github.hyperisland.compose.component.BarBlurHost
@@ -58,7 +59,6 @@ import io.github.hyperisland.utils.HyperOsVersionUtil
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.DropdownEntry
 import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.Icon
@@ -361,7 +361,7 @@ private fun MaterialStateContent(
         if (state != IslandMaterialState.Big) {
             item {
                 SectionTitle(stringResource(R.string.material_follow_section))
-                Card(modifier = Modifier.fillMaxWidth()) {
+                AppCard(modifier = Modifier.fillMaxWidth()) {
                     PreferenceSwitch(
                         title = stringResource(R.string.material_follow_big),
                         summary = stringResource(R.string.material_follow_big_summary),
@@ -375,7 +375,7 @@ private fun MaterialStateContent(
         item {
             SectionTitle(stringResource(R.string.material_type))
             if (follow) {
-                Card(modifier = Modifier.fillMaxWidth()) {
+                AppCard(modifier = Modifier.fillMaxWidth()) {
                     Text(
                         text = stringResource(
                             R.string.material_following_type,
@@ -387,7 +387,7 @@ private fun MaterialStateContent(
                     )
                 }
             } else {
-                Card(modifier = Modifier.fillMaxWidth()) {
+                AppCard(modifier = Modifier.fillMaxWidth()) {
                     PreferenceDropdown(
                         title = stringResource(R.string.material_type),
                         summary = null,
@@ -401,7 +401,7 @@ private fun MaterialStateContent(
         if (!follow && config.isCustom) {
             item {
                 SectionTitle(stringResource(R.string.material_blur_section))
-                Card(modifier = Modifier.fillMaxWidth()) {
+                AppCard(modifier = Modifier.fillMaxWidth()) {
                     IntegerMaterialSlider(
                         title = stringResource(R.string.material_blur),
                         value = config.blur,
@@ -413,7 +413,7 @@ private fun MaterialStateContent(
             if (config.type == IslandMaterialType.HighlightGlass || config.type == IslandMaterialType.LiquidGlass) {
                 item {
                     SectionTitle(stringResource(R.string.glass_customize))
-                    Card(modifier = Modifier.fillMaxWidth()) {
+                    AppCard(modifier = Modifier.fillMaxWidth()) {
                         IntegerMaterialSlider(stringResource(R.string.glass_edge_width), config.edgeThickness, 4..40, DEFAULT_MATERIAL.edgeThickness) { onConfigChange(config.copy(edgeThickness = it)) }
                         IntegerMaterialSlider(stringResource(R.string.glass_refraction), config.refraction, 0..40, DEFAULT_MATERIAL.refraction) { onConfigChange(config.copy(refraction = it)) }
                         IntegerMaterialSlider(stringResource(R.string.glass_highlight), config.reflectionStrength, 0..100, DEFAULT_MATERIAL.reflectionStrength) { onConfigChange(config.copy(reflectionStrength = it)) }
@@ -426,7 +426,7 @@ private fun MaterialStateContent(
             if (config.type == IslandMaterialType.SoftGlass) {
                 item {
                     SectionTitle(stringResource(R.string.material_lighting_section))
-                    Card(modifier = Modifier.fillMaxWidth()) {
+                    AppCard(modifier = Modifier.fillMaxWidth()) {
                         DecimalMaterialSlider(stringResource(R.string.material_soft_light), config.softLight, DEFAULT_MATERIAL.softLight) { onConfigChange(config.copy(softLight = it)) }
                         DecimalMaterialSlider(stringResource(R.string.material_saturation), config.saturation, DEFAULT_MATERIAL.saturation) { onConfigChange(config.copy(saturation = it)) }
                         DecimalMaterialSlider(stringResource(R.string.material_brightness), config.brightness, DEFAULT_MATERIAL.brightness) { onConfigChange(config.copy(brightness = it)) }
@@ -437,7 +437,7 @@ private fun MaterialStateContent(
                 }
                 item {
                     SectionTitle(stringResource(R.string.material_refraction_section))
-                    Card(modifier = Modifier.fillMaxWidth()) {
+                    AppCard(modifier = Modifier.fillMaxWidth()) {
                         DecimalMaterialSlider(stringResource(R.string.material_refraction), config.softRefraction, DEFAULT_MATERIAL.softRefraction) { onConfigChange(config.copy(softRefraction = it)) }
                         DecimalMaterialSlider(stringResource(R.string.material_edge_thickness), config.softEdgeThickness, DEFAULT_MATERIAL.softEdgeThickness) { onConfigChange(config.copy(softEdgeThickness = it)) }
                         DecimalMaterialSlider(stringResource(R.string.material_shape_edge_width), config.softShapeEdgeWidth, DEFAULT_MATERIAL.softShapeEdgeWidth) { onConfigChange(config.copy(softShapeEdgeWidth = it)) }
@@ -449,7 +449,7 @@ private fun MaterialStateContent(
                 }
                 item {
                     SectionTitle(stringResource(R.string.material_background_section))
-                    Card(modifier = Modifier.fillMaxWidth()) {
+                    AppCard(modifier = Modifier.fillMaxWidth()) {
                         DecimalMaterialSlider(stringResource(R.string.material_background_saturation), config.backgroundSaturation, DEFAULT_MATERIAL.backgroundSaturation) { onConfigChange(config.copy(backgroundSaturation = it)) }
                         DecimalMaterialSlider(stringResource(R.string.material_background_brightness), config.backgroundBrightness, DEFAULT_MATERIAL.backgroundBrightness) { onConfigChange(config.copy(backgroundBrightness = it)) }
                     }
@@ -457,7 +457,7 @@ private fun MaterialStateContent(
             }
             item {
                 SectionTitle(stringResource(R.string.material_blend_section))
-                Card(modifier = Modifier.fillMaxWidth()) {
+                AppCard(modifier = Modifier.fillMaxWidth()) {
                     SettingsAction(
                         title = stringResource(R.string.material_blend_color),
                         summary = config.toPickerColor().toArgbHex(),

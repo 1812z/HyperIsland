@@ -18,6 +18,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.BarBackdropContent
 import io.github.hyperisland.compose.component.BarBlurHost
 import io.github.hyperisland.compose.component.DetailPage
@@ -38,7 +39,6 @@ import io.github.hyperisland.compose.theme.DEFAULT_PREDICTIVE_BACK_TRANSLATION_P
 import io.github.hyperisland.compose.theme.PREF_PREDICTIVE_BACK_MAX_TRANSLATION
 import io.github.hyperisland.data.DebugPreferences
 import io.github.hyperisland.xposed.islanddispatch.definition.IslandDispatchContract
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -97,7 +97,7 @@ internal fun DebugToolsPage(
                         onBack = onBack,
                     ) {
                         item {
-                            Card(modifier = Modifier.fillMaxWidth()) {
+                            AppCard(modifier = Modifier.fillMaxWidth()) {
                                 PreferenceSwitch(
                                     title = stringResource(R.string.debug_mode),
                                     summary = stringResource(R.string.debug_mode_summary),
@@ -110,7 +110,7 @@ internal fun DebugToolsPage(
                             }
                         }
                         item {
-                            Card(modifier = Modifier.fillMaxWidth()) {
+                            AppCard(modifier = Modifier.fillMaxWidth()) {
                                 SettingsActionWithArrow(
                                     title = stringResource(R.string.hook_manager),
                                     icon = null,
@@ -120,7 +120,7 @@ internal fun DebugToolsPage(
                             }
                         }
                         item {
-                            Card(modifier = Modifier.fillMaxWidth()) {
+                            AppCard(modifier = Modifier.fillMaxWidth()) {
                                 Text(
                                     text = stringResource(R.string.debug_tools_description),
                                     modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
@@ -131,7 +131,7 @@ internal fun DebugToolsPage(
                         }
                         item {
                             SectionTitle(stringResource(R.string.debug_island_section))
-                            Card(modifier = Modifier.fillMaxWidth()) {
+                            AppCard(modifier = Modifier.fillMaxWidth()) {
                                 SettingsActionWithArrow(
                                     title = stringResource(R.string.debug_performance),
                                     summary = stringResource(R.string.debug_performance_entry_summary),

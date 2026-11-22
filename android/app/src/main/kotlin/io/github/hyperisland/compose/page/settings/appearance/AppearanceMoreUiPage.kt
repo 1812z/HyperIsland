@@ -18,13 +18,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.PreferenceDropdownWithSummary
 import io.github.hyperisland.compose.component.PreferenceDropdown
 import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.rememberStringPreference
 import io.github.hyperisland.utils.IslandBehaviorConfig
-import top.yukonga.miuix.kmp.basic.Card
 
 /**
  * 「外观 → 其他 → 更多界面修改」。
@@ -40,7 +40,7 @@ internal fun AppearanceMoreUiPage(prefs: FlutterPrefsRepository, onBack: () -> U
         item {
             Column {
                 SectionTitle(stringResource(R.string.mini_bar_section))
-                Card(modifier = Modifier.fillMaxWidth()) {
+                AppCard(modifier = Modifier.fillMaxWidth()) {
                     MiniBarBehaviorRow(
                         prefs = prefs,
                         key = KEY_MINI_BAR_BEHAVIOR,
@@ -70,7 +70,7 @@ private fun IslandBehaviorSection(prefs: FlutterPrefsRepository) {
     val color = rememberStringPreference(prefs, IslandBehaviorConfig.COLOR_KEY, IslandBehaviorConfig.FOLLOW_ISLAND)
     Column {
         SectionTitle(stringResource(R.string.island_behavior_section))
-        Card(modifier = Modifier.fillMaxWidth()) {
+        AppCard(modifier = Modifier.fillMaxWidth()) {
             PreferenceDropdown(
                 title = stringResource(R.string.island_behavior_title),
                 summary = null,

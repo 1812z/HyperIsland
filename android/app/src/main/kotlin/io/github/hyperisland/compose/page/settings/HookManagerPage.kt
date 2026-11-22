@@ -14,6 +14,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.DetailPage
 import io.github.hyperisland.compose.component.PreferenceSwitch
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
@@ -22,7 +23,6 @@ import io.github.hyperisland.data.DebugPreferences
 import io.github.hyperisland.data.HookCatalog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.InputField
 import top.yukonga.miuix.kmp.basic.SearchBar
 import top.yukonga.miuix.kmp.basic.Text
@@ -90,14 +90,14 @@ internal fun HookManagerPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) 
             ) {}
         }
         item {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 HintText(stringResource(R.string.hook_manager_description))
             }
         }
         item {
             val list = hooks
             val keyword = query.trim()
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 when {
                     list == null -> HintText(stringResource(R.string.hook_manager_loading))
                     list.isEmpty() -> HintText(stringResource(R.string.hook_manager_empty))

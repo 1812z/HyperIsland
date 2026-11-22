@@ -11,10 +11,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.DetailPage
 import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.component.SettingsAction
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Link
@@ -34,7 +34,7 @@ internal fun ReferencesPage(onBack: () -> Unit) {
         onBack = onBack,
     ) {
         item {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = stringResource(R.string.references_description),
                     modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
@@ -45,7 +45,7 @@ internal fun ReferencesPage(onBack: () -> Unit) {
         }
         item {
             SectionTitle(stringResource(R.string.reference_projects))
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 referenceProjects.forEach { project ->
                     SettingsAction(
                         title = project.name,

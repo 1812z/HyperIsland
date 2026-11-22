@@ -21,6 +21,9 @@ import top.yukonga.miuix.kmp.material.GlassMaterial
 internal const val PREF_UI_GLASS_ENABLED = "pref_ui_glass_enabled"
 internal const val PREF_UI_GLASS_TRANSPARENCY = "pref_ui_glass_transparency"
 internal const val PREF_UI_GLASS_BLUR_RADIUS = "pref_ui_glass_blur_radius"
+internal const val PREF_CARD_GLASS_ENABLED = "pref_card_glass_enabled"
+internal const val PREF_CARD_GLASS_TRANSPARENCY = "pref_card_glass_transparency"
+internal const val PREF_CARD_GLASS_BLUR_RADIUS = "pref_card_glass_blur_radius"
 internal const val PREF_NAVIGATION_BAR_STYLE = "pref_navigation_bar_style"
 internal const val DEFAULT_UI_GLASS_ENABLED = true
 internal const val DEFAULT_UI_GLASS_TRANSPARENCY = 5L
@@ -61,24 +64,37 @@ internal class UiGlassSettings(
     val blurRadiusDp get() = blurRadius.toInt().dp
 }
 
+internal enum class GlassPreferences(
+    val enabledKey: String,
+    val transparencyKey: String,
+    val blurRadiusKey: String,
+    val defaultEnabled: Boolean,
+) {
+    Interface(PREF_UI_GLASS_ENABLED, PREF_UI_GLASS_TRANSPARENCY, PREF_UI_GLASS_BLUR_RADIUS, DEFAULT_UI_GLASS_ENABLED),
+    Cards(PREF_CARD_GLASS_ENABLED, PREF_CARD_GLASS_TRANSPARENCY, PREF_CARD_GLASS_BLUR_RADIUS, false),
+}
+
 internal val LocalUiGlassSettings = staticCompositionLocalOf { UiGlassSettings() }
+internal val LocalCardGlassSettings = staticCompositionLocalOf {
+    UiGlassSettings(enabled = GlassPreferences.Cards.defaultEnabled)
+}
 
 @Composable
-internal fun rememberUiGlassSettings(prefs: FlutterPrefsRepository): UiGlassSettings {
-    val settings = remember(prefs) {
+internal fun rememberGlassSettings(prefs: FlutterPrefsRepository, preferences: GlassPreferences): UiGlassSettings {
+    val settings = remember(prefs, preferences) {
         UiGlassSettings(
-            enabled = prefs.getBoolean(PREF_UI_GLASS_ENABLED, DEFAULT_UI_GLASS_ENABLED),
-            transparency = prefs.getLong(PREF_UI_GLASS_TRANSPARENCY, DEFAULT_UI_GLASS_TRANSPARENCY),
-            blurRadius = prefs.getLong(PREF_UI_GLASS_BLUR_RADIUS, DEFAULT_UI_GLASS_BLUR_RADIUS),
+            enabled = prefs.getBoolean(preferences.enabledKey, preferences.defaultEnabled),
+            transparency = prefs.getLong(preferences.transparencyKey, DEFAULT_UI_GLASS_TRANSPARENCY),
+            blurRadius = prefs.getLong(preferences.blurRadiusKey, DEFAULT_UI_GLASS_BLUR_RADIUS),
         )
     }
     DisposableEffect(prefs, settings) {
         val unregister = prefs.addChangeListener { key ->
             when (key) {
-                PREF_UI_GLASS_ENABLED -> settings.enabled = prefs.getBoolean(key, DEFAULT_UI_GLASS_ENABLED)
-                PREF_UI_GLASS_TRANSPARENCY -> settings.transparency =
+                preferences.enabledKey -> settings.enabled = prefs.getBoolean(key, preferences.defaultEnabled)
+                preferences.transparencyKey -> settings.transparency =
                     prefs.getLong(key, DEFAULT_UI_GLASS_TRANSPARENCY).coerceIn(0, MAX_UI_GLASS_TRANSPARENCY)
-                PREF_UI_GLASS_BLUR_RADIUS -> settings.blurRadius =
+                preferences.blurRadiusKey -> settings.blurRadius =
                     prefs.getLong(key, DEFAULT_UI_GLASS_BLUR_RADIUS).coerceIn(0, MAX_UI_GLASS_BLUR_RADIUS)
             }
         }

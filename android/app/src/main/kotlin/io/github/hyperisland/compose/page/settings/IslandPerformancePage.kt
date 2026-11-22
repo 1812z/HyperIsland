@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.DetailPage
 import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.component.SettingsAction
@@ -29,7 +30,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -76,7 +76,7 @@ internal fun IslandPerformancePage(prefs: FlutterPrefsRepository, onBack: () -> 
     val recording = report?.optBoolean("recording") == true
     DetailPage(title = stringResource(R.string.debug_performance), onBack = onBack) {
         item {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 PerformanceText(stringResource(R.string.debug_performance_description))
                 SettingsAction(
                     title = stringResource(if (recording) R.string.debug_performance_stop else R.string.debug_performance_start),
@@ -98,11 +98,11 @@ internal fun IslandPerformancePage(prefs: FlutterPrefsRepository, onBack: () -> 
                 )
             }
         }
-        error?.let { message -> item { Card { PerformanceText(message) } } }
+        error?.let { message -> item { AppCard { PerformanceText(message) } } }
         report?.let { data ->
             item {
                 SectionTitle(stringResource(R.string.debug_performance_result))
-                Card(modifier = Modifier.fillMaxWidth()) {
+                AppCard(modifier = Modifier.fillMaxWidth()) {
                     PerformanceText(stringResource(
                         R.string.debug_performance_summary,
                         if (recording) stringResource(R.string.debug_performance_recording) else stringResource(R.string.debug_performance_idle),
@@ -118,7 +118,7 @@ internal fun IslandPerformancePage(prefs: FlutterPrefsRepository, onBack: () -> 
                 item { SectionTitle(stringResource(R.string.debug_performance_hot_hooks)) }
                 items(minOf(hooks.length(), 12)) { index ->
                     val hook = hooks.getJSONObject(index)
-                    Card(modifier = Modifier.fillMaxWidth()) {
+                    AppCard(modifier = Modifier.fillMaxWidth()) {
                         PerformanceText(hook.optString("hook"))
                         PerformanceText(stringResource(
                             R.string.debug_performance_hook_summary, hook.optLong("calls"),
@@ -128,7 +128,7 @@ internal fun IslandPerformancePage(prefs: FlutterPrefsRepository, onBack: () -> 
                 }
             }
         }
-        item { Card(modifier = Modifier.fillMaxWidth()) { PerformanceText(stringResource(R.string.debug_performance_limits)) } }
+        item { AppCard(modifier = Modifier.fillMaxWidth()) { PerformanceText(stringResource(R.string.debug_performance_limits)) } }
     }
 }
 

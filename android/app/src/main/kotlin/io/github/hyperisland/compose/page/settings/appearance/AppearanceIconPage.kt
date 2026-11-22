@@ -5,19 +5,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.PreferenceSwitch
 import io.github.hyperisland.compose.component.PreferenceDropdown
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.rememberBooleanPreference
 import io.github.hyperisland.compose.data.rememberStringPreference
-import top.yukonga.miuix.kmp.basic.Card
 
 @Composable
 internal fun AppearanceIconPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) {
     val roundIcon = rememberBooleanPreference(prefs, KEY_ROUND_ICON, true)
     AppearanceDetailPage(title = stringResource(R.string.appearance_icon), onBack = onBack) {
         item {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 LongPreferenceSlider(prefs, KEY_ICON_SIZE, R.string.icon_size, 50, 150, 100, unit = SliderUnit.Percent)
                 LongPreferenceSlider(prefs, KEY_ROUND_RADIUS, R.string.round_icon_radius, 0, 100, 40, unit = SliderUnit.Percent)
                 PreferenceSwitch(
@@ -33,7 +33,7 @@ internal fun AppearanceIconPage(prefs: FlutterPrefsRepository, onBack: () -> Uni
             }
         }
         item {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 val iconColor = rememberStringPreference(prefs, KEY_ICON_COLOR, "default")
                 val values = listOf("default", "black", "follow_status_bar", "invert_status_bar")
                 PreferenceDropdown(

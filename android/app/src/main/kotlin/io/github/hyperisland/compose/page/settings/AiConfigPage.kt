@@ -23,6 +23,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AiCustomFieldsDialog
 import io.github.hyperisland.compose.component.AiModelPickerDialog
 import io.github.hyperisland.compose.component.DetailPage
@@ -37,7 +38,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.Icon
@@ -197,7 +197,7 @@ internal fun AiConfigPage(
     ) {
         item {
             SectionTitle(stringResource(R.string.ai_section))
-            Card {
+            AppCard {
                 SwitchPreference(
                     checked = draft.enabled,
                     onCheckedChange = { enabled -> persistImmediate { it.copy(enabled = enabled) } },
@@ -209,7 +209,7 @@ internal fun AiConfigPage(
         }
 
         item {
-            Card(
+            AppCard(
                 modifier = Modifier.fillMaxWidth(),
                 colors = warningColors,
                 showIndication = true,
@@ -228,7 +228,7 @@ internal fun AiConfigPage(
 
         item {
             SectionTitle(stringResource(R.string.ai_api_section))
-            Card {
+            AppCard {
                 Column(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -422,7 +422,7 @@ internal fun AiConfigPage(
                         }
                     }
                     testResult?.let { result ->
-                        Card(
+                        AppCard(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardDefaults.defaultColors(
                                 color = if (result.success) {
@@ -451,7 +451,7 @@ internal fun AiConfigPage(
 
         item {
             SectionTitle(stringResource(R.string.notification_test))
-            Card(insideMargin = PaddingValues(16.dp)) {
+            AppCard(insideMargin = PaddingValues(16.dp)) {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     TextField(
                         value = notificationContent,
@@ -489,7 +489,7 @@ internal fun AiConfigPage(
         }
 
         item {
-            Card(
+            AppCard(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.defaultColors(
                     color = MiuixTheme.colorScheme.secondaryContainer,

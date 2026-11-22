@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.DetailPage
 import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.data.Donor
@@ -32,7 +33,6 @@ import io.github.hyperisland.compose.data.DonorBoard
 import io.github.hyperisland.compose.data.formatGeneratedAt
 import io.github.hyperisland.compose.service.SiteDataClient
 import kotlinx.coroutines.launch
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Refresh
@@ -93,7 +93,7 @@ internal fun DonorsPage(onBack: () -> Unit) {
         val donors = board?.recentFirst.orEmpty()
         if (donors.isNotEmpty()) {
             item {
-                Card(modifier = Modifier.fillMaxWidth()) {
+                AppCard(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         donors.forEachIndexed { index, donor ->
                             DonorRow(donor)
@@ -152,7 +152,7 @@ internal fun DonorsPage(onBack: () -> Unit) {
 
 @Composable
 private fun DonationThanksCard(board: DonorBoard?) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    AppCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp)) {
             Text(
                 text = stringResource(R.string.donation_list_thanks),

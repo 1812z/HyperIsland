@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.PreferenceDropdown
 import io.github.hyperisland.compose.component.PreferenceSwitch
 import io.github.hyperisland.compose.component.SectionTitle
@@ -24,7 +25,6 @@ import io.github.hyperisland.compose.data.rememberStringPreference
 import io.github.hyperisland.compose.service.XposedScopeService
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.BasicComponent
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -69,7 +69,7 @@ internal fun ScreenRecorderHookPage(prefs: FlutterPrefsRepository, onBack: () ->
     ) {
         item {
             SectionTitle(stringResource(R.string.config))
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(
                     title = stringResource(R.string.ext_screen_recorder_island),
                     summary = stringResource(R.string.ext_screen_recorder_island_summary),
@@ -134,7 +134,7 @@ internal fun ScreenRecorderHookPage(prefs: FlutterPrefsRepository, onBack: () ->
         }
         item {
             AnimatedVisibility(screenRecorderIsland.value) {
-                Card(
+                AppCard(
                     modifier = Modifier.fillMaxWidth(),
                     colors = warningColors,
                     showIndication = true,

@@ -47,6 +47,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.BarBackdropContent
 import io.github.hyperisland.compose.component.BarBlurHost
 import io.github.hyperisland.compose.component.uiGlassBackdrop
@@ -64,7 +65,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.BasicComponent
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.DropdownEntry
 import top.yukonga.miuix.kmp.basic.DropdownItem
@@ -617,7 +617,7 @@ private fun AppRow(
     onClick: () -> Unit,
     onLongPress: () -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth(), onLongPress = onLongPress) {
+    AppCard(modifier = Modifier.fillMaxWidth(), onLongPress = onLongPress) {
         BasicComponent(
             startAction = {
                 Box(

@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.PreferenceDropdown
 import io.github.hyperisland.compose.component.PreferenceSwitch
@@ -36,7 +37,6 @@ import io.github.hyperisland.xposed.islanddispatch.definition.HeartRateIslandCon
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
 import top.yukonga.miuix.kmp.basic.Text
@@ -128,7 +128,7 @@ internal fun HeartRateIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Un
     ) {
         item {
             SectionTitle(stringResource(R.string.config))
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(
                     title = stringResource(R.string.ext_heart_rate_enable),
                     summary = stringResource(R.string.ext_heart_rate_enable_summary),
@@ -196,7 +196,7 @@ internal fun HeartRateIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Un
         onDismissRequest = { showDeviceDialog.value = false },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 if (isScanning.value) {
                     Text(
                         text = stringResource(R.string.ext_heart_rate_scanning_hint),

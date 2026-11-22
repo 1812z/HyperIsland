@@ -43,7 +43,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import io.github.hyperisland.compose.theme.AppWallpaperBackground
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -59,8 +58,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.PrivacyPolicyMessage
+import io.github.hyperisland.compose.component.WallpaperCardHost
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.service.OnboardingService
 import io.github.hyperisland.compose.service.OnboardingStatus
@@ -70,7 +71,6 @@ import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
@@ -173,12 +173,11 @@ internal fun OnboardingPage(
         containerColor = MiuixTheme.colorScheme.surface,
         snackbarHost = { SnackbarHost(snackbarState) },
     ) { scaffoldPadding ->
-        Box(
+        WallpaperCardHost(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MiuixTheme.colorScheme.surface),
         ) {
-            AppWallpaperBackground(Modifier.matchParentSize())
             Box(
                 modifier = Modifier
                     .matchParentSize()
@@ -432,7 +431,7 @@ private fun PrivacyPanel(
     onCheckedChange: (Boolean) -> Unit,
     onOpenPrivacyPolicy: () -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    AppCard(modifier = Modifier.fillMaxWidth()) {
         PrivacyPolicyMessage(
             onViewPolicy = onOpenPrivacyPolicy,
             modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp),
@@ -590,7 +589,7 @@ private fun EnvironmentPanel(checking: Boolean, status: OnboardingStatus?) {
 
 @Composable
 private fun PermissionCard(title: Int, passed: Boolean?, failure: String, checking: Boolean) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    AppCard(modifier = Modifier.fillMaxWidth()) {
         BasicComponent(
             title = stringResource(title),
             summary = failure.takeIf { passed == false },
@@ -623,7 +622,7 @@ private fun FocusUnlockPanel(
 ) {
     val enabled = unlockAllFocus && unlockFocusAuth
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Card(modifier = Modifier.fillMaxWidth()) {
+        AppCard(modifier = Modifier.fillMaxWidth()) {
             BasicComponent(
                 title = stringResource(R.string.onboarding_focus_hyperceiler),
                 summary = stringResource(R.string.onboarding_focus_hyperceiler_summary),
@@ -636,7 +635,7 @@ private fun FocusUnlockPanel(
                     .padding(horizontal = 12.dp, vertical = 12.dp),
             )
         }
-        Card(modifier = Modifier.fillMaxWidth()) {
+        AppCard(modifier = Modifier.fillMaxWidth()) {
             BasicComponent(
                 title = stringResource(R.string.onboarding_focus_embedded),
                 summary = stringResource(
@@ -693,7 +692,7 @@ private fun NotificationStylePanel(
             selected = !defaultFocusNotification,
             onClick = { onChanged(false) },
         )
-        Card(
+        AppCard(
             modifier = Modifier.fillMaxWidth(),
             colors = warningColors,
         ) {
@@ -726,7 +725,7 @@ private fun NotificationStyleCard(
             context.assets.open(assetPath).use(BitmapFactory::decodeStream).asImageBitmap()
         }.getOrNull()
     }
-    Card(modifier = Modifier.fillMaxWidth(), onClick = onClick) {
+    AppCard(modifier = Modifier.fillMaxWidth(), onClick = onClick) {
         BasicComponent(
             title = title,
             endActions = {

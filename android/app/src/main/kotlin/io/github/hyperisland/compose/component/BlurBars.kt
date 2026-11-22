@@ -9,7 +9,6 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
-import io.github.hyperisland.compose.theme.AppWallpaperBackground
 import io.github.hyperisland.compose.theme.LocalUiGlassSettings
 import top.yukonga.miuix.kmp.blur.BlendColorEntry
 import top.yukonga.miuix.kmp.blur.BlurDefaults
@@ -94,15 +93,11 @@ internal fun BarBackdropContent(
     content: @Composable () -> Unit,
 ) {
     val backdrop = LocalBarBlurBackdrop.current
-    Box(
-        modifier = modifier.then(
-            if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier,
-        ),
-    ) {
-        if (showWallpaper) {
-            AppWallpaperBackground(Modifier.matchParentSize())
-        }
-        content()
+    val capture = if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier
+    if (showWallpaper) {
+        WallpaperCardHost(modifier.then(capture)) { content() }
+    } else {
+        Box(modifier.then(capture)) { content() }
     }
 }
 

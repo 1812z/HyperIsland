@@ -6,17 +6,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.data.IslandCornerPreferences
 import io.github.hyperisland.data.ExpandedCollapsePreferences as Keys
-import top.yukonga.miuix.kmp.basic.Card
 
 @Composable
 internal fun AppearanceSizePage(prefs: FlutterPrefsRepository, onBack: () -> Unit) {
     AppearanceDetailPage(title = stringResource(R.string.appearance_size), onBack = onBack) {
         item {
             SectionTitle(stringResource(R.string.island_position_size))
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 DoublePreferenceSlider(prefs, KEY_ISLAND_HEIGHT, R.string.island_height, 0.0, 100.0, 0.0)
                 DoublePreferenceSlider(prefs, KEY_ISLAND_TOP_OFFSET, R.string.vertical_position, -40.0, 50.0, 0.0)
                 LongPreferenceSlider(prefs, KEY_BIG_MAX_WIDTH, R.string.big_max_width, 0, 500, 0, 5)
@@ -35,7 +35,7 @@ internal fun AppearanceSizePage(prefs: FlutterPrefsRepository, onBack: () -> Uni
         }
         item {
             SectionTitle(stringResource(R.string.expand_layout_section))
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 LongPreferenceSlider(prefs, Keys.TOP_GAP, R.string.expand_layout_top_gap,
                     -1, 30, Keys.DEFAULT_TOP_GAP, followSystemAtDefault = true)
                 LongPreferenceSlider(prefs, Keys.CONTENT_TOP_GAP, R.string.expand_layout_content_top_gap,
@@ -44,7 +44,7 @@ internal fun AppearanceSizePage(prefs: FlutterPrefsRepository, onBack: () -> Uni
         }
         item {
             SectionTitle(stringResource(R.string.island_corner_section))
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 LongPreferenceSlider(prefs, IslandCornerPreferences.ISLAND,
                     R.string.island_corner_radius, -1, 50, IslandCornerPreferences.SYSTEM,
                     followSystemAtDefault = true)

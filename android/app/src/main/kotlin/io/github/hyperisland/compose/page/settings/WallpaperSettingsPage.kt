@@ -22,6 +22,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.DetailPage
 import io.github.hyperisland.compose.component.PreferenceSlider
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
@@ -74,7 +75,7 @@ internal fun WallpaperSettingsPage(prefs: FlutterPrefsRepository, onBack: () -> 
         item {
             val blurRadius = wallpaper.blurRadius.coerceIn(0, MAX_WALLPAPER_BLUR_RADIUS)
             val brightness = wallpaper.brightness.coerceIn(0, MAX_WALLPAPER_BRIGHTNESS)
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSlider(
                     title = stringResource(R.string.wallpaper_blur),
                     icon = null,
