@@ -1,14 +1,19 @@
 package io.github.hyperisland.compose.component
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.Dp
 import io.github.hyperisland.compose.theme.AppWallpaperImage
@@ -49,10 +54,11 @@ internal fun WallpaperCardHost(
         null
     }
     Box(modifier = modifier) {
-        if (wallpaper != null) {
-            // Only the wallpaper is recorded. The cards sample a sibling outside their draw tree.
+        if (wallpaper?.image != null) {
             val capture = if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier
-            AppWallpaperImage(wallpaper, Modifier.matchParentSize().then(wallpaperModifier).then(capture))
+            Box(Modifier.matchParentSize().then(wallpaperModifier).then(capture)) {
+                AppWallpaperImage(wallpaper, Modifier.matchParentSize())
+            }
         }
         CompositionLocalProvider(LocalWallpaperCardBackdrop provides backdrop) {
             content()
@@ -79,31 +85,72 @@ internal fun AppCard(
         color == colorScheme.background || color == colorScheme.secondaryVariant
     val backdrop = LocalWallpaperCardBackdrop.current
     val glass = LocalCardGlassSettings.current
-    val useGlass = backdrop != null && isPageSurface
-    val surfaceModifier = if (useGlass) {
-        val isDark = colorScheme.background.luminance() < 0.5f
-        val shape = remember(cornerRadius) { GlassShape(cornerRadius) }
-        modifier.glassPanel(
-            backdrop = backdrop,
-            shape = shape,
-            material = uiGlassMaterial(GlassMaterials.puredThinGlass(isDark), glass),
-            stroke = GlassEdgeStrokes.forTheme(isDark),
-            shadow = null,
-            shading = false,
+    if (backdrop == null || !isPageSurface) {
+        Card(
+            modifier = modifier,
+            cornerRadius = cornerRadius,
+            insideMargin = insideMargin,
+            colors = colors,
+            pressFeedbackType = pressFeedbackType,
+            showIndication = showIndication,
+            holdDownState = holdDownState,
+            onClick = onClick,
+            onLongPress = onLongPress,
+            content = content,
         )
-    } else {
-        modifier
+        return
     }
-    Card(
-        modifier = surfaceModifier,
-        cornerRadius = cornerRadius,
-        insideMargin = insideMargin,
-        colors = if (useGlass) colors.copy(color = color.copy(alpha = 0.3f * glass.tintStrength)) else colors,
-        pressFeedbackType = pressFeedbackType,
-        showIndication = showIndication,
-        holdDownState = holdDownState,
-        onClick = onClick,
-        onLongPress = onLongPress,
-        content = content,
+
+    val isDark = colorScheme.background.luminance() < 0.5f
+    val shape = remember(cornerRadius) { GlassShape(cornerRadius) }
+    val tint = color.copy(alpha = 0.3f * glass.tintStrength)
+    val panel = Modifier.glassPanel(
+        backdrop = backdrop,
+        shape = shape,
+        material = uiGlassMaterial(GlassMaterials.puredThinGlass(isDark), glass),
+        stroke = GlassEdgeStrokes.forTheme(isDark),
+        shadow = null,
+        shading = false,
     )
+    if (pressFeedbackType != PressFeedbackType.None) {
+        Card(
+            modifier = modifier,
+            cornerRadius = cornerRadius,
+            insideMargin = CardDefaults.InsideMargin,
+            colors = colors.copy(color = Color.Transparent),
+            pressFeedbackType = pressFeedbackType,
+            showIndication = showIndication,
+            holdDownState = holdDownState,
+            onClick = onClick,
+            onLongPress = onLongPress,
+        ) {
+            // Keep the single glass surface inside Miuix's press transform.
+            Column(
+                modifier = Modifier.graphicsLayer().then(panel).background(tint).padding(insideMargin),
+                content = content,
+            )
+        }
+        return
+    }
+
+    Box(modifier = modifier, propagateMinConstraints = true) {
+        // Let Miuix invalidate the glass layer without relying on the card's press or content layer.
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .graphicsLayer()
+                .then(panel),
+        )
+        Card(
+            cornerRadius = cornerRadius,
+            insideMargin = insideMargin,
+            colors = colors.copy(color = tint),
+            pressFeedbackType = pressFeedbackType,
+            showIndication = showIndication,
+            holdDownState = holdDownState,
+            onClick = onClick,
+            onLongPress = onLongPress,
+            content = content,
+        )
+    }
 }
