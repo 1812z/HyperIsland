@@ -39,7 +39,6 @@ import io.github.hyperisland.compose.component.BarBackdropContent
 import io.github.hyperisland.compose.component.BarBlurHost
 import io.github.hyperisland.compose.component.LocalRootBottomBarPadding
 import io.github.hyperisland.compose.component.LiquidGlassNavigationBar
-import io.github.hyperisland.compose.component.LiquidGlassNavigationItem
 import io.github.hyperisland.compose.component.LAYER_EXIT_DURATION
 import io.github.hyperisland.compose.component.NoticeDialogHost
 import io.github.hyperisland.compose.component.PredictiveNavigationBackHandler
@@ -119,6 +118,7 @@ import top.yukonga.miuix.kmp.basic.FloatingNavigationBar
 import top.yukonga.miuix.kmp.basic.FloatingNavigationBarItem
 import top.yukonga.miuix.kmp.basic.NavigationBar
 import top.yukonga.miuix.kmp.basic.NavigationBarItem
+import top.yukonga.miuix.kmp.basic.NavigationItem
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
@@ -190,7 +190,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     @Composable
     fun RootBottomBar(enabled: Boolean = true) {
         val onSelect: (Int) -> Unit = { index ->
-            if (enabled && pagerState.currentPage != index) {
+            if (enabled && pagerState.targetPage != index) {
                 scope.launch { pagerState.animateScrollToPage(index) }
             }
         }
@@ -229,12 +229,13 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                     .widthIn(max = 76.dp * destinations.size + GlassNavigationBarDefaults.ContentPaddingHorizontal * 2),
             )
             NavigationBarStyle.LiquidGlass -> LiquidGlassNavigationBar(
-                selectedTabIndex = { pagerState.currentPage },
+                selectedIndex = pagerState.settledPage,
                 onTabSelected = onSelect,
                 items = destinations.map { destination ->
-                    LiquidGlassNavigationItem(icon = destination.icon, label = stringResource(destination.title))
+                    NavigationItem(icon = destination.icon, label = stringResource(destination.title))
                 },
                 backdrop = barBackdrop(),
+                enabled = enabled,
             )
         }
     }

@@ -4,21 +4,13 @@ package io.github.hyperisland.compose.component
 
 import android.annotation.SuppressLint
 import android.graphics.RuntimeShader
-import android.os.SystemClock
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.EaseOut
-import androidx.compose.animation.core.VectorConverter
-import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.MutatorMutex
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -32,23 +24,20 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -63,42 +52,40 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.AwaitPointerEventScope
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.PointerId
-import androidx.compose.ui.input.pointer.PointerInputChange
-import androidx.compose.ui.input.pointer.PointerInputScope
-import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.input.pointer.positionChange
-import androidx.compose.ui.input.pointer.util.VelocityTracker
-import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastCoerceIn
-import androidx.compose.ui.util.fastFirstOrNull
 import androidx.compose.ui.util.fastRoundToInt
 import androidx.compose.ui.util.lerp
+import io.github.hyperisland.compose.component.liquid.DampedDragAnimation
 import io.github.hyperisland.compose.component.liquid.lens
 import io.github.hyperisland.compose.component.liquid.rememberCombinedBackdrop
 import io.github.hyperisland.compose.component.liquid.vibrancy
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.FloatingNavigationBar
 import top.yukonga.miuix.kmp.basic.FloatingNavigationBarItem
 import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.NavigationItem
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.blur.Backdrop
+import top.yukonga.miuix.kmp.blur.blur
 import top.yukonga.miuix.kmp.blur.drawBackdrop
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
@@ -116,15 +103,13 @@ import kotlin.math.sign
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-@Immutable
-internal data class LiquidGlassNavigationItem(val icon: ImageVector, val label: String)
-
 @Composable
 internal fun LiquidGlassNavigationBar(
-    selectedTabIndex: () -> Int,
+    selectedIndex: Int,
     onTabSelected: (Int) -> Unit,
-    items: List<LiquidGlassNavigationItem>,
+    items: List<NavigationItem>,
     backdrop: Backdrop?,
+    enabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
     if (items.isEmpty()) return
@@ -136,10 +121,11 @@ internal fun LiquidGlassNavigationBar(
             FloatingNavigationBar(defaultWindowInsetsPadding = false) {
                 items.forEachIndexed { index, item ->
                     FloatingNavigationBarItem(
-                        selected = selectedTabIndex() == index,
+                        selected = selectedIndex == index,
                         onClick = { onTabSelected(index) },
                         icon = item.icon,
                         label = item.label,
+                        enabled = enabled,
                     )
                 }
             }
@@ -152,33 +138,12 @@ internal fun LiquidGlassNavigationBar(
         contentAlignment = Alignment.Center,
     ) {
         FloatingLiquidBar(
-            selectedIndex = selectedTabIndex,
+            selectedIndex = selectedIndex,
             onSelected = onTabSelected,
+            items = items,
             backdrop = backdrop,
-            tabsCount = items.size,
-        ) {
-            items.forEachIndexed { index, item ->
-                FloatingLiquidBarItem(
-                    selected = selectedTabIndex() == index,
-                    onClick = { onTabSelected(index) },
-                    modifier = Modifier.defaultMinSize(minWidth = 76.dp),
-                ) {
-                    Icon(
-                        imageVector = item.icon,
-                        contentDescription = item.label,
-                        modifier = Modifier.size(24.dp),
-                    )
-                    Text(
-                        text = item.label,
-                        fontSize = 11.sp,
-                        lineHeight = 14.sp,
-                        maxLines = 1,
-                        softWrap = false,
-                        overflow = TextOverflow.Visible,
-                    )
-                }
-            }
-        }
+            enabled = enabled,
+        )
     }
 }
 
@@ -213,21 +178,38 @@ private fun rememberGravityStroke(base: EdgeStroke, extraDegrees: Float): EdgeSt
 
 @Composable
 private fun RowScope.FloatingLiquidBarItem(
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    content: @Composable ColumnScope.() -> Unit,
+    item: NavigationItem,
+    isSelected: Boolean,
+    onActivate: (() -> Unit)?,
 ) {
     val scale = LocalLiquidTabScale.current
+    val interaction = if (onActivate != null) {
+        Modifier
+            .semantics(mergeDescendants = true) {
+                role = Role.Tab
+                selected = isSelected
+                onClick {
+                    onActivate()
+                    true
+                }
+            }
+            .onKeyEvent { event ->
+                when (event.key) {
+                    Key.Enter, Key.NumPadEnter, Key.Spacebar -> {
+                        if (event.type == KeyEventType.KeyUp) onActivate()
+                        true
+                    }
+                    else -> false
+                }
+            }
+            .focusable()
+    } else {
+        Modifier
+    }
     Column(
-        modifier = modifier
-            .selectable(
-                selected = selected,
-                interactionSource = null,
-                indication = null,
-                role = Role.Tab,
-                onClick = onClick,
-            )
+        modifier = Modifier
+            .defaultMinSize(minWidth = 76.dp)
+            .then(interaction)
             .fillMaxHeight()
             .weight(1f)
             .graphicsLayer {
@@ -237,19 +219,31 @@ private fun RowScope.FloatingLiquidBarItem(
             },
         verticalArrangement = Arrangement.spacedBy(1.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
-        content = content,
-    )
+    ) {
+        Icon(
+            imageVector = item.icon,
+            contentDescription = null,
+            modifier = Modifier.size(24.dp),
+        )
+        Text(
+            text = item.label,
+            fontSize = 11.sp,
+            lineHeight = 14.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
 }
 
 @Composable
 private fun FloatingLiquidBar(
-    selectedIndex: () -> Int,
+    selectedIndex: Int,
     onSelected: (Int) -> Unit,
+    items: List<NavigationItem>,
     backdrop: Backdrop,
-    tabsCount: Int,
-    modifier: Modifier = Modifier,
-    content: @Composable RowScope.() -> Unit,
+    enabled: Boolean,
 ) {
+    val tabsCount = items.size
     val isDark = MiuixTheme.colorScheme.background.luminance() < 0.5f
     val pillShape = CircleShape
     val accentColor = MiuixTheme.colorScheme.primary
@@ -261,6 +255,7 @@ private fun FloatingLiquidBar(
     val animationScope = rememberCoroutineScope()
     var tabWidthPx by remember { mutableFloatStateOf(0f) }
     var totalWidthPx by remember { mutableFloatStateOf(0f) }
+    val horizontalPaddingPx = with(density) { 4.dp.toPx() }
     val offsetAnimation = remember { Animatable(0f) }
     val rubberBandPx = with(density) { 4.dp.toPx() }
     val panelOffset by remember(rubberBandPx) {
@@ -271,51 +266,67 @@ private fun FloatingLiquidBar(
             }
         }
     }
-    val latestSelectedIndex by rememberUpdatedState(selectedIndex)
     val latestOnSelected by rememberUpdatedState(onSelected)
-    class Holder { var animation: DampedDragAnimation? = null }
-    val holder = remember { Holder() }
+    var currentIndex by remember { mutableIntStateOf(selectedIndex) }
+    var dragStartIndex by remember { mutableIntStateOf(selectedIndex) }
+    var dragDistance by remember { mutableFloatStateOf(0f) }
+
+    fun commitSelection(index: Int) {
+        if (currentIndex == index) return
+        currentIndex = index
+        latestOnSelected(index)
+    }
+
+    fun resetPanelOffset() {
+        animationScope.launch { offsetAnimation.animateTo(0f, spring(1f, 300f, 0.5f)) }
+    }
+
     val dragAnimation = remember(animationScope, tabsCount, density, isLeftToRight) {
         DampedDragAnimation(
             animationScope = animationScope,
-            initialValue = selectedIndex().toFloat(),
+            initialValue = selectedIndex.toFloat(),
             valueRange = 0f..(tabsCount - 1).toFloat(),
-            canDrag = { offset ->
-                val animation = holder.animation ?: return@DampedDragAnimation true
-                if (tabWidthPx == 0f) return@DampedDragAnimation false
-                val padding = with(density) { 4.dp.toPx() }
-                val indicatorX = animation.value * tabWidthPx
-                val touchX = if (isLeftToRight) {
-                    padding + indicatorX + offset.x
+            onDragStarted = { position ->
+                dragDistance = 0f
+                animationScope.launch(start = CoroutineStart.UNDISPATCHED) { offsetAnimation.snapTo(0f) }
+                dragStartIndex = if (tabWidthPx > 0f) {
+                    val logicalX = if (isLeftToRight) position.x else totalWidthPx - position.x
+                    ((logicalX - horizontalPaddingPx) / tabWidthPx).toInt().coerceIn(0, tabsCount - 1)
                 } else {
-                    totalWidthPx - padding - tabWidthPx - indicatorX + offset.x
+                    currentIndex
                 }
-                touchX in 0f..totalWidthPx
+                updateValue(dragStartIndex.toFloat())
             },
             onDragStopped = {
-                val target = targetValue.fastRoundToInt().fastCoerceIn(0, tabsCount - 1)
-                animateToValue(target.toFloat())
-                latestOnSelected(target)
-                animationScope.launch { offsetAnimation.animateTo(0f, spring(1f, 300f, 0.5f)) }
+                val index = targetValue.fastRoundToInt()
+                commitSelection(index)
+                updateValue(index.toFloat())
+                resetPanelOffset()
             },
-            onDrag = { _, amount ->
-                if (tabWidthPx > 0f) {
-                    updateValue(
-                        (targetValue + amount.x / tabWidthPx * if (isLeftToRight) 1f else -1f)
-                            .fastCoerceIn(0f, (tabsCount - 1).toFloat()),
-                    )
-                    animationScope.launch { offsetAnimation.snapTo(offsetAnimation.value + amount.x) }
+            onDragCancelled = {
+                updateValue(currentIndex.toFloat())
+                resetPanelOffset()
+            },
+            onDrag = { amount ->
+                if (tabWidthPx > 0f && amount.x != 0f) {
+                    dragDistance += amount.x
+                    val logicalDistance = if (isLeftToRight) dragDistance else -dragDistance
+                    updateValue(dragStartIndex + logicalDistance / tabWidthPx)
+                    animationScope.launch(start = CoroutineStart.UNDISPATCHED) {
+                        offsetAnimation.snapTo(dragDistance)
+                    }
                 }
             },
-        ).also { holder.animation = it }
+        )
     }
-    LaunchedEffect(dragAnimation) {
-        snapshotFlow { latestSelectedIndex() }.collectLatest { index ->
-            dragAnimation.animateToValue(index.fastCoerceIn(0, tabsCount - 1).toFloat())
+    LaunchedEffect(dragAnimation, selectedIndex) {
+        if (currentIndex != selectedIndex) {
+            currentIndex = selectedIndex
+            dragAnimation.animateToValue(selectedIndex.toFloat())
         }
     }
-    val interactiveHighlight = remember(animationScope, tabWidthPx, isLeftToRight) {
-        InteractiveHighlight(animationScope) { size, _ ->
+    val interactiveHighlight = remember(dragAnimation, isLeftToRight) {
+        InteractiveHighlight({ dragAnimation.pressProgress }) { size ->
             Offset(
                 x = if (isLeftToRight) {
                     (dragAnimation.value + 0.5f) * tabWidthPx + panelOffset
@@ -330,15 +341,20 @@ private fun FloatingLiquidBar(
     val pillStroke = rememberGravityStroke(IndicatorSpecular, 90f)
     val combinedBackdrop = rememberCombinedBackdrop(backdrop, tabsBackdrop)
 
-    Box(modifier = modifier.width(IntrinsicSize.Min), contentAlignment = Alignment.CenterStart) {
+    Box(
+        modifier = Modifier
+            .width(IntrinsicSize.Min)
+            .onSizeChanged { size ->
+                totalWidthPx = size.width.toFloat()
+                tabWidthPx = ((totalWidthPx - horizontalPaddingPx * 2) / tabsCount).coerceAtLeast(0f)
+            }
+            // Keep the pointer coordinates attached to the bar instead of the sliding indicator.
+            .then(if (enabled) dragAnimation.modifier else Modifier),
+        contentAlignment = Alignment.CenterStart,
+    ) {
         Row(
             modifier = Modifier
                 .selectableGroup()
-                .onGloballyPositioned { coordinates ->
-                    totalWidthPx = coordinates.size.width.toFloat()
-                    tabWidthPx = ((totalWidthPx - with(density) { 8.dp.toPx() }) / tabsCount)
-                        .coerceAtLeast(0f)
-                }
                 .graphicsLayer { translationX = panelOffset }
                 .dropShadow(
                     shape = pillShape,
@@ -348,16 +364,14 @@ private fun FloatingLiquidBar(
                         alpha = if (isDark) 0.2f else 0.1f,
                     ),
                 )
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = {},
-                )
                 .drawBackdrop(
                     backdrop = backdrop,
                     shape = { pillShape },
                     effects = {
+                        // Reserve room for the lens and the press scale before sampling the blur.
+                        padding = maxOf(padding, 40.dp.toPx())
                         vibrancy()
+                        blur(4.dp.toPx())
                         lens(24.dp.toPx(), 24.dp.toPx())
                     },
                     layerBlock = {
@@ -374,7 +388,22 @@ private fun FloatingLiquidBar(
                 .padding(4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            CompositionLocalProvider(LocalContentColor provides tabContentColor) { content() }
+            CompositionLocalProvider(LocalContentColor provides tabContentColor) {
+                items.forEachIndexed { index, item ->
+                    FloatingLiquidBarItem(
+                        item = item,
+                        isSelected = currentIndex == index,
+                        onActivate = if (enabled) {
+                            {
+                                commitSelection(index)
+                                dragAnimation.animateToValue(index.toFloat())
+                            }
+                        } else {
+                            null
+                        },
+                    )
+                }
+            }
         }
 
         CompositionLocalProvider(
@@ -391,7 +420,9 @@ private fun FloatingLiquidBar(
                         backdrop = backdrop,
                         shape = { pillShape },
                         effects = {
+                            padding = maxOf(padding, 24.dp.toPx())
                             vibrancy()
+                            blur(4.dp.toPx())
                             lens(24.dp.toPx(), 24.dp.toPx())
                         },
                         onDrawSurface = { drawRect(containerColor) },
@@ -400,8 +431,9 @@ private fun FloatingLiquidBar(
                     .height(56.dp)
                     .padding(horizontal = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                content = content,
-            )
+            ) {
+                items.forEach { FloatingLiquidBarItem(it, isSelected = false, onActivate = null) }
+            }
         }
 
         if (tabWidthPx > 0f) {
@@ -412,8 +444,6 @@ private fun FloatingLiquidBar(
                         val offset = dragAnimation.value * tabWidthPx
                         translationX = if (isLeftToRight) offset + panelOffset else -offset + panelOffset
                     }
-                    .then(interactiveHighlight.gestureModifier)
-                    .then(dragAnimation.modifier)
                     .drawBackdrop(
                         backdrop = combinedBackdrop,
                         shape = { pillShape },
@@ -453,115 +483,14 @@ private fun FloatingLiquidBar(
     }
 }
 
-private class DampedDragAnimation(
-    private val animationScope: CoroutineScope,
-    initialValue: Float,
-    private val valueRange: ClosedRange<Float>,
-    private val canDrag: (Offset) -> Boolean = { true },
-    private val onDragStopped: DampedDragAnimation.() -> Unit,
-    private val onDrag: DampedDragAnimation.(IntSize, Offset) -> Unit,
-) {
-    private val valueAnimation = Animatable(initialValue, 0.001f)
-    private val velocityAnimation = Animatable(0f, 5f)
-    private val pressAnimation = Animatable(0f, 0.001f)
-    private val scaleXAnimation = Animatable(1f, 0.001f)
-    private val scaleYAnimation = Animatable(1f, 0.001f)
-    private val mutex = MutatorMutex()
-    private val velocityTracker = VelocityTracker()
-
-    val value: Float get() = valueAnimation.value
-    val targetValue: Float get() = valueAnimation.targetValue
-    val pressProgress: Float get() = pressAnimation.value
-    val scaleX: Float get() = scaleXAnimation.value
-    val scaleY: Float get() = scaleYAnimation.value
-    val velocity: Float get() = velocityAnimation.value
-
-    val modifier = Modifier.pointerInput(Unit) {
-        inspectDragGestures(
-            onDragStart = {
-                velocityTracker.resetTracking()
-                press()
-            },
-            onDragEnd = {
-                onDragStopped()
-                release()
-            },
-            onDragCancel = {
-                onDragStopped()
-                release()
-            },
-        ) { change, amount ->
-            if (canDrag(change.position) && canDrag(change.previousPosition)) onDrag(size, amount)
-        }
-    }
-
-    private fun press() {
-        animationScope.launch {
-            launch { pressAnimation.animateTo(1f, spring(1f, 1000f, 0.001f)) }
-            launch { scaleXAnimation.animateTo(78f / 56f, spring(0.6f, 250f, 0.001f)) }
-            launch { scaleYAnimation.animateTo(78f / 56f, spring(0.7f, 250f, 0.001f)) }
-        }
-    }
-
-    private fun release() {
-        animationScope.launch {
-            withFrameNanos { }
-            if (value != targetValue) {
-                val threshold = (valueRange.endInclusive - valueRange.start) * 0.025f
-                snapshotFlow { valueAnimation.value }
-                    .first { abs(it - valueAnimation.targetValue) < threshold }
-            }
-            launch { pressAnimation.animateTo(0f, spring(1f, 1000f, 0.001f)) }
-            launch { scaleXAnimation.animateTo(1f, spring(0.6f, 250f, 0.001f)) }
-            launch { scaleYAnimation.animateTo(1f, spring(0.7f, 250f, 0.001f)) }
-        }
-    }
-
-    fun updateValue(value: Float) {
-        val target = value.coerceIn(valueRange)
-        animationScope.launch {
-            valueAnimation.animateTo(target, spring(1f, 1000f, 0.001f)) { updateVelocity() }
-        }
-    }
-
-    fun animateToValue(value: Float) {
-        animationScope.launch {
-            mutex.mutate {
-                press()
-                launch {
-                    valueAnimation.animateTo(value.coerceIn(valueRange), spring(1f, 1000f, 0.001f))
-                }
-                if (velocity != 0f) {
-                    launch { velocityAnimation.animateTo(0f, spring(0.5f, 300f, 0.01f)) }
-                }
-                release()
-            }
-        }
-    }
-
-    private fun updateVelocity() {
-        velocityTracker.addPosition(SystemClock.uptimeMillis(), Offset(value, 0f))
-        val range = valueRange.endInclusive - valueRange.start
-        val target = if (range == 0f) 0f else velocityTracker.calculateVelocity().x / range
-        animationScope.launch { velocityAnimation.animateTo(target, spring(0.5f, 300f, 0.01f)) }
-    }
-}
 
 @SuppressLint("NewApi")
 private class InteractiveHighlight(
-    private val animationScope: CoroutineScope,
-    private val position: (Size, Offset) -> Offset,
+    pressProgress: () -> Float,
+    position: (Size) -> Offset,
 ) {
-    private val pressAnimation = Animatable(0f, 0.001f)
-    private val positionAnimation = Animatable(
-        Offset.Zero,
-        Offset.VectorConverter,
-        Offset.VisibilityThreshold,
-    )
-    private var startPosition = Offset.Zero
     private val shader = RuntimeShader(
         """
-        uniform float2 size;
         layout(color) uniform half4 color;
         uniform float radius;
         uniform float2 position;
@@ -572,98 +501,22 @@ private class InteractiveHighlight(
         }
         """.trimIndent(),
     )
+    private val brush = ShaderBrush(shader)
 
     val modifier = Modifier.drawWithContent {
-            val progress = pressAnimation.value
-            if (progress > 0f) {
-                drawRect(Color.White.copy(alpha = 0.06f * progress), blendMode = BlendMode.Plus)
-                val highlightPosition = position(size, positionAnimation.value)
-                shader.setFloatUniform("size", size.width, size.height)
-                shader.setColorUniform("color", Color.White.copy(alpha = 0.12f * progress).toArgb())
-                shader.setFloatUniform("radius", size.minDimension * 1.2f)
-                shader.setFloatUniform(
-                    "position",
-                    highlightPosition.x.fastCoerceIn(0f, size.width),
-                    highlightPosition.y.fastCoerceIn(0f, size.height),
-                )
-                drawRect(ShaderBrush(shader), blendMode = BlendMode.Plus)
-            }
-            drawContent()
-    }
-
-    val gestureModifier = Modifier.pointerInput(animationScope) {
-        inspectDragGestures(
-            onDragStart = { down ->
-                startPosition = down.position
-                animationScope.launch {
-                    launch { pressAnimation.animateTo(1f, spring(0.5f, 300f, 0.001f)) }
-                    launch { positionAnimation.snapTo(startPosition) }
-                }
-            },
-            onDragEnd = { reset() },
-            onDragCancel = { reset() },
-        ) { change, _ ->
-            animationScope.launch { positionAnimation.snapTo(change.position) }
+        val progress = pressProgress()
+        if (progress > 0f) {
+            drawRect(Color.White.copy(alpha = 0.06f * progress), blendMode = BlendMode.Plus)
+            val highlightPosition = position(size)
+            shader.setColorUniform("color", Color.White.copy(alpha = 0.12f * progress).toArgb())
+            shader.setFloatUniform("radius", size.minDimension * 1.2f)
+            shader.setFloatUniform(
+                "position",
+                highlightPosition.x.fastCoerceIn(0f, size.width),
+                highlightPosition.y.fastCoerceIn(0f, size.height),
+            )
+            drawRect(brush, blendMode = BlendMode.Plus)
         }
-    }
-
-    private fun reset() {
-        animationScope.launch {
-            launch { pressAnimation.animateTo(0f, spring(0.5f, 300f, 0.001f)) }
-            launch {
-                positionAnimation.animateTo(
-                    startPosition,
-                    spring(0.5f, 300f, Offset.VisibilityThreshold),
-                )
-            }
-        }
-    }
-}
-
-private suspend fun PointerInputScope.inspectDragGestures(
-    onDragStart: (PointerInputChange) -> Unit = {},
-    onDragEnd: (PointerInputChange) -> Unit = {},
-    onDragCancel: () -> Unit = {},
-    onDrag: (PointerInputChange, Offset) -> Unit,
-) {
-    awaitEachGesture {
-        val initialDown = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-        val down = awaitFirstDown(requireUnconsumed = false)
-        onDragStart(down)
-        onDrag(initialDown, Offset.Zero)
-        val up = drag(initialDown.id) { change -> onDrag(change, change.positionChange()) }
-        if (up == null) onDragCancel() else onDragEnd(up)
-    }
-}
-
-private suspend inline fun AwaitPointerEventScope.drag(
-    pointerId: PointerId,
-    onDrag: (PointerInputChange) -> Unit,
-): PointerInputChange? {
-    if (currentEvent.changes.fastFirstOrNull { it.id == pointerId }?.pressed != true) return null
-    var pointer = pointerId
-    while (true) {
-        val change = awaitDragOrUp(pointer) ?: return null
-        if (change.isConsumed) return null
-        if (change.changedToUpIgnoreConsumed()) return change
-        onDrag(change)
-        pointer = change.id
-    }
-}
-
-private suspend inline fun AwaitPointerEventScope.awaitDragOrUp(
-    pointerId: PointerId,
-): PointerInputChange? {
-    var pointer = pointerId
-    while (true) {
-        val event = awaitPointerEvent()
-        val change = event.changes.fastFirstOrNull { it.id == pointer } ?: return null
-        if (change.changedToUpIgnoreConsumed()) {
-            val other = event.changes.fastFirstOrNull { it.pressed }
-            if (other == null) return change
-            pointer = other.id
-        } else if (change.previousPosition != change.position) {
-            return change
-        }
+        drawContent()
     }
 }
