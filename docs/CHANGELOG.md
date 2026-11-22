@@ -8,6 +8,17 @@ import ReleaseHistory from './.vitepress/components/ReleaseHistory.vue'
 
 <div class="changelog-source" hidden>
 
+# V3.3.1(2026-11-22)
+## 功能
+- UI：新增柔光界面（实验性）
+- UI：新增壁纸功能
+- UI：优化底栏样式
+- 新增禁用蓝牙设备解锁Toast提示
+
+## 优化 & 修复
+- 修复部分场景柔光材质出现黑色遮罩
+
+
 # V3.3.0(2026-11-18)
 ## 功能
 - 新增性能分析工具
