@@ -21,6 +21,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.DetailPage
 import io.github.hyperisland.compose.component.PreferenceDropdown
 import io.github.hyperisland.compose.component.PreferenceSwitch
@@ -55,7 +56,6 @@ import top.yukonga.miuix.kmp.icon.extended.Add
 import top.yukonga.miuix.kmp.icon.extended.Hide
 import top.yukonga.miuix.kmp.icon.extended.Show
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.window.WindowDialog
 
 /**
  * Home Assistant 拓展设置页。
@@ -373,7 +373,7 @@ internal fun HomeAssistantPage(
         onRetry = { connection.reconnect() },
     )
 
-    WindowDialog(
+    AppDialog(
         show = pendingDelete != null,
         title = stringResource(R.string.delete),
         summary = stringResource(R.string.ha_delete_confirm),

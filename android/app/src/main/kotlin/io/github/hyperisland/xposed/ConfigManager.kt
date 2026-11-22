@@ -538,7 +538,9 @@ object ConfigManager {
         "pref_temp_hide_foreground_app",
         "pref_screenshot_temp_hide",
         "pref_screenshot_lead_ms",
-        "pref_blur_bars",
+        "pref_ui_glass_enabled",
+        "pref_ui_glass_transparency",
+        "pref_ui_glass_blur_radius",
         "pref_debug_log",
         "pref_debug_mode",
         "pref_debug_disabled_hooks"

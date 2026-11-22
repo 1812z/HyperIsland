@@ -43,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import io.github.hyperisland.compose.theme.AppWallpaperBackground
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -58,6 +59,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.PrivacyPolicyMessage
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.service.OnboardingService
@@ -87,7 +89,6 @@ import top.yukonga.miuix.kmp.icon.extended.Lock
 import top.yukonga.miuix.kmp.icon.extended.Ok
 import top.yukonga.miuix.kmp.icon.extended.Settings
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.window.WindowDialog
 
 private enum class OnboardingDialog { Environment, FocusUnlock }
 
@@ -177,6 +178,7 @@ internal fun OnboardingPage(
                 .fillMaxSize()
                 .background(MiuixTheme.colorScheme.surface),
         ) {
+            AppWallpaperBackground(Modifier.matchParentSize())
             Box(
                 modifier = Modifier
                     .matchParentSize()
@@ -812,7 +814,7 @@ private fun EnvironmentDialog(
     onContinue: () -> Unit,
     onRetry: () -> Unit,
 ) {
-    WindowDialog(
+    AppDialog(
         show = show,
         title = stringResource(R.string.onboarding_environment_title),
         onDismissRequest = onDismiss,
@@ -833,7 +835,7 @@ private fun FocusUnlockDialog(
     onDismiss: () -> Unit,
     onContinue: () -> Unit,
 ) {
-    WindowDialog(
+    AppDialog(
         show = show,
         title = stringResource(R.string.onboarding_focus_title),
         onDismissRequest = onDismiss,

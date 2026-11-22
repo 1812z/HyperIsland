@@ -27,7 +27,6 @@ import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Close
-import top.yukonga.miuix.kmp.window.WindowDialog
 
 @Composable
 internal fun KeywordListDialog(
@@ -46,7 +45,7 @@ internal fun KeywordListDialog(
         input = ""
     }
 
-    WindowDialog(show = show, title = title, onDismissRequest = onDismiss) {
+    AppDialog(show = show, title = title, onDismissRequest = onDismiss) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),

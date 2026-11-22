@@ -13,9 +13,9 @@ import top.yukonga.miuix.kmp.blur.Backdrop
 @Stable
 private class CombinedBackdrop(
     private val first: Backdrop,
-    private val second: Backdrop,
+    private val remaining: List<Backdrop>,
 ) : Backdrop {
-    override val isCoordinatesDependent = first.isCoordinatesDependent || second.isCoordinatesDependent
+    override val isCoordinatesDependent = first.isCoordinatesDependent || remaining.any(Backdrop::isCoordinatesDependent)
     override val offsetResidualX: Float get() = first.offsetResidualX
     override val offsetResidualY: Float get() = first.offsetResidualY
 
@@ -26,10 +26,16 @@ private class CombinedBackdrop(
         downscaleFactor: Float,
     ) {
         with(first) { drawBackdrop(density, coordinates, layerBlock, downscaleFactor) }
-        with(second) { drawBackdrop(density, coordinates, layerBlock, downscaleFactor) }
+        remaining.forEach { layer ->
+            with(layer) { drawBackdrop(density, coordinates, layerBlock, downscaleFactor) }
+        }
     }
 }
 
 @Composable
 internal fun rememberCombinedBackdrop(first: Backdrop, second: Backdrop): Backdrop =
-    remember(first, second) { CombinedBackdrop(first, second) }
+    remember(first, second) { CombinedBackdrop(first, listOf(second)) }
+
+@Composable
+internal fun rememberCombinedBackdrop(first: Backdrop, remaining: List<Backdrop>): Backdrop =
+    remember(first, remaining) { CombinedBackdrop(first, remaining) }

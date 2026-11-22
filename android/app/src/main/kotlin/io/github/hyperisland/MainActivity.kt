@@ -18,6 +18,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
+import io.github.hyperisland.compose.component.AppModalHost
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.component.PrivacyConsentDialog
 import io.github.hyperisland.compose.navigation.HyperIslandApp
@@ -25,6 +26,7 @@ import io.github.hyperisland.compose.page.onboarding.OnboardingPage
 import io.github.hyperisland.compose.service.AnalyticsService
 import io.github.hyperisland.compose.service.PrivacyConsentStore
 import io.github.hyperisland.compose.service.TestNotificationService
+import io.github.hyperisland.compose.theme.AppWallpaperBackground
 import io.github.hyperisland.compose.theme.HyperIslandTheme
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -68,36 +70,40 @@ class MainActivity : ComponentActivity() {
                 mutableStateOf(repository.getBoolean("pref_onboarding_completed", false))
             }
             HyperIslandTheme(repository) {
-                when {
-                    !onboardingCompleted -> OnboardingPage(
-                        prefs = repository,
-                        showCloseButton = false,
-                        onPrivacyAccepted = {
-                            privacyPolicyAccepted = true
-                            trackAppLaunch(isNewUser)
-                            startBackgroundTasks(prefs)
-                        },
-                        onFinished = { onboardingCompleted = true },
-                    )
-                    privacyPolicyAccepted -> HyperIslandApp(repository)
-                    else -> {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.surface),
-                        )
-                        PrivacyConsentDialog(
-                            show = true,
-                            onViewPolicy = ::openPrivacyPolicy,
-                            onAccept = {
-                                if (PrivacyConsentStore.accept(this)) {
-                                    privacyPolicyAccepted = true
-                                    trackAppLaunch(isNewUser)
-                                    startBackgroundTasks(prefs)
-                                }
+                AppModalHost {
+                    when {
+                        !onboardingCompleted -> OnboardingPage(
+                            prefs = repository,
+                            showCloseButton = false,
+                            onPrivacyAccepted = {
+                                privacyPolicyAccepted = true
+                                trackAppLaunch(isNewUser)
+                                startBackgroundTasks(prefs)
                             },
-                            onReject = ::finishAffinity,
+                            onFinished = { onboardingCompleted = true },
                         )
+                        privacyPolicyAccepted -> HyperIslandApp(repository)
+                        else -> {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme.surface),
+                            ) {
+                                AppWallpaperBackground(Modifier.matchParentSize())
+                            }
+                            PrivacyConsentDialog(
+                                show = true,
+                                onViewPolicy = ::openPrivacyPolicy,
+                                onAccept = {
+                                    if (PrivacyConsentStore.accept(this)) {
+                                        privacyPolicyAccepted = true
+                                        trackAppLaunch(isNewUser)
+                                        startBackgroundTasks(prefs)
+                                    }
+                                },
+                                onReject = ::finishAffinity,
+                            )
+                        }
                     }
                 }
             }

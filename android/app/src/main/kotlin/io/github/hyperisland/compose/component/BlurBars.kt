@@ -8,8 +8,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
+import io.github.hyperisland.compose.theme.AppWallpaperBackground
+import io.github.hyperisland.compose.theme.LocalUiGlassSettings
 import top.yukonga.miuix.kmp.blur.BlendColorEntry
 import top.yukonga.miuix.kmp.blur.BlurDefaults
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
@@ -20,19 +21,24 @@ import top.yukonga.miuix.kmp.material.isRuntimeShaderSupported
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 internal val LocalRootBottomBarPadding = staticCompositionLocalOf { 0.dp }
-internal val LocalBarBlurEnabled = staticCompositionLocalOf { false }
+private val LocalBarBlurBackdrop = staticCompositionLocalOf<LayerBackdrop?> { null }
 
-internal val LocalBarBlurBackdrop = staticCompositionLocalOf<LayerBackdrop?> { null }
+@Composable
+internal fun barBackdrop(): LayerBackdrop? = LocalBarBlurBackdrop.current
+
+@Composable
+internal fun uiGlassBackdrop(): LayerBackdrop? =
+    barBackdrop().takeIf { LocalUiGlassSettings.current.enabled }
 
 @Composable
 internal fun BarBlurHost(
-    enabled: Boolean,
     captureForEffects: Boolean = false,
-    liquidGlassEnabled: Boolean = false,
+    captureForGlass: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     val surfaceColor = MiuixTheme.colorScheme.surface
-    val backdrop = if ((enabled || captureForEffects || liquidGlassEnabled) && isRuntimeShaderSupported()) {
+    val glassEnabled = LocalUiGlassSettings.current.enabled
+    val backdrop = if ((captureForEffects || (captureForGlass && glassEnabled)) && isRuntimeShaderSupported()) {
         rememberLayerBackdrop {
             drawRect(surfaceColor)
             drawContent()
@@ -40,10 +46,7 @@ internal fun BarBlurHost(
     } else {
         null
     }
-    CompositionLocalProvider(
-        LocalBarBlurEnabled provides enabled,
-        LocalBarBlurBackdrop provides backdrop,
-    ) {
+    CompositionLocalProvider(LocalBarBlurBackdrop provides backdrop) {
         Box(modifier = Modifier.fillMaxSize()) {
             content()
         }
@@ -83,9 +86,11 @@ internal fun PredictiveBackBackdrop(
     )
 }
 
+/** Captures a page and its wallpaper for the controls above it. Navigation hosts capture their child pages. */
 @Composable
 internal fun BarBackdropContent(
     modifier: Modifier = Modifier,
+    showWallpaper: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     val backdrop = LocalBarBlurBackdrop.current
@@ -94,42 +99,12 @@ internal fun BarBackdropContent(
             if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier,
         ),
     ) {
+        if (showWallpaper) {
+            AppWallpaperBackground(Modifier.matchParentSize())
+        }
         content()
     }
 }
 
-@Composable
-internal fun BlurredBar(content: @Composable () -> Unit) {
-    Box(modifier = Modifier.barBlurBackground(RectangleShape)) {
-        content()
-    }
-}
-
-@Composable
-internal fun Modifier.barBlurBackground(shape: Shape): Modifier {
-    val backdrop = LocalBarBlurBackdrop.current
-    val blurEnabled = LocalBarBlurEnabled.current
-    val surfaceColor = MiuixTheme.colorScheme.surface
-    val contentColor = MiuixTheme.colorScheme.onSurface
-    return if (blurEnabled && backdrop != null) {
-        textureBlur(
-            backdrop = backdrop,
-            shape = shape,
-            blurRadius = BAR_BLUR_RADIUS,
-            colors = BlurDefaults.blurColors(
-                blendColors = listOf(
-                    BlendColorEntry(color = surfaceColor.copy(alpha = BOTTOM_BAR_SURFACE_ALPHA)),
-                    BlendColorEntry(color = contentColor.copy(alpha = BAR_GLASS_TINT_ALPHA)),
-                ),
-            ),
-        )
-    } else {
-        background(color = surfaceColor, shape = shape)
-    }
-}
-
-private const val BAR_BLUR_RADIUS = 16f
-private const val BOTTOM_BAR_SURFACE_ALPHA = 0.58f
-private const val BAR_GLASS_TINT_ALPHA = 0.025f
 private const val PREDICTIVE_BACK_BLUR_RADIUS = 12f
 private const val PREDICTIVE_BACK_DIM_ALPHA = 0.16f

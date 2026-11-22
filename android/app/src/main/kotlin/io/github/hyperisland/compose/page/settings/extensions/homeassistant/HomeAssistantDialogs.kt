@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.state.ToggleableState
+import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.R
 import io.github.hyperisland.homeassistant.HaEntity
 import io.github.hyperisland.homeassistant.HaTemplate
@@ -28,7 +29,6 @@ import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.window.WindowDialog
 
 /**
  * 实体选择器：列表来自 HA 的实时快照（设置页会保持一条 WS 连接），
@@ -65,7 +65,7 @@ internal fun HaEntityPickerDialog(
         }
     }
 
-    WindowDialog(
+    AppDialog(
         show = show,
         title = stringResource(R.string.ha_entity_pick),
         onDismissRequest = onDismiss,
@@ -159,7 +159,7 @@ internal fun HaAttributePickerDialog(
         }
     }
 
-    WindowDialog(
+    AppDialog(
         show = show,
         title = stringResource(R.string.ha_attribute_pick),
         onDismissRequest = onDismiss,

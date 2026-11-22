@@ -11,6 +11,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.unit.dp
+import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.PreferenceSlider
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
@@ -32,7 +33,6 @@ import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.icon.basic.ArrowRight
-import top.yukonga.miuix.kmp.window.WindowDialog
 
 @Composable
 internal fun AppearanceAnimationPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) {
@@ -201,7 +201,7 @@ internal fun AppearanceAnimationPage(prefs: FlutterPrefsRepository, onBack: () -
             }
         }
     }
-    WindowDialog(show = showOvershootDialog.value,
+    AppDialog(show = showOvershootDialog.value,
         title = stringResource(R.string.expand_overshoot_custom),
         onDismissRequest = { showOvershootDialog.value = false }) {
         Column {

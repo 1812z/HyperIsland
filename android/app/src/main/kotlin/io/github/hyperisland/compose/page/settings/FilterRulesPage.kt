@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,14 +24,16 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
@@ -41,10 +44,11 @@ import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.BarBackdropContent
 import io.github.hyperisland.compose.component.BarBlurHost
+import io.github.hyperisland.compose.component.GlassOptionPopup
 import io.github.hyperisland.compose.component.PageTopAppBar
 import io.github.hyperisland.compose.component.PageTopBarIconButton
-import io.github.hyperisland.compose.component.LocalBarBlurBackdrop
-import io.github.hyperisland.compose.component.LocalBarBlurEnabled
+import io.github.hyperisland.compose.component.uiGlassBackdrop
+import io.github.hyperisland.compose.theme.uiGlassPopupVisuals
 import io.github.hyperisland.compose.component.LocalRootBottomBarPadding
 import io.github.hyperisland.compose.component.PageTabRow
 import io.github.hyperisland.compose.component.SectionTitle
@@ -59,7 +63,6 @@ import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.DropdownArrowEndAction
-import top.yukonga.miuix.kmp.basic.DropdownDefaults
 import top.yukonga.miuix.kmp.basic.DropdownEntry
 import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.Icon
@@ -76,13 +79,13 @@ import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.icon.extended.More
-import top.yukonga.miuix.kmp.glass.GlassIconButton
 import top.yukonga.miuix.kmp.glass.GlassIconDropdownMenu
+import top.yukonga.miuix.kmp.glass.GlassPopupItem
 import top.yukonga.miuix.kmp.glass.GlassTopAppBarDefaults
 import top.yukonga.miuix.kmp.glass.glassPopupAnchor
 import top.yukonga.miuix.kmp.glass.glassPopupAnchorContent
+import top.yukonga.miuix.kmp.glass.glassPopupAnchorValue
 import top.yukonga.miuix.kmp.glass.rememberGlassPopupAnchor
-import top.yukonga.miuix.kmp.popup.WindowDropdownPopup
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -205,7 +208,7 @@ internal fun FilterRulesPage(
         ),
     )
 
-    BarBlurHost(enabled = LocalBarBlurEnabled.current, captureForEffects = true) {
+    BarBlurHost {
         Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             topBar = {
@@ -219,7 +222,7 @@ internal fun FilterRulesPage(
                         }
                     },
                     actions = {
-                        GlassIconButton(
+                        PageTopBarIconButton(
                             onClick = { menuExpanded.value = true },
                             modifier = Modifier.glassPopupAnchor(
                                 anchor = menuAnchor,
@@ -252,7 +255,7 @@ internal fun FilterRulesPage(
                                         label = stringResource(R.string.search_apps),
                                         color = Color.Transparent,
                                         modifier = Modifier.glassPill(
-                                            backdrop = LocalBarBlurBackdrop.current,
+                                            backdrop = uiGlassBackdrop(),
                                             // InputField 最小高度 45dp，半径取半高才是真胶囊。
                                             cornerRadius = 23.dp,
                                         ),
@@ -383,7 +386,8 @@ internal fun FilterRulesPage(
                 )
             },
             entries = menuEntries,
-            backdrop = LocalBarBlurBackdrop.current,
+            backdrop = uiGlassBackdrop(),
+            visuals = uiGlassPopupVisuals(),
         )
         }
     }
@@ -426,7 +430,6 @@ private fun FilterAppRow(
             val actions = listOf("default", "small_only", "expand", "suppress")
             FilterActionPreference(
                 app = app,
-                actions = actions,
                 labels = listOf(
                     stringResource(R.string.filter_action_default),
                     stringResource(R.string.filter_action_small_only),
@@ -463,61 +466,61 @@ private fun FilterAppPreference(
 @Composable
 private fun FilterActionPreference(
     app: InstalledApp,
-    actions: List<String>,
     labels: List<String>,
     selectedIndex: Int,
     startAction: (@Composable () -> Unit)?,
     onSelectedIndexChange: (Int) -> Unit,
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    val expanded = remember { mutableStateOf(false) }
+    var bounds by remember { mutableStateOf(Rect.Zero) }
+    val anchor = rememberGlassPopupAnchor()
     val hapticFeedback = LocalHapticFeedback.current
-    val currentOnSelectedIndexChange by rememberUpdatedState(onSelectedIndexChange)
-    val entry = remember(actions, labels, selectedIndex) {
-        DropdownEntry(
-            labels.mapIndexed { index, label ->
-                DropdownItem(
-                    text = label,
-                    selected = index == selectedIndex,
-                    onClick = { currentOnSelectedIndexChange(index) },
-                )
-            },
-        )
-    }
     val actionColor = MiuixTheme.colorScheme.onSurfaceVariantActions
 
     BasicComponent(
+        modifier = Modifier.onGloballyPositioned { bounds = it.boundsInWindow() },
         interactionSource = remember { MutableInteractionSource() },
         startAction = startAction,
         endActions = {
-            Text(
-                text = labels[selectedIndex],
-                modifier = Modifier.padding(end = 8.dp),
-                fontSize = MiuixTheme.textStyles.body2.fontSize,
-                color = actionColor,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            DropdownArrowEndAction(actionColor = actionColor)
-            WindowDropdownPopup(
-                entry = entry,
-                show = expanded,
-                onDismiss = { expanded = false },
-                onDismissFinished = {},
-                maxHeight = null,
-                dropdownColors = DropdownDefaults.dropdownColors(),
-                collapseOnSelection = true,
-            )
+            Row(
+                modifier = Modifier.glassPopupAnchorValue(anchor),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = labels[selectedIndex],
+                    modifier = Modifier.padding(end = 8.dp).weight(1f, fill = false),
+                    fontSize = MiuixTheme.textStyles.body2.fontSize,
+                    color = actionColor,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                DropdownArrowEndAction(actionColor = actionColor)
+            }
         },
         insideMargin = ROW_MARGIN,
         onClick = {
-            expanded = !expanded
-            if (expanded) {
+            expanded.value = !expanded.value
+            if (expanded.value) {
                 hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
             }
         },
         role = Role.DropdownList,
     ) {
         AppIdentityText(app)
+    }
+
+    GlassOptionPopup(expanded, bounds, anchor) {
+        labels.forEachIndexed { index, label ->
+            GlassPopupItem(
+                text = label,
+                selected = index == selectedIndex,
+                onClick = {
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.Confirm)
+                    expanded.value = false
+                    onSelectedIndexChange(index)
+                },
+            )
+        }
     }
 }
 

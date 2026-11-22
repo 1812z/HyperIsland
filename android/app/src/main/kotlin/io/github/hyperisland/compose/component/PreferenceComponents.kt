@@ -1,8 +1,10 @@
 package io.github.hyperisland.compose.component
 
+import androidx.compose.animation.EnterTransition
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,6 +16,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,6 +35,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.theme.uiGlassPopupVisuals
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
@@ -42,6 +47,7 @@ import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.glass.GlassDropdownPreference
 import top.yukonga.miuix.kmp.glass.GlassDropdownPopup
+import top.yukonga.miuix.kmp.glass.GlassPopupAnchor
 import top.yukonga.miuix.kmp.glass.GlassPopupItem
 import top.yukonga.miuix.kmp.glass.glassPopupAnchorValue
 import top.yukonga.miuix.kmp.glass.rememberGlassPopupAnchor
@@ -51,7 +57,6 @@ import top.yukonga.miuix.kmp.preference.SliderPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.MiuixPopupUtils.Companion.PopupLayout
-import top.yukonga.miuix.kmp.window.WindowDialog
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.pow
@@ -117,13 +122,49 @@ internal fun PageDropdownPreference(
         summary = summary,
         items = items,
         selectedIndex = selectedIndex,
-        backdrop = LocalBarBlurBackdrop.current,
+        backdrop = uiGlassBackdrop(),
+        visuals = uiGlassPopupVisuals(),
         enabled = enabled,
         renderInRootScaffold = false,
         startAction = startAction,
         insideMargin = insideMargin,
         onSelectedIndexChange = onSelectedIndexChange,
     )
+}
+
+@Composable
+internal fun GlassOptionPopup(
+    expanded: MutableState<Boolean>,
+    anchorBounds: Rect,
+    anchor: GlassPopupAnchor,
+    enabled: Boolean = true,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    var opened by remember { mutableStateOf(false) }
+    if (!opened) {
+        if (!expanded.value) return
+        SideEffect { opened = true }
+    }
+    val backdrop = uiGlassBackdrop()
+    PopupLayout(
+        visible = expanded,
+        enterTransition = EnterTransition.None,
+        enableWindowDim = false,
+        enableBackHandler = false,
+        renderInRootScaffold = false,
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            GlassDropdownPopup(
+                show = expanded.value && enabled,
+                onDismissRequest = { expanded.value = false },
+                anchorBounds = anchorBounds,
+                anchor = anchor,
+                backdrop = backdrop,
+                visuals = uiGlassPopupVisuals(),
+                content = content,
+            )
+        }
+    }
 }
 
 /** The glass preference accepts plain labels. Use its popup to retain per-option summaries. */
@@ -141,7 +182,6 @@ internal fun PreferenceDropdownWithSummary(
     val expanded = remember { mutableStateOf(false) }
     var bounds by remember { mutableStateOf(Rect.Zero) }
     val anchor = rememberGlassPopupAnchor()
-    val backdrop = LocalBarBlurBackdrop.current
     val available = enabled && items.isNotEmpty()
     val actionColor = if (available) {
         MiuixTheme.colorScheme.onSurfaceVariantActions
@@ -178,32 +218,17 @@ internal fun PreferenceDropdownWithSummary(
         role = Role.DropdownList,
         onClick = { expanded.value = true },
     )
-    PopupLayout(
-        visible = expanded,
-        enableWindowDim = false,
-        enableBackHandler = false,
-        renderInRootScaffold = false,
-    ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            GlassDropdownPopup(
-                show = expanded.value && available,
-                onDismissRequest = { expanded.value = false },
-                anchorBounds = bounds,
-                anchor = anchor,
-                backdrop = backdrop,
-            ) {
-                items.forEachIndexed { index, (label, details) ->
-                    GlassPopupItem(
-                        text = label,
-                        summary = details,
-                        selected = index == selectedIndex,
-                        onClick = {
-                            expanded.value = false
-                            onSelectedIndexChange(index)
-                        },
-                    )
-                }
-            }
+    GlassOptionPopup(expanded, bounds, anchor, enabled = available) {
+        items.forEachIndexed { index, (label, details) ->
+            GlassPopupItem(
+                text = label,
+                summary = details,
+                selected = index == selectedIndex,
+                onClick = {
+                    expanded.value = false
+                    onSelectedIndexChange(index)
+                },
+            )
         }
     }
 }
@@ -226,7 +251,6 @@ internal fun PreferenceMultiDropdown(
     val expanded = remember { mutableStateOf(false) }
     var bounds by remember { mutableStateOf(Rect.Zero) }
     val anchor = rememberGlassPopupAnchor()
-    val backdrop = LocalBarBlurBackdrop.current
     val available = enabled && items.isNotEmpty()
     val actionColor = if (available) {
         MiuixTheme.colorScheme.onSurfaceVariantActions
@@ -254,28 +278,13 @@ internal fun PreferenceMultiDropdown(
         role = Role.DropdownList,
         onClick = { expanded.value = true },
     )
-    PopupLayout(
-        visible = expanded,
-        enableWindowDim = false,
-        enableBackHandler = false,
-        renderInRootScaffold = false,
-    ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            GlassDropdownPopup(
-                show = expanded.value && available,
-                onDismissRequest = { expanded.value = false },
-                anchorBounds = bounds,
-                anchor = anchor,
-                backdrop = backdrop,
-            ) {
-                items.forEachIndexed { index, label ->
-                    GlassPopupItem(
-                        text = label,
-                        selected = index in selectedIndices,
-                        onClick = { onToggleIndex(index) },
-                    )
-                }
-            }
+    GlassOptionPopup(expanded, bounds, anchor, enabled = available) {
+        items.forEachIndexed { index, label ->
+            GlassPopupItem(
+                text = label,
+                selected = index in selectedIndices,
+                onClick = { onToggleIndex(index) },
+            )
         }
     }
 }
@@ -364,7 +373,7 @@ internal fun SliderValueInputDialog(
         validValue?.let { onSave(snapSliderValue(it, valueRange, steps)) }
     }
 
-    WindowDialog(
+    AppDialog(
         show = show,
         title = title,
         onDismissRequest = onDismiss,

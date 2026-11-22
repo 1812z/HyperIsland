@@ -76,14 +76,26 @@ import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import io.github.hyperisland.screenrecorder.RecorderSnapshot
 import io.github.hyperisland.screenrecorder.ScreenRecorderContract
+import io.github.hyperisland.compose.theme.DEFAULT_UI_GLASS_BLUR_RADIUS
+import io.github.hyperisland.compose.theme.DEFAULT_UI_GLASS_ENABLED
+import io.github.hyperisland.compose.theme.DEFAULT_UI_GLASS_TRANSPARENCY
+import io.github.hyperisland.compose.theme.PREF_UI_GLASS_BLUR_RADIUS
+import io.github.hyperisland.compose.theme.PREF_UI_GLASS_ENABLED
+import io.github.hyperisland.compose.theme.PREF_UI_GLASS_TRANSPARENCY
+import io.github.hyperisland.compose.theme.UiGlassSettings
+import io.github.hyperisland.compose.theme.uiGlassPopupVisuals
+import io.github.hyperisland.xposed.ConfigManager
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
+import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
+import top.yukonga.miuix.kmp.glass.GlassDropdownPreference
+import top.yukonga.miuix.kmp.material.isRuntimeShaderSupported
 import top.yukonga.miuix.kmp.preference.ArrowPreference
-import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -482,13 +494,32 @@ private fun RecorderWindowDialog(
         onDispose { onBackHandlerChanged(null) }
     }
 
+    val surfaceColor = MiuixTheme.colorScheme.surface
+    val glass = remember {
+        UiGlassSettings(
+            enabled = ConfigManager.getBoolean(PREF_UI_GLASS_ENABLED, DEFAULT_UI_GLASS_ENABLED),
+            transparency = ConfigManager.getInt(PREF_UI_GLASS_TRANSPARENCY, DEFAULT_UI_GLASS_TRANSPARENCY.toInt()).toLong(),
+            blurRadius = ConfigManager.getInt(PREF_UI_GLASS_BLUR_RADIUS, DEFAULT_UI_GLASS_BLUR_RADIUS.toInt()).toLong(),
+        )
+    }
+    val backdrop = if (glass.enabled && recordingSnapshot == null && isRuntimeShaderSupported()) {
+        rememberLayerBackdrop {
+            drawRect(surfaceColor)
+            drawContent()
+        }
+    } else {
+        null
+    }
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         containerColor = Color.Transparent,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
     ) {
         BoxWithConstraints(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().then(
+                if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier,
+            ),
         ) {
             val isLandscape = maxWidth > maxHeight
             Box(
@@ -596,21 +627,25 @@ private fun RecorderWindowDialog(
                                     onCheckedChange = { motionPhoto = it },
                                 )
                                 if (!isLandscape) {
-                                    OverlayDropdownPreference(
+                                    GlassDropdownPreference(
                                         title = text.resolution,
                                         summary = safeResolutions[resolutionIndex].first,
                                         items = safeResolutions.map(Pair<String, String>::first),
                                         selectedIndex = resolutionIndex,
+                                        backdrop = backdrop,
+                                        visuals = uiGlassPopupVisuals(glass),
                                         insideMargin = itemInsideMargin,
                                         renderInRootScaffold = true,
                                         onSelectedIndexChange = { resolutionIndex = it },
                                     )
                                 }
-                                OverlayDropdownPreference(
+                                GlassDropdownPreference(
                                     title = text.soundSource,
                                     summary = safeSounds[soundIndex].first,
                                     items = safeSounds.map(Pair<String, Int>::first),
                                     selectedIndex = soundIndex,
+                                    backdrop = backdrop,
+                                    visuals = uiGlassPopupVisuals(glass),
                                     insideMargin = itemInsideMargin,
                                     renderInRootScaffold = true,
                                     onSelectedIndexChange = { soundIndex = it },

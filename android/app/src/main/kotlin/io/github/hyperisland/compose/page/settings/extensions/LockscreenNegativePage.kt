@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.PreferenceDropdown
 import io.github.hyperisland.compose.component.PreferenceSlider
 import io.github.hyperisland.compose.component.PreferenceSwitch
@@ -35,7 +36,6 @@ import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.window.WindowDialog
 
 @Composable
 internal fun LockscreenNegativePage(
@@ -146,7 +146,7 @@ internal fun LockscreenNegativePage(
         }
     }
 
-    WindowDialog(
+    AppDialog(
         show = showTitleDialog,
         title = stringResource(R.string.ext_lockscreen_negative_page_title_dialog),
         onDismissRequest = { showTitleDialog = false },

@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.PreferenceDropdown
 import io.github.hyperisland.compose.component.PreferenceSwitch
 import io.github.hyperisland.compose.component.SectionTitle
@@ -44,7 +45,6 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.ChevronForward
 import top.yukonga.miuix.kmp.preference.RadioButtonLocation
 import top.yukonga.miuix.kmp.preference.RadioButtonPreference
-import top.yukonga.miuix.kmp.window.WindowDialog
 
 @Composable
 internal fun HeartRateIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) {
@@ -190,7 +190,7 @@ internal fun HeartRateIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Un
         }
     }
 
-    WindowDialog(
+    AppDialog(
         show = showDeviceDialog.value,
         title = stringResource(R.string.ext_heart_rate_choose_device),
         onDismissRequest = { showDeviceDialog.value = false },

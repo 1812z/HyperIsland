@@ -22,7 +22,6 @@ import top.yukonga.miuix.kmp.basic.ColorPalette
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
-import top.yukonga.miuix.kmp.window.WindowDialog
 
 @Composable
 internal fun ColorPaletteDialog(
@@ -35,7 +34,7 @@ internal fun ColorPaletteDialog(
 ) {
     var selectedColor by remember(show, initialColor) { mutableStateOf(initialColor) }
     var colorCode by remember(show, initialColor) { mutableStateOf(initialColor.toArgbHex()) }
-    WindowDialog(show = show, title = title, onDismissRequest = onDismiss) {
+    AppDialog(show = show, title = title, onDismissRequest = onDismiss) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             ColorPalette(
                 color = selectedColor,

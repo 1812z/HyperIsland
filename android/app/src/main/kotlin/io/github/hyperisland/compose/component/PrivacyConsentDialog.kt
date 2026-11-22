@@ -20,7 +20,6 @@ import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.window.WindowDialog
 
 @Composable
 internal fun PrivacyConsentDialog(
@@ -29,7 +28,7 @@ internal fun PrivacyConsentDialog(
     onAccept: () -> Unit,
     onReject: () -> Unit,
 ) {
-    WindowDialog(
+    AppDialog(
         show = show,
         title = stringResource(R.string.privacy_consent_title),
         onDismissRequest = onReject,

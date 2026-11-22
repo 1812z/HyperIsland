@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.DetailPage
 import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.service.ConfigBackupService
@@ -37,7 +38,6 @@ import top.yukonga.miuix.kmp.basic.SnackbarHostState
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.window.WindowDialog
 
 @Composable
 internal fun BackupRestorePage(onBack: () -> Unit) {
@@ -244,7 +244,7 @@ internal fun BackupRestorePage(onBack: () -> Unit) {
     }
 
     val cleanup = confirmCleanup
-    WindowDialog(
+    AppDialog(
         show = cleanup != null,
         title = cleanup?.let { stringResource(it.title) }.orEmpty(),
         onDismissRequest = { confirmCleanup = null },

@@ -32,14 +32,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.BarBackdropContent
 import io.github.hyperisland.compose.component.BarBlurHost
 import io.github.hyperisland.compose.component.PageTabRow
 import io.github.hyperisland.compose.component.PageTopAppBar
 import io.github.hyperisland.compose.component.PageTopBarIconButton
 import io.github.hyperisland.compose.component.ColorPaletteDialog
-import io.github.hyperisland.compose.component.LocalBarBlurBackdrop
-import io.github.hyperisland.compose.component.LocalBarBlurEnabled
+import io.github.hyperisland.compose.component.uiGlassBackdrop
+import io.github.hyperisland.compose.theme.uiGlassPopupVisuals
 import io.github.hyperisland.compose.component.PreferenceDropdown
 import io.github.hyperisland.compose.component.PreferenceSlider
 import io.github.hyperisland.compose.component.PreferenceSwitch
@@ -67,7 +68,6 @@ import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.glass.GlassIconButton
 import top.yukonga.miuix.kmp.glass.GlassIconDropdownMenu
 import top.yukonga.miuix.kmp.glass.GlassTopAppBarDefaults
 import top.yukonga.miuix.kmp.glass.glassPopupAnchor
@@ -79,7 +79,6 @@ import top.yukonga.miuix.kmp.icon.extended.ChevronForward
 import top.yukonga.miuix.kmp.icon.extended.More
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
-import top.yukonga.miuix.kmp.window.WindowDialog
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -179,7 +178,7 @@ internal fun IslandMaterialPage(
         ),
     )
 
-    BarBlurHost(enabled = LocalBarBlurEnabled.current, captureForEffects = true) {
+    BarBlurHost {
         Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             topBar = {
@@ -201,7 +200,7 @@ internal fun IslandMaterialPage(
                                 stringResource(R.string.send_test_notification),
                             )
                         }
-                        GlassIconButton(
+                        PageTopBarIconButton(
                             onClick = { menuExpanded.value = true },
                             modifier = Modifier
                                 .padding(start = 8.dp)
@@ -269,12 +268,13 @@ internal fun IslandMaterialPage(
                 )
             },
             entries = listOf(menuEntry),
-            backdrop = LocalBarBlurBackdrop.current,
+            backdrop = uiGlassBackdrop(),
+            visuals = uiGlassPopupVisuals(),
         )
         }
     }
 
-    WindowDialog(
+    AppDialog(
         show = resetDialog,
         title = stringResource(R.string.restore_default),
         onDismissRequest = { resetDialog = false },

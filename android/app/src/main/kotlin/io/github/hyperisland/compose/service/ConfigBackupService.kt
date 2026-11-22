@@ -2,6 +2,17 @@ package io.github.hyperisland.compose.service
 
 import android.content.Context
 import android.content.SharedPreferences
+import io.github.hyperisland.compose.theme.MAX_UI_GLASS_BLUR_RADIUS
+import io.github.hyperisland.compose.theme.MAX_UI_GLASS_TRANSPARENCY
+import io.github.hyperisland.compose.theme.MAX_WALLPAPER_BLUR_RADIUS
+import io.github.hyperisland.compose.theme.MAX_WALLPAPER_BRIGHTNESS
+import io.github.hyperisland.compose.theme.NavigationBarStyle
+import io.github.hyperisland.compose.theme.PREF_NAVIGATION_BAR_STYLE
+import io.github.hyperisland.compose.theme.PREF_UI_GLASS_BLUR_RADIUS
+import io.github.hyperisland.compose.theme.PREF_UI_GLASS_ENABLED
+import io.github.hyperisland.compose.theme.PREF_UI_GLASS_TRANSPARENCY
+import io.github.hyperisland.compose.theme.PREF_WALLPAPER_BLUR_RADIUS
+import io.github.hyperisland.compose.theme.PREF_WALLPAPER_BRIGHTNESS
 import io.github.hyperisland.utils.IslandBehaviorConfig
 import io.github.hyperisland.utils.SoftGlassSceneBrightnessConfig
 import org.json.JSONArray
@@ -47,6 +58,17 @@ internal object ConfigBackupService {
             val value = settings.opt(key)
             if (value is Boolean || value is String || value is Number) {
                 values[key] = when (key) {
+                    PREF_UI_GLASS_ENABLED -> value as? Boolean ?: throw InvalidConfigException()
+                    PREF_UI_GLASS_TRANSPARENCY -> (value as? Number)?.toLong()
+                        ?.coerceIn(0, MAX_UI_GLASS_TRANSPARENCY) ?: throw InvalidConfigException()
+                    PREF_UI_GLASS_BLUR_RADIUS -> (value as? Number)?.toLong()
+                        ?.coerceIn(0, MAX_UI_GLASS_BLUR_RADIUS) ?: throw InvalidConfigException()
+                    PREF_WALLPAPER_BLUR_RADIUS -> (value as? Number)?.toLong()
+                        ?.coerceIn(0, MAX_WALLPAPER_BLUR_RADIUS) ?: throw InvalidConfigException()
+                    PREF_WALLPAPER_BRIGHTNESS -> (value as? Number)?.toLong()
+                        ?.coerceIn(0, MAX_WALLPAPER_BRIGHTNESS) ?: throw InvalidConfigException()
+                    PREF_NAVIGATION_BAR_STYLE -> NavigationBarStyle.entries
+                        .firstOrNull { it.storedValue == value }?.storedValue ?: throw InvalidConfigException()
                     SoftGlassSceneBrightnessConfig.BRIGHTNESS_KEY -> SoftGlassSceneBrightnessConfig.brightness(
                         (value as? Number)?.toLong() ?: throw InvalidConfigException(),
                     )

@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.PreferenceSwitch
 import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
@@ -22,7 +23,6 @@ import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.window.WindowDialog
 
 @Composable
 internal fun SecurityCenterHookPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) {
@@ -80,7 +80,7 @@ internal fun SecurityCenterHookPage(prefs: FlutterPrefsRepository, onBack: () ->
         }
     }
 
-    WindowDialog(
+    AppDialog(
         show = showClipboardPermissionDialog.value,
         title = stringResource(R.string.ext_clipboard_permission_dialog_title),
         onDismissRequest = { showClipboardPermissionDialog.value = false },

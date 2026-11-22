@@ -99,7 +99,6 @@ import top.yukonga.miuix.kmp.basic.FloatingNavigationBarItem
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.blur.Backdrop
-import top.yukonga.miuix.kmp.blur.blur
 import top.yukonga.miuix.kmp.blur.drawBackdrop
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
@@ -125,16 +124,16 @@ internal fun LiquidGlassNavigationBar(
     selectedTabIndex: () -> Int,
     onTabSelected: (Int) -> Unit,
     items: List<LiquidGlassNavigationItem>,
+    backdrop: Backdrop?,
     modifier: Modifier = Modifier,
 ) {
     if (items.isEmpty()) return
-    val backdrop = LocalBarBlurBackdrop.current
     val barModifier = modifier
         .fillMaxWidth()
         .padding(bottom = 12.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding())
     if (backdrop == null) {
         Box(modifier = barModifier, contentAlignment = Alignment.Center) {
-            FloatingNavigationBar {
+            FloatingNavigationBar(defaultWindowInsetsPadding = false) {
                 items.forEachIndexed { index, item ->
                     FloatingNavigationBarItem(
                         selected = selectedTabIndex() == index,
@@ -359,7 +358,6 @@ private fun FloatingLiquidBar(
                     shape = { pillShape },
                     effects = {
                         vibrancy()
-                        blur(4.dp.toPx(), 4.dp.toPx())
                         lens(24.dp.toPx(), 24.dp.toPx())
                     },
                     layerBlock = {
@@ -394,7 +392,6 @@ private fun FloatingLiquidBar(
                         shape = { pillShape },
                         effects = {
                             vibrancy()
-                            blur(4.dp.toPx(), 4.dp.toPx())
                             lens(24.dp.toPx(), 24.dp.toPx())
                         },
                         onDrawSurface = { drawRect(containerColor) },

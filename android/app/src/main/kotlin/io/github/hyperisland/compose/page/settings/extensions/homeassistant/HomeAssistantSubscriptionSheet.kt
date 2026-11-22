@@ -32,6 +32,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppBottomSheet
+import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.BarBackdropContent
 import io.github.hyperisland.compose.component.BarBlurHost
 import io.github.hyperisland.compose.component.PreferenceDropdown
@@ -59,8 +61,6 @@ import top.yukonga.miuix.kmp.icon.basic.Close
 import top.yukonga.miuix.kmp.icon.extended.ChevronForward
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.preference.SwitchPreference
-import top.yukonga.miuix.kmp.window.WindowBottomSheet
-import top.yukonga.miuix.kmp.window.WindowDialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -356,7 +356,7 @@ internal fun HomeAssistantSubscriptionSheet(
         }
     }
 
-    WindowBottomSheet(
+    AppBottomSheet(
         show = show,
         title = stringResource(if (initial == null) R.string.ha_add else R.string.ha_edit),
         backgroundColor = haSheetColor(),
@@ -367,11 +367,11 @@ internal fun HomeAssistantSubscriptionSheet(
     ) {
         Scaffold(
             modifier = Modifier.fillMaxWidth().heightIn(max = 680.dp),
-            containerColor = haSheetColor(),
+            containerColor = Color.Transparent,
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
         ) {
-            BarBlurHost(enabled = false, captureForEffects = true) {
-                BarBackdropContent(modifier = Modifier.fillMaxSize()) {
+            BarBlurHost {
+                BarBackdropContent(modifier = Modifier.fillMaxSize(), showWallpaper = false) {
                     subscriptionContent()
                 }
             }
@@ -533,7 +533,7 @@ private fun HaTemplateTextDialog(
     onSave: (String) -> Unit,
 ) {
     var value by remember(show, initialValue) { mutableStateOf(initialValue) }
-    WindowDialog(
+    AppDialog(
         show = show,
         title = title,
         onDismissRequest = onDismiss,
@@ -590,7 +590,7 @@ private fun HaConditionValueDialog(
     onSave: (String) -> Unit,
 ) {
     var text by remember(show, value) { mutableStateOf(value) }
-    WindowDialog(
+    AppDialog(
         show = show,
         title = stringResource(R.string.ha_condition_value),
         onDismissRequest = onDismiss,
@@ -638,7 +638,7 @@ private fun HaDurationDialog(
     var text by remember(show, seconds) { mutableStateOf(seconds.takeIf { it > 0 }?.toString().orEmpty()) }
     val parsed = text.trim().toIntOrNull()
     val valid = parsed != null && parsed in 1..MAX_DISPLAY_SECONDS
-    WindowDialog(
+    AppDialog(
         show = show,
         title = stringResource(R.string.ha_display_seconds),
         onDismissRequest = onDismiss,

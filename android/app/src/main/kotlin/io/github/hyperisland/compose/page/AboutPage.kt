@@ -63,6 +63,8 @@ import io.github.hyperisland.compose.component.LocalRootBottomBarPadding
 import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.component.SettingsAction
 import io.github.hyperisland.compose.component.SettingsActionWithArrow
+import io.github.hyperisland.compose.theme.AppWallpaperBackground
+import io.github.hyperisland.compose.theme.LocalAppWallpaper
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
@@ -140,6 +142,7 @@ internal fun AboutPage(
     val darkMode = isSystemInDarkTheme()
     val gradientColors = animatedGradientColors(animationTime, darkMode)
     val backgroundColor = MiuixTheme.colorScheme.background
+    val hasWallpaper = LocalAppWallpaper.current?.image != null
     val logoBackdrop = if (isRuntimeShaderSupported()) {
         rememberLayerBackdrop {
             drawRect(backgroundColor)
@@ -149,26 +152,25 @@ internal fun AboutPage(
         null
     }
 
+    val captureLogoBackground = if (logoBackdrop != null) Modifier.layerBackdrop(logoBackdrop) else Modifier
     Box(modifier = Modifier.fillMaxSize()) {
-        AnimatedAboutBackground(
-            animationTime = animationTime,
-            colors = gradientColors,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(heroHeight + 180.dp)
-                .alpha(backgroundAlpha)
-                .graphicsLayer {
-                    compositingStrategy = CompositingStrategy.Offscreen
-                    translationY = -listState.firstVisibleItemScrollOffset * 0.12f
-                }
-                .then(
-                    if (logoBackdrop != null) {
-                        Modifier.layerBackdrop(logoBackdrop)
-                    } else {
-                        Modifier
-                    },
-                ),
-        )
+        if (hasWallpaper) {
+            AppWallpaperBackground(Modifier.matchParentSize().then(captureLogoBackground))
+        } else {
+            AnimatedAboutBackground(
+                animationTime = animationTime,
+                colors = gradientColors,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(heroHeight + 180.dp)
+                    .alpha(backgroundAlpha)
+                    .graphicsLayer {
+                        compositingStrategy = CompositingStrategy.Offscreen
+                        translationY = -listState.firstVisibleItemScrollOffset * 0.12f
+                    }
+                    .then(captureLogoBackground),
+            )
+        }
         LazyColumn(
             state = listState,
             modifier = Modifier

@@ -11,9 +11,10 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -25,18 +26,17 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import io.github.hyperisland.BuildConfig
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.BarBackdropContent
 import io.github.hyperisland.compose.component.BarBlurHost
-import io.github.hyperisland.compose.component.BlurredBar
 import io.github.hyperisland.compose.component.LocalRootBottomBarPadding
 import io.github.hyperisland.compose.component.LiquidGlassNavigationBar
 import io.github.hyperisland.compose.component.LiquidGlassNavigationItem
@@ -47,14 +47,13 @@ import io.github.hyperisland.compose.component.PredictiveNavigationBackdrop
 import io.github.hyperisland.compose.component.PredictiveNavigationLayer
 import io.github.hyperisland.compose.component.UpdateDialogHost
 import io.github.hyperisland.compose.component.UpdateDialogState
-import io.github.hyperisland.compose.component.barBlurBackground
+import io.github.hyperisland.compose.component.barBackdrop
 import io.github.hyperisland.compose.component.predictiveNavigationBackground
 import io.github.hyperisland.compose.component.rememberPredictiveNavigationLayerState
 import io.github.hyperisland.compose.component.requiresBackdropCapture
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.InstalledApp
 import io.github.hyperisland.compose.data.channel.BatchChannelTarget
-import io.github.hyperisland.compose.data.rememberBooleanPreference
 import io.github.hyperisland.compose.data.rememberLongPreference
 import io.github.hyperisland.compose.page.AppsPage
 import io.github.hyperisland.compose.page.AboutPage
@@ -86,6 +85,7 @@ import io.github.hyperisland.compose.page.settings.MiscPage
 import io.github.hyperisland.compose.page.settings.PresetConfigPage
 import io.github.hyperisland.compose.page.settings.ReferencesPage
 import io.github.hyperisland.compose.page.settings.ThemeSettingsPage
+import io.github.hyperisland.compose.page.settings.WallpaperSettingsPage
 import io.github.hyperisland.compose.page.settings.extensions.BluetoothIslandPage
 import io.github.hyperisland.compose.page.settings.extensions.ChargeIslandPage
 import io.github.hyperisland.compose.page.settings.extensions.DownloadManagerHookPage
@@ -107,23 +107,25 @@ import io.github.hyperisland.compose.service.UpdateService
 import io.github.hyperisland.compose.service.AppNotice
 import io.github.hyperisland.compose.service.HubClient
 import io.github.hyperisland.compose.service.NoticeService
-import io.github.hyperisland.compose.theme.PREF_BLUR_BARS
-import io.github.hyperisland.compose.theme.PREF_FLOATING_NAVIGATION_BAR
-import io.github.hyperisland.compose.theme.PREF_LIQUID_GLASS_NAVIGATION_BAR
 import io.github.hyperisland.compose.theme.DEFAULT_PREDICTIVE_BACK_TRANSLATION_PERCENT
 import io.github.hyperisland.compose.theme.PREF_PREDICTIVE_BACK_MAX_TRANSLATION
+import io.github.hyperisland.compose.theme.NavigationBarStyle
+import io.github.hyperisland.compose.theme.rememberNavigationBarStyle
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.FloatingNavigationBar
 import top.yukonga.miuix.kmp.basic.FloatingNavigationBarItem
-import top.yukonga.miuix.kmp.basic.FloatingToolbarDefaults
 import top.yukonga.miuix.kmp.basic.NavigationBar
 import top.yukonga.miuix.kmp.basic.NavigationBarItem
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
+import top.yukonga.miuix.kmp.glass.GlassNavigationBar
+import top.yukonga.miuix.kmp.glass.GlassNavigationBarDefaults
+import top.yukonga.miuix.kmp.glass.GlassNavigationItem
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.GridView
 import top.yukonga.miuix.kmp.icon.extended.Home
@@ -152,13 +154,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     var updateDialogState by remember { mutableStateOf<UpdateDialogState?>(null) }
     var notice by remember { mutableStateOf<AppNotice?>(null) }
     var isCheckingUpdate by remember { mutableStateOf(false) }
-    val floatingNavigationBar = rememberBooleanPreference(prefs, PREF_FLOATING_NAVIGATION_BAR, false)
-    val liquidGlassNavigationBar = rememberBooleanPreference(
-        prefs,
-        PREF_LIQUID_GLASS_NAVIGATION_BAR,
-        false,
-    )
-    val blurBars = rememberBooleanPreference(prefs, PREF_BLUR_BARS, false)
+    val navigationBarStyle = rememberNavigationBarStyle(prefs)
     val predictiveBackMaxTranslation = rememberLongPreference(
         prefs,
         PREF_PREDICTIVE_BACK_MAX_TRANSLATION,
@@ -174,12 +170,14 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     var batchToastPackages by remember { mutableStateOf<Set<String>?>(null) }
     var materialShown by remember { mutableStateOf(false) }
     var sceneBrightnessShown by remember { mutableStateOf(false) }
+    var wallpaperShown by remember { mutableStateOf(false) }
     var extensionDetail by remember { mutableStateOf<HookExtensionDetail?>(null) }
     var extensionSubDetail by remember { mutableStateOf<SystemUiExtensionDetail?>(null) }
     // Keep the last route composed until AnimatedVisibility finishes its exit transition.
     var renderedExtensionSubDetail by remember { mutableStateOf<SystemUiExtensionDetail?>(null) }
-    val nestedDetailShown = mediaShown || materialShown || sceneBrightnessShown || visibleChannelEditor != null ||
-        (visibleChannelApp != null && batchChannelTarget != null) || extensionDetail != null
+    val nestedDetailShown = mediaShown || materialShown || sceneBrightnessShown || wallpaperShown ||
+        visibleChannelEditor != null || (visibleChannelApp != null && batchChannelTarget != null) ||
+        extensionDetail != null
     val extensionSubDetailShown = extensionSubDetail != null
     val detailNavigationState = rememberPredictiveNavigationLayerState()
     val nestedNavigationState = rememberPredictiveNavigationLayerState()
@@ -191,56 +189,53 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
 
     @Composable
     fun RootBottomBar(enabled: Boolean = true) {
-        if (floatingNavigationBar.value) {
-            if (liquidGlassNavigationBar.value) {
-                LiquidGlassNavigationBar(
-                    selectedTabIndex = { pagerState.currentPage },
-                    onTabSelected = { index ->
-                        if (enabled && pagerState.currentPage != index) {
-                            scope.launch { pagerState.animateScrollToPage(index) }
-                        }
-                    },
-                    items = destinations.map { destination ->
-                        LiquidGlassNavigationItem(
-                            icon = destination.icon,
-                            label = stringResource(destination.title),
-                        )
-                    },
-                )
-            } else {
-                FloatingNavigationBar(
-                    modifier = Modifier.barBlurBackground(
-                        RoundedCornerShape(FloatingToolbarDefaults.CornerRadius),
-                    ),
-                    color = Color.Transparent,
-                ) {
-                    destinations.forEachIndexed { index, destination ->
-                        FloatingNavigationBarItem(
-                            selected = pagerState.currentPage == index,
-                            onClick = {
-                                if (enabled) scope.launch { pagerState.animateScrollToPage(index) }
-                            },
-                            icon = destination.icon,
-                            label = stringResource(destination.title),
-                        )
-                    }
+        val onSelect: (Int) -> Unit = { index ->
+            if (enabled && pagerState.currentPage != index) {
+                scope.launch { pagerState.animateScrollToPage(index) }
+            }
+        }
+        when (navigationBarStyle) {
+            NavigationBarStyle.Default -> NavigationBar(color = MiuixTheme.colorScheme.surface) {
+                destinations.forEachIndexed { index, destination ->
+                    NavigationBarItem(
+                        selected = pagerState.currentPage == index,
+                        onClick = { onSelect(index) },
+                        icon = destination.icon,
+                        label = stringResource(destination.title),
+                        enabled = enabled,
+                    )
                 }
             }
-        } else {
-            BlurredBar {
-                NavigationBar(color = Color.Transparent) {
-                    destinations.forEachIndexed { index, destination ->
-                        NavigationBarItem(
-                            selected = pagerState.currentPage == index,
-                            onClick = {
-                                if (enabled) scope.launch { pagerState.animateScrollToPage(index) }
-                            },
-                            icon = destination.icon,
-                            label = stringResource(destination.title),
-                        )
-                    }
+            NavigationBarStyle.Os3 -> FloatingNavigationBar {
+                destinations.forEachIndexed { index, destination ->
+                    FloatingNavigationBarItem(
+                        selected = pagerState.currentPage == index,
+                        onClick = { onSelect(index) },
+                        icon = destination.icon,
+                        label = stringResource(destination.title),
+                        enabled = enabled,
+                    )
                 }
             }
+            NavigationBarStyle.Os4 -> GlassNavigationBar(
+                selectedIndex = pagerState.currentPage,
+                onSelect = onSelect,
+                items = destinations.map { destination ->
+                    GlassNavigationItem(icon = destination.icon, label = stringResource(destination.title))
+                },
+                backdrop = barBackdrop(),
+                modifier = Modifier
+                    .padding(horizontal = 12.dp)
+                    .widthIn(max = 76.dp * destinations.size + GlassNavigationBarDefaults.ContentPaddingHorizontal * 2),
+            )
+            NavigationBarStyle.LiquidGlass -> LiquidGlassNavigationBar(
+                selectedTabIndex = { pagerState.currentPage },
+                onTabSelected = onSelect,
+                items = destinations.map { destination ->
+                    LiquidGlassNavigationItem(icon = destination.icon, label = stringResource(destination.title))
+                },
+                backdrop = barBackdrop(),
+            )
         }
     }
 
@@ -340,6 +335,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
             mediaShown = false
             materialShown = false
             sceneBrightnessShown = false
+            wallpaperShown = false
             visibleChannelEditor = null
             if (visibleChannelApp != null) batchChannelTarget = null
             extensionDetail = null
@@ -356,9 +352,10 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     )
 
     BarBlurHost(
-        enabled = blurBars.value,
-        liquidGlassEnabled = floatingNavigationBar.value && liquidGlassNavigationBar.value,
-        captureForEffects = detailNavigationState.requiresBackdropCapture(detailShown),
+        captureForEffects = navigationBarStyle == NavigationBarStyle.Os4 ||
+            navigationBarStyle == NavigationBarStyle.LiquidGlass ||
+            detailNavigationState.requiresBackdropCapture(detailShown),
+        captureForGlass = false,
     ) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
@@ -378,7 +375,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                         .fillMaxSize()
                         .predictiveNavigationBackground(detailNavigationState),
                 ) {
-                    BarBackdropContent(modifier = Modifier.fillMaxSize()) {
+                    BarBackdropContent(modifier = Modifier.fillMaxSize(), showWallpaper = false) {
                         CompositionLocalProvider(
                             LocalRootBottomBarPadding provides padding.calculateBottomPadding(),
                         ) {
@@ -509,12 +506,9 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                 )
 
                 BarBlurHost(
-                enabled = blurBars.value,
-                captureForEffects = nestedNavigationState.requiresBackdropCapture(
-                    nestedDetailShown,
-                ),
+                    captureForEffects = nestedNavigationState.requiresBackdropCapture(nestedDetailShown),
                 ) {
-                BarBackdropContent(modifier = Modifier.fillMaxSize()) {
+                BarBackdropContent(modifier = Modifier.fillMaxSize(), showWallpaper = false) {
                     PredictiveNavigationLayer(
                         visible = detailShown,
                         state = detailNavigationState,
@@ -582,7 +576,11 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                     },
                                     onBack = ::closeDetail,
                                 )
-                                SettingsDetail.Theme -> ThemeSettingsPage(prefs, ::closeDetail)
+                                SettingsDetail.Theme -> ThemeSettingsPage(
+                                    prefs = prefs,
+                                    onBack = ::closeDetail,
+                                    onOpenWallpaper = { wallpaperShown = true },
+                                )
                                 SettingsDetail.HideBehavior -> HideBehaviorPage(prefs, ::closeDetail)
                                 SettingsDetail.DefaultConfig -> DefaultConfigPage(prefs, ::closeDetail)
                                 SettingsDetail.Preset -> PresetConfigPage(prefs = prefs, onBack = ::closeDetail)
@@ -630,12 +628,11 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                 )
 
                 BarBlurHost(
-                    enabled = blurBars.value,
                     captureForEffects = extensionNavigationState.requiresBackdropCapture(
                         extensionSubDetailShown,
                     ),
                 ) {
-                    BarBackdropContent(modifier = Modifier.fillMaxSize()) {
+                    BarBackdropContent(modifier = Modifier.fillMaxSize(), showWallpaper = false) {
                         PredictiveNavigationLayer(
                             visible = nestedDetailShown,
                             state = nestedNavigationState,
@@ -695,6 +692,8 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                         prefs = prefs,
                                         onBack = { visibleChannelEditor = null },
                                     )
+                                } else if (visibleDetail == SettingsDetail.Theme) {
+                                    WallpaperSettingsPage(prefs = prefs, onBack = { wallpaperShown = false })
                                 } else if (sceneBrightnessShown) {
                                     SoftGlassSceneBrightnessPage(
                                         prefs = prefs,
@@ -767,8 +766,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
         },
     )
 
-    // 更新弹窗在场时先让位：两个 WindowDialog 同时弹会互相抢焦点，
-    // 而「有新版本」比公告更该被先看到。它关掉之后公告再出现，倒计时从头开始。
+    // 优先显示更新提示。关闭后再展示公告，并从头开始倒计时。
     NoticeDialogHost(
         notice = notice.takeIf { updateDialogState == null },
         onConfirm = { shown ->

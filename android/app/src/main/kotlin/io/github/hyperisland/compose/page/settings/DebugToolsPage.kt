@@ -21,7 +21,6 @@ import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.BarBackdropContent
 import io.github.hyperisland.compose.component.BarBlurHost
 import io.github.hyperisland.compose.component.DetailPage
-import io.github.hyperisland.compose.component.LocalBarBlurEnabled
 import io.github.hyperisland.compose.component.PredictiveNavigationBackdrop
 import io.github.hyperisland.compose.component.PredictiveNavigationBackHandler
 import io.github.hyperisland.compose.component.PredictiveNavigationLayer
@@ -74,7 +73,6 @@ internal fun DebugToolsPage(
         PREF_PREDICTIVE_BACK_MAX_TRANSLATION,
         DEFAULT_PREDICTIVE_BACK_TRANSLATION_PERCENT,
     )
-    val blurBarsEnabled = LocalBarBlurEnabled.current
 
     PredictiveNavigationBackHandler(
         visible = showingSubpage,
@@ -85,11 +83,10 @@ internal fun DebugToolsPage(
     )
 
     BarBlurHost(
-        enabled = blurBarsEnabled,
         captureForEffects = hookManagerNavigation.requiresBackdropCapture(showingSubpage),
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            BarBackdropContent(modifier = Modifier.fillMaxSize()) {
+            BarBackdropContent(modifier = Modifier.fillMaxSize(), showWallpaper = false) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()

@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.hyperisland.R
 import io.github.hyperisland.XposedPrefsSyncApp
+import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.CollapsingPage
 import io.github.hyperisland.compose.component.RestartScopeDialog
 import io.github.hyperisland.compose.component.SettingsAction
@@ -69,7 +70,6 @@ import top.yukonga.miuix.kmp.icon.extended.Link
 import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
-import top.yukonga.miuix.kmp.window.WindowDialog
 
 internal data class ModuleState(
     val active: Boolean,
@@ -522,7 +522,7 @@ private fun CustomTestDialog(
     var clearPrevious by remember(show) { mutableStateOf(true) }
     var enableFloat by remember(show) { mutableStateOf(true) }
 
-    WindowDialog(
+    AppDialog(
         show = show,
         title = stringResource(R.string.custom_test_notification),
         onDismissRequest = onDismiss,

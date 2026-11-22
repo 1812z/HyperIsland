@@ -19,7 +19,6 @@ import kotlinx.coroutines.delay
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.window.WindowDialog
 
 /** 「确定」解锁前的强制等待秒数。产品约定，不做成配置项。 */
 private const val COUNTDOWN_SECONDS = 5
@@ -30,9 +29,7 @@ private const val COUNTDOWN_SECONDS = 5
  * 交互口径：
  *   - 正文是 Markdown（复用版本更新弹窗的渲染器），标题固定「公告」，由服务端下发内容。
  *   - 底部只有一个强调色按钮，倒计时 [COUNTDOWN_SECONDS] 秒内禁用。
- *   - 倒计时没走完时**任何**关闭方式都不生效（返回键、点遮罩同样被挡），
- *     否则「禁用按钮」就只是个摆设 —— WindowDialog 的所有关闭路径都走 onDismissRequest，
- *     这里传 null 即可整体锁住。
+ *   - 倒计时没走完时同时禁用确认按钮和弹窗关闭回调（包括返回和点遮罩）。
  *   - 确认后回调 [onConfirm]：调用方负责记下哈希并收起弹窗，本组件不持有业务状态。
  */
 @Composable
@@ -55,7 +52,7 @@ internal fun NoticeDialogHost(
 
     val dismissNotice: () -> Unit = { if (notice != null) onConfirm(notice) }
 
-    WindowDialog(
+    AppDialog(
         show = notice != null,
         title = stringResource(R.string.notice_title),
         onDismissRequest = if (remaining > 0) null else dismissNotice,

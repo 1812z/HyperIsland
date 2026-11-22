@@ -39,7 +39,6 @@ import top.yukonga.miuix.kmp.basic.Slider
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.window.WindowDialog
 import java.io.File
 
 @Composable
@@ -58,7 +57,7 @@ internal fun BackgroundPickerDialog(
     LaunchedEffect(show, currentPath, selectedUri) {
         preview = if (show) loadPreview(context, selectedUri, currentPath) else null
     }
-    WindowDialog(show = show, title = title, onDismissRequest = onDismiss) {
+    AppDialog(show = show, title = title, onDismissRequest = onDismiss) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Card(
                 modifier = Modifier
@@ -116,7 +115,7 @@ internal fun GlassSamplingDialog(
 ) {
     var fps by remember(show, initialFps) { mutableIntStateOf(initialFps) }
     var quality by remember(show, initialQuality) { mutableIntStateOf(initialQuality) }
-    WindowDialog(
+    AppDialog(
         show = show,
         title = stringResource(R.string.glass_sampling_settings),
         onDismissRequest = onDismiss,

@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.PreferenceSlider
 import io.github.hyperisland.compose.component.PreferenceSwitch
 import io.github.hyperisland.compose.component.SectionTitle
@@ -26,7 +27,6 @@ import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.ChevronForward
-import top.yukonga.miuix.kmp.window.WindowDialog
 
 @Composable
 internal fun SystemUiHookPage(
@@ -253,7 +253,7 @@ internal fun SystemUiHookPage(
         }
     }
 
-    WindowDialog(
+    AppDialog(
         show = showSmoothWarning,
         title = stringResource(R.string.smooth_island_warning_title),
         summary = stringResource(R.string.smooth_island_warning_message),

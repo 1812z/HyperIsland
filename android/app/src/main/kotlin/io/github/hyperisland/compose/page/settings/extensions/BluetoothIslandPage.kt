@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.ColorPaletteDialog
 import io.github.hyperisland.compose.component.PreferenceMultiDropdown
 import io.github.hyperisland.compose.component.PreferenceSwitch
@@ -49,7 +50,6 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.ChevronForward
 import top.yukonga.miuix.kmp.preference.CheckboxLocation
 import top.yukonga.miuix.kmp.preference.CheckboxPreference
-import top.yukonga.miuix.kmp.window.WindowDialog
 
 @Composable
 internal fun BluetoothIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) {
@@ -217,7 +217,7 @@ internal fun BluetoothIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Un
         showColorDialog.value = false
     }
 
-    WindowDialog(
+    AppDialog(
         show = showDurationDialog.value,
         title = stringResource(R.string.ext_display_duration),
         onDismissRequest = { showDurationDialog.value = false },
@@ -259,7 +259,7 @@ internal fun BluetoothIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Un
         }
     }
 
-    WindowDialog(
+    AppDialog(
         show = showDeviceDialog.value,
         title = stringResource(R.string.ext_choose_devices),
         onDismissRequest = { showDeviceDialog.value = false },

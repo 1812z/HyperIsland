@@ -28,7 +28,6 @@ import io.github.hyperisland.compose.component.BarBlurHost
 import io.github.hyperisland.compose.component.EFFECT_VISIBILITY_THRESHOLD
 import io.github.hyperisland.compose.component.LAYER_ENTER_DURATION
 import io.github.hyperisland.compose.component.LAYER_EXIT_DURATION
-import io.github.hyperisland.compose.component.LocalBarBlurEnabled
 import io.github.hyperisland.compose.component.PREDICTIVE_CANCEL_DURATION
 import io.github.hyperisland.compose.component.PREDICTIVE_DISMISS_DURATION
 import io.github.hyperisland.compose.component.PredictiveBackBackdrop
@@ -71,7 +70,6 @@ internal fun AppearancePage(
         PREF_PREDICTIVE_BACK_MAX_TRANSLATION,
         DEFAULT_PREDICTIVE_BACK_TRANSLATION_PERCENT,
     )
-    val blurBarsEnabled = LocalBarBlurEnabled.current
 
     fun openSection(section: AppearanceSection) {
         sectionTarget = section
@@ -146,11 +144,10 @@ internal fun AppearancePage(
     }
 
     BarBlurHost(
-        enabled = blurBarsEnabled,
         captureForEffects = sectionVisible || predictiveBackActive || backdropIntensity.value > EFFECT_VISIBILITY_THRESHOLD,
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            BarBackdropContent(modifier = Modifier.fillMaxSize()) {
+            BarBackdropContent(modifier = Modifier.fillMaxSize(), showWallpaper = false) {
                 Box(
                     modifier = Modifier.fillMaxSize().graphicsLayer {
                         val depth = overviewLayerDepth.value.coerceIn(0f, 1f)

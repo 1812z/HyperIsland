@@ -34,7 +34,6 @@ import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.window.WindowDialog
 
 internal data class RestartScopeTarget(
     val packageName: String,
@@ -113,7 +112,7 @@ internal fun RestartScopeDialog(
     var error by remember(show) { mutableStateOf<String?>(null) }
     val rootRequired = stringResource(R.string.restart_root_required)
 
-    WindowDialog(
+    AppDialog(
         show = show,
         title = stringResource(R.string.restart_scope),
         summary = stringResource(R.string.restart_scope_summary),

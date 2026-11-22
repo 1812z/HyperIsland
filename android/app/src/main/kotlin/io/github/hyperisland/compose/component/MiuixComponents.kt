@@ -2,6 +2,8 @@ package io.github.hyperisland.compose.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,8 +15,10 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -30,6 +34,8 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.theme.LocalUiGlassSettings
+import io.github.hyperisland.compose.theme.uiGlassMaterial
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -41,6 +47,7 @@ import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.blur.Backdrop
 import top.yukonga.miuix.kmp.glass.GlassIconButton
 import top.yukonga.miuix.kmp.glass.GlassSegmentedTabRow
+import top.yukonga.miuix.kmp.glass.GlassSegmentedTabRowDefaults
 import top.yukonga.miuix.kmp.glass.GlassTopAppBar
 import top.yukonga.miuix.kmp.glass.GlassTopAppBarDefaults
 import top.yukonga.miuix.kmp.glass.glassPanel
@@ -63,33 +70,31 @@ internal fun PageTopAppBar(
     actions: @Composable RowScope.() -> Unit = {},
     bottomContent: @Composable () -> Unit = {},
 ) {
-    val backdrop = LocalBarBlurBackdrop.current
-    // 只看 backdrop 是否存在：页面都用 `captureForEffects = true` 建立了 backdrop，
-    // tab / 搜索框 / 玻璃按钮也只是判空。若这里再叠 `LocalBarBlurEnabled`（界面模糊开关），
-    // 会出现「tab 和按钮是玻璃、顶栏却是纯色渐变」的割裂观感。
-    val progressiveBlur = backdrop != null
+    val backdrop = uiGlassBackdrop()
     val scrolled = remember(scrollBehavior) {
         derivedStateOf { (scrollBehavior?.state?.contentOffset ?: 0f) < 0f }
     }
     val band = GlassTopAppBarDefaults.bandBrush(MiuixTheme.colorScheme.surface)
-    GlassTopAppBar(
-        title = title,
-        largeTitle = largeTitle,
-        subtitle = subtitle,
-        isContentScrolled = scrolled.value,
-        // 柔光可用时不要再叠一层顶栏底色（band 顶部 alpha 0.9，会把柔光整个盖掉，
-        // 观感就是一块「纯色渐变」）；只有拿不到 backdrop 时才用渐变兜底保证标题可读。
-        modifier = if (progressiveBlur) Modifier else Modifier.background(band),
-        progressiveBlur = progressiveBlur,
-        backdrop = backdrop,
-        bandBrush = SolidColor(Color.Transparent),
-        bandOverhang = 0.dp,
-        scrollBehavior = scrollBehavior,
-        navigationIcon = navigationIcon,
-        actions = actions,
-        bottomContent = bottomContent,
-    )
+    CompositionLocalProvider(LocalInsideTopAppBar provides true) {
+        GlassTopAppBar(
+            title = title,
+            largeTitle = largeTitle,
+            subtitle = subtitle,
+            isContentScrolled = scrolled.value,
+            modifier = if (backdrop == null) Modifier.background(band) else Modifier,
+            progressiveBlur = backdrop != null,
+            backdrop = backdrop,
+            bandBrush = SolidColor(Color.Transparent),
+            bandOverhang = 0.dp,
+            scrollBehavior = scrollBehavior,
+            navigationIcon = navigationIcon,
+            actions = actions,
+            bottomContent = bottomContent,
+        )
+    }
 }
+
+private val LocalInsideTopAppBar = staticCompositionLocalOf { false }
 
 @Composable
 internal fun PageTopBarIconButton(
@@ -119,8 +124,7 @@ internal fun PageTopBarIconButton(
  * 采样环并直接崩溃。本应用的页面整体都被 `BarBackdropContent` 包住，列表项 / 固定头部里的控件
  * 必然与录制子树重叠，所以这里只给玻璃一个稳定的纯色采样源。
  *
- * 放在 `PageTopAppBar` 的 `bottomContent` 里时，`GlassTopAppBar` 会用顶栏自己的 backdrop 覆盖
- * 传入值（顶栏在录制子树之外，合法），此时才是真正的页面采样。
+ * `PageTopAppBar` 的插槽在录制子树之外，由 Miuix 接管背景采样。
  *
  * [scrollBehavior] 用于驱动材质浮现：页面停在顶部时是实色轨道，下滑 32dp 后柔光浮现；传 null
  * 则材质常驻。
@@ -136,12 +140,14 @@ internal fun PageTabRow(
     val tint = MiuixTheme.colorScheme.surface
     val backdrop = remember(tint) { TintBackdrop(tint) }
     val surfaceAlpha = GlassTopAppBarDefaults.collapseRamp(scrollBehavior)
+    val material = GlassSegmentedTabRowDefaults.material()
     GlassSegmentedTabRow(
         tabs = tabs,
         selectedIndex = selectedIndex,
         onSelect = onSelect,
         backdrop = backdrop,
-        surfaceAlpha = surfaceAlpha.value,
+        surfaceAlpha = if (LocalUiGlassSettings.current.enabled) surfaceAlpha.value else 0f,
+        material = if (LocalInsideTopAppBar.current) material else uiGlassMaterial(material),
         modifier = modifier,
     )
 }
@@ -187,7 +193,7 @@ internal fun Modifier.glassPill(
             backdrop = backdrop,
             shape = shape,
             material = GlassMaterials.puredThinGlass(isDark),
-            stroke = GlassEdgeStrokes.forTheme(isDark),
+            stroke = if (backdrop != null) GlassEdgeStrokes.forTheme(isDark) else null,
             shadow = null,
             shading = false,
             fallback = Modifier.clip(shape).background(fallbackFill),
@@ -208,8 +214,7 @@ internal fun CollapsingPage(
     content: LazyListScope.() -> Unit,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
-    val blurEnabled = LocalBarBlurEnabled.current
-    BarBlurHost(enabled = blurEnabled, captureForEffects = true) {
+    BarBlurHost {
         Scaffold(
             topBar = {
                 PageTopAppBar(
@@ -266,8 +271,7 @@ internal fun DetailPage(
     content: LazyListScope.() -> Unit,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
-    val blurEnabled = LocalBarBlurEnabled.current
-    BarBlurHost(enabled = blurEnabled, captureForEffects = true) {
+    BarBlurHost {
         Scaffold(
             topBar = {
                 PageTopAppBar(
@@ -322,11 +326,11 @@ internal fun DetailGridPage(
     snackbarHost: @Composable () -> Unit = {},
     isRefreshing: Boolean = false,
     onRefresh: (() -> Unit)? = null,
+    overlay: @Composable BoxScope.() -> Unit = {},
     content: LazyGridScope.() -> Unit,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
-    val blurEnabled = LocalBarBlurEnabled.current
-    BarBlurHost(enabled = blurEnabled, captureForEffects = true) {
+    BarBlurHost {
         Scaffold(
             topBar = {
                 PageTopAppBar(
@@ -376,6 +380,7 @@ internal fun DetailGridPage(
                 }
             }
         }
+        Box(modifier = Modifier.fillMaxSize(), content = overlay)
     }
 }
 

@@ -31,12 +31,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.BarBackdropContent
 import io.github.hyperisland.compose.component.BarBlurHost
 import io.github.hyperisland.compose.component.PageTopAppBar
 import io.github.hyperisland.compose.component.PageTopBarIconButton
-import io.github.hyperisland.compose.component.LocalBarBlurBackdrop
-import io.github.hyperisland.compose.component.LocalBarBlurEnabled
+import io.github.hyperisland.compose.component.uiGlassBackdrop
+import io.github.hyperisland.compose.theme.uiGlassPopupVisuals
 import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.InstalledApp
@@ -66,7 +67,6 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.icon.extended.More
 import top.yukonga.miuix.kmp.icon.extended.Settings
-import top.yukonga.miuix.kmp.glass.GlassIconButton
 import top.yukonga.miuix.kmp.glass.GlassIconDropdownMenu
 import top.yukonga.miuix.kmp.glass.GlassTopAppBarDefaults
 import top.yukonga.miuix.kmp.glass.glassPopupAnchor
@@ -75,7 +75,6 @@ import top.yukonga.miuix.kmp.glass.rememberGlassPopupAnchor
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
-import top.yukonga.miuix.kmp.window.WindowDialog
 import io.github.hyperisland.compose.component.SettingsIcon
 import top.yukonga.miuix.kmp.icon.extended.Music
 
@@ -242,8 +241,7 @@ internal fun NotificationChannelsPage(
         ),
     )
 
-    val pageBlurEnabled = LocalBarBlurEnabled.current
-    BarBlurHost(enabled = pageBlurEnabled, captureForEffects = true) {
+    BarBlurHost {
         Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             topBar = {
@@ -264,7 +262,7 @@ internal fun NotificationChannelsPage(
                                 prefs.setAppEnabled(app.packageName, enabled)
                             },
                         )
-                        GlassIconButton(
+                        PageTopBarIconButton(
                             onClick = { menuExpanded.value = true },
                             modifier = Modifier
                                 .padding(start = 8.dp)
@@ -431,12 +429,13 @@ internal fun NotificationChannelsPage(
                 )
             },
             entries = listOf(menuEntry),
-            backdrop = LocalBarBlurBackdrop.current,
+            backdrop = uiGlassBackdrop(),
+            visuals = uiGlassPopupVisuals(),
         )
         }
     }
 
-    WindowDialog(
+    AppDialog(
         show = rootErrorVisible,
         title = stringResource(R.string.cannot_read_channels),
         onDismissRequest = { rootErrorVisible = false },

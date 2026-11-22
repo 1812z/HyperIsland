@@ -49,8 +49,8 @@ import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.BarBackdropContent
 import io.github.hyperisland.compose.component.BarBlurHost
-import io.github.hyperisland.compose.component.LocalBarBlurBackdrop
-import io.github.hyperisland.compose.component.LocalBarBlurEnabled
+import io.github.hyperisland.compose.component.uiGlassBackdrop
+import io.github.hyperisland.compose.theme.uiGlassPopupVisuals
 import io.github.hyperisland.compose.component.LocalRootBottomBarPadding
 import io.github.hyperisland.compose.component.PageTabRow
 import io.github.hyperisland.compose.component.PageTopAppBar
@@ -83,7 +83,6 @@ import top.yukonga.miuix.kmp.icon.extended.ChevronForward
 import top.yukonga.miuix.kmp.icon.extended.Close
 import top.yukonga.miuix.kmp.icon.extended.More
 import top.yukonga.miuix.kmp.icon.extended.SelectAll
-import top.yukonga.miuix.kmp.glass.GlassIconButton
 import top.yukonga.miuix.kmp.glass.GlassIconDropdownMenu
 import top.yukonga.miuix.kmp.glass.GlassTopAppBarDefaults
 import top.yukonga.miuix.kmp.glass.glassPopupAnchor
@@ -344,7 +343,7 @@ internal fun AppsPage(
         ),
     )
 
-    BarBlurHost(enabled = LocalBarBlurEnabled.current, captureForEffects = true) {
+    BarBlurHost {
     Box(modifier = Modifier.fillMaxSize()) {
     Scaffold(
         topBar = {
@@ -391,7 +390,7 @@ internal fun AppsPage(
                             Icon(MiuixIcons.SelectAll, stringResource(R.string.multi_select))
                         }
                     }
-                    GlassIconButton(
+                    PageTopBarIconButton(
                         onClick = { appMenuExpanded.value = true },
                         modifier = Modifier
                             .padding(start = 8.dp)
@@ -426,7 +425,7 @@ internal fun AppsPage(
                                     label = stringResource(R.string.search_apps),
                                     color = Color.Transparent,
                                     modifier = Modifier.glassPill(
-                                        backdrop = LocalBarBlurBackdrop.current,
+                                        backdrop = uiGlassBackdrop(),
                                         // InputField 最小高度 45dp，半径取半高才是真胶囊。
                                         cornerRadius = 23.dp,
                                     ),
@@ -600,7 +599,8 @@ internal fun AppsPage(
             )
         },
         entries = if (selectionMode) selectionMenuEntries else normalMenuEntries,
-        backdrop = LocalBarBlurBackdrop.current,
+        backdrop = uiGlassBackdrop(),
+        visuals = uiGlassPopupVisuals(),
     )
     }
     }

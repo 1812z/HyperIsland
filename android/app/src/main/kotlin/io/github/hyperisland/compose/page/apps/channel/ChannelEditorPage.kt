@@ -27,7 +27,6 @@ import io.github.hyperisland.compose.component.BarBlurHost
 import io.github.hyperisland.compose.component.EFFECT_VISIBILITY_THRESHOLD
 import io.github.hyperisland.compose.component.LAYER_ENTER_DURATION
 import io.github.hyperisland.compose.component.LAYER_EXIT_DURATION
-import io.github.hyperisland.compose.component.LocalBarBlurEnabled
 import io.github.hyperisland.compose.component.PREDICTIVE_CANCEL_DURATION
 import io.github.hyperisland.compose.component.PREDICTIVE_DISMISS_DURATION
 import io.github.hyperisland.compose.component.PredictiveBackBackdrop
@@ -81,7 +80,6 @@ internal fun ChannelEditorPage(
         PREF_PREDICTIVE_BACK_MAX_TRANSLATION,
         DEFAULT_PREDICTIVE_BACK_TRANSLATION_PERCENT,
     )
-    val blurBarsEnabled = LocalBarBlurEnabled.current
 
     fun updateForm(value: ChannelSettingsPatch) {
         val updated = settings.withPatch(value)
@@ -198,12 +196,11 @@ internal fun ChannelEditorPage(
     }
 
     BarBlurHost(
-        enabled = blurBarsEnabled,
         captureForEffects = customizationVisible || predictiveBackActive ||
             backdropIntensity.value > EFFECT_VISIBILITY_THRESHOLD,
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            BarBackdropContent(modifier = Modifier.fillMaxSize()) {
+            BarBackdropContent(modifier = Modifier.fillMaxSize(), showWallpaper = false) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()

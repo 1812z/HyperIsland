@@ -58,9 +58,11 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -75,8 +77,14 @@ import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.NavigationEventHandler
 import androidx.navigationevent.findViewTreeNavigationEventDispatcherOwner
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppBottomSheet
+import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.ConfigSectionTree
 import io.github.hyperisland.compose.component.DetailGridPage
+import io.github.hyperisland.compose.component.PageTopBarIconButton
+import io.github.hyperisland.compose.component.uiGlassBackdrop
+import io.github.hyperisland.compose.theme.uiGlassPopupVisuals
+import io.github.hyperisland.compose.component.LocalAppModalIsTopmost
 import io.github.hyperisland.compose.data.ConfigPreset
 import io.github.hyperisland.compose.data.ConfigSection
 import io.github.hyperisland.compose.data.ConfigSectionGroups
@@ -125,6 +133,11 @@ import top.yukonga.miuix.kmp.basic.SnackbarHostState
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.basic.TextFieldDefaults
+import top.yukonga.miuix.kmp.glass.GlassIconDropdownMenu
+import top.yukonga.miuix.kmp.glass.GlassTopAppBarDefaults
+import top.yukonga.miuix.kmp.glass.glassPopupAnchor
+import top.yukonga.miuix.kmp.glass.glassPopupAnchorContent
+import top.yukonga.miuix.kmp.glass.rememberGlassPopupAnchor
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.basic.ArrowRight
 import top.yukonga.miuix.kmp.icon.basic.Check
@@ -138,10 +151,7 @@ import top.yukonga.miuix.kmp.icon.extended.More
 import top.yukonga.miuix.kmp.icon.extended.Report
 import top.yukonga.miuix.kmp.icon.extended.Timer
 import top.yukonga.miuix.kmp.icon.extended.Update
-import top.yukonga.miuix.kmp.menu.OverlayIconCascadingDropdownMenu
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.window.WindowBottomSheet
-import top.yukonga.miuix.kmp.window.WindowDialog
 
 /** 手机（窄屏）下预设卡片高度。 */
 private val PresetCardHeight = 144.dp
@@ -260,7 +270,7 @@ private fun ResetConfigDialog(
     onApply: (Set<String>) -> Unit,
 ) {
     var selected by remember(show) { mutableStateOf(emptySet<String>()) }
-    WindowDialog(
+    AppDialog(
         show = show,
         title = stringResource(R.string.preset_reset_config),
         onDismissRequest = onDismiss,
@@ -594,6 +604,9 @@ internal fun PresetConfigPage(
     val nameLabel = stringResource(R.string.preset_sort_name)
     val downloadsLabel = stringResource(R.string.preset_sort_downloads)
     val dateLabel = stringResource(R.string.preset_sort_date)
+    val menuLabel = stringResource(R.string.list_actions)
+    val menuAnchor = rememberGlassPopupAnchor()
+    var menuExpanded by remember { mutableStateOf(false) }
     val menuEntries = remember(newConfigLabel, importLabel, resetLabel, sortLabel, nameLabel, downloadsLabel, dateLabel, sortOrder) {
         listOf(
             DropdownEntry(
@@ -635,13 +648,40 @@ internal fun PresetConfigPage(
         onBack = onBack,
         columns = presetColumns,
         actions = {
-            OverlayIconCascadingDropdownMenu(entries = menuEntries) {
-                Icon(MiuixIcons.More, stringResource(R.string.list_actions))
+            val hapticFeedback = LocalHapticFeedback.current
+            PageTopBarIconButton(
+                onClick = {
+                    menuExpanded = true
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                },
+                modifier = Modifier.glassPopupAnchor(
+                    anchor = menuAnchor,
+                    cornerRadius = GlassTopAppBarDefaults.ButtonSize / 2,
+                ),
+            ) {
+                Icon(
+                    MiuixIcons.More,
+                    menuLabel,
+                    tint = MiuixTheme.colorScheme.onSurface,
+                    modifier = Modifier.glassPopupAnchorContent(menuAnchor),
+                )
             }
         },
         snackbarHost = { SnackbarHost(snackbarState) },
         isRefreshing = PresetCloudState.refreshing,
         onRefresh = { refreshCloud() },
+        overlay = {
+            GlassIconDropdownMenu(
+                show = menuExpanded,
+                onDismissRequest = { menuExpanded = false },
+                anchor = menuAnchor,
+                anchorContent = { Icon(MiuixIcons.More, menuLabel, tint = MiuixTheme.colorScheme.onSurface) },
+                entries = menuEntries,
+                backdrop = uiGlassBackdrop(),
+                visuals = uiGlassPopupVisuals(),
+                collapseOnSelection = true,
+            )
+        },
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) {
             SearchBar(
@@ -1067,7 +1107,7 @@ private fun PresetConfirmDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
 ) {
-    WindowDialog(
+    AppDialog(
         show = show,
         title = title,
         summary = message,
@@ -1125,7 +1165,7 @@ private fun NewPresetBottomSheet(
         onSave(titleInput.trim(), contentInput.trim(), authorInput.trim(), selectedLeafIds)
     }
 
-    WindowBottomSheet(
+    AppBottomSheet(
         show = show,
         title = stringResource(titleRes),
         backgroundColor = presetSheetColor(),
@@ -1428,7 +1468,7 @@ private fun ApplyPresetBottomSheet(
         }
     }
 
-    WindowBottomSheet(
+    AppBottomSheet(
         show = show,
         title = preset.title,
         backgroundColor = presetSheetColor(),
@@ -1462,7 +1502,7 @@ private fun ApplyPresetBottomSheet(
     ) {
         // 预测性返回手势会先让 sheet 自身滑出，无法通过 onDismissRequest 拦截；
         // 这里在非详情视图时抢先注册返回处理器，使返回逐级回退。
-        ContentBackInterceptor(enabled = view != PresetSheetView.Detail) {
+        ContentBackInterceptor(enabled = show && LocalAppModalIsTopmost.current && view != PresetSheetView.Detail) {
             view = if (view == PresetSheetView.Editor) PresetSheetView.Content else PresetSheetView.Detail
         }
         AnimatedContent(
@@ -1947,8 +1987,7 @@ private fun ApplyPresetBottomSheet(
         }
     }
 
-    // 两个确认弹窗与 bottom sheet 处于同一层（不是嵌进 sheet 的 Dialog 内容里），
-    // 所以它们各自是独立窗口，直接叠在 sheet 之上。
+    // 确认弹窗由根部弹窗宿主叠在预设面板上方。
     PresetConfirmDialog(
         show = showDeleteConfirm,
         title = stringResource(R.string.preset_confirm_delete_title),
@@ -2092,9 +2131,9 @@ private fun prettyJson(text: String): String {
 }
 
 /**
- * 内容视图激活时注册导航事件返回处理器，抢在 [WindowBottomSheet] 自身的返回处理之前接管返回。
+ * 内容视图激活时注册导航事件返回处理器，抢在 [AppBottomSheet] 自身的返回处理之前接管返回。
  *
- * WindowBottomSheet 的预测性返回会先把 sheet 滑出视口再回调 onDismissRequest，
+ * 底部面板的预测性返回会先把 sheet 滑出视口再回调 onDismissRequest，
  * 因此只能在导航事件层面提前拦截，才能实现逐级返回详情。
  */
 @Composable

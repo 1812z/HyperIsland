@@ -37,7 +37,6 @@ import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Close
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.window.WindowDialog
 
 @Composable
 internal fun AiModelPickerDialog(
@@ -71,7 +70,7 @@ internal fun AiModelPickerDialog(
         models.orEmpty().filter { normalized.isEmpty() || it.lowercase().contains(normalized) }
     }
 
-    WindowDialog(
+    AppDialog(
         show = show,
         title = stringResource(R.string.ai_model_picker_title),
         onDismissRequest = onDismiss,
@@ -159,7 +158,7 @@ internal fun AiCustomFieldsDialog(
         if (valid) onSave(result.toString()) else error = true
     }
 
-    WindowDialog(
+    AppDialog(
         show = show,
         title = stringResource(R.string.ai_custom_fields_dialog),
         onDismissRequest = onDismiss,

@@ -2,6 +2,14 @@ package io.github.hyperisland.compose.data
 
 import androidx.annotation.StringRes
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.theme.PREF_FLOATING_NAVIGATION_BAR
+import io.github.hyperisland.compose.theme.PREF_LIQUID_GLASS_NAVIGATION_BAR
+import io.github.hyperisland.compose.theme.PREF_NAVIGATION_BAR_STYLE
+import io.github.hyperisland.compose.theme.PREF_UI_GLASS_BLUR_RADIUS
+import io.github.hyperisland.compose.theme.PREF_UI_GLASS_ENABLED
+import io.github.hyperisland.compose.theme.PREF_UI_GLASS_TRANSPARENCY
+import io.github.hyperisland.compose.theme.PREF_WALLPAPER_BLUR_RADIUS
+import io.github.hyperisland.compose.theme.PREF_WALLPAPER_BRIGHTNESS
 
 /**
  * 配置预设的「配置管理映射表」。
@@ -183,6 +191,20 @@ internal val ConfigSectionGroups: List<ConfigSection> = listOf(
                     "pref_island_indicator_width",
                 ),
             ),
+        ),
+    ),
+    ConfigSection(
+        id = "theme",
+        titleRes = R.string.theme,
+        exactKeys = listOf(
+            PREF_UI_GLASS_ENABLED,
+            PREF_UI_GLASS_TRANSPARENCY,
+            PREF_UI_GLASS_BLUR_RADIUS,
+            PREF_WALLPAPER_BLUR_RADIUS,
+            PREF_WALLPAPER_BRIGHTNESS,
+            PREF_NAVIGATION_BAR_STYLE,
+            PREF_FLOATING_NAVIGATION_BAR,
+            PREF_LIQUID_GLASS_NAVIGATION_BAR,
         ),
     ),
     ConfigSection(

@@ -20,7 +20,6 @@ import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.window.WindowDialog
 
 internal sealed interface UpdateDialogState {
     data class Available(
@@ -38,7 +37,7 @@ internal fun UpdateDialogHost(
     onViewUpdate: (String) -> Unit,
 ) {
     val available = state as? UpdateDialogState.Available
-    WindowDialog(
+    AppDialog(
         show = available != null,
         title = stringResource(R.string.new_version_found),
         onDismissRequest = onDismiss,
@@ -65,7 +64,7 @@ internal fun UpdateDialogHost(
         }
     }
 
-    WindowDialog(
+    AppDialog(
         show = state == UpdateDialogState.Failure,
         title = stringResource(R.string.update_check_failed),
         onDismissRequest = onDismiss,

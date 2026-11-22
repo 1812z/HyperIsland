@@ -15,6 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.R
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
@@ -25,7 +26,6 @@ import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Close
-import top.yukonga.miuix.kmp.window.WindowDialog
 
 @Composable
 internal fun KeepIslandContentListDialog(
@@ -38,7 +38,7 @@ internal fun KeepIslandContentListDialog(
     var values by remember(show, initialValues) {
         mutableStateOf(initialValues.ifEmpty { listOf("") })
     }
-    WindowDialog(show = show, title = title, onDismissRequest = onDismiss) {
+    AppDialog(show = show, title = title, onDismissRequest = onDismiss) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             LazyColumn(
                 modifier = Modifier.fillMaxWidth().heightIn(max = 330.dp),
@@ -92,7 +92,7 @@ internal fun KeepIslandTextDialog(
     onSave: (String) -> Unit,
 ) {
     var value by remember(show, initialValue) { mutableStateOf(initialValue) }
-    WindowDialog(show = show, title = title, onDismissRequest = onDismiss) {
+    AppDialog(show = show, title = title, onDismissRequest = onDismiss) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
             TextField(
                 value = value,
@@ -138,7 +138,7 @@ internal fun KeepIslandIntervalDialog(
 ) {
     var value by remember(show, initialValue) { mutableStateOf(initialValue.toString()) }
     val normalized = value.toIntOrNull()?.coerceIn(1, 6000)
-    WindowDialog(
+    AppDialog(
         show = show,
         title = stringResource(R.string.keep_island_carousel_interval),
         onDismissRequest = onDismiss,

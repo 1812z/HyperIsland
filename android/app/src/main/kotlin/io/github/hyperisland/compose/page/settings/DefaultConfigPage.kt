@@ -18,6 +18,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.ColorPaletteDialog
 import io.github.hyperisland.compose.component.PageDropdownPreference
 import io.github.hyperisland.compose.component.DetailPage
@@ -38,7 +39,6 @@ import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
-import top.yukonga.miuix.kmp.window.WindowDialog
 
 @Composable
 internal fun DefaultConfigPage(
@@ -269,7 +269,7 @@ internal fun DefaultConfigPage(
         }
     }
 
-    WindowDialog(
+    AppDialog(
         show = showTimeoutDialog,
         title = stringResource(R.string.auto_disappear),
         onDismissRequest = { showTimeoutDialog = false },

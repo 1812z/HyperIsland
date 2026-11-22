@@ -25,6 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.ColorPaletteDialog
 import io.github.hyperisland.compose.component.DetailPage
 import io.github.hyperisland.compose.component.KeywordListDialog
@@ -67,7 +68,6 @@ import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.window.WindowDialog
 
 /**
  * 渠道设置的唯一表单实现。
@@ -507,7 +507,7 @@ internal fun ChannelSettingsFormPage(
         footer?.let { content -> item { content() } }
     }
 
-    WindowDialog(
+    AppDialog(
         show = timeoutDialog,
         title = stringResource(R.string.auto_disappear),
         onDismissRequest = { timeoutDialog = false },
