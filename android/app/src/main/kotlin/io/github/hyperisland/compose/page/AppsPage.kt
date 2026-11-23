@@ -53,6 +53,7 @@ import io.github.hyperisland.compose.component.BarBlurHost
 import io.github.hyperisland.compose.component.uiGlassBackdrop
 import io.github.hyperisland.compose.theme.uiGlassPopupVisuals
 import io.github.hyperisland.compose.component.LocalRootBottomBarPadding
+import io.github.hyperisland.compose.component.LocalSharedPageWallpaper
 import io.github.hyperisland.compose.component.PageTabRow
 import io.github.hyperisland.compose.component.PageTopAppBar
 import io.github.hyperisland.compose.component.PageTopBarIconButton
@@ -346,6 +347,11 @@ internal fun AppsPage(
     BarBlurHost {
     Box(modifier = Modifier.fillMaxSize()) {
     Scaffold(
+        containerColor = if (LocalSharedPageWallpaper.current != null) {
+            Color.Transparent
+        } else {
+            MiuixTheme.colorScheme.surface
+        },
         topBar = {
             PageTopAppBar(
                 title = if (selectionMode) {

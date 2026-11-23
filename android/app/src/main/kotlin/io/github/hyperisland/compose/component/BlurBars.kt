@@ -9,7 +9,9 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
+import io.github.hyperisland.compose.component.liquid.rememberCombinedBackdrop
 import io.github.hyperisland.compose.theme.LocalUiGlassSettings
+import top.yukonga.miuix.kmp.blur.Backdrop
 import top.yukonga.miuix.kmp.blur.BlendColorEntry
 import top.yukonga.miuix.kmp.blur.BlurDefaults
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
@@ -26,8 +28,12 @@ private val LocalBarBlurBackdrop = staticCompositionLocalOf<LayerBackdrop?> { nu
 internal fun barBackdrop(): LayerBackdrop? = LocalBarBlurBackdrop.current
 
 @Composable
-internal fun uiGlassBackdrop(): LayerBackdrop? =
-    barBackdrop().takeIf { LocalUiGlassSettings.current.enabled }
+internal fun uiGlassBackdrop(): Backdrop? {
+    if (!LocalUiGlassSettings.current.enabled) return null
+    val content = barBackdrop() ?: return null
+    val wallpaper = LocalSharedPageWallpaper.current?.backdrop ?: return content
+    return rememberCombinedBackdrop(wallpaper, content)
+}
 
 @Composable
 internal fun BarBlurHost(
@@ -37,9 +43,11 @@ internal fun BarBlurHost(
 ) {
     val surfaceColor = MiuixTheme.colorScheme.surface
     val glassEnabled = LocalUiGlassSettings.current.enabled
+    val sharedWallpaper = LocalSharedPageWallpaper.current?.backdrop
     val backdrop = if ((captureForEffects || (captureForGlass && glassEnabled)) && isRuntimeShaderSupported()) {
         rememberLayerBackdrop {
-            drawRect(surfaceColor)
+            // The shared wallpaper is sampled separately behind this page's scrolling content.
+            if (sharedWallpaper == null) drawRect(surfaceColor)
             drawContent()
         }
     } else {
@@ -90,12 +98,16 @@ internal fun PredictiveBackBackdrop(
 internal fun BarBackdropContent(
     modifier: Modifier = Modifier,
     showWallpaper: Boolean = true,
+    shareWallpaperWithChildPages: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val backdrop = LocalBarBlurBackdrop.current
     val capture = if (backdrop != null) Modifier.layerBackdrop(backdrop) else Modifier
     if (showWallpaper) {
-        WallpaperCardHost(modifier.then(capture)) { content() }
+        WallpaperCardHost(
+            modifier = modifier.then(capture),
+            shareWithChildPages = shareWallpaperWithChildPages,
+        ) { content() }
     } else {
         Box(modifier.then(capture)) { content() }
     }

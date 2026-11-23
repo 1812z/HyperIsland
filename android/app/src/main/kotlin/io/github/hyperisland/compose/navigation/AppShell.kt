@@ -381,7 +381,10 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                         .fillMaxSize()
                         .predictiveNavigationBackground(detailNavigationState),
                 ) {
-                    BarBackdropContent(modifier = Modifier.fillMaxSize(), showWallpaper = false) {
+                    BarBackdropContent(
+                        modifier = Modifier.fillMaxSize(),
+                        shareWallpaperWithChildPages = true,
+                    ) {
                         CompositionLocalProvider(
                             LocalRootBottomBarPadding provides padding.calculateBottomPadding(),
                         ) {

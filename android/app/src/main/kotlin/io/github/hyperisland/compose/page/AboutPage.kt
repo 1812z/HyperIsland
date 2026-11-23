@@ -65,6 +65,7 @@ import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.component.SettingsAction
 import io.github.hyperisland.compose.component.SettingsActionWithArrow
 import io.github.hyperisland.compose.component.WallpaperCardHost
+import io.github.hyperisland.compose.component.LocalSharedPageWallpaper
 import io.github.hyperisland.compose.theme.LocalAppWallpaper
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
@@ -143,7 +144,8 @@ internal fun AboutPage(
     val gradientColors = animatedGradientColors(animationTime, darkMode)
     val backgroundColor = MiuixTheme.colorScheme.background
     val hasWallpaper = LocalAppWallpaper.current?.image != null
-    val logoBackdrop = if (isRuntimeShaderSupported()) {
+    val sharedWallpaper = LocalSharedPageWallpaper.current
+    val localLogoBackdrop = if (sharedWallpaper == null && isRuntimeShaderSupported()) {
         rememberLayerBackdrop {
             drawRect(backgroundColor)
             drawContent()
@@ -152,7 +154,7 @@ internal fun AboutPage(
         null
     }
 
-    val captureLogoBackground = if (logoBackdrop != null) Modifier.layerBackdrop(logoBackdrop) else Modifier
+    val captureLogoBackground = if (localLogoBackdrop != null) Modifier.layerBackdrop(localLogoBackdrop) else Modifier
     WallpaperCardHost(modifier = Modifier.fillMaxSize(), wallpaperModifier = captureLogoBackground) {
         if (!hasWallpaper) {
             AnimatedAboutBackground(
@@ -274,7 +276,7 @@ internal fun AboutPage(
         AboutHero(
             animationTime = animationTime,
             gradientColors = gradientColors,
-            backdrop = logoBackdrop,
+            backdrop = sharedWallpaper?.backdrop ?: localLogoBackdrop,
             darkMode = darkMode,
             logoAlpha = logoAlpha,
             logoScale = logoScale,

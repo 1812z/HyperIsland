@@ -35,21 +35,36 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
 
 internal val LocalWallpaperCardBackdrop = staticCompositionLocalOf<LayerBackdrop?> { null }
+internal val LocalSharedPageWallpaper = staticCompositionLocalOf<SharedPageWallpaper?> { null }
+
+internal class SharedPageWallpaper(val backdrop: LayerBackdrop?)
 
 @Composable
 internal fun WallpaperCardHost(
     modifier: Modifier = Modifier,
     wallpaperModifier: Modifier = Modifier,
+    shareWithChildPages: Boolean = false,
     content: @Composable BoxScope.() -> Unit,
 ) {
+    if (LocalSharedPageWallpaper.current != null) {
+        Box(modifier = modifier, content = content)
+        return
+    }
+
     val wallpaper = LocalAppWallpaper.current
     val surface = MiuixTheme.colorScheme.surface
     val hasWallpaper = wallpaper?.image != null
-    val backdrop = if (hasWallpaper && LocalCardGlassSettings.current.enabled && isRuntimeShaderSupported()) {
+    val cardGlassEnabled = LocalCardGlassSettings.current.enabled
+    val backdrop = if (hasWallpaper && (cardGlassEnabled || shareWithChildPages) && isRuntimeShaderSupported()) {
         rememberLayerBackdrop {
             drawRect(surface)
             drawContent()
         }
+    } else {
+        null
+    }
+    val sharedWallpaper = if (hasWallpaper && shareWithChildPages) {
+        remember(backdrop) { SharedPageWallpaper(backdrop) }
     } else {
         null
     }
@@ -60,7 +75,10 @@ internal fun WallpaperCardHost(
                 AppWallpaperImage(wallpaper, Modifier.matchParentSize())
             }
         }
-        CompositionLocalProvider(LocalWallpaperCardBackdrop provides backdrop) {
+        CompositionLocalProvider(
+            LocalWallpaperCardBackdrop provides backdrop.takeIf { cardGlassEnabled },
+            LocalSharedPageWallpaper provides sharedWallpaper,
+        ) {
             content()
         }
     }

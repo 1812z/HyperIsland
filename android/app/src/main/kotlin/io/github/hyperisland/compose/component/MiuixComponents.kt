@@ -216,6 +216,11 @@ internal fun CollapsingPage(
     val scrollBehavior = MiuixScrollBehavior()
     BarBlurHost {
         Scaffold(
+            containerColor = if (LocalSharedPageWallpaper.current != null) {
+                Color.Transparent
+            } else {
+                MiuixTheme.colorScheme.surface
+            },
             topBar = {
                 PageTopAppBar(
                     title = title,
