@@ -83,6 +83,7 @@ import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.ConfigSectionTree
 import io.github.hyperisland.compose.component.DetailGridPage
 import io.github.hyperisland.compose.component.PageTopBarIconButton
+import io.github.hyperisland.compose.component.glassPill
 import io.github.hyperisland.compose.component.uiGlassBackdrop
 import io.github.hyperisland.compose.theme.uiGlassPopupVisuals
 import io.github.hyperisland.compose.component.LocalAppModalIsTopmost
@@ -667,24 +668,10 @@ internal fun PresetConfigPage(
                 )
             }
         },
-        snackbarHost = { SnackbarHost(snackbarState) },
-        isRefreshing = PresetCloudState.refreshing,
-        onRefresh = { refreshCloud() },
-        overlay = {
-            GlassIconDropdownMenu(
-                show = menuExpanded,
-                onDismissRequest = { menuExpanded = false },
-                anchor = menuAnchor,
-                anchorContent = { Icon(MiuixIcons.More, menuLabel, tint = MiuixTheme.colorScheme.onSurface) },
-                entries = menuEntries,
-                backdrop = uiGlassBackdrop(),
-                visuals = uiGlassPopupVisuals(),
-                collapseOnSelection = true,
-            )
-        },
-    ) {
-        item(span = { GridItemSpan(maxLineSpan) }) {
+        topBarContent = {
+            val backdrop = uiGlassBackdrop()
             SearchBar(
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 4.dp),
                 inputField = {
                     InputField(
                         query = searchQuery,
@@ -693,6 +680,12 @@ internal fun PresetConfigPage(
                         expanded = searchExpanded,
                         onExpandedChange = { searchExpanded = it },
                         label = stringResource(R.string.preset_search),
+                        color = if (backdrop != null) Color.Transparent else MiuixTheme.colorScheme.surfaceContainerHigh,
+                        modifier = if (backdrop != null) {
+                            Modifier.glassPill(backdrop = backdrop, cornerRadius = 23.dp)
+                        } else {
+                            Modifier
+                        },
                     )
                 },
                 onExpandedChange = { searchExpanded = it },
@@ -709,7 +702,23 @@ internal fun PresetConfigPage(
                     )
                 },
             ) {}
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarState) },
+        isRefreshing = PresetCloudState.refreshing,
+        onRefresh = { refreshCloud() },
+        overlay = {
+            GlassIconDropdownMenu(
+                show = menuExpanded,
+                onDismissRequest = { menuExpanded = false },
+                anchor = menuAnchor,
+                anchorContent = { Icon(MiuixIcons.More, menuLabel, tint = MiuixTheme.colorScheme.onSurface) },
+                entries = menuEntries,
+                backdrop = uiGlassBackdrop(),
+                visuals = uiGlassPopupVisuals(),
+                collapseOnSelection = true,
+            )
+        },
+    ) {
         // 本地配置置顶。上传过的显示云端下载量（没上传那栏没有意义）。
         items(localFiltered, key = { it.id }) { preset ->
             PresetConfigCard(

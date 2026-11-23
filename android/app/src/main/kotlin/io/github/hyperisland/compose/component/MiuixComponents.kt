@@ -323,6 +323,7 @@ internal fun DetailGridPage(
     topContentPadding: Dp = 8.dp,
     bottomContentPadding: Dp = 28.dp,
     actions: @Composable RowScope.() -> Unit = {},
+    topBarContent: @Composable (ScrollBehavior) -> Unit = {},
     snackbarHost: @Composable () -> Unit = {},
     isRefreshing: Boolean = false,
     onRefresh: (() -> Unit)? = null,
@@ -343,6 +344,7 @@ internal fun DetailGridPage(
                         }
                     },
                     actions = actions,
+                    bottomContent = { topBarContent(scrollBehavior) },
                 )
             },
             snackbarHost = snackbarHost,
