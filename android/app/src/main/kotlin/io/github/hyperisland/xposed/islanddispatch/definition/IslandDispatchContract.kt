@@ -11,6 +11,7 @@ object IslandDispatchContract {
     const val EXTRA_NOTIF_ID = "notif_id"
     const val EXTRA_SUPPRESS_SOURCE_HEADS_UP =
         "hyperisland.suppress_source_heads_up"
+    const val EXTRA_PROXY_ACTION = "hyperisland.proxy_action"
 
     const val PERM = "io.github.hyperisland.SEND_ISLAND"
     const val NOTIF_ID = 0x48594944

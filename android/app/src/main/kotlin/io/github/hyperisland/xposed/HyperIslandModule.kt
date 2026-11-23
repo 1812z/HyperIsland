@@ -40,6 +40,7 @@ import io.github.hyperisland.xposed.hook.SystemUI.extensions.KeyguardUnlockState
 import io.github.hyperisland.xposed.hook.MediaNotificationTextColorHook
 import io.github.hyperisland.xposed.hook.PermissionManager.ClipboardToastHook
 import io.github.hyperisland.xposed.hook.SystemUI.GenericProgressHook
+import io.github.hyperisland.xposed.hook.SystemUI.ProxyNotificationActionHook
 import io.github.hyperisland.xposed.hook.SystemUI.ProxySourceHeadsUpSuppressHook
 import io.github.hyperisland.xposed.hook.SystemUI.WifiTileDisconnectHook
 import io.github.hyperisland.xposed.hook.SystemUI.BluetoothUnlockToastHook
@@ -97,6 +98,7 @@ class HyperIslandModule : XposedModule() {
                 }
                 IslandDispatcherHook.init(this, param)
                 GenericProgressHook.init(this, param)
+                ProxyNotificationActionHook.init(this, param)
                 ProxySourceHeadsUpSuppressHook.init(this, param)
                 ActiveIslandDismissHook.init(this, param)
                 TimerWatcherCompatHook.init(this, param)

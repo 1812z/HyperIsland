@@ -4,6 +4,7 @@ import android.app.Notification
 import android.content.Context
 import android.os.Build
 import android.os.Bundle
+import io.github.hyperisland.xposed.islanddispatch.definition.IslandDispatchContract
 import io.github.hyperisland.xposed.renderer.base_text_with_progress.BaseTextWithProgressRenderer
 import io.github.hyperisland.xposed.renderer.image_text_with_buttons.ImageTextWithButtonsRenderer
 import io.github.hyperisland.xposed.renderer.image_text_with_buttons_wrap.ImageTextWithButtonsWrapRenderer
@@ -167,7 +168,7 @@ fun resolveRenderer(id: String): IslandRenderer = when (id) {
     else -> ImageTextWithButtonsRenderer
 }
 
-/** 将 buildResourceBundle() 里嵌套的 "miui.focus.actions" 展开到 extras 顶层。 */
+/** 标记渲染器生成的代理按钮，并将 "miui.focus.actions" 展开到 extras 顶层。 */
 fun flattenActionsToExtras(resourceBundle: Bundle, extras: Bundle) {
     val nested = resourceBundle.getBundle("miui.focus.actions") ?: return
     for (key in nested.keySet()) {
@@ -175,6 +176,9 @@ fun flattenActionsToExtras(resourceBundle: Bundle, extras: Bundle) {
             nested.getParcelable(key, Notification.Action::class.java)
         else
             @Suppress("DEPRECATION") nested.getParcelable(key)
-        if (action != null) extras.putParcelable(key, action)
+        if (action != null) {
+            action.extras.putBoolean(IslandDispatchContract.EXTRA_PROXY_ACTION, true)
+            extras.putParcelable(key, action)
+        }
     }
 }
