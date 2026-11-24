@@ -31,6 +31,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppActionTextButton
+import io.github.hyperisland.compose.component.AppActionButton
 import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.BarBackdropContent
@@ -49,7 +51,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONException
 import top.yukonga.miuix.kmp.basic.BasicComponent
-import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.DropdownEntry
 import top.yukonga.miuix.kmp.basic.DropdownItem
@@ -62,7 +63,6 @@ import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.icon.extended.More
@@ -446,12 +446,12 @@ internal fun NotificationChannelsPage(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                TextButton(
+                AppActionTextButton(
                     text = stringResource(R.string.cancel),
                     onClick = { rootErrorVisible = false },
                     modifier = Modifier.weight(1f),
                 )
-                Button(
+                AppActionButton(
                     onClick = {
                         rootErrorVisible = false
                         refresh()

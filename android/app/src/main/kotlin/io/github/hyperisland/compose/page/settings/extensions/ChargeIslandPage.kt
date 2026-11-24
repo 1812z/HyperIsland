@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppTextField
 import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.PreferenceDropdown
 import io.github.hyperisland.compose.component.PreferenceSwitch
@@ -23,7 +24,6 @@ import io.github.hyperisland.compose.service.XposedScopeService
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
-import top.yukonga.miuix.kmp.basic.TextField
 
 @Composable
 internal fun ChargeIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) {
@@ -119,7 +119,7 @@ internal fun ChargeIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Unit)
                             prefs.putString(KEY_CHARGE_DURATION_MODE, durationValues[index])
                         }
                         AnimatedVisibility(durationMode.value == DURATION_CUSTOM) {
-                            TextField(
+                            AppTextField(
                                 value = durationDraft.value,
                                 onValueChange = { input ->
                                     val digits = input.filter(Char::isDigit).take(5)

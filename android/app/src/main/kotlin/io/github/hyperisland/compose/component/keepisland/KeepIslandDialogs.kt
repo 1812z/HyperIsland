@@ -15,15 +15,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.github.hyperisland.compose.component.AppActionTextButton
+import io.github.hyperisland.compose.component.AppActionButton
+import io.github.hyperisland.compose.component.AppTextField
 import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.R
-import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Close
 
@@ -49,7 +49,7 @@ internal fun KeepIslandContentListDialog(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        TextField(
+                        AppTextField(
                             value = value,
                             onValueChange = { next ->
                                 values = values.toMutableList().also { it[index] = next }
@@ -71,7 +71,7 @@ internal fun KeepIslandContentListDialog(
                     }
                 }
             }
-            TextButton(
+            AppActionTextButton(
                 text = stringResource(R.string.keep_island_add_content),
                 onClick = { values = values + "" },
             )
@@ -94,7 +94,7 @@ internal fun KeepIslandTextDialog(
     var value by remember(show, initialValue) { mutableStateOf(initialValue) }
     AppDialog(show = show, title = title, onDismissRequest = onDismiss) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            TextField(
+            AppTextField(
                 value = value,
                 onValueChange = { value = it },
                 modifier = Modifier.fillMaxWidth(),
@@ -107,17 +107,17 @@ internal fun KeepIslandTextDialog(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                TextButton(
+                AppActionTextButton(
                     text = stringResource(R.string.cancel),
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
                 )
-                TextButton(
+                AppActionTextButton(
                     text = stringResource(R.string.clear),
                     onClick = { onSave("") },
                     modifier = Modifier.weight(1f),
                 )
-                Button(
+                AppActionButton(
                     onClick = { onSave(value) },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColorsPrimary(),
@@ -144,7 +144,7 @@ internal fun KeepIslandIntervalDialog(
         onDismissRequest = onDismiss,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            TextField(
+            AppTextField(
                 value = value,
                 onValueChange = { next -> value = next.filter(Char::isDigit).take(4) },
                 modifier = Modifier.fillMaxWidth(),
@@ -156,12 +156,12 @@ internal fun KeepIslandIntervalDialog(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                TextButton(
+                AppActionTextButton(
                     text = stringResource(R.string.cancel),
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
                 )
-                Button(
+                AppActionButton(
                     onClick = { normalized?.let(onSave) },
                     enabled = normalized != null,
                     modifier = Modifier.weight(1f),
@@ -183,12 +183,12 @@ private fun DialogActions(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        TextButton(
+        AppActionTextButton(
             text = stringResource(R.string.cancel),
             onClick = onDismiss,
             modifier = Modifier.weight(1f),
         )
-        Button(
+        AppActionButton(
             onClick = onSave,
             modifier = Modifier.weight(1f),
             colors = ButtonDefaults.buttonColorsPrimary(),

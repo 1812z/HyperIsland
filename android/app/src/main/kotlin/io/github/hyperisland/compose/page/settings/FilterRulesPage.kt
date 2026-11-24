@@ -3,7 +3,6 @@ package io.github.hyperisland.compose.page.settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
@@ -29,7 +29,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.boundsInWindow
@@ -42,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.PageSearchField
 import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.BarBackdropContent
 import io.github.hyperisland.compose.component.BarBlurHost
@@ -53,7 +53,6 @@ import io.github.hyperisland.compose.theme.uiGlassPopupVisuals
 import io.github.hyperisland.compose.component.LocalRootBottomBarPadding
 import io.github.hyperisland.compose.component.PageTabRow
 import io.github.hyperisland.compose.component.SectionTitle
-import io.github.hyperisland.compose.component.glassPill
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.InstalledApp
 import io.github.hyperisland.compose.data.InstalledAppsRepository
@@ -66,16 +65,13 @@ import top.yukonga.miuix.kmp.basic.DropdownArrowEndAction
 import top.yukonga.miuix.kmp.basic.DropdownEntry
 import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.InputField
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.PullToRefresh
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.SearchBar
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.icon.extended.More
@@ -104,7 +100,7 @@ internal fun FilterRulesPage(
     var initialLoading by remember { mutableStateOf(apps.isEmpty()) }
     var refreshing by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
-    var searchExpanded by remember { mutableStateOf(false) }
+
     var selectedTab by remember { mutableIntStateOf(0) }
     var showConfiguredApps by remember { mutableStateOf(true) }
     var showUnconfiguredApps by remember { mutableStateOf(true) }
@@ -208,6 +204,65 @@ internal fun FilterRulesPage(
         ),
     )
 
+    val filterItems: LazyListScope.() -> Unit = {
+        item {
+            SectionTitle(
+                stringResource(
+                    if (selectedTab == 0) R.string.filter_foreground_description
+                    else R.string.filter_exclusion_description,
+                ),
+            )
+        }
+        if (initialLoading) {
+            item {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 64.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+        } else if (filteredApps.isEmpty()) {
+            item {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 64.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        stringResource(
+                            if (query.isEmpty()) R.string.no_apps_found
+                            else R.string.no_matching_apps,
+                        ),
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    )
+                }
+            }
+        } else {
+            items(filteredApps, key = { it.packageName }) { app ->
+                val icon by produceState<ImageBitmap?>(null, app.packageName) {
+                    value = withContext(Dispatchers.IO) {
+                        appsRepository.loadIcon(app.packageName)
+                    }
+                }
+                FilterAppRow(
+                    app = app,
+                    icon = icon,
+                    exclusionMode = selectedTab == 1,
+                    action = prefs.foregroundAction(app.packageName),
+                    excluded = app.packageName in excluded,
+                    onActionChange = { action ->
+                        prefs.setForegroundAction(app.packageName, action)
+                        revision++
+                    },
+                    onExcludedChange = { value ->
+                        prefs.setForegroundExcluded(app.packageName, value)
+                        revision++
+                    },
+                )
+            }
+        }
+    }
+
     BarBlurHost {
         Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
@@ -244,41 +299,11 @@ internal fun FilterRulesPage(
                                 .padding(start = 12.dp, end = 12.dp, bottom = 8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            SearchBar(
-                                inputField = {
-                                    InputField(
-                                        query = query,
-                                        onQueryChange = { query = it },
-                                        onSearch = {},
-                                        expanded = searchExpanded,
-                                        onExpandedChange = { searchExpanded = it },
-                                        label = stringResource(R.string.search_apps),
-                                        color = Color.Transparent,
-                                        modifier = Modifier.glassPill(
-                                            backdrop = uiGlassBackdrop(),
-                                            // InputField 最小高度 45dp，半径取半高才是真胶囊。
-                                            cornerRadius = 23.dp,
-                                        ),
-                                    )
-                                },
-                                onExpandedChange = { searchExpanded = it },
-                                expanded = searchExpanded,
-                                outsideEndAction = {
-                                    Text(
-                                        modifier = Modifier
-                                            .padding(start = 12.dp)
-                                            .padding(end = 12.dp)
-                                            .clickable(
-                                                interactionSource = null,
-                                                indication = null
-                                            ) {
-                                                searchExpanded = false
-                                            },
-                                        text = stringResource(R.string.cancel),
-                                        color = MiuixTheme.colorScheme.primary
-                                    )
-                                },
-                            ) {}
+                            PageSearchField(
+                                label = stringResource(R.string.search_apps),
+                                query = query,
+                                onQueryChange = { query = it },
+                            )
                             PageTabRow(
                                 tabs = listOf(
                                     stringResource(R.string.filter_foreground_tab),
@@ -286,7 +311,6 @@ internal fun FilterRulesPage(
                                 ),
                                 selectedIndex = selectedTab,
                                 onSelect = { selectedTab = it },
-                                scrollBehavior = scrollBehavior,
                                 modifier = Modifier.padding(horizontal = 4.dp),
                             )
                         }
@@ -314,62 +338,7 @@ internal fun FilterRulesPage(
                         ),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        item {
-                            SectionTitle(
-                                stringResource(
-                                    if (selectedTab == 0) R.string.filter_foreground_description
-                                    else R.string.filter_exclusion_description,
-                                ),
-                            )
-                        }
-                        if (initialLoading) {
-                            item {
-                                Box(
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = 64.dp),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    CircularProgressIndicator()
-                                }
-                            }
-                        } else if (filteredApps.isEmpty()) {
-                            item {
-                                Box(
-                                    modifier = Modifier.fillMaxWidth().padding(vertical = 64.dp),
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Text(
-                                        stringResource(
-                                            if (query.isEmpty()) R.string.no_apps_found
-                                            else R.string.no_matching_apps,
-                                        ),
-                                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                                    )
-                                }
-                            }
-                        } else {
-                            items(filteredApps, key = { it.packageName }) { app ->
-                                val icon by produceState<ImageBitmap?>(null, app.packageName) {
-                                    value = withContext(Dispatchers.IO) {
-                                        appsRepository.loadIcon(app.packageName)
-                                    }
-                                }
-                                FilterAppRow(
-                                    app = app,
-                                    icon = icon,
-                                    exclusionMode = selectedTab == 1,
-                                    action = prefs.foregroundAction(app.packageName),
-                                    excluded = app.packageName in excluded,
-                                    onActionChange = { action ->
-                                        prefs.setForegroundAction(app.packageName, action)
-                                        revision++
-                                    },
-                                    onExcludedChange = { value ->
-                                        prefs.setForegroundExcluded(app.packageName, value)
-                                        revision++
-                                    },
-                                )
-                            }
-                        }
+                        filterItems()
                     }
                 }
             }

@@ -25,6 +25,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppActionTextButton
+import io.github.hyperisland.compose.component.AppActionButton
+import io.github.hyperisland.compose.component.AppTextField
 import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.ColorPaletteDialog
@@ -61,11 +64,8 @@ import io.github.hyperisland.compose.data.channel.TEMPLATE_AI_NOTIFICATION
 import io.github.hyperisland.compose.data.channel.TEMPLATE_NOTIFICATION
 import io.github.hyperisland.compose.data.channel.TEMPLATE_NOTIFICATION_COUNT
 import io.github.hyperisland.compose.data.channel.TEMPLATE_PROGRESS
-import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -513,7 +513,7 @@ internal fun ChannelSettingsFormPage(
         onDismissRequest = { timeoutDialog = false },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            TextField(
+            AppTextField(
                 value = timeoutDraft,
                 onValueChange = { timeoutDraft = it.filter(Char::isDigit).take(9) },
                 modifier = Modifier.fillMaxWidth(),
@@ -524,7 +524,7 @@ internal fun ChannelSettingsFormPage(
             )
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (isBatch) {
-                    TextButton(
+                    AppActionTextButton(
                         text = stringResource(R.string.no_change),
                         onClick = {
                             onStateChange(state.copy(timeout = null))
@@ -533,12 +533,12 @@ internal fun ChannelSettingsFormPage(
                         modifier = Modifier.weight(1f),
                     )
                 }
-                TextButton(
+                AppActionTextButton(
                     text = stringResource(R.string.restore_default),
                     onClick = { onStateChange(state.copy(timeout = OPTION_DEFAULT)); timeoutDialog = false },
                     modifier = Modifier.weight(1f),
                 )
-                Button(
+                AppActionButton(
                     onClick = {
                         val timeout = timeoutDraft.toIntOrNull()?.takeIf { it >= 1 }?.toString()
                         if (isBatch) {

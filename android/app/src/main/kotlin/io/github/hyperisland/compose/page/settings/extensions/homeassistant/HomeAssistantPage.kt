@@ -21,6 +21,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppActionButton
+import io.github.hyperisland.compose.component.AppTextField
 import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.DetailPage
@@ -41,7 +43,6 @@ import io.github.hyperisland.homeassistant.HaSubscription
 import io.github.hyperisland.homeassistant.HomeAssistantContract
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.BasicComponent
-import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.FloatingActionButton
 import top.yukonga.miuix.kmp.basic.Icon
@@ -50,7 +51,6 @@ import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Add
 import top.yukonga.miuix.kmp.icon.extended.Hide
@@ -230,7 +230,7 @@ internal fun HomeAssistantPage(
                             prefs.putBoolean(KEY_HOME_ASSISTANT_SCREEN_OFF_POWER_SAVE, value)
                             notifyRuntime(screenOffPowerSaveValue = value)
                         }
-                        TextField(
+                        AppTextField(
                             value = draftUrl,
                             onValueChange = { draftUrl = it },
                             modifier = Modifier
@@ -248,7 +248,7 @@ internal fun HomeAssistantPage(
                             fontSize = MiuixTheme.textStyles.footnote1.fontSize,
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         )
-                        TextField(
+                        AppTextField(
                             value = draftToken,
                             onValueChange = { draftToken = it },
                             modifier = Modifier
@@ -277,7 +277,7 @@ internal fun HomeAssistantPage(
                                 .padding(horizontal = 18.dp, vertical = 10.dp),
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            Button(
+                            AppActionButton(
                                 onClick = {
                                     persistServer(draftUrl, draftToken)
                                     notifyRuntime(
@@ -291,7 +291,7 @@ internal fun HomeAssistantPage(
                             ) {
                                 Text(stringResource(R.string.save))
                             }
-                            Button(
+                            AppActionButton(
                                 onClick = {
                                     persistServer(draftUrl, draftToken)
                                     connection.reconnect(draftUrl.trim(), draftToken.trim())
@@ -383,7 +383,7 @@ internal fun HomeAssistantPage(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Button(
+            AppActionButton(
                 onClick = {
                     val target = pendingDelete
                     if (target != null) {
@@ -397,7 +397,7 @@ internal fun HomeAssistantPage(
             ) {
                 Text(stringResource(R.string.confirm))
             }
-            Button(
+            AppActionButton(
                 onClick = { pendingDelete = null },
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColorsPrimary(),

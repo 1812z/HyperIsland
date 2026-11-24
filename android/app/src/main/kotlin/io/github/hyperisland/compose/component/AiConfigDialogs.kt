@@ -25,15 +25,11 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import org.json.JSONTokener
 import top.yukonga.miuix.kmp.basic.BasicComponent
-import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Close
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -77,7 +73,7 @@ internal fun AiModelPickerDialog(
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             if (models != null) {
-                TextField(
+                AppTextField(
                     value = query,
                     onValueChange = { query = it },
                     modifier = Modifier.fillMaxWidth(),
@@ -96,7 +92,7 @@ internal fun AiModelPickerDialog(
                         text = error.orEmpty(),
                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     )
-                    Button(onClick = { revision++ }, modifier = Modifier.fillMaxWidth()) {
+                    AppActionButton(onClick = { revision++ }, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.ai_model_picker_retry))
                     }
                 }
@@ -110,7 +106,7 @@ internal fun AiModelPickerDialog(
                     text = stringResource(R.string.ai_model_picker_empty),
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
-                else -> Card {
+                else -> AppCard {
                     LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 360.dp)) {
                         items(filtered, key = { it }) { model ->
                             BasicComponent(
@@ -127,7 +123,7 @@ internal fun AiModelPickerDialog(
                     }
                 }
             }
-            TextButton(
+            AppActionTextButton(
                 text = stringResource(R.string.ai_model_picker_close),
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth(),
@@ -172,7 +168,7 @@ internal fun AiCustomFieldsDialog(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                TextButton(
+                AppActionTextButton(
                     text = stringResource(R.string.ai_custom_fields_reset),
                     onClick = {
                         fields = parseCustomFields(DEFAULT_CUSTOM_FIELDS)
@@ -180,7 +176,7 @@ internal fun AiCustomFieldsDialog(
                     },
                     modifier = Modifier.weight(1f),
                 )
-                Button(
+                AppActionButton(
                     onClick = {
                         fields = fields + AiCustomField("", "false")
                         error = false
@@ -197,10 +193,10 @@ internal fun AiCustomFieldsDialog(
                 ) {
                     items(fields.indices.toList(), key = { it }) { index ->
                         val field = fields[index]
-                        Card(insideMargin = PaddingValues(12.dp)) {
+                        AppCard(insideMargin = PaddingValues(12.dp)) {
                             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    TextField(
+                                    AppTextField(
                                         value = field.key,
                                         onValueChange = { value ->
                                             fields = fields.toMutableList().also {
@@ -223,7 +219,7 @@ internal fun AiCustomFieldsDialog(
                                         )
                                     }
                                 }
-                                TextField(
+                                AppTextField(
                                     value = field.value,
                                     onValueChange = { value ->
                                         fields = fields.toMutableList().also {
@@ -251,12 +247,12 @@ internal fun AiCustomFieldsDialog(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                TextButton(
+                AppActionTextButton(
                     text = stringResource(R.string.cancel),
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
                 )
-                Button(
+                AppActionButton(
                     onClick = ::save,
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColorsPrimary(),

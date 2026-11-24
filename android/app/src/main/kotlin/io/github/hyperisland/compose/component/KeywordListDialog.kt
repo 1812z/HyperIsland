@@ -17,14 +17,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
 import top.yukonga.miuix.kmp.basic.BasicComponent
-import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Close
 
@@ -51,7 +47,7 @@ internal fun KeywordListDialog(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                TextField(
+                AppTextField(
                     value = input,
                     onValueChange = { input = it },
                     modifier = Modifier.weight(1f),
@@ -59,7 +55,7 @@ internal fun KeywordListDialog(
                     useLabelAsPlaceholder = true,
                     singleLine = true,
                 )
-                Button(
+                AppActionButton(
                     onClick = ::addKeyword,
                     enabled = input.trim().isNotEmpty(),
                     colors = ButtonDefaults.buttonColorsPrimary(),
@@ -68,7 +64,7 @@ internal fun KeywordListDialog(
                 }
             }
             if (draft.isNotEmpty()) {
-                Card {
+                AppCard {
                     LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 280.dp)) {
                         items(draft, key = { it }) { keyword ->
                             BasicComponent(
@@ -90,12 +86,12 @@ internal fun KeywordListDialog(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                TextButton(
+                AppActionTextButton(
                     text = stringResource(R.string.cancel),
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
                 )
-                Button(
+                AppActionButton(
                     onClick = { onSave(draft) },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColorsPrimary(),

@@ -53,6 +53,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode|density|fontScale|locale|layoutDirection"
+            android:windowSoftInputMode="adjustResize"
             android:theme="@style/ComposeTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>

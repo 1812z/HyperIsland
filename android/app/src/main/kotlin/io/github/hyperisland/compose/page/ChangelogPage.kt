@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.hyperisland.BuildConfig
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppActionButton
 import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.DetailPage
 import io.github.hyperisland.compose.component.MarkdownLines
@@ -43,7 +44,6 @@ import io.github.hyperisland.compose.data.ReleaseEntry
 import io.github.hyperisland.compose.data.formatGeneratedAt
 import io.github.hyperisland.compose.service.SiteDataClient
 import kotlinx.coroutines.launch
-import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -216,7 +216,7 @@ private fun ChangelogHeaderCard(downloadUrl: String) {
                 )
             }
             Spacer(Modifier.width(12.dp))
-            Button(
+            AppActionButton(
                 onClick = { context.openInBrowser(downloadUrl) },
                 colors = ButtonDefaults.buttonColorsPrimary(),
             ) {
@@ -309,7 +309,7 @@ private fun ReleaseCard(
  */
 @Composable
 private fun DownloadButton(onClick: () -> Unit) {
-    Button(
+    AppActionButton(
         onClick = onClick,
         minWidth = 0.dp,
         minHeight = 34.dp,

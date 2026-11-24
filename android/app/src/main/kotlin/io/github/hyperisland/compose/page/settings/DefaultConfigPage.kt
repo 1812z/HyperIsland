@@ -18,6 +18,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppActionTextButton
+import io.github.hyperisland.compose.component.AppActionButton
+import io.github.hyperisland.compose.component.AppTextField
 import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.ColorPaletteDialog
@@ -32,11 +35,8 @@ import io.github.hyperisland.compose.data.channel.STATUS_BAR_ICON_HIDE
 import io.github.hyperisland.compose.data.channel.STATUS_BAR_ICON_SHOW
 import io.github.hyperisland.compose.data.channel.STATUS_BAR_ICON_SYSTEM
 import top.yukonga.miuix.kmp.basic.BasicComponent
-import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference
 
@@ -275,7 +275,7 @@ internal fun DefaultConfigPage(
         onDismissRequest = { showTimeoutDialog = false },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            TextField(
+            AppTextField(
                 value = timeoutText,
                 onValueChange = { raw -> timeoutText = raw.filter(Char::isDigit).take(9) },
                 modifier = Modifier.fillMaxWidth(),
@@ -288,12 +288,12 @@ internal fun DefaultConfigPage(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                TextButton(
+                AppActionTextButton(
                     text = stringResource(R.string.cancel),
                     onClick = { showTimeoutDialog = false },
                     modifier = Modifier.weight(1f),
                 )
-                Button(
+                AppActionButton(
                     onClick = {
                         val timeout = timeoutText.toIntOrNull()?.takeIf { it >= 1 }
                             ?: settings.timeout

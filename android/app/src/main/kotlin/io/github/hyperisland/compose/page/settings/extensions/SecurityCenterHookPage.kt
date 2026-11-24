@@ -12,17 +12,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppActionTextButton
+import io.github.hyperisland.compose.component.AppActionButton
 import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.PreferenceSwitch
 import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.rememberBooleanPreference
-import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
 
 @Composable
 internal fun SecurityCenterHookPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) {
@@ -91,12 +91,12 @@ internal fun SecurityCenterHookPage(prefs: FlutterPrefsRepository, onBack: () ->
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                TextButton(
+                AppActionTextButton(
                     text = stringResource(R.string.cancel),
                     onClick = { showClipboardPermissionDialog.value = false },
                     modifier = Modifier.weight(1f),
                 )
-                Button(
+                AppActionButton(
                     onClick = {
                         if (actions.request(true, listOf(PKG_SECURITY_CENTER), scopeFailed)) {
                             clipboardToastConversion.value = true

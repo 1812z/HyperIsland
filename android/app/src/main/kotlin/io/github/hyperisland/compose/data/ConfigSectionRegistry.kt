@@ -3,6 +3,10 @@ package io.github.hyperisland.compose.data
 import androidx.annotation.StringRes
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.theme.PREF_CARD_GLASS_BLUR_RADIUS
+import io.github.hyperisland.compose.theme.PREF_GLASS_EFFECTS_ENABLED
+import io.github.hyperisland.compose.theme.PREF_NAVIGATION_BAR_GLASS_BLUR_RADIUS
+import io.github.hyperisland.compose.theme.PREF_NAVIGATION_BAR_GLASS_ENABLED
+import io.github.hyperisland.compose.theme.PREF_NAVIGATION_BAR_GLASS_TRANSPARENCY
 import io.github.hyperisland.compose.theme.PREF_CARD_GLASS_ENABLED
 import io.github.hyperisland.compose.theme.PREF_CARD_GLASS_TRANSPARENCY
 import io.github.hyperisland.compose.theme.PREF_FLOATING_NAVIGATION_BAR
@@ -200,12 +204,16 @@ internal val ConfigSectionGroups: List<ConfigSection> = listOf(
         id = "theme",
         titleRes = R.string.theme,
         exactKeys = listOf(
+            PREF_GLASS_EFFECTS_ENABLED,
             PREF_UI_GLASS_ENABLED,
             PREF_UI_GLASS_TRANSPARENCY,
             PREF_UI_GLASS_BLUR_RADIUS,
             PREF_CARD_GLASS_ENABLED,
             PREF_CARD_GLASS_TRANSPARENCY,
             PREF_CARD_GLASS_BLUR_RADIUS,
+            PREF_NAVIGATION_BAR_GLASS_ENABLED,
+            PREF_NAVIGATION_BAR_GLASS_TRANSPARENCY,
+            PREF_NAVIGATION_BAR_GLASS_BLUR_RADIUS,
             PREF_WALLPAPER_BLUR_RADIUS,
             PREF_WALLPAPER_BRIGHTNESS,
             PREF_NAVIGATION_BAR_STYLE,

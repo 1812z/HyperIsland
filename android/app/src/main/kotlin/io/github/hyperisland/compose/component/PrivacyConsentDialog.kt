@@ -16,7 +16,6 @@ import androidx.compose.ui.text.withLink
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
-import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -41,12 +40,12 @@ internal fun PrivacyConsentDialog(
                     .padding(top = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                top.yukonga.miuix.kmp.basic.TextButton(
+                AppActionTextButton(
                     text = stringResource(R.string.privacy_consent_decline),
                     onClick = onReject,
                     modifier = Modifier.weight(1f),
                 )
-                Button(
+                AppActionButton(
                     onClick = onAccept,
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColorsPrimary(),

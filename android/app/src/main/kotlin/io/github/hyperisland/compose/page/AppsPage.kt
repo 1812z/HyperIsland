@@ -13,7 +13,6 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +22,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
@@ -41,12 +41,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.PageSearchField
 import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.BarBackdropContent
 import io.github.hyperisland.compose.component.BarBlurHost
@@ -57,7 +59,6 @@ import io.github.hyperisland.compose.component.LocalSharedPageWallpaper
 import io.github.hyperisland.compose.component.PageTabRow
 import io.github.hyperisland.compose.component.PageTopAppBar
 import io.github.hyperisland.compose.component.PageTopBarIconButton
-import io.github.hyperisland.compose.component.glassPill
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.InstalledApp
 import io.github.hyperisland.compose.data.InstalledAppsRepository
@@ -71,11 +72,9 @@ import top.yukonga.miuix.kmp.basic.DropdownEntry
 import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
-import top.yukonga.miuix.kmp.basic.InputField
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.PullToRefresh
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.SearchBar
 import top.yukonga.miuix.kmp.basic.Switch
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TopAppBar
@@ -102,6 +101,7 @@ internal fun AppsPage(
     onOpenBatchToastSettings: (Set<String>) -> Unit,
 ) {
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
     val appsRepository = remember(context) { InstalledAppsRepository(context.applicationContext) }
     val scope = rememberCoroutineScope()
     val scrollBehavior = MiuixScrollBehavior()
@@ -112,7 +112,6 @@ internal fun AppsPage(
     var showInitialLoadingIndicator by remember { mutableStateOf(false) }
     var refreshing by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
-    var searchExpanded by remember { mutableStateOf(false) }
     var showEnabledApps by remember { mutableStateOf(true) }
     var showDisabledApps by remember { mutableStateOf(true) }
     var showUserApps by remember { mutableStateOf(true) }
@@ -344,6 +343,74 @@ internal fun AppsPage(
         ),
     )
 
+    val appItems: LazyListScope.(Int) -> Unit = { mode ->
+        val modeApps = if (mode == 0) notificationApps else toastApps
+        if (!initialLoading && modeApps.isEmpty()) {
+            item {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 64.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        if (query.isEmpty()) stringResource(R.string.no_apps_found)
+                        else stringResource(R.string.no_matching_apps),
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    )
+                }
+            }
+        } else {
+            items(modeApps, key = { it.packageName }) { app ->
+                val icon by produceState<ImageBitmap?>(
+                    appsRepository.cachedIcon(app.packageName),
+                    app.packageName,
+                ) {
+                    if (value == null) {
+                        value = withContext(Dispatchers.IO) {
+                            appsRepository.loadIcon(app.packageName)
+                        }
+                    }
+                }
+                val enabled = if (mode == 0) {
+                    app.packageName in enabledPackages
+                } else {
+                    app.packageName in toastEnabledPackages
+                }
+                AppRow(
+                    app = app,
+                    enabled = enabled,
+                    icon = icon,
+                    selectionMode = selectionMode,
+                    selected = app.packageName in selectedPackages,
+                    onEnabledChange = { value ->
+                        if (mode == 0) prefs.setAppEnabled(app.packageName, value)
+                        else prefs.setToastEnabled(app.packageName, value)
+                    },
+                    onClick = {
+                        if (selectionMode) {
+                            selectedPackages = if (app.packageName in selectedPackages) {
+                                selectedPackages - app.packageName
+                            } else {
+                                selectedPackages + app.packageName
+                            }
+                        } else {
+                            focusManager.clearFocus()
+                            if (mode == 0) {
+                                onOpenChannels(app)
+                            } else {
+                                onOpenToastSettings(app)
+                            }
+                        }
+                    },
+                    onLongPress = {
+                        focusManager.clearFocus()
+                        selectionMode = true
+                        selectedPackages = selectedPackages + app.packageName
+                    },
+                )
+            }
+        }
+    }
+
     BarBlurHost {
     Box(modifier = Modifier.fillMaxSize()) {
     Scaffold(
@@ -420,41 +487,11 @@ internal fun AppsPage(
                             .padding(start = 12.dp, end = 12.dp, bottom = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        SearchBar(
-                            inputField = {
-                                InputField(
-                                    query = query,
-                                    onQueryChange = { query = it },
-                                    onSearch = {},
-                                    expanded = searchExpanded,
-                                    onExpandedChange = { searchExpanded = it },
-                                    label = stringResource(R.string.search_apps),
-                                    color = Color.Transparent,
-                                    modifier = Modifier.glassPill(
-                                        backdrop = uiGlassBackdrop(),
-                                        // InputField 最小高度 45dp，半径取半高才是真胶囊。
-                                        cornerRadius = 23.dp,
-                                    ),
-                                )
-                            },
-                            onExpandedChange = { searchExpanded = it },
-                            expanded = searchExpanded,
-                            outsideEndAction = {
-                                Text(
-                                    modifier = Modifier
-                                        .padding(start = 12.dp)
-                                        .padding(end = 12.dp)
-                                        .clickable(
-                                            interactionSource = null,
-                                            indication = null
-                                        ) {
-                                            searchExpanded = false
-                                        },
-                                    text = stringResource(R.string.cancel),
-                                    color = MiuixTheme.colorScheme.primary
-                                )
-                            },
-                        ) {}
+                        PageSearchField(
+                            label = stringResource(R.string.search_apps),
+                            query = query,
+                            onQueryChange = { query = it },
+                        )
                         PageTabRow(
                             tabs = listOf(
                                 stringResource(R.string.notification_mode),
@@ -465,7 +502,6 @@ internal fun AppsPage(
                                 onSelectedModeChange(it)
                                 leaveSelectionMode()
                             },
-                            scrollBehavior = scrollBehavior,
                             modifier = Modifier.padding(horizontal = 4.dp),
                         )
                     }
@@ -503,7 +539,6 @@ internal fun AppsPage(
                         modifier = Modifier.weight(1f).fillMaxWidth(),
                         label = "appsModeContent",
                     ) { mode ->
-                        val modeApps = if (mode == 0) notificationApps else toastApps
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(
@@ -516,68 +551,7 @@ internal fun AppsPage(
                             ),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            if (!initialLoading && modeApps.isEmpty()) {
-                                item {
-                                    Box(
-                                        modifier = Modifier.fillMaxWidth().padding(vertical = 64.dp),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        Text(
-                                            if (query.isEmpty()) stringResource(R.string.no_apps_found)
-                                            else stringResource(R.string.no_matching_apps),
-                                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                                        )
-                                    }
-                                }
-                            } else {
-                                items(modeApps, key = { it.packageName }) { app ->
-                                    val icon by produceState<ImageBitmap?>(
-                                        appsRepository.cachedIcon(app.packageName),
-                                        app.packageName,
-                                    ) {
-                                        if (value == null) {
-                                            value = withContext(Dispatchers.IO) {
-                                                appsRepository.loadIcon(app.packageName)
-                                            }
-                                        }
-                                    }
-                                    val enabled = if (mode == 0) {
-                                        app.packageName in enabledPackages
-                                    } else {
-                                        app.packageName in toastEnabledPackages
-                                    }
-                                    AppRow(
-                                        app = app,
-                                        enabled = enabled,
-                                        icon = icon,
-                                        selectionMode = selectionMode,
-                                        selected = app.packageName in selectedPackages,
-                                        onEnabledChange = { value ->
-                                            if (mode == 0) prefs.setAppEnabled(app.packageName, value)
-                                            else prefs.setToastEnabled(app.packageName, value)
-                                        },
-                                        onClick = {
-                                            if (selectionMode) {
-                                                selectedPackages = if (app.packageName in selectedPackages) {
-                                                    selectedPackages - app.packageName
-                                                } else {
-                                                    selectedPackages + app.packageName
-                                                }
-                                            } else {
-                                                if (mode == 0) {
-                                                    onOpenChannels(app)
-                                                } else {
-                                                    onOpenToastSettings(app)
-                                                }
-                                            }
-                                        },
-                                        onLongPress = {
-                                            selectionMode = true
-                                            selectedPackages = selectedPackages + app.packageName
-                                        },
-                                    )
-                                }
-                            }
+                            appItems(mode)
                         }
                     }
                 }

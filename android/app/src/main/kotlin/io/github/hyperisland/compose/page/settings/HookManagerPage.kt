@@ -1,8 +1,8 @@
 package io.github.hyperisland.compose.page.settings
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -14,6 +14,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.PageSearchField
 import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.DetailPage
 import io.github.hyperisland.compose.component.PreferenceSwitch
@@ -23,8 +24,6 @@ import io.github.hyperisland.data.DebugPreferences
 import io.github.hyperisland.data.HookCatalog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import top.yukonga.miuix.kmp.basic.InputField
-import top.yukonga.miuix.kmp.basic.SearchBar
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -48,7 +47,7 @@ internal fun HookManagerPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) 
     var hooks by remember { mutableStateOf<List<String>?>(null) }
     var disabled by remember { mutableStateOf(readDisabledHooks(prefs)) }
     var query by remember { mutableStateOf("") }
-    var searchExpanded by remember { mutableStateOf(false) }
+
 
     LaunchedEffect(Unit) {
         val loaded = withContext(Dispatchers.IO) { HookCatalog.load(context) }
@@ -56,44 +55,7 @@ internal fun HookManagerPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) 
         disabled = readDisabledHooks(prefs)
     }
 
-    DetailPage(
-        title = stringResource(R.string.hook_manager),
-        onBack = onBack,
-    ) {
-        item {
-            SearchBar(
-                inputField = {
-                    InputField(
-                        query = query,
-                        onQueryChange = { query = it },
-                        onSearch = {},
-                        expanded = searchExpanded,
-                        onExpandedChange = { searchExpanded = it },
-                        label = stringResource(R.string.hook_manager_search),
-                    )
-                },
-                onExpandedChange = { searchExpanded = it },
-                expanded = searchExpanded,
-                outsideEndAction = {
-                    Text(
-                        modifier = Modifier
-                            .padding(start = 12.dp)
-                            .padding(end = 12.dp)
-                            .clickable(
-                                interactionSource = null,
-                                indication = null,
-                            ) { searchExpanded = false },
-                        text = stringResource(R.string.cancel),
-                        color = MiuixTheme.colorScheme.primary,
-                    )
-                },
-            ) {}
-        }
-        item {
-            AppCard(modifier = Modifier.fillMaxWidth()) {
-                HintText(stringResource(R.string.hook_manager_description))
-            }
-        }
+    val hookItems: LazyListScope.() -> Unit = {
         item {
             val list = hooks
             val keyword = query.trim()
@@ -126,6 +88,26 @@ internal fun HookManagerPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) 
                 }
             }
         }
+    }
+
+    DetailPage(
+        title = stringResource(R.string.hook_manager),
+        onBack = onBack,
+        topBarContent = {
+            PageSearchField(
+                label = stringResource(R.string.hook_manager_search),
+                query = query,
+                onQueryChange = { query = it },
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 4.dp),
+            )
+        },
+    ) {
+        item {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
+                HintText(stringResource(R.string.hook_manager_description))
+            }
+        }
+        hookItems()
     }
 }
 

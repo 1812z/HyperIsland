@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -26,6 +27,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -47,6 +49,7 @@ import io.github.hyperisland.compose.component.PredictiveNavigationLayer
 import io.github.hyperisland.compose.component.UpdateDialogHost
 import io.github.hyperisland.compose.component.UpdateDialogState
 import io.github.hyperisland.compose.component.barBackdrop
+import io.github.hyperisland.compose.component.navigationBarBlur
 import io.github.hyperisland.compose.component.predictiveNavigationBackground
 import io.github.hyperisland.compose.component.rememberPredictiveNavigationLayerState
 import io.github.hyperisland.compose.component.requiresBackdropCapture
@@ -108,15 +111,19 @@ import io.github.hyperisland.compose.service.AppNotice
 import io.github.hyperisland.compose.service.HubClient
 import io.github.hyperisland.compose.service.NoticeService
 import io.github.hyperisland.compose.theme.DEFAULT_PREDICTIVE_BACK_TRANSLATION_PERCENT
+import io.github.hyperisland.compose.theme.LocalNavigationBarGlassSettings
 import io.github.hyperisland.compose.theme.PREF_PREDICTIVE_BACK_MAX_TRANSLATION
 import io.github.hyperisland.compose.theme.NavigationBarStyle
+import io.github.hyperisland.compose.theme.isGlassEnabled
 import io.github.hyperisland.compose.theme.rememberNavigationBarStyle
+import io.github.hyperisland.compose.theme.uiGlassMaterial
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.FloatingNavigationBar
 import top.yukonga.miuix.kmp.basic.FloatingNavigationBarItem
+import top.yukonga.miuix.kmp.basic.FloatingToolbarDefaults
 import top.yukonga.miuix.kmp.basic.NavigationBar
 import top.yukonga.miuix.kmp.basic.NavigationBarItem
 import top.yukonga.miuix.kmp.basic.NavigationItem
@@ -158,6 +165,8 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     var notice by remember { mutableStateOf<AppNotice?>(null) }
     var isCheckingUpdate by remember { mutableStateOf(false) }
     val navigationBarStyle = rememberNavigationBarStyle(prefs)
+    val navigationBarGlass = LocalNavigationBarGlassSettings.current
+    val navigationBarGlassEnabled = isGlassEnabled(navigationBarGlass)
     val predictiveBackMaxTranslation = rememberLongPreference(
         prefs,
         PREF_PREDICTIVE_BACK_MAX_TRANSLATION,
@@ -193,13 +202,19 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
 
     @Composable
     fun RootBottomBar(enabled: Boolean = true) {
+        val backdrop = if (navigationBarGlassEnabled) barBackdrop() else null
+        val surface = MiuixTheme.colorScheme.surface
+        val surfaceContainer = MiuixTheme.colorScheme.surfaceContainer
         val onSelect: (Int) -> Unit = { index ->
             if (enabled && pagerState.targetPage != index) {
                 scope.launch { pagerState.animateScrollToPage(index) }
             }
         }
         when (navigationBarStyle) {
-            NavigationBarStyle.Default -> NavigationBar(color = MiuixTheme.colorScheme.surface) {
+            NavigationBarStyle.Default -> NavigationBar(
+                modifier = Modifier.navigationBarBlur(backdrop, surface, navigationBarGlass),
+                color = if (backdrop == null) surface else Color.Transparent,
+            ) {
                 destinations.forEachIndexed { index, destination ->
                     NavigationBarItem(
                         selected = pagerState.currentPage == index,
@@ -210,7 +225,15 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                     )
                 }
             }
-            NavigationBarStyle.Os3 -> FloatingNavigationBar {
+            NavigationBarStyle.Os3 -> FloatingNavigationBar(
+                modifier = Modifier.navigationBarBlur(
+                    backdrop,
+                    surfaceContainer,
+                    navigationBarGlass,
+                    shape = RoundedCornerShape(FloatingToolbarDefaults.CornerRadius),
+                ),
+                color = if (backdrop == null) surfaceContainer else Color.Transparent,
+            ) {
                 destinations.forEachIndexed { index, destination ->
                     FloatingNavigationBarItem(
                         selected = pagerState.currentPage == index,
@@ -227,7 +250,8 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                 items = destinations.map { destination ->
                     GlassNavigationItem(icon = destination.icon, label = stringResource(destination.title))
                 },
-                backdrop = barBackdrop(),
+                backdrop = backdrop,
+                material = uiGlassMaterial(GlassNavigationBarDefaults.material(), navigationBarGlass),
                 modifier = Modifier
                     .padding(horizontal = 12.dp)
                     .widthIn(max = 76.dp * destinations.size + GlassNavigationBarDefaults.ContentPaddingHorizontal * 2),
@@ -238,7 +262,9 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                 items = destinations.map { destination ->
                     NavigationItem(icon = destination.icon, label = stringResource(destination.title))
                 },
-                backdrop = barBackdrop(),
+                backdrop = backdrop,
+                blurRadius = navigationBarGlass.blurRadiusDp,
+                tintStrength = navigationBarGlass.tintStrength,
                 enabled = enabled,
             )
         }
@@ -358,8 +384,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     )
 
     BarBlurHost(
-        captureForEffects = navigationBarStyle == NavigationBarStyle.Os4 ||
-            navigationBarStyle == NavigationBarStyle.LiquidGlass ||
+        captureForEffects = navigationBarGlassEnabled ||
             detailNavigationState.requiresBackdropCapture(detailShown),
         captureForGlass = false,
     ) {

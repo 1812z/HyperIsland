@@ -22,6 +22,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppActionTextButton
 import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.DetailPage
 import io.github.hyperisland.compose.component.PreferenceSlider
@@ -37,7 +38,6 @@ import kotlin.math.roundToInt
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Image
 
@@ -64,7 +64,7 @@ internal fun WallpaperSettingsPage(prefs: FlutterPrefsRepository, onBack: () -> 
                     onClick = { picker.launch(arrayOf("image/*")) },
                 )
                 if (wallpaper.image != null) {
-                    TextButton(
+                    AppActionTextButton(
                         text = stringResource(R.string.wallpaper_remove),
                         onClick = { wallpaper.replace(null, onFailure) },
                         enabled = !wallpaper.busy,

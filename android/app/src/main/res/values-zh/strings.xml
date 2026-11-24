@@ -547,8 +547,11 @@
     <string name="navigation_bar_style_os4">OS4</string>
     <string name="navigation_bar_style_liquid_glass">液态玻璃</string>
     <string name="ui_glass_effect">模糊效果</string>
+    <string name="glass_effects_master_switch">模糊效果总开关</string>
     <string name="blur_effect_settings">模糊效果调节</string>
-    <string name="blur_effect_interface_section">界面</string>
+    <string name="blur_effect_interface_section">界面模糊</string>
+    <string name="blur_effect_navigation_bar_section">底栏</string>
+    <string name="navigation_bar_glass_effect">底栏模糊</string>
     <string name="blur_effect_cards_section">卡片</string>
     <string name="card_glass_effect">卡片模糊（实验性）</string>
     <string name="card_glass_effect_summary">建议搭配壁纸功能使用</string>

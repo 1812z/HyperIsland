@@ -76,6 +76,8 @@ import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import io.github.hyperisland.screenrecorder.RecorderSnapshot
 import io.github.hyperisland.screenrecorder.ScreenRecorderContract
+import io.github.hyperisland.compose.component.AppActionTextButton
+import io.github.hyperisland.compose.component.AppActionButton
 import io.github.hyperisland.compose.theme.DEFAULT_UI_GLASS_BLUR_RADIUS
 import io.github.hyperisland.compose.theme.DEFAULT_UI_GLASS_ENABLED
 import io.github.hyperisland.compose.theme.DEFAULT_UI_GLASS_TRANSPARENCY
@@ -85,12 +87,10 @@ import io.github.hyperisland.compose.theme.PREF_UI_GLASS_TRANSPARENCY
 import io.github.hyperisland.compose.theme.UiGlassSettings
 import io.github.hyperisland.compose.theme.uiGlassPopupVisuals
 import io.github.hyperisland.xposed.ConfigManager
-import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.glass.GlassDropdownPreference
@@ -595,7 +595,8 @@ private fun RecorderWindowDialog(
                                     .padding(horizontal = 12.dp, vertical = 4.dp),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
-                                TextButton(
+                                AppActionTextButton(
+                                    glassEnabled = glass.enabled,
                                     text = when (snapshot.state) {
                                         ScreenRecorderContract.STATE_STARTING -> text.preparing
                                         ScreenRecorderContract.STATE_PAUSED -> text.resume
@@ -609,7 +610,8 @@ private fun RecorderWindowDialog(
                                     },
                                     modifier = Modifier.weight(1f),
                                 )
-                                Button(
+                                AppActionButton(
+                                    glassEnabled = glass.enabled,
                                     onClick = { closeAfterAnimation(onStop) },
                                     modifier = Modifier.weight(1f),
                                     colors = ButtonDefaults.buttonColorsPrimary(),
@@ -665,12 +667,14 @@ private fun RecorderWindowDialog(
                                     .padding(horizontal = 12.dp, vertical = 4.dp),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
-                                TextButton(
+                                AppActionTextButton(
+                                    glassEnabled = glass.enabled,
                                     text = text.cancel,
                                     onClick = { closeAfterAnimation(onCancel) },
                                     modifier = Modifier.weight(1f),
                                 )
-                                Button(
+                                AppActionButton(
+                                    glassEnabled = glass.enabled,
                                     onClick = {
                                         closeAfterAnimation {
                                             onStart(

@@ -15,10 +15,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.service.AppUpdate
-import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 internal sealed interface UpdateDialogState {
@@ -74,7 +72,7 @@ internal fun UpdateDialogHost(
                 text = stringResource(R.string.update_check_failed_message),
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             )
-            Button(
+            AppActionButton(
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColorsPrimary(),
@@ -94,12 +92,12 @@ private fun DialogActions(
         modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        TextButton(
+        AppActionTextButton(
             text = stringResource(R.string.cancel),
             onClick = onCancel,
             modifier = Modifier.weight(1f),
         )
-        Button(
+        AppActionButton(
             onClick = onConfirm,
             modifier = Modifier.weight(1f),
             colors = ButtonDefaults.buttonColorsPrimary(),

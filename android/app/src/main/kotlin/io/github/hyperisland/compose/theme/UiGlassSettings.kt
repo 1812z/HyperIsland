@@ -3,6 +3,7 @@ package io.github.hyperisland.compose.theme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -18,12 +19,16 @@ import top.yukonga.miuix.kmp.glass.GlassPopupVisuals
 import top.yukonga.miuix.kmp.material.GlassColorLayer
 import top.yukonga.miuix.kmp.material.GlassMaterial
 
+internal const val PREF_GLASS_EFFECTS_ENABLED = "pref_glass_effects_enabled"
 internal const val PREF_UI_GLASS_ENABLED = "pref_ui_glass_enabled"
 internal const val PREF_UI_GLASS_TRANSPARENCY = "pref_ui_glass_transparency"
 internal const val PREF_UI_GLASS_BLUR_RADIUS = "pref_ui_glass_blur_radius"
 internal const val PREF_CARD_GLASS_ENABLED = "pref_card_glass_enabled"
 internal const val PREF_CARD_GLASS_TRANSPARENCY = "pref_card_glass_transparency"
 internal const val PREF_CARD_GLASS_BLUR_RADIUS = "pref_card_glass_blur_radius"
+internal const val PREF_NAVIGATION_BAR_GLASS_ENABLED = "pref_navigation_bar_glass_enabled"
+internal const val PREF_NAVIGATION_BAR_GLASS_TRANSPARENCY = "pref_navigation_bar_glass_transparency"
+internal const val PREF_NAVIGATION_BAR_GLASS_BLUR_RADIUS = "pref_navigation_bar_glass_blur_radius"
 internal const val PREF_NAVIGATION_BAR_STYLE = "pref_navigation_bar_style"
 internal const val DEFAULT_UI_GLASS_ENABLED = true
 internal const val DEFAULT_UI_GLASS_TRANSPARENCY = 5L
@@ -72,12 +77,24 @@ internal enum class GlassPreferences(
 ) {
     Interface(PREF_UI_GLASS_ENABLED, PREF_UI_GLASS_TRANSPARENCY, PREF_UI_GLASS_BLUR_RADIUS, DEFAULT_UI_GLASS_ENABLED),
     Cards(PREF_CARD_GLASS_ENABLED, PREF_CARD_GLASS_TRANSPARENCY, PREF_CARD_GLASS_BLUR_RADIUS, false),
+    NavigationBar(
+        PREF_NAVIGATION_BAR_GLASS_ENABLED,
+        PREF_NAVIGATION_BAR_GLASS_TRANSPARENCY,
+        PREF_NAVIGATION_BAR_GLASS_BLUR_RADIUS,
+        true,
+    ),
 }
 
+internal val LocalGlassEffectsEnabled = compositionLocalOf { true }
 internal val LocalUiGlassSettings = staticCompositionLocalOf { UiGlassSettings() }
+internal val LocalNavigationBarGlassSettings = staticCompositionLocalOf { UiGlassSettings() }
 internal val LocalCardGlassSettings = staticCompositionLocalOf {
     UiGlassSettings(enabled = GlassPreferences.Cards.defaultEnabled)
 }
+
+@Composable
+internal fun isGlassEnabled(settings: UiGlassSettings = LocalUiGlassSettings.current): Boolean =
+    LocalGlassEffectsEnabled.current && settings.enabled
 
 @Composable
 internal fun rememberGlassSettings(prefs: FlutterPrefsRepository, preferences: GlassPreferences): UiGlassSettings {
@@ -125,7 +142,7 @@ internal fun uiGlassPopupVisuals(
     settings: UiGlassSettings = LocalUiGlassSettings.current,
 ): GlassPopupVisuals = GlassPopupDefaults.visuals(
     material = uiGlassMaterial(GlassPopupDefaults.material(), settings),
-    stroke = if (settings.enabled) GlassPopupDefaults.stroke() else null,
+    stroke = if (isGlassEnabled(settings)) GlassPopupDefaults.stroke() else null,
 )
 
 private fun GlassColorLayer.scaleAlpha(strength: Float): GlassColorLayer =

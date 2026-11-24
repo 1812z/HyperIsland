@@ -15,7 +15,6 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,6 +33,7 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -77,13 +77,15 @@ import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.NavigationEventHandler
 import androidx.navigationevent.findViewTreeNavigationEventDispatcherOwner
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppActionButton
+import io.github.hyperisland.compose.component.AppTextField
+import io.github.hyperisland.compose.component.PageSearchField
 import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AppBottomSheet
 import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.ConfigSectionTree
 import io.github.hyperisland.compose.component.DetailGridPage
 import io.github.hyperisland.compose.component.PageTopBarIconButton
-import io.github.hyperisland.compose.component.glassPill
 import io.github.hyperisland.compose.component.uiGlassBackdrop
 import io.github.hyperisland.compose.theme.uiGlassPopupVisuals
 import io.github.hyperisland.compose.component.LocalAppModalIsTopmost
@@ -117,7 +119,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
-import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
@@ -126,13 +127,10 @@ import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
-import top.yukonga.miuix.kmp.basic.InputField
-import top.yukonga.miuix.kmp.basic.SearchBar
 import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.basic.TextFieldDefaults
 import top.yukonga.miuix.kmp.glass.GlassIconDropdownMenu
 import top.yukonga.miuix.kmp.glass.GlassTopAppBarDefaults
@@ -292,12 +290,12 @@ private fun ResetConfigDialog(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Button(
+                AppActionButton(
                     onClick = { onApply(selected) },
                     enabled = selected.isNotEmpty(),
                     modifier = Modifier.weight(1f),
                 ) { Text(stringResource(R.string.apply)) }
-                Button(
+                AppActionButton(
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColorsPrimary(),
@@ -569,7 +567,6 @@ internal fun PresetConfigPage(
         sortPresets(cloudPresets, sortOrder)
     }
 
-    var searchExpanded by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
     val keyword = searchQuery.trim()
     val localFiltered = remember(localSorted, keyword) {
@@ -644,81 +641,7 @@ internal fun PresetConfigPage(
         )
     }
 
-    DetailGridPage(
-        title = stringResource(R.string.preset_page_title),
-        onBack = onBack,
-        columns = presetColumns,
-        actions = {
-            val hapticFeedback = LocalHapticFeedback.current
-            PageTopBarIconButton(
-                onClick = {
-                    menuExpanded = true
-                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
-                },
-                modifier = Modifier.glassPopupAnchor(
-                    anchor = menuAnchor,
-                    cornerRadius = GlassTopAppBarDefaults.ButtonSize / 2,
-                ),
-            ) {
-                Icon(
-                    MiuixIcons.More,
-                    menuLabel,
-                    tint = MiuixTheme.colorScheme.onSurface,
-                    modifier = Modifier.glassPopupAnchorContent(menuAnchor),
-                )
-            }
-        },
-        topBarContent = {
-            val backdrop = uiGlassBackdrop()
-            SearchBar(
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 4.dp),
-                inputField = {
-                    InputField(
-                        query = searchQuery,
-                        onQueryChange = { searchQuery = it },
-                        onSearch = {},
-                        expanded = searchExpanded,
-                        onExpandedChange = { searchExpanded = it },
-                        label = stringResource(R.string.preset_search),
-                        color = if (backdrop != null) Color.Transparent else MiuixTheme.colorScheme.surfaceContainerHigh,
-                        modifier = if (backdrop != null) {
-                            Modifier.glassPill(backdrop = backdrop, cornerRadius = 23.dp)
-                        } else {
-                            Modifier
-                        },
-                    )
-                },
-                onExpandedChange = { searchExpanded = it },
-                expanded = searchExpanded,
-                outsideEndAction = {
-                    Text(
-                        modifier = Modifier
-                            .padding(horizontal = 12.dp)
-                            .clickable(interactionSource = null, indication = null) {
-                                searchExpanded = false
-                            },
-                        text = stringResource(R.string.cancel),
-                        color = MiuixTheme.colorScheme.primary,
-                    )
-                },
-            ) {}
-        },
-        snackbarHost = { SnackbarHost(snackbarState) },
-        isRefreshing = PresetCloudState.refreshing,
-        onRefresh = { refreshCloud() },
-        overlay = {
-            GlassIconDropdownMenu(
-                show = menuExpanded,
-                onDismissRequest = { menuExpanded = false },
-                anchor = menuAnchor,
-                anchorContent = { Icon(MiuixIcons.More, menuLabel, tint = MiuixTheme.colorScheme.onSurface) },
-                entries = menuEntries,
-                backdrop = uiGlassBackdrop(),
-                visuals = uiGlassPopupVisuals(),
-                collapseOnSelection = true,
-            )
-        },
-    ) {
+    val presetItems: LazyGridScope.() -> Unit = {
         // 本地配置置顶。上传过的显示云端下载量（没上传那栏没有意义）。
         items(localFiltered, key = { it.id }) { preset ->
             PresetConfigCard(
@@ -752,6 +675,56 @@ internal fun PresetConfigPage(
             )
         }
     }
+
+    DetailGridPage(
+        title = stringResource(R.string.preset_page_title),
+        onBack = onBack,
+        columns = presetColumns,
+        actions = {
+            val hapticFeedback = LocalHapticFeedback.current
+            PageTopBarIconButton(
+                onClick = {
+                    menuExpanded = true
+                    hapticFeedback.performHapticFeedback(HapticFeedbackType.ContextClick)
+                },
+                modifier = Modifier.glassPopupAnchor(
+                    anchor = menuAnchor,
+                    cornerRadius = GlassTopAppBarDefaults.ButtonSize / 2,
+                ),
+            ) {
+                Icon(
+                    MiuixIcons.More,
+                    menuLabel,
+                    tint = MiuixTheme.colorScheme.onSurface,
+                    modifier = Modifier.glassPopupAnchorContent(menuAnchor),
+                )
+            }
+        },
+        topBarContent = {
+            PageSearchField(
+                label = stringResource(R.string.preset_search),
+                query = searchQuery,
+                onQueryChange = { searchQuery = it },
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 4.dp),
+            )
+        },
+        snackbarHost = { SnackbarHost(snackbarState) },
+        isRefreshing = PresetCloudState.refreshing,
+        onRefresh = { refreshCloud() },
+        overlay = {
+            GlassIconDropdownMenu(
+                show = menuExpanded,
+                onDismissRequest = { menuExpanded = false },
+                anchor = menuAnchor,
+                anchorContent = { Icon(MiuixIcons.More, menuLabel, tint = MiuixTheme.colorScheme.onSurface) },
+                entries = menuEntries,
+                backdrop = uiGlassBackdrop(),
+                visuals = uiGlassPopupVisuals(),
+                collapseOnSelection = true,
+            )
+        },
+        content = presetItems,
+    )
 
     NewPresetBottomSheet(
         show = showNewSheet,
@@ -1129,13 +1102,13 @@ private fun PresetConfirmDialog(
             // 刻意不传 colors：弹窗背景是 background（浅色为纯白），
             // 用 sheet 里的 presetButtonColors()（浅色也是白）会与背景糊成一片。
             // 默认按钮色 = secondaryVariant，浅 / 深色都能看清。
-            Button(
+            AppActionButton(
                 onClick = onConfirm,
                 modifier = Modifier.weight(1f),
             ) {
                 Text(stringResource(R.string.preset_confirm))
             }
-            Button(
+            AppActionButton(
                 onClick = onDismiss,
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColorsPrimary(),
@@ -1204,7 +1177,7 @@ private fun NewPresetBottomSheet(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    TextField(
+                    AppTextField(
                         value = titleInput,
                         onValueChange = { if (it.length <= PRESET_TITLE_MAX) titleInput = it },
                         modifier = Modifier.fillMaxWidth(),
@@ -1213,7 +1186,7 @@ private fun NewPresetBottomSheet(
                         singleLine = true,
                         colors = presetTextFieldColors(),
                     )
-                    TextField(
+                    AppTextField(
                         value = contentInput,
                         onValueChange = { if (it.length <= PRESET_CONTENT_MAX) contentInput = it },
                         modifier = Modifier.fillMaxWidth(),
@@ -1223,7 +1196,7 @@ private fun NewPresetBottomSheet(
                         maxLines = 3,
                         colors = presetTextFieldColors(),
                     )
-                    TextField(
+                    AppTextField(
                         value = authorInput,
                         onValueChange = { if (it.length <= PRESET_AUTHOR_MAX) authorInput = it },
                         modifier = Modifier.fillMaxWidth(),
@@ -1250,14 +1223,14 @@ private fun NewPresetBottomSheet(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Button(
+                    AppActionButton(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f),
                         colors = presetButtonColors(),
                     ) {
                         Text(stringResource(R.string.cancel))
                     }
-                    Button(
+                    AppActionButton(
                         onClick = ::save,
                         enabled = canSave,
                         modifier = Modifier.weight(1f),
@@ -1537,7 +1510,7 @@ private fun ApplyPresetBottomSheet(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     item {
-                        TextField(
+                        AppTextField(
                             value = editingText,
                             onValueChange = { editingText = it },
                             modifier = Modifier
@@ -1555,7 +1528,7 @@ private fun ApplyPresetBottomSheet(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            Button(
+                            AppActionButton(
                                 onClick = {
                                     view = PresetSheetView.Content
                                     editingEntry = null
@@ -1565,7 +1538,7 @@ private fun ApplyPresetBottomSheet(
                             ) {
                                 Text(stringResource(R.string.cancel))
                             }
-                            Button(
+                            AppActionButton(
                                 onClick = {
                                     editingEntry?.let { ref -> draft[ref] = editingText }
                                     view = PresetSheetView.Content
@@ -1626,7 +1599,7 @@ private fun ApplyPresetBottomSheet(
                                                 ) {
                                                     // 浅色沿用 TextButton 默认的 secondaryVariant，深色改用 sheet 背景色，
                                                     // 两种主题下都与卡片形成对比。
-                                                    Button(
+                                                    AppActionButton(
                                                         onClick = {
                                                             deletedKeys = deletedKeys + draftRef
                                                             selectedEntry = null
@@ -1639,7 +1612,7 @@ private fun ApplyPresetBottomSheet(
                                                     ) {
                                                         Text(stringResource(R.string.preset_delete))
                                                     }
-                                                    Button(
+                                                    AppActionButton(
                                                         onClick = {
                                                             editingEntry = draftRef
                                                             editingText = prettyJson(
@@ -1676,7 +1649,7 @@ private fun ApplyPresetBottomSheet(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                             ) {
-                                Button(
+                                AppActionButton(
                                     onClick = { view = PresetSheetView.Detail },
                                     modifier = Modifier.weight(1f),
                                     colors = presetButtonColors(),
@@ -1684,7 +1657,7 @@ private fun ApplyPresetBottomSheet(
                                     Text(stringResource(R.string.back))
                                 }
                                 if (effective.local) {
-                                    Button(
+                                    AppActionButton(
                                         onClick = {
                                             // 保存只落到本地；同时在 sheet 内留一份，
                                             // 保证紧接着点「上传」传的是编辑后的内容。
@@ -1843,7 +1816,7 @@ private fun ApplyPresetBottomSheet(
                                     style = MiuixTheme.textStyles.body2,
                                     color = MiuixTheme.colorScheme.error,
                                 )
-                                Button(
+                                AppActionButton(
                                     onClick = { downloadAttempt++ },
                                     colors = ButtonDefaults.buttonColorsPrimary(),
                                 ) {
@@ -1870,7 +1843,7 @@ private fun ApplyPresetBottomSheet(
                                     // 缓存正文落后于云端版本：把「自动更新」改成显式手动更新。
                                     // 大按钮压在下面 4 个操作按钮之上，文案形如「更新配置(1→2)」。
                                     if (hasUpdate) {
-                                        Button(
+                                        AppActionButton(
                                             onClick = ::updateContent,
                                             enabled = !updating,
                                             modifier = Modifier.fillMaxWidth(),
@@ -1898,7 +1871,7 @@ private fun ApplyPresetBottomSheet(
                                     // 「修改配置」：打开新建配置那套勾选界面，用当前配置的实时值
                                     // 整体覆盖这条预设包含的分节。只对本地预设开放。
                                     if (preset.local) {
-                                        Button(
+                                        AppActionButton(
                                             onClick = { onModifyRequest(effective) },
                                             modifier = Modifier.fillMaxWidth(),
                                             colors = presetButtonColors(),
@@ -1912,7 +1885,7 @@ private fun ApplyPresetBottomSheet(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                                         ) {
-                                            Button(
+                                            AppActionButton(
                                                 onClick = ::openContent,
                                                 modifier = Modifier.weight(1f),
                                                 colors = presetButtonColors(),
@@ -1923,7 +1896,7 @@ private fun ApplyPresetBottomSheet(
                                                     ),
                                                 )
                                             }
-                                            Button(
+                                            AppActionButton(
                                                 onClick = { onCopy(effective) },
                                                 modifier = Modifier.weight(1f),
                                                 colors = presetButtonColors(),
@@ -1939,7 +1912,7 @@ private fun ApplyPresetBottomSheet(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                                         ) {
-                                            Button(
+                                            AppActionButton(
                                                 onClick = {
                                                     if (hubId.isBlank()) submitUpload() else showUpdateConfirm = true
                                                 },
@@ -1955,7 +1928,7 @@ private fun ApplyPresetBottomSheet(
                                                     },
                                                 )
                                             }
-                                            Button(
+                                            AppActionButton(
                                                 onClick = { onApply(effective, selectedIds) },
                                                 enabled = selectedIds.isNotEmpty(),
                                                 modifier = Modifier.weight(1f),
@@ -1969,14 +1942,14 @@ private fun ApplyPresetBottomSheet(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                                         ) {
-                                            Button(
+                                            AppActionButton(
                                                 onClick = onDismiss,
                                                 modifier = Modifier.weight(1f),
                                                 colors = presetButtonColors(),
                                             ) {
                                                 Text(stringResource(R.string.cancel))
                                             }
-                                            Button(
+                                            AppActionButton(
                                                 onClick = { onApply(effective, selectedIds) },
                                                 enabled = selectedIds.isNotEmpty(),
                                                 modifier = Modifier.weight(1f),
@@ -2197,7 +2170,7 @@ private fun ContentEntryRow(
         )
         Spacer(Modifier.height(4.dp))
         if (editable) {
-            TextField(
+            AppTextField(
                 value = value,
                 onValueChange = onValueChange,
                 modifier = Modifier

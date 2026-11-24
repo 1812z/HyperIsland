@@ -18,7 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpSize
 import io.github.hyperisland.compose.component.liquid.rememberCombinedBackdrop
-import io.github.hyperisland.compose.theme.LocalUiGlassSettings
+import io.github.hyperisland.compose.theme.isGlassEnabled
 import io.github.hyperisland.compose.theme.uiGlassMaterial
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.blur.Backdrop
@@ -47,7 +47,7 @@ internal val LocalAppModalIsTopmost = compositionLocalOf { true }
 @Composable
 internal fun AppModalHost(content: @Composable () -> Unit) {
     val surface = MiuixTheme.colorScheme.surface
-    val glass = LocalUiGlassSettings.current
+    val glassEnabled = isGlassEnabled()
     val backdrop = if (isRuntimeShaderSupported()) {
         rememberLayerBackdrop {
             drawRect(surface)
@@ -63,7 +63,7 @@ internal fun AppModalHost(content: @Composable () -> Unit) {
             modifier = Modifier.fillMaxSize(),
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
         ) {
-            val capture = if (glass.enabled && backdrop != null && host.layers.isNotEmpty()) {
+            val capture = if (glassEnabled && backdrop != null && host.layers.isNotEmpty()) {
                 Modifier.layerBackdrop(backdrop)
             } else {
                 Modifier
@@ -85,6 +85,7 @@ internal fun AppDialog(
     onDismissFinished: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
+    val glassEnabled = isGlassEnabled()
     AppModalSurface(show, onDismissFinished) { backdrop, capture, _, onHidden ->
         GlassDialog(
             show = show,
@@ -97,8 +98,9 @@ internal fun AppDialog(
             stroke = if (backdrop != null) GlassDialogDefaults.stroke() else null,
             onDismissRequest = { onDismissRequest?.invoke() },
             onDismissFinished = onHidden,
-            content = content,
-        )
+        ) {
+            ModalControlScope(glassEnabled, content)
+        }
     }
 }
 
@@ -114,14 +116,25 @@ internal fun AppBottomSheet(
     onDismissFinished: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
+    val glassEnabled = isGlassEnabled()
+    val scopedStartAction: (@Composable () -> Unit)? = if (startAction != null) {
+        { ModalControlScope(glassEnabled, startAction) }
+    } else {
+        null
+    }
+    val scopedEndAction: (@Composable () -> Unit)? = if (endAction != null) {
+        { ModalControlScope(glassEnabled, endAction) }
+    } else {
+        null
+    }
     AppModalSurface(show, onDismissFinished) { backdrop, capture, isTopmost, onHidden ->
         GlassBottomSheet(
             show = show,
             backdrop = backdrop,
             modifier = capture,
             title = title,
-            startAction = startAction,
-            endAction = endAction,
+            startAction = scopedStartAction,
+            endAction = scopedEndAction,
             containerColor = backgroundColor,
             material = uiGlassMaterial(GlassBottomSheetDefaults.material()),
             stroke = if (backdrop != null) GlassBottomSheetDefaults.stroke() else null,
@@ -129,9 +142,21 @@ internal fun AppBottomSheet(
             onDismissRequest = onDismissRequest,
             onDismissFinished = onHidden,
         ) {
-            CompositionLocalProvider(LocalAppModalIsTopmost provides isTopmost, content = content)
+            ModalControlScope(glassEnabled) {
+                CompositionLocalProvider(LocalAppModalIsTopmost provides isTopmost, content = content)
+            }
         }
     }
+}
+
+// Miuix invokes these slots from its root popup host, outside the caller's composition locals.
+@Composable
+private fun ModalControlScope(glassEnabled: Boolean, content: @Composable () -> Unit) {
+    CompositionLocalProvider(
+        LocalWallpaperCardBackdrop provides null,
+        LocalModalGlassEnabled provides glassEnabled,
+        content = content,
+    )
 }
 
 @Composable
@@ -155,7 +180,8 @@ private fun AppModalSurface(
     val layers = host?.layers.orEmpty()
     val index = layers.indexOf(layer)
     val isTopmost = index < 0 || index == layers.lastIndex
-    val scene = host?.backdrop?.takeIf { LocalUiGlassSettings.current.enabled }
+    val glassEnabled = isGlassEnabled()
+    val scene = host?.backdrop?.takeIf { glassEnabled }
     val backdrop = if (scene != null) {
         // A panel can sample the scene and the panels below it in display order.
         val below = layers.take(if (index < 0) layers.size else index).mapNotNull(ModalLayer::backdrop)
@@ -169,10 +195,8 @@ private fun AppModalSurface(
         Modifier
     }
 
-    CompositionLocalProvider(LocalWallpaperCardBackdrop provides null) {
-        content(backdrop, capture, isTopmost) {
-            if (!show) mounted = false
-            onDismissFinished?.invoke()
-        }
+    content(backdrop, capture, isTopmost) {
+        if (!show) mounted = false
+        onDismissFinished?.invoke()
     }
 }

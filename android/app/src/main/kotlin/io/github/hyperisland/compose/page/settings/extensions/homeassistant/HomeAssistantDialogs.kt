@@ -17,17 +17,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.state.ToggleableState
+import io.github.hyperisland.compose.component.AppCard
+import io.github.hyperisland.compose.component.AppActionButton
+import io.github.hyperisland.compose.component.AppTextField
 import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.R
 import io.github.hyperisland.homeassistant.HaEntity
 import io.github.hyperisland.homeassistant.HaTemplate
 import top.yukonga.miuix.kmp.basic.BasicComponent
-import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
@@ -72,7 +72,7 @@ internal fun HaEntityPickerDialog(
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             if (entities.isNotEmpty()) {
-                TextField(
+                AppTextField(
                     value = query,
                     onValueChange = { query = it },
                     modifier = Modifier.fillMaxWidth(),
@@ -94,7 +94,7 @@ internal fun HaEntityPickerDialog(
                         text = status.emptyHint(),
                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     )
-                    Button(onClick = onRetry, modifier = Modifier.fillMaxWidth()) {
+                    AppActionButton(onClick = onRetry, modifier = Modifier.fillMaxWidth()) {
                         Text(stringResource(R.string.ha_reconnect))
                     }
                 }
@@ -102,7 +102,7 @@ internal fun HaEntityPickerDialog(
                     text = stringResource(R.string.ha_entity_no_match),
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
-                else -> Card(modifier = Modifier.fillMaxWidth()) {
+                else -> AppCard(modifier = Modifier.fillMaxWidth()) {
                     LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp)) {
                         items(filtered, key = { it.entityId }) { entity ->
                             BasicComponent(
@@ -122,7 +122,7 @@ internal fun HaEntityPickerDialog(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Button(
+                AppActionButton(
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColorsPrimary(),
@@ -165,7 +165,7 @@ internal fun HaAttributePickerDialog(
         onDismissRequest = onDismiss,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Card(modifier = Modifier.fillMaxWidth()) {
+            AppCard(modifier = Modifier.fillMaxWidth()) {
                 LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp)) {
                     items(entries, key = { it.first }) { (name, value) ->
                         val isState = name == HaEntity.ATTRIBUTE_STATE
@@ -184,7 +184,7 @@ internal fun HaAttributePickerDialog(
                     }
                 }
             }
-            Button(
+            AppActionButton(
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColorsPrimary(),

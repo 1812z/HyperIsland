@@ -15,10 +15,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -34,6 +32,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.theme.LocalAppWallpaper
 import io.github.hyperisland.compose.theme.LocalUiGlassSettings
 import io.github.hyperisland.compose.theme.uiGlassMaterial
 import top.yukonga.miuix.kmp.basic.BasicComponent
@@ -56,7 +55,10 @@ import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.icon.basic.ArrowRight
 import top.yukonga.miuix.kmp.material.GlassEdgeStrokes
 import top.yukonga.miuix.kmp.material.GlassMaterials
+import top.yukonga.miuix.kmp.material.GlassMaterial
 import top.yukonga.miuix.kmp.material.GlassShape
+import top.yukonga.miuix.kmp.material.GlassShadows
+import top.yukonga.miuix.kmp.material.EdgeStroke
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 
@@ -75,26 +77,22 @@ internal fun PageTopAppBar(
         derivedStateOf { (scrollBehavior?.state?.contentOffset ?: 0f) < 0f }
     }
     val band = GlassTopAppBarDefaults.bandBrush(MiuixTheme.colorScheme.surface)
-    CompositionLocalProvider(LocalInsideTopAppBar provides true) {
-        GlassTopAppBar(
-            title = title,
-            largeTitle = largeTitle,
-            subtitle = subtitle,
-            isContentScrolled = scrolled.value,
-            modifier = if (backdrop == null) Modifier.background(band) else Modifier,
-            progressiveBlur = backdrop != null,
-            backdrop = backdrop,
-            bandBrush = SolidColor(Color.Transparent),
-            bandOverhang = 0.dp,
-            scrollBehavior = scrollBehavior,
-            navigationIcon = navigationIcon,
-            actions = actions,
-            bottomContent = bottomContent,
-        )
-    }
+    GlassTopAppBar(
+        title = title,
+        largeTitle = largeTitle,
+        subtitle = subtitle,
+        isContentScrolled = scrolled.value,
+        modifier = if (backdrop == null) Modifier.background(band) else Modifier,
+        progressiveBlur = backdrop != null,
+        backdrop = backdrop,
+        bandBrush = SolidColor(Color.Transparent),
+        bandOverhang = 0.dp,
+        scrollBehavior = scrollBehavior,
+        navigationIcon = navigationIcon,
+        actions = actions,
+        bottomContent = bottomContent,
+    )
 }
-
-private val LocalInsideTopAppBar = staticCompositionLocalOf { false }
 
 @Composable
 internal fun PageTopBarIconButton(
@@ -116,39 +114,34 @@ internal fun PageTopBarIconButton(
     }
 }
 
-/**
- * 页面内的分段切换条（OS4 柔光样式）。
- *
- * 玻璃表面采样的是一个**纯色** [Backdrop]，而不是页面自己的 `LayerBackdrop`。原因是库的硬约束
- * （见 `Modifier.glass` 的 KDoc）：玻璃表面不能位于它所用 backdrop 的录制子树内，否则会形成
- * 采样环并直接崩溃。本应用的页面整体都被 `BarBackdropContent` 包住，列表项 / 固定头部里的控件
- * 必然与录制子树重叠，所以这里只给玻璃一个稳定的纯色采样源。
- *
- * `PageTopAppBar` 的插槽在录制子树之外，由 Miuix 接管背景采样。
- *
- * [scrollBehavior] 用于驱动材质浮现：页面停在顶部时是实色轨道，下滑 32dp 后柔光浮现；传 null
- * 则材质常驻。
- */
+/** Place in a top-bar slot outside the recorded page content. */
 @Composable
 internal fun PageTabRow(
     tabs: List<String>,
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
-    scrollBehavior: ScrollBehavior? = null,
 ) {
+    val glass = LocalUiGlassSettings.current
+    val backdrop = uiGlassBackdrop()
     val tint = MiuixTheme.colorScheme.surface
-    val backdrop = remember(tint) { TintBackdrop(tint) }
-    val surfaceAlpha = GlassTopAppBarDefaults.collapseRamp(scrollBehavior)
-    val material = GlassSegmentedTabRowDefaults.material()
+    val fallbackBackdrop = remember(tint) { TintBackdrop(tint) }
+    // The native tab track inherits a fixed action-bar underlay. Draw our material separately.
+    val trackModifier = modifier.pageControlSurface(
+        backdrop = backdrop,
+        shape = GlassSegmentedTabRowDefaults.shape(),
+        material = uiGlassMaterial(GlassSegmentedTabRowDefaults.material(), glass),
+        stroke = GlassSegmentedTabRowDefaults.stroke(),
+    )
     GlassSegmentedTabRow(
         tabs = tabs,
         selectedIndex = selectedIndex,
         onSelect = onSelect,
-        backdrop = backdrop,
-        surfaceAlpha = if (LocalUiGlassSettings.current.enabled) surfaceAlpha.value else 0f,
-        material = if (LocalInsideTopAppBar.current) material else uiGlassMaterial(material),
-        modifier = modifier,
+        backdrop = fallbackBackdrop,
+        surfaceAlpha = 0f,
+        shadow = null,
+        trackColor = if (backdrop != null) Color.Transparent else GlassSegmentedTabRowDefaults.restingTrackColor(),
+        modifier = trackModifier,
     )
 }
 
@@ -186,19 +179,31 @@ internal fun Modifier.glassPill(
 ): Modifier {
     val isDark = MiuixTheme.colorScheme.background.luminance() < 0.5f
     val shape = remember(cornerRadius) { GlassShape(cornerRadius, smoothing = 0f) }
-    val fallbackFill = if (isDark) Color.White.copy(alpha = 0.08f) else Color.White
-    return this
-        .clip(shape)
-        .glassPanel(
-            backdrop = backdrop,
-            shape = shape,
-            material = GlassMaterials.puredThinGlass(isDark),
-            stroke = if (backdrop != null) GlassEdgeStrokes.forTheme(isDark) else null,
-            shadow = null,
-            shading = false,
-            fallback = Modifier.clip(shape).background(fallbackFill),
-        )
+    return pageControlSurface(
+        backdrop = backdrop,
+        shape = shape,
+        material = uiGlassMaterial(GlassMaterials.puredThinGlass(isDark)),
+        stroke = GlassEdgeStrokes.forTheme(isDark),
+        fallback = Modifier.clip(shape).background(MiuixTheme.colorScheme.surfaceContainerHigh),
+    )
 }
+
+@Composable
+private fun Modifier.pageControlSurface(
+    backdrop: Backdrop?,
+    shape: GlassShape,
+    material: GlassMaterial,
+    stroke: EdgeStroke,
+    fallback: Modifier = Modifier,
+): Modifier = glassPanel(
+    backdrop = backdrop,
+    shape = shape,
+    material = material,
+    stroke = stroke.takeIf { backdrop != null },
+    shadow = GlassShadows.Float.takeIf { LocalAppWallpaper.current?.image == null },
+    shading = false,
+    fallback = fallback,
+)
 
 @Composable
 internal fun CollapsingPage(

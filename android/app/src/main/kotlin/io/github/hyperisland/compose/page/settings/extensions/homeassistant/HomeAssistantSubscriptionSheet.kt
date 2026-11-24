@@ -32,6 +32,10 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppCard
+import io.github.hyperisland.compose.component.AppActionTextButton
+import io.github.hyperisland.compose.component.AppActionButton
+import io.github.hyperisland.compose.component.AppTextField
 import io.github.hyperisland.compose.component.AppBottomSheet
 import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.BarBackdropContent
@@ -45,16 +49,12 @@ import io.github.hyperisland.homeassistant.HaCondition
 import io.github.hyperisland.homeassistant.HaEntity
 import io.github.hyperisland.homeassistant.HaSubscription
 import io.github.hyperisland.homeassistant.HaTemplateType
-import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.basic.Check
 import top.yukonga.miuix.kmp.icon.basic.Close
@@ -140,7 +140,7 @@ internal fun HomeAssistantSubscriptionSheet(
             }
             item {
                 SmallTitle(stringResource(R.string.ha_trigger_entity))
-                Card(modifier = Modifier.fillMaxWidth(), colors = haCardColors()) {
+                AppCard(modifier = Modifier.fillMaxWidth(), colors = haCardColors()) {
                     SettingsAction(
                         title = stringResource(R.string.ha_trigger_entity),
                         summary = entityLabel(draft.triggerEntityId, draft.triggerAttribute),
@@ -198,7 +198,7 @@ internal fun HomeAssistantSubscriptionSheet(
             }
             item {
                 SmallTitle(stringResource(R.string.ha_island_config))
-                Card(modifier = Modifier.fillMaxWidth(), colors = haCardColors()) {
+                AppCard(modifier = Modifier.fillMaxWidth(), colors = haCardColors()) {
                     SwitchPreference(title = stringResource(R.string.ha_island_config), summary = null, checked = draft.islandEnabled, insideMargin = SettingsItemMargin, onCheckedChange = { draft = draft.copy(islandEnabled = it) })
                     // 关掉超级岛时把它的整块配置一起收起（与渠道设置页同款出现/消失动画）。
                     AnimatedVisibility(visible = draft.islandEnabled) {
@@ -232,7 +232,7 @@ internal fun HomeAssistantSubscriptionSheet(
             }
             item {
                 SmallTitle(stringResource(R.string.ha_focus_notification))
-                Card(modifier = Modifier.fillMaxWidth(), colors = haCardColors()) {
+                AppCard(modifier = Modifier.fillMaxWidth(), colors = haCardColors()) {
                     SwitchPreference(title = stringResource(R.string.ha_focus_notification), summary = stringResource(R.string.ha_focus_notification_summary), checked = draft.focusEnabled, insideMargin = SettingsItemMargin, onCheckedChange = { draft = draft.copy(focusEnabled = it) })
                     AnimatedVisibility(visible = draft.focusEnabled) {
                         Column {
@@ -337,7 +337,7 @@ internal fun HomeAssistantSubscriptionSheet(
             }
             item {
                 SmallTitle(stringResource(R.string.ha_select_variable))
-                Card(modifier = Modifier.fillMaxWidth(), colors = haCardColors()) {
+                AppCard(modifier = Modifier.fillMaxWidth(), colors = haCardColors()) {
                     SourceRow(stringResource(R.string.ha_select_variable), stringResource(R.string.ha_select_variable_summary)) {
                         // 每次打开都从空白开始：变量选取是一次性的复制助手，
                         // 带着上一次选的实体重新打开会多出一个勾选，容易误以为已经配好了。
@@ -348,9 +348,9 @@ internal fun HomeAssistantSubscriptionSheet(
             }
             item {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(onClick = onDismiss, modifier = Modifier.weight(1f), colors = haButtonColors()) { Text(stringResource(R.string.cancel)) }
-                    if (initial != null) Button(onClick = { onDelete(draft) }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(color = haSurfaceColor(), contentColor = MiuixTheme.colorScheme.error)) { Text(stringResource(R.string.delete)) }
-                    Button(onClick = { onSave(draft) }, enabled = canSave, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColorsPrimary()) { Text(stringResource(R.string.save)) }
+                    AppActionButton(onClick = onDismiss, modifier = Modifier.weight(1f), colors = haButtonColors()) { Text(stringResource(R.string.cancel)) }
+                    if (initial != null) AppActionButton(onClick = { onDelete(draft) }, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(color = haSurfaceColor(), contentColor = MiuixTheme.colorScheme.error)) { Text(stringResource(R.string.delete)) }
+                    AppActionButton(onClick = { onSave(draft) }, enabled = canSave, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColorsPrimary()) { Text(stringResource(R.string.save)) }
                 }
             }
         }
@@ -511,7 +511,7 @@ private fun HaTextField(
     containerColor: Color = haSheetColor(),
     horizontalPadding: Dp = 12.dp,
 ) {
-    TextField(
+    AppTextField(
         value = value,
         onValueChange = onValueChange,
         // 统一宽度；水平内缩可调：Card 内的输入框内缩 12dp，直接落在 sheet 上的不内缩（与 Card 边缘对齐）。
@@ -539,7 +539,7 @@ private fun HaTemplateTextDialog(
         onDismissRequest = onDismiss,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            TextField(
+            AppTextField(
                 value = value,
                 onValueChange = { value = it },
                 modifier = Modifier.fillMaxWidth(),
@@ -552,12 +552,12 @@ private fun HaTemplateTextDialog(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                TextButton(
+                AppActionTextButton(
                     text = stringResource(R.string.cancel),
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
                 )
-                Button(
+                AppActionButton(
                     onClick = { onSave(value) },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColorsPrimary(),
@@ -596,7 +596,7 @@ private fun HaConditionValueDialog(
         onDismissRequest = onDismiss,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            TextField(
+            AppTextField(
                 value = text,
                 onValueChange = { text = it },
                 modifier = Modifier.fillMaxWidth(),
@@ -610,12 +610,12 @@ private fun HaConditionValueDialog(
                 },
             )
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                TextButton(
+                AppActionTextButton(
                     text = stringResource(R.string.cancel),
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
                 )
-                Button(
+                AppActionButton(
                     onClick = { onSave(text) },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColorsPrimary(),
@@ -644,7 +644,7 @@ private fun HaDurationDialog(
         onDismissRequest = onDismiss,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            TextField(
+            AppTextField(
                 value = text,
                 onValueChange = { input -> text = input.filter(Char::isDigit).take(5) },
                 modifier = Modifier.fillMaxWidth(),
@@ -654,12 +654,12 @@ private fun HaDurationDialog(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             )
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                TextButton(
+                AppActionTextButton(
                     text = stringResource(R.string.cancel),
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
                 )
-                Button(
+                AppActionButton(
                     onClick = { parsed?.let(onSave) },
                     enabled = valid,
                     modifier = Modifier.weight(1f),

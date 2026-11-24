@@ -18,6 +18,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppActionTextButton
+import io.github.hyperisland.compose.component.AppActionButton
+import io.github.hyperisland.compose.component.AppTextField
 import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.PreferenceDropdown
@@ -31,11 +34,8 @@ import io.github.hyperisland.compose.data.rememberStringPreference
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.ChevronForward
-import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextField
-import top.yukonga.miuix.kmp.basic.TextButton
 
 @Composable
 internal fun LockscreenNegativePage(
@@ -152,7 +152,7 @@ internal fun LockscreenNegativePage(
         onDismissRequest = { showTitleDialog = false },
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            TextField(
+            AppTextField(
                 value = titleDraft,
                 onValueChange = { titleDraft = it },
                 modifier = Modifier.fillMaxWidth(),
@@ -164,12 +164,12 @@ internal fun LockscreenNegativePage(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                TextButton(
+                AppActionTextButton(
                     text = stringResource(R.string.cancel),
                     onClick = { showTitleDialog = false },
                     modifier = Modifier.weight(1f),
                 )
-                Button(
+                AppActionButton(
                     onClick = {
                         val value = titleDraft.trim().ifEmpty { defaultTitle }
                         title.value = value

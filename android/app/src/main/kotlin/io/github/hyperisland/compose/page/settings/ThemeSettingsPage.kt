@@ -1,6 +1,8 @@
 package io.github.hyperisland.compose.page.settings
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,6 +19,8 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppActionTextButton
+import io.github.hyperisland.compose.component.AppActionButton
 import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.DetailPage
@@ -30,21 +34,19 @@ import io.github.hyperisland.compose.data.rememberBooleanPreference
 import io.github.hyperisland.compose.data.rememberLongPreference
 import io.github.hyperisland.compose.data.rememberStringPreference
 import io.github.hyperisland.compose.theme.DEFAULT_PREDICTIVE_BACK_TRANSLATION_PERCENT
-import io.github.hyperisland.compose.theme.LocalUiGlassSettings
+import io.github.hyperisland.compose.theme.LocalGlassEffectsEnabled
 import io.github.hyperisland.compose.theme.NavigationBarStyle
 import io.github.hyperisland.compose.theme.PREF_NAVIGATION_BAR_STYLE
-import io.github.hyperisland.compose.theme.PREF_UI_GLASS_ENABLED
+import io.github.hyperisland.compose.theme.PREF_GLASS_EFFECTS_ENABLED
 import io.github.hyperisland.compose.theme.rememberNavigationBarStyle
 import io.github.hyperisland.compose.theme.PREF_MONET_ENABLED
 import io.github.hyperisland.compose.theme.PREF_THEME_MODE
 import io.github.hyperisland.compose.theme.PREF_THEME_SEED_COLOR
 import io.github.hyperisland.compose.theme.PREF_PREDICTIVE_BACK_MAX_TRANSLATION
 import kotlin.math.roundToInt
-import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.ColorPalette
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Layers
 import top.yukonga.miuix.kmp.icon.extended.Back
@@ -65,7 +67,7 @@ internal fun ThemeSettingsPage(
     val monetEnabled = rememberBooleanPreference(prefs, PREF_MONET_ENABLED, false)
     val themeColor = rememberLongPreference(prefs, PREF_THEME_SEED_COLOR, DEFAULT_THEME_COLOR)
     val navigationBarStyle = rememberNavigationBarStyle(prefs)
-    val glass = LocalUiGlassSettings.current
+    val glassEffectsEnabled = LocalGlassEffectsEnabled.current
     val predictiveBackMaxTranslation = rememberLongPreference(
         prefs,
         PREF_PREDICTIVE_BACK_MAX_TRANSLATION,
@@ -77,7 +79,7 @@ internal fun ThemeSettingsPage(
     DetailPage(
         title = stringResource(R.string.theme),
         onBack = onBack,
-        topBarContent = { behavior ->
+        topBarContent = {
             PageTabRow(
                 tabs = listOf(
                     stringResource(R.string.follow_system),
@@ -90,7 +92,6 @@ internal fun ThemeSettingsPage(
                     selectedMode.value = mode
                     prefs.putString(PREF_THEME_MODE, mode)
                 },
-                scrollBehavior = behavior,
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
             )
         },
@@ -135,19 +136,24 @@ internal fun ThemeSettingsPage(
                     prefs.putString(PREF_NAVIGATION_BAR_STYLE, NavigationBarStyle.entries[index].storedValue)
                 }
                 PreferenceSwitch(
-                    title = stringResource(R.string.ui_glass_effect),
+                    title = stringResource(R.string.glass_effects_master_switch),
                     summary = null,
                     icon = MiuixIcons.Layers,
-                    checked = glass.enabled,
+                    checked = glassEffectsEnabled,
                 ) { enabled ->
-                    glass.enabled = enabled
-                    prefs.putBoolean(PREF_UI_GLASS_ENABLED, enabled)
+                    prefs.putBoolean(PREF_GLASS_EFFECTS_ENABLED, enabled)
                 }
-                SettingsActionWithArrow(
-                    title = stringResource(R.string.blur_effect_settings),
-                    icon = MiuixIcons.Tune,
-                    onClick = onOpenBlurSettings,
-                )
+                AnimatedVisibility(
+                    visible = glassEffectsEnabled,
+                    enter = expandVertically(),
+                    exit = shrinkVertically(),
+                ) {
+                    SettingsActionWithArrow(
+                        title = stringResource(R.string.blur_effect_settings),
+                        icon = MiuixIcons.Tune,
+                        onClick = onOpenBlurSettings,
+                    )
+                }
                 PreferenceSlider(
                     value = predictiveBackMaxTranslation.value.toFloat(),
                     onValueChange = { value ->
@@ -201,12 +207,12 @@ internal fun ThemeSettingsPage(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                TextButton(
+                AppActionTextButton(
                     text = stringResource(R.string.cancel),
                     onClick = { showColorDialog = false },
                     modifier = Modifier.weight(1f),
                 )
-                Button(
+                AppActionButton(
                     onClick = {
                         val argb = selectedColor.toArgb().toLong() and 0xFFFFFFFFL
                         themeColor.value = argb

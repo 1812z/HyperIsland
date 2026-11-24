@@ -7,10 +7,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.compose.component.liquid.rememberCombinedBackdrop
-import io.github.hyperisland.compose.theme.LocalUiGlassSettings
+import io.github.hyperisland.compose.theme.LocalGlassEffectsEnabled
+import io.github.hyperisland.compose.theme.UiGlassSettings
+import io.github.hyperisland.compose.theme.isGlassEnabled
 import top.yukonga.miuix.kmp.blur.Backdrop
 import top.yukonga.miuix.kmp.blur.BlendColorEntry
 import top.yukonga.miuix.kmp.blur.BlurDefaults
@@ -29,10 +33,29 @@ internal fun barBackdrop(): LayerBackdrop? = LocalBarBlurBackdrop.current
 
 @Composable
 internal fun uiGlassBackdrop(): Backdrop? {
-    if (!LocalUiGlassSettings.current.enabled) return null
+    if (!isGlassEnabled()) return null
     val content = barBackdrop() ?: return null
     val wallpaper = LocalSharedPageWallpaper.current?.backdrop ?: return content
     return rememberCombinedBackdrop(wallpaper, content)
+}
+
+@Composable
+internal fun Modifier.navigationBarBlur(
+    backdrop: Backdrop?,
+    color: Color,
+    settings: UiGlassSettings,
+    shape: Shape = RectangleShape,
+): Modifier {
+    if (backdrop == null) return this
+    return textureBlur(
+        backdrop = backdrop,
+        shape = shape,
+        blurRadius = settings.blurRadius.toFloat(),
+        noiseCoefficient = 0f,
+        colors = BlurDefaults.blurColors(
+            blendColors = listOf(BlendColorEntry(color.copy(alpha = settings.tintStrength))),
+        ),
+    )
 }
 
 @Composable
@@ -42,9 +65,9 @@ internal fun BarBlurHost(
     content: @Composable () -> Unit,
 ) {
     val surfaceColor = MiuixTheme.colorScheme.surface
-    val glassEnabled = LocalUiGlassSettings.current.enabled
+    val capture = LocalGlassEffectsEnabled.current && (captureForEffects || (captureForGlass && isGlassEnabled()))
     val sharedWallpaper = LocalSharedPageWallpaper.current?.backdrop
-    val backdrop = if ((captureForEffects || (captureForGlass && glassEnabled)) && isRuntimeShaderSupported()) {
+    val backdrop = if (capture && isRuntimeShaderSupported()) {
         rememberLayerBackdrop {
             // The shared wallpaper is sampled separately behind this page's scrolling content.
             if (sharedWallpaper == null) drawRect(surfaceColor)

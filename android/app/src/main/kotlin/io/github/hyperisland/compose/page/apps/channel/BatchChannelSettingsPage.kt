@@ -10,6 +10,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppActionButton
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.NotificationChannelsRepository
 import io.github.hyperisland.compose.data.channel.BatchChannelTarget
@@ -17,7 +18,6 @@ import io.github.hyperisland.compose.data.channel.ChannelSettingsPatch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Text
 
@@ -84,7 +84,7 @@ internal fun BatchChannelSettingsPage(
         onBack = onBack,
         headerText = headerText,
         footer = {
-            Button(
+            AppActionButton(
                 onClick = ::applyPatch,
                 modifier = Modifier.fillMaxWidth(),
                 enabled = patch.hasChanges && !applying,

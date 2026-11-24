@@ -32,7 +32,6 @@ import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 internal data class RestartScopeTarget(
@@ -152,13 +151,13 @@ internal fun RestartScopeDialog(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            TextButton(
+            AppActionTextButton(
                 text = stringResource(R.string.cancel),
                 enabled = !restarting,
                 onClick = onDismiss,
                 modifier = Modifier.weight(1f),
             )
-            TextButton(
+            AppActionTextButton(
                 text = stringResource(R.string.confirm),
                 enabled = !restarting && selectedPackages.isNotEmpty(),
                 onClick = {

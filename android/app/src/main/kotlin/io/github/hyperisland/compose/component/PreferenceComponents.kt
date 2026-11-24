@@ -36,15 +36,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.theme.uiGlassPopupVisuals
-import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.DropdownArrowEndAction
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.glass.GlassDropdownPreference
 import top.yukonga.miuix.kmp.glass.GlassDropdownPopup
 import top.yukonga.miuix.kmp.glass.GlassPopupAnchor
@@ -379,7 +376,7 @@ internal fun SliderValueInputDialog(
         onDismissRequest = onDismiss,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            TextField(
+            AppTextField(
                 value = input,
                 onValueChange = { candidate ->
                     if (candidate.isValidDecimalInput()) input = candidate
@@ -407,12 +404,12 @@ internal fun SliderValueInputDialog(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                TextButton(
+                AppActionTextButton(
                     text = stringResource(R.string.cancel),
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
                 )
-                Button(
+                AppActionButton(
                     onClick = ::saveIfValid,
                     enabled = validValue != null,
                     modifier = Modifier.weight(1f),

@@ -541,8 +541,11 @@
     <string name="navigation_bar_style_os4">OS4</string>
     <string name="navigation_bar_style_liquid_glass">Liquid glass</string>
     <string name="ui_glass_effect">Blur effects</string>
+    <string name="glass_effects_master_switch">Enable all blur effects</string>
     <string name="blur_effect_settings">Blur effect settings</string>
-    <string name="blur_effect_interface_section">Interface</string>
+    <string name="blur_effect_interface_section">Interface blur</string>
+    <string name="blur_effect_navigation_bar_section">Bottom bar</string>
+    <string name="navigation_bar_glass_effect">Bottom bar blur</string>
     <string name="blur_effect_cards_section">Cards</string>
     <string name="card_glass_effect">Card blur (experimental)</string>
     <string name="card_glass_effect_summary">Recommended with a custom wallpaper</string>

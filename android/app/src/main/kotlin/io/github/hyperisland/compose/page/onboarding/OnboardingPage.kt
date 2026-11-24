@@ -58,6 +58,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppActionTextButton
+import io.github.hyperisland.compose.component.AppActionButton
 import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.PrivacyPolicyMessage
@@ -69,7 +71,6 @@ import io.github.hyperisland.compose.service.PrivacyConsentStore
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.BasicComponent
-import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Checkbox
@@ -81,7 +82,6 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Close
 import top.yukonga.miuix.kmp.icon.extended.Help
@@ -627,7 +627,7 @@ private fun FocusUnlockPanel(
                 title = stringResource(R.string.onboarding_focus_hyperceiler),
                 summary = stringResource(R.string.onboarding_focus_hyperceiler_summary),
             )
-            TextButton(
+            AppActionTextButton(
                 text = stringResource(R.string.onboarding_view_tutorial),
                 onClick = onOpenTutorial,
                 modifier = Modifier
@@ -643,7 +643,7 @@ private fun FocusUnlockPanel(
                     else R.string.onboarding_focus_embedded_summary,
                 ),
             )
-            Button(
+            AppActionButton(
                 onClick = onEnableEmbedded,
                 enabled = !enabled && !enabling,
                 colors = ButtonDefaults.buttonColorsPrimary(),
@@ -778,14 +778,14 @@ private fun OnboardingControls(
                 .padding(horizontal = 24.dp, vertical = 18.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Button(
+            AppActionButton(
                 onClick = onPrevious,
                 enabled = currentPage > 0,
                 modifier = Modifier.weight(1f),
             ) {
                 Text(stringResource(R.string.onboarding_previous))
             }
-            Button(
+            AppActionButton(
                 onClick = onNext,
                 enabled = nextEnabled,
                 modifier = Modifier.weight(1f),
@@ -866,12 +866,12 @@ private fun DialogBody(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            TextButton(
+            AppActionTextButton(
                 text = leftText,
                 onClick = onLeft,
                 modifier = Modifier.weight(1f),
             )
-            Button(
+            AppActionButton(
                 onClick = onRight,
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColorsPrimary(),

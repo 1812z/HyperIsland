@@ -23,6 +23,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppActionButton
+import io.github.hyperisland.compose.component.AppTextField
 import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AiCustomFieldsDialog
 import io.github.hyperisland.compose.component.AiModelPickerDialog
@@ -36,7 +38,6 @@ import io.github.hyperisland.compose.service.TestNotificationService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
@@ -45,7 +46,6 @@ import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Hide
 import top.yukonga.miuix.kmp.icon.extended.Search
@@ -233,7 +233,7 @@ internal fun AiConfigPage(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
-                    TextField(
+                    AppTextField(
                         value = draft.url,
                         onValueChange = { draft = draft.copy(url = it) },
                         modifier = Modifier.fillMaxWidth(),
@@ -241,7 +241,7 @@ internal fun AiConfigPage(
                         useLabelAsPlaceholder = true,
                         singleLine = true,
                     )
-                    TextField(
+                    AppTextField(
                         value = draft.apiKey,
                         onValueChange = { draft = draft.copy(apiKey = it) },
                         modifier = Modifier.fillMaxWidth(),
@@ -262,7 +262,7 @@ internal fun AiConfigPage(
                             }
                         },
                     )
-                    TextField(
+                    AppTextField(
                         value = draft.model,
                         onValueChange = { draft = draft.copy(model = it) },
                         modifier = Modifier.fillMaxWidth(),
@@ -284,7 +284,7 @@ internal fun AiConfigPage(
                             }
                         },
                     )
-                    TextField(
+                    AppTextField(
                         value = draft.prompt,
                         onValueChange = { draft = draft.copy(prompt = it) },
                         modifier = Modifier.fillMaxWidth(),
@@ -405,7 +405,7 @@ internal fun AiConfigPage(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Button(
+                        AppActionButton(
                             onClick = ::testConnection,
                             enabled = !testing,
                             modifier = Modifier.weight(1f),
@@ -413,7 +413,7 @@ internal fun AiConfigPage(
                             if (testing) CircularProgressIndicator(size = 18.dp)
                             else Text(stringResource(R.string.ai_test_connection))
                         }
-                        Button(
+                        AppActionButton(
                             onClick = ::save,
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.buttonColorsPrimary(),
@@ -453,7 +453,7 @@ internal fun AiConfigPage(
             SectionTitle(stringResource(R.string.notification_test))
             AppCard(insideMargin = PaddingValues(16.dp)) {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    TextField(
+                    AppTextField(
                         value = notificationContent,
                         onValueChange = { notificationContent = it },
                         modifier = Modifier.fillMaxWidth(),
@@ -466,7 +466,7 @@ internal fun AiConfigPage(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Button(
+                        AppActionButton(
                             onClick = { sendNotification(false) },
                             enabled = !sendingNormal && !sendingAi,
                             modifier = Modifier.weight(1f),
@@ -474,7 +474,7 @@ internal fun AiConfigPage(
                             if (sendingNormal) CircularProgressIndicator(size = 18.dp)
                             else Text(stringResource(R.string.ai_send_notification))
                         }
-                        Button(
+                        AppActionButton(
                             onClick = { sendNotification(true) },
                             enabled = !sendingNormal && !sendingAi,
                             modifier = Modifier.weight(1f),

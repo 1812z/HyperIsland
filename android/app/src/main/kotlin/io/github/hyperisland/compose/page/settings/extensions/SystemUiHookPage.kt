@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppActionTextButton
 import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.PreferenceSlider
@@ -24,7 +25,6 @@ import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.data.rememberBooleanPreference
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.SnackbarHost
-import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.ChevronForward
 
@@ -263,7 +263,7 @@ internal fun SystemUiHookPage(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            TextButton(
+            AppActionTextButton(
                 text = stringResource(R.string.confirm),
                 onClick = {
                     showSmoothWarning = false
@@ -272,7 +272,7 @@ internal fun SystemUiHookPage(
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.textButtonColorsPrimary(),
             )
-            TextButton(
+            AppActionTextButton(
                 text = stringResource(R.string.cancel),
                 onClick = { showSmoothWarning = false },
                 modifier = Modifier.weight(1f),

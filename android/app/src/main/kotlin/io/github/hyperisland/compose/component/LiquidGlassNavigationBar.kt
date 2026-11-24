@@ -68,6 +68,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.fastCoerceIn
@@ -109,6 +110,8 @@ internal fun LiquidGlassNavigationBar(
     onTabSelected: (Int) -> Unit,
     items: List<NavigationItem>,
     backdrop: Backdrop?,
+    blurRadius: Dp,
+    tintStrength: Float,
     enabled: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -142,6 +145,8 @@ internal fun LiquidGlassNavigationBar(
             onSelected = onTabSelected,
             items = items,
             backdrop = backdrop,
+            blurRadius = blurRadius,
+            tintStrength = tintStrength,
             enabled = enabled,
         )
     }
@@ -241,6 +246,8 @@ private fun FloatingLiquidBar(
     onSelected: (Int) -> Unit,
     items: List<NavigationItem>,
     backdrop: Backdrop,
+    blurRadius: Dp,
+    tintStrength: Float,
     enabled: Boolean,
 ) {
     val tabsCount = items.size
@@ -248,7 +255,7 @@ private fun FloatingLiquidBar(
     val pillShape = CircleShape
     val accentColor = MiuixTheme.colorScheme.primary
     val tabContentColor = MiuixTheme.colorScheme.onSurface
-    val containerColor = MiuixTheme.colorScheme.surfaceContainer.copy(alpha = 0.4f)
+    val containerColor = MiuixTheme.colorScheme.surfaceContainer.copy(alpha = 0.4f * tintStrength)
     val tabsBackdrop = rememberLayerBackdrop()
     val density = LocalDensity.current
     val isLeftToRight = LocalLayoutDirection.current == LayoutDirection.Ltr
@@ -371,7 +378,7 @@ private fun FloatingLiquidBar(
                         // Reserve room for the lens and the press scale before sampling the blur.
                         padding = maxOf(padding, 40.dp.toPx())
                         vibrancy()
-                        blur(4.dp.toPx())
+                        blur(blurRadius.toPx())
                         lens(24.dp.toPx(), 24.dp.toPx())
                     },
                     layerBlock = {
@@ -422,7 +429,7 @@ private fun FloatingLiquidBar(
                         effects = {
                             padding = maxOf(padding, 24.dp.toPx())
                             vibrancy()
-                            blur(4.dp.toPx())
+                            blur(blurRadius.toPx())
                             lens(24.dp.toPx(), 24.dp.toPx())
                         },
                         onDrawSurface = { drawRect(containerColor) },

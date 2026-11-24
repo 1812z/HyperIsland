@@ -10,6 +10,10 @@ import io.github.hyperisland.compose.theme.NavigationBarStyle
 import io.github.hyperisland.compose.theme.PREF_CARD_GLASS_BLUR_RADIUS
 import io.github.hyperisland.compose.theme.PREF_CARD_GLASS_ENABLED
 import io.github.hyperisland.compose.theme.PREF_CARD_GLASS_TRANSPARENCY
+import io.github.hyperisland.compose.theme.PREF_GLASS_EFFECTS_ENABLED
+import io.github.hyperisland.compose.theme.PREF_NAVIGATION_BAR_GLASS_BLUR_RADIUS
+import io.github.hyperisland.compose.theme.PREF_NAVIGATION_BAR_GLASS_ENABLED
+import io.github.hyperisland.compose.theme.PREF_NAVIGATION_BAR_GLASS_TRANSPARENCY
 import io.github.hyperisland.compose.theme.PREF_NAVIGATION_BAR_STYLE
 import io.github.hyperisland.compose.theme.PREF_UI_GLASS_BLUR_RADIUS
 import io.github.hyperisland.compose.theme.PREF_UI_GLASS_ENABLED
@@ -61,10 +65,13 @@ internal object ConfigBackupService {
             val value = settings.opt(key)
             if (value is Boolean || value is String || value is Number) {
                 values[key] = when (key) {
-                    PREF_UI_GLASS_ENABLED, PREF_CARD_GLASS_ENABLED -> value as? Boolean ?: throw InvalidConfigException()
-                    PREF_UI_GLASS_TRANSPARENCY, PREF_CARD_GLASS_TRANSPARENCY -> (value as? Number)?.toLong()
+                    PREF_GLASS_EFFECTS_ENABLED, PREF_UI_GLASS_ENABLED, PREF_CARD_GLASS_ENABLED,
+                    PREF_NAVIGATION_BAR_GLASS_ENABLED -> value as? Boolean ?: throw InvalidConfigException()
+                    PREF_UI_GLASS_TRANSPARENCY, PREF_CARD_GLASS_TRANSPARENCY,
+                    PREF_NAVIGATION_BAR_GLASS_TRANSPARENCY -> (value as? Number)?.toLong()
                         ?.coerceIn(0, MAX_UI_GLASS_TRANSPARENCY) ?: throw InvalidConfigException()
-                    PREF_UI_GLASS_BLUR_RADIUS, PREF_CARD_GLASS_BLUR_RADIUS -> (value as? Number)?.toLong()
+                    PREF_UI_GLASS_BLUR_RADIUS, PREF_CARD_GLASS_BLUR_RADIUS,
+                    PREF_NAVIGATION_BAR_GLASS_BLUR_RADIUS -> (value as? Number)?.toLong()
                         ?.coerceIn(0, MAX_UI_GLASS_BLUR_RADIUS) ?: throw InvalidConfigException()
                     PREF_WALLPAPER_BLUR_RADIUS -> (value as? Number)?.toLong()
                         ?.coerceIn(0, MAX_WALLPAPER_BLUR_RADIUS) ?: throw InvalidConfigException()

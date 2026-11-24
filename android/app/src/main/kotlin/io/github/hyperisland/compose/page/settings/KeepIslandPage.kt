@@ -179,7 +179,7 @@ internal fun KeepIslandPage(
         title = stringResource(R.string.always_on_island),
         onBack = onBack,
         snackbarHost = { SnackbarHost(snackbarState) },
-        topBarContent = { behavior ->
+        topBarContent = {
             PageTabRow(
                 tabs = listOf(
                     stringResource(R.string.keep_island_tab_default),
@@ -188,7 +188,6 @@ internal fun KeepIslandPage(
                 ),
                 selectedIndex = selectedScene.ordinal,
                 onSelect = { selectedScene = KeepIslandScene.entries[it] },
-                scrollBehavior = behavior,
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
             )
         },

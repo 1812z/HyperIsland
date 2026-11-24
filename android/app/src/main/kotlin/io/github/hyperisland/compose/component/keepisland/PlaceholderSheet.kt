@@ -7,10 +7,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AppBottomSheet
 import io.github.hyperisland.compose.component.SectionTitle
 import top.yukonga.miuix.kmp.basic.BasicComponent
-import top.yukonga.miuix.kmp.basic.Card
 
 internal data class PlaceholderGroup(
     val title: String,
@@ -42,7 +42,7 @@ internal fun KeepIslandPlaceholderSheet(
             groups.forEach { group ->
                 item { SectionTitle(group.title) }
                 item {
-                    Card(modifier = Modifier.fillMaxWidth()) {
+                    AppCard(modifier = Modifier.fillMaxWidth()) {
                         group.items.forEach { placeholder ->
                             BasicComponent(
                                 title = placeholder.label,

@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.Dp
 import io.github.hyperisland.compose.theme.AppWallpaperImage
 import io.github.hyperisland.compose.theme.LocalAppWallpaper
 import io.github.hyperisland.compose.theme.LocalCardGlassSettings
+import io.github.hyperisland.compose.theme.isGlassEnabled
 import io.github.hyperisland.compose.theme.uiGlassMaterial
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardColors
@@ -54,7 +55,7 @@ internal fun WallpaperCardHost(
     val wallpaper = LocalAppWallpaper.current
     val surface = MiuixTheme.colorScheme.surface
     val hasWallpaper = wallpaper?.image != null
-    val cardGlassEnabled = LocalCardGlassSettings.current.enabled
+    val cardGlassEnabled = isGlassEnabled(LocalCardGlassSettings.current)
     val backdrop = if (hasWallpaper && (cardGlassEnabled || shareWithChildPages) && isRuntimeShaderSupported()) {
         rememberLayerBackdrop {
             drawRect(surface)
@@ -95,20 +96,34 @@ internal fun AppCard(
     holdDownState: Boolean = false,
     onClick: (() -> Unit)? = null,
     onLongPress: (() -> Unit)? = null,
+    glassOnTransparentSurface: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val colorScheme = MiuixTheme.colorScheme
     val color = colors.color
     val isPageSurface = color == colorScheme.surfaceContainer || color == colorScheme.surface ||
         color == colorScheme.background || color == colorScheme.secondaryVariant
+    val supportsPageGlass = isPageSurface || (glassOnTransparentSurface && color == Color.Transparent)
+    val modalGlass = LocalModalGlassEnabled.current
     val backdrop = LocalWallpaperCardBackdrop.current
-    val glass = LocalCardGlassSettings.current
-    if (backdrop == null || !isPageSurface) {
+    val isDark = colorScheme.background.luminance() < 0.5f
+    if (modalGlass != null || backdrop == null || !supportsPageGlass) {
+        // The surrounding modal already blurs the scene. Let it show through the card fill.
+        val cardColors = if (modalGlass == true && isPageSurface) {
+            val fill = if (isDark) {
+                colorScheme.onSurfaceContainer.copy(alpha = 0.08f)
+            } else {
+                color.copy(alpha = 0.55f)
+            }
+            colors.copy(color = fill)
+        } else {
+            colors
+        }
         Card(
             modifier = modifier,
             cornerRadius = cornerRadius,
             insideMargin = insideMargin,
-            colors = colors,
+            colors = cardColors,
             pressFeedbackType = pressFeedbackType,
             showIndication = showIndication,
             holdDownState = holdDownState,
@@ -119,9 +134,9 @@ internal fun AppCard(
         return
     }
 
-    val isDark = colorScheme.background.luminance() < 0.5f
+    val glass = LocalCardGlassSettings.current
     val shape = remember(cornerRadius) { GlassShape(cornerRadius) }
-    val tint = color.copy(alpha = 0.3f * glass.tintStrength)
+    val tint = color.copy(alpha = color.alpha * 0.3f * glass.tintStrength)
     val panel = Modifier.glassPanel(
         backdrop = backdrop,
         shape = shape,

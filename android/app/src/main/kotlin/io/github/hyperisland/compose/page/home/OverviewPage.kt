@@ -42,6 +42,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.hyperisland.R
 import io.github.hyperisland.XposedPrefsSyncApp
+import io.github.hyperisland.compose.component.AppActionTextButton
+import io.github.hyperisland.compose.component.AppActionButton
+import io.github.hyperisland.compose.component.AppTextField
 import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.CollapsingPage
@@ -52,18 +55,16 @@ import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.service.HomeSystemInfo
 import io.github.hyperisland.compose.service.SystemInfoProvider
 import io.github.hyperisland.compose.service.TestNotificationService
+import io.github.hyperisland.compose.theme.LocalCardGlassSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Refresh
 import top.yukonga.miuix.kmp.icon.extended.Link
@@ -385,7 +386,13 @@ private fun StatusCard(
 ) {
     val active = status?.active == true
     val statusColor = if (active) ActiveColor else InactiveColor
-    val statusBackground = if (active) ActiveBackground else InactiveBackground
+    val transparentBackground = LocalCardGlassSettings.current.enabled
+    val statusBackground = when {
+        transparentBackground -> Color.Transparent
+        active -> ActiveBackground
+        else -> InactiveBackground
+    }
+    val titleColor = if (transparentBackground) MiuixTheme.colorScheme.onSurface else Color(0xFF101010)
     AppCard(
         modifier = modifier,
         colors = CardDefaults.defaultColors(color = statusBackground),
@@ -393,6 +400,7 @@ private fun StatusCard(
         showIndication = active,
         onClick = onClick.takeIf { active },
         onLongPress = onLongPress.takeIf { active },
+        glassOnTransparentSurface = true,
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Box(
@@ -413,7 +421,7 @@ private fun StatusCard(
                     ),
                     fontSize = 20.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF101010),
+                    color = titleColor,
                 )
                 Text(
                     text = stringResource(
@@ -422,7 +430,7 @@ private fun StatusCard(
                     ),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
-                    color = if (active) Color(0xFF101010) else statusColor,
+                    color = if (active) titleColor else statusColor,
                     modifier = Modifier.padding(top = 2.dp),
                 )
             }
@@ -536,7 +544,7 @@ private fun CustomTestDialog(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            TextField(
+            AppTextField(
                 value = title,
                 onValueChange = { title = it },
                 modifier = Modifier
@@ -546,7 +554,7 @@ private fun CustomTestDialog(
                 useLabelAsPlaceholder = true,
                 singleLine = true,
             )
-            TextField(
+            AppTextField(
                 value = content,
                 onValueChange = { content = it },
                 modifier = Modifier
@@ -578,12 +586,12 @@ private fun CustomTestDialog(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = DialogContentPadding),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                TextButton(
+                AppActionTextButton(
                     text = stringResource(R.string.close),
                     onClick = onDismiss,
                     modifier = Modifier.weight(1f),
                 )
-                Button(
+                AppActionButton(
                     onClick = { onSend(title, content, clearPrevious, enableFloat) },
                     enabled = enabled,
                     modifier = Modifier.weight(1f),

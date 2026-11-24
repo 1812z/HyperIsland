@@ -17,6 +17,7 @@ import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.theme.GlassPreferences
 import io.github.hyperisland.compose.theme.LocalCardGlassSettings
+import io.github.hyperisland.compose.theme.LocalNavigationBarGlassSettings
 import io.github.hyperisland.compose.theme.LocalUiGlassSettings
 import io.github.hyperisland.compose.theme.MAX_UI_GLASS_BLUR_RADIUS
 import io.github.hyperisland.compose.theme.MAX_UI_GLASS_TRANSPARENCY
@@ -26,36 +27,65 @@ import kotlin.math.roundToInt
 @Composable
 internal fun BlurEffectSettingsPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) {
     val interfaceGlass = LocalUiGlassSettings.current
+    val navigationBarGlass = LocalNavigationBarGlassSettings.current
     val cardGlass = LocalCardGlassSettings.current
     DetailPage(title = stringResource(R.string.blur_effect_settings), onBack = onBack) {
         item {
             SectionTitle(stringResource(R.string.blur_effect_interface_section))
             AppCard(modifier = Modifier.fillMaxWidth()) {
-                GlassParameterSliders(prefs, interfaceGlass, GlassPreferences.Interface)
+                GlassSettingsControls(
+                    prefs,
+                    interfaceGlass,
+                    GlassPreferences.Interface,
+                    title = stringResource(R.string.ui_glass_effect),
+                )
+            }
+        }
+        item {
+            SectionTitle(stringResource(R.string.blur_effect_navigation_bar_section))
+            AppCard(modifier = Modifier.fillMaxWidth()) {
+                GlassSettingsControls(
+                    prefs,
+                    navigationBarGlass,
+                    GlassPreferences.NavigationBar,
+                    title = stringResource(R.string.navigation_bar_glass_effect),
+                )
             }
         }
         item {
             SectionTitle(stringResource(R.string.blur_effect_cards_section))
             AppCard(modifier = Modifier.fillMaxWidth()) {
-                PreferenceSwitch(
+                GlassSettingsControls(
+                    prefs,
+                    cardGlass,
+                    GlassPreferences.Cards,
                     title = stringResource(R.string.card_glass_effect),
                     summary = stringResource(R.string.card_glass_effect_summary),
-                    icon = null,
-                    checked = cardGlass.enabled,
-                ) { enabled ->
-                    cardGlass.enabled = enabled
-                    prefs.putBoolean(GlassPreferences.Cards.enabledKey, enabled)
-                }
-                AnimatedVisibility(
-                    visible = cardGlass.enabled,
-                    enter = expandVertically(),
-                    exit = shrinkVertically(),
-                ) {
-                    Column {
-                        GlassParameterSliders(prefs, cardGlass, GlassPreferences.Cards)
-                    }
-                }
+                )
             }
+        }
+    }
+}
+
+@Composable
+private fun GlassSettingsControls(
+    prefs: FlutterPrefsRepository,
+    glass: UiGlassSettings,
+    preferences: GlassPreferences,
+    title: String,
+    summary: String? = null,
+) {
+    PreferenceSwitch(title = title, summary = summary, icon = null, checked = glass.enabled) { enabled ->
+        glass.enabled = enabled
+        prefs.putBoolean(preferences.enabledKey, enabled)
+    }
+    AnimatedVisibility(
+        visible = glass.enabled,
+        enter = expandVertically(),
+        exit = shrinkVertically(),
+    ) {
+        Column {
+            GlassParameterSliders(prefs, glass, preferences)
         }
     }
 }

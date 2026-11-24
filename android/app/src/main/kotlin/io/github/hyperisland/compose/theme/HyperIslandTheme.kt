@@ -16,6 +16,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
+import io.github.hyperisland.compose.data.rememberBooleanPreference
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.ThemeController
@@ -70,11 +71,15 @@ internal fun HyperIslandTheme(
             navigationBarStyle = systemBarStyle,
         )
     }
+    val glassEffectsEnabled by rememberBooleanPreference(repository, PREF_GLASS_EFFECTS_ENABLED, true)
     val glassSettings = rememberGlassSettings(repository, GlassPreferences.Interface)
+    val navigationBarGlassSettings = rememberGlassSettings(repository, GlassPreferences.NavigationBar)
     val cardGlassSettings = rememberGlassSettings(repository, GlassPreferences.Cards)
     val wallpaper = rememberAppWallpaper(repository)
     CompositionLocalProvider(
+        LocalGlassEffectsEnabled provides glassEffectsEnabled,
         LocalUiGlassSettings provides glassSettings,
+        LocalNavigationBarGlassSettings provides navigationBarGlassSettings,
         LocalCardGlassSettings provides cardGlassSettings,
         LocalAppWallpaper provides wallpaper,
     ) {

@@ -16,7 +16,6 @@ import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.service.AppNotice
 import kotlinx.coroutines.delay
-import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Text
 
@@ -61,7 +60,7 @@ internal fun NoticeDialogHost(
         if (shown != null) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 MarkdownBody(shown.content, maxHeight = 320.dp)
-                Button(
+                AppActionButton(
                     onClick = { onConfirm(shown) },
                     modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                     enabled = remaining <= 0,

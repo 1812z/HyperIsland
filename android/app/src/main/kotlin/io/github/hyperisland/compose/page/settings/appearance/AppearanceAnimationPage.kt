@@ -11,10 +11,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.unit.dp
+import io.github.hyperisland.compose.component.AppActionTextButton
+import io.github.hyperisland.compose.component.AppActionButton
 import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AppDialog
 import io.github.hyperisland.compose.component.PreferenceSlider
-import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.Icon
@@ -31,7 +32,6 @@ import io.github.hyperisland.compose.data.rememberBooleanPreference
 import io.github.hyperisland.compose.data.rememberStringPreference
 import io.github.hyperisland.data.ExpandedCollapsePreferences as Keys
 import top.yukonga.miuix.kmp.basic.BasicComponent
-import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.icon.basic.ArrowRight
 
 @Composable
@@ -218,9 +218,9 @@ internal fun AppearanceAnimationPage(prefs: FlutterPrefsRepository, onBack: () -
                 onReset = { durationDraft.value = Keys.DEFAULT_OVERSHOOT_DURATION.toFloat() },
                 onValueChange = { durationDraft.value = (it.toInt() / 10 * 10).toFloat() }, onValueChangeFinished = {})
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                TextButton(text = stringResource(R.string.cancel),
+                AppActionTextButton(text = stringResource(R.string.cancel),
                     onClick = { showOvershootDialog.value = false }, modifier = Modifier.weight(1f))
-                Button(onClick = {
+                AppActionButton(onClick = {
                     prefs.putLong(Keys.OVERSHOOT_DAMPING, dampingDraft.value.toLong())
                     prefs.putLong(Keys.OVERSHOOT_DURATION, durationDraft.value.toLong())
                     showOvershootDialog.value = false

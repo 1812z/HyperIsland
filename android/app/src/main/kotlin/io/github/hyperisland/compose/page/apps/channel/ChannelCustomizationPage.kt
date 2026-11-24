@@ -24,6 +24,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.R
+import io.github.hyperisland.compose.component.AppActionTextButton
+import io.github.hyperisland.compose.component.AppActionButton
+import io.github.hyperisland.compose.component.AppTextField
 import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AppBottomSheet
 import io.github.hyperisland.compose.component.ColorPaletteDialog
@@ -36,11 +39,8 @@ import io.github.hyperisland.compose.data.channel.ChannelCustomizationTarget
 import io.github.hyperisland.xposed.template.core.customization.FocusCustomizationEngine
 import org.json.JSONObject
 import top.yukonga.miuix.kmp.basic.BasicComponent
-import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 
 @Composable
@@ -125,7 +125,7 @@ internal fun ChannelCustomizationPage(
                             verticalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
                             Text(customizationFieldLabel(field.key, field.label))
-                            TextField(
+                            AppTextField(
                                 value = values[field.key].orEmpty(),
                                 onValueChange = { value ->
                                     values[field.key] = if (field.type == "number") {
@@ -154,12 +154,12 @@ internal fun ChannelCustomizationPage(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                TextButton(
+                AppActionTextButton(
                     text = stringResource(R.string.restore_default),
                     onClick = { fields.forEach { values[it.key] = it.defaultValue } },
                     modifier = Modifier.weight(1f),
                 )
-                Button(
+                AppActionButton(
                     onClick = {
                         val overrides = JSONObject()
                         fields.forEach { field ->
