@@ -8,6 +8,17 @@ import ReleaseHistory from './.vitepress/components/ReleaseHistory.vue'
 
 <div class="changelog-source" hidden>
 
+# V3.3.2(2026-11-24)
+## 功能
+- 完善搜索框/Tab等组件柔光
+- 支持底栏/主界面/卡片柔光效果单独调节
+
+## 优化 & 修复
+- 优化主界面柔光效果
+- 修复焦点通知权限异常
+- 优化柔光界面流畅度
+
+
 # V3.3.1(2026-11-22)
 ## 功能
 - UI：新增柔光界面（实验性）
