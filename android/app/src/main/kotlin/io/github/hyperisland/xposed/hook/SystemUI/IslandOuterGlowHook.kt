@@ -171,12 +171,14 @@ object IslandOuterGlowHook : BaseHook() {
         hookAvoidBurnInHelper(module, param.defaultClassLoader)
         hookShaderSource(module, param.defaultClassLoader)
         hookGlowGeometry(module, param.defaultClassLoader)
+        hookSmallIslandGlow(module, param.defaultClassLoader)
     }
 
     override fun onConfigChanged() {
         synchronized(defaultShaderColors) {
             defaultShaderColors.clear()
         }
+        SmallIslandOuterGlow.onConfigChanged()
     }
 
     private fun hookDynamicClassLoaders(module: XposedModule) {
@@ -188,7 +190,57 @@ object IslandOuterGlowHook : BaseHook() {
             hookAvoidBurnInHelper(module, cl)
             hookShaderSource(module, cl)
             hookGlowGeometry(module, cl)
+            hookSmallIslandGlow(module, cl)
         }
+    }
+
+    private fun hookSmallIslandGlow(module: XposedModule, loader: ClassLoader) {
+        if (!HookUtils.isIslandLoaderReady(loader)) return
+        runCatching {
+            SmallIslandOuterGlow.install(module, loader, ::resolveSmallIslandGlowStyle, { lightBg, style ->
+                if (style.color != null || style.baseColor != null) {
+                    applyGlowPalette(lightBg, style.color, style.singleColor, style.baseColor)
+                }
+                applyGlowRange(lightBg, module, style.range)
+            }) { error ->
+                logFailureOnce(module, "small-island-glow") { "small island glow failed: ${error.message}" }
+            }
+        }.onFailure { error ->
+            logFailureOnce(module, "small-island-glow-install") { "small island glow unavailable: ${error.message}" }
+        }
+    }
+
+    private fun resolveSmallIslandGlowStyle(owner: View): SmallIslandGlowStyle? {
+        val extras = extractExtrasFromAnimationState(owner) ?: return null
+        val pkg = resolveSourcePkg(extras).orEmpty()
+        val channel = resolveSourceChannelId(extras).orEmpty()
+        val nativeRequest = extras.getString(BIG_EFFECT_KEY) == EFFECT_VALUE
+        val color = extras.getString("hyperisland_island_outer_glow_color")
+        val media = mediaGlowRequests[pkg]?.takeIf { request ->
+            channel == "media" || extras.containsKey("miui.focus.param.media") ||
+                request.notificationKey?.let { key ->
+                    key == extras.getString("miui.key") || key == resolveStatusBarNotification(extras)?.key
+                } == true
+        }
+        val target = when {
+            nativeRequest && hasOwnedGlowRequest(extras, GLOW_MODE_STATUS) &&
+                pkg.isNotBlank() && channel.isNotBlank() -> OwnedGlowTarget(
+                pkg, channel, GLOW_MODE_STATUS, false, true, null, color, createdAt = System.currentTimeMillis(),
+            )
+            media?.islandEnabled == true -> OwnedGlowTarget(
+                pkg, "media", GLOW_MODE_STATUS, false, true, null, media.islandColor, createdAt = media.updatedAt,
+            )
+            else -> resolveForcedGlobalGlowTarget(extras, GLOW_MODE_STATUS)
+        }
+        val config = target?.let { resolveGlowColorConfig(GLOW_MODE_STATUS, it) }
+            ?: GlowConfig(nativeRequest, parseArgbColor(color))
+        if (!config.effectEnabled) return null
+        return SmallIslandGlowStyle(
+            color = config.colorArgb,
+            range = ConfigManager.getInt("pref_outer_glow_range", 0).coerceIn(0, 100),
+            singleColor = ConfigManager.getBoolean("pref_outer_glow_single_color", false),
+            baseColor = parseArgbColor(ConfigManager.getString("pref_outer_glow_base_color", "")),
+        )
     }
 
     private fun hookGlowGeometry(module: XposedModule, loader: ClassLoader) {
@@ -246,6 +298,10 @@ object IslandOuterGlowHook : BaseHook() {
             module.profiledHook("IslandOuterGlowHook", method).intercept { chain ->
                 val result = chain.proceed()
                 val source = result as? String ?: return@intercept result
+                if ("uGlareWidth" in source) {
+                    val view = invokeNoArg(chain.thisObject, "getView") as? SmallIslandGlowBackgroundView
+                    if (view != null) return@intercept view.maskAperture(source)
+                }
                 if (!source.contains("uniform vec3 uLightColors[11]") ||
                     !source.contains(DEFAULT_TEXTURE_BASE_COLOR)
                 ) {
@@ -928,41 +984,48 @@ object IslandOuterGlowHook : BaseHook() {
         if (System.currentTimeMillis() - target.createdAt > RECENT_TTL_MS) return
 
         val cfg = resolveGlowColorConfig(mode, target)
-        val shader = resolveLightBgShader(glowView) ?: return
-        val runtimeShader = resolveRuntimeShader(shader) ?: return
-        val shaderClass = shader.javaClass
-        val base = obtainDefaultLightColors(shaderClass) ?: readInstanceLightColors(shader) ?: return
-        cacheDefaultLightColors(shaderClass, base)
         val singleColorEnabled = ConfigManager.getBoolean("pref_outer_glow_single_color", false)
-        synchronized(customizedGlowViews) {
-            if (customizedGlowViews.size >= MAX_RUNNING_GLOW_VIEWS && glowView !in customizedGlowViews) return
-            customizedGlowViews.add(glowView)
-        }
-        val targetColors = when {
-            !cfg.effectEnabled || cfg.colorArgb == null -> base
-            singleColorEnabled -> rebuildSingleColorArray(base, cfg.colorArgb)
-            else -> rebuildLightShaderArray(base, cfg.colorArgb)
-        }
-        val applied = setRuntimeShaderLightColors(runtimeShader, targetColors)
-        val configuredBaseColor = parseArgbColor(
-            ConfigManager.getString("pref_outer_glow_base_color", ""),
-        )
-        val baseColor = if (singleColorEnabled && cfg.effectEnabled && cfg.colorArgb != null) {
-            cfg.colorArgb
-        } else {
-            configuredBaseColor ?: Color.rgb(0, 150, 255)
-        }
-        val useBaseColor = singleColorEnabled && cfg.effectEnabled && cfg.colorArgb != null ||
-                configuredBaseColor != null
-        setRuntimeShaderColor(
-            runtimeShader,
-            "uBaseColor",
-            baseColor,
-        )
-        setRuntimeShaderFloat(runtimeShader, "uUseBaseColor", if (useBaseColor) 1f else 0f)
+        val baseColor = parseArgbColor(ConfigManager.getString("pref_outer_glow_base_color", ""))
+        val color = cfg.colorArgb.takeIf { cfg.effectEnabled }
+        val lightBg = invokeNoArg(glowView, "getMContainer") ?: return
+        val applied = applyGlowPalette(lightBg, color, singleColorEnabled, baseColor, glowView) ?: return
         if (mode == GLOW_MODE_EXPAND || target.channelId == "media") {
             log(module) { "glow color apply: mode=$mode target=${target.pkg}/${target.channelId} forced=${target.forcedGlobal} enabled=${cfg.effectEnabled} single=$singleColorEnabled color=${cfg.colorArgb?.let { String.format("#%08X", it) }} shaderApplied=$applied" }
         }
+    }
+
+    private fun applyGlowPalette(
+        lightBg: Any,
+        color: Int?,
+        singleColor: Boolean,
+        baseColor: Int?,
+        restoreFor: Any? = null,
+    ): Boolean? {
+        val shader = readLightBgShader(lightBg) ?: return null
+        val runtimeShader = resolveRuntimeShader(shader) ?: return null
+        val shaderClass = shader.javaClass
+        val base = obtainDefaultLightColors(shaderClass) ?: readInstanceLightColors(shader) ?: return null
+        cacheDefaultLightColors(shaderClass, base)
+        if (restoreFor != null) {
+            synchronized(customizedGlowViews) {
+                if (customizedGlowViews.size >= MAX_RUNNING_GLOW_VIEWS && restoreFor !in customizedGlowViews) return null
+                customizedGlowViews.add(restoreFor)
+            }
+        }
+        val targetColors = when {
+            color == null -> base
+            singleColor -> rebuildSingleColorArray(base, color)
+            else -> rebuildLightShaderArray(base, color)
+        }
+        val applied = setRuntimeShaderLightColors(runtimeShader, targetColors)
+        val effectiveBase = color.takeIf { singleColor } ?: baseColor
+        setRuntimeShaderColor(
+            runtimeShader,
+            "uBaseColor",
+            effectiveBase ?: Color.rgb(0, 150, 255),
+        )
+        setRuntimeShaderFloat(runtimeShader, "uUseBaseColor", if (effectiveBase != null) 1f else 0f)
+        return applied
     }
 
     private fun restoreDefaultGlowColor(glowView: Any) {
@@ -992,6 +1055,10 @@ object IslandOuterGlowHook : BaseHook() {
             log(module) { "glow range apply: range=$range container=null view=${glowView.javaClass.name}" }
             return
         }
+        applyGlowRange(container, module, range)
+    }
+
+    private fun applyGlowRange(container: Any, module: XposedModule, range: Int): Float? {
         val defaultRange = synchronized(defaultGlowRanges) {
             defaultGlowRanges.getOrPut(container) {
                 (invokeNoArg(container, "getSizeOfGlowArea") as? Number)?.toFloat() ?: Float.NaN
@@ -1007,7 +1074,8 @@ object IslandOuterGlowHook : BaseHook() {
             "setSizeOfGlowArea",
             appliedRange,
         )
-        log(module) { "glow range apply: range=$range area=$defaultRange->$appliedRange applied=$rangeApplied view=${glowView.javaClass.name}" }
+        log(module) { "glow range apply: range=$range area=$defaultRange->$appliedRange applied=$rangeApplied view=${container.javaClass.name}" }
+        return (if (rangeApplied) appliedRange else defaultRange).takeIf { it.isFinite() }
     }
 
     private fun resolveMediaFocusGlowTarget(
@@ -1322,7 +1390,10 @@ object IslandOuterGlowHook : BaseHook() {
     }
 
     private fun resolveLightBgShader(glowView: Any): Any? {
-        val container = invokeNoArg(glowView, "getMContainer") ?: return null
+        return invokeNoArg(glowView, "getMContainer")?.let(::readLightBgShader)
+    }
+
+    private fun readLightBgShader(container: Any): Any? {
         invokeNoArg(container, "getMShader\$hyper_widget_1_0_8_pluginRelease")?.let { return it }
         container.javaClass.declaredMethods.forEach { method ->
             if (method.parameterCount == 0 && method.name.contains("getMShader")) {
