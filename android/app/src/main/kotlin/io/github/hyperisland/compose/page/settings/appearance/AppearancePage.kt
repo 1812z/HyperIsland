@@ -145,6 +145,7 @@ internal fun AppearancePage(
 
     BarBlurHost(
         captureForEffects = sectionVisible || predictiveBackActive || backdropIntensity.value > EFFECT_VISIBILITY_THRESHOLD,
+        preserveWallpaperAtEdges = true,
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             BarBackdropContent(modifier = Modifier.fillMaxSize(), showWallpaper = false) {

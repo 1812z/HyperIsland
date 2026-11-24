@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 import io.github.hyperisland.compose.component.liquid.rememberCombinedBackdrop
+import io.github.hyperisland.compose.theme.LocalAppWallpaper
 import io.github.hyperisland.compose.theme.LocalGlassEffectsEnabled
 import io.github.hyperisland.compose.theme.UiGlassSettings
 import io.github.hyperisland.compose.theme.isGlassEnabled
@@ -62,15 +63,17 @@ internal fun Modifier.navigationBarBlur(
 internal fun BarBlurHost(
     captureForEffects: Boolean = false,
     captureForGlass: Boolean = true,
+    preserveWallpaperAtEdges: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val surfaceColor = MiuixTheme.colorScheme.surface
     val capture = LocalGlassEffectsEnabled.current && (captureForEffects || (captureForGlass && isGlassEnabled()))
     val sharedWallpaper = LocalSharedPageWallpaper.current?.backdrop
+    val showWallpaperThroughCapture = preserveWallpaperAtEdges && LocalAppWallpaper.current?.image != null
     val backdrop = if (capture && isRuntimeShaderSupported()) {
         rememberLayerBackdrop {
-            // The shared wallpaper is sampled separately behind this page's scrolling content.
-            if (sharedWallpaper == null) drawRect(surfaceColor)
+            // Shared wallpaper is sampled separately. Navigation captures let the wallpaper below show through.
+            if (sharedWallpaper == null && !showWallpaperThroughCapture) drawRect(surfaceColor)
             drawContent()
         }
     } else {

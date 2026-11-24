@@ -198,6 +198,7 @@ internal fun ChannelEditorPage(
     BarBlurHost(
         captureForEffects = customizationVisible || predictiveBackActive ||
             backdropIntensity.value > EFFECT_VISIBILITY_THRESHOLD,
+        preserveWallpaperAtEdges = true,
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             BarBackdropContent(modifier = Modifier.fillMaxSize(), showWallpaper = false) {

@@ -401,14 +401,15 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
             },
         ) { padding ->
             Box(modifier = Modifier.fillMaxSize()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .predictiveNavigationBackground(detailNavigationState),
+                BarBackdropContent(
+                    modifier = Modifier.fillMaxSize(),
+                    shareWallpaperWithChildPages = true,
                 ) {
-                    BarBackdropContent(
-                        modifier = Modifier.fillMaxSize(),
-                        shareWallpaperWithChildPages = true,
+                    // Keep the wallpaper and its backdrop capture full-screen as the pager recedes.
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .predictiveNavigationBackground(detailNavigationState),
                     ) {
                         CompositionLocalProvider(
                             LocalRootBottomBarPadding provides padding.calculateBottomPadding(),
@@ -541,6 +542,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
 
                 BarBlurHost(
                     captureForEffects = nestedNavigationState.requiresBackdropCapture(nestedDetailShown),
+                    preserveWallpaperAtEdges = true,
                 ) {
                 BarBackdropContent(modifier = Modifier.fillMaxSize(), showWallpaper = false) {
                     PredictiveNavigationLayer(
@@ -672,6 +674,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                     captureForEffects = extensionNavigationState.requiresBackdropCapture(
                         extensionSubDetailShown,
                     ),
+                    preserveWallpaperAtEdges = true,
                 ) {
                     BarBackdropContent(modifier = Modifier.fillMaxSize(), showWallpaper = false) {
                         PredictiveNavigationLayer(
