@@ -29,11 +29,14 @@ import io.github.hyperisland.compose.component.PreferenceSlider
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
 import io.github.hyperisland.compose.theme.AppWallpaperImage
 import io.github.hyperisland.compose.theme.AppWallpaperState
+import io.github.hyperisland.compose.theme.DEFAULT_WALLPAPER_DARK_BRIGHTNESS
 import io.github.hyperisland.compose.theme.LocalAppWallpaper
 import io.github.hyperisland.compose.theme.MAX_WALLPAPER_BLUR_RADIUS
 import io.github.hyperisland.compose.theme.MAX_WALLPAPER_BRIGHTNESS
+import io.github.hyperisland.compose.theme.MAX_WALLPAPER_DARK_BRIGHTNESS
 import io.github.hyperisland.compose.theme.PREF_WALLPAPER_BLUR_RADIUS
 import io.github.hyperisland.compose.theme.PREF_WALLPAPER_BRIGHTNESS
+import io.github.hyperisland.compose.theme.PREF_WALLPAPER_DARK_BRIGHTNESS
 import kotlin.math.roundToInt
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
@@ -75,6 +78,7 @@ internal fun WallpaperSettingsPage(prefs: FlutterPrefsRepository, onBack: () -> 
         item {
             val blurRadius = wallpaper.blurRadius.coerceIn(0, MAX_WALLPAPER_BLUR_RADIUS)
             val brightness = wallpaper.brightness.coerceIn(0, MAX_WALLPAPER_BRIGHTNESS)
+            val darkBrightness = wallpaper.darkBrightness.coerceIn(0, MAX_WALLPAPER_DARK_BRIGHTNESS)
             AppCard(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSlider(
                     title = stringResource(R.string.wallpaper_blur),
@@ -95,6 +99,25 @@ internal fun WallpaperSettingsPage(prefs: FlutterPrefsRepository, onBack: () -> 
                     steps = MAX_WALLPAPER_BRIGHTNESS.toInt() - 1,
                     onValueChange = { wallpaper.brightness = it.roundToInt().toLong() },
                     onValueChangeFinished = { prefs.putLong(PREF_WALLPAPER_BRIGHTNESS, wallpaper.brightness) },
+                )
+                PreferenceSlider(
+                    title = stringResource(R.string.wallpaper_dark_brightness),
+                    summary = stringResource(R.string.wallpaper_dark_brightness_summary),
+                    icon = null,
+                    value = darkBrightness.toFloat(),
+                    valueText = "${darkBrightness}%",
+                    valueRange = 0f..MAX_WALLPAPER_DARK_BRIGHTNESS.toFloat(),
+                    steps = MAX_WALLPAPER_DARK_BRIGHTNESS.toInt() - 1,
+                    // 与公共组件一致：值不等于默认值时露出「恢复默认」按钮。
+                    resetVisible = darkBrightness != DEFAULT_WALLPAPER_DARK_BRIGHTNESS,
+                    onReset = {
+                        wallpaper.darkBrightness = DEFAULT_WALLPAPER_DARK_BRIGHTNESS
+                        prefs.putLong(PREF_WALLPAPER_DARK_BRIGHTNESS, DEFAULT_WALLPAPER_DARK_BRIGHTNESS)
+                    },
+                    onValueChange = { wallpaper.darkBrightness = it.roundToInt().toLong() },
+                    onValueChangeFinished = {
+                        prefs.putLong(PREF_WALLPAPER_DARK_BRIGHTNESS, wallpaper.darkBrightness)
+                    },
                 )
             }
         }

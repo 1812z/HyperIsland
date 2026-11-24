@@ -236,6 +236,7 @@
     <string name="island_icon">大岛图标</string>
     <string name="island_icon_summary">开启后显示超级岛的大图标（小岛不受影响）</string>
     <string name="preserve_small_icon">状态栏图标</string>
+    <string name="preserve_small_icon_summary">显示焦点通知时强制保留状态栏图标</string>
     <string name="status_bar_icon_subtitle_show">强制显示状态栏图标</string>
     <string name="status_bar_icon_subtitle_hide">强制隐藏状态栏图标</string>
     <string name="status_bar_icon_subtitle_system">不修改状态栏图标行为</string>
@@ -560,6 +561,8 @@
     <string name="wallpaper_remove">移除壁纸</string>
     <string name="wallpaper_blur">壁纸模糊度</string>
     <string name="wallpaper_brightness">壁纸亮度</string>
+    <string name="wallpaper_dark_brightness">深色亮度</string>
+    <string name="wallpaper_dark_brightness_summary">深色模式下在上方亮度基础上再压暗</string>
     <string name="wallpaper_update_failed">无法更新壁纸</string>
     <string name="ui_glass_transparency">透明度</string>
     <string name="ui_glass_blur_radius">模糊半径</string>

@@ -17,6 +17,7 @@ import io.github.hyperisland.compose.theme.PREF_UI_GLASS_ENABLED
 import io.github.hyperisland.compose.theme.PREF_UI_GLASS_TRANSPARENCY
 import io.github.hyperisland.compose.theme.PREF_WALLPAPER_BLUR_RADIUS
 import io.github.hyperisland.compose.theme.PREF_WALLPAPER_BRIGHTNESS
+import io.github.hyperisland.compose.theme.PREF_WALLPAPER_DARK_BRIGHTNESS
 
 /**
  * 配置预设的「配置管理映射表」。
@@ -216,6 +217,7 @@ internal val ConfigSectionGroups: List<ConfigSection> = listOf(
             PREF_NAVIGATION_BAR_GLASS_BLUR_RADIUS,
             PREF_WALLPAPER_BLUR_RADIUS,
             PREF_WALLPAPER_BRIGHTNESS,
+            PREF_WALLPAPER_DARK_BRIGHTNESS,
             PREF_NAVIGATION_BAR_STYLE,
             PREF_FLOATING_NAVIGATION_BAR,
             PREF_LIQUID_GLASS_NAVIGATION_BAR,

@@ -6,6 +6,7 @@ import io.github.hyperisland.compose.theme.MAX_UI_GLASS_BLUR_RADIUS
 import io.github.hyperisland.compose.theme.MAX_UI_GLASS_TRANSPARENCY
 import io.github.hyperisland.compose.theme.MAX_WALLPAPER_BLUR_RADIUS
 import io.github.hyperisland.compose.theme.MAX_WALLPAPER_BRIGHTNESS
+import io.github.hyperisland.compose.theme.MAX_WALLPAPER_DARK_BRIGHTNESS
 import io.github.hyperisland.compose.theme.NavigationBarStyle
 import io.github.hyperisland.compose.theme.PREF_CARD_GLASS_BLUR_RADIUS
 import io.github.hyperisland.compose.theme.PREF_CARD_GLASS_ENABLED
@@ -20,6 +21,7 @@ import io.github.hyperisland.compose.theme.PREF_UI_GLASS_ENABLED
 import io.github.hyperisland.compose.theme.PREF_UI_GLASS_TRANSPARENCY
 import io.github.hyperisland.compose.theme.PREF_WALLPAPER_BLUR_RADIUS
 import io.github.hyperisland.compose.theme.PREF_WALLPAPER_BRIGHTNESS
+import io.github.hyperisland.compose.theme.PREF_WALLPAPER_DARK_BRIGHTNESS
 import io.github.hyperisland.utils.IslandBehaviorConfig
 import io.github.hyperisland.utils.SoftGlassSceneBrightnessConfig
 import org.json.JSONArray
@@ -77,6 +79,8 @@ internal object ConfigBackupService {
                         ?.coerceIn(0, MAX_WALLPAPER_BLUR_RADIUS) ?: throw InvalidConfigException()
                     PREF_WALLPAPER_BRIGHTNESS -> (value as? Number)?.toLong()
                         ?.coerceIn(0, MAX_WALLPAPER_BRIGHTNESS) ?: throw InvalidConfigException()
+                    PREF_WALLPAPER_DARK_BRIGHTNESS -> (value as? Number)?.toLong()
+                        ?.coerceIn(0, MAX_WALLPAPER_DARK_BRIGHTNESS) ?: throw InvalidConfigException()
                     PREF_NAVIGATION_BAR_STYLE -> NavigationBarStyle.entries
                         .firstOrNull { it.storedValue == value }?.storedValue ?: throw InvalidConfigException()
                     SoftGlassSceneBrightnessConfig.BRIGHTNESS_KEY -> SoftGlassSceneBrightnessConfig.brightness(

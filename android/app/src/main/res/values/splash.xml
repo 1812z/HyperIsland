@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ic_startup_splash renders ic_launcher at 128dp in the center of a 288dp transparent canvas. -->
+    <dimen name="splash_icon_canvas_size">288dp</dimen>
+</resources>

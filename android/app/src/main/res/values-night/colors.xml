@@ -10,4 +10,6 @@
     <color name="focus_panel_cpu">#FF72D6FF</color>
     <color name="focus_panel_gpu">#FFFFB86B</color>
     <color name="focus_panel_memory">#FF9EE493</color>
+    <!-- 启动遮罩背景：贴近 Miuix 深色 surface（tone 6） -->
+    <color name="splash_background">#0F0F0F</color>
 </resources>

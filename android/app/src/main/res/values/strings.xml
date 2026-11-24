@@ -230,6 +230,7 @@
     <string name="island_icon">Large island icon</string>
     <string name="island_icon_summary">Show the large icon of the island when enabled (small island not affected)</string>
     <string name="preserve_small_icon">Status bar icon</string>
+    <string name="preserve_small_icon_summary">Always keep the status bar icon visible in focus notifications</string>
     <string name="status_bar_icon_subtitle_show">Force show the status bar icon</string>
     <string name="status_bar_icon_subtitle_hide">Force hide the status bar icon</string>
     <string name="status_bar_icon_subtitle_system">Leave the status bar icon untouched</string>
@@ -554,6 +555,8 @@
     <string name="wallpaper_remove">Remove wallpaper</string>
     <string name="wallpaper_blur">Wallpaper blur</string>
     <string name="wallpaper_brightness">Wallpaper brightness</string>
+    <string name="wallpaper_dark_brightness">Dark mode brightness</string>
+    <string name="wallpaper_dark_brightness_summary">Dims the wallpaper further in dark mode, relative to the brightness above</string>
     <string name="wallpaper_update_failed">Couldn’t update the wallpaper</string>
     <string name="ui_glass_transparency">Transparency</string>
     <string name="ui_glass_blur_radius">Blur radius</string>

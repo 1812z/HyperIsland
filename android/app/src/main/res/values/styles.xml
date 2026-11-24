@@ -15,4 +15,9 @@
         <item name="android:windowLightNavigationBar">true</item>
         <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
     </style>
+    <!--
+        冷启动遮罩主题：Activity 在 Manifest 里用它，Android 12+ 会先画系统 SplashScreen
+        （图标 + 纯色背景），首帧绘制完成后再淡出。API 31 的 splash 属性在 values-v31 覆盖。
+    -->
+    <style name="ComposeTheme.Starting" parent="ComposeTheme" />
 </resources>

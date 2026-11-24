@@ -8,11 +8,13 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
@@ -24,6 +26,7 @@ import top.yukonga.miuix.kmp.theme.ThemeController
 @Composable
 internal fun HyperIslandTheme(
     repository: FlutterPrefsRepository,
+    onShellReady: () -> Unit = {},
     content: @Composable () -> Unit,
 ) {
     var themeMode by remember { mutableStateOf(repository.getString(PREF_THEME_MODE, "system")) }
@@ -76,6 +79,13 @@ internal fun HyperIslandTheme(
     val navigationBarGlassSettings = rememberGlassSettings(repository, GlassPreferences.NavigationBar)
     val cardGlassSettings = rememberGlassSettings(repository, GlassPreferences.Cards)
     val wallpaper = rememberAppWallpaper(repository)
+    // 启动遮罩放行信号：壁纸（可选）解码完成后，再等一帧让壁纸真正画上屏幕。
+    // 否则撤掉 Splash 的那一帧底下还是纯色底，用户会看到"先闪一下底色才出壁纸"。
+    LaunchedEffect(wallpaper) {
+        while (wallpaper.busy) withFrameNanos { }
+        withFrameNanos { }
+        onShellReady()
+    }
     CompositionLocalProvider(
         LocalGlassEffectsEnabled provides glassEffectsEnabled,
         LocalUiGlassSettings provides glassSettings,

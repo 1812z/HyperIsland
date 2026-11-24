@@ -54,7 +54,7 @@
             android:exported="true"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode|density|fontScale|locale|layoutDirection"
             android:windowSoftInputMode="adjustResize"
-            android:theme="@style/ComposeTheme">
+            android:theme="@style/ComposeTheme.Starting">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="de.robv.android.xposed.category.MODULE_SETTINGS"/>
