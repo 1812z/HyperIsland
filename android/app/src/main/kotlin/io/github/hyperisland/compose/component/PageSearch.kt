@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import io.github.hyperisland.compose.theme.LocalTopBarGlassEnabled
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -29,7 +30,8 @@ internal fun PageSearchField(
     onQueryChange: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val backdrop = uiGlassBackdrop()
+    // 顶栏内控件跟随顶栏开关：关掉顶栏模糊后搜索框回退为实色胶囊，避免顶栏里只剩控件还透。
+    val backdrop = if (LocalTopBarGlassEnabled.current) uiGlassBackdrop() else null
     val colors = MiuixTheme.colorScheme
     val textStyle = MiuixTheme.textStyles.body1
     val focusManager = LocalFocusManager.current

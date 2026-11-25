@@ -78,6 +78,7 @@ import androidx.navigationevent.NavigationEventHandler
 import androidx.navigationevent.findViewTreeNavigationEventDispatcherOwner
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.component.AppActionButton
+import io.github.hyperisland.compose.component.AppModalIconButton
 import io.github.hyperisland.compose.component.AppTextField
 import io.github.hyperisland.compose.component.PageSearchField
 import io.github.hyperisland.compose.component.AppCard
@@ -126,7 +127,6 @@ import top.yukonga.miuix.kmp.basic.DropdownEntry
 import top.yukonga.miuix.kmp.basic.DropdownItem
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.basic.SnackbarHost
 import top.yukonga.miuix.kmp.basic.SnackbarHostState
@@ -1153,12 +1153,12 @@ private fun NewPresetBottomSheet(
         backgroundColor = presetSheetColor(),
         insideMargin = DpSize(12.dp, 0.dp),
         startAction = {
-            IconButton(onClick = onDismiss) {
+            AppModalIconButton(onClick = onDismiss) {
                 Icon(MiuixIcons.Basic.Close, contentDescription = stringResource(R.string.close))
             }
         },
         endAction = {
-            IconButton(onClick = ::save, enabled = canSave) {
+            AppModalIconButton(onClick = ::save, enabled = canSave) {
                 Icon(MiuixIcons.Basic.Check, contentDescription = stringResource(R.string.save))
             }
         },
@@ -1458,7 +1458,7 @@ private fun ApplyPresetBottomSheet(
         startAction = {
             // 仅本地预设显示左上角关闭图标。
             if (preset.local) {
-                IconButton(onClick = onDismiss) {
+                AppModalIconButton(onClick = onDismiss) {
                     Icon(MiuixIcons.Basic.Close, contentDescription = stringResource(R.string.close))
                 }
             }
@@ -1467,7 +1467,7 @@ private fun ApplyPresetBottomSheet(
         // 删除必须先过一次确认弹窗，避免误触后连云端那条也再也改不动。
         endAction = {
             if (preset.local && view == PresetSheetView.Detail) {
-                IconButton(onClick = { showDeleteConfirm = true }) {
+                AppModalIconButton(onClick = { showDeleteConfirm = true }) {
                     Icon(
                         imageVector = MiuixIcons.Delete,
                         contentDescription = stringResource(R.string.preset_delete),

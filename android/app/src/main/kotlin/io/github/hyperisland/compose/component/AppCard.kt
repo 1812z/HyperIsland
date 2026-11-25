@@ -27,6 +27,7 @@ import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
+import top.yukonga.miuix.kmp.glass.GlassCard
 import top.yukonga.miuix.kmp.glass.glassPanel
 import top.yukonga.miuix.kmp.material.GlassEdgeStrokes
 import top.yukonga.miuix.kmp.material.GlassMaterials
@@ -106,24 +107,27 @@ internal fun AppCard(
     val supportsPageGlass = isPageSurface || (glassOnTransparentSurface && color == Color.Transparent)
     val modalGlass = LocalModalGlassEnabled.current
     val backdrop = LocalWallpaperCardBackdrop.current
-    val isDark = colorScheme.background.luminance() < 0.5f
+    if (modalGlass == true && isPageSurface) {
+        GlassCard(
+            modifier = modifier,
+            cornerRadius = cornerRadius,
+            insideMargin = insideMargin,
+            colors = colors.copy(color = modalCardFill()),
+            pressFeedbackType = pressFeedbackType,
+            showIndication = showIndication,
+            holdDownState = holdDownState,
+            onClick = onClick,
+            onLongPress = onLongPress,
+            content = content,
+        )
+        return
+    }
     if (modalGlass != null || backdrop == null || !supportsPageGlass) {
-        // The surrounding modal already blurs the scene. Let it show through the card fill.
-        val cardColors = if (modalGlass == true && isPageSurface) {
-            val fill = if (isDark) {
-                colorScheme.onSurfaceContainer.copy(alpha = 0.08f)
-            } else {
-                color.copy(alpha = 0.55f)
-            }
-            colors.copy(color = fill)
-        } else {
-            colors
-        }
         Card(
             modifier = modifier,
             cornerRadius = cornerRadius,
             insideMargin = insideMargin,
-            colors = cardColors,
+            colors = colors,
             pressFeedbackType = pressFeedbackType,
             showIndication = showIndication,
             holdDownState = holdDownState,
@@ -135,6 +139,7 @@ internal fun AppCard(
     }
 
     val glass = LocalCardGlassSettings.current
+    val isDark = colorScheme.background.luminance() < 0.5f
     val shape = remember(cornerRadius) { GlassShape(cornerRadius) }
     val tint = color.copy(alpha = color.alpha * 0.3f * glass.tintStrength)
     val panel = Modifier.glassPanel(

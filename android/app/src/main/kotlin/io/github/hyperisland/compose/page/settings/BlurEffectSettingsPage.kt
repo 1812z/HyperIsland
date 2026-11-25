@@ -15,12 +15,15 @@ import io.github.hyperisland.compose.component.PreferenceSlider
 import io.github.hyperisland.compose.component.PreferenceSwitch
 import io.github.hyperisland.compose.component.SectionTitle
 import io.github.hyperisland.compose.data.FlutterPrefsRepository
+import io.github.hyperisland.compose.data.rememberBooleanPreference
+import io.github.hyperisland.compose.theme.DEFAULT_TOP_BAR_GLASS_ENABLED
 import io.github.hyperisland.compose.theme.GlassPreferences
 import io.github.hyperisland.compose.theme.LocalCardGlassSettings
 import io.github.hyperisland.compose.theme.LocalNavigationBarGlassSettings
 import io.github.hyperisland.compose.theme.LocalUiGlassSettings
 import io.github.hyperisland.compose.theme.MAX_UI_GLASS_BLUR_RADIUS
 import io.github.hyperisland.compose.theme.MAX_UI_GLASS_TRANSPARENCY
+import io.github.hyperisland.compose.theme.PREF_TOP_BAR_GLASS_ENABLED
 import io.github.hyperisland.compose.theme.UiGlassSettings
 import kotlin.math.roundToInt
 
@@ -29,7 +32,27 @@ internal fun BlurEffectSettingsPage(prefs: FlutterPrefsRepository, onBack: () ->
     val interfaceGlass = LocalUiGlassSettings.current
     val navigationBarGlass = LocalNavigationBarGlassSettings.current
     val cardGlass = LocalCardGlassSettings.current
+    val topBarGlassEnabled = rememberBooleanPreference(
+        prefs,
+        PREF_TOP_BAR_GLASS_ENABLED,
+        DEFAULT_TOP_BAR_GLASS_ENABLED,
+    )
     DetailPage(title = stringResource(R.string.blur_effect_settings), onBack = onBack) {
+        // 顶栏只有开关，没有透明度 / 模糊半径调节。
+        item {
+            SectionTitle(stringResource(R.string.blur_effect_top_bar_section))
+            AppCard(modifier = Modifier.fillMaxWidth()) {
+                PreferenceSwitch(
+                    title = stringResource(R.string.top_bar_glass_effect),
+                    summary = null,
+                    icon = null,
+                    checked = topBarGlassEnabled.value,
+                ) { enabled ->
+                    topBarGlassEnabled.value = enabled
+                    prefs.putBoolean(PREF_TOP_BAR_GLASS_ENABLED, enabled)
+                }
+            }
+        }
         item {
             SectionTitle(stringResource(R.string.blur_effect_interface_section))
             AppCard(modifier = Modifier.fillMaxWidth()) {

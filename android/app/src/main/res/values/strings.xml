@@ -545,6 +545,8 @@
     <string name="glass_effects_master_switch">Enable all blur effects</string>
     <string name="blur_effect_settings">Blur effect settings</string>
     <string name="blur_effect_interface_section">Interface blur</string>
+    <string name="blur_effect_top_bar_section">Top bar</string>
+    <string name="top_bar_glass_effect">Top bar blur</string>
     <string name="blur_effect_navigation_bar_section">Bottom bar</string>
     <string name="navigation_bar_glass_effect">Bottom bar blur</string>
     <string name="blur_effect_cards_section">Cards</string>

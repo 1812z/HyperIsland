@@ -30,11 +30,15 @@ internal const val PREF_NAVIGATION_BAR_GLASS_ENABLED = "pref_navigation_bar_glas
 internal const val PREF_NAVIGATION_BAR_GLASS_TRANSPARENCY = "pref_navigation_bar_glass_transparency"
 internal const val PREF_NAVIGATION_BAR_GLASS_BLUR_RADIUS = "pref_navigation_bar_glass_blur_radius"
 internal const val PREF_NAVIGATION_BAR_STYLE = "pref_navigation_bar_style"
+internal const val PREF_TOP_BAR_GLASS_ENABLED = "pref_top_bar_glass_enabled"
 internal const val DEFAULT_UI_GLASS_ENABLED = true
 internal const val DEFAULT_UI_GLASS_TRANSPARENCY = 5L
 internal const val DEFAULT_UI_GLASS_BLUR_RADIUS = 30L
 internal const val MAX_UI_GLASS_TRANSPARENCY = 100L
 internal const val MAX_UI_GLASS_BLUR_RADIUS = 80L
+
+/** 顶栏（PageTopAppBar）通透模糊的独立开关，默认开启；不提供强度调节。 */
+internal const val DEFAULT_TOP_BAR_GLASS_ENABLED = true
 
 internal enum class NavigationBarStyle(val storedValue: String) {
     Default("default"),
@@ -86,6 +90,7 @@ internal enum class GlassPreferences(
 }
 
 internal val LocalGlassEffectsEnabled = compositionLocalOf { true }
+internal val LocalTopBarGlassEnabled = compositionLocalOf { DEFAULT_TOP_BAR_GLASS_ENABLED }
 internal val LocalUiGlassSettings = staticCompositionLocalOf { UiGlassSettings() }
 internal val LocalNavigationBarGlassSettings = staticCompositionLocalOf { UiGlassSettings() }
 internal val LocalCardGlassSettings = staticCompositionLocalOf {

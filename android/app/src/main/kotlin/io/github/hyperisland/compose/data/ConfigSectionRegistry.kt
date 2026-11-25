@@ -12,6 +12,7 @@ import io.github.hyperisland.compose.theme.PREF_CARD_GLASS_TRANSPARENCY
 import io.github.hyperisland.compose.theme.PREF_FLOATING_NAVIGATION_BAR
 import io.github.hyperisland.compose.theme.PREF_LIQUID_GLASS_NAVIGATION_BAR
 import io.github.hyperisland.compose.theme.PREF_NAVIGATION_BAR_STYLE
+import io.github.hyperisland.compose.theme.PREF_TOP_BAR_GLASS_ENABLED
 import io.github.hyperisland.compose.theme.PREF_UI_GLASS_BLUR_RADIUS
 import io.github.hyperisland.compose.theme.PREF_UI_GLASS_ENABLED
 import io.github.hyperisland.compose.theme.PREF_UI_GLASS_TRANSPARENCY
@@ -216,6 +217,7 @@ internal val ConfigSectionGroups: List<ConfigSection> = listOf(
             PREF_NAVIGATION_BAR_GLASS_ENABLED,
             PREF_NAVIGATION_BAR_GLASS_TRANSPARENCY,
             PREF_NAVIGATION_BAR_GLASS_BLUR_RADIUS,
+            PREF_TOP_BAR_GLASS_ENABLED,
             PREF_WALLPAPER_BLUR_RADIUS,
             PREF_WALLPAPER_BRIGHTNESS,
             PREF_WALLPAPER_DARK_BRIGHTNESS,

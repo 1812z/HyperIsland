@@ -7,19 +7,23 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import io.github.hyperisland.compose.theme.LocalCardGlassSettings
+import io.github.hyperisland.compose.theme.LocalUiGlassSettings
 import io.github.hyperisland.compose.theme.isGlassEnabled
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.ButtonColors
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
+import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextButtonColors
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.basic.TextFieldColors
 import top.yukonga.miuix.kmp.basic.TextFieldDefaults
+import top.yukonga.miuix.kmp.glass.GlassCardDefaults
 import top.yukonga.miuix.kmp.glass.GlassDialogButton
 import top.yukonga.miuix.kmp.glass.GlassDialogButtonDefaults
 import top.yukonga.miuix.kmp.glass.GlassDialogButtonRole
@@ -30,9 +34,60 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 // Null denotes page content; a solid modal explicitly provides false.
 internal val LocalModalGlassEnabled = staticCompositionLocalOf<Boolean?> { null }
 
+private const val ModalControlTransparencyRatio = 0.90f
+private const val ModalControlMinAlpha = 1f - ModalControlTransparencyRatio
+
+@Composable
+private fun modalControlTintStrength(): Float {
+    if (LocalModalGlassEnabled.current != true) return 1f
+    val panelTransparency = 1f - LocalUiGlassSettings.current.tintStrength
+    return 1f - panelTransparency * ModalControlTransparencyRatio
+}
+
+@Composable
+internal fun modalCardFill(): Color {
+    val fill = GlassCardDefaults.color()
+    return fill.copy(alpha = fill.alpha * modalControlTintStrength())
+}
+
+@Composable
+private fun modalInteractiveFill(color: Color): Color {
+    if (LocalModalGlassEnabled.current != true) return color
+    val tintStrength = modalControlTintStrength()
+    // Keep the actual fill visible even when the library's default is already translucent.
+    return color.copy(alpha = ModalControlMinAlpha + (tintStrength - ModalControlMinAlpha) * color.alpha)
+}
+
+@Composable
+private fun modalButtonFill(
+    color: Color,
+    role: GlassDialogButtonRole = GlassDialogButtonRole.Normal,
+): Color {
+    if (LocalModalGlassEnabled.current != true) return color
+    return if (role == GlassDialogButtonRole.Primary) {
+        modalInteractiveFill(color)
+    } else {
+        modalCardFill()
+    }
+}
+
 @Composable
 private fun controlGlassEnabled(): Boolean =
     LocalModalGlassEnabled.current ?: isGlassEnabled(LocalCardGlassSettings.current)
+
+@Composable
+internal fun AppModalIconButton(
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    content: @Composable () -> Unit,
+) {
+    val backgroundColor = if (LocalModalGlassEnabled.current == true) {
+        modalCardFill()
+    } else {
+        Color.Unspecified
+    }
+    IconButton(onClick = onClick, enabled = enabled, backgroundColor = backgroundColor, content = content)
+}
 
 @Composable
 internal fun AppTextField(
@@ -52,11 +107,12 @@ internal fun AppTextField(
 ) {
     if (controlGlassEnabled()) {
         val glassColors = GlassTextFieldDefaults.textFieldColors()
+        val fill = modalInteractiveFill(glassColors.backgroundColor)
         GlassTextField(
             value = value,
             onValueChange = onValueChange,
             modifier = modifier,
-            colors = colors?.copy(backgroundColor = glassColors.backgroundColor) ?: glassColors,
+            colors = (colors ?: glassColors).copy(backgroundColor = fill),
             label = label,
             useLabelAsPlaceholder = useLabelAsPlaceholder,
             keyboardOptions = keyboardOptions,
@@ -106,11 +162,16 @@ internal fun AppActionButton(
             colors?.color == scheme.primary -> GlassDialogButtonRole.Primary
             else -> GlassDialogButtonRole.Normal
         }
+        val glassColors = GlassDialogButtonDefaults.buttonColors(role)
         GlassDialogButton(
             onClick = onClick,
             modifier = modifier,
             enabled = enabled,
             role = role,
+            colors = glassColors.copy(
+                color = modalButtonFill(glassColors.color, role),
+                disabledColor = modalButtonFill(glassColors.disabledColor, role),
+            ),
             cornerRadius = cornerRadius ?: GlassDialogButtonDefaults.CornerRadius,
             minWidth = minWidth ?: GlassDialogButtonDefaults.MinWidth,
             minHeight = minHeight ?: GlassDialogButtonDefaults.MinHeight,

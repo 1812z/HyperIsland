@@ -75,6 +75,11 @@ internal fun HyperIslandTheme(
         )
     }
     val glassEffectsEnabled by rememberBooleanPreference(repository, PREF_GLASS_EFFECTS_ENABLED, true)
+    val topBarGlassEnabled by rememberBooleanPreference(
+        repository,
+        PREF_TOP_BAR_GLASS_ENABLED,
+        DEFAULT_TOP_BAR_GLASS_ENABLED,
+    )
     val glassSettings = rememberGlassSettings(repository, GlassPreferences.Interface)
     val navigationBarGlassSettings = rememberGlassSettings(repository, GlassPreferences.NavigationBar)
     val cardGlassSettings = rememberGlassSettings(repository, GlassPreferences.Cards)
@@ -88,6 +93,7 @@ internal fun HyperIslandTheme(
     }
     CompositionLocalProvider(
         LocalGlassEffectsEnabled provides glassEffectsEnabled,
+        LocalTopBarGlassEnabled provides topBarGlassEnabled,
         LocalUiGlassSettings provides glassSettings,
         LocalNavigationBarGlassSettings provides navigationBarGlassSettings,
         LocalCardGlassSettings provides cardGlassSettings,

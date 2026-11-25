@@ -93,6 +93,11 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 @Composable
 internal fun AppsPage(
     prefs: FlutterPrefsRepository,
+    /**
+     * 当前页是否处于前台。底部根 Tab 切换时 pager 会保留离屏页面继续组合，
+     * 右上角下拉菜单是独立弹窗，不会随页面滑出视口，必须在这里显式收起。
+     */
+    isActive: Boolean,
     selectedMode: Int,
     onSelectedModeChange: (Int) -> Unit,
     onOpenChannels: (InstalledApp) -> Unit,
@@ -107,6 +112,12 @@ internal fun AppsPage(
     val scrollBehavior = MiuixScrollBehavior()
     val appMenuExpanded = remember { mutableStateOf(false) }
     val appMenuAnchor = rememberGlassPopupAnchor()
+
+    // 页面被 Tab 切走（pager 仍保留该页组合）时立即收起右上角菜单，
+    // 否则弹窗会脱离页面一直浮在新 Tab 上。
+    LaunchedEffect(isActive) {
+        if (!isActive) appMenuExpanded.value = false
+    }
     var allApps by remember { mutableStateOf(appsRepository.cachedApps()) }
     var initialLoading by remember { mutableStateOf(allApps.isEmpty()) }
     var showInitialLoadingIndicator by remember { mutableStateOf(false) }

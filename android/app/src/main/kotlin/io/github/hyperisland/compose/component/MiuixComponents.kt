@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.Dp
 import io.github.hyperisland.R
 import io.github.hyperisland.compose.theme.LocalAppWallpaper
+import io.github.hyperisland.compose.theme.LocalTopBarGlassEnabled
 import io.github.hyperisland.compose.theme.LocalUiGlassSettings
 import io.github.hyperisland.compose.theme.uiGlassMaterial
 import top.yukonga.miuix.kmp.basic.BasicComponent
@@ -72,7 +73,8 @@ internal fun PageTopAppBar(
     actions: @Composable RowScope.() -> Unit = {},
     bottomContent: @Composable () -> Unit = {},
 ) {
-    val backdrop = uiGlassBackdrop()
+    // 顶栏通透模糊可单独关闭（主题 → 模糊效果调节 → 顶栏），关闭后回退为顶层色带，不采样页面内容。
+    val backdrop = if (LocalTopBarGlassEnabled.current) uiGlassBackdrop() else null
     val scrolled = remember(scrollBehavior) {
         derivedStateOf { (scrollBehavior?.state?.contentOffset ?: 0f) < 0f }
     }
@@ -123,7 +125,8 @@ internal fun PageTabRow(
     modifier: Modifier = Modifier,
 ) {
     val glass = LocalUiGlassSettings.current
-    val backdrop = uiGlassBackdrop()
+    // 顶栏内控件跟随顶栏开关，与 PageTopAppBar 保持一致。
+    val backdrop = if (LocalTopBarGlassEnabled.current) uiGlassBackdrop() else null
     val tint = MiuixTheme.colorScheme.surface
     val fallbackBackdrop = remember(tint) { TintBackdrop(tint) }
     // The native tab track inherits a fixed action-bar underlay. Draw our material separately.

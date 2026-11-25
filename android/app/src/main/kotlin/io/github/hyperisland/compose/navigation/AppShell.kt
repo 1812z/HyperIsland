@@ -444,6 +444,9 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                 )
                                 1 -> AppsPage(
                                     prefs = prefs,
+                                    // targetPage 在切换动画一开始就更新，菜单能立刻收起，
+                                    // 不会在新页面上多浮半段动画。
+                                    isActive = pagerState.targetPage == page,
                                     selectedMode = appsSelectedMode,
                                     onSelectedModeChange = { appsSelectedMode = it },
                                     onOpenChannels = { app ->

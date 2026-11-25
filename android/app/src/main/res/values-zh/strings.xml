@@ -551,6 +551,8 @@
     <string name="glass_effects_master_switch">模糊效果总开关</string>
     <string name="blur_effect_settings">模糊效果调节</string>
     <string name="blur_effect_interface_section">界面模糊</string>
+    <string name="blur_effect_top_bar_section">顶栏</string>
+    <string name="top_bar_glass_effect">顶栏模糊</string>
     <string name="blur_effect_navigation_bar_section">底栏</string>
     <string name="navigation_bar_glass_effect">底栏模糊</string>
     <string name="blur_effect_cards_section">卡片</string>
