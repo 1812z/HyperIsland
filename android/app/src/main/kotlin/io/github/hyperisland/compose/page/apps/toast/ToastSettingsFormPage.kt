@@ -33,6 +33,7 @@ import io.github.hyperisland.compose.component.parseHexColor
 import io.github.hyperisland.compose.component.toArgbHex
 import io.github.hyperisland.compose.data.DefaultConfigSettings
 import io.github.hyperisland.compose.data.toast.ToastSettingsPatch
+import io.github.hyperisland.compose.page.apps.defaultGlowLabel
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Text
@@ -613,16 +614,6 @@ private fun resolveDynamic(value: String?, defaultValue: Boolean): Boolean = whe
     TRI_OFF -> false
     TRI_DEFAULT -> defaultValue
     else -> false
-}
-
-@Composable
-private fun defaultGlowLabel(defaultMode: String): String = when (defaultMode) {
-    TRI_ON -> stringResource(R.string.default_on)
-    TRI_FOLLOW_DYNAMIC -> stringResource(
-        R.string.default_value,
-        stringResource(R.string.follow_dynamic_color),
-    )
-    else -> stringResource(R.string.default_off)
 }
 
 @Composable

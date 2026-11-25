@@ -7,7 +7,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -38,11 +37,10 @@ internal fun MediaNotificationPage(
     }
     var activeColorTarget by remember { mutableStateOf<ColorTarget?>(null) }
     var selectedColor by remember { mutableStateOf(Color.Red) }
-    val defaultOuterGlow = prefs.getString(PREF_DEFAULT_OUTER_GLOW, TRI_STATE_OFF)
-    val defaultIslandOuterGlow = prefs.getString(PREF_DEFAULT_ISLAND_OUTER_GLOW, TRI_STATE_OFF)
+    val defaults = prefs.defaultConfigSettings()
     val modes = remember { listOf(TRI_STATE_DEFAULT, TRI_STATE_ON, TRI_STATE_OFF, TRI_STATE_FOLLOW_DYNAMIC) }
-    val outerGlowLabels = glowModeLabels(defaultOuterGlow)
-    val islandOuterGlowLabels = glowModeLabels(defaultIslandOuterGlow)
+    val outerGlowLabels = glowModeLabels(defaults.outerGlow)
+    val islandOuterGlowLabels = glowModeLabels(defaults.islandOuterGlow)
 
     fun updateSettings(value: MediaNotificationSettings) {
         draft = value
@@ -174,17 +172,13 @@ internal fun MediaNotificationPage(
 
 @Composable
 private fun glowModeLabels(defaultMode: String): List<String> = listOf(
-    stringResource(
-        if (defaultMode == TRI_STATE_ON) R.string.default_on else R.string.default_off,
-    ),
+    defaultGlowLabel(defaultMode),
     stringResource(R.string.enabled_option),
     stringResource(R.string.disabled_option),
     stringResource(R.string.follow_dynamic_color),
 )
 
 private val MEDIA_ITEM_MARGIN = PaddingValues(horizontal = 18.dp, vertical = 14.dp)
-private const val PREF_DEFAULT_OUTER_GLOW = "pref_default_outer_glow"
-private const val PREF_DEFAULT_ISLAND_OUTER_GLOW = "pref_default_island_outer_glow"
 private const val TRI_STATE_DEFAULT = "default"
 private const val TRI_STATE_ON = "on"
 private const val TRI_STATE_OFF = "off"
