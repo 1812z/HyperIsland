@@ -430,12 +430,12 @@ private fun MaterialStateContent(
                         DecimalMaterialSlider(stringResource(R.string.material_saturation), config.saturation, DEFAULT_MATERIAL.saturation) { onConfigChange(config.copy(saturation = it)) }
                         DecimalMaterialSlider(stringResource(R.string.material_brightness), config.brightness, DEFAULT_MATERIAL.brightness) { onConfigChange(config.copy(brightness = it)) }
                         DecimalMaterialSlider(stringResource(R.string.material_darker), config.softDarker, DEFAULT_MATERIAL.softDarker) { onConfigChange(config.copy(softDarker = it)) }
-                        DecimalMaterialSlider(stringResource(R.string.material_transparency), config.transparency, DEFAULT_MATERIAL.transparency) { onConfigChange(config.copy(transparency = it)) }
+                        DecimalMaterialSlider(stringResource(R.string.transparency), config.transparency, DEFAULT_MATERIAL.transparency) { onConfigChange(config.copy(transparency = it)) }
                         DecimalMaterialSlider(stringResource(R.string.material_burn), config.burn, DEFAULT_MATERIAL.burn) { onConfigChange(config.copy(burn = it)) }
                     }
                 }
                 item {
-                    SectionTitle(stringResource(R.string.material_refraction_section))
+                    SectionTitle(stringResource(R.string.material_refraction))
                     AppCard(modifier = Modifier.fillMaxWidth()) {
                         DecimalMaterialSlider(stringResource(R.string.material_refraction), config.softRefraction, DEFAULT_MATERIAL.softRefraction) { onConfigChange(config.copy(softRefraction = it)) }
                         DecimalMaterialSlider(stringResource(R.string.material_edge_thickness), config.softEdgeThickness, DEFAULT_MATERIAL.softEdgeThickness) { onConfigChange(config.copy(softEdgeThickness = it)) }
@@ -533,10 +533,10 @@ private fun DecimalMaterialSlider(
 @Composable
 private fun materialTypeLabel(type: IslandMaterialType): String = stringResource(
     when (type) {
-        IslandMaterialType.Default -> R.string.material_default
+        IslandMaterialType.Default -> R.string.default_option
         IslandMaterialType.Gaussian -> R.string.material_gaussian
         IslandMaterialType.HighlightGlass -> R.string.material_highlight_glass
-        IslandMaterialType.LiquidGlass -> R.string.material_liquid_glass
+        IslandMaterialType.LiquidGlass -> R.string.liquid_glass
         IslandMaterialType.SoftGlass -> R.string.material_soft_glass
     },
 )

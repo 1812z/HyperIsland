@@ -338,7 +338,7 @@ internal fun KeepIslandPage(
     ) { value -> updateProfile { it.copy(carouselInterval = value) }; showInterval = false }
     ColorPaletteDialog(
         show = showColor,
-        title = stringResource(R.string.keep_island_highlight_color),
+        title = stringResource(R.string.highlight_color),
         initialColor = parseHexColor(profile.highlightColor, Color.Red),
         onDismiss = { showColor = false },
         onDelete = {
@@ -444,7 +444,7 @@ private fun KeepIslandSceneContent(
             SectionTitle(stringResource(R.string.keep_island_island_config))
             AppCard(modifier = Modifier.fillMaxWidth()) {
                 PreferenceSwitch(
-                    title = stringResource(R.string.keep_island_enable),
+                    title = stringResource(R.string.island_enable),
                     summary = null,
                     icon = null,
                     checked = profile.islandEnabled,
@@ -488,7 +488,7 @@ private fun KeepIslandSceneContent(
                             onClick = onShowInterval,
                         )
                         ArrowPreference(
-                            title = stringResource(R.string.keep_island_highlight_color),
+                            title = stringResource(R.string.highlight_color),
                             summary = stringResource(R.string.keep_island_highlight_color_summary),
                             enabled = profileEnabled,
                             insideMargin = SettingsItemMargin,
@@ -502,7 +502,7 @@ private fun KeepIslandSceneContent(
                                     ) {
                                         Icon(
                                             MiuixIcons.Refresh,
-                                            stringResource(R.string.reset_default),
+                                            stringResource(R.string.restore_default),
                                             tint = if (profileEnabled) {
                                                 MiuixTheme.colorScheme.onSurfaceVariantActions
                                             } else {
@@ -596,7 +596,7 @@ private fun KeepIslandSceneContent(
                     items = listOf(
                         stringResource(R.string.keep_island_focus_notification),
                         stringResource(R.string.keep_island_focus_performance),
-                        stringResource(R.string.keep_island_focus_device),
+                        stringResource(R.string.device_panel),
                         stringResource(R.string.keep_island_focus_charging),
                     ),
                     selectedIndex = contentTypeValues.indexOf(profile.focusContentType).coerceAtLeast(0),
@@ -624,10 +624,10 @@ private fun KeepIslandSceneContent(
                         summary = null,
                         icon = null,
                         items = listOf(
-                            stringResource(R.string.keep_island_text_white),
+                            stringResource(R.string.white),
                             stringResource(R.string.keep_island_text_follow_status_bar),
                             stringResource(R.string.keep_island_text_invert_status_bar),
-                            stringResource(R.string.keep_island_text_black),
+                            stringResource(R.string.black),
                         ),
                         selectedIndex = textColorValues.indexOf(profile.expandTextColorMode).coerceAtLeast(0),
                         enabled = profileEnabled && profile.focusNotification,
@@ -761,7 +761,7 @@ private fun RowScope.ColorPreview(value: String, enabled: Boolean) {
 @Composable
 private fun placeholderGroups(): List<PlaceholderGroup> = listOf(
     PlaceholderGroup(
-        stringResource(R.string.keep_island_category_battery),
+        stringResource(R.string.battery),
         listOf(
             placeholder(R.string.keep_placeholder_battery_power, "{battery.power}"),
             placeholder(R.string.keep_placeholder_battery_voltage, "{battery.voltage}"),
@@ -809,7 +809,7 @@ private fun placeholderGroups(): List<PlaceholderGroup> = listOf(
             placeholder(R.string.keep_placeholder_time_12_hour_padded, "{time.hh}"),
             placeholder(R.string.keep_placeholder_time_12_hour, "{time.h}"),
             placeholder(R.string.keep_placeholder_time_minute, "{time.mm}"),
-            placeholder(R.string.keep_placeholder_time_second, "{time.ss}"),
+            placeholder(R.string.seconds, "{time.ss}"),
             placeholder(R.string.keep_placeholder_time_hour_minute, "{time.HH:mm}"),
             placeholder(R.string.keep_placeholder_time_full, "{time.HH:mm:ss}"),
         ),
@@ -833,7 +833,7 @@ private fun placeholderGroups(): List<PlaceholderGroup> = listOf(
         stringResource(R.string.keep_island_category_device),
         listOf(
             placeholder(R.string.keep_placeholder_device_manufacturer, "{device.manufacturer}"),
-            placeholder(R.string.keep_placeholder_device_model, "{device.model}"),
+            placeholder(R.string.device_model, "{device.model}"),
             placeholder(R.string.keep_placeholder_device_name, "{device.name}"),
             placeholder(R.string.keep_placeholder_device_chipset, "{device.chipset}"),
             placeholder(R.string.keep_placeholder_device_uptime, "{device.uptime}"),

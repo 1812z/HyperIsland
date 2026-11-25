@@ -550,7 +550,7 @@ private fun CustomTestDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = DialogContentPadding),
-                label = stringResource(R.string.custom_test_title),
+                label = stringResource(R.string.field_title),
                 useLabelAsPlaceholder = true,
                 singleLine = true,
             )
@@ -577,7 +577,7 @@ private fun CustomTestDialog(
                 SwitchPreference(
                     checked = enableFloat,
                     onCheckedChange = { enableFloat = it },
-                    title = stringResource(R.string.expand_notification),
+                    title = stringResource(R.string.auto_expand_notification),
                     summary = stringResource(R.string.enable_float_summary),
                     insideMargin = SwitchRowMargin,
                 )

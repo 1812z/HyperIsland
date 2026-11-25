@@ -120,7 +120,7 @@ private fun GlassParameterSliders(
     preferences: GlassPreferences,
 ) {
     PreferenceSlider(
-        title = stringResource(R.string.ui_glass_transparency),
+        title = stringResource(R.string.transparency),
         icon = null,
         value = glass.transparency.toFloat(),
         valueText = "${glass.transparency}%",

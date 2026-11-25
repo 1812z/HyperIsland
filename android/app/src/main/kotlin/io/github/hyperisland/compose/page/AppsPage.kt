@@ -286,12 +286,12 @@ internal fun AppsPage(
                     text = stringResource(R.string.filter_apps),
                     children = listOf(
                         DropdownItem(
-                            text = stringResource(R.string.filter_enabled_apps),
+                            text = stringResource(R.string.state_enabled),
                             selected = showEnabledApps,
                             onClick = { showEnabledApps = !showEnabledApps },
                         ),
                         DropdownItem(
-                            text = stringResource(R.string.filter_disabled_apps),
+                            text = stringResource(R.string.state_disabled),
                             selected = showDisabledApps,
                             onClick = { showDisabledApps = !showDisabledApps },
                         ),

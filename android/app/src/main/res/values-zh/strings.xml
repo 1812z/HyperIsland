@@ -10,7 +10,7 @@
     <string name="privacy_consent_accept">同意并继续</string>
     <string name="onboarding_privacy_title">协议与声明</string>
     <string name="onboarding_privacy_agreement">我已仔细阅读并同意上述条款</string>
-    <string name="screen_recorder_dialog_title">屏幕录制</string>
+    <string name="screen_recording">屏幕录制</string>
     <string name="screen_recorder_resolution">分辨率</string>
     <string name="screen_recorder_resolution_system">跟随系统设置</string>
     <string name="screen_recorder_sound_source">声音来源</string>
@@ -33,7 +33,6 @@
     <string name="screen_recorder_pause">暂停</string>
     <string name="screen_recorder_resume">继续</string>
     <string name="screen_recorder_stop">结束</string>
-    <string name="screen_recorder_cancel">取消</string>
     <string name="screen_recorder_notification_recording_title">正在录制屏幕</string>
     <string name="screen_recorder_notification_paused_title">录制已暂停</string>
     <string name="screen_recorder_notification_recording_text">可暂停或停止并保存录制</string>
@@ -43,10 +42,8 @@
     <string name="ext_screen_recorder_island_summary">使用超级岛代替官方录屏悬浮窗</string>
     <string name="ext_screen_recorder_immediate_start">立刻录制</string>
     <string name="ext_screen_recorder_immediate_start_summary">点击通知栏磁贴后不显示询问弹窗，直接开始录制</string>
-    <string name="ext_screen_recorder_icon_style">图标样式</string>
     <string name="ext_screen_recorder_icon_style_summary">选择超级岛显示的图标样式</string>
     <string name="ext_screen_recorder_icon_voice_recorder">录音机</string>
-    <string name="ext_screen_recorder_icon_screen_recorder">屏幕录制</string>
     <string name="ext_screen_recorder_compatibility_title">兼容性提醒</string>
     <string name="ext_screen_recorder_compatibility_summary">该功能可能仅支持部分版本的屏幕录制。点击下载 4.16.2.6.1 版本</string>
     <string name="ext_screenshot">截屏</string>
@@ -65,21 +62,12 @@
     <string name="island_state_downloading">下载中</string>
 
     <!-- 下载专用标题 -->
-    <string name="island_download_complete">下载完成</string>
-    <string name="island_download_paused">已暂停</string>
-    <string name="island_download_waiting">等待中</string>
-    <string name="island_downloading">下载中</string>
-    <string name="island_downloading_progress">下载中 %d%%</string>
-    <string name="island_aod_paused_progress">已暂停 %d%%</string>
-    <string name="island_aod_downloading_progress">下载中 %d%%</string>
 
     <!-- 下载操作按钮 -->
     <string name="island_action_resume_all">全部恢复</string>
     <string name="island_action_resume">恢复</string>
     <string name="island_action_pause_all">全部暂停</string>
-    <string name="island_action_pause">暂停</string>
     <string name="island_action_cancel_all">全部取消</string>
-    <string name="island_action_cancel">取消</string>
 
     <!-- 蓝牙岛 -->
     <string name="bluetooth_connected">已连接</string>
@@ -132,8 +120,6 @@
     <string name="hide_system_apps">隐藏系统应用</string>
     <string name="refresh_list">刷新列表</string>
     <string name="filter_apps">筛选</string>
-    <string name="filter_enabled_apps">已启用</string>
-    <string name="filter_disabled_apps">未启用</string>
     <string name="filter_user_apps">用户应用</string>
     <string name="filter_system_apps">系统应用</string>
     <string name="filter_configured_apps">已配置</string>
@@ -169,14 +155,12 @@
     <string name="normal_notification">普通通知</string>
     <string name="normal_notification_summary">开启后移除媒体字段，按普通通知处理</string>
     <string name="focus_notification">焦点通知</string>
-    <string name="enable_island">小岛</string>
     <string name="outer_glow">外圈光效</string>
     <string name="glow_section">%1$s · 外圈光效</string>
     <string name="out_effect_color">外圈光效颜色</string>
     <string name="restore_default">恢复默认</string>
     <string name="default_on">默认（开启）</string>
     <string name="default_off">默认（关闭）</string>
-    <string name="default_value">默认（%1$s）</string>
     <string name="enabled_option">开启</string>
     <string name="disabled_option">关闭</string>
     <string name="follow_dynamic_color">跟随动态取色</string>
@@ -217,7 +201,7 @@
     <string name="restore_lockscreen_summary">锁屏时跳过焦点通知处理，保持原始通知隐私行为</string>
     <string name="auto_disappear">自动消失</string>
     <string name="default_timeout_summary">通知岛默认自动消失时长</string>
-    <string name="timeout_seconds_value">%1$d 秒</string>
+    <string name="seconds_value">%1$d 秒</string>
     <string name="default_timeout_value">默认（%1$d秒）</string>
     <string name="seconds">秒</string>
     <string name="marquee_channel">消息滚动</string>
@@ -240,8 +224,6 @@
     <string name="status_bar_icon_subtitle_show">强制显示状态栏图标</string>
     <string name="status_bar_icon_subtitle_hide">强制隐藏状态栏图标</string>
     <string name="status_bar_icon_subtitle_system">不修改状态栏图标行为</string>
-    <string name="status_bar_icon_system">跟随系统</string>
-    <string name="glow">外圈光效</string>
     <string name="focus_outer_glow">焦点通知外圈光效</string>
     <string name="island_outer_glow">大岛外圈光效</string>
     <string name="force_outer_glow">全局启用</string>
@@ -253,10 +235,7 @@
     <string name="filter_foreground_description">下面设定的应用启动时，设置其余应用的通知行为</string>
     <string name="filter_exclusion_description">排除列表内应用的通知不受前台规则限制</string>
     <string name="filter_reset_result">已恢复默认配置，共重置 %1$d 个应用</string>
-    <string name="filter_action_default">默认</string>
-    <string name="filter_action_small_only">关闭展开</string>
-    <string name="filter_action_expand">自动展开通知</string>
-    <string name="filter_action_suppress">回退普通通知</string>
+    <string name="disable_expansion">关闭展开</string>
     <string name="filter_mode">过滤模式</string>
     <string name="filter_blacklist">黑名单</string>
     <string name="filter_whitelist">白名单</string>
@@ -266,7 +245,7 @@
     <string name="blacklist_keywords">黑名单关键词</string>
     <string name="add_keyword">添加关键词</string>
     <string name="keyword_hint">输入关键词</string>
-    <string name="remove_keyword">移除</string>
+    <string name="remove">移除</string>
     <string name="keyword_filter_priority">黑名单优先：仅显示命中白名单且未命中黑名单的通知</string>
     <string name="appearance">外观</string>
     <string name="always_on_island">常驻岛</string>
@@ -284,15 +263,11 @@
     <string name="keep_island_follow_default_summary">使用默认场景的全部配置</string>
     <string name="keep_island_island_config">岛配置</string>
     <string name="keep_island_focus_config">焦点通知配置</string>
-    <string name="keep_island_enable">启用岛</string>
     <string name="keep_island_show_notification">通知中心显示</string>
-    <string name="keep_island_enabled">已启用</string>
-    <string name="keep_island_disabled">未启用</string>
     <string name="keep_island_auto_hide">自动隐藏</string>
     <string name="keep_island_auto_hide_summary">通知到来时自动隐藏空白岛，通知消失后自动恢复</string>
     <string name="keep_island_hide_landscape">横屏时隐藏</string>
     <string name="keep_island_hide_landscape_summary">横屏时自动隐藏常驻岛，回到竖屏时恢复</string>
-    <string name="keep_island_highlight_color">高亮颜色</string>
     <string name="keep_island_highlight_color_summary">自定义常驻岛的高亮文字颜色</string>
     <string name="keep_island_text_highlight">文本高亮</string>
     <string name="keep_island_highlight_left">左</string>
@@ -308,7 +283,6 @@
     <string name="keep_island_focus_content_type">展开内容</string>
     <string name="keep_island_focus_notification">普通通知</string>
     <string name="keep_island_focus_performance">性能面板</string>
-    <string name="keep_island_focus_device">设备面板</string>
     <string name="keep_island_focus_charging">电池面板</string>
     <string name="keep_island_notification_title">通知标题</string>
     <string name="keep_island_notification_content">通知正文</string>
@@ -321,7 +295,6 @@
     <string name="keep_island_placeholder_copied">已复制 %1$s</string>
     <string name="keep_island_content_hint">默认空，可输入文本或 %1$s</string>
     <string name="keep_island_default_empty">默认空</string>
-    <string name="keep_island_category_battery">电量</string>
     <string name="keep_island_category_network">网络</string>
     <string name="keep_island_category_time">时间</string>
     <string name="keep_island_category_weather">天气</string>
@@ -351,7 +324,6 @@
     <string name="keep_placeholder_time_12_hour_padded">小时（12 小时制，两位）</string>
     <string name="keep_placeholder_time_12_hour">小时（12 小时制）</string>
     <string name="keep_placeholder_time_minute">分钟</string>
-    <string name="keep_placeholder_time_second">秒</string>
     <string name="keep_placeholder_time_hour_minute">时:分（24 小时制）</string>
     <string name="keep_placeholder_time_full">时:分:秒（24 小时制）</string>
     <string name="keep_placeholder_weather_location">位置</string>
@@ -360,21 +332,17 @@
     <string name="keep_placeholder_display_refresh_rate">屏幕刷新率（Hz）</string>
     <string name="keep_placeholder_display_actual_refresh_rate">实际刷新率（Hz）</string>
     <string name="keep_placeholder_device_manufacturer">设备制造商</string>
-    <string name="keep_placeholder_device_model">设备型号</string>
     <string name="keep_placeholder_device_name">设备名称</string>
     <string name="keep_placeholder_device_chipset">芯片型号</string>
     <string name="keep_placeholder_device_uptime">运行时间</string>
     <string name="keep_island_expand_text_color">焦点通知岛文本颜色</string>
-    <string name="keep_island_text_white">白色</string>
+    <string name="white">白色</string>
     <string name="keep_island_text_follow_status_bar">跟随状态栏图标颜色</string>
     <string name="keep_island_text_invert_status_bar">与状态栏图标颜色相反</string>
-    <string name="keep_island_text_black">黑色</string>
     <string name="clear">清除</string>
     <string name="hook_extension">Hook拓展</string>
-    <string name="ext_system_settings">系统设置</string>
-    <string name="ext_system_ui">系统界面</string>
+    <string name="system_settings">系统设置</string>
     <string name="ext_island_features">超级岛功能</string>
-    <string name="ext_xmsf">小米服务框架</string>
     <string name="ext_download_manager">下载管理程序</string>
     <string name="ext_permission_manager">权限管理服务</string>
     <string name="ext_clipboard_toast_conversion">剪贴板提示转换</string>
@@ -391,13 +359,13 @@
     <string name="ext_settings_entry_position_bottom">底部</string>
     <string name="ext_settings_entry_same_group">归入同一栏目</string>
     <string name="ext_settings_entry_same_group_summary">与位置锚点归入同一栏目</string>
-    <string name="ext_icon_style">图标样式</string>
+    <string name="icon_style">图标样式</string>
     <string name="ext_icon_outline">镂空</string>
     <string name="ext_smoothing">平滑强度</string>
     <string name="ext_unlock_all_focus">移除焦点通知白名单</string>
     <string name="ext_unlock_all_focus_summary">允许所有应用发送焦点通知，无需系统授权</string>
-    <string name="ext_enabled">已开启</string>
-    <string name="ext_disabled">已关闭</string>
+    <string name="state_enabled">已启用</string>
+    <string name="state_disabled">未启用</string>
     <string name="ext_bluetooth_summary">%1$s · 监听蓝牙设备连接和断开，由 SystemUI 代发超级岛</string>
     <string name="ext_heart_rate_summary">%1$s · 读取标准蓝牙心率广播，并在超级岛实时显示心率</string>
     <string name="ext_charge_summary">%1$s · 替换充电超级岛中的功率或电量片段</string>
@@ -412,14 +380,13 @@
     <string name="ext_lockscreen_negative_page_dim">背景压暗</string>
     <string name="ext_lockscreen_negative_page_dim_summary">进入负一屏时叠加暗色背景</string>
     <string name="ext_lockscreen_negative_page_dim_amount">压暗程度</string>
-    <string name="lockscreen_widgets_title_default">小组件</string>
     <string name="ext_lockscreen_negative_page_title">顶部文案</string>
     <string name="ext_lockscreen_negative_page_title_dialog">设置顶部文案</string>
     <string name="ext_lockscreen_negative_page_title_hint">输入顶部文案</string>
     <string name="ext_lockscreen_negative_page_mode">负一屏内容</string>
     <string name="ext_lockscreen_negative_page_mode_summary">选择锁屏负一屏显示的内容</string>
     <string name="ext_lockscreen_page_device_center">设备中心</string>
-    <string name="ext_lockscreen_page_widgets">小组件</string>
+    <string name="lockscreen_widgets">小组件</string>
     <string name="ext_small_icon">小岛图标调节</string>
     <string name="ext_small_icon_enabled">已开启 · 调节小岛图标行为</string>
     <string name="ext_small_icon_disabled">已关闭 · 调节小岛图标行为</string>
@@ -461,13 +428,11 @@
     <string name="ext_show_device_name">显示设备名称</string>
     <string name="ext_show_device_name_summary">连接时右侧先显示设备名称，之后再显示连接状态</string>
     <string name="ext_display_duration">显示时长（秒）</string>
-    <string name="ext_duration_value">%1$d 秒</string>
     <string name="ext_device_whitelist">设备白名单</string>
     <string name="ext_device_whitelist_summary">仅对白名单中的蓝牙设备显示超级岛</string>
     <string name="ext_whitelist_all_hint">未开启白名单时，对所有蓝牙设备生效</string>
     <string name="ext_manage_devices">管理白名单设备</string>
     <string name="ext_selected_devices">已选择 %1$d 个设备</string>
-    <string name="ext_outer_glow">外圈光效</string>
     <string name="ext_bluetooth_glow_summary">控制蓝牙超级岛的外圈光效</string>
     <string name="ext_outer_glow_color">外圈光效颜色</string>
     <string name="ext_choose_devices">选择蓝牙设备</string>
@@ -486,7 +451,7 @@
     <string name="ext_power">功率</string>
     <string name="ext_voltage">电压</string>
     <string name="ext_current">电流</string>
-    <string name="ext_battery_level">电量</string>
+    <string name="battery">电量</string>
     <string name="ext_battery_temperature">电池温度</string>
     <string name="ext_charge_glow_summary">控制充电超级岛的外圈光效</string>
     <string name="ext_face_settings">解锁岛设置</string>
@@ -505,11 +470,9 @@
     <string name="config">配置</string>
     <string name="backup_export_file">导出到文件</string>
     <string name="backup_export_file_summary">将配置保存为 JSON 文件</string>
-    <string name="backup_export_clipboard">导出到剪贴板</string>
     <string name="backup_export_clipboard_summary">将配置复制为 JSON 文本</string>
     <string name="backup_import_file">从文件导入</string>
     <string name="backup_import_file_summary">从 JSON 文件恢复配置</string>
-    <string name="backup_import_clipboard">从剪贴板导入</string>
     <string name="backup_import_clipboard_summary">从剪贴板中的 JSON 文本恢复配置</string>
     <string name="backup_cleanup_section">配置清理</string>
     <string name="backup_clean_uninstalled">清理已卸载应用配置</string>
@@ -541,12 +504,9 @@
     <string name="floating_navigation_bar_summary">使用悬浮风格的底栏</string>
     <string name="liquid_glass_navigation_bar">液态玻璃底栏</string>
     <string name="liquid_glass_navigation_bar_summary">使用液态玻璃效果替换当前悬浮底栏</string>
-    <string name="interface_blur">模糊</string>
-    <string name="interface_blur_summary">启用界面模糊，包括顶部与底部栏</string>
     <string name="navigation_bar_style">底栏样式</string>
     <string name="navigation_bar_style_os3">OS3</string>
     <string name="navigation_bar_style_os4">OS4</string>
-    <string name="navigation_bar_style_liquid_glass">液态玻璃</string>
     <string name="ui_glass_effect">模糊效果</string>
     <string name="glass_effects_master_switch">模糊效果总开关</string>
     <string name="blur_effect_settings">模糊效果调节</string>
@@ -566,12 +526,10 @@
     <string name="wallpaper_dark_brightness">深色亮度</string>
     <string name="wallpaper_dark_brightness_summary">深色模式下在上方亮度基础上再压暗</string>
     <string name="wallpaper_update_failed">无法更新壁纸</string>
-    <string name="ui_glass_transparency">透明度</string>
     <string name="ui_glass_blur_radius">模糊半径</string>
     <string name="predictive_back_distance">预测返回距离</string>
     <string name="predictive_back_distance_summary">调整返回手势中页面的最大横移距离</string>
     <string name="preset_colors">预设色板</string>
-    <string name="reset_default">恢复默认</string>
     <string name="round_icon">通知圆角</string>
     <string name="round_icon_summary">为通知图标添加圆角效果</string>
     <string name="marquee">消息滚动</string>
@@ -625,8 +583,6 @@
     <string name="ai_model_picker_title">选择模型</string>
     <string name="ai_model_picker_search">搜索模型…</string>
     <string name="ai_model_picker_empty">未找到模型</string>
-    <string name="ai_model_picker_retry">重试</string>
-    <string name="ai_model_picker_close">关闭</string>
     <string name="ai_model_picker_error">加载模型列表失败</string>
     <string name="ai_model_picker_unexpected_format">模型列表响应格式异常</string>
     <string name="ai_prompt">系统提示词</string>
@@ -732,15 +688,13 @@
     <string name="hide_desktop_icon_summary">隐藏启动器中的应用图标，隐藏后可通过 LSPosed 管理器打开</string>
     <string name="debug_log">显示调试日志</string>
     <string name="debug_log_summary">开启后输出 Hook 调试日志，关闭时仅保留警告和错误日志</string>
-    <string name="filter_rules_title">过滤规则</string>
     <string name="filter_rules_order">按顺序命中第一条规则</string>
     <string name="filter_rules_order_summary">1. 勿扰　2. 全屏　3. 横屏</string>
     <string name="dnd_behavior">勿扰时</string>
     <string name="fullscreen_rule">全屏时</string>
     <string name="landscape_rule">横屏时</string>
     <string name="fallback_notification">回退普通通知</string>
-    <string name="small_only">关闭展开</string>
-    <string name="expand_notification">自动展开通知</string>
+    <string name="auto_expand_notification">自动展开通知</string>
     <string name="behavior_default">命中时不处理，继续使用默认行为</string>
     <string name="behavior_suppress">命中时回退为普通通知</string>
     <string name="behavior_small_only">命中时只显示小岛，不自动展开</string>
@@ -763,12 +717,9 @@
     <string name="brazilian_portuguese">Português (Brasil)</string>
     <string name="github_summary">1812z/HyperIsland</string>
     <string name="telegram_summary">HyperIsland_Module</string>
-    <string name="enabled">已启用</string>
-    <string name="disabled">未启用</string>
     <string name="lsposed_api">LSPosed API</string>
     <string name="update_lsposed">请更新 LSPosed 版本</string>
     <string name="custom_test_notification">自定义测试通知</string>
-    <string name="custom_test_title">标题</string>
     <string name="custom_test_content">内容</string>
     <string name="clear_previous_notification">清除之前通知</string>
     <string name="clear_previous_notification_summary">发送前先取消已有的超级岛通知</string>
@@ -783,7 +734,6 @@
     <string name="milink_service">小米互联</string>
     <string name="download_manager">下载管理器</string>
     <string name="xmsf">小米服务框架</string>
-    <string name="hook_scope_settings">系统设置</string>
     <string name="screen_recorder">屏幕录制</string>
     <string name="security_center">安全服务</string>
     <string name="restart_root_required">请检查是否已给予本应用 ROOT 权限</string>
@@ -867,7 +817,6 @@
     <string name="invert_background">反跟随岛背景</string>
     <string name="follow_status_bar">跟随状态栏</string>
     <string name="invert_status_bar">反跟随状态栏</string>
-    <string name="icon">图标</string>
     <string name="icon_size">图标大小</string>
     <string name="round_icon_radius">圆角程度</string>
     <string name="icon_padding">图标边距</string>
@@ -876,7 +825,6 @@
     <string name="outline_control">轮廓控制</string>
     <string name="island_outline">岛轮廓</string>
     <string name="focus_outline">焦点通知轮廓</string>
-    <string name="outline_follow_system">跟随系统</string>
     <string name="outline_force_show">强制显示</string>
     <string name="outline_force_hide">强制隐藏</string>
     <string name="always_island_outline">常驻显示岛轮廓</string>
@@ -892,10 +840,9 @@
     <string name="material_follow_big">跟随大岛全局设置</string>
     <string name="material_follow_big_summary">关闭后可为当前状态单独选择材质和参数</string>
     <string name="material_type">玻璃类型</string>
-    <string name="material_default">默认</string>
     <string name="material_gaussian">高斯模糊</string>
     <string name="material_highlight_glass">高光玻璃</string>
-    <string name="material_liquid_glass">液态玻璃</string>
+    <string name="liquid_glass">液态玻璃</string>
     <string name="material_soft_glass">柔光玻璃</string>
     <string name="material_following_type">玻璃类型：%1$s</string>
     <string name="material_blur_section">模糊</string>
@@ -912,9 +859,8 @@
     <string name="material_saturation">饱和度</string>
     <string name="material_brightness">亮度</string>
     <string name="material_darker">压暗</string>
-    <string name="material_transparency">透明度</string>
+    <string name="transparency">透明度</string>
     <string name="material_burn">烧灼</string>
-    <string name="material_refraction_section">折射</string>
     <string name="material_refraction">折射</string>
     <string name="material_edge_thickness">边缘厚度</string>
     <string name="material_shape_edge_width">边缘过渡宽度</string>
@@ -956,7 +902,6 @@
     <string name="onboarding_done">开始使用</string>
     <string name="onboarding_close">退出引导</string>
     <string name="onboarding_status">状态检测</string>
-    <string name="onboarding_retry">重试</string>
     <string name="onboarding_lsposed">LSPosed 激活状态</string>
     <string name="onboarding_root">Root 权限</string>
     <string name="onboarding_app_list">应用列表权限</string>
@@ -967,7 +912,6 @@
     <string name="onboarding_failed">未通过</string>
     <string name="onboarding_protocol_value">版本 %1$d</string>
     <string name="onboarding_android_value">Android %1$d</string>
-    <string name="onboarding_android_limited">A15 系统支持有限</string>
     <string name="onboarding_unsupported">不支持当前系统</string>
     <string name="onboarding_missing_title">缺少必要权限</string>
     <string name="onboarding_missing_message">模块可能无法正常工作</string>
@@ -979,12 +923,9 @@
     <string name="onboarding_focus_embedded_summary">一键开启模块内嵌的两个破解验证功能开关。</string>
     <string name="onboarding_focus_embedded_enabled">两个破解验证功能开关已开启，请手动重启系统界面和小米服务框架。</string>
     <string name="onboarding_focus_enable">一键开启</string>
-    <string name="onboarding_focus_enabled">已开启</string>
     <string name="onboarding_focus_success">已开启，请手动重启系统界面和小米服务框架</string>
     <string name="onboarding_focus_failed">开启失败：%1$s</string>
     <string name="onboarding_focus_wait">下一步 (%1$d秒)</string>
-    <string name="onboarding_focus_notification">焦点通知</string>
-    <string name="onboarding_normal_notification">普通通知</string>
     <string name="onboarding_focus_notification_warning">• 通知占用空间会增加\n• 多条通知无法聚合显示\n• 无法实现快捷回复功能</string>
     <string name="onboarding_normal_notification_warning">• 超级岛下拉小窗会闪烁\n• 无法使用焦点通知自定义</string>
     <string name="onboarding_lsposed_failed">未检测到 LSPosed 激活状态</string>
@@ -994,7 +935,6 @@
     <string name="onboarding_android_failed">系统版本不符合要求，当前 Android %1$d</string>
     <string name="onboarding_environment_dialog_message">请检查权限或者系统是否符合要求</string>
     <string name="onboarding_focus_dialog_message">破解焦点白名单是必须操作，不开启可能导致应用无法显示超级岛</string>
-    <string name="channel_template_section">模板</string>
     <string name="channel_template">模板</string>
     <string name="channel_renderer">样式</string>
     <string name="template_progress">下载</string>
@@ -1006,14 +946,12 @@
     <string name="renderer_image_text_right_button">新图文组件 + 右侧文本按钮</string>
     <string name="renderer_image_text_progress">IM图文组件 + 进度条组件</string>
     <string name="renderer_base_text_progress">文本组件 + 识别图形 + 进度条</string>
-    <string name="channel_enable_island">启用岛</string>
-    <string name="channel_icon_source">图标样式</string>
+    <string name="island_enable">启用岛</string>
     <string name="icon_auto">自动</string>
     <string name="icon_notification_small">通知小图标</string>
     <string name="icon_notification_large">通知大图标</string>
     <string name="icon_app">应用图标</string>
     <string name="default_with_value">默认（%1$s）</string>
-    <string name="default_timeout_seconds">默认（%1$d秒）</string>
     <string name="channel_island_customization">超级岛高级自定义</string>
     <string name="channel_focus_customization">焦点高级自定义</string>
     <string name="channel_aod_customization">息屏内容自定义</string>
@@ -1065,9 +1003,6 @@
     <string name="island_behavior_title">超级岛行为</string>
     <string name="island_behavior_single">单岛样式</string>
     <string name="island_indicator_color">指示器颜色</string>
-    <string name="island_indicator_follow">跟随岛背景</string>
-    <string name="island_indicator_invert">反跟随岛背景</string>
-    <string name="island_indicator_white">白色</string>
     <string name="island_indicator_gap">指示器间隙</string>
     <string name="island_indicator_angle">指示器角度</string>
     <string name="island_indicator_width">指示器宽度</string>
@@ -1077,11 +1012,9 @@
     <string name="mini_bar_normal_summary">通知栏与悬浮通知的下拉横条</string>
     <string name="mini_bar_behavior_hidden">隐藏</string>
     <string name="mini_bar_behavior_hidden_summary">仅设为透明</string>
-    <string name="mini_bar_behavior_removed">移除</string>
     <string name="mini_bar_behavior_removed_summary">完全不显示也不生效</string>
     <string name="expand_collapse_custom">展开态收起动画自定义</string>
     <string name="expand_collapse_custom_summary">自定义展开态收起动画参数</string>
-    <string name="expand_collapse_transparency">透明度</string>
     <string name="expand_collapse_blur">内容模糊度</string>
     <string name="animation_start_degree">开始程度</string>
     <string name="animation_end_degree">截止程度</string>
@@ -1121,6 +1054,10 @@
     <string name="preset_entry_hint">不知道如何配置？点击使用预设~</string>
     <string name="preset_page_title">配置预设</string>
     <string name="preset_search">搜索预设</string>
+    <string name="preset_tab_hot">热门</string>
+    <string name="preset_tab_new">最新</string>
+    <string name="preset_tab_mine">我的</string>
+    <string name="preset_list_empty">这里还没有内容</string>
     <string name="close">关闭</string>
     <string name="preset_new_config">新建配置</string>
     <string name="preset_apply_confirm_title">是否应用配置</string>
@@ -1128,7 +1065,7 @@
     <string name="preset_section_notification">通知</string>
     <string name="preset_section_toast">Toast</string>
     <string name="preset_info_section">配置信息</string>
-    <string name="preset_field_title">标题</string>
+    <string name="field_title">标题</string>
     <string name="preset_field_content">内容</string>
     <string name="preset_field_description">说明</string>
     <string name="preset_field_time">时间</string>
@@ -1140,14 +1077,12 @@
     <string name="preset_status_pending">审核中</string>
     <string name="preset_status_published">已发布</string>
     <string name="preset_status_rejected">审核失败</string>
-    <string name="preset_status_unknown">未知</string>
     <!-- 状态与版本合成一行，如「已发布（1.0.0）」 -->
     <string name="preset_status_with_version">%1$s（%2$s）</string>
     <string name="preset_delete">删除</string>
     <string name="preset_upload">上传</string>
     <string name="preset_copy">复制</string>
     <string name="preset_copy_success">复制成功</string>
-    <string name="preset_apply">应用</string>
     <string name="preset_sort">排序方式</string>
     <string name="preset_sort_name">名称</string>
     <string name="preset_sort_downloads">下载量</string>
@@ -1165,20 +1100,17 @@
     <string name="preset_update_config">更新配置</string>
     <string name="preset_update_failed">更新配置失败</string>
     <string name="preset_modify_success">已覆盖「%1$s」</string>
-    <string name="preset_confirm">确认</string>
     <string name="preset_confirm_delete_title">是否删除</string>
     <string name="preset_confirm_delete_message">删除后永远无法更新云端配置</string>
     <string name="preset_confirm_update_title">是否更新</string>
     <string name="preset_confirm_update_message">此前已上传过配置，继续上传将覆盖配置</string>
     <string name="preset_downloading">下载中…</string>
     <string name="preset_download_failed">下载失败</string>
-    <string name="preset_retry">重试</string>
     <string name="preset_view">查看</string>
     <string name="preset_edit">编辑</string>
     <string name="preset_section_count">%1$d 条配置</string>
-    <string name="preset_saved">已保存</string>
+    <string name="saved">已保存</string>
     <string name="preset_applied_count">成功应用 %1$d 条配置</string>
-    <string name="preset_import_clipboard">从剪贴板导入</string>
     <string name="preset_import_empty">剪贴板没有内容</string>
     <string name="preset_import_failed">剪贴板内容不是有效的预设</string>
     <string name="preset_import_success">已导入「%1$s」</string>
@@ -1201,7 +1133,6 @@
     <string name="ha_status_failed">连接失败，正在重试</string>
     <string name="ha_reconnect">重新连接</string>
     <string name="ha_url_empty">服务器地址为空</string>
-    <string name="ha_saved">已保存</string>
     <string name="ha_subscriptions">订阅</string>
     <string name="ha_subscriptions_empty">还没有订阅，点击右下角 + 添加</string>
     <string name="ha_add">新增订阅</string>
@@ -1225,7 +1156,6 @@
     <string name="ha_condition_changes">任意变化</string>
     <string name="ha_condition_value">条件值</string>
     <string name="ha_notification">通知内容</string>
-    <string name="ha_title_template">标题</string>
     <string name="ha_content_template">内容</string>
     <string name="ha_template_summary">可用占位符：{name} 实体名、{state} 原始状态、{value} 显示值、{unit} 单位、{entity} 实体 ID、{raw} 不带单位的取值、{attributes.xxx} 属性值</string>
     <string name="ha_focus_notification">焦点通知</string>
@@ -1259,7 +1189,7 @@
     <string name="ha_state_rotation">状态轮换</string>
     <string name="ha_rotation_interval">状态轮换间隔</string>
     <string name="ha_show_island_icon">显示岛图标</string>
-    <string name="ha_template_device">设备面板</string>
+    <string name="device_panel">设备面板</string>
     <string name="ha_device_line_1">第一行文本</string>
     <string name="ha_device_line_2">第二行文本</string>
     <string name="ha_device_line_3">第三行文本</string>

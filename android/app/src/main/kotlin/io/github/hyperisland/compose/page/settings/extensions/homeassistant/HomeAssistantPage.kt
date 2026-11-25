@@ -284,7 +284,7 @@ internal fun HomeAssistantPage(
                                         urlValue = draftUrl.trim(),
                                         tokenValue = draftToken.trim(),
                                     )
-                                    show(context.getString(R.string.ha_saved))
+                                    show(context.getString(R.string.saved))
                                 },
                                 modifier = Modifier.weight(1f),
                                 colors = ButtonDefaults.buttonColorsPrimary(),
@@ -368,7 +368,7 @@ internal fun HomeAssistantPage(
             }
             persistSubscriptions(next)
             sheetShown = false
-            show(context.getString(R.string.ha_saved))
+            show(context.getString(R.string.saved))
         },
         onRetry = { connection.reconnect() },
     )

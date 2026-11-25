@@ -45,7 +45,7 @@ internal fun LockscreenNegativePage(
     val actions = rememberHookScopeActions()
     val scopeFailed = stringResource(R.string.ext_scope_failed)
     val restartRequired = stringResource(R.string.restart_scope_app)
-    val defaultTitle = stringResource(R.string.lockscreen_widgets_title_default)
+    val defaultTitle = stringResource(R.string.lockscreen_widgets)
     val enabled = rememberBooleanPreference(
         prefs,
         KEY_LOCKSCREEN_NEGATIVE_PAGE_ENABLED,
@@ -94,7 +94,7 @@ internal fun LockscreenNegativePage(
                     enabled = enabled.value,
                     items = listOf(
                         stringResource(R.string.ext_lockscreen_page_device_center),
-                        stringResource(R.string.ext_lockscreen_page_widgets),
+                        stringResource(R.string.lockscreen_widgets),
                     ),
                     selectedIndex = if (mode.value == LOCKSCREEN_PAGE_MODE_WIDGETS) 1 else 0,
                 ) { index ->

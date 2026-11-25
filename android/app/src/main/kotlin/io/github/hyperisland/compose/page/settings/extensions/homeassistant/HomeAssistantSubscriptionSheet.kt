@@ -240,14 +240,14 @@ internal fun HomeAssistantSubscriptionSheet(
                                 title = stringResource(R.string.ha_template_type),
                                 summary = when (draft.templateType) {
                                     HaTemplateType.CHARGING -> stringResource(R.string.ha_template_charging)
-                                    HaTemplateType.DEVICE -> stringResource(R.string.ha_template_device)
+                                    HaTemplateType.DEVICE -> stringResource(R.string.device_panel)
                                     else -> stringResource(R.string.ha_template_custom)
                                 },
                                 icon = null,
                                 items = listOf(
                                     stringResource(R.string.ha_template_custom),
                                     stringResource(R.string.ha_template_charging),
-                                    stringResource(R.string.ha_template_device),
+                                    stringResource(R.string.device_panel),
                                 ),
                                 selectedIndex = when (draft.templateType) {
                                     HaTemplateType.CHARGING -> 1

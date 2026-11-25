@@ -62,7 +62,7 @@ internal fun ScreenRecorderHookPage(prefs: FlutterPrefsRepository, onBack: () ->
     }
 
     HookExtensionScaffold(
-        title = stringResource(R.string.screen_recorder_dialog_title),
+        title = stringResource(R.string.screen_recording),
         onBack = onBack,
         snackbarHost = { SnackbarHost(actions.snackbar) },
         restartPackages = RESTART_SCOPE_SCREEN_RECORDER,
@@ -106,12 +106,12 @@ internal fun ScreenRecorderHookPage(prefs: FlutterPrefsRepository, onBack: () ->
                         SCREEN_RECORDER_ICON_SCREEN_RECORDER,
                     )
                     PreferenceDropdown(
-                        title = stringResource(R.string.ext_screen_recorder_icon_style),
+                        title = stringResource(R.string.icon_style),
                         summary = stringResource(R.string.ext_screen_recorder_icon_style_summary),
                         icon = null,
                         items = listOf(
                             stringResource(R.string.ext_screen_recorder_icon_voice_recorder),
-                            stringResource(R.string.ext_screen_recorder_icon_screen_recorder),
+                            stringResource(R.string.screen_recording),
                         ),
                         selectedIndex = values.indexOf(screenRecorderIconStyle.value).coerceAtLeast(0),
                     ) { index ->

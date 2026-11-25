@@ -37,8 +37,8 @@ internal fun SystemUiHookPage(
     val actions = rememberHookScopeActions()
     val scopeFailed = stringResource(R.string.ext_scope_failed)
     val restartRequired = stringResource(R.string.restart_scope_app)
-    val enabledText = stringResource(R.string.ext_enabled)
-    val disabledText = stringResource(R.string.ext_disabled)
+    val enabledText = stringResource(R.string.state_enabled)
+    val disabledText = stringResource(R.string.state_disabled)
 
     val smooth = rememberBooleanPreference(prefs, KEY_SMOOTH_ISLAND, false)
     var showSmoothWarning by remember { mutableStateOf(false) }
@@ -75,7 +75,7 @@ internal fun SystemUiHookPage(
     }
 
     HookExtensionScaffold(
-        title = stringResource(R.string.ext_system_ui),
+        title = stringResource(R.string.system_ui),
         onBack = onBack,
         snackbarHost = { SnackbarHost(actions.snackbar) },
         restartPackages = RESTART_SCOPE_SYSTEM_UI,
@@ -117,7 +117,7 @@ internal fun SystemUiHookPage(
                 SettingsAction(
                     title = stringResource(R.string.ext_lockscreen_negative_page),
                     summary = stringResource(
-                        if (lockscreenNegativePage.value) R.string.ext_enabled else R.string.ext_disabled,
+                        if (lockscreenNegativePage.value) R.string.state_enabled else R.string.state_disabled,
                     ),
                     endIcon = MiuixIcons.ChevronForward,
                 ) { onOpenDetail(SystemUiExtensionDetail.LockscreenNegativePage) }

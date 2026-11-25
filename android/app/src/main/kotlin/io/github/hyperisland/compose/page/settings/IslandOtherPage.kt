@@ -55,7 +55,7 @@ internal fun IslandOtherPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) 
             }
         }
         item {
-            SectionTitle(stringResource(R.string.filter_rules_title))
+            SectionTitle(stringResource(R.string.filter_rules))
             AppCard(modifier = Modifier.fillMaxWidth()) {
                 PreferenceDropdown(
                     stringResource(R.string.dnd_behavior),
@@ -64,7 +64,7 @@ internal fun IslandOtherPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) 
                     listOf(
                         stringResource(R.string.default_option),
                         stringResource(R.string.fallback_notification),
-                        stringResource(R.string.small_only),
+                        stringResource(R.string.disable_expansion),
                     ),
                     dndValues.indexOf(dnd.value).coerceAtLeast(0),
                 ) {
@@ -159,7 +159,7 @@ private fun sceneSummary(value: String): String = when (value) {
 private fun sceneLabels() = listOf(
     stringResource(R.string.default_option),
     stringResource(R.string.fallback_notification),
-    stringResource(R.string.expand_notification),
+    stringResource(R.string.auto_expand_notification),
 )
 
 @Composable

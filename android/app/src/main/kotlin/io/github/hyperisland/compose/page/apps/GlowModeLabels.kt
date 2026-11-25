@@ -8,7 +8,7 @@ import io.github.hyperisland.R
 internal fun defaultGlowLabel(defaultMode: String): String = when (defaultMode) {
     "on" -> stringResource(R.string.default_on)
     "follow_dynamic" -> stringResource(
-        R.string.default_value,
+        R.string.default_with_value,
         stringResource(R.string.follow_dynamic_color),
     )
     else -> stringResource(R.string.default_off)

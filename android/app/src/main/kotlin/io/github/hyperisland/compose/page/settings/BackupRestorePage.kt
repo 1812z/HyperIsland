@@ -197,7 +197,7 @@ internal fun BackupRestorePage(onBack: () -> Unit) {
                     onClick = ::exportFile,
                 )
                 BackupRow(
-                    title = stringResource(R.string.backup_export_clipboard),
+                    title = stringResource(R.string.export_to_clipboard),
                     summary = stringResource(R.string.backup_export_clipboard_summary),
                     loading = busyAction == BackupAction.ExportClipboard,
                     enabled = busyAction == null,
@@ -214,7 +214,7 @@ internal fun BackupRestorePage(onBack: () -> Unit) {
                     },
                 )
                 BackupRow(
-                    title = stringResource(R.string.backup_import_clipboard),
+                    title = stringResource(R.string.import_from_clipboard),
                     summary = stringResource(R.string.backup_import_clipboard_summary),
                     loading = busyAction == BackupAction.ImportClipboard,
                     enabled = busyAction == null,

@@ -400,10 +400,10 @@ private fun FilterAppRow(
             FilterActionPreference(
                 app = app,
                 labels = listOf(
-                    stringResource(R.string.filter_action_default),
-                    stringResource(R.string.filter_action_small_only),
-                    stringResource(R.string.filter_action_expand),
-                    stringResource(R.string.filter_action_suppress),
+                    stringResource(R.string.default_option),
+                    stringResource(R.string.disable_expansion),
+                    stringResource(R.string.auto_expand_notification),
+                    stringResource(R.string.fallback_notification),
                 ),
                 selectedIndex = actions.indexOf(action).coerceAtLeast(0),
                 startAction = startAction,

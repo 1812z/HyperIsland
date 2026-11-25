@@ -98,10 +98,10 @@ private fun IslandBehaviorSection(prefs: FlutterPrefsRepository) {
                         summary = null,
                         icon = null,
                         items = listOf(
-                            stringResource(R.string.island_indicator_follow),
-                            stringResource(R.string.island_indicator_invert),
+                            stringResource(R.string.follow_background),
+                            stringResource(R.string.invert_background),
                             stringResource(R.string.black),
-                            stringResource(R.string.island_indicator_white),
+                            stringResource(R.string.white),
                         ),
                         selectedIndex = IslandBehaviorConfig.colors.indexOf(IslandBehaviorConfig.color(color.value)).coerceAtLeast(0),
                     ) { index ->
@@ -162,7 +162,7 @@ private fun MiniBarBehaviorRow(
         stringResource(R.string.follow_system) to null,
         stringResource(R.string.mini_bar_behavior_hidden) to
             stringResource(R.string.mini_bar_behavior_hidden_summary),
-        stringResource(R.string.mini_bar_behavior_removed) to
+        stringResource(R.string.remove) to
             stringResource(R.string.mini_bar_behavior_removed_summary),
     )
     PreferenceDropdownWithSummary(

@@ -70,7 +70,7 @@ internal fun DefaultConfigPage(
     val statusBarIconLabels = listOf(
         stringResource(R.string.enabled_option),
         stringResource(R.string.disabled_option),
-        stringResource(R.string.status_bar_icon_system),
+        stringResource(R.string.follow_system),
     )
     val statusBarIconSummary = stringResource(
         when (settings.statusBarIcon) {
@@ -136,7 +136,7 @@ internal fun DefaultConfigPage(
                 )
                 ArrowPreference(
                     title = stringResource(R.string.auto_disappear),
-                    summary = stringResource(R.string.timeout_seconds_value, settings.timeout),
+                    summary = stringResource(R.string.seconds_value, settings.timeout),
                     insideMargin = DEFAULT_ITEM_MARGIN,
                     onClick = {
                         timeoutText = settings.timeout.toString()
@@ -193,7 +193,7 @@ internal fun DefaultConfigPage(
             }
         }
         item {
-            SectionTitle(stringResource(R.string.glow))
+            SectionTitle(stringResource(R.string.outer_glow))
             AppCard {
                 PageDropdownPreference(
                     items = glowModeLabels,

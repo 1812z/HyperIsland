@@ -73,7 +73,7 @@ internal fun KeywordListDialog(
                                     IconButton(onClick = { draft = draft - keyword }) {
                                         Icon(
                                             MiuixIcons.Close,
-                                            stringResource(R.string.remove_keyword),
+                                            stringResource(R.string.remove),
                                         )
                                     }
                                 },

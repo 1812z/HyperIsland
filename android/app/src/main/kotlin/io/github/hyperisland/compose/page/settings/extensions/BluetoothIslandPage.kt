@@ -159,7 +159,7 @@ internal fun BluetoothIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Un
                 ) { value -> showName.value = value; prefs.putBoolean(KEY_BLUETOOTH_SHOW_DEVICE_NAME, value) }
                 SettingsAction(
                     title = stringResource(R.string.ext_display_duration),
-                    summary = stringResource(R.string.ext_duration_value, duration.value),
+                    summary = stringResource(R.string.seconds_value, duration.value),
                     endIcon = MiuixIcons.ChevronForward,
                 ) {
                     durationDraft.value = duration.value.toString()
@@ -185,7 +185,7 @@ internal fun BluetoothIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Un
                     ) { openDevices() }
                 }
                 PreferenceSwitch(
-                    title = stringResource(R.string.ext_outer_glow),
+                    title = stringResource(R.string.outer_glow),
                     summary = stringResource(R.string.ext_bluetooth_glow_summary),
                     icon = null,
                     checked = outerGlow.value,

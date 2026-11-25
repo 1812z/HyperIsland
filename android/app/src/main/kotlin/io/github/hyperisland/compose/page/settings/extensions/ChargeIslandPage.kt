@@ -46,7 +46,7 @@ internal fun ChargeIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Unit)
         stringResource(R.string.ext_power),
         stringResource(R.string.ext_voltage),
         stringResource(R.string.ext_current),
-        stringResource(R.string.ext_battery_level),
+        stringResource(R.string.battery),
         stringResource(R.string.ext_battery_temperature),
     )
     val durationValues = listOf(MODE_DEFAULT, DURATION_CUSTOM, DURATION_PERSISTENT)
@@ -136,7 +136,7 @@ internal fun ChargeIslandPage(prefs: FlutterPrefsRepository, onBack: () -> Unit)
                             )
                         }
                         PreferenceSwitch(
-                            title = stringResource(R.string.ext_outer_glow),
+                            title = stringResource(R.string.outer_glow),
                             summary = stringResource(R.string.ext_charge_glow_summary),
                             icon = null,
                             checked = outerGlow.value,

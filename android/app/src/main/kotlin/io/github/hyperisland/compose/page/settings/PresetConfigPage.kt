@@ -260,6 +260,24 @@ private fun presetGridColumns(widthDp: Int, heightDp: Int): GridCells {
     return GridCells.Fixed(maxOf(base, needed))
 }
 
+/**
+ * 顶部分段标签：社区列表（按下载量 / 按时间）+ 我的本地预设。
+ *
+ * 取代了原来的「排序方式」二级菜单——排序意图直接摆到顶栏，一次点击即可切换；
+ * [order] 是各自的分段内排序规则，「我的」按时间倒序（本地预设通常就是最近改的那条最有用）。
+ */
+private enum class PresetTab(@StringRes val labelRes: Int, val order: PresetSortOrder) {
+    Hot(R.string.preset_tab_hot, PresetSortOrder.Downloads),
+    New(R.string.preset_tab_new, PresetSortOrder.Date),
+    Mine(R.string.preset_tab_mine, PresetSortOrder.Date),
+}
+
+/** 当前标签下要展示的数据源：社区取云端列表，「我的」取本地预设。 */
+private fun PresetTab.sourceOf(
+    local: List<ConfigPreset>,
+    cloud: List<ConfigPreset>,
+): List<ConfigPreset> = if (this == PresetTab.Mine) local else cloud
+
 @Composable
 private fun ResetConfigDialog(
     show: Boolean,
@@ -420,8 +438,8 @@ internal fun PresetConfigPage(
     }
 
     var reload by remember { mutableIntStateOf(0) }
-    // 默认按下载量排序：云端预设里下载量最能反映「用的人多」，比按时间或名称更有参考价值。
-    var sortOrder by remember { mutableStateOf(PresetSortOrder.Downloads) }
+    // 默认落在「热门」：下载量最能反映「用的人多」，比按时间更有参考价值。
+    var tab by remember { mutableStateOf(PresetTab.Hot) }
     val localPresets = remember(reload, context) { PresetStore.loadLocal(context) }
     val cloudPresets = PresetCloudState.presets
 
@@ -562,18 +580,15 @@ internal fun PresetConfigPage(
         refreshHubStatuses(force = false)
     }
 
-    val localSorted = remember(localPresets, sortOrder) { sortPresets(localPresets, sortOrder) }
-    val otherSorted = remember(cloudPresets, sortOrder) {
-        sortPresets(cloudPresets, sortOrder)
-    }
-
     var searchQuery by remember { mutableStateOf("") }
     val keyword = searchQuery.trim()
-    val localFiltered = remember(localSorted, keyword) {
-        if (keyword.isBlank()) localSorted else localSorted.filter { it.matchesQuery(keyword) }
+    // 一个标签只展示一份列表：社区（热门 / 最新）或本地（我的）。
+    // 本地不再在社区列表里置顶——「我的」独立成标签后，置顶只会打断热门 / 最新自身的排序。
+    val visiblePresets = remember(tab, localPresets, cloudPresets) {
+        sortPresets(tab.sourceOf(localPresets, cloudPresets), tab.order)
     }
-    val otherFiltered = remember(otherSorted, keyword) {
-        if (keyword.isBlank()) otherSorted else otherSorted.filter { it.matchesQuery(keyword) }
+    val visibleFiltered = remember(visiblePresets, keyword) {
+        if (keyword.isBlank()) visiblePresets else visiblePresets.filter { it.matchesQuery(keyword) }
     }
 
     var showNewSheet by remember { mutableStateOf(false) }
@@ -596,7 +611,7 @@ internal fun PresetConfigPage(
     }
 
     val newConfigLabel = stringResource(R.string.preset_new_config)
-    val importLabel = stringResource(R.string.preset_import_clipboard)
+    val importLabel = stringResource(R.string.import_from_clipboard)
     val resetLabel = stringResource(R.string.preset_reset_config)
     val sortLabel = stringResource(R.string.preset_sort)
     val nameLabel = stringResource(R.string.preset_sort_name)
@@ -1106,7 +1121,7 @@ private fun PresetConfirmDialog(
                 onClick = onConfirm,
                 modifier = Modifier.weight(1f),
             ) {
-                Text(stringResource(R.string.preset_confirm))
+                Text(stringResource(R.string.confirm))
             }
             AppActionButton(
                 onClick = onDismiss,
@@ -1181,7 +1196,7 @@ private fun NewPresetBottomSheet(
                         value = titleInput,
                         onValueChange = { if (it.length <= PRESET_TITLE_MAX) titleInput = it },
                         modifier = Modifier.fillMaxWidth(),
-                        label = stringResource(R.string.preset_field_title),
+                        label = stringResource(R.string.field_title),
                         useLabelAsPlaceholder = true,
                         singleLine = true,
                         colors = presetTextFieldColors(),
@@ -1640,7 +1655,7 @@ private fun ApplyPresetBottomSheet(
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             savedMessage.takeIf { it }?.let {
                                 Text(
-                                    text = stringResource(R.string.preset_saved),
+                                    text = stringResource(R.string.saved),
                                     style = MiuixTheme.textStyles.footnote1,
                                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                                 )
@@ -1706,7 +1721,7 @@ private fun ApplyPresetBottomSheet(
                                 HUB_STATUS_PENDING -> stringResource(R.string.preset_status_pending)
                                 HUB_STATUS_PUBLISHED -> stringResource(R.string.preset_status_published)
                                 HUB_STATUS_REJECTED -> stringResource(R.string.preset_status_rejected)
-                                else -> stringResource(R.string.preset_status_unknown)
+                                else -> stringResource(R.string.unknown)
                             }
                         }
                         val statusTint = when (preset.hubStatus) {
@@ -1820,7 +1835,7 @@ private fun ApplyPresetBottomSheet(
                                     onClick = { downloadAttempt++ },
                                     colors = ButtonDefaults.buttonColorsPrimary(),
                                 ) {
-                                    Text(stringResource(R.string.preset_retry))
+                                    Text(stringResource(R.string.retry))
                                 }
                             }
                         }
@@ -1934,7 +1949,7 @@ private fun ApplyPresetBottomSheet(
                                                 modifier = Modifier.weight(1f),
                                                 colors = ButtonDefaults.buttonColorsPrimary(),
                                             ) {
-                                                Text(stringResource(R.string.preset_apply))
+                                                Text(stringResource(R.string.apply))
                                             }
                                         }
                                     } else {
@@ -1955,7 +1970,7 @@ private fun ApplyPresetBottomSheet(
                                                 modifier = Modifier.weight(1f),
                                                 colors = ButtonDefaults.buttonColorsPrimary(),
                                             ) {
-                                                Text(stringResource(R.string.preset_apply))
+                                                Text(stringResource(R.string.apply))
                                             }
                                         }
                                     }

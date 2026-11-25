@@ -93,7 +93,7 @@ internal fun ToastSettingsFormPage(
         isBatch,
         noChange,
         enabled,
-        stringResource(R.string.status_bar_icon_system),
+        stringResource(R.string.follow_system),
     )
     val glowValues = optionalValues(isBatch, TRI_DEFAULT, TRI_ON, TRI_OFF, TRI_FOLLOW_DYNAMIC)
     @Composable
@@ -118,7 +118,7 @@ internal fun ToastSettingsFormPage(
         isBatch,
         noChange,
         if (isBatch) default else stringResource(
-            R.string.default_value,
+            R.string.default_with_value,
             marqueeAutoHideLabel(defaults.marqueeAutoHide),
         ),
         disabled,
@@ -306,7 +306,7 @@ internal fun ToastSettingsFormPage(
         item {
             AnimatedVisibility(visible = forwardOptionsVisible) {
                 Column {
-                    SectionTitle(stringResource(R.string.glow))
+                    SectionTitle(stringResource(R.string.outer_glow))
                     AppCard {
                         FormDropdown(
                             title = stringResource(R.string.focus_notification),
@@ -423,7 +423,7 @@ internal fun ToastSettingsFormPage(
                     )
                 }
                 AppActionTextButton(
-                    text = stringResource(R.string.reset_default),
+                    text = stringResource(R.string.restore_default),
                     onClick = {
                         onStateChange(state.copy(timeout = TRI_DEFAULT))
                         showTimeoutDialog = false
@@ -629,7 +629,7 @@ private fun marqueeAutoHideLabel(value: String): String = when (value) {
 private fun timeoutSummary(value: String?, defaultValue: Int, isBatch: Boolean, noChange: String): String = when {
     value == null && isBatch -> noChange
     value == TRI_DEFAULT -> stringResource(R.string.default_timeout_value, defaultValue)
-    else -> stringResource(R.string.timeout_seconds_value, value?.toIntOrNull() ?: defaultValue)
+    else -> stringResource(R.string.seconds_value, value?.toIntOrNull() ?: defaultValue)
 }
 
 private fun keywordSummary(values: List<String>?, isBatch: Boolean, noChange: String): String? = when {

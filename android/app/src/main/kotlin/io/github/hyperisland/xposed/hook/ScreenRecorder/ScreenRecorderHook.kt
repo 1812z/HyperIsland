@@ -438,7 +438,7 @@ object ScreenRecorderHook : BaseHook() {
                 .ifBlank { fallback }
 
         return ScreenRecorderUiText(
-            dialogTitle = string(R.string.screen_recorder_dialog_title, "屏幕录制"),
+            dialogTitle = string(R.string.screen_recording, "屏幕录制"),
             resolution = string(R.string.screen_recorder_resolution, "分辨率"),
             soundSource = string(R.string.screen_recorder_sound_source, "声音来源"),
             motionPhoto = string(R.string.screen_recorder_motion_photo, "动态照片"),
@@ -475,7 +475,7 @@ object ScreenRecorderHook : BaseHook() {
             pause = string(R.string.screen_recorder_pause, "暂停"),
             resume = string(R.string.screen_recorder_resume, "继续"),
             stop = string(R.string.screen_recorder_stop, "结束"),
-            cancel = string(R.string.screen_recorder_cancel, "取消"),
+            cancel = string(R.string.cancel, "取消"),
             notificationRecordingTitle = string(
                 R.string.screen_recorder_notification_recording_title,
                 "正在录制屏幕",

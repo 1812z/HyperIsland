@@ -91,7 +91,7 @@ internal fun MediaNotificationPage(
             }
         }
         item {
-            SectionTitle(stringResource(R.string.glow))
+            SectionTitle(stringResource(R.string.outer_glow))
             AppCard {
                 PageDropdownPreference(
                     items = outerGlowLabels,

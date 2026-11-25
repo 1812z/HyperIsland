@@ -93,7 +93,7 @@ internal fun AiModelPickerDialog(
                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     )
                     AppActionButton(onClick = { revision++ }, modifier = Modifier.fillMaxWidth()) {
-                        Text(stringResource(R.string.ai_model_picker_retry))
+                        Text(stringResource(R.string.retry))
                     }
                 }
                 models == null -> Row(
@@ -124,7 +124,7 @@ internal fun AiModelPickerDialog(
                 }
             }
             AppActionTextButton(
-                text = stringResource(R.string.ai_model_picker_close),
+                text = stringResource(R.string.close),
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth(),
             )

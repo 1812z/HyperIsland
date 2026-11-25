@@ -53,7 +53,7 @@ internal val RestartScopeTargets = listOf(
     ),
     RestartScopeTarget(
         packageName = "com.android.settings",
-        label = R.string.hook_scope_settings,
+        label = R.string.system_settings,
         command = "am force-stop com.android.settings",
     ),
     RestartScopeTarget(

@@ -129,7 +129,7 @@ internal fun ThemeSettingsPage(
                         stringResource(R.string.default_option),
                         stringResource(R.string.navigation_bar_style_os3),
                         stringResource(R.string.navigation_bar_style_os4),
-                        stringResource(R.string.navigation_bar_style_liquid_glass),
+                        stringResource(R.string.liquid_glass),
                     ),
                     selectedIndex = navigationBarStyle.ordinal,
                 ) { index ->

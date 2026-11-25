@@ -20,7 +20,7 @@ internal fun XmsfHookPage(prefs: FlutterPrefsRepository, onBack: () -> Unit) {
     val unlockAuth = rememberBooleanPreference(prefs, KEY_UNLOCK_FOCUS_AUTH, false)
 
     HookExtensionScaffold(
-        title = stringResource(R.string.ext_xmsf),
+        title = stringResource(R.string.xmsf),
         onBack = onBack,
         snackbarHost = { SnackbarHost(actions.snackbar) },
         restartPackages = RESTART_SCOPE_XMSF,

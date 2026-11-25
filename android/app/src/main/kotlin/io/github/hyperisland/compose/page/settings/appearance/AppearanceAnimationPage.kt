@@ -183,7 +183,7 @@ internal fun AppearanceAnimationPage(prefs: FlutterPrefsRepository, onBack: () -
         item {
             AnimatedVisibility(enabled.value) {
                 Column {
-                    SectionTitle(stringResource(R.string.expand_collapse_transparency))
+                    SectionTitle(stringResource(R.string.transparency))
                     AppCard(modifier = Modifier.fillMaxWidth()) {
                         LongPreferenceSlider(prefs, Keys.TRANSPARENCY_START, R.string.animation_start_degree,
                             0, 100, Keys.DEFAULT_START_PERCENT, unit = SliderUnit.Percent, showDefaultAsSystem = false)

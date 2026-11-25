@@ -153,7 +153,7 @@ internal fun ChannelSettingsFormPage(
         stringResource(R.string.default_with_value, statusBarIconShortLabel(defaults.statusBarIcon)),
         on,
         off,
-        stringResource(R.string.status_bar_icon_system),
+        stringResource(R.string.follow_system),
     )
 
     DetailPage(title = title, onBack = onBack) {
@@ -169,7 +169,7 @@ internal fun ChannelSettingsFormPage(
             }
         }
         item {
-            SectionTitle(stringResource(R.string.channel_template_section))
+            SectionTitle(stringResource(R.string.channel_template))
             AppCard {
                 FormDropdown(
                     title = stringResource(R.string.channel_template),
@@ -214,7 +214,7 @@ internal fun ChannelSettingsFormPage(
                 AnimatedVisibility(visible = !isCountTemplate) {
                     if (isBatch) {
                         FormDropdown(
-                            title = stringResource(R.string.channel_enable_island),
+                            title = stringResource(R.string.island_enable),
                             value = state.islandEnabled,
                             values = listOf(null, true, false),
                             labels = listOf(noChange, on, off),
@@ -222,7 +222,7 @@ internal fun ChannelSettingsFormPage(
                         ) { onStateChange(state.copy(islandEnabled = it)) }
                     } else {
                         PreferenceSwitch(
-                            title = stringResource(R.string.channel_enable_island),
+                            title = stringResource(R.string.island_enable),
                             summary = null,
                             icon = null,
                             checked = state.islandEnabled != false,
@@ -234,7 +234,7 @@ internal fun ChannelSettingsFormPage(
                 AnimatedVisibility(visible = islandVisible) {
                     Column {
                         FormDropdown(
-                            title = stringResource(R.string.channel_icon_source),
+                            title = stringResource(R.string.icon_style),
                             value = state.iconMode,
                             values = optionalValues(
                                 isBatch,
@@ -746,7 +746,7 @@ private fun statusBarIconShortLabel(value: Int): String = stringResource(
     when (value) {
         STATUS_BAR_ICON_SHOW -> R.string.enabled_option
         STATUS_BAR_ICON_HIDE -> R.string.disabled_option
-        else -> R.string.status_bar_icon_system
+        else -> R.string.follow_system
     },
 )
 
@@ -762,8 +762,8 @@ private fun marqueeAutoHideLabel(value: String): String = when (value) {
 @Composable
 private fun timeoutSummary(value: String?, defaultValue: Int, isBatch: Boolean, noChange: String): String = when {
     value == null && isBatch -> noChange
-    value == OPTION_DEFAULT -> stringResource(R.string.default_timeout_seconds, defaultValue)
-    else -> stringResource(R.string.timeout_seconds_value, value?.toIntOrNull() ?: defaultValue)
+    value == OPTION_DEFAULT -> stringResource(R.string.default_timeout_value, defaultValue)
+    else -> stringResource(R.string.seconds_value, value?.toIntOrNull() ?: defaultValue)
 }
 
 @Composable

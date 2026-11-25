@@ -35,7 +35,7 @@ internal fun SystemSettingsHookPage(prefs: FlutterPrefsRepository, onBack: () ->
     val settingsIcon = rememberStringPreference(prefs, KEY_SETTINGS_HOME_ENTRY_ICON_STYLE, MODE_DEFAULT)
 
     HookExtensionScaffold(
-        title = stringResource(R.string.ext_system_settings),
+        title = stringResource(R.string.system_settings),
         onBack = onBack,
         snackbarHost = { SnackbarHost(actions.snackbar) },
         restartPackages = RESTART_SCOPE_SETTINGS,
@@ -92,7 +92,7 @@ internal fun SystemSettingsHookPage(prefs: FlutterPrefsRepository, onBack: () ->
                 AnimatedVisibility(settingsEntry.value) {
                     val values = listOf(MODE_DEFAULT, MODE_OUTLINE)
                     PreferenceDropdown(
-                        title = stringResource(R.string.ext_icon_style),
+                        title = stringResource(R.string.icon_style),
                         summary = null,
                         icon = null,
                         items = listOf(

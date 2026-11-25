@@ -653,7 +653,7 @@ private fun FocusUnlockPanel(
             ) {
                 Text(
                     stringResource(
-                        if (enabled) R.string.onboarding_focus_enabled
+                        if (enabled) R.string.state_enabled
                         else R.string.onboarding_focus_enable,
                     ),
                 )
@@ -681,13 +681,13 @@ private fun NotificationStylePanel(
     }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         NotificationStyleCard(
-            title = stringResource(R.string.onboarding_focus_notification),
+            title = stringResource(R.string.focus_notification),
             assetPath = FOCUS_NOTIFICATION_ASSET,
             selected = defaultFocusNotification,
             onClick = { onChanged(true) },
         )
         NotificationStyleCard(
-            title = stringResource(R.string.onboarding_normal_notification),
+            title = stringResource(R.string.normal_notification),
             assetPath = NORMAL_NOTIFICATION_ASSET,
             selected = !defaultFocusNotification,
             onClick = { onChanged(false) },
@@ -821,7 +821,7 @@ private fun EnvironmentDialog(
         DialogBody(
             message = stringResource(R.string.onboarding_environment_dialog_message),
             leftText = stringResource(R.string.onboarding_continue),
-            rightText = stringResource(R.string.onboarding_retry),
+            rightText = stringResource(R.string.retry),
             onLeft = onContinue,
             onRight = onRetry,
         )

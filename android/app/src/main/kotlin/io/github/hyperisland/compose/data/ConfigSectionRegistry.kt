@@ -362,7 +362,7 @@ internal val ConfigSectionGroups: List<ConfigSection> = listOf(
             ),
             ConfigSection(
                 id = "ext_settings",
-                titleRes = R.string.hook_scope_settings,
+                titleRes = R.string.system_settings,
                 keyPrefixes = listOf("pref_settings_home_entry"),
             ),
             ConfigSection(

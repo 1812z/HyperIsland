@@ -68,13 +68,13 @@ internal fun HookExtensionPage(
             HookAppEntry(
                 detail = HookExtensionDetail.SystemUi,
                 packages = listOf(PKG_SYSTEM_UI),
-                title = R.string.ext_system_ui,
+                title = R.string.system_ui,
                 fallbackIcon = MiuixIcons.Layers,
             ),
             HookAppEntry(
                 detail = HookExtensionDetail.SystemSettings,
                 packages = listOf(PKG_SETTINGS),
-                title = R.string.ext_system_settings,
+                title = R.string.system_settings,
                 fallbackIcon = MiuixIcons.Settings,
             ),
             HookAppEntry(
@@ -86,13 +86,13 @@ internal fun HookExtensionPage(
             HookAppEntry(
                 detail = HookExtensionDetail.Xmsf,
                 packages = listOf(PKG_XMSF),
-                title = R.string.ext_xmsf,
+                title = R.string.xmsf,
                 fallbackIcon = MiuixIcons.Community,
             ),
             HookAppEntry(
                 detail = HookExtensionDetail.ScreenRecorder,
                 packages = listOf(PKG_SCREEN_RECORDER),
-                title = R.string.screen_recorder_dialog_title,
+                title = R.string.screen_recording,
                 fallbackIcon = MiuixIcons.AppRecording,
             ),
             HookAppEntry(
