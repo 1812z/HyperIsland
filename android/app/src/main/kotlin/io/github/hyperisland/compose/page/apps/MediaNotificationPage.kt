@@ -91,14 +91,12 @@ internal fun MediaNotificationPage(
             }
         }
         item {
-            SectionTitle(
-                stringResource(R.string.glow_section, stringResource(R.string.focus_notification)),
-            )
+            SectionTitle(stringResource(R.string.glow))
             AppCard {
                 PageDropdownPreference(
                     items = outerGlowLabels,
                     selectedIndex = modes.indexOf(draft.outerGlow).coerceAtLeast(0),
-                    title = stringResource(R.string.outer_glow),
+                    title = stringResource(R.string.focus_outer_glow),
                     onSelectedIndexChange = { index -> updateSettings(draft.copy(outerGlow = modes[index])) },
                     enabled = draft.enabled,
                     insideMargin = MEDIA_ITEM_MARGIN,
@@ -114,17 +112,10 @@ internal fun MediaNotificationPage(
                         },
                     )
                 }
-            }
-        }
-        item {
-            SectionTitle(
-                stringResource(R.string.glow_section, stringResource(R.string.enable_island)),
-            )
-            AppCard {
                 PageDropdownPreference(
                     items = islandOuterGlowLabels,
                     selectedIndex = modes.indexOf(draft.islandOuterGlow).coerceAtLeast(0),
-                    title = stringResource(R.string.outer_glow),
+                    title = stringResource(R.string.island_outer_glow),
                     onSelectedIndexChange = { index ->
                         updateSettings(draft.copy(islandOuterGlow = modes[index]))
                     },
