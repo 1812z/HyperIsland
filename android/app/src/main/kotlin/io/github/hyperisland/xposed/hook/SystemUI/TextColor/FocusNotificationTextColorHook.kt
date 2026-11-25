@@ -5,14 +5,16 @@ import io.github.hyperisland.xposed.diagnostics.profiledHook
 import android.graphics.Color
 import android.os.Handler
 import android.os.Looper
-import android.view.Choreographer
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.utils.HookUtils
+import io.github.hyperisland.xposed.utils.WeakMemberCache
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
+import java.lang.ref.WeakReference
+import java.lang.reflect.Method
 import java.util.Collections
 import java.util.WeakHashMap
 
@@ -44,21 +46,18 @@ object FocusNotificationTextColorHook : BaseHook() {
         Collections.newSetFromMap(WeakHashMap<TextView, Boolean>())
     )
 
-    /** 模块根视图正在排队的一次遍历，避免一次 bind 重复遍历。弱引用键。 */
-    private val pendingWalks = Collections.synchronizedMap(WeakHashMap<View, Any>())
-
-    @Volatile private var islandAnimationRunning = false
-    @Volatile private var pendingTintRefresh = false
-    @Volatile private var tintRefreshScheduled = false
+    private val pendingWalks = NotificationColorPreDraw { root ->
+        val mode = currentMode()
+        if (TextColorPolicy.isConfigured(mode)) {
+            runCatching { applyTree(root, mode, statusBarTintBlack()) }
+        }
+    }
+    private val getters = WeakMemberCache<Method> { type, name ->
+        runCatching { type.getMethod(name) }.getOrNull()
+    }
 
     private val statusBarTintListener: (Int) -> Unit = {
-        if (isStatusBarMode()) {
-            if (islandAnimationRunning || tintRefreshScheduled) {
-                pendingTintRefresh = true
-            } else {
-                refreshTrackedColors()
-            }
-        }
+        if (isStatusBarMode()) refreshTrackedColors()
     }
 
     override fun getTag() = TAG
@@ -93,14 +92,10 @@ object FocusNotificationTextColorHook : BaseHook() {
         }
 
         runCatching {
-            val coordinatorClass = classLoader.loadClass(DYNAMIC_ISLAND_EVENT_COORDINATOR_CLASS)
-            if (hookedClasses.add(coordinatorClass)) {
-                hookAnimationLifecycle(module, coordinatorClass)
-            }
+            val preHandlerClass = classLoader.loadClass(FOCUS_PRE_HANDLER_CLASS)
+            if (hookedClasses.add(preHandlerClass)) hookCreateCustomView(module, preHandlerClass)
         }.onFailure { error ->
-            if (error !is ClassNotFoundException) {
-                logError(module, "failed to hook $DYNAMIC_ISLAND_EVENT_COORDINATOR_CLASS: ${error.message}")
-            }
+            if (error !is ClassNotFoundException) logError(module, "failed to hook focus pre-handler: $error")
         }
 
         runCatching {
@@ -143,10 +138,32 @@ object FocusNotificationTextColorHook : BaseHook() {
             }
     }
 
+    private fun hookCreateCustomView(module: XposedModule, preHandlerClass: Class<*>) {
+        preHandlerClass.declaredMethods.filter { it.name == "createCustomView" }.forEach { method ->
+            val contentIndex = method.parameterTypes.indexOfFirst { it.name == FOCUS_CONTENT_CLASS }
+            if (contentIndex < 0) return@forEach
+            method.isAccessible = true
+            module.profiledHook("FocusNotificationTextColorHook", method).intercept { chain ->
+                val result = chain.proceed()
+                val content = chain.args[contentIndex]
+                if (content != null && TextColorPolicy.isConfigured(currentMode())) {
+                    runCatching {
+                        for (name in CUSTOM_VIEW_GETTERS) {
+                            val root = getters.get(content.javaClass, name)?.invoke(content) as? View
+                            if (root != null) scheduleViewWalk(root)
+                        }
+                    }
+                }
+                result
+            }
+        }
+    }
+
     private fun hookHolderLifecycle(module: XposedModule, holderClass: Class<*>) {
         holderClass.declaredMethods
             .filter { method ->
-                (method.name == "bind" && method.parameterTypes.size == 2) ||
+                ((method.name == "bind" || method.name == "updatePartial") &&
+                    method.parameterTypes.size == 2) ||
                     (method.name == "initTextAndColor" && method.parameterTypes.size == 1)
             }
             .forEach { method ->
@@ -154,8 +171,10 @@ object FocusNotificationTextColorHook : BaseHook() {
                 module.profiledHook("FocusNotificationTextColorHook", method).intercept { chain ->
                     val result = chain.proceed()
                     val holder = chain.thisObject
-                    if (holder != null && isFocusHolder(holder)) {
-                        scheduleWalk(holder)
+                    if (holder != null && TextColorPolicy.isConfigured(currentMode()) &&
+                        isFocusHolder(holder)
+                    ) {
+                        getHolderView(holder)?.let(::scheduleViewWalk)
                     }
                     result
                 }
@@ -163,44 +182,33 @@ object FocusNotificationTextColorHook : BaseHook() {
             }
     }
 
-    private fun scheduleWalk(holder: Any) {
-        if (!TextColorPolicy.isConfigured(currentMode())) return
-        val root = getHolderView(holder) ?: return
-        scheduleViewWalk(root)
-    }
-
-    /** 主线程去重遍历 [root] 子树并重刷灰度文本颜色。 */
     private fun scheduleViewWalk(root: View) {
-        val token = Any()
-        synchronized(pendingWalks) { pendingWalks[root] = token }
-        mainHandler.post {
-            val current = synchronized(pendingWalks) { pendingWalks[root] }
-            if (current !== token) return@post
-            synchronized(pendingWalks) { pendingWalks.remove(root) }
-            runCatching { applyTree(root) }
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            pendingWalks.schedule(root)
+        } else {
+            val reference = WeakReference(root)
+            mainHandler.post { reference.get()?.let(pendingWalks::schedule) }
         }
     }
 
-    /** 遍历该焦点模块自己的视图子树，重刷灰度文本颜色。 */
-    private fun applyTree(view: View) {
-        if (view is TextView) {
-            applyFocusTextColor(view)
-        }
+    private fun applyTree(view: View, mode: String, sbBlack: Boolean) {
+        if (view is TextView) applyFocusTextColor(view, mode, sbBlack)
         if (view is ViewGroup) {
             for (index in 0 until view.childCount) {
-                applyTree(view.getChildAt(index))
+                applyTree(view.getChildAt(index), mode, sbBlack)
             }
         }
     }
 
-    private fun applyFocusTextColor(textView: TextView) {
-        trackedViews.add(textView)
-        TextColorPolicy.applyForTextView(
-            textView,
-            currentMode(),
-            regionDark = false,
-            statusBarTintBlack = statusBarTintBlack(),
-        )
+    private fun applyFocusTextColor(
+        textView: TextView,
+        mode: String = currentMode(),
+        sbBlack: Boolean = statusBarTintBlack(),
+    ) {
+        synchronized(trackedViews) {
+            if (trackedViews.size < 256) trackedViews.add(textView)
+        }
+        TextColorPolicy.applyForTextView(textView, mode, regionDark = false, statusBarTintBlack = sbBlack)
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -257,42 +265,6 @@ object FocusNotificationTextColorHook : BaseHook() {
         }
     }
 
-    private fun hookAnimationLifecycle(module: XposedModule, coordinatorClass: Class<*>) {
-        coordinatorClass.declaredMethods
-            .filter { method -> method.name == "onAnimationStart" }
-            .forEach { method ->
-                module.profiledHook("FocusNotificationTextColorHook", method).intercept { chain ->
-                    islandAnimationRunning = true
-                    chain.proceed()
-                }
-            }
-        coordinatorClass.declaredMethods
-            .filter { method ->
-                method.name == "onAnimationFinished" || method.name == "onAnimationCancel"
-            }
-            .forEach { method ->
-                module.profiledHook("FocusNotificationTextColorHook", method).intercept { chain ->
-                    val result = chain.proceed()
-                    islandAnimationRunning = false
-                    pendingTintRefresh = true
-                    schedulePendingTintRefresh()
-                    result
-                }
-            }
-        log(module) { "hooked ${coordinatorClass.name} animation lifecycle" }
-    }
-
-    private fun schedulePendingTintRefresh() {
-        if (!pendingTintRefresh || tintRefreshScheduled) return
-        tintRefreshScheduled = true
-        Choreographer.getInstance().postFrameCallback {
-            tintRefreshScheduled = false
-            if (islandAnimationRunning || !pendingTintRefresh) return@postFrameCallback
-            pendingTintRefresh = false
-            refreshTrackedColors()
-        }
-    }
-
     // ---------------------------------------------------------------------------------------------
     // 作用范围与工具
     // ---------------------------------------------------------------------------------------------
@@ -307,16 +279,12 @@ object FocusNotificationTextColorHook : BaseHook() {
     private fun isFocusHolder(holder: Any): Boolean =
         ISLAND_MARKER_METHODS.any { methodName ->
             runCatching {
-                holder.javaClass.methods.firstOrNull { method ->
-                    method.name == methodName && method.parameterTypes.isEmpty()
-                }?.invoke(holder) as? Boolean
+                getters.get(holder.javaClass, methodName)?.invoke(holder) as? Boolean
             }.getOrNull() == true
         }
 
     private fun getHolderView(holder: Any): View? = runCatching {
-        holder.javaClass.methods.firstOrNull { method ->
-            method.name == "getView" && method.parameterTypes.isEmpty()
-        }?.invoke(holder) as? View
+        getters.get(holder.javaClass, "getView")?.invoke(holder) as? View
     }.getOrNull()
 
     private fun currentMode(): String =
@@ -345,6 +313,6 @@ object FocusNotificationTextColorHook : BaseHook() {
         "miui.systemui.notification.focus.moduleV3.ModuleViewHolder"
     private const val FOCUS_CONTENT_CLASS =
         "com.android.systemui.plugins.miui.notification.FocusNotificationContent"
-    private const val DYNAMIC_ISLAND_EVENT_COORDINATOR_CLASS =
-        "miui.systemui.dynamicisland.event.DynamicIslandEventCoordinator"
+    private const val FOCUS_PRE_HANDLER_CLASS = "miui.systemui.notification.focus.FocusNotifPreHandler"
+    private val CUSTOM_VIEW_GETTERS = listOf("getIslandExpandedView", "getIslandExpandedViewFake")
 }

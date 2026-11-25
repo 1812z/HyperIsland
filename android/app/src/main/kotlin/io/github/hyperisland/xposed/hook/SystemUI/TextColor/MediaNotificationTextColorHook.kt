@@ -8,7 +8,6 @@ import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
 import android.service.notification.StatusBarNotification
-import android.view.Choreographer
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
@@ -40,12 +39,14 @@ object MediaNotificationTextColorHook : BaseHook() {
     private val subtitleColors = Collections.synchronizedMap(
         WeakHashMap<TextView, ColorStateList>()
     )
-    private val attachRefreshViews = Collections.synchronizedSet(
-        Collections.newSetFromMap(WeakHashMap<TextView, Boolean>())
-    )
-    private val pendingPostViews = Collections.synchronizedMap(
-        WeakHashMap<TextView, Runnable>()
-    )
+    private val pendingColors = NotificationColorPreDraw { view ->
+        val textView = view as TextView
+        val original = (titleColors[textView] ?: subtitleColors[textView])?.defaultColor
+        if (original != null) {
+            runCatching { mapFromOriginal(original)?.let { TextColorPolicy.apply(textView, it) } }
+        }
+    }
+    private val mediaTargets = WeakHashMap<View, MediaTargets>()
     private val expandedViewData = Collections.synchronizedMap(
         // Island data holds getView()/getFakeView(); a strong value would keep its weak key alive.
         WeakHashMap<View, WeakReference<Any>>()
@@ -61,20 +62,12 @@ object MediaNotificationTextColorHook : BaseHook() {
         runCatching { type.getMethod(name) }.getOrNull()
     }
 
-    @Volatile private var islandAnimationRunning = false
-    @Volatile private var pendingTintRefresh = false
-    @Volatile private var tintRefreshScheduled = false
-
     private val statusBarTintListener: (Int) -> Unit = {
         val mode = getConfiguredMode()
         if (mode == TextColorPolicy.MODE_FOLLOW_STATUS_BAR ||
             mode == TextColorPolicy.MODE_INVERT_STATUS_BAR
         ) {
-            if (islandAnimationRunning || tintRefreshScheduled) {
-                pendingTintRefresh = true
-            } else {
-                refreshTrackedColors()
-            }
+            reapplyTrackedColors(mode)
         }
     }
 
@@ -127,58 +120,6 @@ object MediaNotificationTextColorHook : BaseHook() {
             if (error !is ClassNotFoundException) {
                 logError(module, "failed to hook DynamicIslandWindowView: ${error.message}")
             }
-        }
-
-        runCatching {
-            val coordinatorClass = classLoader.loadClass(
-                "miui.systemui.dynamicisland.event.DynamicIslandEventCoordinator"
-            )
-            if (hookedClasses.add(coordinatorClass)) {
-                hookAnimationLifecycle(module, coordinatorClass)
-            }
-        }.onFailure { error ->
-            if (error !is ClassNotFoundException) {
-                logError(module, "failed to hook DynamicIslandEventCoordinator: ${error.message}")
-            }
-        }
-
-    }
-
-    private fun hookAnimationLifecycle(module: XposedModule, coordinatorClass: Class<*>) {
-        coordinatorClass.declaredMethods
-            .filter { method -> method.name == "onAnimationStart" }
-            .forEach { method ->
-                module.profiledHook("MediaNotificationTextColorHook", method).intercept { chain ->
-                    islandAnimationRunning = true
-                    chain.proceed()
-                }
-                log(module) { "hooked media DynamicIslandEventCoordinator#onAnimationStart" }
-            }
-        coordinatorClass.declaredMethods
-            .filter { method ->
-                method.name == "onAnimationFinished" || method.name == "onAnimationCancel"
-            }
-            .forEach { method ->
-                module.profiledHook("MediaNotificationTextColorHook", method).intercept { chain ->
-                    val result = chain.proceed()
-                    islandAnimationRunning = false
-                    // Flush after collapse too; no further tint event is guaranteed.
-                    pendingTintRefresh = true
-                    schedulePendingTintRefresh()
-                    result
-                }
-                log(module) { "hooked media DynamicIslandEventCoordinator#${method.name}" }
-            }
-    }
-
-    private fun schedulePendingTintRefresh() {
-        if (!pendingTintRefresh || tintRefreshScheduled) return
-        tintRefreshScheduled = true
-        Choreographer.getInstance().postFrameCallback {
-            tintRefreshScheduled = false
-            if (islandAnimationRunning || !pendingTintRefresh) return@postFrameCallback
-            pendingTintRefresh = false
-            refreshTrackedColors()
         }
     }
 
@@ -287,8 +228,8 @@ object MediaNotificationTextColorHook : BaseHook() {
         runCatching {
             val extras = invokeNoArg(data, "getExtras") as? Bundle
             val hasMediaPendingIntent = extras
-                ?.getParcelable<PendingIntent>("miui.pending.intent") != null
-            val sbn = extras?.getParcelable<StatusBarNotification>("miui.sbn")
+                ?.getParcelable("miui.pending.intent", PendingIntent::class.java) != null
+            val sbn = extras?.getParcelable("miui.sbn", StatusBarNotification::class.java)
             val sbnMedia = sbn?.notification?.let(::isMediaNotification) == true
             if (!hasMediaPendingIntent && !sbnMedia) return
 
@@ -297,7 +238,9 @@ object MediaNotificationTextColorHook : BaseHook() {
             val fakeRoot = invokeNoArg(data, "getFakeView") as? View
             val roots = (listOfNotNull(realRoot, fakeRoot) + installedRoots()).distinct()
             if (roots.isEmpty()) return
-            val shouldLogProbe = expandedProbeCount.getAndIncrement() < MAX_EXPANDED_PROBES
+            val shouldLogProbe = expandedProbeCount.get() < MAX_EXPANDED_PROBES &&
+                expandedProbeCount.getAndIncrement() < MAX_EXPANDED_PROBES
+            val mode = getConfiguredMode()
             if (shouldLogProbe) {
                 log {
                     val titleProbe = roots.firstNotNullOfOrNull { root ->
@@ -305,7 +248,7 @@ object MediaNotificationTextColorHook : BaseHook() {
                     }
                     "$TAG [MediaTitleDiag] expanded install probe " +
                         "data=${data.javaClass.name}, " +
-                        "pkg=${sbn?.packageName ?: extras?.getString("miui.pkg.name")}, " +
+                        "pkg=${sbn?.packageName ?: extras.getString("miui.pkg.name")}, " +
                         "pendingIntent=$hasMediaPendingIntent, sbnMedia=$sbnMedia, " +
                         "root=${realRoot?.javaClass?.name}, titleId=${titleProbe?.let(::resourceEntryName)}, " +
                         "textViewIds=${roots.flatMap(::collectTextViewResourceNames).distinct()}"
@@ -314,25 +257,32 @@ object MediaNotificationTextColorHook : BaseHook() {
 
             var matched = 0
             var subtitleMatched = 0
-            val handledTitles = mutableSetOf<TextView>()
-            val handledSubtitles = mutableSetOf<TextView>()
-            roots.forEach { root ->
-                findExpandedMediaTitle(root, notification)?.let { title ->
-                    if (handledTitles.add(title)) {
-                        matched++
-                        applyExpandedMediaTextColor(title, false)
+            for (root in roots) {
+                val cached = mediaTargets[root]
+                val title = cached?.title?.get()?.takeIf { isWithinRoot(it, root) }
+                    ?: findMediaTextById(root, internalTitleViewIds, MEDIA_TITLE_IDS)
+                val subtitle = cached?.subtitle?.get()?.takeIf { isWithinRoot(it, root) }
+                    ?: findMediaTextById(root, internalSubtitleViewIds, MEDIA_SUBTITLE_IDS)
+                if (mediaTargets.size < MAX_TRACKED_VIEWS || cached != null) {
+                    if (cached?.title?.get() !== title || cached?.subtitle?.get() !== subtitle) {
+                        mediaTargets[root] = MediaTargets(title?.let(::WeakReference), subtitle?.let(::WeakReference))
                     }
                 }
-                findExpandedMediaSubtitle(root, notification)?.let { subtitle ->
-                    if (handledSubtitles.add(subtitle)) {
-                        subtitleMatched++
-                        applyExpandedMediaTextColor(subtitle, true)
-                    }
+                val resolvedTitle = title ?: findTextViewByExpectedText(root, mediaTextCandidates(notification, true))
+                val resolvedSubtitle = subtitle
+                    ?: findTextViewByExpectedText(root, mediaTextCandidates(notification, false))
+                if (resolvedTitle != null) {
+                    matched++
+                    queueExpandedMediaTextColor(resolvedTitle, titleColors, mode)
+                }
+                if (resolvedSubtitle != null) {
+                    subtitleMatched++
+                    queueExpandedMediaTextColor(resolvedSubtitle, subtitleColors, mode)
                 }
             }
             if (shouldLogProbe) {
                 log { "$TAG [MediaTitleDiag] expanded media color " +
-                        "pkg=${sbn?.packageName ?: extras?.getString("miui.pkg.name")}, " +
+                        "pkg=${sbn?.packageName ?: extras.getString("miui.pkg.name")}, " +
                         "pendingIntent=$hasMediaPendingIntent, sbnMedia=$sbnMedia, " +
                         "realRoot=${realRoot?.javaClass?.name}, roots=${roots.size}, " +
                         "titles=$matched, subtitles=$subtitleMatched" }
@@ -351,95 +301,71 @@ object MediaNotificationTextColorHook : BaseHook() {
         }
     }
 
-private fun applyExpandedMediaTextColor(textView: TextView, subtitle: Boolean) {
-        val originals = if (subtitle) subtitleColors else titleColors
-        var source = 0
-        synchronized(originals) {
-            val existing = originals[textView]
-            if (existing == null) {
+    private fun queueExpandedMediaTextColor(
+        textView: TextView,
+        originals: MutableMap<TextView, ColorStateList>,
+        mode: String,
+    ) {
+        val original = synchronized(originals) {
+            originals[textView] ?: run {
                 if (originals.size >= MAX_TRACKED_VIEWS) return
-                val current = textView.textColors
-                originals[textView] = current
-                source = current.defaultColor
-                ensureAttachRefresh(textView, subtitle)
-            } else {
-                source = existing.defaultColor
+                textView.textColors.also { originals[textView] = it }
             }
         }
-        val target = mapFromOriginal(source) ?: return
-        TextColorPolicy.apply(textView, target)
-        synchronized(pendingPostViews) {
-            if (pendingPostViews.containsKey(textView)) return
-            val targetReference = WeakReference(textView)
-            val refresh = Runnable {
-                val view = targetReference.get() ?: return@Runnable
-                pendingPostViews.remove(view)
-                mapFromOriginal(source)?.let { TextColorPolicy.apply(view, it) }
-            }
-            pendingPostViews[textView] = refresh
-            if (!textView.post(refresh)) pendingPostViews.remove(textView)
+        if (TextColorPolicy.isConfigured(mode) &&
+            TextColorPolicy.isNearGray(original.defaultColor)
+        ) {
+            pendingColors.schedule(textView)
         }
     }
 
-private fun ensureAttachRefresh(textView: TextView, subtitle: Boolean) {
-        if (!attachRefreshViews.add(textView)) return
-        val originals = if (subtitle) subtitleColors else titleColors
-        textView.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
-            override fun onViewAttachedToWindow(view: View) {
-                val target = view as? TextView ?: return
-                val source = synchronized(originals) { originals[target]?.defaultColor } ?: return
-                mapFromOriginal(source)?.let { TextColorPolicy.apply(target, it) }
-            }
-
-            override fun onViewDetachedFromWindow(view: View) {
-                val target = view as? TextView ?: return
-                pendingPostViews.remove(target)?.let { target.removeCallbacks(it) }
-                // Keep the bounded weak color snapshot for SystemUI's detach/reattach reuse.
-            }
-        })
-    }
-
-    private fun refreshTrackedColors() {
-        if (!TextColorPolicy.isConfigured(getConfiguredMode())) return
-        refreshTracked(titleColors)
-        refreshTracked(subtitleColors)
-    }
-
-    private fun refreshTracked(originals: MutableMap<TextView, ColorStateList>) {
-        trackedViews(originals).filter { it.isAttachedToWindow }.forEach { textView ->
-            val source = synchronized(originals) { originals[textView]?.defaultColor } ?: return@forEach
-            mapFromOriginal(source)?.let { TextColorPolicy.apply(textView, it) }
+    private fun isWithinRoot(view: TextView, root: View): Boolean {
+        var current: View? = view
+        while (current != null) {
+            if (current === root) return true
+            current = current.parent as? View
         }
+        return false
     }
 
-    private fun reapplyTrackedColors() {
-        val mode = getConfiguredMode()
-        reapplyTrackedColors(titleColors, mode)
-        reapplyTrackedColors(subtitleColors, mode)
+    private data class MediaTargets(
+        val title: WeakReference<TextView>?,
+        val subtitle: WeakReference<TextView>?,
+    )
+
+    private fun reapplyTrackedColors(mode: String = getConfiguredMode()) {
+        val sbBlack = statusBarTintBlack()
+        reapplyTrackedColors(titleColors, mode, sbBlack)
+        reapplyTrackedColors(subtitleColors, mode, sbBlack)
     }
 
     private fun reapplyTrackedColors(
         originals: MutableMap<TextView, ColorStateList>,
         mode: String,
+        sbBlack: Boolean,
     ) {
         trackedViews(originals).forEach { textView ->
-            val colors = synchronized(originals) { originals[textView] }
-            if (mode == TextColorPolicy.MODE_DEFAULT || colors == null) {
-                colors?.let {
-                    TextColorPolicy.apply(textView, it.defaultColor)
-                    textView.setTextColor(it)
+            val colors = originals[textView] ?: return@forEach
+            if (mode == TextColorPolicy.MODE_DEFAULT) {
+                if (textView.textColors != colors) {
+                    TextColorPolicy.apply(textView, colors.defaultColor)
+                    textView.setTextColor(colors)
                 }
             } else {
-                mapFromOriginal(colors.defaultColor)?.let { TextColorPolicy.apply(textView, it) }
+                mapFromOriginal(colors.defaultColor, mode, sbBlack)?.let { TextColorPolicy.apply(textView, it) }
             }
         }
     }
 
-    private fun mapFromOriginal(color: Int): Int? = TextColorPolicy.map(
+    private fun mapFromOriginal(
+        color: Int,
+        mode: String = getConfiguredMode(),
+        sbBlack: Boolean = statusBarTintBlack(),
+    ): Int? = TextColorPolicy.map(
         color = color,
-        mode = getConfiguredMode(),
+        mode = mode,
         regionDark = false,
-        statusBarTintBlack = statusBarTintBlack(),
+        statusBarTintBlack = sbBlack,
     )
 
     private fun statusBarTintBlack(): Boolean =
@@ -449,25 +375,16 @@ private fun ensureAttachRefresh(textView: TextView, subtitle: Boolean) {
         return synchronized(colors) { colors.keys.toList() }
     }
 
-    private fun findExpandedMediaTitle(root: View, notification: Notification?): TextView? {
-        internalTitleViewIds.firstNotNullOfOrNull { id ->
-            root.findViewById(id) as? TextView
-        }?.let { return it }
-        MEDIA_TITLE_IDS.firstNotNullOfOrNull { id ->
-            findTextViewByResourceName(root, id)
-        }?.let { return it }
-        return findTextViewByExpectedText(root, mediaTextCandidates(notification, true))
-    }
+    private fun findExpandedMediaTitle(root: View, notification: Notification?): TextView? =
+        findMediaTextById(root, internalTitleViewIds, MEDIA_TITLE_IDS)
+            ?: findTextViewByExpectedText(root, mediaTextCandidates(notification, true))
 
-    private fun findExpandedMediaSubtitle(root: View, notification: Notification?): TextView? {
-        internalSubtitleViewIds.firstNotNullOfOrNull { id ->
+    private fun findMediaTextById(root: View, internalIds: List<Int>, resourceNames: List<String>): TextView? =
+        internalIds.firstNotNullOfOrNull { id ->
             root.findViewById(id) as? TextView
-        }?.let { return it }
-        MEDIA_SUBTITLE_IDS.firstNotNullOfOrNull { id ->
+        } ?: resourceNames.firstNotNullOfOrNull { id ->
             findTextViewByResourceName(root, id)
-        }?.let { return it }
-        return findTextViewByExpectedText(root, mediaTextCandidates(notification, false))
-    }
+        }
 
     private fun resolveInternalViewIds(vararg fieldNames: String): List<Int> {
         return runCatching { Class.forName("com.android.internal.R\$id") }

@@ -947,7 +947,8 @@ Mini Window 手势
 
 - `MediaNotificationTextColorHook` 的安装数据缓存必须同时使用弱 View 键和弱岛数据值：岛数据的 `getView()` / `getFakeView()` 会持有 View，强 value 会反向保活弱 key，连带保留通知和整棵 View 树。
 - 安装数据只在 `updateExpandedView()` 调用期间暂存，在 `setContentView()` 消费或更新退出（含异常、复用不重新安装）时移除；缓存最多 128 项。
-- 延迟改色 Runnable 仅持有弱 TextView 引用，detach 时取消并移除待执行任务；原始颜色使用每类最多 128 项的弱键缓存，保留 detach/reattach 复用时的默认颜色还原能力。
+- 媒体视图安装和复用更新共用一次性 pre-draw 改色。按资源 ID 定位到的标题和副标题使用有上限的弱引用缓存，回调按 TextView 合并，detach 时退出当前窗口的 pre-draw 监听。原始颜色使用每类最多 128 项的弱键缓存。
+- 焦点通知的完整绑定、局部更新和自定义 RemoteViews 共用同一套 pre-draw 调度，按模块根 View 合并，覆盖真实与 fake 展开内容。两种通知均复用状态栏黑白端点的变更通知。
 - SystemUI OOM 崩溃栈仅能证明堆耗尽，不能替代 heap dump 中的引用链与 retained size 分析；上述泄漏链的修复效果仍需实机长时间播放、切歌和展开/收起验证。
 
 ### 17.0 动态 Hook 安装与失败降级
