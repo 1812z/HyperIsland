@@ -15,10 +15,17 @@ internal class MaskBlurCleanup private constructor(
     fun clear(view: View) {
         // Keep all native cleanup channels: a null Drawable does not prove Bionics/blend is off.
         runCatching { clearMaterial?.invoke(null, view) }
-        runCatching { clearCommon?.invoke(commonInstance, view) }
         runCatching { setBackgroundMode?.invoke(null, view, 0) }
-        runCatching { setViewMode?.invoke(null, view, 0) }
-        runCatching { clearBlend?.invoke(null, view) }
+        val viewModeCleared = setViewMode?.let { method ->
+            runCatching { method.invoke(null, view, 0) != false }.getOrDefault(false)
+        } ?: false
+        val blendCleared = clearBlend?.let { method ->
+            runCatching { method.invoke(null, view) != false }.getOrDefault(false)
+        } ?: false
+        // CommonUtils resets the same view blur mode and background blend via the combined API.
+        if (!viewModeCleared || !blendCleared) {
+            runCatching { clearCommon?.invoke(commonInstance, view) }
+        }
     }
 
     companion object {

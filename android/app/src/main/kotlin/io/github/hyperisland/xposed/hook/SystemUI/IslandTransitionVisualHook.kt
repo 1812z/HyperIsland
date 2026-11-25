@@ -203,6 +203,7 @@ object IslandTransitionVisualHook : BaseHook() {
                 runCatching {
                     method.isAccessible = true
                     module.profiledHook("IslandTransitionVisualHook", method).intercept { chain ->
+                        if (chain.args.getOrNull(1) == 0) return@intercept chain.proceed()
                         val view = chain.args.getOrNull(0) as? View
                         if (view != null && ownsSoftGlass(view)) {
                             // Keep SystemUI's own reflection/error handling and change only the

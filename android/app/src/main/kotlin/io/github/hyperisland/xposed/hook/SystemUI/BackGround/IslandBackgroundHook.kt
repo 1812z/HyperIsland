@@ -826,6 +826,7 @@ object IslandBackgroundHook : BaseHook() {
             method.isAccessible = true
             module.profiledHook("IslandBackgroundHook", method).intercept { chain ->
                 val result = chain.proceed()
+                if (!anyManagedOuterVisual()) return@intercept result
                 runCatching { viewField.get(chain.thisObject) }
                     .getOrNull()
                     ?.let { clearManagedLayers(it, access) }
@@ -898,6 +899,7 @@ object IslandBackgroundHook : BaseHook() {
                 method.isAccessible = true
                 module.profiledHook("IslandBackgroundHook", method).intercept { chain ->
                     val result = chain.proceed()
+                    if (!anyManagedOuterVisual()) return@intercept result
                     runCatching { viewField.get(chain.thisObject) }
                         .getOrNull()
                         ?.let { clearManagedLayers(it, access) }
@@ -925,11 +927,10 @@ object IslandBackgroundHook : BaseHook() {
         // shrinking the previous island after entering them, so continue clearing the masks for
         // that previous SMALL/BIG/EXPAND type until the View instance is discarded.
         val type = resolvedType ?: managedContentTypes[contentView] ?: return
-        if (!anyManagedOuterVisual()) return
+        if (!shouldClearSharedMask(type)) return
 
         val container = runCatching { access.containerMethod.invoke(contentView) as? View }
-            .getOrNull()
-        if (container == null || !shouldClearSharedMask(type)) return
+            .getOrNull() ?: return
         clearMaskForView(container, access.cleanup)
 
         // OS3 did not use island_mask as the final per-frame visual writer. OS4 does, and its
