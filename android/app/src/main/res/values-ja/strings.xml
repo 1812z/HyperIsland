@@ -755,6 +755,7 @@
     <string name="always_island_outline">アイランドのアウトラインを常に表示</string>
     <string name="always_focus_outline">フォーカス通知のアウトラインを常に表示</string>
     <string name="glow_range">グローの範囲</string>
+    <string name="small_island_glow">小さいアイランドの発光</string>
     <string name="single_color_glow">単色グロー</string>
     <string name="glow_base_color">ベースカラー</string>
     <string name="material_big_tab">大型アイランド</string>

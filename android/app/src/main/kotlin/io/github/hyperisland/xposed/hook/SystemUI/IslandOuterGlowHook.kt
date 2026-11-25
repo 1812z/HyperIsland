@@ -172,6 +172,7 @@ object IslandOuterGlowHook : BaseHook() {
         hookShaderSource(module, param.defaultClassLoader)
         hookGlowGeometry(module, param.defaultClassLoader)
         hookSmallIslandGlow(module, param.defaultClassLoader)
+        SmallIslandOuterGlow.onConfigChanged()
     }
 
     override fun onConfigChanged() {
@@ -197,11 +198,11 @@ object IslandOuterGlowHook : BaseHook() {
     private fun hookSmallIslandGlow(module: XposedModule, loader: ClassLoader) {
         if (!HookUtils.isIslandLoaderReady(loader)) return
         runCatching {
-            SmallIslandOuterGlow.install(module, loader, ::resolveSmallIslandGlowStyle, { lightBg, style ->
+            SmallIslandOuterGlow.install(module, loader, ::resolveSmallIslandGlowStyle, { lightBg, style, stockRange ->
                 if (style.color != null || style.baseColor != null) {
                     applyGlowPalette(lightBg, style.color, style.singleColor, style.baseColor)
                 }
-                applyGlowRange(lightBg, module, style.range)
+                applyGlowRange(lightBg, module, style.range, stockRange)
             }) { error ->
                 logFailureOnce(module, "small-island-glow") { "small island glow failed: ${error.message}" }
             }
@@ -214,14 +215,18 @@ object IslandOuterGlowHook : BaseHook() {
         val extras = extractExtrasFromAnimationState(owner) ?: return null
         val pkg = resolveSourcePkg(extras).orEmpty()
         val channel = resolveSourceChannelId(extras).orEmpty()
+        val isMedia = channel == "media" || extras.containsKey("miui.focus.param.media")
         val nativeRequest = extras.getString(BIG_EFFECT_KEY) == EFFECT_VALUE
         val color = extras.getString("hyperisland_island_outer_glow_color")
         val media = mediaGlowRequests[pkg]?.takeIf { request ->
-            channel == "media" || extras.containsKey("miui.focus.param.media") ||
-                request.notificationKey?.let { key ->
-                    key == extras.getString("miui.key") || key == resolveStatusBarNotification(extras)?.key
-                } == true
+            isMedia || request.notificationKey?.let { key ->
+                key == extras.getString("miui.key") || key == resolveStatusBarNotification(extras)?.key
+            } == true
         }
+        if (media?.islandEnabled == false) return null
+        if ((isMedia || media != null) && pkg.isNotBlank() &&
+            ConfigManager.getString("pref_media_island_outer_glow_$pkg", "default") == "off"
+        ) return null
         val target = when {
             nativeRequest && hasOwnedGlowRequest(extras, GLOW_MODE_STATUS) &&
                 pkg.isNotBlank() && channel.isNotBlank() -> OwnedGlowTarget(
@@ -298,7 +303,7 @@ object IslandOuterGlowHook : BaseHook() {
             module.profiledHook("IslandOuterGlowHook", method).intercept { chain ->
                 val result = chain.proceed()
                 val source = result as? String ?: return@intercept result
-                if ("uGlareWidth" in source) {
+                if (SmallIslandOuterGlow.enabled && "uGlareWidth" in source) {
                     val view = invokeNoArg(chain.thisObject, "getView") as? SmallIslandGlowBackgroundView
                     if (view != null) return@intercept view.maskAperture(source)
                 }
@@ -1058,8 +1063,13 @@ object IslandOuterGlowHook : BaseHook() {
         applyGlowRange(container, module, range)
     }
 
-    private fun applyGlowRange(container: Any, module: XposedModule, range: Int): Float? {
-        val defaultRange = synchronized(defaultGlowRanges) {
+    private fun applyGlowRange(
+        container: Any,
+        module: XposedModule,
+        range: Int,
+        stockRange: Float? = null,
+    ): Float? {
+        val defaultRange = stockRange ?: synchronized(defaultGlowRanges) {
             defaultGlowRanges.getOrPut(container) {
                 (invokeNoArg(container, "getSizeOfGlowArea") as? Number)?.toFloat() ?: Float.NaN
             }

@@ -880,6 +880,7 @@
     <string name="always_island_outline">常驻显示岛轮廓</string>
     <string name="always_focus_outline">常驻显示焦点通知轮廓</string>
     <string name="glow_range">光晕范围</string>
+    <string name="small_island_glow">小岛光效</string>
     <string name="single_color_glow">单色光效</string>
     <string name="glow_base_color">底色</string>
     <string name="material_big_tab">大岛</string>

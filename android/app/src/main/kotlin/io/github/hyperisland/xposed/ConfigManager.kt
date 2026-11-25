@@ -413,6 +413,7 @@ object ConfigManager {
         "pref_smooth_island_smoothing",
         "pref_island_outline_mode",
         "pref_focus_outline_mode",
+        "pref_small_island_glow",
         "pref_outer_glow_range",
         "pref_outer_glow_single_color",
         "pref_outer_glow_base_color",

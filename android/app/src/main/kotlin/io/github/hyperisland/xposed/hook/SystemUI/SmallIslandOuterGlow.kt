@@ -13,6 +13,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.ViewGroupOverlay
 import android.view.ViewTreeObserver
+import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.diagnostics.profiledHook
 import io.github.hyperisland.xposed.hook.SystemUI.corner.IslandCornerHook
 import io.github.libxposed.api.XposedInterface.HookHandle
@@ -70,13 +71,28 @@ internal object SmallIslandOuterGlow {
     private const val TAG = "SmallIslandOuterGlow"
     private const val ROOT = "miui.systemui.dynamicisland."
     private const val FAKE_START_GRACE_MS = 400L
+    private const val MAX_OWNERS = 128
     private val installed = WeakHashMap<Class<*>, Unit>()
     private val activeBindings = WeakHashMap<View, Binding>()
-    private val smallOwners = WeakHashMap<View, Runtime>()
+    private val attachedOwners = WeakHashMap<View, Runtime>()
+    @Volatile var enabled = false
+        private set
     private val mainHandler by lazy { Handler(Looper.getMainLooper()) }
+    private val ownerLifecycle = object : View.OnAttachStateChangeListener {
+        override fun onViewAttachedToWindow(view: View) {}
+
+        override fun onViewDetachedFromWindow(view: View) {
+            view.removeOnAttachStateChangeListener(this)
+            attachedOwners.remove(view)
+            activeBindings[view]?.dispose()
+        }
+    }
     private val refreshActiveBindings = Runnable {
-        smallOwners.entries.map { it.key to it.value }.forEach { (owner, runtime) ->
-            if (owner.isAttachedToWindow) runtime.refresh(owner)
+        enabled = ConfigManager.getBoolean("pref_small_island_glow", false)
+        if (enabled) {
+            attachedOwners.forEach { (owner, runtime) -> runtime.refresh(owner) }
+        } else {
+            activeBindings.values.toList().forEach(Binding::dispose)
         }
     }
 
@@ -89,7 +105,7 @@ internal object SmallIslandOuterGlow {
         module: XposedModule,
         loader: ClassLoader,
         resolveStyle: (View) -> SmallIslandGlowStyle?,
-        configure: (View, SmallIslandGlowStyle) -> Float?,
+        configure: (View, SmallIslandGlowStyle, Float) -> Float?,
         reportFailure: (Throwable) -> Unit,
     ) {
         val content = loader.loadClass(ROOT + "window.content.DynamicIslandContentView")
@@ -101,29 +117,29 @@ internal object SmallIslandOuterGlow {
             try {
                 handles += module.profiledHook(TAG, access.stateChanged).intercept { chain ->
                     val result = chain.proceed()
-                    (chain.args[0] as? View)?.let(runtime::refresh)
+                    if (enabled) (chain.args[0] as? View)?.let(runtime::refresh)
                     result
                 }
                 handles += module.profiledHook(TAG, access.setData).intercept { chain ->
                     val result = chain.proceed()
-                    (chain.thisObject as? View)?.takeIf(content::isInstance)?.let(runtime::refresh)
+                    if (enabled) (chain.thisObject as? View)?.takeIf(content::isInstance)?.let(runtime::refresh)
                     result
                 }
                 handles += module.profiledHook(TAG, access.attach).intercept { chain ->
                     val result = chain.proceed()
-                    (chain.thisObject as? View)?.let(runtime::refresh)
+                    (chain.thisObject as? View)?.let(runtime::onAttach)
                     result
                 }
                 access.fakeToSmall?.let { method ->
                     handles += module.profiledHook(TAG, method).intercept { chain ->
                         val result = chain.proceed()
-                        (chain.args[0] as? View)?.let { runtime.refresh(it, expectFake = true) }
+                        if (enabled) (chain.args[0] as? View)?.let { runtime.refresh(it, expectFake = true) }
                         result
                     }
                 }
                 installed[content] = Unit
             } catch (error: Throwable) {
-                handles.forEach { it.unhook() }
+                handles.forEach { runCatching { it.unhook() } }
                 throw error
             }
         }
@@ -166,24 +182,29 @@ internal object SmallIslandOuterGlow {
     private class Runtime(
         private val access: Access,
         private val resolveStyle: (View) -> SmallIslandGlowStyle?,
-        private val configure: (View, SmallIslandGlowStyle) -> Float?,
+        private val configure: (View, SmallIslandGlowStyle, Float) -> Float?,
         private val reportFailure: (Throwable) -> Unit,
     ) {
+        fun onAttach(owner: View) {
+            if (Looper.myLooper() !== Looper.getMainLooper() || !owner.isAttachedToWindow) return
+            if (enabled) refresh(owner) else trackAttachedOwner(owner)
+        }
+
         fun refresh(owner: View, expectFake: Boolean = false) {
-            if (Looper.myLooper() !== Looper.getMainLooper()) return
+            if (Looper.myLooper() !== Looper.getMainLooper() || !owner.isAttachedToWindow) return
             runCatching {
+                if (!trackAttachedOwner(owner)) return
                 val existing = activeBindings[owner]
                 val small = access.smallState.isInstance(access.state.invoke(owner))
                 val wasSmall = access.smallState.isInstance(access.lastState.invoke(owner))
-                if (small && (owner in smallOwners || smallOwners.size < 128)) smallOwners[owner] = this
-                if (!small) smallOwners.remove(owner)
-                if (!small && !wasSmall && !expectFake && existing == null) return
+                if (!small && !expectFake && existing == null &&
+                    (!wasSmall || access.isAnimating.invoke(owner) != true)
+                ) return
                 val style = resolveStyle(owner)
                 if (style == null) {
                     existing?.dispose()
                     return
                 }
-                if (existing == null && activeBindings.size >= 128) return
                 val binding = existing ?: Binding(owner, access, configure, reportFailure)
                     .also { activeBindings[owner] = it }
                 binding.refresh(owner, small, wasSmall, expectFake, style)
@@ -192,12 +213,20 @@ internal object SmallIslandOuterGlow {
                 reportFailure(it)
             }
         }
+
+        private fun trackAttachedOwner(owner: View): Boolean {
+            if (owner in attachedOwners) return true
+            if (attachedOwners.size >= MAX_OWNERS) return false
+            attachedOwners[owner] = this
+            owner.addOnAttachStateChangeListener(ownerLifecycle)
+            return true
+        }
     }
 
     private class Binding(
         owner: View,
         private val access: Access,
-        private val configure: (View, SmallIslandGlowStyle) -> Float?,
+        private val configure: (View, SmallIslandGlowStyle, Float) -> Float?,
         private val reportFailure: (Throwable) -> Unit,
     ) : ViewTreeObserver.OnPreDrawListener, View.OnAttachStateChangeListener {
         private val owner = WeakReference(owner)
@@ -209,6 +238,11 @@ internal object SmallIslandOuterGlow {
         private var inSmallState = false
         private var wasSmall = false
         private var pendingFakeUntil = 0L
+        private val expireFakeStart = Runnable {
+            pendingFakeUntil = 0L
+            this.owner.get()?.invalidate()
+            fake.get()?.invalidate()
+        }
         private lateinit var style: SmallIslandGlowStyle
         private var radius = Float.MAX_VALUE
         private var stockRadius = Float.MAX_VALUE
@@ -220,16 +254,13 @@ internal object SmallIslandOuterGlow {
         private val clip = Rect()
         private val matrix = Matrix()
 
-        init {
-            owner.addOnAttachStateChangeListener(this)
-        }
-
         fun refresh(owner: View, inSmallState: Boolean, wasSmall: Boolean, expectFake: Boolean, style: SmallIslandGlowStyle) {
             this.inSmallState = inSmallState
             this.wasSmall = wasSmall
             if (expectFake && !inSmallState) {
                 pendingFakeUntil = SystemClock.uptimeMillis() + FAKE_START_GRACE_MS
-                owner.postInvalidateDelayed(FAKE_START_GRACE_MS)
+                mainHandler.removeCallbacks(expireFakeStart)
+                mainHandler.postAtTime(expireFakeStart, pendingFakeUntil)
             }
             if (::style.isInitialized && this.style != style) releaseRenderer()
             this.style = style
@@ -262,14 +293,9 @@ internal object SmallIslandOuterGlow {
         override fun onViewAttachedToWindow(view: View) = observe()
 
         override fun onViewDetachedFromWindow(view: View) {
-            if (view === owner.get()) {
-                smallOwners.remove(view)
-                dispose()
-            } else {
-                if (renderedSlot == SmallIslandGlowSlot.FAKE) releaseRenderer()
-                observe(exclude = view)
-                owner.get()?.invalidate()
-            }
+            if (renderedSlot == SmallIslandGlowSlot.FAKE) releaseRenderer()
+            observe(exclude = view)
+            owner.get()?.invalidate()
         }
 
         private fun observe(exclude: View? = null) {
@@ -300,7 +326,10 @@ internal object SmallIslandOuterGlow {
             val leavingSmall = wasSmall && !inSmallState && access.isAnimating.invoke(owner) == true
             val realAlpha = if (inSmallState || leavingSmall) opacity(small.get(), realHost) else 0f
             val fakeAlpha = opacity(fakeSmall.get(), fakeHost)
-            if (fakeAlpha > 0f) pendingFakeUntil = 0L
+            if (fakeAlpha > 0f && pendingFakeUntil != 0L) {
+                pendingFakeUntil = 0L
+                mainHandler.removeCallbacks(expireFakeStart)
+            }
             val source = selectSmallIslandGlowSlot(realAlpha, fakeAlpha)
             if (source == null) {
                 if (inSmallState || leavingSmall || pendingFakeUntil > SystemClock.uptimeMillis()) {
@@ -379,9 +408,9 @@ internal object SmallIslandOuterGlow {
         }
 
         fun dispose() {
-            owner.get()?.let {
-                activeBindings.remove(it)
-                it.removeOnAttachStateChangeListener(this)
+            mainHandler.removeCallbacks(expireFakeStart)
+            owner.get()?.let { view ->
+                if (activeBindings[view] === this) activeBindings.remove(view)
             }
             fake.get()?.removeOnAttachStateChangeListener(this)
             observers.forEach { it.get()?.takeIf(ViewTreeObserver::isAlive)?.removeOnPreDrawListener(this) }
@@ -481,22 +510,23 @@ internal object SmallIslandOuterGlow {
                 owner: View,
                 stockRange: Float,
                 style: SmallIslandGlowStyle,
-                configure: (View, SmallIslandGlowStyle) -> Float?,
+                configure: (View, SmallIslandGlowStyle, Float) -> Float?,
             ): Renderer {
                 val shader = access.createGlow.newInstance(owner.context) as View
                 val topEffect = View(owner.context).apply { setBackgroundColor(0) }
                 val bottomEffect = SmallIslandGlowBackgroundView(owner.context)
-                access.autoAperture.invoke(shader, false)
-                access.bindEffect.invoke(shader, topEffect, bottomEffect)
-                access.distance.invoke(shader, stockRange)
-                val padding = (configure(shader, style) ?: stockRange) + 2f
                 val overlay = host.overlay
                 try {
+                    access.autoAperture.invoke(shader, false)
+                    access.bindEffect.invoke(shader, topEffect, bottomEffect)
+                    access.distance.invoke(shader, stockRange)
+                    val padding = (configure(shader, style, stockRange) ?: stockRange) + 2f
                     overlay.add(shader)
                     overlay.add(bottomEffect)
                     overlay.add(topEffect)
                     return Renderer(access, host, overlay, topEffect, bottomEffect, shader, padding)
                 } catch (error: Throwable) {
+                    runCatching { access.stop.invoke(shader, true) }
                     overlay.remove(shader)
                     overlay.remove(topEffect)
                     overlay.remove(bottomEffect)

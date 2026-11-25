@@ -874,6 +874,7 @@
     <string name="always_island_outline">Always show island outline</string>
     <string name="always_focus_outline">Always show Focus Notification outline</string>
     <string name="glow_range">Glow range</string>
+    <string name="small_island_glow">Small island glow</string>
     <string name="single_color_glow">Single-color glow</string>
     <string name="glow_base_color">Base color</string>
     <string name="material_big_tab">Large island</string>

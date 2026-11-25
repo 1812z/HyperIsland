@@ -39,6 +39,7 @@ internal fun AppearanceOutlinePage(prefs: FlutterPrefsRepository, onBack: () -> 
     val focusOutlineEnabled = !usesSoftGlass(
         if (expandFollowBig.value) bigMaterial.value else expandMaterial.value,
     )
+    val smallIslandGlow = rememberBooleanPreference(prefs, KEY_SMALL_ISLAND_GLOW, false)
     val glowSingleColor = rememberBooleanPreference(prefs, KEY_GLOW_SINGLE_COLOR, false)
     val glowBaseColor = rememberStringPreference(prefs, KEY_GLOW_BASE_COLOR, "")
     var colorDialog by remember { mutableStateOf(false) }
@@ -64,6 +65,15 @@ internal fun AppearanceOutlinePage(prefs: FlutterPrefsRepository, onBack: () -> 
         item {
             SectionTitle(stringResource(R.string.outer_glow))
             AppCard(modifier = Modifier.fillMaxWidth()) {
+                PreferenceSwitch(
+                    title = stringResource(R.string.small_island_glow),
+                    summary = null,
+                    icon = null,
+                    checked = smallIslandGlow.value,
+                ) {
+                    smallIslandGlow.value = it
+                    prefs.putBoolean(KEY_SMALL_ISLAND_GLOW, it)
+                }
                 LongPreferenceSlider(prefs, KEY_GLOW_RANGE, R.string.glow_range, 0, 100, 0, unit = SliderUnit.Percent)
                 PreferenceSwitch(stringResource(R.string.single_color_glow), null, null, glowSingleColor.value) {
                     glowSingleColor.value = it; prefs.putBoolean(KEY_GLOW_SINGLE_COLOR, it)

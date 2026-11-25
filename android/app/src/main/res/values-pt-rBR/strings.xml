@@ -804,6 +804,7 @@
     <string name="show_system_apps">Mostrar aplicativos do sistema</string>
     <string name="show_welcome">Mostrar mensagem de boas-vindas ao iniciar</string>
     <string name="show_welcome_summary">Exibir informações de boas-vindas na Ilha ao iniciar o aplicativo</string>
+    <string name="small_island_glow">Brilho da ilha pequena</string>
     <string name="single_color_glow">Brilho de cor única</string>
     <string name="small_background">Fundo da Ilha Pequena</string>
     <string name="small_island_offset">Espaçamento entre a Ilha Grande e a Pequena</string>

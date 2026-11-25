@@ -819,6 +819,7 @@
     <string name="show_system_apps">أظهر تطبيقات النظام</string>
     <string name="show_welcome">أظهر رسالة الترحيب عند التشغيل</string>
     <string name="show_welcome_summary">أظهر معلومات الترحيب على الجزيرة عند التطبيق يشتغل</string>
+    <string name="small_island_glow">توهج الجزيرة الصغيرة</string>
     <string name="single_color_glow">توهج بلون واحد</string>
     <string name="small_background">خلفية الجزيرة الصغير</string>
     <string name="small_island_offset">المسافة بين الجزيرة الكبير والصغير</string>

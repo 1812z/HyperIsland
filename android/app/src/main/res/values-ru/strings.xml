@@ -755,6 +755,7 @@
     <string name="always_island_outline">Всегда показывать контур острова</string>
     <string name="always_focus_outline">Всегда показывать контур фокус-уведомления</string>
     <string name="glow_range">Область свечения</string>
+    <string name="small_island_glow">Свечение малого острова</string>
     <string name="single_color_glow">Одноцветное свечение</string>
     <string name="glow_base_color">Базовый цвет</string>
     <string name="material_big_tab">Большой остров</string>
