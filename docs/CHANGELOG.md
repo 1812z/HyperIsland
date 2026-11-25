@@ -8,6 +8,18 @@ import ReleaseHistory from './.vitepress/components/ReleaseHistory.vue'
 
 <div class="changelog-source" hidden>
 
+# V3.3.3(2026-11-25)
+## 功能
+- 新增小岛光效(外观/轮廓)
+- 新增启动Logo遮罩
+
+## 优化 & 修复
+- 优化材质性能占用
+- 修复媒体光效状态显示
+- 更新Miuix依赖
+- 优化玻璃界面显示
+
+
 # V3.3.2(2026-11-24)
 ## 功能
 - 完善搜索框/Tab等组件柔光
