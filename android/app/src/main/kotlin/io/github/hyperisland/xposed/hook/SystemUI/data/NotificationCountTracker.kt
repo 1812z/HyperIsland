@@ -1,4 +1,4 @@
-package io.github.hyperisland.xposed.hook.SystemUI
+package io.github.hyperisland.xposed.hook.SystemUI.data
 
 import android.app.Notification
 import android.service.notification.StatusBarNotification

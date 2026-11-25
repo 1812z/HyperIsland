@@ -1,4 +1,4 @@
-package io.github.hyperisland.xposed.hook.SystemUI
+package io.github.hyperisland.xposed.hook.SystemUI.outline
 
 import io.github.hyperisland.xposed.diagnostics.profiledHook
 
@@ -10,12 +10,13 @@ import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.BaseHook
-import io.github.hyperisland.xposed.hook.IslandBackgroundHook
+import io.github.hyperisland.xposed.hook.SystemUI.BackGround.IslandBackgroundHook
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.IslandBlurRuntime
 import org.json.JSONObject
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
+import java.lang.reflect.Field
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.Method
 import java.util.Collections
@@ -204,7 +205,7 @@ object IslandOutlineHook : BaseHook() {
     private fun invokeAndRefreshOutline(
         method: Method,
         contentView: Any?,
-        backgroundViewField: java.lang.reflect.Field,
+        backgroundViewField: Field,
         args: Array<Any?>,
         type: OutlineType?,
     ) {

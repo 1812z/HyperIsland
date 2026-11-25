@@ -1,4 +1,4 @@
-package io.github.hyperisland.xposed.hook.SystemUI
+package io.github.hyperisland.xposed.hook.SystemUI.extensions
 
 import io.github.hyperisland.xposed.diagnostics.profiledHook
 
@@ -10,6 +10,7 @@ import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import android.os.Handler
 import android.os.Looper
+import java.lang.reflect.Constructor
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.util.Collections
@@ -53,7 +54,7 @@ object WifiTileDisconnectHook : BaseHook() {
     @Volatile private var maybeLoadIconMethod: Method? = null
     @Volatile private var tileLabelMethod: Method? = null
     @Volatile private var restrictStateClass: Class<*>? = null
-    @Volatile private var restrictStateCtor: java.lang.reflect.Constructor<*>? = null
+    @Volatile private var restrictStateCtor: Constructor<*>? = null
 
     private val fieldCache = Collections.synchronizedMap(mutableMapOf<String, Field?>())
 

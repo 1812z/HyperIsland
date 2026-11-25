@@ -1,4 +1,4 @@
-package io.github.hyperisland.xposed.hook
+package io.github.hyperisland.xposed.hook.SystemUI.data
 
 import android.content.Context
 import android.content.Intent
@@ -8,6 +8,7 @@ import android.net.TrafficStats
 import android.net.Uri
 import android.os.BatteryManager
 import android.os.Build
+import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
@@ -85,7 +86,7 @@ object IslandDataManager {
         }
     }
 
-    fun cacheBatteryBundle(bundle: android.os.Bundle?, modes: Set<String>) {
+    fun cacheBatteryBundle(bundle: Bundle?, modes: Set<String>) {
         runCatching {
             if (bundle == null) return
             var next = battery
@@ -831,7 +832,7 @@ object IslandDataManager {
         obj.javaClass.getMethod(methodName).invoke(obj) as? Number
     }.getOrNull()
 
-    private fun readBundleNumber(bundle: android.os.Bundle, vararg keys: String): Number? {
+    private fun readBundleNumber(bundle: Bundle, vararg keys: String): Number? {
         keys.forEach { key ->
             if (!bundle.containsKey(key)) return@forEach
             val value = bundle.get(key)

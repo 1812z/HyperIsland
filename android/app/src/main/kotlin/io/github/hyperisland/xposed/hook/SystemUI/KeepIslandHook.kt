@@ -35,6 +35,7 @@ import io.github.hyperisland.R
 import io.github.hyperisland.utils.IslandBehaviorConfig
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.SystemUI.DynamicIslandVisibilityHook
+import io.github.hyperisland.xposed.hook.SystemUI.data.IslandDataManager
 import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
 import io.github.hyperisland.xposed.islanddispatch.definition.IslandRequest
 import io.github.hyperisland.xposed.utils.HookUtils

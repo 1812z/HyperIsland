@@ -1,4 +1,4 @@
-package io.github.hyperisland.xposed.hook.SystemUI
+package io.github.hyperisland.xposed.hook.SystemUI.notification
 
 import io.github.hyperisland.xposed.diagnostics.profiledHook
 
@@ -17,8 +17,9 @@ import io.github.hyperisland.utils.getAppIcon
 import io.github.hyperisland.utils.resolveDynamicHighlightColor
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.BaseHook
-import io.github.hyperisland.xposed.hook.IslandOuterGlowHook
+import io.github.hyperisland.xposed.hook.SystemUI.outline.IslandOuterGlowHook
 import io.github.hyperisland.xposed.hook.MarqueeHook
+import io.github.hyperisland.xposed.hook.SystemUI.data.NotificationCountTracker
 import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
 import io.github.hyperisland.xposed.islanddispatch.definition.IslandDispatchContract
 import io.github.hyperisland.xposed.template.core.TemplateRegistry
@@ -780,7 +781,7 @@ object GenericProgressHook : BaseHook() {
         val fallbackIntent = notif.contentIntent ?: createLaunchAppIntent(context, pkg)
         return notif.actions?.take(2)?.map { action ->
             if (action.hasRemoteInput() && fallbackIntent != null) {
-                Notification.Action.Builder(action.icon, action.title, fallbackIntent).build()
+                Notification.Action.Builder(action.getIcon(), action.title, fallbackIntent).build()
             } else {
                 action
             }

@@ -7,7 +7,7 @@ import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.SystemUiReflec
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.config.IslandMaterialConfigStore
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.model.BlurConfig
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.model.IslandType
-import io.github.hyperisland.xposed.hook.SystemUI.IslandOutlineHook
+import io.github.hyperisland.xposed.hook.SystemUI.outline.IslandOutlineHook
 import io.github.hyperisland.xposed.log
 import io.github.hyperisland.xposed.logWarn
 import java.lang.ref.WeakReference

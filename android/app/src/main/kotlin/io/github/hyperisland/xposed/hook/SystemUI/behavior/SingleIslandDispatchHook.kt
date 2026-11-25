@@ -1,4 +1,4 @@
-package io.github.hyperisland.xposed.hook.SystemUI
+package io.github.hyperisland.xposed.hook.SystemUI.behavior
 
 import io.github.hyperisland.xposed.diagnostics.profiledHook
 
@@ -21,6 +21,7 @@ import android.view.animation.Transformation
 import io.github.hyperisland.utils.IslandBehaviorConfig
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.BaseHook
+import io.github.hyperisland.xposed.hook.SystemUI.outline.IslandOutlineHook
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedInterface.HookHandle
 import io.github.libxposed.api.XposedModule

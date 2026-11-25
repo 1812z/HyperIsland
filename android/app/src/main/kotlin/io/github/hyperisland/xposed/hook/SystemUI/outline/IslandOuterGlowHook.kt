@@ -1,13 +1,16 @@
-package io.github.hyperisland.xposed.hook
+package io.github.hyperisland.xposed.hook.SystemUI.outline
 
+import android.app.Notification
 import io.github.hyperisland.xposed.diagnostics.profiledHook
 
 import android.graphics.Color
 import android.os.Bundle
+import android.service.notification.StatusBarNotification
 import android.view.View
 import io.github.hyperisland.utils.getAppIcon
 import io.github.hyperisland.utils.resolveDynamicHighlightColor
 import io.github.hyperisland.xposed.ConfigManager
+import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.hyperisland.xposed.hook.SystemUI.corner.IslandCornerHook
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.hyperisland.xposed.utils.WeakMemberCache
@@ -15,6 +18,7 @@ import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.lang.reflect.Field
 import java.lang.reflect.Method
+import java.lang.reflect.Modifier
 import java.util.WeakHashMap
 import java.util.Collections
 import java.util.concurrent.ConcurrentHashMap
@@ -776,7 +780,7 @@ object IslandOuterGlowHook : BaseHook() {
             methods.forEach { method ->
                 module.profiledHook("IslandOuterGlowHook", method).intercept { chain ->
                     val result = chain.proceed()
-                    val sbn = chain.args.firstOrNull() as? android.service.notification.StatusBarNotification
+                    val sbn = chain.args.firstOrNull() as? StatusBarNotification
                         ?: return@intercept result
                     val sourceExtras = sbn.notification?.extras ?: return@intercept result
                     val targetBundle = result as? Bundle ?: return@intercept result
@@ -1099,8 +1103,8 @@ object IslandOuterGlowHook : BaseHook() {
         }
         val isMedia = request != null || extras?.containsKey("miui.focus.param.media") == true ||
                 sbn?.notification?.let {
-                    it.extras.containsKey(android.app.Notification.EXTRA_MEDIA_SESSION) ||
-                            it.extras.getString(android.app.Notification.EXTRA_TEMPLATE)
+                    it.extras.containsKey(Notification.EXTRA_MEDIA_SESSION) ||
+                            it.extras.getString(Notification.EXTRA_TEMPLATE)
                                 ?.contains("MediaStyle", ignoreCase = true) == true
                 } == true
         if (!isMedia) return null
@@ -1144,10 +1148,10 @@ object IslandOuterGlowHook : BaseHook() {
     }
 
     @Suppress("DEPRECATION")
-    private fun resolveStatusBarNotification(extras: Bundle?): android.service.notification.StatusBarNotification? {
+    private fun resolveStatusBarNotification(extras: Bundle?): StatusBarNotification? {
         if (extras == null) return null
         return runCatching {
-            extras.getParcelable("miui.sbn") as? android.service.notification.StatusBarNotification
+            extras.getParcelable("miui.sbn") as? StatusBarNotification
         }.getOrNull()
     }
 
@@ -1305,7 +1309,7 @@ object IslandOuterGlowHook : BaseHook() {
     }
 
     private fun bridgeDynamicGlowColor(
-        sbn: android.service.notification.StatusBarNotification,
+        sbn: StatusBarNotification,
         target: Bundle,
         classLoader: ClassLoader,
     ) {
@@ -1465,7 +1469,7 @@ object IslandOuterGlowHook : BaseHook() {
         val fields = clazz.declaredFields.filter {
             it.type == FloatArray::class.java && it.name.contains("LIGHT", ignoreCase = true)
         }
-        val preferred = fields.firstOrNull { java.lang.reflect.Modifier.isStatic(it.modifiers) == preferStatic }
+        val preferred = fields.firstOrNull { Modifier.isStatic(it.modifiers) == preferStatic }
         return (preferred ?: fields.firstOrNull())?.apply { isAccessible = true }
     }
 

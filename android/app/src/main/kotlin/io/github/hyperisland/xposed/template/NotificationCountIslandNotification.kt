@@ -20,7 +20,7 @@ import io.github.hyperisland.xposed.logError
 import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
 import io.github.hyperisland.xposed.islanddispatch.definition.IslandRequest
 import io.github.hyperisland.xposed.islanddispatch.definition.IslandDispatchContract
-import io.github.hyperisland.xposed.hook.SystemUI.NotificationCountTracker
+import io.github.hyperisland.xposed.hook.SystemUI.data.NotificationCountTracker
 import java.util.concurrent.ConcurrentHashMap
 
 /**

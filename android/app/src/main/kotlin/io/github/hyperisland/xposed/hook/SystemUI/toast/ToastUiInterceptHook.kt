@@ -1,12 +1,14 @@
-package io.github.hyperisland.xposed.hook
+package io.github.hyperisland.xposed.hook.SystemUI.toast
 
 import io.github.hyperisland.xposed.diagnostics.profiledHook
 
 import android.content.Context
+import android.graphics.drawable.Icon
 import android.os.SystemClock
 import io.github.hyperisland.utils.getAppIcon
 import io.github.hyperisland.utils.resolveDynamicHighlightColor
 import io.github.hyperisland.xposed.ConfigManager
+import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.hyperisland.xposed.islanddispatch.IslandDispatcher
 import io.github.hyperisland.xposed.islanddispatch.IslandRequest
 import io.github.hyperisland.xposed.utils.SceneBehavior
@@ -361,7 +363,7 @@ object ToastUiInterceptHook : BaseHook() {
 
     private fun resolveHighlightColor(
         context: Context?,
-        icon: android.graphics.drawable.Icon?,
+        icon: Icon?,
         manualHighlightColor: String?,
         dynamicMode: String,
     ): String? {

@@ -1,10 +1,11 @@
-package io.github.hyperisland.xposed.hook
+package io.github.hyperisland.xposed.hook.SystemUI.text
 
 import io.github.hyperisland.xposed.diagnostics.profiledHook
 
 import android.os.Handler
 import android.os.Looper
 import android.text.Editable
+import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam

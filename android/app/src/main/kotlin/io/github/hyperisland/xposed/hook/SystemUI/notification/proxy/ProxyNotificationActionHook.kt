@@ -1,4 +1,4 @@
-package io.github.hyperisland.xposed.hook.SystemUI
+package io.github.hyperisland.xposed.hook.SystemUI.notification.proxy
 
 import android.app.Notification
 import android.app.PendingIntent

@@ -7,7 +7,7 @@ import android.os.Handler
 import android.os.Looper
 import android.view.View
 import io.github.hyperisland.xposed.hook.BaseHook
-import io.github.hyperisland.xposed.hook.IslandBackgroundHook
+import io.github.hyperisland.xposed.hook.SystemUI.BackGround.IslandBackgroundHook
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.IslandBlurHook
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.IslandBlurRuntime
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.lifecycle.IslandStateResolver

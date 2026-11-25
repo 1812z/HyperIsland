@@ -1,4 +1,4 @@
-package io.github.hyperisland.xposed.hook
+package io.github.hyperisland.xposed.hook.SystemUI.outline
 
 import android.content.Context
 import android.content.res.Resources

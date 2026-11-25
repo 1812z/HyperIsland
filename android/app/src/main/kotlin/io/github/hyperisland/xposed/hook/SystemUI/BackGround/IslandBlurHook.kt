@@ -8,7 +8,6 @@ import android.os.Looper
 import android.view.View
 import android.view.ViewTreeObserver
 import io.github.hyperisland.xposed.hook.BaseHook
-import io.github.hyperisland.xposed.hook.IslandBackgroundHook
 import io.github.hyperisland.xposed.hook.StatusBarTextColorHook
 import io.github.hyperisland.xposed.hook.SystemUI.IslandTransitionVisualHook
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.IslandBlurRuntime
