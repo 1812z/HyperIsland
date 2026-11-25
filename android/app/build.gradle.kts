@@ -116,6 +116,12 @@ android {
 
 }
 
+androidComponents {
+    onVariants(selector().withBuildType("releaseFast")) { variant ->
+        variant.packaging.dex.useLegacyPackaging.set(true)
+    }
+}
+
 kotlin {
     compilerOptions {
         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21
