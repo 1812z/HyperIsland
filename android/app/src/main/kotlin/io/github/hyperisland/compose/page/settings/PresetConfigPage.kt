@@ -33,11 +33,12 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -81,6 +82,7 @@ import io.github.hyperisland.compose.component.AppActionButton
 import io.github.hyperisland.compose.component.AppModalIconButton
 import io.github.hyperisland.compose.component.AppTextField
 import io.github.hyperisland.compose.component.PageSearchField
+import io.github.hyperisland.compose.component.PageTabRow
 import io.github.hyperisland.compose.component.AppCard
 import io.github.hyperisland.compose.component.AppBottomSheet
 import io.github.hyperisland.compose.component.AppDialog
@@ -394,7 +396,8 @@ private object PresetHubStatusState {
 /**
  * 一键配置预设页面。
  *
- * 本地 + 云端（HyperIsland-Hub）预设统一展示。顶栏 More 菜单可新建配置 / 切换排序；
+ * 顶部分段标签「热门 / 最新 / 我的」切换数据源：前两者是云端（HyperIsland-Hub）社区列表，
+ * 分别按下载量、时间排序；「我的」是本地预设。顶栏 More 菜单只保留新建配置 / 导入 / 重置配置。
  * 点击卡片打开应用配置 bottom sheet，云端预设会在打开时下载正文。
  *
  * 布局：手机保持原样（128dp 自适应，通常 2 列）；平板等宽屏竖屏 3 列、横屏 4 列，
@@ -438,8 +441,13 @@ internal fun PresetConfigPage(
     }
 
     var reload by remember { mutableIntStateOf(0) }
-    // 默认落在「热门」：下载量最能反映「用的人多」，比按时间更有参考价值。
-    var tab by remember { mutableStateOf(PresetTab.Hot) }
+    val pagerState = rememberPagerState(
+        initialPage = PresetTab.Hot.ordinal,
+        pageCount = { PresetTab.entries.size },
+    )
+    fun selectTab(target: PresetTab) {
+        scope.launch { pagerState.animateScrollToPage(target.ordinal) }
+    }
     val localPresets = remember(reload, context) { PresetStore.loadLocal(context) }
     val cloudPresets = PresetCloudState.presets
 
@@ -566,6 +574,8 @@ internal fun PresetConfigPage(
                 )
                 PresetStore.saveLocal(context, local)
                 reload++
+                // 导入进来的是本地预设，切到「我的」才看得到。
+                selectTab(PresetTab.Mine)
                 scope.launch {
                     snackbarState.showSnackbar(context.getString(R.string.preset_import_success, local.title))
                 }
@@ -582,14 +592,6 @@ internal fun PresetConfigPage(
 
     var searchQuery by remember { mutableStateOf("") }
     val keyword = searchQuery.trim()
-    // 一个标签只展示一份列表：社区（热门 / 最新）或本地（我的）。
-    // 本地不再在社区列表里置顶——「我的」独立成标签后，置顶只会打断热门 / 最新自身的排序。
-    val visiblePresets = remember(tab, localPresets, cloudPresets) {
-        sortPresets(tab.sourceOf(localPresets, cloudPresets), tab.order)
-    }
-    val visibleFiltered = remember(visiblePresets, keyword) {
-        if (keyword.isBlank()) visiblePresets else visiblePresets.filter { it.matchesQuery(keyword) }
-    }
 
     var showNewSheet by remember { mutableStateOf(false) }
     var showResetDialog by remember { mutableStateOf(false) }
@@ -613,14 +615,11 @@ internal fun PresetConfigPage(
     val newConfigLabel = stringResource(R.string.preset_new_config)
     val importLabel = stringResource(R.string.import_from_clipboard)
     val resetLabel = stringResource(R.string.preset_reset_config)
-    val sortLabel = stringResource(R.string.preset_sort)
-    val nameLabel = stringResource(R.string.preset_sort_name)
-    val downloadsLabel = stringResource(R.string.preset_sort_downloads)
-    val dateLabel = stringResource(R.string.preset_sort_date)
     val menuLabel = stringResource(R.string.list_actions)
     val menuAnchor = rememberGlassPopupAnchor()
     var menuExpanded by remember { mutableStateOf(false) }
-    val menuEntries = remember(newConfigLabel, importLabel, resetLabel, sortLabel, nameLabel, downloadsLabel, dateLabel, sortOrder) {
+    // 排序已改为顶部分段标签，菜单只留「新建 / 导入 / 重置」三个动作。
+    val menuEntries = remember(newConfigLabel, importLabel, resetLabel) {
         listOf(
             DropdownEntry(
                 items = listOf(
@@ -629,71 +628,13 @@ internal fun PresetConfigPage(
                     DropdownItem(text = resetLabel, onClick = { showResetDialog = true }),
                 ),
             ),
-            DropdownEntry(
-                items = listOf(
-                    DropdownItem(
-                        text = sortLabel,
-                        children = listOf(
-                            DropdownItem(
-                                text = nameLabel,
-                                selected = sortOrder == PresetSortOrder.Name,
-                                onClick = { sortOrder = PresetSortOrder.Name },
-                            ),
-                            DropdownItem(
-                                text = downloadsLabel,
-                                selected = sortOrder == PresetSortOrder.Downloads,
-                                onClick = { sortOrder = PresetSortOrder.Downloads },
-                            ),
-                            DropdownItem(
-                                text = dateLabel,
-                                selected = sortOrder == PresetSortOrder.Date,
-                                onClick = { sortOrder = PresetSortOrder.Date },
-                            ),
-                        ),
-                    ),
-                ),
-            ),
         )
-    }
-
-    val presetItems: LazyGridScope.() -> Unit = {
-        // 本地配置置顶。上传过的显示云端下载量（没上传那栏没有意义）。
-        items(localFiltered, key = { it.id }) { preset ->
-            PresetConfigCard(
-                preset = preset,
-                showDownloads = preset.hubId.isNotBlank(),
-                wide = wideScreen,
-                badge = preset.presetBadgeSpec(hubCachedVersions[preset.id])
-                    ?.let { PresetCardBadge(it.icon, presetBadgeColor(it.tone)) },
-                onClick = {
-                    applyTarget = preset
-                    applySheetShown = true
-                },
-            )
-        }
-        if (localFiltered.isNotEmpty() && otherFiltered.isNotEmpty()) {
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-            }
-        }
-        items(otherFiltered, key = { it.id }) { preset ->
-            PresetConfigCard(
-                preset = preset,
-                showDownloads = true,
-                wide = wideScreen,
-                badge = preset.presetBadgeSpec(hubCachedVersions[preset.id])
-                    ?.let { PresetCardBadge(it.icon, presetBadgeColor(it.tone)) },
-                onClick = {
-                    applyTarget = preset
-                    applySheetShown = true
-                },
-            )
-        }
     }
 
     DetailGridPage(
         title = stringResource(R.string.preset_page_title),
         onBack = onBack,
+        pagerState = pagerState,
         columns = presetColumns,
         actions = {
             val hapticFeedback = LocalHapticFeedback.current
@@ -716,12 +657,21 @@ internal fun PresetConfigPage(
             }
         },
         topBarContent = {
-            PageSearchField(
-                label = stringResource(R.string.preset_search),
-                query = searchQuery,
-                onQueryChange = { searchQuery = it },
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 4.dp),
-            )
+            // 分段标签在搜索框之上：切换「热门 / 最新 / 我的」一步到位，不再走 More 菜单的二级排序。
+            Column(modifier = Modifier.fillMaxWidth()) {
+                PageTabRow(
+                    tabs = PresetTab.entries.map { stringResource(it.labelRes) },
+                    selectedIndex = pagerState.currentPage,
+                    onSelect = { selectTab(PresetTab.entries[it]) },
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
+                )
+                PageSearchField(
+                    label = stringResource(R.string.preset_search),
+                    query = searchQuery,
+                    onQueryChange = { searchQuery = it },
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 4.dp),
+                )
+            }
         },
         snackbarHost = { SnackbarHost(snackbarState) },
         isRefreshing = PresetCloudState.refreshing,
@@ -738,8 +688,46 @@ internal fun PresetConfigPage(
                 collapseOnSelection = true,
             )
         },
-        content = presetItems,
-    )
+    ) { page ->
+        val tab = PresetTab.entries[page]
+        val source = tab.sourceOf(localPresets, cloudPresets)
+        val sortedPresets = remember(tab, source) { sortPresets(source, tab.order) }
+        val filteredPresets = remember(sortedPresets, keyword) {
+            if (keyword.isBlank()) sortedPresets else sortedPresets.filter { it.matchesQuery(keyword) }
+        }
+        // 首次加载云端列表时暂缓显示空态。
+        val emptyHintVisible = keyword.isNotBlank() || tab == PresetTab.Mine || PresetCloudState.loaded
+        val emptyLabel = stringResource(R.string.preset_list_empty)
+        val pageItems: LazyGridScope.() -> Unit = {
+            items(filteredPresets, key = { it.id }) { preset ->
+                PresetConfigCard(
+                    preset = preset,
+                    showDownloads = !preset.local || preset.hubId.isNotBlank(),
+                    wide = wideScreen,
+                    badge = preset.presetBadgeSpec(hubCachedVersions[preset.id])
+                        ?.let { PresetCardBadge(it.icon, presetBadgeColor(it.tone)) },
+                    onClick = {
+                        applyTarget = preset
+                        applySheetShown = true
+                    },
+                )
+            }
+            if (filteredPresets.isEmpty() && emptyHintVisible) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 64.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = emptyLabel,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        )
+                    }
+                }
+            }
+        }
+        pageItems
+    }
 
     NewPresetBottomSheet(
         show = showNewSheet,
@@ -759,6 +747,8 @@ internal fun PresetConfigPage(
             )
             PresetStore.saveLocal(context, preset)
             reload++
+            // 新建的只会落在「我的」：留在热门 / 最新会让人以为没保存成功。
+            selectTab(PresetTab.Mine)
             showNewSheet = false
         },
     )

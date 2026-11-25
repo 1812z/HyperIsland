@@ -14,6 +14,9 @@ import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
@@ -331,6 +334,7 @@ internal fun DetailPage(
 internal fun DetailGridPage(
     title: String,
     onBack: () -> Unit,
+    pagerState: PagerState,
     columns: GridCells = GridCells.Adaptive(minSize = 128.dp),
     horizontalContentPadding: Dp = 16.dp,
     topContentPadding: Dp = 8.dp,
@@ -341,7 +345,7 @@ internal fun DetailGridPage(
     isRefreshing: Boolean = false,
     onRefresh: (() -> Unit)? = null,
     overlay: @Composable BoxScope.() -> Unit = {},
-    content: LazyGridScope.() -> Unit,
+    pageContent: @Composable (Int) -> LazyGridScope.() -> Unit,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
     BarBlurHost {
@@ -362,6 +366,23 @@ internal fun DetailGridPage(
             },
             snackbarHost = snackbarHost,
         ) { padding ->
+            val pager: @Composable () -> Unit = {
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.fillMaxSize(),
+                    beyondViewportPageCount = 1,
+                ) { page ->
+                    PageGrid(
+                        padding = padding,
+                        scrollBehavior = scrollBehavior,
+                        columns = columns,
+                        horizontalContentPadding = horizontalContentPadding,
+                        topContentPadding = topContentPadding,
+                        bottomContentPadding = bottomContentPadding,
+                        content = pageContent(page),
+                    )
+                }
+            }
             BarBackdropContent(modifier = Modifier.fillMaxSize()) {
                 if (onRefresh != null) {
                     PullToRefresh(
@@ -371,27 +392,9 @@ internal fun DetailGridPage(
                         topAppBarScrollBehavior = scrollBehavior,
                         contentPadding = PaddingValues(top = padding.calculateTopPadding()),
                         refreshTexts = listOf("", "", "", ""),
-                    ) {
-                        PageGrid(
-                            padding = padding,
-                            scrollBehavior = scrollBehavior,
-                            columns = columns,
-                            horizontalContentPadding = horizontalContentPadding,
-                            topContentPadding = topContentPadding,
-                            bottomContentPadding = bottomContentPadding,
-                            content = content,
-                        )
-                    }
+                    ) { pager() }
                 } else {
-                    PageGrid(
-                        padding = padding,
-                        scrollBehavior = scrollBehavior,
-                        columns = columns,
-                        horizontalContentPadding = horizontalContentPadding,
-                        topContentPadding = topContentPadding,
-                        bottomContentPadding = bottomContentPadding,
-                        content = content,
-                    )
+                    pager()
                 }
             }
         }
@@ -411,6 +414,7 @@ private fun PageGrid(
 ) {
     LazyVerticalGrid(
         columns = columns,
+        state = rememberLazyGridState(),
         modifier = Modifier
             .fillMaxSize()
             .overScrollVertical()
