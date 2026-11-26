@@ -1,14 +1,15 @@
 package io.github.hyperisland.xposed.hook
 
-import io.github.hyperisland.xposed.diagnostics.profiledHook
-
 import android.view.View
 import io.github.hyperisland.xposed.ConfigManager
+import io.github.hyperisland.xposed.diagnostics.profiledHook
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import java.lang.reflect.Method
+import java.util.Collections
 import java.util.Optional
+import java.util.WeakHashMap
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -19,9 +20,9 @@ import java.util.concurrent.ConcurrentHashMap
  * 手势的把手 —— 手势是否生效由 `getMiniBarVisible()` 这个布尔字段控制，而不是 View 的可见性。
  *
  * 四种行为合并为三种（「隐藏」与早期「仅设为透明」实现完全等价，已合并）：
- * - 跟随系统：不动，完全交给系统；
+ * - 跟随系统：显示与手势沿用原生白条状态；
  * - 隐藏（即仅设为透明）：View 可见性沿用系统决定，只把 alpha 置 0；
- *   `miniBarVisible` 字段保持 true，下拉手势依旧生效；
+ *   保留原生可用的下拉手势；
  * - 移除：View 设为 GONE，并把 `miniBarVisible` 置 false，既看不见也不响应下拉手势。
  *
  * 作用域：com.android.systemui（岛内容由 miui.systemui.plugin 插件类加载器加载，故同时挂动态加载器）。
@@ -44,7 +45,7 @@ object IslandMiniBarHook : BaseHook() {
     private const val CONTENT_VIEW_CLASS =
         "miui.systemui.dynamicisland.window.content.DynamicIslandContentView"
 
-    private val hookedLoaders = ConcurrentHashMap.newKeySet<Int>()
+    private val hookedClasses = Collections.newSetFromMap(WeakHashMap<Class<*>, Boolean>())
     private val miniBarGetters = ConcurrentHashMap<Class<*>, Optional<Method>>()
     private val miniBarVisibleSetters = ConcurrentHashMap<Class<*>, Optional<Method>>()
 
@@ -59,18 +60,12 @@ object IslandMiniBarHook : BaseHook() {
     }
 
     private fun hookClasses(module: XposedModule, classLoader: ClassLoader) {
-        val loaderId = System.identityHashCode(classLoader)
-        if (!hookedLoaders.add(loaderId)) return
-        val baseClass = runCatching { classLoader.loadClass(BASE_CONTENT_VIEW_CLASS) }.getOrNull()
-        val contentClass = runCatching { classLoader.loadClass(CONTENT_VIEW_CLASS) }.getOrNull()
-        if (baseClass == null || contentClass == null) {
-            hookedLoaders.remove(loaderId)
-            return
-        }
-        val method = runCatching { baseClass.getDeclaredMethod("updateMiniBar", contentClass) }.getOrNull()
-        if (method == null) {
-            hookedLoaders.remove(loaderId)
-            return
+        val baseClass = runCatching { classLoader.loadClass(BASE_CONTENT_VIEW_CLASS) }.getOrNull() ?: return
+        val contentClass = runCatching { classLoader.loadClass(CONTENT_VIEW_CLASS) }.getOrNull() ?: return
+        val method = runCatching { baseClass.getDeclaredMethod("updateMiniBar", contentClass) }
+            .getOrNull() ?: return
+        synchronized(hookedClasses) {
+            if (hookedClasses.size >= 256 || !hookedClasses.add(baseClass)) return
         }
         runCatching {
             module.profiledHook("IslandMiniBarHook", method).intercept { chain ->
@@ -81,8 +76,54 @@ object IslandMiniBarHook : BaseHook() {
             }
             log(module) { "hooked ${baseClass.name}.updateMiniBar(${contentClass.simpleName})" }
         }.onFailure {
-            hookedLoaders.remove(loaderId)
+            synchronized(hookedClasses) { hookedClasses.remove(baseClass) }
             logError(module, "updateMiniBar hook failed — ${it.message}")
+            return
+        }
+        hookAppLockEligibility(module, baseClass, contentClass)
+    }
+
+    private fun hookAppLockEligibility(module: XposedModule, baseClass: Class<*>, contentClass: Class<*>) {
+        runCatching {
+            val canSlide = baseClass.getDeclaredMethod("canExpandedViewSlide", contentClass)
+            val coordinator = baseClass.getMethod("getDynamicIslandEventCoordinator").returnType
+            val isInLockMode = coordinator.getDeclaredMethod(
+                "isInLockMode",
+                String::class.java,
+                Int::class.javaPrimitiveType,
+            )
+            check(
+                canSlide.returnType == Boolean::class.javaPrimitiveType &&
+                    isInLockMode.returnType == Boolean::class.javaPrimitiveType,
+            )
+
+            // Only the white bar's eligibility check ignores app lock. Freeform launch still uses
+            // the original PendingIntent, so HyperOS can request app-lock authentication.
+            val checkingMiniBar = ThreadLocal<Boolean>()
+            val lockHook = module.profiledHook("IslandMiniBarHook", isInLockMode).intercept { chain ->
+                if (checkingMiniBar.get() == true) false else chain.proceed()
+            }
+            try {
+                module.profiledHook("IslandMiniBarHook", canSlide).intercept { chain ->
+                    val previous = checkingMiniBar.get()
+                    checkingMiniBar.set(true)
+                    try {
+                        chain.proceed()
+                    } finally {
+                        if (previous == null) checkingMiniBar.remove() else checkingMiniBar.set(previous)
+                    }
+                }
+            } catch (error: Throwable) {
+                runCatching { lockHook.unhook() }
+                throw error
+            }
+            // The coordinator's short method can be inlined into the eligibility check.
+            runCatching { module.deoptimize(canSlide) }
+            log(module) { "hooked app-lock check for mini-window pull-down eligibility" }
+        }.onFailure { error ->
+            logFailureOnce(module, "appLockEligibility:${error.javaClass.name}") {
+                "app lock eligibility hook unavailable: ${error.message}"
+            }
         }
     }
 
@@ -98,16 +139,13 @@ object IslandMiniBarHook : BaseHook() {
         when (behavior) {
             // 「隐藏」与早期「仅设为透明」等价，合并为同一分支。
             BEHAVIOR_HIDDEN, BEHAVIOR_TRANSPARENT -> {
-                // 可见性完全沿用系统（updateMiniBar 只会给 VISIBLE / GONE），只把不透明度清零；
-                // miniBarVisible 字段保持 true，所以下拉手势仍然生效。
-                bar?.let { it.alpha = if (it.visibility == View.VISIBLE) 0f else 1f }
+                // 沿用原生可见性和下拉手势状态，只调整不透明度。
+                bar.alpha = if (bar.visibility == View.VISIBLE) 0f else 1f
             }
 
             BEHAVIOR_REMOVED -> {
-                bar?.let {
-                    it.alpha = 1f
-                    it.visibility = View.GONE
-                }
+                bar.alpha = 1f
+                bar.visibility = View.GONE
                 setMiniBarVisible(host, false)
             }
         }

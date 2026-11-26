@@ -1,5 +1,7 @@
 package io.github.hyperisland.xposed.hook
 
+import io.github.hyperisland.xposed.hook.SystemUI.outline.SmallIslandGlowSlot
+import io.github.hyperisland.xposed.hook.SystemUI.outline.selectSmallIslandGlowSlot
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

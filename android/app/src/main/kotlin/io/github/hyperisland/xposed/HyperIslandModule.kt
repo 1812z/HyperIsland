@@ -15,6 +15,7 @@ import io.github.hyperisland.xposed.hook.SystemUI.animation.ExpandedLivelyAnimat
 import io.github.hyperisland.xposed.hook.SystemUI.animation.ExpandedPressTiltHook
 import io.github.hyperisland.xposed.hook.SystemUI.animation.ExpandedLayoutHook
 import io.github.hyperisland.xposed.hook.SystemUI.animation.ExpandedGestureFollowHook
+import io.github.hyperisland.xposed.hook.SystemUI.animation.IslandAppLockAnimationHook
 import io.github.hyperisland.xposed.hook.SystemUI.corner.IslandCornerHook
 import io.github.hyperisland.xposed.hook.SystemUI.corner.IslandOfficialMaterialCornerHook
 import io.github.hyperisland.xposed.hook.SystemUI.lockscreen.LockscreenNegativePageHook
@@ -110,6 +111,7 @@ class HyperIslandModule : XposedModule() {
                 UnlockAllFocusHook.init(this, param)
                 FocusNotifStatusBarIconHook.init(this, param)
                 IslandMiniBarHook.init(this, param)
+                IslandAppLockAnimationHook.init(this, param)
                 NotificationMiniBarHook.init(this, param)
                 IslandOuterGlowHook.init(this, param)
                 IslandBurnInDebugHook.init(this, param)
