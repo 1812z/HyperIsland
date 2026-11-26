@@ -1,23 +1,21 @@
 package io.github.hyperisland.xposed.hook.SystemUI.animation
 
-import android.animation.Animator
-import android.animation.AnimatorListenerAdapter
-import android.animation.ValueAnimator
 import android.app.ActivityManager
-import android.os.Handler
+import android.app.PendingIntent
 import android.os.IBinder
-import android.os.Looper
+import android.os.UserHandle
+import android.util.ArrayMap
 import android.view.SurfaceControl
-import android.view.animation.DecelerateInterpolator
 import io.github.hyperisland.xposed.diagnostics.profiledHook
 import io.github.hyperisland.xposed.hook.BaseHook
 import io.github.libxposed.api.XposedInterface.HookHandle
 import io.github.libxposed.api.XposedModule
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
-import java.util.concurrent.atomic.AtomicReference
+import java.util.WeakHashMap
 
 private const val TRANSIT_OPEN = 1
 private const val TRANSIT_TO_FRONT = 3
+private const val WINDOWING_MODE_FREEFORM = 5
 
 internal fun isIslandAppLockOpening(
     mode: Int,
@@ -25,8 +23,13 @@ internal fun isIslandAppLockOpening(
     baseClass: String?,
     topPackage: String?,
     topClass: String?,
+    launchPackage: String,
+    launchUser: Int,
+    behindAppLockPackage: String?,
+    taskUser: Int,
 ): Boolean =
     (mode == TRANSIT_OPEN || mode == TRANSIT_TO_FRONT) &&
+        launchUser == taskUser && launchPackage.isNotBlank() && launchPackage == behindAppLockPackage &&
         isAppLockComponent(basePackage, baseClass) &&
         ((topPackage == null && topClass == null) || isAppLockComponent(topPackage, topClass))
 
@@ -36,185 +39,187 @@ private fun isAppLockComponent(packageName: String?, className: String?): Boolea
             className == "com.miui.applicationlock.ConfirmAccessControl")
 
 internal object IslandAppLockAnimationHook : BaseHook() {
-    private const val REMOTE_RUNNER =
-        "com.android.systemui.statusbar.notification.anim.DynamicIslandAnimationRunner\$toRemoteTransition\$1"
-    private const val INITIAL_ALPHA = 0.65f
-    private const val FADE_MS = 140L
-    private const val FINISH_TIMEOUT_MS = 320L
+    private const val NOTIFICATION = "com.android.systemui.statusbar.notification"
+    private const val ANIMATION_RUNNER = "$NOTIFICATION.anim.DynamicIslandAnimationRunner"
+    private const val REMOTE_RUNNER = "$ANIMATION_RUNNER\$toRemoteTransition\$1"
+    private const val OWNER = "IslandAppLockAnimationHook"
 
-    private val handler = Handler(Looper.getMainLooper())
-    private val active = AtomicReference<Fade?>()
+    private data class Launch(val packageName: String, val userId: Int)
 
-    override fun getTag() = "HyperIsland[IslandAppLockAnimation]"
+    private class OpeningTarget(
+        val runner: Any,
+        val change: Any,
+        val info: Any,
+        val transaction: SurfaceControl.Transaction,
+        val target: Any,
+        val leashMap: ArrayMap<SurfaceControl, SurfaceControl>,
+    )
+
+    private val opening = ThreadLocal<Launch>()
+    private val launches = WeakHashMap<Any, Launch>()
+    private val prepared = ThreadLocal<OpeningTarget>()
+
+    override fun getTag() = "HyperIsland[$OWNER]"
 
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
         val handles = mutableListOf<HookHandle>()
         runCatching {
             val loader = param.defaultClassLoader
-            val runner = loader.loadClass(REMOTE_RUNNER)
-            val transitionInfo = loader.loadClass("android.window.TransitionInfo")
-            val change = loader.loadClass("android.window.TransitionInfo\$Change")
+            val controller = loader.loadClass("$NOTIFICATION.DynamicIslandWindowAnimController")
+            val runner = loader.loadClass(ANIMATION_RUNNER)
+            val remote = loader.loadClass(REMOTE_RUNNER)
+            val infoClass = loader.loadClass("android.window.TransitionInfo")
+            val changeClass = loader.loadClass("android.window.TransitionInfo\$Change")
             val finishCallback = loader.loadClass("android.window.IRemoteTransitionFinishedCallback")
+            val legacyFinishCallback = loader.loadClass("android.view.IRemoteAnimationFinishedCallback")
+            val targetClass = loader.loadClass("android.view.RemoteAnimationTarget")
+            val targetArray = java.lang.reflect.Array.newInstance(targetClass, 0).javaClass
             val transactionClass = SurfaceControl.Transaction::class.java
-            val start = runner.getDeclaredMethod(
-                "startAnimation", IBinder::class.java, transitionInfo, transactionClass, finishCallback,
+            val intType = Int::class.javaPrimitiveType!!
+            val open = controller.getDeclaredMethod("openFreeform", String::class.java, PendingIntent::class.java)
+            val remoteConstructor = remote.getDeclaredConstructor(runner)
+            val start = remote.getDeclaredMethod(
+                "startAnimation", IBinder::class.java, infoClass, transactionClass, finishCallback,
             )
-            val merge = runner.getDeclaredMethod(
-                "mergeAnimation", IBinder::class.java, transitionInfo, transactionClass,
-                IBinder::class.java, finishCallback,
+            val startRunner = runner.getDeclaredMethod(
+                "onAnimationStart", intType, targetArray, targetArray, targetArray, legacyFinishCallback,
             )
-            val consumed = runner.getDeclaredMethod(
-                "onTransitionConsumed", IBinder::class.java, Boolean::class.javaPrimitiveType,
+            val nativeTarget = loader.loadClass("com.android.wm.shell.shared.TransitionUtil").getMethod(
+                "newTarget", changeClass, intType, infoClass, transactionClass, ArrayMap::class.java,
             )
-            val finishClass = loader.loadClass("$REMOTE_RUNNER\$startAnimation\$animationFinishedCallback\$1")
-            val finish = finishClass.getDeclaredMethod("run")
-            val finishInfo = finishClass.getDeclaredField("\$info").apply { isAccessible = true }
-            val getChanges = transitionInfo.getMethod("getChanges")
-            val getMode = change.getMethod("getMode")
-            val getTaskInfo = change.getMethod("getTaskInfo")
-            val getLeash = change.getMethod("getLeash")
+            val owner = remote.getDeclaredField("this\$0").apply { isAccessible = true }
+            val exit = runner.getDeclaredField("isFreeformExitAnim").apply { isAccessible = true }
+            val finishBridge = loader.loadClass("$REMOTE_RUNNER\$startAnimation\$3")
+            val finishRunnable = finishBridge.getDeclaredField("\$animationFinishedCallback")
+                .apply { isAccessible = true }
+            val finishLeashMap = finishRunnable.type.getDeclaredField("\$leashMap").apply { isAccessible = true }
+            val targetLeash = targetClass.getField("leash")
+            val changes = infoClass.getMethod("getChanges")
+            val mode = changeClass.getMethod("getMode")
+            val taskInfo = changeClass.getMethod("getTaskInfo")
+            val changeLeash = changeClass.getMethod("getLeash")
+            val task = ActivityManager.RunningTaskInfo::class.java
+            val behindPackage = task.getField("mBehindAppLockPkg")
+            val taskUser = task.getField("userId")
+            val windowingMode = task.getMethod("getWindowingMode")
+            val userIdentifier = UserHandle::class.java.getMethod("getIdentifier")
 
-            handles += module.profiledHook("IslandAppLockAnimationHook", finish).intercept { chain ->
-                val fade = active.get()
-                val callback = chain.thisObject as? Runnable
-                if (fade != null && callback != null && runCatching {
-                        finishInfo.get(callback) === fade.transitionInfo && fade.deferFinish(callback)
-                    }.getOrDefault(false)
-                ) null else chain.proceed()
+            check(module.deoptimize(start)) { "cannot deoptimize App Lock remote transition" }
+
+            handles += module.profiledHook(OWNER, open).intercept { chain ->
+                val launch = runCatching {
+                    val intent = chain.args[1] as? PendingIntent ?: return@runCatching null
+                    val creator = intent.creatorPackage ?: return@runCatching null
+                    Launch(creator, userIdentifier.invoke(intent.creatorUserHandle) as Int)
+                }.getOrNull()
+                // Proxy notifications can use a SystemUI controller with an app-owned PendingIntent.
+                val previous = opening.get()
+                opening.set(launch)
+                try {
+                    chain.proceed()
+                } finally {
+                    if (previous == null) opening.remove() else opening.set(previous)
+                }
             }
-            handles += module.profiledHook("IslandAppLockAnimationHook", merge).intercept { chain ->
-                endFadeFor(chain.args[3])
-                chain.proceed()
+            handles += module.profiledHook(OWNER, remoteConstructor).intercept { chain ->
+                val launch = opening.get()
+                val result = chain.proceed()
+                val remoteRunner = chain.thisObject
+                if (launch != null && remoteRunner != null) synchronized(launches) {
+                    if (launches.size < 64) launches[remoteRunner] = launch
+                }
+                result
             }
-            handles += module.profiledHook("IslandAppLockAnimationHook", consumed).intercept { chain ->
-                endFadeFor(chain.args[0])
-                chain.proceed()
+            handles += module.profiledHook(OWNER, nativeTarget).intercept { chain ->
+                val target = prepared.get()
+                if (target != null && chain.args[0] === target.change &&
+                    chain.args[2] === target.info && chain.args[3] === target.transaction
+                ) {
+                    // If this ROM selected the same change itself, reuse the prepared leash.
+                    @Suppress("UNCHECKED_CAST")
+                    (chain.args[4] as? ArrayMap<SurfaceControl, SurfaceControl>)?.putAll(target.leashMap)
+                    target.target
+                } else {
+                    chain.proceed()
+                }
             }
-            handles += module.profiledHook("IslandAppLockAnimationHook", start).intercept { chain ->
-                val token = chain.args[0] as? IBinder ?: return@intercept chain.proceed()
+            handles += module.profiledHook(OWNER, startRunner).intercept { chain ->
+                val target = prepared.get()
+                if (target == null || chain.thisObject !== target.runner ||
+                    !(chain.args[1] as? Array<*>).isNullOrEmpty()
+                ) return@intercept chain.proceed()
+
+                val args = chain.args.toTypedArray()
+                args[1] = java.lang.reflect.Array.newInstance(targetClass, 1).also {
+                    java.lang.reflect.Array.set(it, 0, target.target)
+                }
+                // Hand the wrapper to the same bookkeeping used for stock-selected targets.
+                runCatching {
+                    @Suppress("UNCHECKED_CAST")
+                    val stockLeashes = finishLeashMap.get(finishRunnable.get(chain.args[4]))
+                        as? ArrayMap<SurfaceControl, SurfaceControl>
+                    stockLeashes?.putAll(target.leashMap)
+                }
+                log(module) { "using App Lock task for native island animation" }
+                chain.proceed(args)
+            }
+            handles += module.profiledHook(OWNER, start).intercept { chain ->
+                val launch = synchronized(launches) { launches.remove(chain.thisObject) }
+                    ?: return@intercept chain.proceed()
                 val info = chain.args[1] ?: return@intercept chain.proceed()
                 val transaction = chain.args[2] as? SurfaceControl.Transaction
                     ?: return@intercept chain.proceed()
-                val fade = runCatching {
-                    if (active.get() != null || !ValueAnimator.areAnimatorsEnabled()) return@runCatching null
-                    // The observed app-lock launch is a transition for a single Security Center task.
-                    val opening = (getChanges.invoke(info) as? List<*>)?.singleOrNull()
+                val target = runCatching {
+                    val nativeRunner = owner.get(chain.thisObject) ?: return@runCatching null
+                    if (exit.getBoolean(nativeRunner)) return@runCatching null
+                    val change = (changes.invoke(info) as? List<*>)?.singleOrNull()
                         ?: return@runCatching null
-                    val task = getTaskInfo.invoke(opening) as? ActivityManager.RunningTaskInfo
+                    val taskData = taskInfo.invoke(change) as? ActivityManager.RunningTaskInfo
                         ?: return@runCatching null
-                    val base = task.baseActivity
-                    val top = task.topActivity
-                    val mode = getMode.invoke(opening) as Int
-                    if (!isIslandAppLockOpening(mode, base?.packageName, base?.className,
-                            top?.packageName, top?.className)
+                    if (windowingMode.invoke(taskData) != WINDOWING_MODE_FREEFORM) return@runCatching null
+                    val base = taskData.baseActivity
+                    val top = taskData.topActivity
+                    if (!isIslandAppLockOpening(
+                            mode.invoke(change) as Int,
+                            base?.packageName, base?.className, top?.packageName, top?.className,
+                            launch.packageName, launch.userId,
+                            behindPackage.get(taskData) as? String, taskUser.getInt(taskData),
+                        )
                     ) return@runCatching null
-                    val leash = getLeash.invoke(opening) as? SurfaceControl ?: return@runCatching null
+                    val leash = changeLeash.invoke(change) as? SurfaceControl ?: return@runCatching null
                     if (!leash.isValid) return@runCatching null
-                    Fade(token, info, leash)
-                }.getOrNull() ?: return@intercept chain.proceed()
-                if (!active.compareAndSet(null, fade)) return@intercept chain.proceed()
 
-                // WindowManager hands off the drawn prompt here. Start the fade once the
-                // stock start transaction carrying its first alpha has been committed.
-                try {
-                    transaction.addTransactionCommittedListener({ handler.post(it) }, fade::start)
-                    transaction.setAlpha(fade.leash, INITIAL_ALPHA)
-                } catch (_: Exception) {
-                    active.compareAndSet(fade, null)
-                    return@intercept chain.proceed()
-                }
-                handler.postDelayed(fade.timeout, FINISH_TIMEOUT_MS)
+                    val leashMap = ArrayMap<SurfaceControl, SurfaceControl>()
+                    var merged = false
+                    try {
+                        SurfaceControl.Transaction().use { stage ->
+                            val native = nativeTarget.invoke(null, change, 1, info, stage, leashMap)
+                                ?: return@runCatching null
+                            if ((targetLeash.get(native) as? SurfaceControl)?.isValid != true) {
+                                return@runCatching null
+                            }
+                            // Commit the native opening geometry with Shell's first transaction.
+                            transaction.merge(stage)
+                            merged = true
+                            OpeningTarget(nativeRunner, change, info, transaction, native, leashMap)
+                        }
+                    } finally {
+                        if (!merged) leashMap[leash]?.takeIf { it !== leash }?.release()
+                    }
+                }.onFailure { error ->
+                    logFailureOnce(module, "target") { "App Lock animation target unavailable: ${error.message}" }
+                }.getOrNull() ?: return@intercept chain.proceed()
+                val previous = prepared.get()
+                prepared.set(target)
                 try {
                     chain.proceed()
-                } catch (error: Throwable) {
-                    runCatching { transaction.setAlpha(fade.leash, 1f) }
-                    handler.post { fade.complete() }
-                    throw error
+                } finally {
+                    if (previous == null) prepared.remove() else prepared.set(previous)
                 }
-            }
-            // The stock callback can inline its completion Runnable.
-            runCatching {
-                val callback = loader.loadClass("$REMOTE_RUNNER\$startAnimation\$3")
-                module.deoptimize(callback.getDeclaredMethod("onAnimationFinished"))
             }
         }.onFailure { error ->
             handles.asReversed().forEach { runCatching { it.unhook() } }
             logFailureOnce(module, "install") { "app-lock animation unavailable: ${error.message}" }
-        }
-    }
-
-    private fun endFadeFor(token: Any?) {
-        val fade = active.get() ?: return
-        if (fade.token == token) handler.post { fade.complete() }
-    }
-
-    private class Fade(
-        val token: IBinder,
-        val transitionInfo: Any,
-        val leash: SurfaceControl,
-    ) {
-        val timeout = Runnable { complete() }
-        private var completed = false
-        private var finishCallback: Runnable? = null
-        private var animator: ValueAnimator? = null
-        private var frameTransaction: SurfaceControl.Transaction? = null
-
-        @Synchronized
-        fun deferFinish(callback: Runnable): Boolean {
-            if (active.get() !== this) return false
-            finishCallback = callback
-            return true
-        }
-
-        fun start() {
-            if (active.get() !== this) return
-            runCatching {
-                if (!leash.isValid || !ValueAnimator.areAnimatorsEnabled()) {
-                    complete()
-                    return
-                }
-                frameTransaction = SurfaceControl.Transaction()
-                val fadeAnimator = ValueAnimator.ofFloat(INITIAL_ALPHA, 1f).apply {
-                    duration = FADE_MS
-                    interpolator = DecelerateInterpolator()
-                    addUpdateListener { animation ->
-                        runCatching {
-                            if (leash.isValid) {
-                                frameTransaction?.setAlpha(leash, animation.animatedValue as Float)?.apply()
-                            } else {
-                                complete()
-                            }
-                        }.onFailure { complete() }
-                    }
-                    addListener(object : AnimatorListenerAdapter() {
-                        override fun onAnimationEnd(animation: Animator) = complete()
-                    })
-                }
-                animator = fadeAnimator
-                fadeAnimator.start()
-            }.onFailure { complete() }
-        }
-
-        fun complete() {
-            if (completed) return
-            completed = true
-            handler.removeCallbacks(timeout)
-            animator?.cancel()
-            animator = null
-            runCatching {
-                if (leash.isValid) {
-                    val transaction = frameTransaction ?: SurfaceControl.Transaction()
-                    frameTransaction = transaction
-                    transaction.setAlpha(leash, 1f).apply()
-                }
-            }
-            runCatching { frameTransaction?.close() }
-            frameTransaction = null
-            val callback = synchronized(this) {
-                active.compareAndSet(this, null)
-                finishCallback.also { finishCallback = null }
-            }
-            callback?.run()
         }
     }
 }
