@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { presetIdPattern } from '../data/cloud-presets'
 
 interface Preset {
@@ -17,8 +17,11 @@ const { english = false } = defineProps<{ english?: boolean }>()
 const label = (zh: string, en: string) => english ? en : zh
 const hub = 'https://hyperisland-hub.1812z.top'
 const presets = ref<Preset[]>([])
+const search = ref('')
+const sortBy = ref<'latest' | 'popular'>('popular')
+const pageSize = 50
 const page = ref(1)
-const pages = ref(1)
+let sharedId: string | undefined
 const loading = ref(true)
 const listError = ref(false)
 const sharedPresetUnavailable = ref(false)
@@ -30,6 +33,22 @@ const androidChrome = ref(false)
 const controller = new AbortController()
 const dateFormat = new Intl.DateTimeFormat(english ? 'en' : 'zh-CN', { dateStyle: 'medium' })
 const numberFormat = new Intl.NumberFormat(english ? 'en' : 'zh-CN')
+
+const searchText = (value: string) => value.normalize('NFKC').toLowerCase()
+const publishedTime = (preset: Preset) => Date.parse(preset.publishedAt || preset.updatedAt || '') || 0
+
+const matchingPresets = computed(() => {
+  const keyword = searchText(search.value.trim())
+  return presets.value
+    .filter(preset => [preset.name, preset.author, preset.description].some(value => searchText(value).includes(keyword)))
+    .sort((a, b) => {
+      const latestFirst = publishedTime(b) - publishedTime(a)
+      return (sortBy.value === 'popular' ? b.downloads - a.downloads : 0) || latestFirst || a.id.localeCompare(b.id)
+    })
+})
+const pages = computed(() => Math.max(1, Math.ceil(matchingPresets.value.length / pageSize)))
+const visiblePresets = computed(() => matchingPresets.value.slice((page.value - 1) * pageSize, page.value * pageSize))
+watch([search, sortBy], () => { page.value = 1 })
 
 const importLink = computed(() => {
   if (!selected.value) return ''
@@ -57,34 +76,22 @@ async function fetchPage(target: number) {
   }
 }
 
-async function loadPage(target: number, sharedId?: string) {
+async function loadPresets() {
   loading.value = true
   listError.value = false
   try {
-    let result = await fetchPage(target)
-    const hint = target
-    if (target > result.pages) {
-      target = 1
-      result = await fetchPage(target)
+    const first = await fetchPage(1)
+    const catalogue = new Map(first.items.map(preset => [preset.id, preset]))
+    for (let index = 2; index <= first.pages; index++) {
+      const result = await fetchPage(index)
+      for (const preset of result.items) catalogue.set(preset.id, preset)
     }
+    presets.value = [...catalogue.values()]
     if (sharedId) {
-      let match = result.items.find(preset => preset.id === sharedId)
-      // 上架和下架可能改变分页，用链接里的页码优先查找，必要时再查其他页。
-      for (let candidate = 1; !match && candidate <= result.pages; candidate++) {
-        if (candidate === hint || candidate === target) continue
-        const next = await fetchPage(candidate)
-        match = next.items.find(preset => preset.id === sharedId)
-        if (match) {
-          target = candidate
-          result = next
-        }
-      }
+      const match = catalogue.get(sharedId)
       sharedPresetUnavailable.value = !match
       if (match) await openPreset(match)
     }
-    presets.value = result.items
-    page.value = target
-    pages.value = result.pages
   } catch {
     if (!controller.signal.aborted) listError.value = true
   } finally {
@@ -105,7 +112,6 @@ async function sharePreset() {
   const url = new URL(window.location.href)
   url.search = ''
   url.searchParams.set('preset', selected.value.id)
-  if (page.value > 1) url.searchParams.set('page', String(page.value))
   url.hash = ''
   try {
     await navigator.clipboard.writeText(url.href)
@@ -117,16 +123,10 @@ async function sharePreset() {
 
 onMounted(() => {
   androidChrome.value = /Android/i.test(navigator.userAgent) && /Chrome\//.test(navigator.userAgent)
-  const query = new URLSearchParams(window.location.search)
-  const sharedId = query.get('preset')
-  const hint = Number(query.get('page'))
-  const target = Number.isSafeInteger(hint) && hint > 0 ? hint : 1
-  if (sharedId && presetIdPattern.test(sharedId)) {
-    void loadPage(target, sharedId.toLowerCase())
-  } else {
-    sharedPresetUnavailable.value = !!sharedId
-    void loadPage(1)
-  }
+  const id = new URLSearchParams(window.location.search).get('preset')
+  if (id && presetIdPattern.test(id)) sharedId = id.toLowerCase()
+  sharedPresetUnavailable.value = !!id && !sharedId
+  void loadPresets()
 })
 onUnmounted(() => controller.abort())
 </script>
@@ -137,15 +137,28 @@ onUnmounted(() => controller.abort())
       {{ label('这条分享的预设暂时无法查看。', 'This shared preset is unavailable.') }}
     </p>
 
-    <p v-if="loading && !presets.length" class="feedback" role="status">
+    <div class="preset-toolbar">
+      <input v-model="search" class="preset-search" type="search"
+        :aria-label="label('搜索预设', 'Search presets')"
+        :placeholder="label('搜索名称、作者或简介', 'Search name, author, or description')">
+      <div class="sort-controls" role="group" :aria-label="label('排序方式', 'Sort presets')">
+        <button class="action" type="button" :aria-pressed="sortBy === 'latest'" @click="sortBy = 'latest'">{{ label('最新', 'Latest') }}</button>
+        <button class="action" type="button" :aria-pressed="sortBy === 'popular'" @click="sortBy = 'popular'">{{ label('热门', 'Popular') }}</button>
+      </div>
+    </div>
+
+    <p v-if="loading" class="feedback" role="status">
       {{ label('正在加载预设…', 'Loading presets…') }}
     </p>
     <p v-else-if="!loading && !listError && !presets.length" class="feedback">
       {{ label('暂无已发布的预设。', 'No presets have been published.') }}
     </p>
+    <p v-else-if="!listError && !matchingPresets.length" class="feedback" role="status">
+      {{ label('没有匹配的预设。', 'No matching presets.') }}
+    </p>
 
-    <div v-if="presets.length" class="preset-grid" :aria-busy="loading">
-      <button v-for="preset in presets" :key="preset.id" type="button" class="preset-card" @click="openPreset(preset)">
+    <div v-if="visiblePresets.length" class="preset-grid" :aria-busy="loading">
+      <button v-for="preset in visiblePresets" :key="preset.id" type="button" class="preset-card" @click="openPreset(preset)">
         <span class="preset-name">{{ preset.name }}</span>
         <span v-if="preset.description" class="preset-description">{{ preset.description }}</span>
         <span class="preset-meta">
@@ -157,13 +170,13 @@ onUnmounted(() => controller.abort())
 
     <p v-if="listError" class="feedback" role="status">
       {{ label('加载失败，请稍后重试。', 'Could not load presets.') }}
-      <button v-if="!presets.length" class="action" type="button" @click="loadPage(1)">{{ label('重试', 'Retry') }}</button>
+      <button class="action" type="button" @click="loadPresets">{{ label('重试', 'Retry') }}</button>
     </p>
 
     <nav v-if="pages > 1" class="pagination" :aria-label="label('预设分页', 'Preset pages')">
-      <button class="action" type="button" :disabled="loading || page <= 1" @click="loadPage(page - 1)">{{ label('上一页', 'Previous') }}</button>
+      <button class="action" type="button" :disabled="page <= 1" @click="page--">{{ label('上一页', 'Previous') }}</button>
       <span>{{ page }} / {{ pages }}</span>
-      <button class="action" type="button" :disabled="loading || page >= pages" @click="loadPage(page + 1)">{{ label('下一页', 'Next') }}</button>
+      <button class="action" type="button" :disabled="page >= pages" @click="page++">{{ label('下一页', 'Next') }}</button>
     </nav>
 
     <dialog ref="dialog" class="preset-dialog" aria-labelledby="preset-dialog-title" @click.self="dialog?.close()">
@@ -194,6 +207,11 @@ onUnmounted(() => controller.abort())
 
 <style scoped>
 .cloud-presets { margin-top: 24px; }
+.preset-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 12px; margin-bottom: 16px; }
+.preset-search { flex: 1 1 230px; min-width: 0; padding: 8px 12px; border: 1px solid var(--vp-c-divider); border-radius: 8px; background: var(--vp-c-bg-soft); font-size: 14px; }
+.preset-search:focus-visible { outline: 2px solid var(--vp-c-brand-1); outline-offset: 1px; }
+.sort-controls { display: flex; gap: 6px; }
+.sort-controls .action[aria-pressed="true"] { border-color: var(--vp-c-brand-1); background: var(--vp-c-brand-soft); color: var(--vp-c-brand-1); }
 .preset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr)); gap: 14px; }
 .preset-card { display: flex; flex-direction: column; gap: 10px; padding: 18px; min-height: 122px; text-align: start; background: var(--vp-c-bg-soft); border: 1px solid var(--vp-c-divider); border-radius: 12px; cursor: pointer; }
 .preset-card:hover, .preset-card:focus-visible { border-color: var(--vp-c-brand-1); }

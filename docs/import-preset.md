@@ -23,6 +23,7 @@ onMounted(() => {
   <h1>{{ english ? 'Import a HyperIsland preset' : '导入 HyperIsland 预设' }}</h1>
   <p v-if="appLink">{{ english ? 'Open the Android app to review and apply this preset.' : '在 Android 应用中查看并确认应用此预设。' }}</p>
   <p v-else>{{ english ? 'This preset link is invalid.' : '此预设链接无效。' }}</p>
+  <p v-if="appLink" class="version-requirement">{{ english ? 'Importing presets requires HyperIsland 3.3.4 or later.' : '导入预设需要版本≥3.3.4' }}</p>
   <div class="import-preset-links">
     <a v-if="appLink" :href="appLink">{{ english ? 'Open HyperIsland' : '打开 HyperIsland' }}</a>
     <a :href="english ? '/en/downloads.html' : '/downloads.html'">{{ english ? 'Install or update the app' : '安装或更新应用' }}</a>
@@ -34,6 +35,7 @@ onMounted(() => {
 .import-preset-page { max-width: 640px; margin: 0 auto; padding: 72px 24px; }
 h1 { font-size: 30px; font-weight: 650; line-height: 1.3; }
 p { margin: 14px 0 22px; color: var(--vp-c-text-2); }
+p.version-requirement { margin-top: -12px; font-size: 14px; }
 .import-preset-links { display: flex; flex-wrap: wrap; gap: 12px 20px; }
 a { color: var(--vp-c-brand-1); text-decoration: underline; }
 </style>

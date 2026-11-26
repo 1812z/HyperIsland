@@ -1,8 +1,98 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-18T04:35:29.772Z",
-  "latest": "3.2.6",
+  "generatedAt": "2026-11-26T07:37:00.354Z",
+  "latest": "3.3.3",
   "releases": [
+    {
+      "version": "3.3.3",
+      "date": "2026-11-25",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v3.3.3/HyperIsland-v3.3.3.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "新增小岛光效(外观/轮廓)",
+            "新增启动Logo遮罩"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "优化材质性能占用",
+            "修复媒体光效状态显示",
+            "更新Miuix依赖",
+            "优化玻璃界面显示"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "3.3.2",
+      "date": "2026-11-24",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v3.3.2/HyperIsland-v3.3.2.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "完善搜索框/Tab等组件柔光",
+            "支持底栏/主界面/卡片柔光效果单独调节"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "优化主界面柔光效果",
+            "修复焦点通知权限异常",
+            "优化柔光界面流畅度"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "3.3.1",
+      "date": "2026-11-22",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v3.3.1/HyperIsland-v3.3.1.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "UI：新增柔光界面（实验性）",
+            "UI：新增壁纸功能",
+            "UI：优化底栏样式",
+            "新增禁用蓝牙设备解锁Toast提示"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "修复部分场景柔光材质出现黑色遮罩"
+          ]
+        }
+      ]
+    },
+    {
+      "version": "3.3.0",
+      "date": "2026-11-18",
+      "downloadUrl": "https://github.com/1812z/HyperIsland/releases/download/v3.3.0/HyperIsland-v3.3.0.apk",
+      "sections": [
+        {
+          "title": "功能",
+          "items": [
+            "新增性能分析工具",
+            "新增柔光材质下，浅色界面自动压暗岛"
+          ]
+        },
+        {
+          "title": "优化 & 修复",
+          "items": [
+            "修复收起、展开柔光材质丢失问题",
+            "优化配置记忆功能",
+            "更新OS4界面",
+            "优化性能"
+          ]
+        }
+      ]
+    },
     {
       "version": "3.2.6",
       "date": "2026-11-16",

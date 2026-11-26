@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "generatedAt": "2026-11-18T04:35:29.772Z",
-  "count": 68,
-  "total": "615.12",
+  "generatedAt": "2026-11-26T07:37:00.354Z",
+  "count": 80,
+  "total": "685.32",
   "donors": [
     {
       "name": "MutsumiLove",
@@ -411,6 +411,78 @@
       "amount": "5",
       "date": "2026-11-06",
       "message": "为世界献上爆炎和模块"
+    },
+    {
+      "name": " ",
+      "amount": "15",
+      "date": "2026-11-18",
+      "message": ""
+    },
+    {
+      "name": "🍀nycok.9",
+      "amount": "2",
+      "date": "2026-11-19",
+      "message": "无限进步🥵"
+    },
+    {
+      "name": "AAA批发商小郑",
+      "amount": "5",
+      "date": "2026-11-19",
+      "message": "加油"
+    },
+    {
+      "name": "Mephisto",
+      "amount": "1.14",
+      "date": "2026-11-19",
+      "message": "有多可爱"
+    },
+    {
+      "name": "MAX狐",
+      "amount": "1.14",
+      "date": "2026-11-19",
+      "message": "加油"
+    },
+    {
+      "name": "匿名",
+      "amount": "0.66",
+      "date": "2026-11-19",
+      "message": ""
+    },
+    {
+      "name": "阿里巴巴泡椒",
+      "amount": "5",
+      "date": "2026-11-20",
+      "message": "感谢"
+    },
+    {
+      "name": "青Basil",
+      "amount": "6.6",
+      "date": "2026-11-20",
+      "message": ""
+    },
+    {
+      "name": "袁煜祺",
+      "amount": "0.66",
+      "date": "2026-11-20",
+      "message": ""
+    },
+    {
+      "name": "Мяоxsнебо ! ! !",
+      "amount": "20",
+      "date": "2026-11-21",
+      "message": "加油up,支持"
+    },
+    {
+      "name": "匿名",
+      "amount": "3",
+      "date": "2026-11-21",
+      "message": "请大佬喝可乐"
+    },
+    {
+      "name": "Lapis",
+      "amount": "10",
+      "date": "2026-11-23",
+      "message": "你做得好啊♡"
     }
   ]
 }
