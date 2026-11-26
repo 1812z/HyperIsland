@@ -54,9 +54,9 @@ internal object HubClient {
     }
 
     /** 拉取配置详情（含正文）。此接口会在服务端累加下载量。 */
-    suspend fun detail(preset: ConfigPreset): ConfigPreset = withContext(Dispatchers.IO) {
+    suspend fun detail(preset: ConfigPreset, deviceId: String? = null): ConfigPreset = withContext(Dispatchers.IO) {
         val id = preset.id.removePrefix(ID_PREFIX)
-        val (code, body) = request("GET", "/api/configs/$id")
+        val (code, body) = request("GET", "/api/configs/$id", deviceId = deviceId)
         if (code !in 200..299) throw HubException(code, body.optString("error"), body.opt("detail"))
         body.toDetailPreset()
     }

@@ -36,9 +36,11 @@ import kotlinx.coroutines.delay
 /** 纯 Android/Compose 应用入口；保留原类名以兼容系统设置入口和外部显式 Intent。 */
 class MainActivity : ComponentActivity() {
     private val backgroundTasksStarted = AtomicBoolean(false)
+    private var pendingPresetId by mutableStateOf<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        pendingPresetId = if (savedInstanceState == null) presetIdFrom(intent) else savedInstanceState.getString(STATE_PRESET_ID)
         val prefs = FlutterPrefsRepository(this)
         val isNewUser = !prefs.getBoolean("pref_onboarding_completed", false)
         val privacyPolicyAcceptedAtLaunch = PrivacyConsentStore.isAccepted(this)
@@ -103,7 +105,13 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onFinished = { onboardingCompleted = true },
                             )
-                            privacyPolicyAccepted -> HyperIslandApp(repository)
+                            privacyPolicyAccepted -> HyperIslandApp(
+                                prefs = repository,
+                                presetImportId = pendingPresetId,
+                                onPresetImportOpened = { id ->
+                                    if (pendingPresetId == id) pendingPresetId = null
+                                },
+                            )
                             else -> {
                                 Box(
                                     modifier = Modifier
@@ -135,6 +143,29 @@ class MainActivity : ComponentActivity() {
         if (privacyPolicyAcceptedAtLaunch) {
             startBackgroundTasks(prefs)
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        presetIdFrom(intent)?.let { pendingPresetId = it }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString(STATE_PRESET_ID, pendingPresetId)
+    }
+
+    private fun presetIdFrom(intent: Intent): String? {
+        val uri = intent.data ?: return null
+        if (intent.action != Intent.ACTION_VIEW || !uri.isHierarchical) return null
+        val matches = when (uri.scheme) {
+            "https" -> uri.authority == "hyperisland.1812z.top" && uri.encodedPath == "/import-preset.html"
+            "hyperisland" -> uri.authority == "import-preset" && uri.encodedPath.orEmpty().isEmpty()
+            else -> false
+        }
+        if (!matches) return null
+        return uri.getQueryParameters("id").singleOrNull()?.takeIf(PRESET_ID::matches)?.lowercase()
     }
 
     override fun onStart() {
@@ -170,6 +201,8 @@ class MainActivity : ComponentActivity() {
 
     private companion object {
         const val PRIVACY_POLICY_BASE_URL = "https://hyperisland.1812z.top"
+        const val STATE_PRESET_ID = "pendingPresetId"
+        val PRESET_ID = Regex("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")
 
         /** 启动遮罩最短展示时长：壁纸已就绪时也不至于一闪而过。 */
         const val SPLASH_MIN_SHOW_MS = 300L

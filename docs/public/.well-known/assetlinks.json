@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "io.github.hyperisland",
+      "sha256_cert_fingerprints": [
+        "68:1A:02:6A:4E:72:B1:B9:48:A9:39:AC:1D:9C:9F:C2:C7:33:82:D0:CF:F6:AA:09:4C:81:39:F2:D2:5C:A7:B5"
+      ]
+    }
+  }
+]

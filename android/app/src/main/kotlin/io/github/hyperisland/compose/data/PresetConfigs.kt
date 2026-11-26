@@ -159,6 +159,7 @@ internal object PresetStore {
      * 只用于让云端区分「谁上传的配置」，从而允许上传者更新自己的配置与自查审核进度。
      * 它随上传请求的 `X-Device-Id` 头发送（不放进配置正文，也不会出现在任何响应里）。
      */
+    @Synchronized
     fun deviceId(context: Context): String {
         val prefs = presetsPrefs(context)
         prefs.getString(KEY_DEVICE_ID, null)?.takeIf { it.isNotBlank() }?.let { return it }

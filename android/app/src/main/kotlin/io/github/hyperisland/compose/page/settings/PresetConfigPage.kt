@@ -407,6 +407,8 @@ private object PresetHubStatusState {
 internal fun PresetConfigPage(
     prefs: FlutterPrefsRepository,
     onBack: () -> Unit,
+    presetImportId: String?,
+    onPresetImportOpened: (String) -> Unit,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -597,6 +599,22 @@ internal fun PresetConfigPage(
     var showResetDialog by remember { mutableStateOf(false) }
     var applyTarget by remember { mutableStateOf<ConfigPreset?>(null) }
     var applySheetShown by remember { mutableStateOf(false) }
+    var browserImport by remember { mutableStateOf(false) }
+    LaunchedEffect(presetImportId) {
+        val id = presetImportId ?: return@LaunchedEffect
+        browserImport = true
+        applyTarget = ConfigPreset(
+            id = HubClient.cloudKey(id),
+            title = "",
+            content = "",
+            author = "",
+            downloads = 0,
+            local = false,
+            sections = emptyMap(),
+        )
+        applySheetShown = true
+        onPresetImportOpened(id)
+    }
     // 「修改配置」的目标（新建配置 sheet 的复用入口）。
     var modifyTarget by remember { mutableStateOf<ConfigPreset?>(null) }
     var modifySheetShown by remember { mutableStateOf(false) }
@@ -707,6 +725,7 @@ internal fun PresetConfigPage(
                     badge = preset.presetBadgeSpec(hubCachedVersions[preset.id])
                         ?.let { PresetCardBadge(it.icon, presetBadgeColor(it.tone)) },
                     onClick = {
+                        browserImport = false
                         applyTarget = preset
                         applySheetShown = true
                     },
@@ -769,6 +788,7 @@ internal fun PresetConfigPage(
         ApplyPresetBottomSheet(
             show = applySheetShown,
             preset = preset,
+            browserImport = browserImport,
             onDismiss = { applySheetShown = false },
             onDismissFinished = {
                 applyTarget = null
@@ -1263,6 +1283,7 @@ private fun NewPresetBottomSheet(
 private fun ApplyPresetBottomSheet(
     show: Boolean,
     preset: ConfigPreset,
+    browserImport: Boolean,
     onDismiss: () -> Unit,
     onDismissFinished: () -> Unit,
     onDeleteConfirmed: () -> Unit,
@@ -1314,7 +1335,7 @@ private fun ApplyPresetBottomSheet(
         // 命中本地缓存就不再联网，避免每次点进来都下载。缓存序列化放到 IO 线程。
         // 刻意不把列表版本传进去：缓存版本落后时保留旧正文，由用户点「更新配置」手动更新，
         // 而不是一打开 sheet 就被静默换成新版本。
-        val cached = withContext(Dispatchers.IO) {
+        val cached = if (browserImport) null else withContext(Dispatchers.IO) {
             PresetStore.cachedHubPreset(context, preset.id)
         }
         if (cached != null) {
@@ -1325,7 +1346,10 @@ private fun ApplyPresetBottomSheet(
         }
         downloading = true
         downloadFailed = false
-        runCatching { HubClient.detail(preset) }
+        runCatching {
+            val deviceId = if (browserImport) withContext(Dispatchers.IO) { PresetStore.deviceId(context) } else null
+            HubClient.detail(preset, deviceId)
+        }
             .onSuccess { detail ->
                 withContext(Dispatchers.IO) { PresetStore.cacheHubPreset(context, detail) }
                 resolved = detail
@@ -1335,6 +1359,7 @@ private fun ApplyPresetBottomSheet(
     }
 
     val effective = editedPreset ?: resolved ?: preset
+    val displayPreset = if (browserImport) effective else preset
     // 空 JSON / 空配置的分节直接隐藏，不参与展示与应用。
     val includedIds = remember(effective) {
         effective.sections.filterValues { it.length() > 0 }.keys.toList()
@@ -1350,7 +1375,7 @@ private fun ApplyPresetBottomSheet(
         effective.sections.mapValues { (id, values) -> appSectionCount(id, values) }
     }
     // 云端列表 / 详情返回的是 ISO8601 字符串，HubClient 已转为 epoch 毫秒；这里再转本地可读时间。
-    val createdLabel = remember(preset.createdAt) { formatPresetTime(preset.createdAt) }
+    val createdLabel = remember(displayPreset.createdAt) { formatPresetTime(displayPreset.createdAt) }
     // 本机缓存正文落后于云端列表版本：只在详情里给一个手动更新入口，
     // 不再自动把缓存换成新版本（用户可能就是想沿用旧配置）。
     val hasUpdate = !preset.local && cachedVersion.isNotBlank() &&
@@ -1457,7 +1482,7 @@ private fun ApplyPresetBottomSheet(
 
     AppBottomSheet(
         show = show,
-        title = preset.title,
+        title = displayPreset.title.ifBlank { stringResource(R.string.preset_page_title) },
         backgroundColor = presetSheetColor(),
         insideMargin = DpSize(12.dp, 0.dp),
         startAction = {
@@ -1685,10 +1710,10 @@ private fun ApplyPresetBottomSheet(
                     // 详情卡片的条目：左列标签、右列内容、可选的强调色（只有状态 / 原因需要着色）。
                     // 顺序固定为「介绍 → 时间 → 版本 → 状态 → 原因」，缺失的条目直接不进列表。
                     val detailRows = ArrayList<Triple<String, String, Color?>>()
-                    if (preset.content.isNotBlank()) {
+                    if (displayPreset.content.isNotBlank()) {
                         detailRows += Triple(
                             stringResource(R.string.preset_field_description),
-                            preset.content,
+                            displayPreset.content,
                             null,
                         )
                     }

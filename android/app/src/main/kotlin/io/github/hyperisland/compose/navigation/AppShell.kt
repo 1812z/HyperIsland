@@ -145,7 +145,11 @@ private data class RootDestination(@StringRes val title: Int, val icon: ImageVec
 private enum class ThemeSubpage { BlurEffects, Wallpaper }
 
 @Composable
-internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
+internal fun HyperIslandApp(
+    prefs: FlutterPrefsRepository,
+    presetImportId: String?,
+    onPresetImportOpened: (String) -> Unit,
+) {
     val context = LocalContext.current
     val destinations = remember {
         listOf(
@@ -199,6 +203,26 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
     var bottomBarHeightPx by remember { mutableIntStateOf(0) }
     var bottomBarComposed by remember { mutableStateOf(true) }
     val density = LocalDensity.current
+
+    fun openSettingsDetail(detail: SettingsDetail) {
+        batchChannelTarget = null
+        batchToastPackages = null
+        visibleChannelApp = null
+        visibleToastApp = null
+        visibleChannelEditor = null
+        mediaShown = false
+        materialShown = false
+        sceneBrightnessShown = false
+        themeSubpageShown = false
+        extensionDetail = null
+        extensionSubDetail = null
+        visibleDetail = detail
+        detailShown = true
+    }
+
+    LaunchedEffect(presetImportId) {
+        if (presetImportId != null) openSettingsDetail(SettingsDetail.Preset)
+    }
 
     @Composable
     fun RootBottomBar(enabled: Boolean = true) {
@@ -484,16 +508,7 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                 )
                                 2 -> SettingsPage(
                                     prefs = prefs,
-                                    onOpenDetail = {
-                                        batchChannelTarget = null
-                                        batchToastPackages = null
-                                        visibleChannelApp = null
-                                        visibleToastApp = null
-                                        extensionDetail = null
-                                        extensionSubDetail = null
-                                        visibleDetail = it
-                                        detailShown = true
-                                    },
+                                    onOpenDetail = ::openSettingsDetail,
                                 )
                                 else -> AboutPage(
                                     isActive = pagerState.currentPage == page,
@@ -629,7 +644,12 @@ internal fun HyperIslandApp(prefs: FlutterPrefsRepository) {
                                 )
                                 SettingsDetail.HideBehavior -> HideBehaviorPage(prefs, ::closeDetail)
                                 SettingsDetail.DefaultConfig -> DefaultConfigPage(prefs, ::closeDetail)
-                                SettingsDetail.Preset -> PresetConfigPage(prefs = prefs, onBack = ::closeDetail)
+                                SettingsDetail.Preset -> PresetConfigPage(
+                                    prefs = prefs,
+                                    onBack = ::closeDetail,
+                                    presetImportId = presetImportId.takeIf { detailShown },
+                                    onPresetImportOpened = onPresetImportOpened,
+                                )
                                 SettingsDetail.AiConfig -> AiConfigPage(prefs, ::closeDetail)
                                 SettingsDetail.Misc -> MiscPage(
                                     prefs = prefs,
