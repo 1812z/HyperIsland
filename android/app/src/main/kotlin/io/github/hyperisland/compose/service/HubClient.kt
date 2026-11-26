@@ -33,6 +33,8 @@ internal object HubClient {
 
     fun isHubId(id: String): Boolean = id.startsWith(ID_PREFIX)
 
+    fun rawCloudId(id: String): String = id.removePrefix(ID_PREFIX)
+
     /**
      * 把本地记的云端原始 id（裸 uuid，见 `ConfigPreset.hubId`）还原成列表里带前缀的形式，
      * 便于把「我上传的那条」与云端列表条目对上号。
@@ -55,7 +57,7 @@ internal object HubClient {
 
     /** 拉取配置详情（含正文）。此接口会在服务端累加下载量。 */
     suspend fun detail(preset: ConfigPreset, deviceId: String? = null): ConfigPreset = withContext(Dispatchers.IO) {
-        val id = preset.id.removePrefix(ID_PREFIX)
+        val id = rawCloudId(preset.id)
         val (code, body) = request("GET", "/api/configs/$id", deviceId = deviceId)
         if (code !in 200..299) throw HubException(code, body.optString("error"), body.opt("detail"))
         body.toDetailPreset()

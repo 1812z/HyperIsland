@@ -3,6 +3,8 @@ package io.github.hyperisland.compose.page.settings
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -150,6 +152,7 @@ import top.yukonga.miuix.kmp.icon.extended.Download
 import top.yukonga.miuix.kmp.icon.extended.Help
 import top.yukonga.miuix.kmp.icon.extended.More
 import top.yukonga.miuix.kmp.icon.extended.Report
+import top.yukonga.miuix.kmp.icon.extended.Share
 import top.yukonga.miuix.kmp.icon.extended.Timer
 import top.yukonga.miuix.kmp.icon.extended.Update
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -1360,6 +1363,11 @@ private fun ApplyPresetBottomSheet(
 
     val effective = editedPreset ?: resolved ?: preset
     val displayPreset = if (browserImport) effective else preset
+    val shareId = when {
+        preset.local -> hubId.takeIf { it.isNotBlank() && preset.hubStatus == HUB_STATUS_PUBLISHED }
+        HubClient.isHubId(preset.id) && (!browserImport || resolved != null) -> HubClient.rawCloudId(preset.id)
+        else -> null
+    }
     // 空 JSON / 空配置的分节直接隐藏，不参与展示与应用。
     val includedIds = remember(effective) {
         effective.sections.filterValues { it.length() > 0 }.keys.toList()
@@ -1486,23 +1494,37 @@ private fun ApplyPresetBottomSheet(
         backgroundColor = presetSheetColor(),
         insideMargin = DpSize(12.dp, 0.dp),
         startAction = {
-            // 仅本地预设显示左上角关闭图标。
-            if (preset.local) {
-                AppModalIconButton(onClick = onDismiss) {
-                    Icon(MiuixIcons.Basic.Close, contentDescription = stringResource(R.string.close))
-                }
+            AppModalIconButton(onClick = onDismiss) {
+                Icon(MiuixIcons.Basic.Close, contentDescription = stringResource(R.string.close))
             }
         },
-        // 本地预设：右上角为 error 色删除图标（删除按钮从底部移到这里）；仅在详情视图显示。
-        // 删除必须先过一次确认弹窗，避免误触后连云端那条也再也改不动。
         endAction = {
-            if (preset.local && view == PresetSheetView.Detail) {
-                AppModalIconButton(onClick = { showDeleteConfirm = true }) {
-                    Icon(
-                        imageVector = MiuixIcons.Delete,
-                        contentDescription = stringResource(R.string.preset_delete),
-                        tint = MiuixTheme.colorScheme.error,
-                    )
+            if (view == PresetSheetView.Detail) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (preset.local) {
+                        AppModalIconButton(onClick = { showDeleteConfirm = true }) {
+                            Icon(
+                                imageVector = MiuixIcons.Delete,
+                                contentDescription = stringResource(R.string.preset_delete),
+                                tint = MiuixTheme.colorScheme.error,
+                            )
+                        }
+                    }
+                    if (shareId != null) {
+                        AppModalIconButton(onClick = {
+                            val language = context.resources.configuration.locales[0].language
+                            val route = if (language == "zh") "cloud-presets.html" else "en/cloud-presets.html"
+                            val link = Uri.parse("https://hyperisland.1812z.top/$route").buildUpon()
+                                .appendQueryParameter("preset", shareId)
+                                .build()
+                            val send = Intent(Intent.ACTION_SEND)
+                                .setType("text/plain")
+                                .putExtra(Intent.EXTRA_TEXT, link.toString())
+                            context.startActivity(Intent.createChooser(send, null))
+                        }) {
+                            Icon(MiuixIcons.Share, contentDescription = stringResource(R.string.preset_share))
+                        }
+                    }
                 }
             }
         },

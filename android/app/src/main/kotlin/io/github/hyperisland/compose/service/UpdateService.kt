@@ -43,7 +43,7 @@ internal object UpdateService {
         }
     }
 
-    private fun isNewer(remote: String, current: String): Boolean {
+    fun isNewer(remote: String, current: String): Boolean {
         val remoteParts = versionParts(remote)
         val currentParts = versionParts(current)
         for (index in 0 until VERSION_PART_COUNT) {

@@ -627,6 +627,8 @@
     <string name="changelog_expand">Genişlet</string>
     <string name="changelog_collapse">Daralt</string>
     <string name="changelog_download">İndir</string>
+    <string name="changelog_update">Güncelle</string>
+    <string name="changelog_installed">Yüklü</string>
     <string name="app_version_with_code">Sürüm %1$s (%2$d)</string>
     <string name="site_data_loading">Yükleniyor…</string>
     <string name="site_data_load_failed">Yüklenemedi, ağınızı kontrol edip yeniden deneyin</string>
@@ -1075,6 +1077,7 @@
     <string name="preset_delete">Sil</string>
     <string name="preset_upload">Yükle</string>
     <string name="preset_copy">Kopyala</string>
+    <string name="preset_share">Ön ayarı paylaş</string>
     <string name="preset_copy_success">Kopyalandı</string>
     <string name="preset_sort">Sıralama ölçütü</string>
     <string name="preset_sort_name">Ad</string>

@@ -627,6 +627,8 @@
     <string name="changelog_expand">展開</string>
     <string name="changelog_collapse">折りたたむ</string>
     <string name="changelog_download">ダウンロード</string>
+    <string name="changelog_update">更新</string>
+    <string name="changelog_installed">インストール済み</string>
     <string name="app_version_with_code">バージョン %1$s (%2$d)</string>
     <string name="site_data_loading">読み込み中…</string>
     <string name="site_data_load_failed">読み込みに失敗しました。ネットワークを確認して再試行してください</string>
@@ -1075,6 +1077,7 @@
     <string name="preset_delete">削除</string>
     <string name="preset_upload">アップロード</string>
     <string name="preset_copy">コピー</string>
+    <string name="preset_share">プリセットを共有</string>
     <string name="preset_copy_success">コピーしました</string>
     <string name="preset_sort">並び替え</string>
     <string name="preset_sort_name">名前</string>

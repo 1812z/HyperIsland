@@ -160,6 +160,8 @@
     <string name="changelog_expand">توسيع</string>
     <string name="changelog_collapse">طي</string>
     <string name="changelog_download">تنزيل</string>
+    <string name="changelog_update">تحديث</string>
+    <string name="changelog_installed">مثبّت</string>
     <string name="app_version_with_code">الإصدار %1$s (%2$d)</string>
     <string name="site_data_loading">جارٍ التحميل…</string>
     <string name="site_data_load_failed">فشل التحميل، تحقق من الشبكة وأعد المحاولة</string>
@@ -1078,6 +1080,7 @@
     <string name="preset_delete">حذف</string>
     <string name="preset_upload">رفع</string>
     <string name="preset_copy">نسخ</string>
+    <string name="preset_share">مشاركة الإعداد المسبق</string>
     <string name="preset_copy_success">تم النسخ</string>
     <string name="preset_sort">الترتيب حسب</string>
     <string name="preset_sort_name">الاسم</string>

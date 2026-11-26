@@ -43,6 +43,7 @@ import io.github.hyperisland.compose.data.ChangelogFeed
 import io.github.hyperisland.compose.data.ReleaseEntry
 import io.github.hyperisland.compose.data.formatGeneratedAt
 import io.github.hyperisland.compose.service.SiteDataClient
+import io.github.hyperisland.compose.service.UpdateService
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Text
@@ -104,7 +105,9 @@ internal fun ChangelogPage(onBack: () -> Unit) {
     ) {
         item {
             ChangelogHeaderCard(
-                downloadUrl = feed?.newest?.downloadUrl ?: FALLBACK_DOWNLOAD_URL,
+                updateUrl = feed?.newest
+                    ?.takeIf { UpdateService.isNewer(it.version, BuildConfig.VERSION_NAME) }
+                    ?.downloadUrl,
             )
         }
 
@@ -177,14 +180,8 @@ internal fun ChangelogPage(onBack: () -> Unit) {
     }
 }
 
-/**
- * 页首卡片：应用图标 + 名称 + 当前安装版本 + 下载入口。
- *
- * 下载目标是**站点公布的最新版**，不是本地版本 —— 本地版本只作为「你在哪一版」的参照，
- * 拿来当下载目标会出现「点了下载还是同一版」的死循环。
- */
 @Composable
-private fun ChangelogHeaderCard(downloadUrl: String) {
+private fun ChangelogHeaderCard(updateUrl: String?) {
     val context = LocalContext.current
     AppCard(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -216,14 +213,16 @@ private fun ChangelogHeaderCard(downloadUrl: String) {
                 )
             }
             Spacer(Modifier.width(12.dp))
-            AppActionButton(
-                onClick = { context.openInBrowser(downloadUrl) },
-                colors = ButtonDefaults.buttonColorsPrimary(),
-            ) {
+            if (updateUrl != null) {
+                ReleaseActionButton(
+                    label = stringResource(R.string.changelog_update),
+                    onClick = { context.openInBrowser(updateUrl) },
+                )
+            } else {
                 Text(
-                    text = stringResource(R.string.changelog_download),
-                    fontSize = 14.sp,
-                    color = MiuixTheme.colorScheme.onPrimary,
+                    text = stringResource(R.string.changelog_installed),
+                    fontSize = 13.sp,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
             }
         }
@@ -264,7 +263,7 @@ private fun ReleaseCard(
                     }
                 }
                 Spacer(Modifier.width(10.dp))
-                DownloadButton(onClick = onDownload)
+                ReleaseActionButton(label = stringResource(R.string.changelog_download), onClick = onDownload)
             }
             if (expanded) {
                 Spacer(Modifier.height(10.dp))
@@ -302,13 +301,13 @@ private fun ReleaseCard(
 }
 
 /**
- * 版本卡里的下载按钮：强调色实心 + 白字。
+ * 版本卡里的操作按钮：强调色实心 + 白字。
  *
  * 尺寸比对话框里那套默认按钮小一圈 —— 默认 `MinWidth 58dp / MinHeight 40dp`
  * 再加 16dp 侧边距，会把版本卡头部撑得比正文还高，109 张卡叠起来尤其难看。
  */
 @Composable
-private fun DownloadButton(onClick: () -> Unit) {
+private fun ReleaseActionButton(label: String, onClick: () -> Unit) {
     AppActionButton(
         onClick = onClick,
         minWidth = 0.dp,
@@ -318,13 +317,10 @@ private fun DownloadButton(onClick: () -> Unit) {
         colors = ButtonDefaults.buttonColorsPrimary(),
     ) {
         Text(
-            text = stringResource(R.string.changelog_download),
+            text = label,
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium,
             color = MiuixTheme.colorScheme.onPrimary,
         )
     }
 }
-
-/** 数据还没到手时点下载的兜底目标：资源下载页，而不是空链接。 */
-private const val FALLBACK_DOWNLOAD_URL = "https://hyperisland.1812z.top/downloads.html"
