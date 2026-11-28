@@ -4,10 +4,16 @@ import io.github.hyperisland.xposed.diagnostics.profiledHook
 
 import android.app.Notification
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.view.View
+import android.view.ViewTreeObserver
+import io.github.hyperisland.xposed.hook.SystemUI.animation.ExpandedVisibilitySuppression
 import io.github.libxposed.api.XposedModuleInterface.PackageLoadedParam
 import io.github.libxposed.api.XposedModule
+import java.lang.ref.WeakReference
+import java.util.WeakHashMap
 import kotlin.jvm.JvmStatic
 
 /**
@@ -34,6 +40,31 @@ object FocusNotifStatusBarIconHook : BaseHook() {
 
     @Volatile private var cachedDirectProxyActiveUntilElapsed = 0L
     @Volatile private var hooked = false
+    @Volatile private var expandedOcclusionSuppressed = false
+    @Volatile private var statusBarFragmentRef = WeakReference<Any>(null)
+    private val expandedOcclusionOwners = WeakHashMap<View, Boolean>()
+    private data class SuppressedViewState(val visibility: Int, val alpha: Float)
+    private val suppressedStatusBarViews = ExpandedVisibilitySuppression<View, SuppressedViewState>(
+        capture = { SuppressedViewState(it.visibility, it.alpha) },
+        hide = { view ->
+            if (view.visibility == View.VISIBLE) {
+                view.animate().cancel()
+                view.visibility = View.INVISIBLE
+            }
+        },
+        restore = { view, original ->
+            view.animate().cancel()
+            view.alpha = original.alpha
+            view.visibility = original.visibility
+        },
+    )
+    private data class StatusBarWatch(
+        val preDraw: ViewTreeObserver.OnPreDrawListener,
+        val attach: View.OnAttachStateChangeListener,
+        var observer: WeakReference<ViewTreeObserver>? = null,
+    )
+    private val statusBarWatches = WeakHashMap<View, StatusBarWatch>()
+    private val mainHandler = Handler(Looper.getMainLooper())
     /** 上次执行 icon 恢复操作的时间戳（elapsedRealtime），用于节流 */
     @Volatile private var lastRestoreElapsed = 0L
     private const val RESTORE_THROTTLE_MS = 200L
@@ -56,12 +87,82 @@ object FocusNotifStatusBarIconHook : BaseHook() {
     private fun isDirectProxyActive(): Boolean =
         cachedDirectProxyActiveUntilElapsed > SystemClock.elapsedRealtime()
 
+    /** Hide the status container and notification icon subcontainers while a custom-gap island is expanded. */
+    internal fun setExpandedOcclusionSuppressed(owner: View, suppressed: Boolean) {
+        val apply: () -> Unit = {
+            if (suppressed && (expandedOcclusionOwners.size < 128 || expandedOcclusionOwners.containsKey(owner))) {
+                expandedOcclusionOwners[owner] = true
+            }
+            else expandedOcclusionOwners.remove(owner)
+            expandedOcclusionSuppressed = expandedOcclusionOwners.isNotEmpty()
+            applyExpandedOcclusionSuppression()
+        }
+        if (Looper.myLooper() == Looper.getMainLooper()) apply() else mainHandler.post(apply)
+    }
+
     override fun onInit(module: XposedModule, param: PackageLoadedParam) {
+        if (param.packageName != "com.android.systemui") return
         if (hooked) return
         hooked = true
         val classLoader = param.defaultClassLoader
         hookActiveNotificationModel(module, classLoader)
+        hookStatusBarViewLifecycle(module, classLoader)
         hookUpdateStatusBarVisibilities(module, classLoader)
+    }
+
+    private fun hookStatusBarViewLifecycle(module: XposedModule, classLoader: ClassLoader) {
+        // Newer SystemUI no longer has MiuiCollapsedStatusBarFragment. The phone View
+        // still owns the clock, both notification icon parents, and the system icons.
+        val viewClass = sequenceOf(
+            "com.android.systemui.statusbar.phone.MiuiPhoneStatusBarView",
+            "com.android.systemui.statusbar.phone.PhoneStatusBarView",
+        ).mapNotNull { runCatching { classLoader.loadClass(it) }.getOrNull() }.firstOrNull() ?: return
+        listOf("onFinishInflate", "onAttachedToWindow", "onDetachedFromWindow").forEach { name ->
+            val method = generateSequence(viewClass) { it.superclass }.mapNotNull { clazz ->
+                runCatching { clazz.getDeclaredMethod(name) }.getOrNull()
+            }.firstOrNull() ?: return@forEach
+            try {
+                module.profiledHook("FocusNotifStatusBarIconHook", method).intercept { chain ->
+                    val result = chain.proceed()
+                    runCatching {
+                        val view = chain.thisObject as? View ?: return@runCatching
+                        if (name == "onDetachedFromWindow") unwatchStatusBarView(view)
+                        else watchStatusBarView(view)
+                    }.onFailure { error ->
+                        logFailureOnce(module, "status-bar-$name") { "$name: ${error.message}" }
+                    }
+                    result
+                }
+                log(module) { "hooked ${method.declaringClass.name}.$name for expanded occlusion" }
+            } catch (error: Throwable) {
+                logError(module, "status bar lifecycle hook failed ($name): ${error.message}")
+            }
+        }
+    }
+
+    private fun watchStatusBarView(view: View) {
+        if (!statusBarWatches.containsKey(view)) {
+            if (statusBarWatches.size >= 32) return
+            val ref = WeakReference(view)
+            val preDraw = ViewTreeObserver.OnPreDrawListener {
+                if (ref.get() != null) applyExpandedOcclusionSuppression()
+                true
+            }
+            val attach = object : View.OnAttachStateChangeListener {
+                override fun onViewAttachedToWindow(v: View) = watchStatusBarView(v)
+                override fun onViewDetachedFromWindow(v: View) = unwatchStatusBarView(v)
+            }
+            statusBarWatches[view] = StatusBarWatch(preDraw, attach)
+            view.addOnAttachStateChangeListener(attach)
+        }
+        applyExpandedOcclusionSuppression()
+    }
+
+    private fun unwatchStatusBarView(view: View) {
+        val watch = statusBarWatches.remove(view) ?: return
+        watch.observer?.get()?.takeIf { it.isAlive }?.removeOnPreDrawListener(watch.preDraw)
+        view.removeOnAttachStateChangeListener(watch.attach)
+        suppressedStatusBarViews.release(view)
     }
 
     private fun hookActiveNotificationModel(module: XposedModule, classLoader: ClassLoader) {
@@ -124,8 +225,11 @@ object FocusNotifStatusBarIconHook : BaseHook() {
 
         try {
             module.profiledHook("FocusNotifStatusBarIconHook", method).intercept { chain ->
-                val result = chain.proceed()
                 val fragment = chain.thisObject
+                if (fragment != null) {
+                    statusBarFragmentRef = WeakReference(fragment)
+                }
+                val result = chain.proceed()
                 if (isDirectProxyActive()) {
                     // 节流：200ms 内只执行一次，避免高频状态栏刷新时重复做反射+UI操作
                     val now = SystemClock.elapsedRealtime()
@@ -137,6 +241,7 @@ object FocusNotifStatusBarIconHook : BaseHook() {
                         log(module) { "icon area restored" }
                     }
                 }
+                if (fragment != null) applyExpandedOcclusionSuppression()
                 result
             }
             log(module) { "hooked ${method.declaringClass.name}.updateStatusBarVisibilities(boolean)" }
@@ -186,6 +291,53 @@ object FocusNotifStatusBarIconHook : BaseHook() {
         setVisible(getObjectFieldOrNull(fragment, "mNotificationIcons") as? View)
         setVisible(getObjectFieldOrNull(fragment, "mStatusBarIcons") as? View)
         setVisible(getObjectFieldOrNull(fragment, "mStatusContainer") as? View)
+    }
+
+    private fun resolveStatusBarContentViews(fragment: Any): List<View> {
+        val root = (callMethodOrNull(fragment, "getView") as? View)
+            ?: (getObjectFieldOrNull(fragment, "mView") as? View)
+        if (root != null) return listOf(root)
+        val views = mutableListOf<View>()
+        listOf(
+            "mStatusContainer",
+            "mNotificationIconAreaInner",
+            "mNotificationIcons",
+            "mStatusBarIcons",
+            "mClockView",
+        ).forEach { field ->
+            val view = getObjectFieldOrNull(fragment, field) as? View ?: return@forEach
+            if (views.none { it === view }) views.add(view)
+        }
+        return views
+    }
+
+    private fun applyExpandedOcclusionSuppression() {
+        expandedOcclusionSuppressed = expandedOcclusionOwners.isNotEmpty()
+        val displays = expandedOcclusionOwners.keys.mapNotNull { it.display?.displayId }.toSet()
+        val roots = statusBarWatches.keys.toList().filter { it.isAttachedToWindow }
+        val targets = if (roots.isNotEmpty()) roots else {
+            statusBarFragmentRef.get()?.let(::resolveStatusBarContentViews).orEmpty()
+                .filter { it.isAttachedToWindow }
+        }
+        // Keep the first snapshot for the entire expanded lifetime. A normal status bar
+        // refresh may restore children, but must never release/re-capture our root state.
+        suppressedStatusBarViews.update(
+            targets.filter { it.display?.displayId in displays },
+            active = expandedOcclusionSuppressed,
+        )
+        statusBarWatches.entries.toList().forEach { (view, watch) ->
+            val observer = view.viewTreeObserver
+            if (expandedOcclusionSuppressed && view.isAttachedToWindow && observer.isAlive) {
+                if (watch.observer?.get() !== observer) {
+                    watch.observer?.get()?.takeIf { it.isAlive }?.removeOnPreDrawListener(watch.preDraw)
+                    observer.addOnPreDrawListener(watch.preDraw)
+                    watch.observer = WeakReference(observer)
+                }
+            } else {
+                watch.observer?.get()?.takeIf { it.isAlive }?.removeOnPreDrawListener(watch.preDraw)
+                watch.observer = null
+            }
+        }
     }
 
     private fun setVisible(view: View?) {

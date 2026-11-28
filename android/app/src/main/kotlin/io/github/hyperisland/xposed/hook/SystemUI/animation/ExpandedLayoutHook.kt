@@ -10,6 +10,7 @@ import android.view.ViewTreeObserver
 import io.github.hyperisland.data.ExpandedCollapsePreferences
 import io.github.hyperisland.xposed.ConfigManager
 import io.github.hyperisland.xposed.hook.BaseHook
+import io.github.hyperisland.xposed.hook.FocusNotifStatusBarIconHook
 import io.github.hyperisland.xposed.hook.SystemUI.BackGround.Blur.SystemUiReflection.findMethod
 import io.github.hyperisland.xposed.utils.HookUtils
 import io.github.libxposed.api.XposedModule
@@ -29,6 +30,9 @@ object ExpandedLayoutHook : BaseHook() {
     private data class Watch(
         val preDraw: ViewTreeObserver.OnPreDrawListener,
         val attach: View.OnAttachStateChangeListener,
+        val suppressedIslandViews: MutableMap<View, Boolean> = WeakHashMap(),
+        var occlusionDirty: Boolean = true,
+        var lastOcclusionActive: Boolean? = null,
         var observer: WeakReference<ViewTreeObserver>? = null,
     )
     private val watches = WeakHashMap<View, Watch>()
@@ -46,8 +50,13 @@ object ExpandedLayoutHook : BaseHook() {
         val animating: Method?,
         val expanded: Method?,
         val fakeExpanded: Method?,
+        val bigIsland: Method?,
+        val smallIsland: Method?,
     )
     private val accessors = WeakHashMap<Class<*>, Accessors>()
+    private val islandSuppressionOwners = WeakHashMap<View, MutableMap<View, Boolean>>()
+    private val originalIslandVisibility = WeakHashMap<View, Int>()
+    private val originalIslandAlpha = WeakHashMap<View, Float>()
     private val mainHandler = Handler(Looper.getMainLooper())
     @Volatile private var enabled = false
     @Volatile private var contentTopGapDp = 0
@@ -67,7 +76,12 @@ object ExpandedLayoutHook : BaseHook() {
                 lifted.keys.toList().forEach(::restore)
                 originalPadding.keys.toList().forEach(::restorePadding)
             }
-            watches.keys.toList().forEach { applyContentGap(it); it.requestLayout(); it.invalidate() }
+            watches.keys.toList().forEach {
+                watches[it]?.occlusionDirty = true
+                applyContentGap(it)
+                it.requestLayout()
+                it.invalidate()
+            }
             }
         }
     }
@@ -113,13 +127,20 @@ object ExpandedLayoutHook : BaseHook() {
             }
             module.profiledHook("ExpandedLayoutHook", updateState).intercept { chain ->
                 val owner = chain.thisObject as? View
+                val expanding = chain.args.firstOrNull()?.javaClass?.simpleName == "Expanded"
                 runCatching { if (owner != null && supported(owner)) {
-                    watch(owner)
+                    if (enabled || expanding) watch(owner)
                     // Raise before the system submits the first expanded animation frame.
-                    if (topGapDp >= 0 && chain.args.firstOrNull()?.javaClass?.simpleName == "Expanded") lift(owner)
+                    if (topGapDp >= 0 && expanding) lift(owner)
                 } }
                 val result = chain.proceed()
-                runCatching { if (owner != null) updateLayer(owner) }
+                runCatching {
+                    if (owner != null) {
+                        watches[owner]?.occlusionDirty = true
+                        updateLayer(owner)
+                        markExpandedOwnersDirty(owner)
+                    }
+                }
                 result
             }
             // updateExpandedSize() writes the measured expanded_view height back into the
@@ -155,6 +176,7 @@ object ExpandedLayoutHook : BaseHook() {
                         runCatching { (chain.thisObject as? View)?.let { owner ->
                             watch(owner)
                             applyContentGap(owner)
+                            markExpandedOwnersDirty(owner)
                         } }
                         result
                     }
@@ -180,6 +202,8 @@ object ExpandedLayoutHook : BaseHook() {
                 "isAnimating" -> cached.animating
                 "getExpandedView" -> cached.expanded
                 "getFakeExpandedView" -> cached.fakeExpanded
+                "getBigIslandView" -> cached.bigIsland
+                "getSmallIslandView" -> cached.smallIsland
                 else -> findMethod(clazz, getter)
             }
         }
@@ -190,6 +214,8 @@ object ExpandedLayoutHook : BaseHook() {
             animating = runCatching { findMethod(clazz, "isAnimating") }.getOrNull(),
             expanded = runCatching { findMethod(clazz, "getExpandedView") }.getOrNull(),
             fakeExpanded = runCatching { findMethod(clazz, "getFakeExpandedView") }.getOrNull(),
+            bigIsland = runCatching { findMethod(clazz, "getBigIslandView") }.getOrNull(),
+            smallIsland = runCatching { findMethod(clazz, "getSmallIslandView") }.getOrNull(),
         )
         accessors[clazz] = resolved
         return when (getter) {
@@ -198,12 +224,14 @@ object ExpandedLayoutHook : BaseHook() {
             "isAnimating" -> resolved.animating
             "getExpandedView" -> resolved.expanded
             "getFakeExpandedView" -> resolved.fakeExpanded
+            "getBigIslandView" -> resolved.bigIsland
+            "getSmallIslandView" -> resolved.smallIsland
             else -> findMethod(clazz, getter)
         }
     }
 
     private fun supported(owner: View): Boolean {
-        if (!enabled || owner.resources.configuration.smallestScreenWidthDp >= 600) return false
+        if (owner.resources.configuration.smallestScreenWidthDp >= 600) return false
         // App and miniwindow coordinates belong to the system's window-animation pipeline.
         return isSupportedState(stateName(owner, "getState"))
     }
@@ -226,8 +254,12 @@ object ExpandedLayoutHook : BaseHook() {
             override fun onViewDetachedFromWindow(v: View) {
                 runCatching {
                 restoreOwner(v)
+                if (v.javaClass.simpleName == "DynamicIslandContentView") {
+                    FocusNotifStatusBarIconHook.setExpandedOcclusionSuppressed(v, false)
+                }
                 contentSlot(v)?.let(::restorePadding)
                 val watch = watches.remove(v) ?: return@runCatching
+                restoreSuppressedIslands(v, watch)
                 watch.observer?.get()?.takeIf { it.isAlive }?.removeOnPreDrawListener(watch.preDraw)
                 v.removeOnAttachStateChangeListener(this)
                 }
@@ -249,11 +281,19 @@ object ExpandedLayoutHook : BaseHook() {
 
     private fun updateLayer(owner: View) {
         val state = stateName(owner, "getState")
-        if (!enabled || owner.resources.configuration.smallestScreenWidthDp >= 600 ||
+        if (owner.resources.configuration.smallestScreenWidthDp >= 600 ||
             !isSupportedState(state)
         ) {
             applyContentGap(owner)
             restoreOwner(owner)
+            watches[owner]?.let { watch ->
+                if (watch.occlusionDirty || watch.lastOcclusionActive != false) {
+                    updateOcclusion(owner, active = false)
+                    watch.lastOcclusionActive = false
+                    watch.occlusionDirty = false
+                }
+            }
+            if (!enabled) unwatch(owner)
             return
         }
         applyContentGap(owner, supportedOverride = true)
@@ -263,6 +303,142 @@ object ExpandedLayoutHook : BaseHook() {
         }.getOrDefault(false)
         val leaving = stateName(owner, "getLastState") == "Expanded" && animating
         if (topGapDp >= 0 && (expanding || leaving)) lift(owner) else restoreOwner(owner)
+        val realExpanded = owner.javaClass.simpleName == "DynamicIslandContentView" && expanding
+        val active = ExpandedOcclusionPolicy.shouldSuppress(
+            hasCustomTopSpacing = topGapDp >= 0,
+            isExpanded = realExpanded,
+        )
+        watches[owner]?.let { watch ->
+            if (watch.occlusionDirty || watch.lastOcclusionActive != active) {
+                updateOcclusion(owner, active)
+                watch.lastOcclusionActive = active
+                watch.occlusionDirty = false
+            }
+        }
+        if (!enabled && !expanding) unwatch(owner)
+    }
+
+    private fun updateOcclusion(owner: View, active: Boolean) {
+        // Only the stable real content owns the other live island slots. The fake view remains
+        // under SystemUI's animation lifecycle and is never visibility-toggled here.
+        if (owner.javaClass.simpleName != "DynamicIslandContentView") return
+        val watch = watches[owner]
+        if (!active) {
+            watch?.let { restoreSuppressedIslands(owner, it) }
+            FocusNotifStatusBarIconHook.setExpandedOcclusionSuppressed(owner, false)
+            return
+        }
+
+        watch ?: return
+        val islandTargets = otherRealIslandSlots(owner)
+        // A configured top gap intentionally clears all competing island slots while expanded.
+        // Do not wait for geometric overlap: the system may animate their positions independently.
+        val desiredTargets = islandTargets
+        val targetsToUpdate = mutableListOf<View>()
+        (watch.suppressedIslandViews.keys.toList() + desiredTargets).forEach { target ->
+            if (targetsToUpdate.none { it === target }) targetsToUpdate.add(target)
+        }
+        targetsToUpdate.forEach { target ->
+            setIslandSuppressed(owner, target, desiredTargets.any { it === target })
+        }
+        watch.suppressedIslandViews.clear()
+        desiredTargets.forEach { watch.suppressedIslandViews[it] = true }
+        FocusNotifStatusBarIconHook.setExpandedOcclusionSuppressed(owner, true)
+    }
+
+    private fun setIslandSuppressed(owner: View, target: View, suppress: Boolean) {
+        if (suppress) {
+            if (islandSuppressionOwners.size >= 128 && !islandSuppressionOwners.containsKey(target)) return
+            val owners = islandSuppressionOwners.getOrPut(target) { WeakHashMap<View, Boolean>() }
+            if (owners.containsKey(owner)) {
+                if (target.visibility == View.VISIBLE && target.alpha > 0f) fadeIsland(target, hide = true)
+                return
+            }
+            if (owners.isEmpty()) {
+                originalIslandVisibility[target] = target.visibility
+                originalIslandAlpha[target] = target.alpha
+            }
+            owners[owner] = true
+            fadeIsland(target, hide = true)
+            return
+        }
+        val owners = islandSuppressionOwners[target] ?: return
+        owners.remove(owner)
+        if (owners.isEmpty()) {
+            islandSuppressionOwners.remove(target)
+            val originalVisibility = originalIslandVisibility.remove(target) ?: View.VISIBLE
+            val originalAlpha = originalIslandAlpha.remove(target) ?: 1f
+            fadeIsland(target, hide = false, originalVisibility, originalAlpha)
+        }
+    }
+
+    private fun fadeIsland(
+        target: View,
+        hide: Boolean,
+        originalVisibility: Int = target.visibility,
+        originalAlpha: Float = 1f,
+    ) {
+        target.animate().cancel()
+        if (hide) {
+            if (target.visibility != View.VISIBLE) return
+            target.animate()
+                .alpha(0f)
+                .setDuration(ExpandedOcclusionPolicy.FADE_DURATION_MS)
+                .withEndAction {
+                    if (islandSuppressionOwners.containsKey(target)) target.visibility = View.INVISIBLE
+                }
+                .start()
+        } else {
+            target.visibility = originalVisibility
+            if (originalVisibility != View.VISIBLE) {
+                target.alpha = originalAlpha
+                return
+            }
+            target.alpha = 0f
+            target.animate()
+                .alpha(originalAlpha)
+                .setDuration(ExpandedOcclusionPolicy.FADE_DURATION_MS)
+                .start()
+        }
+    }
+
+    private fun restoreSuppressedIslands(owner: View, watch: Watch) {
+        watch.suppressedIslandViews.keys.toList().forEach { target ->
+            setIslandSuppressed(owner, target, suppress = false)
+        }
+        watch.suppressedIslandViews.clear()
+    }
+
+    private fun otherRealIslandSlots(owner: View): List<View> {
+        val targets = mutableListOf<View>()
+        watches.keys.toList().forEach { candidate ->
+            if (candidate === owner || candidate.javaClass.simpleName != "DynamicIslandContentView" ||
+                !candidate.isAttachedToWindow || candidate.display?.displayId != owner.display?.displayId
+            ) return@forEach
+            listOf("getBigIslandView", "getSmallIslandView").forEach { getter ->
+                val target = runCatching { accessor(candidate, getter)?.invoke(candidate) as? View }
+                    .getOrNull() ?: return@forEach
+                if (targets.none { it === target } && targets.size < 128) targets.add(target)
+            }
+        }
+        return targets
+    }
+
+    private fun markExpandedOwnersDirty(source: View) {
+        watches.keys.toList().forEach { candidate ->
+            if (candidate !== source && candidate.javaClass.simpleName == "DynamicIslandContentView" &&
+                stateName(candidate, "getState") == "Expanded"
+            ) {
+                watches[candidate]?.occlusionDirty = true
+                candidate.invalidate()
+            }
+        }
+    }
+
+    private fun unwatch(owner: View) {
+        val watch = watches.remove(owner) ?: return
+        watch.observer?.get()?.takeIf { it.isAlive }?.removeOnPreDrawListener(watch.preDraw)
+        owner.removeOnAttachStateChangeListener(watch.attach)
     }
 
     private fun contentSlot(owner: View): View? = runCatching {
